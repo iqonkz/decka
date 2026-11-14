@@ -131,3 +131,59 @@ input { user-select: text; touch-action: manipulation; }
   animation: ring-fill 800ms linear forwards;
 }
 @keyframes ring-fill { to { stroke-dashoffset: 0; } }
+
+.badge {
+  position: absolute;
+  top: 0.8vmin;
+  right: 1vmin;
+  z-index: 5;
+  padding: 0.8vmin 1.8vmin;
+  border-radius: 1.2vmin;
+  font-size: 2.4vmin;
+  pointer-events: none;
+}
+.badge.connecting { color: #9ca3af; }
+.badge.offline { background: #7f1d1d; color: #fff; }
+
+.toasts {
+  position: absolute;
+  top: 1.5vmin;
+  left: 50%;
+  z-index: 10;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 1vmin;
+  width: min(80vmin, 90%);
+}
+.toast {
+  padding: 1.4vmin 2vmin;
+  border-left: 1vmin solid #2563eb;
+  border-radius: 1.2vmin;
+  background: #1e1e24;
+  box-shadow: 0 0.6vmin 2vmin rgba(0, 0, 0, 0.6);
+}
+.toast-title { font-size: 2.8vmin; font-weight: 700; }
+.toast-body { margin-top: 0.4vmin; font-size: 2.4vmin; color: #9ca3af; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.75);
+}
+.dialog { padding: 4vmin 5vmin; border-radius: 2vmin; background: #1e1e24; text-align: center; }
+.dialog h2 { margin: 0 0 3vmin; font-size: 4vmin; }
+.dialog-actions { display: flex; gap: 3vmin; justify-content: center; }
+.secondary {
+  padding: 2vmin 5vmin;
+  border: 1px solid #3a3a40;
+  border-radius: 1.5vmin;
+  background: transparent;
+  color: #e5e5e5;
+  font-size: 3.2vmin;
+}
+.primary.danger { background: #b91c1c; }
