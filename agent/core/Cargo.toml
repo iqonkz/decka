@@ -11,15 +11,21 @@ name = "decka-headless"
 path = "src/bin/decka-headless.rs"
 
 [dependencies]
+axum = { version = "0.8.9", features = ["ws"] }
 base64 = "0.23.1"
 dirs = "7.0.0"
+local-ip-address = "0.6.13"
 rand = "0.10.3"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
 sha2 = "0.11.1"
 thiserror = "2.0.21"
 tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros", "sync", "time", "net", "process", "signal", "fs"] }
+tower-http = { version = "0.7.1", features = ["fs", "set-header"] }
+tracing = "0.1.44"
+tracing-subscriber = "0.3.23"
 url = "2.5.8"
 
 [dev-dependencies]
+reqwest = "0.13.5"
 tempfile = "3.27.0"
