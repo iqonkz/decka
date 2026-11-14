@@ -1,5 +1,6 @@
 pub mod http;
 pub mod static_files;
+pub mod ws;
 
 use std::path::PathBuf;
 
@@ -16,6 +17,7 @@ pub const MAX_BODY_BYTES: usize = 16384;
 
 pub fn router(agent: Agent, client_dist: Option<PathBuf>) -> Router {
     let router = Router::new()
+        .route("/ws", get(ws::handler))
         .route("/api/health", get(http::health))
         .route("/api", any(http::api_not_found))
         .route("/api/{*rest}", any(http::api_not_found));

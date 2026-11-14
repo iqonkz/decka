@@ -3,7 +3,9 @@
 use std::net::{IpAddr, SocketAddr};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use serde::Serialize;
 use tokio::net::TcpListener;
@@ -15,6 +17,7 @@ use crate::auth::{Devices, Pairing};
 use crate::config::{self, Loaded};
 use crate::model::*;
 use crate::proto::NotifyReq;
+use crate::ratelimit::RateLimiter;
 use crate::state::{Store, MAX_NOTIFICATIONS};
 
 /// Notification body limit (PROTOCOL.md 5).
@@ -102,6 +105,27 @@ pub struct DeviceInfo {
     pub connected: bool,
 }
 
+/// A live authorized WebSocket connection.
+struct Conn {
+    device_id: String,
+    name: String,
+    remote: String,
+    connected_at: u64,
+    kick: Option<oneshot::Sender<()>>,
+}
+
+/// Removes the connection from the registry when dropped.
+pub struct ConnGuard {
+    agent: Agent,
+    id: u64,
+}
+
+impl Drop for ConnGuard {
+    fn drop(&mut self) {
+        self.agent.inner.conns.lock().unwrap().remove(&self.id);
+    }
+}
+
 struct ServerHandle {
     shutdown: oneshot::Sender<()>,
     join: JoinHandle<()>,
@@ -117,6 +141,9 @@ struct Inner {
     pairing: Pairing,
     devices: Devices,
     notif_counter: AtomicU64,
+    pair_limiter: RateLimiter,
+    conns: Mutex<HashMap<u64, Conn>>,
+    conn_counter: AtomicU64,
     listening: Mutex<Option<Listening>>,
     listen_error: Mutex<Option<String>>,
     server: tokio::sync::Mutex<Option<ServerHandle>>,
@@ -146,6 +173,9 @@ impl Agent {
                 pairing: Pairing::new(opts.fixed_pair_code.clone()),
                 devices: Devices::new(config_dir.join("devices.json"), devices),
                 notif_counter: AtomicU64::new(1),
+                pair_limiter: RateLimiter::new(10, Duration::from_secs(60)),
+                conns: Mutex::new(HashMap::new()),
+                conn_counter: AtomicU64::new(1),
                 listening: Mutex::new(None),
                 listen_error: Mutex::new(None),
                 server: tokio::sync::Mutex::new(None),
@@ -186,6 +216,25 @@ impl Agent {
         &self.inner.pairing
     }
 
+    pub fn pair_limiter(&self) -> &RateLimiter {
+        &self.inner.pair_limiter
+    }
+
+    /// Adds a live connection to the registry. The receiver fires when the device is revoked.
+    pub(crate) fn register_connection(&self, device_id: &str, name: &str, remote: SocketAddr) -> (ConnGuard, oneshot::Receiver<()>) {
+        let id = self.inner.conn_counter.fetch_add(1, Ordering::Relaxed);
+        let (kick, kicked) = oneshot::channel();
+        let conn = Conn {
+            device_id: device_id.to_string(),
+            name: name.to_string(),
+            remote: remote.to_string(),
+            connected_at: crate::auth::now_ms(),
+            kick: Some(kick),
+        };
+        self.inner.conns.lock().unwrap().insert(id, conn);
+        (ConnGuard { agent: self.clone(), id }, kicked)
+    }
+
     pub fn devices(&self) -> &Devices {
         &self.inner.devices
     }
@@ -201,16 +250,29 @@ impl Agent {
     }
 
     pub fn list_devices(&self) -> Vec<DeviceInfo> {
+        let connected: std::collections::HashSet<String> =
+            self.inner.conns.lock().unwrap().values().map(|c| c.device_id.clone()).collect();
         self.inner
             .devices
             .list()
             .into_iter()
-            .map(|d| DeviceInfo { id: d.id, name: d.name, created_at: d.created_at, last_seen_at: d.last_seen_at, connected: false })
+            .map(|d| {
+                let is_connected = connected.contains(&d.id);
+                DeviceInfo { id: d.id, name: d.name, created_at: d.created_at, last_seen_at: d.last_seen_at, connected: is_connected }
+            })
             .collect()
     }
 
+    /// Removes the device and closes its open sockets with DEVICE_REVOKED.
     pub fn revoke_device(&self, device_id: &str) {
         self.inner.devices.revoke(device_id);
+        for conn in self.inner.conns.lock().unwrap().values_mut() {
+            if conn.device_id == device_id {
+                if let Some(kick) = conn.kick.take() {
+                    let _ = kick.send(());
+                }
+            }
+        }
     }
 
     pub fn config_dir(&self) -> &std::path::Path {
@@ -257,7 +319,14 @@ impl Agent {
             listening: self.inner.listening.lock().unwrap().clone(),
             listen_error: self.inner.listen_error.lock().unwrap().clone(),
             lan_ips: lan_ips(),
-            clients: Vec::new(),
+            clients: self
+                .inner
+                .conns
+                .lock()
+                .unwrap()
+                .values()
+                .map(|c| ClientStatus { device_id: c.device_id.clone(), name: c.name.clone(), remote: c.remote.clone(), connected_at: c.connected_at })
+                .collect(),
             usb: UsbStatus { enabled: self.config().usb.enabled, adb_found: false, devices: Vec::new(), last_error: None },
             config_dir: self.inner.config_dir.display().to_string(),
         }
