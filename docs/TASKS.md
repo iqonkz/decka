@@ -651,10 +651,11 @@ $env:DECKA_CONFIG_DIR = "$PWD\.tmp\cfg-agent"; $a = Start-Process -FilePath targ
 4. `commands.rs`: по одной `#[tauri::command]` на каждую запись `IpcCommands`; имена и формы аргументов/результатов — точно как в PROTOCOL.md §9. `open_config_dir` — `explorer.exe <configDir>` через `Command`. Все команды зарегистрированы в `invoke_handler`.
 5. Задача в `setup`: слушает `subscribe_status()` и эмитит событие `decka://status-changed`.
 6. `agent/src/ipc.ts`: типизированная обёртка `call<K extends keyof IpcCommands>(cmd: K, args?): Promise<ReturnType<IpcCommands[K]>>` поверх `invoke` и `onStatus(fn)` поверх `listen`.
-**Приёмка:** тесты qr проходят; сборка агента проходит; число команд в `generate_handler!` равно 16.
+7. Интеграционный тест `agent/core/tests/save_config.rs`: агент с одной HTTP-проверкой `a` → `save_config` с проверкой `b` вместо `a` → в течение 2 с в секции `statuses` нет `a` и есть `b` (`unknown` или результат); `save_config` с `collectors.sys.enabled: false` → секция `sys` равна `null` в течение 3 с; `save_config` с `port: 80` → `ok: false`, файл на диске не изменился.
+**Приёмка:** тесты qr и save_config проходят; сборка агента проходит; число команд в `generate_handler!` равно 16.
 **Проверка:**
 ```
-cargo test -p decka-core qr::; cargo build -p decka-agent; npm run typecheck -w agent
+cargo test -p decka-core qr::; cargo test -p decka-core --test save_config; cargo build -p decka-agent; npm run typecheck -w agent
 (Select-String -Path agent\src-tauri\src\commands.rs -Pattern '#\[tauri::command\]').Count
 ```
 (последняя команда печатает `16`)

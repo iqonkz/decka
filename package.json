@@ -1,10 +1,12 @@
 {
   "name": "decka",
   "private": true,
-  "workspaces": ["shared", "client"],
+  "workspaces": ["shared", "client", "agent"],
   "engines": { "node": ">=22.12" },
   "scripts": {
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present"
+    "test": "npm run test --workspaces --if-present",
+    "build:ui": "npm run build -w client && npm run build -w agent",
+    "tauri": "npm run tauri -w agent --"
   }
 }
