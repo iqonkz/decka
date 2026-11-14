@@ -6,3 +6,7 @@ resolver = "2"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
+
+# Dependencies are built without debug info: a much smaller target\debug; our own crates keep theirs.
+[profile.dev.package."*"]
+debug = false

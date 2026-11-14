@@ -68,7 +68,7 @@ async fn invalid_layout_edit_keeps_the_old_layout_and_notifies() {
     .await;
     assert!(notified, "no error notification");
     assert_eq!(page_name(&agent), "Main");
-    assert_eq!(agent.layout().pages[0].items.len(), 14);
+    assert_eq!(agent.layout().pages[0].items.len(), 15);
     agent.shutdown().await;
 }
 
