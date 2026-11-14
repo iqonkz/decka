@@ -102,7 +102,10 @@ export interface LayoutFile {
   display: DisplaySettings;
   pages: Page[];                  // 1..10 страниц, порядок = порядок свайпа
 }
-export interface Page { id: Id; name: string; items: LayoutItem[]; }
+export interface Page {
+  id: Id; name: string; items: LayoutItem[];
+  apps?: string[];        // M11: контекстная страница — показывается сама, когда на ПК активно одно из этих приложений (имена exe, нижний регистр)
+}
 
 export interface DisplaySettings {
   dimAfterSec: number;    // 0 = не затемнять; иначе 10..3600. По умолчанию 60
@@ -110,6 +113,7 @@ export interface DisplaySettings {
   sleepAfterSec: number;  // 0 = без заставки; иначе 30..86400 и > dimAfterSec. По умолчанию 600
   pixelShift: boolean;    // по умолчанию true
   night: { enabled: boolean; from: string; to: string }; // "HH:MM", локальное время телефона
+  contextPages?: boolean; // M11: автопереключение на контекстные страницы; отсутствует = true
 }
 
 interface ItemBase { id: Id; x: number; y: number; w: number; h: number; }
@@ -128,7 +132,12 @@ export interface StatusesItem extends ItemBase { kind: "statuses"; group?: strin
 export interface StatusItemTile extends ItemBase { kind: "status"; statusId: Id; }
 export interface NotificationsItem extends ItemBase { kind: "notifications"; }
 
-export type LayoutItem = ButtonItem | ClockItem | SysItem | StatusesItem | StatusItemTile | NotificationsItem;
+export interface MediaItem extends ItemBase {   // M11: «Сейчас играет»
+  kind: "media";
+  prevAction?: Id; playAction?: Id; nextAction?: Id;  // действия кнопок виджета; отсутствует → кнопка не рисуется
+}
+
+export type LayoutItem = ButtonItem | ClockItem | SysItem | StatusesItem | StatusItemTile | NotificationsItem | MediaItem;
 
 // То, что уходит на телефон в секции "layout": LayoutFile без поля version.
 export type ClientLayout = Omit<LayoutFile, "version">;
@@ -148,6 +157,8 @@ export type ClientLayout = Omit<LayoutFile, "version">;
 6. `label` ≤ 24 символов; `color` — regex `^#[0-9a-fA-F]{6}$`; `icon` — §3.3.
 7. `bind.states`: 1..8 ключей, каждый ключ ≤ 40 символов.
 8. `display`: диапазоны из комментариев в §3.1; `night.from`/`to` — regex `^([01][0-9]|2[0-3]):[0-5][0-9]$`.
+9. (M11) `apps`: 0..10 элементов, каждый — regex `^[a-z0-9._ ()-]{1,60}\.exe$`, без повторов внутри страницы; одно приложение может быть указано только на одной странице файла (иначе ошибка на второй странице: `/pages/<i>/apps/<j>`). Первая страница (`pages[0]`) не может иметь `apps` — она домашняя по умолчанию.
+10. (M11) `media`: размер от 2×1 до `cols×2`; `prevAction`/`playAction`/`nextAction`, если заданы, должны существовать в `actions.json` (как `actionId` кнопки).
 
 Проверки 1–4, 6–8 выражены в JSON Schema там, где это возможно (§5); пересечения, уникальность, ссылки (п. 3, 5) проверяются кодом — одинаково в Rust (`decka-core::config::validate_layout`) и в TS (`shared/src/validate.ts`, используется редактором в окне настроек).
 
@@ -235,6 +246,8 @@ export interface ConfigFile {
   collectors: {
     sys: { enabled: boolean; intervalSec: number };   // по умолчанию { true, 2 }; 1..60
     checks: HttpCheck[];                              // по умолчанию []; максимум 20
+    focus?: { enabled: boolean };                     // M11; отсутствует = { true }
+    media?: { enabled: boolean };                     // M11; отсутствует = { true }
   };
 }
 export interface HttpCheck {
@@ -301,15 +314,19 @@ export interface DeviceInfo { id: Id; name: string; createdAt: number; lastSeenA
     "StatusesItem": { "allOf": [ { "$ref": "#/$defs/ItemBase" }, { "properties": { "kind": { "const": "statuses" }, "w": { "minimum": 2 }, "group": { "type": "string", "maxLength": 40 }, "title": { "type": "string", "maxLength": 30 } } } ] },
     "StatusTile": { "allOf": [ { "$ref": "#/$defs/ItemBase" }, { "required": ["statusId"], "properties": { "kind": { "const": "status" }, "w": { "const": 1 }, "h": { "const": 1 }, "statusId": { "$ref": "#/$defs/Id" } } } ] },
     "NotificationsItem": { "allOf": [ { "$ref": "#/$defs/ItemBase" }, { "properties": { "kind": { "const": "notifications" }, "w": { "minimum": 2 } } } ] },
-    "KnownItem": { "oneOf": [ { "$ref": "#/$defs/ButtonItem" }, { "$ref": "#/$defs/ClockItem" }, { "$ref": "#/$defs/SysItem" }, { "$ref": "#/$defs/StatusesItem" }, { "$ref": "#/$defs/StatusTile" }, { "$ref": "#/$defs/NotificationsItem" } ] },
+    "MediaItem": { "allOf": [ { "$ref": "#/$defs/ItemBase" }, { "properties": { "kind": { "const": "media" }, "w": { "minimum": 2 }, "h": { "maximum": 2 },
+      "prevAction": { "$ref": "#/$defs/Id" }, "playAction": { "$ref": "#/$defs/Id" }, "nextAction": { "$ref": "#/$defs/Id" } } } ] },
+    "KnownItem": { "oneOf": [ { "$ref": "#/$defs/ButtonItem" }, { "$ref": "#/$defs/ClockItem" }, { "$ref": "#/$defs/SysItem" }, { "$ref": "#/$defs/StatusesItem" }, { "$ref": "#/$defs/StatusTile" }, { "$ref": "#/$defs/NotificationsItem" }, { "$ref": "#/$defs/MediaItem" } ] },
     "Page": { "type": "object", "required": ["id","name","items"],
-      "properties": { "id": { "$ref": "#/$defs/Id" }, "name": { "type": "string", "minLength": 1, "maxLength": 30 }, "items": { "type": "array", "maxItems": 40, "items": { "$ref": "#/$defs/KnownItem" } } } },
+      "properties": { "id": { "$ref": "#/$defs/Id" }, "name": { "type": "string", "minLength": 1, "maxLength": 30 }, "items": { "type": "array", "maxItems": 40, "items": { "$ref": "#/$defs/KnownItem" } },
+        "apps": { "type": "array", "maxItems": 10, "uniqueItems": true, "items": { "type": "string", "pattern": "^[a-z0-9._ ()-]{1,60}\\.exe$" } } } },
     "DisplaySettings": { "type": "object", "required": ["dimAfterSec","dimLevel","sleepAfterSec","pixelShift","night"],
       "properties": {
         "dimAfterSec": { "type": "integer", "minimum": 0, "maximum": 3600 },
         "dimLevel": { "type": "number", "minimum": 0.05, "maximum": 1 },
         "sleepAfterSec": { "type": "integer", "minimum": 0, "maximum": 86400 },
         "pixelShift": { "type": "boolean" },
+        "contextPages": { "type": "boolean" },
         "night": { "type": "object", "required": ["enabled","from","to"], "properties": { "enabled": { "type": "boolean" },
           "from": { "type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$" }, "to": { "type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$" } } } } },
     "ClientLayout": { "type": "object", "required": ["grid","display","pages"],
@@ -355,7 +372,113 @@ export interface DeviceInfo { id: Id; name: string; createdAt: number; lastSeenA
 | `statuses` | секция `statuses`, фильтр `group` (если задан) | заголовок `title` (если задан), список: цветная точка + `label` + `text` справа; сортировка: error, warn, running, unknown, ok, внутри — по `label`; не помещается → обрезка, последняя строка `+N` |
 | `status` | один элемент по `statusId` | плитка: цвет фона по состоянию, `label`, `text`; элемента нет → состояние `unknown` и `label = statusId` |
 | `notifications` | секция `notifications` | лента, новые сверху: цветная полоса уровня, `title`, `body` (1 строка), относительное время; тап по элементу → `notif_dismiss` |
+| `media` (M11) | секция `media` | «Сейчас играет», см. §6.2 |
 
 Цвета состояний/уровней (фиксированы): ok/success `#16a34a`, warn/warning `#d97706`, error `#dc2626`, running/info `#2563eb`, unknown `#6b7280`. Состояние `running` дополнительно пульсирует (opacity 1↔0.5, период 1.6 с).
 
+### 6.1 Контекстные страницы (M11)
+
+Клиент хранит: `homePageIndex` — страница, выбранная пользователем вручную (свайп, кнопка `navigate`, старт = 0); `autoPageId` — id страницы, открытой автоматически, или `null`; `lastTouch` — время последнего `pointerdown`.
+
+Чистая функция `decideContextPage(input) → { pageIndex, autoPageId, hint: string | null }` вызывается при изменении `focus`, при изменении `layout` и раз в 1 с:
+1. `display.contextPages === false` → ничего не менять.
+2. `now − lastTouch < 5000` → ничего не менять (переключение отложено до следующего вызова).
+3. `target` = индекс страницы, у которой `apps` содержит `focus.app` (нет такой или `focus` = `null` → `target = null`).
+4. `target !== null` и `target !== pageIndex` → `pageIndex = target`, `autoPageId = pages[target].id`, `hint = pages[target].name`.
+5. `target === null`, `autoPageId !== null` и текущая страница — это `autoPageId` → `pageIndex = homePageIndex`, `autoPageId = null`.
+6. Иначе — без изменений.
+
+Ручная навигация: `homePageIndex = новый индекс`, `autoPageId = null`. Подсказка `hint` — имя страницы внизу по центру, 2.4vmin, `#6b7280`, видна 2 с. В режимах `dim`/`sleep` переключение происходит, но экран не будит.
+
+### 6.2 Виджет `media` (M11)
+
+- Слева — обложка: квадрат со стороной `высота виджета − 2·отступ`, радиус 12%, непрозрачность 0.85; без `art` — клавиша с обводкой (как у кнопки) и иконкой `lucide:music`.
+- Справа сверху: `title` (2.8vmin, жирный, многоточие), под ним `artist` (2.4vmin, `#9ca3af`, многоточие). При `h = 2` — до двух строк названия.
+- Полоса прогресса (если есть `durationSec`): высота 0.5vmin, фон `#26262c`, заполнение `#e5e5e5` с непрозрачностью 0.6; позиция вычисляется на клиенте (PROTOCOL.md §4.5, «Секции M11»), обновление раз в 1 с только при `playing`.
+- Кнопки управления — клавиши в стиле кнопок (T10.2, T10.5) со стороной `0.55 ×` высоты одной ячейки: при `w ≥ 3` — `prev`, `play`, `next`; при `w = 2` — только `play`. Иконки: `skip-back`, `pause` (если `playing`) или `play`, `skip-forward`. Нажатие → `press(prevAction|playAction|nextAction)` с теми же локальными состояниями, что у кнопки. Действие не задано → клавиша не рисуется. При `h = 1` клавиши справа от текста, при `h = 2` — под текстом.
+- `media = null` → обложка-заглушка и текст `Nothing playing` (`#6b7280`), клавиши видны.
+
 Всплывающий тост: каждое новое уведомление (id, которого не было в предыдущем значении секции; уведомления, полученные в `welcome`, тостов не порождают) показывается поверх любой страницы 8 с; уровни `warning` и `error` выводят экран из затемнения/заставки.
+
+## 7. Шаблоны контекстных страниц (M11)
+
+Файлы `shared/templates/<id>.json`, встраиваются в агент через `include_str!`.
+
+```ts
+// /shared/src/templates.ts
+export interface PageTemplate {
+  id: Id;                              // он же предпочтительный id страницы
+  name: string;                        // имя страницы
+  apps: string[];                      // приложения контекста
+  minGrid: { cols: number; rows: number };
+  actions: Record<Id, Action>;         // id действий начинаются с "tpl-<id>-"
+  items: LayoutItem[];                 // navigate: "$home" заменяется на pages[0].id
+}
+```
+
+Алгоритм `add_template(templateId)` (агент, Rust):
+1. Нет шаблона → ошибка `path: "/templates"`, `message: "unknown template"`.
+2. `grid` меньше `minGrid` по любой оси → ошибка `path: "/grid"`, `message: "Template needs a <cols>×<rows> grid or larger"`.
+3. Любое приложение из `apps` уже указано на странице → ошибка `path: "/pages/<i>/apps"`, `message: "<app> is already used by page <name>"`.
+4. Страниц уже 10 → ошибка `path: "/pages"`, `message: "Page limit reached"`.
+5. id страницы: `template.id`; занят → `template.id-2`, `-3`, …
+6. Действия: добавить отсутствующие по id; существующие с тем же id не трогать.
+7. Элементы: id каждого = `t-<pageId>-<исходный id>`; `navigate: "$home"` → `pages[0].id`.
+8. Новая страница добавляется в конец. Полная валидация (`validate_actions`, `validate_layout`) → при замечаниях ничего не сохранять и вернуть их; иначе сохранить `actions.json`, затем `layout.json` (как `save_actions`/`save_layout`).
+
+Содержимое шаблонов (раскладка под 7×4; клавиши из набора §2.2). Сочетания клавиш приложений взяты из их стандартных раскладок; помеченные `[unverified]` исполнитель не проверяет — владелец проверит вручную.
+
+**`vscode`** — `name: "VS Code"`, `apps: ["code.exe"]`, `minGrid: 7×4`.
+
+| Действие (id без префикса `tpl-vscode-`) | name | keys | Элемент: x,y | label | icon |
+|---|---|---|---|---|---|
+| `palette` | Command palette | ctrl shift p | 0,0 | Palette | terminal |
+| `quickopen` | Quick open | ctrl p | 1,0 | Open | search |
+| `findall` | Find in files | ctrl shift f | 2,0 | Find | folder |
+| `git` | Source control | ctrl shift g | 3,0 | Git | git-branch |
+| `sidebar` | Toggle sidebar | ctrl b | 4,0 | Sidebar | arrow-left |
+| `save` | Save | ctrl s | 0,1 | Save | check |
+| `format` | Format document | shift alt f | 1,1 | Format | code |
+| `run` | Start debugging | f5 | 0,2 | Run | play |
+| `stop` | Stop debugging | shift f5 | 1,2 | Stop | x |
+| — | — | — | 6,3 | Home | home (`navigate: "$home"`) |
+
+**`browser`** — `name: "Browser"`, `apps: ["chrome.exe", "msedge.exe"]`, `minGrid: 7×4`.
+
+| id (`tpl-browser-`) | name | keys | x,y | label | icon |
+|---|---|---|---|---|---|
+| `newtab` | New tab | ctrl t | 0,0 | New tab | plus |
+| `closetab` | Close tab | ctrl w | 1,0 | Close | x |
+| `reopen` | Reopen closed tab | ctrl shift t | 2,0 | Reopen | refresh-cw |
+| `back` | Back | alt left | 0,1 | Back | arrow-left |
+| `forward` | Forward | alt right | 1,1 | Forward | arrow-right |
+| `reload` | Reload | f5 | 2,1 | Reload | refresh-cw |
+| `devtools` | DevTools | f12 | 4,0 | DevTools | bug |
+| `private` | Private window | ctrl shift n | 5,0 | Private | moon |
+| — | — | — | 6,3 | Home | home (`navigate: "$home"`) |
+
+**`zoom`** — `name: "Zoom"`, `apps: ["zoom.exe"]`, `minGrid: 7×4`. Сочетания `[unverified]`.
+
+| id (`tpl-zoom-`) | name | keys | x,y | label | icon | прочее |
+|---|---|---|---|---|---|---|
+| `mute` | Mute / unmute | alt a | 0,0 | Mic | mic-off | — |
+| `video` | Start / stop video | alt v | 1,0 | Camera | video-off | — |
+| `share` | Share screen | alt s | 2,0 | Share | monitor | — |
+| `leave` | Leave meeting | alt q | 6,0 | Leave | power | `color: "#b91c1c"`, `confirm: true` |
+| — | — | — | 6,3 | Home | home | `navigate: "$home"` |
+
+**`spotify`** — `name: "Spotify"`, `apps: ["spotify.exe"]`, `minGrid: 7×4`.
+
+| id (`tpl-spotify-`) | name | тип | x,y | label | icon |
+|---|---|---|---|---|---|
+| `prev` | Previous | media `prev` | — | — | — |
+| `play` | Play / Pause | media `play_pause` | — | — | — |
+| `next` | Next | media `next` | — | — | — |
+| `voldown` | Volume down | media `vol_down` | 0,2 | Vol − | volume-1 |
+| `volup` | Volume up | media `vol_up` | 1,2 | Vol + | volume-2 |
+| `mute` | Mute | media `mute` | 2,2 | Mute | volume-x |
+| — | — | — | 6,3 | Home | home (`navigate: "$home"`) |
+
+Плюс элемент `{ "id": "now", "kind": "media", "x": 0, "y": 0, "w": 4, "h": 2, "prevAction": "tpl-spotify-prev", "playAction": "tpl-spotify-play", "nextAction": "tpl-spotify-next" }`.
+
+Все элементы-кнопки шаблонов — `kind: "button"`, `w: 1`, `h: 1`, `icon` с префиксом `lucide:`; id элемента = id действия без префикса (`palette`, `newtab`, …), у кнопки «Home» id `home`.

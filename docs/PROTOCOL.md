@@ -73,13 +73,33 @@ export interface ErrorMsg { t: "error"; code: ErrorCode; message: string; fatal:
 export type ServerMsg = PairedMsg | WelcomeMsg | PatchMsg | PressResultMsg | PongMsg | ErrorMsg;
 
 // ===== Состояние (секции) =====
-export type SectionName = "layout" | "sys" | "statuses" | "notifications" | "vars";
+export type SectionName = "layout" | "sys" | "statuses" | "notifications" | "vars" | "focus" | "media";
 export interface FullState {
   layout: ClientLayout;            // см. DATA_MODEL.md §3
   sys: SysStats | null;            // null = сборщик выключен
   statuses: StatusItem[];          // отсортированы по (group, id)
   notifications: Notification[];   // новые первыми, максимум 20
   vars: Record<VarName, VarValue>;
+  focus?: FocusInfo | null;        // M11; отсутствует у агентов до M11; null = сборщик выключен
+  media?: MediaInfo | null;        // M11; null = ничего не играет или сборщик выключен
+}
+
+// Активное окно ПК: только имя исполняемого файла, НИКОГДА не заголовок окна.
+export interface FocusInfo {
+  app: string | null;              // имя exe в нижнем регистре ("code.exe"); null = неизвестно (рабочий стол, экран блокировки)
+}
+
+// Текущая медиасессия Windows (Spotify, браузер, плеер).
+export interface MediaInfo {
+  source: string;                  // идентификатор приложения-источника от Windows (<= 120), только для показа
+  title: string;                   // <= 200
+  artist?: string;                 // <= 200
+  album?: string;                  // <= 200
+  playing: boolean;
+  positionSec?: number;            // целое; позиция на момент positionAt
+  durationSec?: number;            // целое
+  positionAt: number;              // ts момента, к которому относится positionSec
+  art?: string;                    // "data:image/png;base64,..." или "data:image/jpeg;base64,...", <= 65536 символов
 }
 
 export interface SysStats {
@@ -197,6 +217,17 @@ export interface HttpError { error: { code: ErrorCode; message: string } }
 Лимит: не более 20 `press` в секунду на соединение; сверх лимита → `press_result` с `RATE_LIMITED` (сокет не закрывается).
 
 ### 4.5 Прочее
+
+Секции M11. `focus` меняется при смене активного приложения; `media` — при смене трека, состояния воспроизведения, длительности или при перемотке (позиция отклонилась от расчётной больше чем на 3 с). Ход позиции во время воспроизведения клиент вычисляет сам: `positionSec + (now − positionAt)/1000`, не больше `durationSec`.
+
+`fixtures/s2c-patch-focus.json`
+```json
+{ "t": "patch", "rev": 44, "section": "focus", "value": { "app": "code.exe" } }
+```
+`fixtures/s2c-patch-media.json`
+```json
+{ "t": "patch", "rev": 45, "section": "media", "value": { "source": "Spotify.exe", "title": "Midnight City", "artist": "M83", "album": "Hurry Up, We're Dreaming", "playing": true, "positionSec": 42, "durationSec": 244, "positionAt": 1794650003000 } }
+```
 
 `fixtures/c2s-notif-dismiss.json` — удаляет уведомление у всех клиентов (сервер меняет секцию `notifications`); неизвестный `notifId` молча игнорируется.
 ```json
@@ -330,7 +361,16 @@ curl.exe -s -X POST http://127.0.0.1:9247/api/notify -H "Authorization: Bearer $
         "sys": { "oneOf": [ { "$ref": "#/$defs/SysStats" }, { "type": "null" } ] },
         "statuses": { "type": "array", "items": { "$ref": "#/$defs/StatusItem" } },
         "notifications": { "type": "array", "maxItems": 20, "items": { "$ref": "#/$defs/Notification" } },
-        "vars": { "type": "object", "propertyNames": { "pattern": "^[a-z0-9_.-]{1,64}$" }, "additionalProperties": { "$ref": "#/$defs/VarValue" } } } },
+        "vars": { "type": "object", "propertyNames": { "pattern": "^[a-z0-9_.-]{1,64}$" }, "additionalProperties": { "$ref": "#/$defs/VarValue" } },
+        "focus": { "oneOf": [ { "$ref": "#/$defs/FocusInfo" }, { "type": "null" } ] },
+        "media": { "oneOf": [ { "$ref": "#/$defs/MediaInfo" }, { "type": "null" } ] } } },
+    "FocusInfo": { "type": "object", "required": ["app"],
+      "properties": { "app": { "oneOf": [ { "type": "string", "pattern": "^[a-z0-9._ ()-]{1,60}\\.exe$" }, { "type": "null" } ] } } },
+    "MediaInfo": { "type": "object", "required": ["source","title","playing","positionAt"],
+      "properties": { "source": { "type": "string", "maxLength": 120 }, "title": { "type": "string", "maxLength": 200 },
+        "artist": { "type": "string", "maxLength": 200 }, "album": { "type": "string", "maxLength": 200 }, "playing": { "type": "boolean" },
+        "positionSec": { "type": "integer", "minimum": 0 }, "durationSec": { "type": "integer", "minimum": 0 }, "positionAt": { "type": "number" },
+        "art": { "type": "string", "pattern": "^data:image/(png|jpeg);base64,", "maxLength": 65536 } } },
 
     "PairedMsg": { "type": "object", "required": ["t","deviceId","token"],
       "properties": { "t": { "const": "paired" }, "deviceId": { "$ref": "#/$defs/Id" }, "token": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" } } },
@@ -360,7 +400,7 @@ curl.exe -s -X POST http://127.0.0.1:9247/api/notify -H "Authorization: Bearer $
 }
 ```
 
-Схемы намеренно без `additionalProperties: false` (правило совместимости из §2). `PatchMsg.value` проверяется клиентом по секции: `layout`→`ClientLayout`, `sys`→`SysStats|null`, `statuses`→`StatusItem[]`, `notifications`→`Notification[]`, `vars`→map.
+Схемы намеренно без `additionalProperties: false` (правило совместимости из §2). `PatchMsg.value` проверяется клиентом по секции: `layout`→`ClientLayout`, `sys`→`SysStats|null`, `statuses`→`StatusItem[]`, `notifications`→`Notification[]`, `vars`→map, `focus`→`FocusInfo|null`, `media`→`MediaInfo|null`. `focus` и `media` в `FullState` не обязательны (агент до M11 их не шлёт); клиент считает отсутствующую секцию равной `null`.
 
 ## 8. Формат QR и ручного сопряжения
 
@@ -385,6 +425,7 @@ http://<primaryIp>:<port>/#c=<CODE>&h=<ip1>,<ip2>&p=<port>&n=<agentName url-enco
 ```ts
 export interface AgentStatus {
   version: string;
+  focusApp: string | null;                            // M11: текущее активное приложение (для вкладки Status)
   listening: { bind: string; port: number } | null;   // null = порт занят / сервер не поднялся
   listenError?: string;
   lanIps: string[];
@@ -412,6 +453,9 @@ export interface IpcCommands {
   list_devices(): DeviceInfo[];
   revoke_device(args: { deviceId: Id }): void;
   send_test_notification(): void;                              // title "Decka test", level "info", source "decka"
+  list_window_apps(): string[];                                // M11: имена exe (нижний регистр, без повторов, по алфавиту) процессов с видимыми окнами верхнего уровня, без decka-agent.exe
+  get_templates(): PageTemplate[];                             // M11: DATA_MODEL.md §7
+  add_template(args: { templateId: string }): SaveResult;      // M11: добавляет действия и страницу шаблона, сохраняет оба файла
   open_config_dir(): void;
 }
 ```

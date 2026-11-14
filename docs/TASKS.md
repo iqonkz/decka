@@ -1020,3 +1020,137 @@ npm run typecheck; npm test; cargo test -p decka-core; npm run android:sync -w c
 ```
 npm run release:agent; (Get-Process decka-headless -ErrorAction SilentlyContinue | Measure-Object).Count; Get-ChildItem target\release\bundle\nsis\*.exe | Select-Object -ExpandProperty FullName
 ```
+
+---
+
+## M11 — Контекстные страницы и «Сейчас играет» (решение владельца 2026-11-14)
+
+Спецификация: PROTOCOL.md §3 (`FocusInfo`, `MediaInfo`), §4.5 («Секции M11»), §7, §9 (новые IPC и `AgentStatus.focusApp`); DATA_MODEL.md §3.1, §3.2 п. 9–10, §4 (`collectors.focus`, `collectors.media`), §5, §6.1, §6.2, §7; DECISIONS.md D-32..D-34; ARCHITECTURE.md §6.4 S16. Все новые поля необязательные: существующие `layout.json`, `config.json` и фикстуры остаются валидными без изменений.
+
+### T11.1 — Общий контракт M11 и шаблоны
+**Цель:** типы, схемы, фикстуры, валидация и файлы шаблонов в `/shared`.
+**Файлы:** `shared/src/protocol.ts`, `layout.ts`, `config.ts`, `ipc.ts`, `templates.ts`, `validate.ts`, `index.ts`; `shared/schemas/*.json`; `shared/fixtures/s2c-patch-focus.json`, `s2c-patch-media.json`, `layout.context.json`; `shared/templates/{vscode,browser,zoom,spotify}.json`; тесты.
+**Шаги:**
+1. Типы и схемы — дословно из мест, перечисленных в шапке M11.
+2. Фикстуры: две новые из PROTOCOL.md §4.5 (добавь их в явный список `schemas.test.ts` → `ServerMsg`); `layout.context.json` — копия `layout.default.json`, где у страницы `dev` добавлено `"apps": ["code.exe"]`, а на страницу `main` в свободные клетки `x: 3..5, y: 3` добавлен элемент `{ "id": "w-media", "kind": "media", "x": 3, "y": 3, "w": 3, "h": 1, "prevAction": "media-prev", "playAction": "media-play", "nextAction": "media-next" }` (схема → `LayoutFile`; `validateLayout` с действиями по умолчанию → 0 замечаний).
+3. `validateLayout`: правила DATA_MODEL.md §3.2 п. 9–10. Тесты: одно приложение на двух страницах → путь `/pages/1/apps/0`; `apps` у первой страницы → ошибка; `media` 1×1 → ошибка; `media` 3×3 → ошибка; `media` с несуществующим `playAction` → ошибка.
+4. Шаблоны — четыре файла строго по таблицам DATA_MODEL.md §7. Тест `templates.test.ts` для каждого шаблона: действия валидны по `actions.schema.json#/$defs/Action`; собрать временную раскладку `{ grid: minGrid, display: <из layout.default>, pages: [ { id: "main", name: "Main", items: [] }, { id: <template.id>, name, apps, items: <items, где "$home" → "main"> } ] }` → схема `LayoutFile` валидна и `validateLayout(раскладка, { version: 1, actions: template.actions })` → 0 замечаний; все id действий начинаются с `tpl-<id>-`.
+**Приёмка:** все тесты `shared` проходят.
+**Проверка:**
+```
+npm run typecheck -w shared; npm test -w shared
+```
+
+### T11.2 — Ядро: модель, секции, конфиг, шаблоны
+**Цель:** Rust понимает новые поля; `Agent::add_template`.
+**Файлы:** `agent/core/src/model.rs`, `proto.rs`, `validate.rs`, `state.rs`, `config.rs`, `agent.rs`, `templates.rs`, тесты `tests/fixtures.rs`, `tests/templates.rs`.
+**Шаги:**
+1. Serde-типы для `FocusInfo`, `MediaInfo`, `Page.apps`, `DisplaySettings.contextPages`, `LayoutItem::Media`, `Collectors.focus`/`media` (`#[serde(default)]`, отсутствие = `enabled: true`). Новые фикстуры — в round-trip тест.
+2. `Store`: секции `focus` и `media`, начальное значение `null`; входят в `snapshot()` и `welcome`.
+3. `validate_layout`: правила п. 9–10 (те же пути, что в TS).
+4. `templates.rs`: шаблоны встроены через `include_str!` из `shared/templates/*.json`; `Agent::get_templates()`, `Agent::add_template(id) -> SaveResult` строго по алгоритму DATA_MODEL.md §7.
+5. Тесты `tests/templates.rs`: на конфигурации по умолчанию (7×4) каждый из 4 шаблонов добавляется (`ok: true`), страница и действия появились в файлах и в секции `layout`; повторное добавление `vscode` → ошибка про `code.exe`; на сетке 5×3 → ошибка `/grid`; при 10 страницах → `Page limit reached`; существующее действие с id `tpl-vscode-save` и другим содержимым не перезаписывается; `$home` заменён на `pages[0].id`.
+**Приёмка:** `cargo test -p decka-core` зелёный.
+**Проверка:**
+```
+cargo test -p decka-core
+```
+
+### T11.3 — Сборщик активного приложения
+**Цель:** секция `focus`, `AgentStatus.focusApp`, IPC `list_window_apps`.
+**Файлы:** `agent/core/src/collectors/focus.rs`, `collectors/mod.rs`, `agent.rs`, `agent/core/Cargo.toml`, `agent/src-tauri/src/commands.rs`, `agent/src/tabs/StatusTab.tsx`.
+**Шаги:**
+1. `cargo add -p decka-core windows@0.62.2` в `[target.'cfg(windows)'.dependencies]` с features, нужными для: `GetForegroundWindow`, `GetWindowThreadProcessId`, `OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION)`, `QueryFullProcessImageNameW`, `CloseHandle`, `EnumWindows`, `IsWindowVisible`, а также (для T11.4) `Media_Control`, `Storage_Streams`, `Foundation`. Точные имена features — по docs.rs/windows/0.62.2.
+2. Выделенный поток ОС (как `sys`), опрос каждые 250 мс: имя exe активного окна → только имя файла, нижний регистр; неудача → `null`. Значения `decka-agent.exe` и `decka-headless.exe` игнорируются (остаётся предыдущее). Публикация в `store.set("focus", …)` только когда новое значение держится непрерывно ≥ 700 мс. Заголовок окна NEVER не читается (S16). `collectors.focus.enabled = false` → поток не запускается, секция `null`. Перезапуск при `save_config` через сохранённый `Handle`/флаг остановки (как у других сборщиков).
+3. Чистая функция `stable_value` (вход: последовательность (время, значение), выход: опубликованное значение) с юнит-тестами: короткий «всплеск» 300 мс не публикуется; значение ≥ 700 мс публикуется; игнорируемые имена не меняют результат.
+4. `AgentStatus.focusApp` = текущее опубликованное значение; изменение обновляет канал статуса.
+5. IPC `list_window_apps` (PROTOCOL.md §9): `EnumWindows` + `IsWindowVisible` + имя exe процесса; без повторов, по алфавиту, без `decka-agent.exe`. Зарегистрировать команду.
+6. Вкладка Status: строка `Active app: <focusApp | —>`, обновляется по событию статуса.
+7. Не-Windows: сборщик и команда возвращают `null` / `[]` (крейт собирается в CI на любой ОС).
+**Приёмка:** тесты проходят. Проверка: headless + `ws-smoke watch` 8 с, в течение которых исполнитель переключает фокус между двумя окнами (`Start-Process notepad; Start-Sleep 3; Start-Process charmap`) — в выводе есть `patch` секции `focus` с `notepad.exe` и с `charmap.exe`.
+**Проверка:**
+```
+cargo test -p decka-core focus::; cargo build -p decka-agent
+```
+затем H-BUILD; H-START; H-TOKEN; затем
+```
+$w = Start-Job { param($t) node tools/ws-smoke.mjs watch 127.0.0.1:19247 $t 8 } -ArgumentList $tok -InitializationScript ([scriptblock]::Create("Set-Location '$PWD'")); Start-Sleep 1; Start-Process notepad; Start-Sleep 3; Start-Process charmap; Start-Sleep 5; Receive-Job $w -Wait | Select-String '"section":"focus"'; Get-Process notepad,charmap -ErrorAction SilentlyContinue | Stop-Process -Force
+```
+затем H-STOP. Ожидаются строки с `notepad.exe` и `charmap.exe`. Если окно не получило фокус из-за ограничений Windows на перехват фокуса — пункт в `MANUAL_CHECKS.md` как PENDING (owner), автоматическая часть задачи (тесты, сборка) остаётся обязательной.
+
+### T11.4 — Сборщик «Сейчас играет»
+**Цель:** секция `media` из системной медиасессии Windows.
+**Файлы:** `agent/core/src/collectors/media.rs`, `collectors/mod.rs`.
+**Шаги:**
+1. Выделенный поток ОС; в начале потока — инициализация WinRT в многопоточном режиме (`RoInitialize(RO_INIT_MULTITHREADED)` или эквивалент из `windows` 0.62). Асинхронные операции WinRT ожидаются блокирующе (`.get()` или эквивалент).
+2. `GlobalSystemMediaTransportControlsSessionManager::RequestAsync()` один раз; каждую 1 с — `GetCurrentSession()`. Нет сессии → `media = null`.
+3. Из сессии: `SourceAppUserModelId` → `source`; `TryGetMediaPropertiesAsync` → `Title`, `Artist`, `AlbumTitle`; `GetPlaybackInfo().PlaybackStatus == Playing` → `playing`; `GetTimelineProperties()` → `Position`, `EndTime`, `LastUpdatedTime` → `positionSec` (вниз до целого), `durationSec` (если `EndTime > 0`), `positionAt` (unix ms из `LastUpdatedTime`). Пустой `Title` → `media = null`. Строки обрезаются до лимитов PROTOCOL.md §3 по границе символа.
+4. Обложка: `Thumbnail` читается только при смене (`title`, `artist`, `album`); тип по сигнатуре (`89 50 4E 47` → png, `FF D8 FF` → jpeg, иначе без обложки); `data:image/<тип>;base64,...`; длиннее 65 536 символов → без `art`.
+5. Публикация (чистая функция `should_publish(prev, next, now)` с юнит-тестами): изменились `title`/`artist`/`album`/`playing`/`durationSec`/`art`/`source` → публиковать; иначе публиковать только если `|next.positionSec − расчётная позиция prev| > 3` (перемотка). Тесты: обычный ход воспроизведения 10 с → ни одной публикации; перемотка на 30 с → публикация; пауза → публикация.
+6. Любая ошибка WinRT → лог уровня `warn` не чаще раза в минуту, `media = null`, повтор на следующем тике. `collectors.media.enabled = false` → поток не запускается.
+7. Не-Windows: секция остаётся `null`.
+**Приёмка:** тесты проходят; ручная: при играющей музыке (Spotify, YouTube в браузере) `ws-smoke state` показывает `media.title`.
+**Проверка:**
+```
+cargo test -p decka-core media::; cargo build -p decka-agent
+```
+Ручная: H-BUILD; H-START; H-TOKEN; `(node tools/ws-smoke.mjs state 127.0.0.1:19247 $tok | ConvertFrom-Json).media`; H-STOP. Без играющей музыки ожидается пусто (null); с музыкой — объект с `title`. Если музыку включить нельзя — PENDING (owner).
+
+### T11.5 — Клиент: контекстное переключение страниц
+**Цель:** алгоритм DATA_MODEL.md §6.1.
+**Файлы:** `client/src/deck/context.ts`, `client/src/store/store.ts`, `client/src/screens/DeckScreen.tsx`, `client/src/deck/PageHint.tsx`, `client/test/context.test.ts`.
+**Шаги:**
+1. `context.ts`: чистая `decideContextPage({ pages, display, focusApp, pageIndex, homePageIndex, autoPageId, now, lastTouch })` строго по шагам 1–6 §6.1.
+2. Тесты: каждое из 6 правил; касание 3 с назад откладывает, через 5 с — переключает; ручная навигация на контекстной странице отменяет автовозврат; `contextPages: false` — ничего; отсутствующая секция `focus` = `null`; страница с `apps` удалена из раскладки → возврат домой.
+3. `store`: поля `homePageIndex`, `autoPageId`, `lastTouch`, `hint`; свайп и кнопка `navigate` вызывают ручную навигацию; `pointerdown` (capture на `window`) обновляет `lastTouch`. Вызов `decideContextPage` при `applyPatch` секций `focus`/`layout`, при `applyWelcome` и по таймеру раз в 1 с.
+4. `PageHint`: подсказка по §6.1, `pointer-events: none`.
+5. Переключение страницы не обновляет таймер бездействия (не будит экран).
+**Приёмка:** тесты, typecheck и сборка проходят.
+**Проверка:**
+```
+npm run typecheck -w client; npm test -w client; npm run build -w client
+```
+
+### T11.6 — Клиент: виджет media
+**Цель:** отображение по DATA_MODEL.md §6.2.
+**Файлы:** `client/src/deck/widgets/Media.tsx`, `widgets/mediaPos.ts`, `client/src/deck/Tile.tsx`, `client/src/deck/Key.tsx` (выдели из `Button.tsx` общую клавишу с локальными состояниями, если её ещё нет; `Button` переиспользует её), `client/test/mediaPos.test.ts`.
+**Шаги:**
+1. `mediaPos.ts`: `currentPosition(media, now): number | null` (формула PROTOCOL.md §4.5; не `playing` → `positionSec`; без `positionSec` → `null`; не больше `durationSec`) и `formatTime(sec)` (`m:ss`, от часа — `h:mm:ss`). Тесты.
+2. `Media.tsx` строго по §6.2; клавиши через общий `Key` (те же состояния, тосты ошибок, `disabled` без связи).
+3. Подключи `media` в диспетчер `Tile`.
+**Приёмка:** тесты и сборка проходят. Ручная (headless с `layout.context.json` вместо `layout.json` в `.tmp\cfg`, телефон или Chrome): при играющей музыке видны название, исполнитель, обложка, полоса идёт; `play` ставит на паузу.
+**Проверка:**
+```
+npm run typecheck -w client; npm test -w client; npm run build -w client
+```
+
+### T11.7 — Окно настроек: приложения страницы, виджет media, шаблоны
+**Цель:** всё настраивается без правки JSON.
+**Файлы:** `agent/src/tabs/LayoutTab.tsx`, `agent/src/tabs/itemForm.tsx`, `agent/src/tabs/TemplatesDialog.tsx`, `agent/src-tauri/src/commands.rs`, `agent/src/ipc.ts`.
+**Шаги:**
+1. Команды `get_templates`, `add_template` (и `list_window_apps` из T11.3) зарегистрированы; итог — 19 команд `#[tauri::command]`.
+2. Вкладка Layout, панель страницы (под вкладками страниц): блок `Show this page automatically when active` — список приложений-«чипов» с крестиком; поле ввода с подсказками из `list_window_apps` (кнопка `Refresh`); добавление по Enter; ввод приводится к нижнему регистру, без `.exe` — дописывается `.exe`. Для первой страницы блок неактивен с текстом `The first page is your home page.`
+3. Блок `Display`: чекбокс `Switch to app pages automatically` (`contextPages`; отсутствие поля показывается как включённый).
+4. Форма элемента `media`: три select `Previous`, `Play / Pause`, `Next` из действий + вариант `None`; при создании элемента `media` они по умолчанию `media-prev`/`media-play`/`media-next`, если такие действия существуют. Размер по умолчанию 3×1.
+5. Кнопка `Add page from template` → диалог: карточки 4 шаблонов (name, apps, число кнопок) с кнопкой `Add`; результат `add_template`: успех → перечитать раскладку и действия, открыть новую страницу; ошибки — показать `message`.
+6. Тексты-подсказки: под блоком приложений — `The phone switches to this page while one of these apps is in front on your PC, and switches back when you leave it.`
+**Приёмка:** typecheck, тесты и сборка проходят; в `commands.rs` 19 команд. Ручная (`npm run tauri dev`): шаблон `VS Code` добавлен → при фокусе VS Code телефон сам открывает страницу `VS Code`, при переходе в другое окно возвращается.
+**Проверка:**
+```
+npm run typecheck -w agent; npm test -w agent; npm run build:ui; cargo build -p decka-agent
+(Select-String -Path agent\src-tauri\src\commands.rs -Pattern '#\[tauri::command\]').Count
+```
+(последняя команда печатает `19`)
+
+### T11.8 — Документация и итог M11
+**Цель:** пользователь знает о новых функциях.
+**Файлы:** `README.md`, `docs/MANUAL_CHECKS.md`, `docs/TESTING.md`.
+**Шаги:**
+1. README: в раздел Why добавь пункт «Context pages» (2 предложения); новый раздел `## Context pages and Now Playing` после Quick start: как включить шаблон, как назначить приложения странице, как отключить сборщики (приватность: передаётся только имя exe, заголовки окон — никогда).
+2. `TESTING.md`: ручные пункты T11.3–T11.7 в общий чек-лист.
+3. Собери установщик (`npm run release:agent`; если запущен `decka-agent` — остановись и сообщи, не завершай его) и APK (`npm run release:apk`), установи APK на подключённый телефон.
+**Приёмка:** число заголовков `## ` в README выросло на 1; установщик и APK собраны.
+**Проверка:**
+```
+npm run typecheck; npm test; cargo test -p decka-core; npm run release:apk; adb install -r client\android\app\build\outputs\apk\debug\app-debug.apk
+```
