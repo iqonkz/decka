@@ -87,6 +87,12 @@ async fn recv_first_text(socket: &mut WebSocket) -> Option<String> {
     }
 }
 
+/// Who is on the other end of an authorized socket (for the press audit log).
+struct Peer {
+    device_id: String,
+    remote: SocketAddr,
+}
+
 async fn connection(agent: Agent, remote: SocketAddr, mut socket: WebSocket) {
     let first = timeout(HANDSHAKE_TIMEOUT, recv_first_text(&mut socket)).await.ok().flatten();
     let unauthorized = "authentication required";
@@ -141,7 +147,8 @@ async fn connection(agent: Agent, remote: SocketAddr, mut socket: WebSocket) {
     if !send(&mut socket, &welcome).await {
         return;
     }
-    session(&agent, &mut socket, &mut patches, &mut kicked, snapshot_rev).await;
+    let who = Peer { device_id: device_id.clone(), remote };
+    session(&agent, &mut socket, &mut patches, &mut kicked, snapshot_rev, &who).await;
     drop(guard);
 }
 
@@ -156,6 +163,7 @@ async fn session(
     patches: &mut tokio::sync::broadcast::Receiver<crate::state::Patch>,
     kicked: &mut tokio::sync::oneshot::Receiver<()>,
     snapshot_rev: u64,
+    who: &Peer,
 ) {
     let idle = sleep(IDLE_TIMEOUT);
     tokio::pin!(idle);
@@ -185,7 +193,7 @@ async fn session(
                 idle.as_mut().reset(Instant::now() + IDLE_TIMEOUT);
                 match frame {
                     Message::Text(text) => {
-                        if !handle_text(agent, socket, text.as_str(), &press_limiter, &out_tx).await { return; }
+                        if !handle_text(agent, socket, text.as_str(), &press_limiter, &out_tx, who).await { return; }
                     }
                     Message::Binary(_) => {
                         if !send(socket, &error_msg(ErrorCode::BadMessage, "binary frames are not supported")).await { return; }
@@ -205,6 +213,7 @@ async fn handle_text(
     text: &str,
     press_limiter: &RateLimiter,
     out: &mpsc::UnboundedSender<ServerMsg>,
+    who: &Peer,
 ) -> bool {
     match serde_json::from_str::<ClientMsg>(text) {
         Ok(ClientMsg::Ping { ts }) => send(socket, &ServerMsg::Pong { ts }).await,
@@ -213,6 +222,8 @@ async fn handle_text(
             true
         }
         Ok(ClientMsg::Press { id, action_id }) => {
+            // Audit trail (ARCHITECTURE.md 6.4, S15): every press is logged, whatever its outcome.
+            tracing::info!("press {action_id} device={} remote={} id={id}", who.device_id, who.remote);
             if !press_limiter.check("press") {
                 let error = ErrorBody { code: ErrorCode::RateLimited, message: "too many presses".to_string() };
                 return send(socket, &ServerMsg::PressResult { id, ok: false, error: Some(error) }).await;

@@ -184,6 +184,40 @@ describe("Connection", () => {
     await expect(conn.press("a")).rejects.toEqual({ code: "OFFLINE" });
   });
 
+  const pressFrames = (ws: FakeWS) => ws.sentMsgs().filter((m) => m.t === "press");
+
+  test("a press made while offline is rejected and never sent after reconnecting (S15)", async () => {
+    const { conn } = setup();
+    conn.start();
+    const first = goOnline();
+    first.serverClose(); // the link drops
+    await expect(conn.press("a")).rejects.toEqual({ code: "OFFLINE" });
+
+    vi.advanceTimersByTime(1000); // reconnect attempt
+    const second = goOnline();
+    vi.advanceTimersByTime(30_000);
+    expect(pressFrames(first)).toEqual([]);
+    expect(pressFrames(second)).toEqual([]);
+    // Only the handshake and heartbeat pings travel on the new socket.
+    expect(second.sentMsgs().map((m) => m.t).filter((t) => t !== "ping")).toEqual(["hello"]);
+  });
+
+  test("a press in flight when the link drops is rejected and not resent (S15)", async () => {
+    const { conn } = setup();
+    conn.start();
+    const first = goOnline();
+    const inFlight = conn.press("a").catch((e: ConnFailure) => e);
+    expect(pressFrames(first)).toHaveLength(1);
+    first.serverClose();
+    expect(await inFlight).toEqual({ code: "OFFLINE" });
+
+    vi.advanceTimersByTime(1000);
+    const second = goOnline();
+    vi.advanceTimersByTime(30_000);
+    expect(pressFrames(first)).toHaveLength(1); // still the single original frame
+    expect(pressFrames(second)).toEqual([]);
+  });
+
   test("UNAUTHORIZED is fatal and stops reconnecting", () => {
     const { conn, fatals } = setup();
     conn.start();
