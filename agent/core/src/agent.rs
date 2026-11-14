@@ -11,6 +11,7 @@ use tokio::sync::oneshot;
 use tokio::task::JoinHandle;
 
 use crate::actions::ActionRunner;
+use crate::auth::{Devices, Pairing};
 use crate::config::{self, Loaded};
 use crate::model::*;
 use crate::proto::NotifyReq;
@@ -80,6 +81,27 @@ pub struct AgentStatus {
     pub config_dir: String,
 }
 
+/// Mirrors `PairingInfo` in shared/src/ipc.ts.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PairingInfo {
+    pub code: String,
+    pub url: String,
+    pub qr_svg: String,
+    pub expires_at: u64,
+}
+
+/// Mirrors `DeviceInfo` in shared/src/config.ts.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeviceInfo {
+    pub id: String,
+    pub name: String,
+    pub created_at: u64,
+    pub last_seen_at: u64,
+    pub connected: bool,
+}
+
 struct ServerHandle {
     shutdown: oneshot::Sender<()>,
     join: JoinHandle<()>,
@@ -92,6 +114,8 @@ struct Inner {
     actions: Mutex<ActionsFile>,
     layout: Mutex<LayoutFile>,
     store: Store,
+    pairing: Pairing,
+    devices: Devices,
     notif_counter: AtomicU64,
     listening: Mutex<Option<Listening>>,
     listen_error: Mutex<Option<String>>,
@@ -106,7 +130,7 @@ pub struct Agent {
 impl Agent {
     pub async fn start(opts: AgentOptions) -> Result<Agent, StartError> {
         let config_dir = crate::paths::config_dir(opts.config_dir.clone());
-        let Loaded { config, actions, layout, issues, .. } = config::load_or_init(&config_dir);
+        let Loaded { config, actions, layout, devices, issues } = config::load_or_init(&config_dir);
         if config.bind.parse::<IpAddr>().is_err() {
             return Err(StartError::BadBind(config.bind));
         }
@@ -114,16 +138,18 @@ impl Agent {
         let layout_value = serde_json::to_value(layout.to_client()).expect("layout serializes");
         let agent = Agent {
             inner: Arc::new(Inner {
-                opts,
-                config_dir,
+                config_dir: config_dir.clone(),
                 config: Mutex::new(config),
                 actions: Mutex::new(actions),
                 layout: Mutex::new(layout),
                 store: Store::new(layout_value),
+                pairing: Pairing::new(opts.fixed_pair_code.clone()),
+                devices: Devices::new(config_dir.join("devices.json"), devices),
                 notif_counter: AtomicU64::new(1),
                 listening: Mutex::new(None),
                 listen_error: Mutex::new(None),
                 server: tokio::sync::Mutex::new(None),
+                opts,
             }),
         };
 
@@ -154,6 +180,37 @@ impl Agent {
 
     pub fn fixed_pair_code(&self) -> Option<&str> {
         self.inner.opts.fixed_pair_code.as_deref()
+    }
+
+    pub fn pairing(&self) -> &Pairing {
+        &self.inner.pairing
+    }
+
+    pub fn devices(&self) -> &Devices {
+        &self.inner.devices
+    }
+
+    /// New pairing code (cancels the previous one). `url` and `qr_svg` are filled in T6.3.
+    pub fn start_pairing(&self) -> PairingInfo {
+        let (code, expires_at) = self.inner.pairing.start();
+        PairingInfo { code, url: String::new(), qr_svg: String::new(), expires_at }
+    }
+
+    pub fn cancel_pairing(&self) {
+        self.inner.pairing.cancel();
+    }
+
+    pub fn list_devices(&self) -> Vec<DeviceInfo> {
+        self.inner
+            .devices
+            .list()
+            .into_iter()
+            .map(|d| DeviceInfo { id: d.id, name: d.name, created_at: d.created_at, last_seen_at: d.last_seen_at, connected: false })
+            .collect()
+    }
+
+    pub fn revoke_device(&self, device_id: &str) {
+        self.inner.devices.revoke(device_id);
     }
 
     pub fn config_dir(&self) -> &std::path::Path {

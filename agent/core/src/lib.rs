@@ -1,9 +1,11 @@
 pub mod actions;
 pub mod agent;
+pub mod auth;
 pub mod config;
 pub mod model;
 pub mod paths;
 pub mod proto;
+pub mod ratelimit;
 pub mod server;
 pub mod state;
 pub mod validate;
