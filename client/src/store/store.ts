@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import type { FullState, NotifLevel, PatchMsg, SectionName, WelcomeMsg } from "@decka/shared";
+import type { FullState, NotifLevel, Notification, PatchMsg, SectionName, WelcomeMsg } from "@decka/shared";
 
 export type ConnState = "unpaired" | "connecting" | "online" | "offline" | "update_required";
 
@@ -40,6 +40,13 @@ const initial = (): AppState => ({
 let current: AppState = initial();
 const listeners = new Set<() => void>();
 let toastCounter = 0;
+const attentionListeners = new Set<(level: NotifLevel) => void>();
+
+/** Called for every new notification toast (the screen saver / dimming wakes up on it). */
+export function onAttention(fn: (level: NotifLevel) => void): () => void {
+  attentionListeners.add(fn);
+  return () => attentionListeners.delete(fn);
+}
 
 export function getState(): AppState {
   return current;
@@ -93,6 +100,19 @@ export function applyPatch(msg: PatchMsg): void {
     rev: msg.rev,
     pageIndex: msg.section === "layout" ? fixPageIndex(s.pageIndex, next) : s.pageIndex,
   });
+  if (msg.section === "notifications") toastNewNotifications(s.state.notifications, msg.value as Notification[]);
+}
+
+/** One 8 s toast per id that was not in the previous value (oldest first). */
+function toastNewNotifications(before: Notification[], after: Notification[]): void {
+  const known = new Set(before.map((n) => n.id));
+  for (const n of [...after].reverse()) {
+    if (known.has(n.id)) continue;
+    const toast: NewToast = { level: n.level, title: n.title };
+    if (n.body !== undefined) toast.body = n.body;
+    pushToast(toast);
+    attentionListeners.forEach((fn) => fn(n.level));
+  }
 }
 
 export interface NewToast {

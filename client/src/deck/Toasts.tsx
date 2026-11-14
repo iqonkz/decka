@@ -1,13 +1,7 @@
 import { useEffect } from "react";
-import type { NotifLevel } from "@decka/shared";
 import { dismissToast, expireToasts, useAppState } from "../store/store";
+import { LEVEL_COLOR } from "./widgets/statusOrder";
 
-const LEVEL_COLORS: Record<NotifLevel, string> = {
-  info: "#2563eb",
-  success: "#16a34a",
-  warning: "#d97706",
-  error: "#dc2626",
-};
 
 export default function Toasts() {
   const toasts = useAppState((s) => s.toasts);
@@ -24,7 +18,7 @@ export default function Toasts() {
         <div
           key={t.id}
           className="toast"
-          style={{ borderLeftColor: LEVEL_COLORS[t.level] }}
+          style={{ borderLeftColor: LEVEL_COLOR[t.level] }}
           onPointerUp={() => dismissToast(t.id)}
         >
           <div className="toast-title">{t.title}</div>

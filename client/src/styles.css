@@ -226,3 +226,20 @@ input { user-select: text; touch-action: manipulation; }
 }
 .status-tile-label { font-size: 3vmin; }
 .status-tile-text { margin-top: 0.6vmin; font-size: 2.2vmin; color: #9ca3af; }
+
+.notifs { width: 100%; height: 100%; overflow-y: auto; touch-action: pan-y; padding: 1vmin 1.4vmin; box-sizing: border-box; }
+.notif-empty { color: #9ca3af; font-size: 2.6vmin; }
+.notif {
+  display: flex;
+  align-items: center;
+  gap: 1.4vmin;
+  margin-bottom: 1vmin;
+  padding: 1vmin 1.4vmin;
+  border-left: 0.6vmin solid #2563eb;
+  background: #1e1e24;
+  border-radius: 1vmin;
+}
+.notif-main { flex: 1; min-width: 0; }
+.notif-title { font-size: 2.8vmin; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.notif-body { font-size: 2.4vmin; color: #9ca3af; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.notif-meta { font-size: 2vmin; color: #9ca3af; white-space: nowrap; }
