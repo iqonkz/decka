@@ -3,9 +3,9 @@ import type { MediaItem } from "@decka/shared";
 import { useAppState } from "../../store/store";
 import Icon from "../Icon";
 import Key from "../Key";
+import { useDeckMetrics } from "../metricsContext";
 import { currentPosition, formatTime } from "./mediaPos";
 
-const PAD_PX = 8;
 const KEY_RATIO = 0.55;
 
 /** Height in px of the element behind the returned ref; follows resizes. */
@@ -27,6 +27,7 @@ function useHeight(): [React.RefObject<HTMLDivElement | null>, number] {
 /** "Now playing" (DATA_MODEL.md 6.2): cover, title, artist, progress and the three transport keys. */
 export default function Media({ item }: { item: MediaItem }) {
   const media = useAppState((s) => s.state?.media ?? null);
+  const { side } = useDeckMetrics();
   const [ref, height] = useHeight();
   const playing = media?.playing === true;
 
@@ -39,8 +40,8 @@ export default function Media({ item }: { item: MediaItem }) {
     return () => window.clearInterval(timer);
   }, [playing, media]);
 
-  const cover = Math.max(0, height - 2 * PAD_PX);
-  const keySide = Math.round((KEY_RATIO * height) / item.h);
+  const cover = Math.max(0, height);
+  const keySide = Math.round(KEY_RATIO * side);
   const position = media ? currentPosition(media, now) : null;
   const progress = media?.durationSec && position !== null ? Math.min(1, position / media.durationSec) : null;
 

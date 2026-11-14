@@ -1,40 +1,27 @@
 import { describe, expect, test } from "vitest";
-import { keyColors, keySize } from "../src/deck/look";
+import { keyFace, PLAIN_FACE } from "../src/deck/look";
 
-describe("keySize", () => {
-  test("70% of the smaller cell side, rounded", () => {
-    expect(keySize(200, 100)).toBe(70);
-    expect(keySize(100, 200)).toBe(70);
-    expect(keySize(171, 171)).toBe(120);
+describe("keyFace", () => {
+  test("no colour: dark gradient, light icon, faint outline", () => {
+    expect(keyFace(undefined)).toEqual({
+      background: "linear-gradient(180deg, #1c1c22 0%, #0d0d10 100%)",
+      ink: "#f2f2f2",
+      border: "rgba(255,255,255,0.10)",
+    });
+    expect(keyFace(undefined)).toBe(PLAIN_FACE);
   });
-});
 
-describe("keyColors", () => {
-  test("no colour: transparent key, light icon", () => {
-    expect(keyColors(undefined)).toEqual({
-      background: "transparent",
-      pressed: "rgba(255,255,255,0.10)",
-      ink: "#e5e5e5",
-      border: "rgba(255,255,255,0.16)",
+  test("a colour: 12% lighter on top, 18% darker at the bottom, white icon", () => {
+    // #2563eb = 37,99,235: +12% towards white, -18% towards black
+    expect(keyFace("#2563eb")).toEqual({
+      background: "linear-gradient(180deg, rgb(63,118,237) 0%, rgb(30,81,193) 100%)",
+      ink: "#ffffff",
+      border: "rgba(255,255,255,0.18)",
     });
   });
 
-  test("a bright colour tints the key at 16% (30% pressed) and colours the icon", () => {
-    expect(keyColors("#2563eb")).toEqual({
-      background: "rgba(37,99,235,0.16)",
-      pressed: "rgba(37,99,235,0.30)",
-      ink: "#2563eb",
-      border: "rgba(37,99,235,0.5)",
-    });
-  });
-
-  test("a colour darker than luminance 64 keeps the icon light", () => {
-    expect(keyColors("#202020").ink).toBe("#e5e5e5");
-    expect(keyColors("#202020").background).toBe("rgba(32,32,32,0.16)");
-  });
-
-  test("short hex works, garbage falls back to no colour", () => {
-    expect(keyColors("#fff").background).toBe("rgba(255,255,255,0.16)");
-    expect(keyColors("red").background).toBe("transparent");
+  test("short hex works, garbage falls back to the plain face", () => {
+    expect(keyFace("#fff").background).toBe("linear-gradient(180deg, rgb(255,255,255) 0%, rgb(209,209,209) 100%)");
+    expect(keyFace("red")).toBe(PLAIN_FACE);
   });
 });

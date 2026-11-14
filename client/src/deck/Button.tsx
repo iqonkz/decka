@@ -21,6 +21,7 @@ export default function Button({ item }: { item: ButtonItem }) {
       {...(look.icon !== undefined ? { icon: look.icon } : {})}
       {...(look.label !== undefined ? { label: look.label } : {})}
       {...(look.color !== undefined ? { color: look.color } : {})}
+      {...(item.navigate !== undefined ? { chevron: true } : {})}
       onTap={navigate}
     />
   );

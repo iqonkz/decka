@@ -3,8 +3,8 @@ import { press } from "../app/controller";
 import type { ConnFailure } from "../net/connection";
 import { pushToast, useAppState } from "../store/store";
 import Icon from "./Icon";
-import { keyColors, pressErrorTitle } from "./look";
-import { useKeySize } from "./useKeySize";
+import { keyFace, pressErrorTitle } from "./look";
+import { useDeckMetrics } from "./metricsContext";
 
 const TAP_SLOP_PX = 20;
 const CONFIRM_HOLD_MS = 800;
@@ -24,12 +24,14 @@ export interface KeyProps {
   icon?: string;
   label?: string;
   color?: string;
-  /** Fixed key side in px (the touch target is the key itself). Without it the key fills its cell (70%). */
+  /** Key side in px. Without it the key is one grid cell. */
   side?: number;
+  /** Small `›` in the corner: the key opens another page. */
+  chevron?: boolean;
 }
 
 /** One key with the shared press states: pressed, confirming, pending, ok, error. Used by buttons and widgets. */
-export default function Key({ actionId, onTap, confirm, icon, label, color, side: fixedSide }: KeyProps) {
+export default function Key({ actionId, onTap, confirm, icon, label, color, side: fixedSide, chevron }: KeyProps) {
   const online = useAppState((s) => s.conn === "online");
   const disabled = actionId !== undefined && !online;
 
@@ -44,9 +46,9 @@ export default function Key({ actionId, onTap, confirm, icon, label, color, side
   const holdTimer = useRef<number | null>(null);
   const resetTimer = useRef<number | null>(null);
   const mounted = useRef(true);
-  const [box, cellSide] = useKeySize();
-  const side = fixedSide ?? cellSide;
-  const colors = keyColors(color);
+  const metrics = useDeckMetrics();
+  const side = fixedSide ?? metrics.side;
+  const face = keyFace(color);
 
   useEffect(() => {
     mounted.current = true;
@@ -128,37 +130,44 @@ export default function Key({ actionId, onTap, confirm, icon, label, color, side
     onTap?.();
   }
 
-  // In a cell the whole cell is the touch target; the key inside it is what the eye sees.
-  const classes = ["btn", disabled ? "disabled" : ""].filter(Boolean).join(" ");
-  const wrapStyle: CSSProperties | undefined = fixedSide === undefined ? undefined : { width: fixedSide, height: fixedSide, flex: "none" };
+  // The key is the touch target and the face at once: `side` x `side` px.
+  const radius = 0.16 * side;
   const keyStyle: CSSProperties = {
     width: side,
     height: side,
-    borderRadius: 0.22 * side,
-    background: phase === "pressed" ? colors.pressed : colors.background,
-    borderColor: colors.border,
-    color: colors.ink,
+    borderRadius: radius,
+    background: face.background,
+    borderColor: face.border,
+    color: face.ink,
   };
+  const classes = ["key", phase, disabled ? "disabled" : ""].filter(Boolean).join(" ");
+  const labelPad = 0.07 * side;
   return (
-    <div ref={box} className={classes} style={wrapStyle} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={cancel}>
-      <div className={`key ${phase}`} style={keyStyle}>
-        {icon ? (
-          <Icon icon={icon} size={Math.round(0.5 * side)} />
-        ) : (
-          <div className="key-text" style={{ fontSize: 0.2 * side }}>
-            {label ?? ""}
-          </div>
-        )}
-        {phase === "confirming" && (
-          <svg className="ring" width={side} height={side} viewBox={`0 0 ${side} ${side}`} aria-hidden="true">
-            <rect x="1" y="1" width={side - 2} height={side - 2} rx={0.22 * side} pathLength="100" />
-          </svg>
-        )}
-      </div>
-      {icon && label && fixedSide === undefined && (
-        <div className="key-label" style={{ marginTop: 0.06 * side, fontSize: Math.max(11, 0.16 * side) }}>
+    <div className={classes} style={keyStyle} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={cancel}>
+      {icon && (
+        <div className="key-icon" style={label ? { transform: `translateY(${-0.07 * side}px)` } : undefined}>
+          <Icon icon={icon} size={Math.round(0.46 * side)} />
+        </div>
+      )}
+      {label && icon && (
+        <div className="key-label" style={{ left: labelPad, right: labelPad, bottom: labelPad, fontSize: Math.max(11, 0.14 * side) }}>
           {label}
         </div>
+      )}
+      {label && !icon && (
+        <div className="key-text" style={{ fontSize: 0.19 * side, padding: `0 ${labelPad}px` }}>
+          {label}
+        </div>
+      )}
+      {chevron && (
+        <div className="key-chevron" style={{ top: 0.04 * side, right: 0.07 * side, fontSize: 0.14 * side }} aria-hidden="true">
+          ›
+        </div>
+      )}
+      {phase === "confirming" && (
+        <svg className="ring" width={side} height={side} viewBox={`0 0 ${side} ${side}`} aria-hidden="true">
+          <rect x="1" y="1" width={side - 2} height={side - 2} rx={radius} pathLength="100" />
+        </svg>
       )}
     </div>
   );
