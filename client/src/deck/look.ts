@@ -38,24 +38,27 @@ export interface KeyColors {
   pressed: string;
   /** Icon / glyph color. */
   ink: string;
+  /** Colour of the 1 px outline of the key. */
+  border: string;
 }
 
 /** T10.2: a coloured key is a 16% tint of the colour with the icon in that colour (light ink when it is too dark). */
 export function keyColors(color: string | undefined): KeyColors {
   const rgb = color ? parseHex(color) : null;
-  if (!rgb || !color) return { background: "transparent", pressed: "rgba(255,255,255,0.10)", ink: LIGHT };
+  if (!rgb || !color) return { background: "transparent", pressed: "rgba(255,255,255,0.10)", ink: LIGHT, border: "rgba(255,255,255,0.16)" };
   const [r, g, b] = rgb;
   const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
   return {
     background: `rgba(${r},${g},${b},0.16)`,
     pressed: `rgba(${r},${g},${b},0.30)`,
     ink: luminance < 64 ? LIGHT : color,
+    border: `rgba(${r},${g},${b},0.5)`,
   };
 }
 
-/** Key side for a cell: 62% of the smaller cell side. */
+/** Key side for a cell: 70% of the smaller cell side (DECISIONS D-31). */
 export function keySize(cellW: number, cellH: number): number {
-  return Math.round(0.62 * Math.min(cellW, cellH));
+  return Math.round(0.7 * Math.min(cellW, cellH));
 }
 
 /** Toast title for a failed press, by error code. */

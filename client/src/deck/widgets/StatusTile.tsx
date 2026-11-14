@@ -14,7 +14,10 @@ export default function StatusTile({ item }: { item: StatusItemTile }) {
   const dot = Math.round(0.2 * side);
   return (
     <div ref={cell} className="status-cell">
-      <div className="key" style={{ width: side, height: side, borderRadius: 0.22 * side, background: keyColors(color).background }}>
+      <div
+        className="key"
+        style={{ width: side, height: side, borderRadius: 0.22 * side, background: keyColors(color).background, borderColor: keyColors(color).border }}
+      >
         <span className={state === "running" ? "status-key-dot pulse" : "status-key-dot"} style={{ width: dot, height: dot, background: color }} />
       </div>
       <div className="key-label" style={{ marginTop: 0.06 * side, fontSize: Math.max(11, 0.16 * side) }}>

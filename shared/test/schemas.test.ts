@@ -111,10 +111,17 @@ describe("invalid inputs are rejected", () => {
     ],
     ["button with both actionId and navigate", layoutRef, layoutWith({ ...button, navigate: "main" })],
     ["button sized 2x1", layoutRef, layoutWith({ ...button, w: 2 })],
-    ["grid 6x3", layoutRef, layoutWith(button, { cols: 6, rows: 3 })],
+    ["grid 9x4", layoutRef, layoutWith(button, { cols: 9, rows: 4 })],
+    ["grid 7x1", layoutRef, layoutWith(button, { cols: 7, rows: 1 })],
   ];
 
-  test("9 negative cases", () => expect(cases.length).toBe(9));
+  test("10 negative cases", () => expect(cases.length).toBe(10));
+
+  test("grids from 3x2 to 8x5 are valid", () => {
+    for (const grid of [{ cols: 3, rows: 2 }, { cols: 7, rows: 4 }, { cols: 8, rows: 5 }]) {
+      expect(valid(layoutRef, layoutWith(button, grid)), JSON.stringify(grid)).toBe(true);
+    }
+  });
   test.each(cases)("%s", (_title, ref, data) => {
     expect(valid(ref, data)).toBe(false);
   });

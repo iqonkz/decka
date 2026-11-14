@@ -142,13 +142,13 @@ pub fn validate_actions(file: &ActionsFile) -> Vec<ValidationIssue> {
 
 // ===== layout =====
 
-/// Allowed size per kind: (min_w, max_w, min_h, max_h).
-fn size_limits(kind: &str) -> (i32, i32, i32, i32) {
+/// Allowed size per kind: (min_w, max_w, min_h, max_h). The list widgets may fill the whole grid.
+fn size_limits(kind: &str, cols: i32, rows: i32) -> (i32, i32, i32, i32) {
     match kind {
         "button" | "status" => (1, 1, 1, 1),
         "clock" => (1, 2, 1, 1),
         "sys" => (2, 2, 1, 2),
-        _ => (2, 5, 1, 3), // statuses, notifications
+        _ => (2, cols, 1, rows), // statuses, notifications
     }
 }
 
@@ -173,9 +173,13 @@ pub fn validate_layout(layout: &LayoutFile, actions: &ActionsFile) -> Vec<Valida
     if layout.version != 1 {
         out.push(issue("/version", "version must be 1"));
     }
-    if layout.grid.cols != 5 || layout.grid.rows != 3 {
-        out.push(issue("/grid", "grid must be 5x3"));
+    if !(3..=8).contains(&layout.grid.cols) {
+        out.push(issue("/grid/cols", "grid columns must be an integer from 3 to 8"));
     }
+    if !(2..=5).contains(&layout.grid.rows) {
+        out.push(issue("/grid/rows", "grid rows must be an integer from 2 to 5"));
+    }
+    let (cols, rows) = (i32::from(layout.grid.cols), i32::from(layout.grid.rows));
     if !(1..=10).contains(&layout.pages.len()) {
         out.push(issue("/pages", "pages must contain 1..10 entries"));
     }
@@ -192,8 +196,8 @@ pub fn validate_layout(layout: &LayoutFile, actions: &ActionsFile) -> Vec<Valida
         if !(1..=30).contains(&chars(&page.name)) {
             out.push(issue(format!("{path}/name"), "page name must be 1..30 characters"));
         }
-        if page.items.len() > 15 {
-            out.push(issue(format!("{path}/items"), "at most 15 items per page"));
+        if page.items.len() > 40 {
+            out.push(issue(format!("{path}/items"), "at most 40 items per page"));
         }
     }
 
@@ -210,8 +214,8 @@ pub fn validate_layout(layout: &LayoutFile, actions: &ActionsFile) -> Vec<Valida
                 out.push(issue(path.clone(), format!("duplicate item id '{id}'")));
             }
 
-            if x < 0 || y < 0 || w < 1 || h < 1 || x + w > 5 || y + h > 3 {
-                out.push(issue(path.clone(), "item is outside the 5x3 grid"));
+            if x < 0 || y < 0 || w < 1 || h < 1 || x + w > cols || y + h > rows {
+                out.push(issue(path.clone(), format!("item is outside the {cols}x{rows} grid")));
             }
             for other in &page.items[..ii] {
                 let (oid, ox, oy, ow, oh) = other.rect();
@@ -220,7 +224,7 @@ pub fn validate_layout(layout: &LayoutFile, actions: &ActionsFile) -> Vec<Valida
                     break;
                 }
             }
-            let (min_w, max_w, min_h, max_h) = size_limits(item.kind_name());
+            let (min_w, max_w, min_h, max_h) = size_limits(item.kind_name(), cols, rows);
             if w < min_w || w > max_w || h < min_h || h > max_h {
                 out.push(issue(path.clone(), format!("size {w}x{h} is not allowed for kind '{}'", item.kind_name())));
             }

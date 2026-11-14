@@ -38,7 +38,7 @@ tools/    ws-smoke.mjs, make-icon.ps1
 | Лимиты | press 20/с на сокет; HTTP 60/мин на IP; pair 10/мин на IP |
 | Id | `^[a-z0-9_-]{1,64}$`; VarName `^[a-z0-9_.-]{1,64}$` |
 | Секции | `layout`, `sys`, `statuses`, `notifications` (≤ 20), `vars` |
-| Сетка | 5 столбцов × 3 строки |
+| Сетка | `layout.grid`: cols 3..8 × rows 2..5, по умолчанию 7×4 |
 | Каталог конфигурации | `%APPDATA%\Decka` или env `DECKA_CONFIG_DIR` |
 | Close-коды WS | 4401 unauthorized, 4403 revoked, 4426 version, 4429 rate, 1009 size, 1011 lagged |
 

@@ -1,7 +1,12 @@
 import type { LayoutFile, LayoutItem, Page } from "@decka/shared";
 
-export const COLS = 5;
-export const ROWS = 3;
+/** Grid size of the layout being edited (DATA_MODEL.md 3.1: cols 3..8, rows 2..5). */
+export interface Grid {
+  cols: number;
+  rows: number;
+}
+export const COLS_RANGE = [3, 8] as const;
+export const ROWS_RANGE = [2, 5] as const;
 
 export type Kind = LayoutItem["kind"];
 
@@ -15,15 +20,21 @@ export const DEFAULT_SIZE: Record<Kind, { w: number; h: number }> = {
   notifications: { w: 2, h: 2 },
 };
 
-/** Allowed sizes per kind (DATA_MODEL.md 3.2 item 4): [minW, maxW, minH, maxH]. */
-export const SIZE_RANGE: Record<Kind, [number, number, number, number]> = {
-  button: [1, 1, 1, 1],
-  clock: [1, 2, 1, 1],
-  sys: [2, 2, 1, 2],
-  status: [1, 1, 1, 1],
-  statuses: [2, 5, 1, 3],
-  notifications: [2, 5, 1, 3],
-};
+/** Allowed sizes per kind (DATA_MODEL.md 3.2 item 4): [minW, maxW, minH, maxH]; list widgets may fill the grid. */
+export function sizeRange(kind: Kind, grid: Grid): [number, number, number, number] {
+  switch (kind) {
+    case "button":
+    case "status":
+      return [1, 1, 1, 1];
+    case "clock":
+      return [1, 2, 1, 1];
+    case "sys":
+      return [2, 2, 1, 2];
+    case "statuses":
+    case "notifications":
+      return [2, grid.cols, 1, grid.rows];
+  }
+}
 
 interface Rect {
   x: number;
@@ -34,17 +45,17 @@ interface Rect {
 
 const overlap = (a: Rect, b: Rect): boolean => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 
-/** True if the rectangle lies inside the 5x3 grid and overlaps no other item of the page. */
-export function fits(page: Page, rect: Rect, ignoreId?: string): boolean {
-  if (rect.x < 0 || rect.y < 0 || rect.w < 1 || rect.h < 1 || rect.x + rect.w > COLS || rect.y + rect.h > ROWS) return false;
+/** True if the rectangle lies inside the grid and overlaps no other item of the page. */
+export function fits(page: Page, grid: Grid, rect: Rect, ignoreId?: string): boolean {
+  if (rect.x < 0 || rect.y < 0 || rect.w < 1 || rect.h < 1 || rect.x + rect.w > grid.cols || rect.y + rect.h > grid.rows) return false;
   return page.items.every((item) => item.id === ignoreId || !overlap(rect, item));
 }
 
 /** First free position (row by row) for a w x h item, or null. */
-export function findFreeSpot(page: Page, w: number, h: number): { x: number; y: number } | null {
-  for (let y = 0; y + h <= ROWS; y++) {
-    for (let x = 0; x + w <= COLS; x++) {
-      if (fits(page, { x, y, w, h })) return { x, y };
+export function findFreeSpot(page: Page, grid: Grid, w: number, h: number): { x: number; y: number } | null {
+  for (let y = 0; y + h <= grid.rows; y++) {
+    for (let x = 0; x + w <= grid.cols; x++) {
+      if (fits(page, grid, { x, y, w, h })) return { x, y };
     }
   }
   return null;
@@ -54,8 +65,8 @@ export type AddResult = { ok: true; page: Page } | { ok: false; error: string };
 
 export const NO_SPACE = "Not enough free space here";
 
-export function addItem(page: Page, item: LayoutItem): AddResult {
-  if (!fits(page, item)) return { ok: false, error: NO_SPACE };
+export function addItem(page: Page, grid: Grid, item: LayoutItem): AddResult {
+  if (!fits(page, grid, item)) return { ok: false, error: NO_SPACE };
   return { ok: true, page: { ...page, items: [...page.items, item] } };
 }
 

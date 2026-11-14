@@ -58,7 +58,7 @@ async fn invalid_layout_edit_keeps_the_old_layout_and_notifies() {
     let agent = start(dir.path()).await;
 
     let mut layout = read_layout(dir.path());
-    layout["pages"][0]["items"][3]["x"] = Value::from(1); // b-prev now overlaps b-play
+    layout["pages"][0]["items"][4]["x"] = Value::from(1); // b-prev now overlaps b-play
     std::fs::write(dir.path().join("layout.json"), serde_json::to_string_pretty(&layout).unwrap()).unwrap();
 
     let notified = wait_for(2, || {
@@ -68,7 +68,7 @@ async fn invalid_layout_edit_keeps_the_old_layout_and_notifies() {
     .await;
     assert!(notified, "no error notification");
     assert_eq!(page_name(&agent), "Main");
-    assert_eq!(agent.layout().pages[0].items.len(), 10);
+    assert_eq!(agent.layout().pages[0].items.len(), 14);
     agent.shutdown().await;
 }
 
@@ -79,10 +79,10 @@ async fn save_layout_with_overlap_is_rejected_and_file_is_untouched() {
     let before = std::fs::read_to_string(dir.path().join("layout.json")).unwrap();
 
     let mut layout = serde_json::to_value(agent.layout()).unwrap();
-    layout["pages"][0]["items"][3]["x"] = Value::from(1);
+    layout["pages"][0]["items"][4]["x"] = Value::from(1); // b-prev onto b-play
     let result = agent.save_layout(serde_json::from_value(layout).unwrap());
     match result {
-        SaveResult::Rejected(issues) => assert_eq!(issues[0].path, "/pages/0/items/4"),
+        SaveResult::Rejected(issues) => assert_eq!(issues[0].path, "/pages/0/items/5"),
         SaveResult::Saved => panic!("overlap was accepted"),
     }
     assert_eq!(std::fs::read_to_string(dir.path().join("layout.json")).unwrap(), before);

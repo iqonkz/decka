@@ -34,6 +34,38 @@ describe("validateLayout", () => {
   });
 });
 
+describe("validateLayout: configurable grid", () => {
+  const base = layoutDefault as LayoutFile;
+  const withGrid = (grid: { cols: number; rows: number }, items: unknown[] = []): LayoutFile => ({
+    ...base,
+    grid,
+    pages: [{ id: "main", name: "Main", items: items as LayoutFile["pages"][number]["items"] }],
+  });
+  const button = (x: number, y: number) => ({ id: "b", kind: "button", x, y, w: 1, h: 1, actionId: "lock" });
+
+  test("8x5 is valid; 9x4 and 7x1 are errors", () => {
+    expect(validateLayout(withGrid({ cols: 8, rows: 5 }), actions)).toEqual([]);
+    expect(validateLayout(withGrid({ cols: 9, rows: 4 }), actions).map((i) => i.path)).toEqual(["/grid/cols"]);
+    expect(validateLayout(withGrid({ cols: 7, rows: 1 }), actions).map((i) => i.path)).toEqual(["/grid/rows"]);
+  });
+
+  test("x: 6 fits cols 7 and is an error on cols 6, with the path of the item", () => {
+    expect(validateLayout(withGrid({ cols: 7, rows: 4 }, [button(6, 0)]), actions)).toEqual([]);
+    const issues = validateLayout(withGrid({ cols: 6, rows: 4 }, [button(6, 0)]), actions);
+    expect(issues.map((i) => i.path)).toEqual(["/pages/0/items/0"]);
+  });
+
+  test("list widgets may fill the whole grid", () => {
+    const widget = { id: "n", kind: "notifications", x: 0, y: 0, w: 8, h: 5 };
+    expect(validateLayout(withGrid({ cols: 8, rows: 5 }, [widget]), actions)).toEqual([]);
+  });
+
+  test("the default layout with the default actions has no issues and is 7x4", () => {
+    expect(base.grid).toEqual({ cols: 7, rows: 4 });
+    expect(validateLayout(base, actions)).toEqual([]);
+  });
+});
+
 describe("validateActions", () => {
   test("default actions have no issues", () => {
     expect(validateActions(actions)).toEqual([]);

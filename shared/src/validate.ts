@@ -4,15 +4,23 @@ import type { ValidationIssue } from "./ipc";
 
 const ID_RE = /^[a-z0-9_-]{1,64}$/;
 
-// Allowed sizes per kind: [minW, maxW, minH, maxH]
-const SIZES: Record<string, [number, number, number, number]> = {
-  button: [1, 1, 1, 1],
-  clock: [1, 2, 1, 1],
-  sys: [2, 2, 1, 2],
-  status: [1, 1, 1, 1],
-  statuses: [2, 5, 1, 3],
-  notifications: [2, 5, 1, 3],
-};
+// Allowed sizes per kind: [minW, maxW, minH, maxH]; the two list widgets may fill the whole grid.
+function sizeLimits(kind: string, grid: LayoutFile["grid"]): [number, number, number, number] | undefined {
+  switch (kind) {
+    case "button":
+    case "status":
+      return [1, 1, 1, 1];
+    case "clock":
+      return [1, 2, 1, 1];
+    case "sys":
+      return [2, 2, 1, 2];
+    case "statuses":
+    case "notifications":
+      return [2, grid.cols, 1, grid.rows];
+    default:
+      return undefined;
+  }
+}
 
 const esc = (s: string): string => s.replace(/~/g, "~0").replace(/\//g, "~1");
 
@@ -24,6 +32,10 @@ function overlaps(a: LayoutItem, b: LayoutItem): boolean {
 export function validateLayout(layout: LayoutFile, actions: ActionsFile): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   const add = (path: string, message: string) => issues.push({ path, message });
+
+  const { cols, rows } = layout.grid;
+  if (!Number.isInteger(cols) || cols < 3 || cols > 8) add("/grid/cols", "grid columns must be an integer from 3 to 8");
+  if (!Number.isInteger(rows) || rows < 2 || rows > 5) add("/grid/rows", "grid rows must be an integer from 2 to 5");
 
   const pageIds = new Set<string>();
   layout.pages.forEach((page, pi) => {
@@ -39,8 +51,8 @@ export function validateLayout(layout: LayoutFile, actions: ActionsFile): Valida
       if (itemIds.has(item.id)) add(path, `duplicate item id '${item.id}'`);
       itemIds.add(item.id);
 
-      if (item.x < 0 || item.y < 0 || item.w < 1 || item.h < 1 || item.x + item.w > 5 || item.y + item.h > 3) {
-        add(path, "item is outside the 5x3 grid");
+      if (item.x < 0 || item.y < 0 || item.w < 1 || item.h < 1 || item.x + item.w > cols || item.y + item.h > rows) {
+        add(path, `item is outside the ${cols}x${rows} grid`);
       }
 
       for (let j = 0; j < ii; j++) {
@@ -51,7 +63,7 @@ export function validateLayout(layout: LayoutFile, actions: ActionsFile): Valida
         }
       }
 
-      const size = SIZES[item.kind];
+      const size = sizeLimits(item.kind, layout.grid);
       if (size && (item.w < size[0] || item.w > size[1] || item.h < size[2] || item.h > size[3])) {
         add(path, `size ${item.w}x${item.h} is not allowed for kind '${item.kind}'`);
       }

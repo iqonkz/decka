@@ -6,7 +6,7 @@ import Banner from "../ui/Banner";
 import Button from "../ui/Button";
 import Field from "../ui/Field";
 import ItemForm from "./itemForm";
-import { addItem, COLS, DEFAULT_SIZE, makeItem, movePage, newPageId, removeItem, ROWS, updateItem, type Kind } from "./layoutOps";
+import { addItem, COLS_RANGE, DEFAULT_SIZE, makeItem, movePage, newPageId, removeItem, ROWS_RANGE, updateItem, type Kind } from "./layoutOps";
 
 const KINDS: Kind[] = ["button", "clock", "sys", "status", "statuses", "notifications"];
 const CELL_W = 120;
@@ -69,10 +69,14 @@ export default function LayoutTab() {
   };
   const setPage = (p: typeof page) => edit({ ...layout, pages: layout.pages.map((x, i) => (i === pageIdx ? p : x)) });
   const setDisplay = (d: Partial<DisplaySettings>) => edit({ ...layout, display: { ...layout.display, ...d } });
+  // Items are never moved by a size change: those that no longer fit are flagged by validation (red) and block Save.
+  const setGrid = (g: Partial<LayoutFile["grid"]>) => edit({ ...layout, grid: { ...layout.grid, ...g } });
+  const { cols, rows } = layout.grid;
+  const options = (range: readonly [number, number]) => Array.from({ length: range[1] - range[0] + 1 }, (_, i) => range[0] + i);
 
   function create(kind: Kind) {
     if (!creating || !page) return;
-    const result = addItem(page, makeItem(kind, creating.x, creating.y));
+    const result = addItem(page, layout!.grid, makeItem(kind, creating.x, creating.y));
     if (!result.ok) return setNotice(result.error);
     const added = result.page.items[result.page.items.length - 1];
     setNotice(null);
@@ -119,6 +123,28 @@ export default function LayoutTab() {
     <div className="stack">
       <h2>Layout</h2>
 
+      <div className="row">
+        <Field label="Columns">
+          <select value={cols} onChange={(e) => setGrid({ cols: Number(e.target.value) })}>
+            {options(COLS_RANGE).map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Rows">
+          <select value={rows} onChange={(e) => setGrid({ rows: Number(e.target.value) })}>
+            {options(ROWS_RANGE).map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <span className="muted">Grid size. Items outside a smaller grid must be moved before saving.</span>
+      </div>
+
       <div className="row wrap">
         <div className="page-tabs">
           {layout.pages.map((p, i) => (
@@ -142,10 +168,10 @@ export default function LayoutTab() {
       )}
 
       <div className="split">
-        <div>
-          <div className="layout-grid" style={{ gridTemplateColumns: `repeat(${COLS}, ${CELL_W}px)`, gridTemplateRows: `repeat(${ROWS}, ${CELL_H}px)` }}>
-            {Array.from({ length: ROWS }, (_, y) =>
-              Array.from({ length: COLS }, (_, x) =>
+        <div className="layout-pane">
+          <div className="layout-grid" style={{ gridTemplateColumns: `repeat(${cols}, ${CELL_W}px)`, gridTemplateRows: `repeat(${rows}, ${CELL_H}px)` }}>
+            {Array.from({ length: rows }, (_, y) =>
+              Array.from({ length: cols }, (_, x) =>
                 covered.has(`${x},${y}`) ? null : (
                   <button key={`e${x}${y}`} className="cell empty" style={{ gridColumn: x + 1, gridRow: y + 1 }} aria-label={`Add item at ${x},${y}`} onClick={() => { setCreating({ x, y }); setSelectedId(null); setNotice(null); }}>
                     +
@@ -186,6 +212,7 @@ export default function LayoutTab() {
               item={selected}
               page={page}
               pages={layout.pages}
+              grid={layout.grid}
               actions={actions}
               onChange={(patch) => setPage(updateItem(page, selected.id, patch))}
               onDelete={() => { setPage(removeItem(page, selected.id)); setSelectedId(null); }}

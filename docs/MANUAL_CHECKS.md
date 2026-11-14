@@ -92,6 +92,11 @@
 - DONE (автоматически): `npm run typecheck -w agent`, тесты `applyPickedProgram` (заполнение `Program`/`Name`/`Working directory`, непустые поля сохраняются), `npm run build:ui`, `cargo build -p decka-agent` (плагин `tauri-plugin-dialog` зарегистрирован, `dialog:allow-open` в capabilities).
 - PENDING (owner): `npm run tauri dev` или установленный агент → Actions → тип `Launch a program` → `Browse…` → `C:\Windows\System32\charmap.exe` → `Name` = `charmap`, `Working directory` = `C:\Windows\System32` → `Save` → `Test` открывает «Таблицу символов». Проверить `New action…` в форме кнопки на вкладке Layout (переключает на Actions с формой нового действия; несохранённые правки формы кнопки теряются). Я не смог проверить окно: во время работы уже был запущен `target\release\decka-agent.exe` (запущен не мной в 22:27), а single-instance передаёт запуск dev-версии ему; системный диалог выбора файла CDP не управляется.
 
+## T10.5 — настраиваемая сетка и обводка клавиш
+
+- DONE (A57 only — S9 PENDING (owner)): свежий агент с конфигурацией по умолчанию → снимок `.tmp\grid74.png`: 7 столбцов × 4 строки, у клавиш тонкая обводка, `Lock` с цветной подложкой и обводкой.
+- PENDING (owner): в окне настроек (установленный агент или `npm run tauri dev`) вкладка Layout → `Columns` = 5 → `Save` → сетка на телефоне перестраивается ≤ 1 с (если элементы помещаются); при уменьшении сетки лишние элементы подсвечиваются красным и `Save` заблокирован. Окно я не проверял: запущен `target\release\decka-agent.exe` владельца.
+
 ## T9.4 — итоговая приёмка MVP
 
 - DONE (автоматически): тест `extra_fields_are_ignored` в `agent/core/tests/press.rs` (лишние `program`/`args` игнорируются: один вызов `media-play`; неизвестный `actionId` → `UNKNOWN_ACTION`, ноль новых вызовов); `node tools/ws-smoke.mjs raw 127.0.0.1:19247 .tmp\evil.json` без токена → `UNAUTHORIZED`, код выхода 1 (для этого `raw` теперь завершается кодом 1, когда ответ сервера — `error`; ответ по-прежнему печатается); в `client/src/net/` нет строк `program`, `hotkey`, `open_url`, `eval(`, `new Function(`.

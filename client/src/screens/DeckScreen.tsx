@@ -76,7 +76,7 @@ export default function DeckScreen() {
         }}
       >
         <div className="deck-inner" style={{ transform: `translate(${shift.x}px, ${shift.y}px)` }}>
-          {page && <Grid page={page} />}
+          {page && <Grid page={page} grid={layout.grid} />}
           <PageDots count={count} active={pageIndex} />
           <ConnBadge />
         </div>

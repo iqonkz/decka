@@ -2,7 +2,7 @@ import type { Id, VarName } from "./protocol";
 
 export interface LayoutFile {
   version: 1;
-  grid: { cols: 5; rows: 3 };     // only 5x3 is valid in v1
+  grid: { cols: number; rows: number }; // cols 3..8, rows 2..5; default 7x4 (M10)
   display: DisplaySettings;
   pages: Page[];                  // 1..10 pages, order = swipe order
 }

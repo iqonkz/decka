@@ -126,6 +126,7 @@ export default function Button({ item }: { item: ButtonItem }) {
     height: side,
     borderRadius: 0.22 * side,
     background: phase === "pressed" ? colors.pressed : colors.background,
+    borderColor: colors.border,
     color: colors.ink,
   };
   return (

@@ -1,56 +1,80 @@
 import { describe, expect, test } from "vitest";
 import type { LayoutFile, Page } from "@decka/shared";
 import layoutDefault from "@decka/shared/fixtures/layout.default.json";
-import { addItem, findFreeSpot, fits, makeItem, movePage, newItemId, NO_SPACE, removeItem, updateItem } from "../src/tabs/layoutOps";
+import { addItem, findFreeSpot, fits, makeItem, movePage, newItemId, NO_SPACE, removeItem, sizeRange, updateItem } from "../src/tabs/layoutOps";
 
 const layout = layoutDefault as unknown as LayoutFile;
-// "main" fills all 15 cells; "dev" has exactly two free cells: (4,1) and (3,2).
+const grid = layout.grid; // 7 x 4
+// "main" has free cells (3,3), (4,3), (5,3) only; "dev" is free from (4,1) down, except (6,3).
 const main = layout.pages[0] as Page;
 const dev = layout.pages[1] as Page;
 
-describe("fits", () => {
+describe("fits (grid 7x4)", () => {
+  test("the default grid is 7x4", () => {
+    expect(grid).toEqual({ cols: 7, rows: 4 });
+  });
+
   test("accepts a free cell", () => {
-    expect(fits(dev, { x: 4, y: 1, w: 1, h: 1 })).toBe(true);
-    expect(fits(dev, { x: 3, y: 2, w: 1, h: 1 })).toBe(true);
+    expect(fits(dev, grid, { x: 4, y: 1, w: 1, h: 1 })).toBe(true);
+    expect(fits(dev, grid, { x: 6, y: 2, w: 1, h: 1 })).toBe(true);
+    expect(fits(main, grid, { x: 3, y: 3, w: 3, h: 1 })).toBe(true);
   });
 
   test("catches overlap", () => {
-    expect(fits(main, { x: 1, y: 1, w: 1, h: 1 })).toBe(false); // b-play
-    expect(fits(dev, { x: 3, y: 1, w: 2, h: 1 })).toBe(false); // clips b-taskmgr
+    expect(fits(main, grid, { x: 1, y: 2, w: 1, h: 1 })).toBe(false); // b-play
+    expect(fits(dev, grid, { x: 3, y: 1, w: 2, h: 1 })).toBe(false); // clips the statuses widget
   });
 
   test("catches leaving the grid", () => {
-    expect(fits(dev, { x: 4, y: 1, w: 2, h: 1 })).toBe(false);
-    expect(fits(dev, { x: 3, y: 3, w: 1, h: 1 })).toBe(false);
-    expect(fits(dev, { x: -1, y: 1, w: 1, h: 1 })).toBe(false);
+    expect(fits(dev, grid, { x: 6, y: 1, w: 2, h: 1 })).toBe(false);
+    expect(fits(dev, grid, { x: 4, y: 4, w: 1, h: 1 })).toBe(false);
+    expect(fits(dev, grid, { x: -1, y: 1, w: 1, h: 1 })).toBe(false);
+  });
+
+  test("follows the grid it is given", () => {
+    expect(fits(dev, { cols: 7, rows: 4 }, { x: 6, y: 1, w: 1, h: 1 })).toBe(true);
+    expect(fits(dev, { cols: 6, rows: 4 }, { x: 6, y: 1, w: 1, h: 1 })).toBe(false);
+    expect(fits(dev, { cols: 8, rows: 5 }, { x: 7, y: 4, w: 1, h: 1 })).toBe(true);
   });
 
   test("an item does not collide with itself", () => {
-    expect(fits(main, { x: 1, y: 1, w: 1, h: 1 }, "b-play")).toBe(true);
+    expect(fits(main, grid, { x: 1, y: 2, w: 1, h: 1 }, "b-play")).toBe(true);
   });
 });
 
 describe("addItem", () => {
   test("into an occupied cell is an error", () => {
-    expect(addItem(main, makeItem("button", 1, 1, "b-new"))).toEqual({ ok: false, error: NO_SPACE });
+    expect(addItem(main, grid, makeItem("button", 1, 2, "b-new"))).toEqual({ ok: false, error: NO_SPACE });
   });
 
   test("into a free cell appends the item", () => {
-    const result = addItem(dev, makeItem("button", 4, 1, "b-new"));
+    const result = addItem(dev, grid, makeItem("button", 4, 1, "b-new"));
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.page.items).toHaveLength(dev.items.length + 1);
   });
 
   test("a big widget needs its whole area", () => {
-    expect(addItem(dev, makeItem("statuses", 3, 1, "w-big")).ok).toBe(false);
+    expect(addItem(dev, grid, makeItem("statuses", 3, 1, "w-big")).ok).toBe(false);
+    expect(addItem(dev, grid, makeItem("notifications", 4, 1, "w-notifs")).ok).toBe(true);
   });
 });
 
 describe("findFreeSpot", () => {
-  test("returns the first free cell row by row, or null when the page is full", () => {
-    expect(findFreeSpot(dev, 1, 1)).toEqual({ x: 4, y: 1 });
-    expect(findFreeSpot(dev, 2, 1)).toBeNull();
-    expect(findFreeSpot(main, 1, 1)).toBeNull();
+  test("returns the first free cell row by row, or null when nothing fits", () => {
+    expect(findFreeSpot(dev, grid, 1, 1)).toEqual({ x: 4, y: 1 });
+    expect(findFreeSpot(dev, grid, 4, 1)).toBeNull();
+    expect(findFreeSpot(main, grid, 1, 1)).toEqual({ x: 3, y: 3 });
+    expect(findFreeSpot(main, grid, 4, 1)).toBeNull();
+    expect(findFreeSpot(main, { cols: 3, rows: 2 }, 1, 1)).toBeNull();
+  });
+});
+
+describe("sizeRange", () => {
+  test("list widgets may fill the grid, others have fixed limits", () => {
+    expect(sizeRange("statuses", { cols: 7, rows: 4 })).toEqual([2, 7, 1, 4]);
+    expect(sizeRange("notifications", { cols: 8, rows: 5 })).toEqual([2, 8, 1, 5]);
+    expect(sizeRange("button", grid)).toEqual([1, 1, 1, 1]);
+    expect(sizeRange("sys", grid)).toEqual([2, 2, 1, 2]);
   });
 });
 
@@ -58,7 +82,7 @@ describe("updateItem / removeItem", () => {
   test("change only the target", () => {
     const moved = updateItem(dev, "b-home", { x: 4, y: 1 });
     expect(moved.items.find((i) => i.id === "b-home")).toMatchObject({ x: 4, y: 1 });
-    expect(moved.items.find((i) => i.id === "b-github")).toMatchObject({ x: 3, y: 0 });
+    expect(moved.items.find((i) => i.id === "b-github")).toMatchObject({ x: 4, y: 0 });
     expect(removeItem(main, "b-play").items.some((i) => i.id === "b-play")).toBe(false);
   });
 });

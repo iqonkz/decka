@@ -991,7 +991,25 @@ npm run typecheck -w client; npm test -w client; npm run android:sync -w client;
 npm run typecheck -w agent; npm run build:ui; cargo build -p decka-agent
 ```
 
+### T10.5 — Настраиваемая сетка (по умолчанию 7×4) и обводка клавиш
+**Цель:** размер сетки задаётся в окне настроек на ПК; клавиши обведены тонкой линией.
+**Файлы:** `shared/schemas/layout.schema.json`, `shared/src/layout.ts`, `shared/src/validate.ts`, `shared/fixtures/layout.default.json`, `agent/core/src/model.rs`, `agent/core/src/validate.rs`, `client/src/deck/Grid.tsx`, `client/src/deck/Button.tsx`, `client/src/styles.css`, `agent/src/tabs/LayoutTab.tsx`, `agent/src/tabs/layoutOps.ts`, тесты.
+**Шаги:**
+1. Перенеси дословно из DATA_MODEL.md: тип `grid` (§3.1), правила 1, 3, 4 и абзац о смене размера (§3.2), изменённые места схемы (§5: `ItemBase` x/y/w/h, `Page.items.maxItems: 40`, `ClientLayout.grid`), новый `layout.default.json` (§3.5). В Rust `grid.cols`/`grid.rows` — `u8`, проверки по тем же диапазонам. Все проверки границ используют `grid.cols`/`grid.rows`, ни одной константы 5 или 3 в коде проверки раскладки не остаётся.
+2. Фикстуры `shared/fixtures/invalid/*` не менять: у них собственная сетка 5×3, она по-прежнему допустима, и ожидаемые ошибки остаются. Фикстура `s2c-welcome.json` тоже остаётся (5×3 допустима).
+3. Добавь тесты (TS и Rust): `grid` 8×5 допустима; 9×4 и 7×1 — ошибка; элемент `x: 6` при `cols: 7` допустим, при `cols: 6` — ошибка с путём на элемент; дефолтная раскладка + дефолтные действия → 0 замечаний.
+4. Клиент: `Grid` берёт `repeat(cols, 1fr)` × `repeat(rows, 1fr)` из `layout.grid`. Множитель клавиши — `0.7` (было 0.62 в T10.2).
+5. Обводка клавиши (DATA_MODEL состояния не меняются): без `color` — `1px solid rgba(255,255,255,0.16)`; с `color` — `1px solid` цвет `color` с непрозрачностью 0.5. Рамки состояний `pending`/`ok`/`error` (2 px) заменяют обводку на время состояния. Виджет `status` — обводка цвета состояния с непрозрачностью 0.5. Остальные виджеты без обводки.
+6. Окно настроек, вкладка `Layout`, блок над сеткой: `Grid` — два select: `Columns` 3..8 и `Rows` 2..5. Сетка редактора рисуется по этим значениям (ячейка по-прежнему 120×90 px; при 8 столбцах редактор прокручивается горизонтально). Элементы за пределами новой сетки подсвечиваются красным и перечислены в замечаниях, `Save` заблокирован (обычная валидация). `findFreeSpot`/`fits` учитывают текущий размер сетки; тест `layoutOps` на сетке 7×4.
+7. Существующий у пользователя `layout.json` (5×3) не мигрируется — он валиден и показывается как есть. Новый размер применяется только после `Save`.
+**Приёмка:** все тесты проходят; на снимке экрана телефона (`.tmp\grid74.png`) свежего агента с конфигурацией по умолчанию — 7 столбцов × 4 строки, у клавиш тонкая обводка; в `npm run tauri dev` смена `Columns` на 5 и `Save` перестраивает сетку на телефоне ≤ 1 с (если элементы помещаются).
+**Проверка:**
+```
+npm run typecheck; npm test; cargo test -p decka-core; npm run android:sync -w client; npm run android:apk -w client; adb install -r client\android\app\build\outputs\apk\debug\app-debug.apk
+```
+
 ### T10.4 — Установка агента для владельца
+Выполняется последней в M10 (после T10.5).
 **Цель:** у владельца работает настоящее приложение-агент, а не headless.
 **Шаги:**
 1. Останови все процессы `decka-headless` и `decka-agent`.

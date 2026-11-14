@@ -2,7 +2,7 @@ import type { ActionsFile, ButtonItem, ButtonLook, LayoutItem, Page } from "@dec
 import { navigate } from "../ipc";
 import Button from "../ui/Button";
 import Field from "../ui/Field";
-import { COLS, ROWS, SIZE_RANGE } from "./layoutOps";
+import { sizeRange, type Grid } from "./layoutOps";
 
 /** The 60 Lucide icons the client ships (DATA_MODEL.md 3.6). */
 export const ICON_NAMES = [
@@ -52,13 +52,14 @@ interface Props {
   item: LayoutItem;
   page: Page;
   pages: Page[];
+  grid: Grid;
   actions: ActionsFile;
   onChange: (patch: Partial<LayoutItem>) => void;
   onDelete: () => void;
 }
 
-export default function ItemForm({ item, pages, actions, onChange, onDelete }: Props) {
-  const [minW, maxW, minH, maxH] = SIZE_RANGE[item.kind];
+export default function ItemForm({ item, pages, grid, actions, onChange, onDelete }: Props) {
+  const [minW, maxW, minH, maxH] = sizeRange(item.kind, grid);
   const patch = (p: Record<string, unknown>) => onChange(p as Partial<LayoutItem>);
 
   return (
@@ -67,8 +68,8 @@ export default function ItemForm({ item, pages, actions, onChange, onDelete }: P
         {item.kind} <code>{item.id}</code>
       </h3>
       <div className="grid-4">
-        <NumberSelect label="X" value={item.x} options={range(0, COLS - item.w)} onChange={(x) => patch({ x })} />
-        <NumberSelect label="Y" value={item.y} options={range(0, ROWS - item.h)} onChange={(y) => patch({ y })} />
+        <NumberSelect label="X" value={item.x} options={range(0, grid.cols - item.w)} onChange={(x) => patch({ x })} />
+        <NumberSelect label="Y" value={item.y} options={range(0, grid.rows - item.h)} onChange={(y) => patch({ y })} />
         <NumberSelect label="W" value={item.w} options={range(minW, maxW)} onChange={(w) => patch({ w })} />
         <NumberSelect label="H" value={item.h} options={range(minH, maxH)} onChange={(h) => patch({ h })} />
       </div>

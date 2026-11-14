@@ -65,8 +65,9 @@ input { user-select: text; touch-action: manipulation; }
 .dim-overlay { position: fixed; inset: 0; z-index: 1000; background: #000; opacity: 0; pointer-events: none; transition: opacity 600ms ease; }
 .grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  grid-template-rows: repeat(3, 1fr);
+  /* The column and row counts come from layout.grid (inline style on .grid). */
+  grid-template-columns: repeat(7, 1fr);
+  grid-template-rows: repeat(4, 1fr);
   gap: 2vmin;
   padding: 4vmin;
   height: 100%;
@@ -107,10 +108,13 @@ input { user-select: text; touch-action: manipulation; }
   justify-content: center;
   flex: none;
   box-sizing: border-box;
+  border: 1px solid rgba(255, 255, 255, 0.16); /* the outline; the colour is set per key */
   color: #e5e5e5;
   transition: transform 80ms, background-color 80ms;
 }
 .key.pressed, .key.confirming { transform: scale(0.92); }
+/* The 2 px state frames replace the outline while the state lasts. */
+.key.pending, .key.ok, .key.error { border-color: transparent !important; }
 .key.pending { animation: key-pulse 0.9s ease-in-out infinite; }
 .key.ok { box-shadow: inset 0 0 0 2px #16a34a; }
 .key.error { box-shadow: inset 0 0 0 2px #dc2626; }

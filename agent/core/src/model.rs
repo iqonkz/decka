@@ -108,8 +108,10 @@ impl Action {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Grid {
-    pub cols: i32,
-    pub rows: i32,
+    /// 3..8 (DATA_MODEL.md 3.1); checked by `validate_layout`.
+    pub cols: u8,
+    /// 2..5.
+    pub rows: u8,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
