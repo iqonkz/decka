@@ -1,5 +1,7 @@
 import type { LayoutItem } from "@decka/shared";
 import Button from "./Button";
+import Clock from "./widgets/Clock";
+import Sys from "./widgets/Sys";
 
 /** Common tile container; the content depends on `kind`. */
 export default function Tile({ item }: { item: LayoutItem }) {
@@ -11,7 +13,11 @@ export default function Tile({ item }: { item: LayoutItem }) {
       content = <Button item={item} />;
       break;
     case "clock":
+      content = <Clock item={item} />;
+      break;
     case "sys":
+      content = <Sys item={item} />;
+      break;
     case "statuses":
     case "status":
     case "notifications":

@@ -187,3 +187,15 @@ input { user-select: text; touch-action: manipulation; }
   font-size: 3.2vmin;
 }
 .primary.danger { background: #b91c1c; }
+
+.clock { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; }
+.clock-time { font-weight: 300; font-variant-numeric: tabular-nums; line-height: 1.05; }
+.clock-date { font-size: 2.6vmin; color: #9ca3af; }
+
+.sys { display: flex; flex-direction: column; justify-content: center; gap: 1.2vmin; width: 100%; height: 100%; padding: 0 2.2vmin; box-sizing: border-box; }
+.sys-row { display: flex; align-items: center; gap: 1.2vmin; font-size: 2.4vmin; }
+.sys-label { width: 7vmin; color: #9ca3af; }
+.sys-bar { flex: 1; height: 1.2vmin; border-radius: 0.6vmin; background: #26262c; overflow: hidden; }
+.sys-fill { display: block; height: 100%; }
+.sys-value { width: 7vmin; text-align: right; font-variant-numeric: tabular-nums; }
+.sys-net { font-size: 2.4vmin; color: #9ca3af; white-space: nowrap; }
