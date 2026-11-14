@@ -90,3 +90,14 @@ fn atomic_save_leaves_no_tmp_file() {
     assert_eq!(std::fs::read_to_string(&path).unwrap(), "{\n  \"a\": 2\n}\n");
     assert!(!dir.path().join("x.json.tmp").exists());
 }
+
+#[test]
+fn files_written_with_a_utf8_bom_are_read() {
+    // Windows PowerShell 5.1 `Set-Content -Encoding utf8` writes a BOM.
+    let dir = tempfile::tempdir().unwrap();
+    let actions = "\u{feff}{\"version\":1,\"actions\":{\"charmap\":{\"name\":\"Charmap\",\"type\":\"launch\",\"program\":\"charmap.exe\"}}}";
+    std::fs::write(dir.path().join("actions.json"), actions).unwrap();
+    let loaded = load_or_init(dir.path());
+    assert!(loaded.issues.is_empty(), "{:?}", loaded.issues);
+    assert!(loaded.actions.actions.contains_key("charmap"));
+}

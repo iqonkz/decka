@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use std::process::exit;
 use std::sync::Arc;
 
-use decka_core::actions::DryRunner;
+use decka_core::actions::{ActionRunner, DryRunner, WindowsRunner};
 use decka_core::{Agent, AgentOptions};
 
 fn usage_error(msg: &str) -> ! {
@@ -27,7 +27,7 @@ async fn main() {
         config_dir: None,
         client_dist: None,
         port_override: None,
-        runner: Arc::new(DryRunner), // the real runner arrives in M3
+        runner: Arc::new(WindowsRunner),
         fixed_pair_code: None,
     };
     while let Some(arg) = args.next() {
@@ -43,7 +43,7 @@ async fn main() {
             "--config-dir" => opts.config_dir = Some(PathBuf::from(value("--config-dir"))),
             "--client-dist" => opts.client_dist = Some(PathBuf::from(value("--client-dist"))),
             "--pair-code" => opts.fixed_pair_code = Some(value("--pair-code")),
-            "--dry-run" => {}
+            "--dry-run" => opts.runner = Arc::new(DryRunner) as Arc<dyn ActionRunner>,
             other => usage_error(&format!("unknown argument '{other}'")),
         }
     }
