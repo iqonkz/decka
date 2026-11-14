@@ -92,14 +92,16 @@ export function validateLayout(layout: LayoutFile, actions: ActionsFile): Valida
       if (item.kind === "button") {
         const hasAction = item.actionId !== undefined;
         const hasNav = item.navigate !== undefined;
-        if (hasAction === hasNav) {
-          add(path, "button needs exactly one of actionId / navigate");
+        if (!hasAction && !hasNav) {
+          add(path, "choose an action or a page for this button");
+        } else if (hasAction && hasNav) {
+          add(path, "a button can either run an action or open a page, not both");
         }
         if (item.actionId !== undefined && !Object.hasOwn(actions.actions, item.actionId)) {
-          add(path, `unknown actionId '${item.actionId}'`);
+          add(path, `action "${item.actionId}" no longer exists — choose another`);
         }
         if (item.navigate !== undefined && !pageIds.has(item.navigate)) {
-          add(path, `unknown page '${item.navigate}'`);
+          add(path, `page "${item.navigate}" no longer exists — choose another`);
         }
         if (item.confirm !== undefined && !hasAction) {
           add(path, "confirm is only allowed with actionId");

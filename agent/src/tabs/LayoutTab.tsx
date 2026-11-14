@@ -6,6 +6,7 @@ import Banner from "../ui/Banner";
 import Button from "../ui/Button";
 import Field from "../ui/Field";
 import ItemForm from "./itemForm";
+import { describeIssue, itemPath } from "./issueText";
 import { addItem, COLS_RANGE, DEFAULT_SIZE, makeItem, movePage, newPageId, removeItem, ROWS_RANGE, updateItem, withMediaDefaults, type Kind } from "./layoutOps";
 import PageApps from "./PageApps";
 import TemplatesDialog from "./TemplatesDialog";
@@ -14,10 +15,13 @@ const KINDS: Kind[] = ["button", "clock", "sys", "status", "statuses", "notifica
 const CELL_W = 120;
 const CELL_H = 90;
 
-/** "/pages/1/items/3" -> [1, 3]; anything else -> null. */
-function itemPath(path: string): [number, number] | null {
-  const m = /^\/pages\/(\d+)\/items\/(\d+)/.exec(path);
-  return m ? [Number(m[1]), Number(m[2])] : null;
+/** A new button starts with the first action by name; without actions it opens another page. */
+function withButtonDefault(item: LayoutItem, actions: ActionsFile, pages: LayoutFile["pages"], currentPageId: string): LayoutItem {
+  if (item.kind !== "button") return item;
+  const first = Object.entries(actions.actions).sort(([, a], [, b]) => a.name.localeCompare(b.name))[0];
+  if (first) return { ...item, actionId: first[0] };
+  const other = pages.find((p) => p.id !== currentPageId);
+  return other ? { ...item, navigate: other.id } : item;
 }
 
 function itemLabel(item: LayoutItem): string {
@@ -81,13 +85,24 @@ export default function LayoutTab() {
 
   function create(kind: Kind) {
     if (!creating || !page) return;
-    const result = addItem(page, layout!.grid, withMediaDefaults(makeItem(kind, creating.x, creating.y), Object.keys(actions!.actions)));
+    const fresh = withButtonDefault(withMediaDefaults(makeItem(kind, creating.x, creating.y), Object.keys(actions!.actions)), actions!, layout!.pages, page.id);
+    const result = addItem(page, layout!.grid, fresh);
     if (!result.ok) return setNotice(result.error);
     const added = result.page.items[result.page.items.length - 1];
     setNotice(null);
     setPage(result.page);
     setCreating(null);
     setSelectedId(added?.id ?? null);
+  }
+
+  /** Clicking an issue opens the page and the form of the element it is about. */
+  function selectIssue(path: string) {
+    const p = itemPath(path);
+    const target = p ? layout!.pages[p[0]]?.items[p[1]] : undefined;
+    if (!p || !target) return;
+    setPageIdx(p[0]);
+    setSelectedId(target.id);
+    setCreating(null);
   }
 
   function addPage() {
@@ -264,7 +279,13 @@ export default function LayoutTab() {
           <ul>
             {shownIssues.map((i, n) => (
               <li key={n}>
-                <code>{i.path || "/"}</code>: {i.message}
+                {itemPath(i.path) ? (
+                  <button type="button" className="link" onClick={() => selectIssue(i.path)}>
+                    {describeIssue(i, layout)}
+                  </button>
+                ) : (
+                  describeIssue(i, layout)
+                )}
               </li>
             ))}
           </ul>
