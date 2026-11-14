@@ -27,6 +27,13 @@ pub fn is_var_name(s: &str) -> bool {
         && s.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_' || b == b'.' || b == b'-')
 }
 
+/// `^[a-z0-9._ ()-]{1,60}\.exe$`
+pub fn is_app_name(s: &str) -> bool {
+    let Some(stem) = s.strip_suffix(".exe") else { return false };
+    (1..=60).contains(&stem.len())
+        && stem.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || matches!(b, b'.' | b'_' | b' ' | b'(' | b')' | b'-'))
+}
+
 fn is_color(s: &str) -> bool {
     s.len() == 7 && s.starts_with('#') && s[1..].bytes().all(|b| b.is_ascii_hexdigit())
 }
@@ -148,6 +155,7 @@ fn size_limits(kind: &str, cols: i32, rows: i32) -> (i32, i32, i32, i32) {
         "button" | "status" => (1, 1, 1, 1),
         "clock" => (1, 2, 1, 1),
         "sys" => (2, 2, 1, 2),
+        "media" => (2, cols, 1, 2),
         _ => (2, cols, 1, rows), // statuses, notifications
     }
 }
@@ -198,6 +206,31 @@ pub fn validate_layout(layout: &LayoutFile, actions: &ActionsFile) -> Vec<Valida
         }
         if page.items.len() > 40 {
             out.push(issue(format!("{path}/items"), "at most 40 items per page"));
+        }
+    }
+
+    // Context pages (DATA_MODEL.md 3.2 item 9): the first page is home; an app belongs to one page only.
+    let mut app_owner: std::collections::HashMap<&str, &str> = std::collections::HashMap::new();
+    for (pi, page) in layout.pages.iter().enumerate() {
+        let Some(apps) = &page.apps else { continue };
+        if pi == 0 && !apps.is_empty() {
+            out.push(issue("/pages/0/apps", "the first page is the home page and cannot have apps"));
+        }
+        if apps.len() > 10 {
+            out.push(issue(format!("/pages/{pi}/apps"), "at most 10 apps per page"));
+        }
+        for (ai, app) in apps.iter().enumerate() {
+            let path = format!("/pages/{pi}/apps/{ai}");
+            if !is_app_name(app) {
+                out.push(issue(path.clone(), "app must be a lower-case exe name such as code.exe"));
+            }
+            match app_owner.get(app.as_str()) {
+                Some(owner) if *owner == page.id => out.push(issue(path, format!("duplicate app '{app}'"))),
+                Some(_) => out.push(issue(path, format!("{app} is already used by another page"))),
+                None => {
+                    app_owner.insert(app.as_str(), page.id.as_str());
+                }
+            }
         }
     }
 
@@ -275,6 +308,15 @@ pub fn validate_layout(layout: &LayoutFile, actions: &ActionsFile) -> Vec<Valida
                 LayoutItem::Status(s) => {
                     if !is_id(&s.status_id) {
                         out.push(issue(format!("{path}/statusId"), "invalid status id"));
+                    }
+                }
+                LayoutItem::Media(m) => {
+                    for (field, id) in [("prevAction", &m.prev_action), ("playAction", &m.play_action), ("nextAction", &m.next_action)] {
+                        if let Some(id) = id {
+                            if !actions.actions.contains_key(id) {
+                                out.push(issue(path.clone(), format!("unknown {field} '{id}'")));
+                            }
+                        }
                     }
                 }
                 LayoutItem::Clock(_) | LayoutItem::Sys(_) | LayoutItem::Notifications(_) => {}

@@ -613,6 +613,23 @@ impl Agent {
         SaveResult::Saved
     }
 
+    pub fn get_templates(&self) -> Vec<crate::templates::PageTemplate> {
+        crate::templates::all()
+    }
+
+    /// Adds a template's actions (existing ids are kept) and its page, then saves actions.json and layout.json.
+    pub fn add_template(&self, template_id: &str) -> SaveResult {
+        let (actions, layout) = match crate::templates::build(template_id, &self.layout(), &self.actions()) {
+            Ok(built) => built,
+            Err(issues) => return SaveResult::Rejected(issues),
+        };
+        let saved = self.save_actions(actions);
+        if saved != SaveResult::Saved {
+            return saved;
+        }
+        self.save_layout(layout)
+    }
+
     /// Adds a notification at the front (newest first, max 20) and returns its id.
     pub fn push_notification(&self, req: NotifyReq) -> String {
         let id = self.inner.notif_counter.fetch_add(1, Ordering::Relaxed).to_string();

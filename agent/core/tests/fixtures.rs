@@ -35,6 +35,8 @@ fn server_messages() {
         "s2c-paired",
         "s2c-welcome",
         "s2c-patch-vars",
+        "s2c-patch-focus",
+        "s2c-patch-media",
         "s2c-press-result-ok",
         "s2c-press-result-err",
         "s2c-pong",
@@ -53,6 +55,13 @@ fn welcome_state_sections() {
 }
 
 #[test]
+fn m11_sections_have_typed_shapes() {
+    roundtrip_value::<FocusInfo>("focus", load("s2c-patch-focus")["value"].clone());
+    roundtrip_value::<MediaInfo>("media", load("s2c-patch-media")["value"].clone());
+    roundtrip_value::<FocusInfo>("focus null app", serde_json::json!({ "app": null }));
+}
+
+#[test]
 fn http_bodies() {
     roundtrip::<NotifyReq>("http-notify-req");
     roundtrip::<StatusReq>("http-status-req");
@@ -64,5 +73,6 @@ fn http_bodies() {
 fn files() {
     roundtrip::<ActionsFile>("actions.default");
     roundtrip::<LayoutFile>("layout.default");
+    roundtrip::<LayoutFile>("layout.context");
     roundtrip::<ConfigFile>("config.example");
 }

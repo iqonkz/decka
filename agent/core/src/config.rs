@@ -51,6 +51,8 @@ pub fn default_config() -> ConfigFile {
         collectors: Collectors {
             sys: SysCollectorConfig { enabled: true, interval_sec: 2 },
             checks: Vec::new(),
+            focus: None,
+            media: None,
         },
     }
 }
@@ -74,7 +76,7 @@ pub fn empty_actions() -> ActionsFile {
 
 pub fn empty_layout() -> LayoutFile {
     let mut layout = default_layout();
-    layout.pages = vec![Page { id: "main".to_string(), name: "Main".to_string(), items: Vec::new() }];
+    layout.pages = vec![Page { id: "main".to_string(), name: "Main".to_string(), items: Vec::new(), apps: None }];
     layout
 }
 

@@ -145,6 +145,9 @@ pub struct Page {
     pub id: String,
     pub name: String,
     pub items: Vec<LayoutItem>,
+    /// Context page (M11): shown while one of these apps (lower-case exe names) is active on the PC.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub apps: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -155,6 +158,9 @@ pub struct DisplaySettings {
     pub sleep_after_sec: i64,
     pub pixel_shift: bool,
     pub night: Night,
+    /// M11: switch to context pages automatically; absent = true.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub context_pages: Option<bool>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -257,6 +263,23 @@ pub struct NotificationsItem {
     pub h: i32,
 }
 
+/// "Now playing" widget (M11); a missing action id means the key is not drawn.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MediaItem {
+    pub id: String,
+    pub x: i32,
+    pub y: i32,
+    pub w: i32,
+    pub h: i32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub prev_action: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub play_action: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub next_action: Option<String>,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum LayoutItem {
@@ -266,6 +289,7 @@ pub enum LayoutItem {
     Statuses(StatusesItem),
     Status(StatusTileItem),
     Notifications(NotificationsItem),
+    Media(MediaItem),
 }
 
 impl LayoutItem {
@@ -278,6 +302,7 @@ impl LayoutItem {
             LayoutItem::Statuses(i) => (&i.id, i.x, i.y, i.w, i.h),
             LayoutItem::Status(i) => (&i.id, i.x, i.y, i.w, i.h),
             LayoutItem::Notifications(i) => (&i.id, i.x, i.y, i.w, i.h),
+            LayoutItem::Media(i) => (&i.id, i.x, i.y, i.w, i.h),
         }
     }
 
@@ -289,6 +314,7 @@ impl LayoutItem {
             LayoutItem::Statuses(_) => "statuses",
             LayoutItem::Status(_) => "status",
             LayoutItem::Notifications(_) => "notifications",
+            LayoutItem::Media(_) => "media",
         }
     }
 }
@@ -319,6 +345,53 @@ pub struct UsbConfig {
 pub struct Collectors {
     pub sys: SysCollectorConfig,
     pub checks: Vec<HttpCheck>,
+    /// M11; absent = enabled.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub focus: Option<SwitchConfig>,
+    /// M11; absent = enabled.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub media: Option<SwitchConfig>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SwitchConfig {
+    pub enabled: bool,
+}
+
+impl Collectors {
+    pub fn focus_enabled(&self) -> bool {
+        self.focus.as_ref().map_or(true, |c| c.enabled)
+    }
+
+    pub fn media_enabled(&self) -> bool {
+        self.media.as_ref().map_or(true, |c| c.enabled)
+    }
+}
+
+/// Active PC window: the executable name only, NEVER the window title (S16).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct FocusInfo {
+    pub app: Option<String>,
+}
+
+/// Current Windows media session.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MediaInfo {
+    pub source: String,
+    pub title: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub artist: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub album: Option<String>,
+    pub playing: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub position_sec: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub duration_sec: Option<u64>,
+    pub position_at: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub art: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

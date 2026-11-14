@@ -11,6 +11,7 @@ pub mod ratelimit;
 pub mod server;
 pub mod state;
 pub mod statuses;
+pub mod templates;
 pub mod usb;
 pub mod validate;
 pub mod watch;

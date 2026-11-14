@@ -52,6 +52,37 @@ fn list_widgets_may_fill_the_whole_grid() {
     assert_eq!(paths(7, 5, widget), ["/pages/0/items/0", "/pages/0/items/0"]); // outside the grid, and too wide
 }
 
+fn with_pages(pages: Value) -> Vec<String> {
+    let base = serde_json::to_value(default_layout()).unwrap();
+    let layout: LayoutFile = serde_json::from_value(json!({ "version": 1, "grid": base["grid"], "display": base["display"], "pages": pages })).unwrap();
+    validate_layout(&layout, &default_actions()).into_iter().map(|i| i.path).collect()
+}
+
+#[test]
+fn context_page_apps_follow_the_m11_rules() {
+    let page = |id: &str, apps: Value| json!({ "id": id, "name": id, "items": [], "apps": apps });
+    // One app on two pages: the error is on the second page.
+    assert_eq!(with_pages(json!([page("a", json!([])), page("b", json!(["code.exe"])), page("c", json!(["code.exe"]))])), ["/pages/2/apps/0"]);
+    // The first page is home and cannot have apps.
+    assert_eq!(with_pages(json!([page("a", json!(["code.exe"])), page("b", json!([]))])), ["/pages/0/apps"]);
+    // Names must look like an exe.
+    assert_eq!(with_pages(json!([page("a", json!([])), page("b", json!(["notepad"]))])), ["/pages/1/apps/0"]);
+}
+
+#[test]
+fn the_media_widget_has_size_and_action_rules() {
+    let media = |extra: Value| {
+        let mut item = json!({ "id": "m", "kind": "media", "x": 0, "y": 0, "w": 3, "h": 1 });
+        item.as_object_mut().unwrap().extend(extra.as_object().unwrap().clone());
+        json!([{ "id": "p", "name": "P", "items": [item] }])
+    };
+    assert!(with_pages(media(json!({}))).is_empty());
+    assert!(with_pages(media(json!({ "playAction": "media-play" }))).is_empty());
+    assert_eq!(with_pages(media(json!({ "w": 1 }))), ["/pages/0/items/0"]); // 1x1
+    assert_eq!(with_pages(media(json!({ "h": 3 }))), ["/pages/0/items/0"]); // 3x3
+    assert_eq!(with_pages(media(json!({ "playAction": "nope" }))), ["/pages/0/items/0"]);
+}
+
 #[test]
 fn forty_items_per_page_are_allowed_forty_one_are_not() {
     let many = |n: usize| -> Value {

@@ -1,4 +1,4 @@
-//! State store: five JSON sections, a global `rev`, broadcast of changes only (ARCHITECTURE.md 5.2).
+//! State store: seven JSON sections (five from the start, `focus` and `media` from M11), a global `rev`, broadcast of changes only (ARCHITECTURE.md 5.2).
 
 use std::collections::{BTreeMap, HashMap};
 use std::sync::{Arc, Mutex};
@@ -8,7 +8,7 @@ use tokio::sync::broadcast;
 
 use crate::model::{Notification, StatusItem, VarValue};
 
-pub const SECTIONS: [&str; 5] = ["layout", "sys", "statuses", "notifications", "vars"];
+pub const SECTIONS: [&str; 7] = ["layout", "sys", "statuses", "notifications", "vars", "focus", "media"];
 pub const MAX_NOTIFICATIONS: usize = 20;
 
 /// A change to one section; `value` is always the complete new value of the section.
@@ -56,6 +56,8 @@ impl Store {
         sections.insert("statuses", Value::Array(Vec::new()));
         sections.insert("notifications", Value::Array(Vec::new()));
         sections.insert("vars", Value::Object(Default::default()));
+        sections.insert("focus", Value::Null);
+        sections.insert("media", Value::Null);
         let (tx, _) = broadcast::channel(64);
         Store { inner: Arc::new(Mutex::new(Inner { sections, rev: 0 })), tx }
     }
@@ -167,7 +169,7 @@ mod tests {
     }
 
     #[test]
-    fn snapshot_has_all_five_sections() {
+    fn snapshot_has_all_sections() {
         let store = Store::new(json!({ "pages": [] }));
         let (rev, state) = store.snapshot();
         assert_eq!(rev, 0);
@@ -176,6 +178,7 @@ mod tests {
             assert!(obj.contains_key(s), "missing {s}");
         }
         assert_eq!(obj["sys"], Value::Null);
+        assert_eq!((&obj["focus"], &obj["media"]), (&Value::Null, &Value::Null));
         assert_eq!(obj["layout"], json!({ "pages": [] }));
     }
 
