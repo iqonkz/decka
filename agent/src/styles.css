@@ -79,6 +79,14 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="color"]), select, te
 .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--muted); }
 .dot.online { background: var(--ok); }
 
+.split { display: flex; gap: 20px; align-items: flex-start; }
+.list-pane { flex: none; width: 260px; display: flex; flex-direction: column; gap: 10px; }
+.form-pane { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.plain-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.list-item { display: flex; flex-direction: column; width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--text); text-align: left; font: inherit; cursor: pointer; }
+.list-item.active { border-color: var(--accent); }
+.check { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+
 .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
 .field-label { font-weight: 600; }
 .field-hint { color: var(--muted); font-size: 12px; }
