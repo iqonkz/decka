@@ -199,3 +199,30 @@ input { user-select: text; touch-action: manipulation; }
 .sys-fill { display: block; height: 100%; }
 .sys-value { width: 7vmin; text-align: right; font-variant-numeric: tabular-nums; }
 .sys-net { font-size: 2.4vmin; color: #9ca3af; white-space: nowrap; }
+
+.statuses { display: flex; flex-direction: column; width: 100%; height: 100%; padding: 1.2vmin 2vmin; box-sizing: border-box; overflow: hidden; }
+.statuses-title { font-size: 2.4vmin; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.15vmin; }
+.statuses-empty { margin: auto; color: #9ca3af; font-size: 2.6vmin; }
+.status-row { display: flex; align-items: center; gap: 1.4vmin; height: 5vmin; flex: none; }
+.status-dot { width: 1.6vmin; height: 1.6vmin; border-radius: 50%; flex: none; }
+.status-label { flex: 1; min-width: 0; font-size: 2.8vmin; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.status-text { max-width: 45%; font-size: 2.4vmin; color: #9ca3af; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.status-more { height: 5vmin; flex: none; display: flex; align-items: center; font-size: 2.4vmin; color: #9ca3af; }
+.pulse { animation: state-pulse 1.6s ease-in-out infinite; }
+@keyframes state-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+.status-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  border: 0.4vmin solid;
+  border-radius: 2.5vmin;
+  padding: 0 1vmin;
+  text-align: center;
+}
+.status-tile-label { font-size: 3vmin; }
+.status-tile-text { margin-top: 0.6vmin; font-size: 2.2vmin; color: #9ca3af; }

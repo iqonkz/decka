@@ -1,6 +1,8 @@
 import type { LayoutItem } from "@decka/shared";
 import Button from "./Button";
 import Clock from "./widgets/Clock";
+import Statuses from "./widgets/Statuses";
+import StatusTile from "./widgets/StatusTile";
 import Sys from "./widgets/Sys";
 
 /** Common tile container; the content depends on `kind`. */
@@ -19,7 +21,11 @@ export default function Tile({ item }: { item: LayoutItem }) {
       content = <Sys item={item} />;
       break;
     case "statuses":
+      content = <Statuses item={item} />;
+      break;
     case "status":
+      content = <StatusTile item={item} />;
+      break;
     case "notifications":
       content = <div className="tile-body">{kind}</div>; // widgets arrive in M5
       break;
