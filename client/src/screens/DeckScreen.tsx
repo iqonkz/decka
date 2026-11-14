@@ -3,6 +3,7 @@ import { setPage, unpair } from "../app/controller";
 import ConnBadge from "../deck/ConnBadge";
 import DimOverlay from "../display/DimOverlay";
 import { useDisplayMode } from "../display/idle";
+import { usePixelShift } from "../display/pixelShift";
 import Grid from "../deck/Grid";
 import PageDots from "../deck/PageDots";
 import Toasts from "../deck/Toasts";
@@ -44,6 +45,7 @@ export default function DeckScreen() {
   const openUnpair = useCallback(() => setConfirmUnpair(true), []); // stable: the tap counter lives in the effect
   useUnpairGesture(openUnpair);
   const mode = useDisplayMode(layout?.display ?? null);
+  const shift = usePixelShift(layout?.display.pixelShift === true);
   if (!layout) return null;
 
   const count = layout.pages.length;
@@ -72,7 +74,7 @@ export default function DeckScreen() {
           start.current = null;
         }}
       >
-        <div className="deck-inner">
+        <div className="deck-inner" style={{ transform: `translate(${shift.x}px, ${shift.y}px)` }}>
           {page && <Grid page={page} />}
           <PageDots count={count} active={pageIndex} />
           <ConnBadge />
