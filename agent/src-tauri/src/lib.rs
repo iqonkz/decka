@@ -1,9 +1,12 @@
+mod tray;
+
 use std::sync::Arc;
 
 use decka_core::actions::WindowsRunner;
 use decka_core::{Agent, AgentOptions};
 use tauri::path::BaseDirectory;
-use tauri::Manager;
+use tauri::{AppHandle, Manager, WindowEvent};
+use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 
 fn log_level() -> tracing::Level {
     match std::env::var("DECKA_LOG").unwrap_or_default().to_ascii_lowercase().as_str() {
@@ -15,11 +18,40 @@ fn log_level() -> tracing::Level {
     }
 }
 
+/// Makes the OS autostart entry match `config.autostart` (only touches it when they differ).
+pub fn sync_autostart(app: &AppHandle, wanted: bool) {
+    let manager = app.autolaunch();
+    let enabled = manager.is_enabled().unwrap_or(false);
+    let result = if wanted && !enabled {
+        manager.enable()
+    } else if !wanted && enabled {
+        manager.disable()
+    } else {
+        Ok(())
+    };
+    if let Err(e) = result {
+        tracing::warn!("cannot update the autostart entry: {e}");
+    }
+}
+
 pub fn run() {
     let _ = tracing_subscriber::fmt().with_max_level(log_level()).try_init();
 
     tauri::Builder::default()
+        // Registered first: a second launch just brings the first window forward.
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| tray::show_settings(app)))
+        .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, Some(vec!["--minimized"])))
+        .on_window_event(|window, event| {
+            // Closing the window only hides it; the app lives in the tray until "Quit".
+            if let WindowEvent::CloseRequested { api, .. } = event {
+                api.prevent_close();
+                let _ = window.hide();
+            }
+        })
         .setup(|app| {
+            let minimized = std::env::args().any(|a| a == "--minimized");
+            let first_run = !decka_core::paths::config_dir(None).join("config.json").exists();
+
             // The bundled web client; without it the server still runs and `/` answers "client not bundled".
             let client_dist = app.path().resolve("client", BaseDirectory::Resource).ok().filter(|p| p.exists());
             let opts = AgentOptions {
@@ -32,14 +64,17 @@ pub fn run() {
             // A failed start must not kill the app: the window opens and the problem is shown there.
             match tauri::async_runtime::block_on(Agent::start(opts)) {
                 Ok(agent) => {
+                    sync_autostart(app.handle(), agent.config().autostart);
                     app.manage(agent);
                 }
                 Err(e) => tracing::error!("agent did not start: {e}"),
             }
 
-            if let Some(window) = app.get_webview_window("settings") {
-                let _ = window.show();
-                let _ = window.set_focus();
+            tray::setup(app.handle())?;
+
+            // `--minimized` keeps the window hidden, except on the very first run.
+            if !minimized || first_run {
+                tray::show_settings(app.handle());
             }
             Ok(())
         })
