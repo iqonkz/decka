@@ -156,7 +156,9 @@ async function main() {
     const conn = await connect(hostPort);
     if (args[1]) await hello(conn, args[1]);
     conn.send(frame);
-    return print(await nextReply(conn, { allowError: true }));
+    const reply = await nextReply(conn, { allowError: true });
+    // The reply is always printed; a server `error` also gives exit code 1 (T9.4 security check).
+    return print(reply, reply.t === "error" ? 1 : 0);
   }
 
   throw new Error(`unknown command '${cmd}'`);

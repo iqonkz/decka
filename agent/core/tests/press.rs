@@ -84,6 +84,23 @@ async fn press_of_an_unknown_action_is_rejected() {
     e.agent.shutdown().await;
 }
 
+/// S1: the protocol carries only an `actionId`; whatever else a client adds is ignored.
+#[tokio::test]
+async fn extra_fields_are_ignored() {
+    let runner = Arc::new(RecordingRunner::new());
+    let mut e = env(runner.clone()).await;
+
+    send(&mut e.ws, json!({ "t": "press", "id": 1, "actionId": "media-play", "program": "calc.exe", "args": ["/c", "calc"] })).await;
+    assert_eq!(recv(&mut e.ws).await, json!({ "t": "press_result", "id": 1, "ok": true }));
+    assert_eq!(runner.calls(), ["media-play"]);
+
+    send(&mut e.ws, json!({ "t": "press", "id": 2, "actionId": "nope", "program": "calc.exe", "args": ["/c", "calc"] })).await;
+    let res = recv(&mut e.ws).await;
+    assert_eq!(res["error"]["code"], "UNKNOWN_ACTION");
+    assert_eq!(runner.calls(), ["media-play"], "the unknown action must not run anything");
+    e.agent.shutdown().await;
+}
+
 #[tokio::test]
 async fn failing_runner_gives_action_failed_and_leaves_vars_alone() {
     let runner = Arc::new(RecordingRunner::failing("boom"));
