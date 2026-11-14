@@ -73,6 +73,20 @@ pub fn cover_data_uri(bytes: &[u8]) -> Option<String> {
     (uri.chars().count() <= MAX_ART_CHARS).then_some(uri)
 }
 
+/// Longest side of a cover sent to the phones, in pixels.
+const ART_MAX_SIDE: u32 = 192;
+
+/// Size a `width` x `height` picture is scaled to: the longer side becomes `ART_MAX_SIDE`, proportions are kept,
+/// a smaller picture is never enlarged.
+pub fn art_target_size(width: u32, height: u32) -> (u32, u32) {
+    let longest = width.max(height);
+    if longest <= ART_MAX_SIDE || longest == 0 {
+        return (width.max(1), height.max(1));
+    }
+    let scale = |side: u32| ((u64::from(side) * u64::from(ART_MAX_SIDE) + u64::from(longest) / 2) / u64::from(longest)).max(1) as u32;
+    (scale(width), scale(height))
+}
+
 pub struct MediaCollector {
     stop: Arc<AtomicBool>,
     thread: Option<JoinHandle<()>>,
@@ -170,10 +184,15 @@ fn warn_once_a_minute(last: &mut Option<Instant>, message: &str) {
 
 #[cfg(windows)]
 mod winrt {
-    use super::{cover_data_uri, now_ms, truncate_chars, MAX_SOURCE, MAX_TEXT};
+    use super::{art_target_size, cover_data_uri, now_ms, truncate_chars, ART_MAX_SIDE, MAX_SOURCE, MAX_TEXT};
     use crate::model::MediaInfo;
+    use windows::core::HSTRING;
+    use windows::Foundation::{PropertyType, PropertyValue};
+    use windows::Graphics::Imaging::{
+        BitmapAlphaMode, BitmapDecoder, BitmapEncoder, BitmapInterpolationMode, BitmapPixelFormat, BitmapPropertySet, BitmapTransform, BitmapTypedValue, ColorManagementMode, ExifOrientationMode,
+    };
     use windows::Media::Control::{GlobalSystemMediaTransportControlsSession, GlobalSystemMediaTransportControlsSessionManager, GlobalSystemMediaTransportControlsSessionPlaybackStatus};
-    use windows::Storage::Streams::DataReader;
+    use windows::Storage::Streams::{DataReader, DataWriter, IInputStream, InMemoryRandomAccessStream};
 
     /// 100 ns ticks between 1601-01-01 (Windows) and 1970-01-01 (unix).
     const EPOCH_DIFF_MS: i64 = 11_644_473_600_000;
@@ -182,12 +201,13 @@ mod winrt {
         manager: GlobalSystemMediaTransportControlsSessionManager,
         /// (title, artist, album) the cached cover belongs to, and the cover.
         cover: Option<((String, String, String), Option<String>)>,
+        cover_warned: Option<std::time::Instant>,
     }
 
     impl Reader {
         pub fn new() -> windows::core::Result<Reader> {
             let manager = GlobalSystemMediaTransportControlsSessionManager::RequestAsync()?.join()?;
-            Ok(Reader { manager, cover: None })
+            Ok(Reader { manager, cover: None, cover_warned: None })
         }
 
         /// The current session as `MediaInfo`; `None` = no session or an empty title.
@@ -209,7 +229,13 @@ mod winrt {
             let art = match &self.cover {
                 Some((cached, art)) if *cached == key => art.clone(),
                 _ => {
-                    let art = read_cover(&props).ok().flatten();
+                    let art = match read_cover(&props) {
+                        Ok(art) => art,
+                        Err(e) => {
+                            super::warn_once_a_minute(&mut self.cover_warned, &format!("cannot prepare the cover: {e}"));
+                            None
+                        }
+                    };
                     self.cover = Some((key, art.clone()));
                     art
                 }
@@ -251,16 +277,90 @@ mod winrt {
         let Ok(thumbnail) = props.Thumbnail() else { return Ok(None) };
         let stream = thumbnail.OpenReadAsync()?.join()?;
         let size = stream.Size()? as u32;
-        if size == 0 || size > 1_000_000 {
-            return Ok(None); // empty, or far too large for a 64 KiB data URI anyway
+        if size == 0 || size > MAX_SOURCE_BYTES {
+            return Ok(None); // empty, or unreasonably large
         }
-        let reader = DataReader::CreateDataReader(&stream)?;
+        let bytes = read_all(&stream, size)?;
+        let shrunk = shrink_art(&bytes)?;
+        let uri = cover_data_uri(&shrunk);
+        tracing::debug!("media cover: {} bytes -> {} bytes, kept = {}", bytes.len(), shrunk.len(), uri.is_some());
+        Ok(uri)
+    }
+
+    /// Covers larger than this are not even decoded.
+    const MAX_SOURCE_BYTES: u32 = 8_000_000;
+
+    fn read_all(stream: &impl windows::core::Interface, size: u32) -> windows::core::Result<Vec<u8>> {
+        let input: IInputStream = stream.cast()?;
+        let reader = DataReader::CreateDataReader(&input)?;
         reader.LoadAsync(size)?.join()?;
         let mut bytes = vec![0u8; size as usize];
         reader.ReadBytes(&mut bytes)?;
-        let uri = cover_data_uri(&bytes);
-        tracing::debug!("media cover: {} bytes, signature {:02x?}, kept = {}", bytes.len(), &bytes[..bytes.len().min(4)], uri.is_some());
-        Ok(uri)
+        reader.DetachStream()?;
+        Ok(bytes)
+    }
+
+    fn to_stream(bytes: &[u8]) -> windows::core::Result<InMemoryRandomAccessStream> {
+        let stream = InMemoryRandomAccessStream::new()?;
+        let writer = DataWriter::CreateDataWriter(&stream)?;
+        writer.WriteBytes(bytes)?;
+        writer.StoreAsync()?.join()?;
+        writer.DetachStream()?;
+        stream.Seek(0)?;
+        Ok(stream)
+    }
+
+    /// The bytes to send as a cover: the original when it is small enough in both pixels and characters,
+    /// otherwise a JPEG (quality 0.8) whose longer side is 192 px, scaled by Windows (no extra libraries).
+    pub fn shrink_art(bytes: &[u8]) -> windows::core::Result<Vec<u8>> {
+        let decoder = BitmapDecoder::CreateAsync(&to_stream(bytes)?)?.join()?;
+        let (width, height) = (decoder.PixelWidth()?, decoder.PixelHeight()?);
+        if width.max(height) <= ART_MAX_SIDE && cover_data_uri(bytes).is_some() {
+            return Ok(bytes.to_vec());
+        }
+        let (target_w, target_h) = art_target_size(width, height);
+        let transform = BitmapTransform::new()?;
+        transform.SetScaledWidth(target_w)?;
+        transform.SetScaledHeight(target_h)?;
+        transform.SetInterpolationMode(BitmapInterpolationMode::Fant)?;
+        let pixels = decoder
+            .GetPixelDataTransformedAsync(BitmapPixelFormat::Bgra8, BitmapAlphaMode::Straight, &transform, ExifOrientationMode::IgnoreExifOrientation, ColorManagementMode::DoNotColorManage)?
+            .join()?
+            .DetachPixelData()?;
+        encode(BitmapEncoder::JpegEncoderId()?, Some(0.8), &pixels, target_w, target_h)
+    }
+
+    /// Encodes BGRA pixels with the given encoder (JPEG quality only applies to JPEG).
+    fn encode(encoder_id: windows::core::GUID, quality: Option<f32>, pixels: &[u8], width: u32, height: u32) -> windows::core::Result<Vec<u8>> {
+        let out = InMemoryRandomAccessStream::new()?;
+        let encoder = match quality {
+            Some(q) => {
+                let options = BitmapPropertySet::new()?;
+                let value = BitmapTypedValue::Create(&PropertyValue::CreateSingle(q)?, PropertyType::Single)?;
+                options.Insert(&HSTRING::from("ImageQuality"), &value)?;
+                BitmapEncoder::CreateWithEncodingOptionsAsync(encoder_id, &out, &options)?.join()?
+            }
+            None => BitmapEncoder::CreateAsync(encoder_id, &out)?.join()?,
+        };
+        encoder.SetPixelData(BitmapPixelFormat::Bgra8, BitmapAlphaMode::Ignore, width, height, 96.0, 96.0, pixels)?;
+        encoder.FlushAsync()?.join()?;
+        let size = out.Size()? as u32;
+        out.Seek(0)?;
+        read_all(&out, size)
+    }
+
+    /// A solid-colour PNG, for tests.
+    #[cfg(test)]
+    pub fn solid_png(width: u32, height: u32) -> windows::core::Result<Vec<u8>> {
+        let pixels: Vec<u8> = std::iter::repeat([200u8, 100, 50, 255]).take((width * height) as usize).flatten().collect();
+        encode(BitmapEncoder::PngEncoderId()?, None, &pixels, width, height)
+    }
+
+    /// Size of an encoded picture, for tests.
+    #[cfg(test)]
+    pub fn decoded_size(bytes: &[u8]) -> windows::core::Result<(u32, u32)> {
+        let decoder = BitmapDecoder::CreateAsync(&to_stream(bytes)?)?.join()?;
+        Ok((decoder.PixelWidth()?, decoder.PixelHeight()?))
     }
 }
 
@@ -333,6 +433,33 @@ mod tests {
     fn texts_are_cut_by_characters() {
         assert_eq!(truncate_chars("абвгд", 3), "абв");
         assert_eq!(truncate_chars("ab", 5), "ab");
+    }
+
+    #[test]
+    fn art_is_scaled_to_192_keeping_proportions() {
+        assert_eq!(art_target_size(600, 600), (192, 192));
+        assert_eq!(art_target_size(640, 320), (192, 96));
+        assert_eq!(art_target_size(100, 50), (100, 50));
+        assert_eq!(art_target_size(10_000, 1), (192, 1));
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn a_large_png_becomes_a_192_px_jpeg() {
+        let png = winrt::solid_png(600, 600).expect("encode png");
+        assert!(png.starts_with(&[0x89, 0x50, 0x4E, 0x47]));
+        let shrunk = winrt::shrink_art(&png).expect("shrink");
+        assert!(shrunk.starts_with(&[0xFF, 0xD8, 0xFF]), "not a JPEG");
+        let uri = cover_data_uri(&shrunk).expect("fits the limit");
+        assert!(uri.starts_with("data:image/jpeg;base64,") && uri.len() < MAX_ART_CHARS);
+        assert_eq!(winrt::decoded_size(&shrunk).unwrap(), (192, 192));
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn a_small_cover_is_kept_as_is() {
+        let png = winrt::solid_png(100, 80).expect("encode png");
+        assert_eq!(winrt::shrink_art(&png).unwrap(), png);
     }
 
     #[test]
