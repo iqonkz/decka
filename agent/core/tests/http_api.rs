@@ -167,3 +167,121 @@ async fn a_twenty_kilobyte_body_is_413() {
     assert_eq!((status, body["error"]["code"].as_str()), (413, Some("PAYLOAD_TOO_LARGE")));
     e.agent.shutdown().await;
 }
+
+// ===== T5.2: statuses and variables =====
+
+impl Env {
+    fn delete(&self, path: &str) -> reqwest::RequestBuilder {
+        self.client.delete(format!("{}{path}", self.base)).header("Authorization", format!("Bearer {}", self.token))
+    }
+    fn put(&self, path: &str) -> reqwest::RequestBuilder {
+        self.client.put(format!("{}{path}", self.base)).header("Authorization", format!("Bearer {}", self.token))
+    }
+}
+
+fn json_req(b: reqwest::RequestBuilder, body: impl ToString) -> reqwest::RequestBuilder {
+    b.header("Content-Type", "application/json").body(body.to_string())
+}
+
+#[tokio::test]
+async fn status_upsert_from_the_fixture_is_a_push_item() {
+    let e = env().await;
+    let (status, body) = json_of(json_req(e.authed("/api/status"), fixture("http-status-req")).send().await.unwrap()).await;
+    assert_eq!((status, body), (200, json!({ "ok": true })));
+    let item = e.section("statuses")[0].clone();
+    assert_eq!(item["id"], "claude-decka");
+    assert_eq!(item["label"], "Claude: Decka");
+    assert_eq!(item["source"], "push");
+    assert_eq!(item["text"], "editing files");
+    e.agent.shutdown().await;
+}
+
+#[tokio::test]
+async fn upsert_keeps_label_and_clears_text() {
+    let e = env().await;
+    json_req(e.authed("/api/status"), fixture("http-status-req")).send().await.unwrap();
+    json_req(e.authed("/api/status"), json!({ "id": "claude-decka", "state": "ok" })).send().await.unwrap();
+    let item = e.section("statuses")[0].clone();
+    assert_eq!(item["label"], "Claude: Decka");
+    assert_eq!(item["group"], "ai");
+    assert_eq!(item["state"], "ok");
+    assert!(item.get("text").is_none());
+    e.agent.shutdown().await;
+}
+
+#[tokio::test]
+async fn ttl_makes_a_status_stale() {
+    let e = env().await;
+    json_req(e.authed("/api/status"), json!({ "id": "svc", "state": "ok", "text": "fine", "ttlSec": 1 })).send().await.unwrap();
+    let mut stale = false;
+    for _ in 0..30 {
+        let item = e.section("statuses")[0].clone();
+        if item["state"] == "unknown" && item["text"] == "stale" {
+            stale = true;
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    }
+    assert!(stale, "status did not become stale within 3 s");
+    e.agent.shutdown().await;
+}
+
+#[tokio::test]
+async fn status_delete_then_404() {
+    let e = env().await;
+    json_req(e.authed("/api/status"), json!({ "id": "svc", "state": "ok" })).send().await.unwrap();
+    assert_eq!(e.delete("/api/status/svc").send().await.unwrap().status(), 200);
+    assert_eq!(e.section("statuses"), json!([]));
+    assert_eq!(e.delete("/api/status/svc").send().await.unwrap().status(), 404);
+    e.agent.shutdown().await;
+}
+
+#[tokio::test]
+async fn invalid_status_requests_are_400() {
+    let e = env().await;
+    for bad in [
+        json!({ "id": "Bad Id", "state": "ok" }),
+        json!({ "id": "a", "state": "great" }),
+        json!({ "id": "a", "state": "ok", "ttlSec": 0 }),
+        json!({ "id": "a", "state": "ok", "ttlSec": 86401 }),
+        json!({ "id": "a", "state": "ok", "text": "t".repeat(81) }),
+        json!({ "id": "a", "state": "ok", "label": "" }),
+    ] {
+        let res = json_req(e.authed("/api/status"), bad.clone()).send().await.unwrap();
+        assert_eq!(res.status(), 400, "{bad}");
+    }
+    e.agent.shutdown().await;
+}
+
+#[tokio::test]
+async fn vars_put_get_delete() {
+    let e = env().await;
+    let res = json_req(e.put("/api/vars/mic.muted"), fixture("http-var-req")).send().await.unwrap();
+    assert_eq!(res.status(), 200);
+    assert_eq!(e.section("vars"), json!({ "mic.muted": true }));
+    assert_eq!(e.delete("/api/vars/mic.muted").send().await.unwrap().status(), 200);
+    assert_eq!(e.section("vars"), json!({}));
+    assert_eq!(e.delete("/api/vars/mic.muted").send().await.unwrap().status(), 404);
+    e.agent.shutdown().await;
+}
+
+#[tokio::test]
+async fn invalid_var_requests_are_400() {
+    let e = env().await;
+    assert_eq!(json_req(e.put("/api/vars/Bad%20Name"), json!({ "value": 1 })).send().await.unwrap().status(), 400);
+    assert_eq!(json_req(e.put("/api/vars/x"), json!({ "value": { "a": 1 } })).send().await.unwrap().status(), 400);
+    assert_eq!(json_req(e.put("/api/vars/x"), json!({ "value": "s".repeat(201) })).send().await.unwrap().status(), 400);
+    assert_eq!(json_req(e.put("/api/vars/x"), json!({ "value": "s".repeat(200) })).send().await.unwrap().status(), 200);
+    e.agent.shutdown().await;
+}
+
+#[tokio::test]
+async fn the_same_upsert_twice_bumps_rev_once() {
+    let e = env().await;
+    let rev = e.agent.store().rev();
+    for _ in 0..2 {
+        json_req(e.authed("/api/status"), fixture("http-status-req")).send().await.unwrap();
+    }
+    assert_eq!(e.agent.store().rev(), rev + 1);
+    e.agent.shutdown().await;
+}

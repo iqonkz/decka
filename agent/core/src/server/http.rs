@@ -1,5 +1,5 @@
 use axum::body::to_bytes;
-use axum::extract::{Request, State};
+use axum::extract::{Path, Request, State};
 use axum::http::{header, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::Json;
@@ -7,7 +7,8 @@ use axum::Json;
 use super::api_auth::ApiAuth;
 use super::MAX_BODY_BYTES;
 use crate::agent::Agent;
-use crate::proto::{ErrorBody, ErrorCode, HealthRes, HttpError, NotifyReq, NotifyRes};
+use crate::model::VarValue;
+use crate::proto::{ErrorBody, ErrorCode, HealthRes, HttpError, NotifyReq, NotifyRes, OkRes, StatusReq, VarReq};
 
 const MAX_TITLE: usize = 120;
 const MAX_BODY: usize = 500;
@@ -79,4 +80,76 @@ pub async fn notify(State(agent): State<Agent>, _auth: ApiAuth, req: Request) ->
 
     let id = agent.push_notification(notify_req);
     (StatusCode::ACCEPTED, Json(NotifyRes { id })).into_response()
+}
+
+fn too_long_str(value: &str, max: usize) -> bool {
+    value.chars().count() > max
+}
+
+/// `POST /api/status`: upsert by id (source is always "push").
+pub async fn status_upsert(State(agent): State<Agent>, _auth: ApiAuth, req: Request) -> Response {
+    let body = match read_body(req).await {
+        Ok(b) => b,
+        Err(r) => return r,
+    };
+    let parsed: StatusReq = match serde_json::from_slice(&body) {
+        Ok(r) => r,
+        Err(e) => return bad_request(&format!("invalid JSON: {e}")),
+    };
+    if !crate::validate::is_id(&parsed.id) {
+        return bad_request("invalid status id");
+    }
+    if parsed.label.as_deref().is_some_and(|l| l.is_empty() || too_long_str(l, 60))
+        || parsed.text.as_deref().is_some_and(|t| too_long_str(t, 80))
+        || parsed.group.as_deref().is_some_and(|g| too_long_str(g, 40))
+        || parsed.ttl_sec.is_some_and(|t| !(1..=86400).contains(&t))
+    {
+        return bad_request("a field is outside its allowed range");
+    }
+    match agent.statuses().upsert(parsed) {
+        Ok(()) => Json(OkRes { ok: true }).into_response(),
+        Err(message) => bad_request(&message),
+    }
+}
+
+/// `DELETE /api/status/{id}`
+pub async fn status_delete(State(agent): State<Agent>, _auth: ApiAuth, Path(id): Path<String>) -> Response {
+    if agent.statuses().delete(&id) {
+        Json(OkRes { ok: true }).into_response()
+    } else {
+        error_response(StatusCode::NOT_FOUND, ErrorCode::NotFound, "no such status")
+    }
+}
+
+/// `PUT /api/vars/{name}`
+pub async fn var_put(State(agent): State<Agent>, _auth: ApiAuth, Path(name): Path<String>, req: Request) -> Response {
+    let body = match read_body(req).await {
+        Ok(b) => b,
+        Err(r) => return r,
+    };
+    if !crate::validate::is_var_name(&name) {
+        return bad_request("invalid variable name");
+    }
+    let parsed: VarReq = match serde_json::from_slice(&body) {
+        Ok(r) => r,
+        Err(e) => return bad_request(&format!("invalid JSON: {e}")),
+    };
+    if matches!(&parsed.value, VarValue::Str(s) if too_long_str(s, 200)) {
+        return bad_request("string value is longer than 200 characters");
+    }
+    agent.store().update_vars(|vars| {
+        vars.insert(name, parsed.value);
+    });
+    Json(OkRes { ok: true }).into_response()
+}
+
+/// `DELETE /api/vars/{name}`
+pub async fn var_delete(State(agent): State<Agent>, _auth: ApiAuth, Path(name): Path<String>) -> Response {
+    let mut existed = false;
+    agent.store().update_vars(|vars| existed = vars.remove(&name).is_some());
+    if existed {
+        Json(OkRes { ok: true }).into_response()
+    } else {
+        error_response(StatusCode::NOT_FOUND, ErrorCode::NotFound, "no such variable")
+    }
 }

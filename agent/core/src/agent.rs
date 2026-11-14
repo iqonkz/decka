@@ -162,6 +162,8 @@ struct Inner {
     actions: Mutex<ActionsFile>,
     layout: Mutex<LayoutFile>,
     store: Store,
+    statuses: crate::statuses::Statuses,
+    background: Mutex<Vec<JoinHandle<()>>>,
     pairing: Pairing,
     devices: Devices,
     notif_counter: AtomicU64,
@@ -191,13 +193,16 @@ impl Agent {
         }
 
         let layout_value = serde_json::to_value(layout.to_client()).expect("layout serializes");
+        let store = Store::new(layout_value);
         let agent = Agent {
             inner: Arc::new(Inner {
                 config_dir: config_dir.clone(),
                 config: Mutex::new(config),
                 actions: Mutex::new(actions),
                 layout: Mutex::new(layout),
-                store: Store::new(layout_value),
+                statuses: crate::statuses::Statuses::new(store.clone()),
+                store,
+                background: Mutex::new(Vec::new()),
                 pairing: Pairing::new(opts.fixed_pair_code.clone()),
                 devices: Devices::new(config_dir.join("devices.json"), devices),
                 notif_counter: AtomicU64::new(1),
@@ -235,6 +240,18 @@ impl Agent {
                 }
             }
         }
+        // Once a second: statuses whose TTL ran out become "stale".
+        {
+            let for_task = agent.clone();
+            let ticker = tokio::spawn(async move {
+                let mut interval = tokio::time::interval(Duration::from_secs(1));
+                loop {
+                    interval.tick().await;
+                    for_task.inner.statuses.expire(std::time::Instant::now());
+                }
+            });
+            agent.inner.background.lock().unwrap().push(ticker);
+        }
         agent.start_server().await;
         match crate::watch::spawn(&agent) {
             Ok(handle) => *agent.inner.watcher.lock().unwrap() = Some(handle),
@@ -245,6 +262,10 @@ impl Agent {
 
     pub fn store(&self) -> &Store {
         &self.inner.store
+    }
+
+    pub fn statuses(&self) -> &crate::statuses::Statuses {
+        &self.inner.statuses
     }
 
     pub fn runner(&self) -> &Arc<dyn ActionRunner> {
@@ -505,6 +526,9 @@ impl Agent {
     pub async fn shutdown(&self) {
         let watcher = self.inner.watcher.lock().unwrap().take();
         drop(watcher);
+        for task in self.inner.background.lock().unwrap().drain(..) {
+            task.abort();
+        }
         self.stop_server().await;
     }
 

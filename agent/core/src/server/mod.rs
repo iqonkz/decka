@@ -7,7 +7,7 @@ use std::path::PathBuf;
 
 use axum::extract::DefaultBodyLimit;
 use axum::http::{header, HeaderValue};
-use axum::routing::{any, get, post};
+use axum::routing::{any, delete, get, post, put};
 use axum::{middleware, Router};
 use tower_http::set_header::SetResponseHeaderLayer;
 
@@ -21,6 +21,9 @@ pub fn router(agent: Agent, client_dist: Option<PathBuf>) -> Router {
         .route("/ws", get(ws::handler))
         .route("/api/health", get(http::health))
         .route("/api/notify", post(http::notify))
+        .route("/api/status", post(http::status_upsert))
+        .route("/api/status/{id}", delete(http::status_delete))
+        .route("/api/vars/{name}", put(http::var_put).delete(http::var_delete))
         .route("/api", any(http::api_not_found))
         .route("/api/{*rest}", any(http::api_not_found));
     static_files::attach(router, client_dist)
