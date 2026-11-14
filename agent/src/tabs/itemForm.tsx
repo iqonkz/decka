@@ -1,4 +1,5 @@
 import type { ActionsFile, ButtonItem, ButtonLook, LayoutItem, Page } from "@decka/shared";
+import { navigate } from "../ipc";
 import Button from "../ui/Button";
 import Field from "../ui/Field";
 import { COLS, ROWS, SIZE_RANGE } from "./layoutOps";
@@ -149,13 +150,18 @@ function ButtonFields({ item, pages, actions, patch }: { item: ButtonItem; pages
       </div>
       {mode === "action" ? (
         <>
-          <Field label="Action">
-            <select value={item.actionId ?? ""} onChange={(e) => patch({ actionId: e.target.value })}>
-              {item.actionId !== undefined && !actions.actions[item.actionId] && <option value={item.actionId}>{item.actionId} (missing)</option>}
-              {actionEntries.map(([id, a]) => (
-                <option key={id} value={id}>{`${a.name} (${id})`}</option>
-              ))}
-            </select>
+          <Field label="Action" hint="New action… leaves this form: save the layout first.">
+            <div className="row">
+              <select value={item.actionId ?? ""} onChange={(e) => patch({ actionId: e.target.value })}>
+                {item.actionId !== undefined && !actions.actions[item.actionId] && <option value={item.actionId}>{item.actionId} (missing)</option>}
+                {actionEntries.map(([id, a]) => (
+                  <option key={id} value={id}>{`${a.name} (${id})`}</option>
+                ))}
+              </select>
+              <button type="button" onClick={() => void navigate("actions:new")}>
+                New action…
+              </button>
+            </div>
           </Field>
           <label className="check">
             <input type="checkbox" checked={item.confirm === true} onChange={(e) => patch({ confirm: e.target.checked || undefined })} /> Hold to confirm

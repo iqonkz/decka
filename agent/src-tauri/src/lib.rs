@@ -42,6 +42,7 @@ pub fn run() {
         // Registered first: a second launch just brings the first window forward.
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| tray::show_settings(app)))
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, Some(vec!["--minimized"])))
+        .plugin(tauri_plugin_dialog::init())
         .on_window_event(|window, event| {
             // Closing the window only hides it; the app lives in the tray until "Quit".
             if let WindowEvent::CloseRequested { api, .. } = event {

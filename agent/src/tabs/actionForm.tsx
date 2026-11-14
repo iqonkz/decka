@@ -1,6 +1,8 @@
 import type { Action, MediaOp } from "@decka/shared";
+import { open } from "@tauri-apps/plugin-dialog";
 import Field from "../ui/Field";
 import { formatKeys, parseKeys } from "./keys";
+import { applyPickedProgram } from "./programPick";
 
 export type ActionType = Action["type"];
 
@@ -146,8 +148,20 @@ export default function ActionForm({ draft, isNew, onChange }: FormProps) {
       )}
       {draft.type === "launch" && (
         <>
-          <Field label="Program">
-            <input value={draft.program} onChange={(e) => set("program", e.target.value)} placeholder="notepad.exe" />
+          <Field label="Program" hint="Shortcuts (.lnk) are not supported: pick the .exe itself.">
+            <div className="row">
+              <input value={draft.program} onChange={(e) => set("program", e.target.value)} placeholder="notepad.exe" />
+              <button
+                type="button"
+                onClick={() =>
+                  void open({ multiple: false, directory: false, filters: [{ name: "Programs", extensions: ["exe"] }] }).then((picked) => {
+                    if (typeof picked === "string") onChange(applyPickedProgram(draft, picked));
+                  })
+                }
+              >
+                Browse…
+              </button>
+            </div>
           </Field>
           <Field label="Arguments" hint="One argument per line.">
             <textarea rows={3} value={draft.argsText} onChange={(e) => set("argsText", e.target.value)} />

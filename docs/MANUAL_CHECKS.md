@@ -87,6 +87,11 @@
 - T7.5 (г): PENDING (owner): сон ПК на 1 минуту и пробуждение, восстановление связи ≤ 30 с.
 - Наблюдение (не воспроизведено): после перезапуска headless в двух прогонах в логе появились лишние `DRY vol-down`/`task-manager` до моего касания; повторные перезапуски без касаний (2 раза по 14 с и 20 с) лишних нажатий не дали. Причина не найдена; связано, вероятно, с моими командами `adb input`.
 
+## T10.3 — Browse… и New action…
+
+- DONE (автоматически): `npm run typecheck -w agent`, тесты `applyPickedProgram` (заполнение `Program`/`Name`/`Working directory`, непустые поля сохраняются), `npm run build:ui`, `cargo build -p decka-agent` (плагин `tauri-plugin-dialog` зарегистрирован, `dialog:allow-open` в capabilities).
+- PENDING (owner): `npm run tauri dev` или установленный агент → Actions → тип `Launch a program` → `Browse…` → `C:\Windows\System32\charmap.exe` → `Name` = `charmap`, `Working directory` = `C:\Windows\System32` → `Save` → `Test` открывает «Таблицу символов». Проверить `New action…` в форме кнопки на вкладке Layout (переключает на Actions с формой нового действия; несохранённые правки формы кнопки теряются). Я не смог проверить окно: во время работы уже был запущен `target\release\decka-agent.exe` (запущен не мной в 22:27), а single-instance передаёт запуск dev-версии ему; системный диалог выбора файла CDP не управляется.
+
 ## T9.4 — итоговая приёмка MVP
 
 - DONE (автоматически): тест `extra_fields_are_ignored` в `agent/core/tests/press.rs` (лишние `program`/`args` игнорируются: один вызов `media-play`; неизвестный `actionId` → `UNKNOWN_ACTION`, ноль новых вызовов); `node tools/ws-smoke.mjs raw 127.0.0.1:19247 .tmp\evil.json` без токена → `UNAUTHORIZED`, код выхода 1 (для этого `raw` теперь завершается кодом 1, когда ответ сервера — `error`; ответ по-прежнему печатается); в `client/src/net/` нет строк `program`, `hotkey`, `open_url`, `eval(`, `new Function(`.

@@ -46,7 +46,9 @@ export default function App() {
     let off: (() => void) | null = null;
     let disposed = false;
     onNavigate((target) => {
-      if (isTab(target)) setTab(target);
+      // "actions:new" = the Actions tab (it opens on the form for a new action).
+      const tabName = target.split(":")[0] ?? "";
+      if (isTab(tabName)) setTab(tabName);
     }).then((unlisten) => {
       if (disposed) unlisten();
       else off = unlisten;

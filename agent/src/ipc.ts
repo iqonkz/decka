@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
+import { emit, listen } from "@tauri-apps/api/event";
 import type { AgentStatus, IpcCommands } from "@decka/shared";
 
 /** Typed `invoke`: the command names and shapes come from `IpcCommands` (PROTOCOL.md 9). */
@@ -10,6 +10,11 @@ export function call<K extends keyof IpcCommands>(cmd: K, args?: Parameters<IpcC
 /** Subscribes to `decka://status-changed`; returns the unsubscribe function. */
 export async function onStatus(fn: (status: AgentStatus) => void): Promise<() => void> {
   return listen<AgentStatus>("decka://status-changed", (event) => fn(event.payload));
+}
+
+/** Asks the window to open a tab (`"actions"`) or a tab with a hint (`"actions:new"`); the tray uses the same event. */
+export function navigate(target: string): Promise<void> {
+  return emit("decka://navigate", target);
 }
 
 /** Subscribes to `decka://navigate` (the tray asks the window to open a tab). */

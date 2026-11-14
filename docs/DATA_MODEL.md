@@ -98,7 +98,7 @@ export type KeyName = string; // см. 2.2
 // /shared/src/layout.ts
 export interface LayoutFile {
   version: 1;
-  grid: { cols: 5; rows: 3 };     // в v1 допустимо только 5×3
+  grid: { cols: number; rows: number }; // cols 3..8, rows 2..5; по умолчанию 7×4 (M10)
   display: DisplaySettings;
   pages: Page[];                  // 1..10 страниц, порядок = порядок свайпа
 }
@@ -138,10 +138,12 @@ export type ClientLayout = Omit<LayoutFile, "version">;
 
 ### 3.2 Валидация раскладки
 
-1. `grid` строго `{cols: 5, rows: 3}`.
+1. `grid.cols` — целое 3..8, `grid.rows` — целое 2..5.
 2. `pages`: 1..10; `id` уникальны; `name` 1..30 символов.
-3. Каждый элемент: `0 ≤ x`, `0 ≤ y`, `w ≥ 1`, `h ≥ 1`, `x + w ≤ 5`, `y + h ≤ 3`; элементы одной страницы не пересекаются; `id` уникальны в пределах всего файла.
-4. Размеры по видам (w×h): `button` — только 1×1; `clock` — 1×1, 2×1; `sys` — 2×1, 2×2; `status` — 1×1; `statuses` — от 2×1 до 5×3; `notifications` — от 2×1 до 5×3.
+3. Каждый элемент: `0 ≤ x`, `0 ≤ y`, `w ≥ 1`, `h ≥ 1`, `x + w ≤ grid.cols`, `y + h ≤ grid.rows`; элементы одной страницы не пересекаются; `id` уникальны в пределах всего файла.
+4. Размеры по видам (w×h): `button` — только 1×1; `clock` — 1×1, 2×1; `sys` — 2×1, 2×2; `status` — 1×1; `statuses` — от 2×1 до `cols×rows`; `notifications` — от 2×1 до `cols×rows`.
+
+Смена размера сетки не переставляет элементы: если после уменьшения сетки элементы не помещаются, это обычная ошибка валидации п. 3, и раскладку нельзя сохранить, пока пользователь их не переместит.
 5. `button`: ровно одно из `actionId`/`navigate`; `actionId` должен существовать в `actions.json`; `navigate` — существующий `id` страницы; `confirm` допустим только с `actionId`.
 6. `label` ≤ 24 символов; `color` — regex `^#[0-9a-fA-F]{6}$`; `icon` — §3.3.
 7. `bind.states`: 1..8 ключей, каждый ключ ≤ 40 символов.
@@ -280,8 +282,8 @@ export interface DeviceInfo { id: Id; name: string; createdAt: number; lastSeenA
     "ButtonLook": { "type": "object", "properties": { "label": { "type": "string", "maxLength": 24 }, "icon": { "$ref": "#/$defs/Icon" }, "color": { "$ref": "#/$defs/Color" } } },
     "ItemBase": { "type": "object", "required": ["id","kind","x","y","w","h"],
       "properties": { "id": { "$ref": "#/$defs/Id" }, "kind": { "type": "string" },
-        "x": { "type": "integer", "minimum": 0, "maximum": 4 }, "y": { "type": "integer", "minimum": 0, "maximum": 2 },
-        "w": { "type": "integer", "minimum": 1, "maximum": 5 }, "h": { "type": "integer", "minimum": 1, "maximum": 3 } } },
+        "x": { "type": "integer", "minimum": 0, "maximum": 7 }, "y": { "type": "integer", "minimum": 0, "maximum": 4 },
+        "w": { "type": "integer", "minimum": 1, "maximum": 8 }, "h": { "type": "integer", "minimum": 1, "maximum": 5 } } },
     "ButtonItem": { "allOf": [ { "$ref": "#/$defs/ItemBase" }, { "$ref": "#/$defs/ButtonLook" }, {
       "properties": { "kind": { "const": "button" }, "w": { "const": 1 }, "h": { "const": 1 },
         "actionId": { "$ref": "#/$defs/Id" }, "navigate": { "$ref": "#/$defs/Id" }, "confirm": { "type": "boolean" },
@@ -296,7 +298,7 @@ export interface DeviceInfo { id: Id; name: string; createdAt: number; lastSeenA
     "NotificationsItem": { "allOf": [ { "$ref": "#/$defs/ItemBase" }, { "properties": { "kind": { "const": "notifications" }, "w": { "minimum": 2 } } } ] },
     "KnownItem": { "oneOf": [ { "$ref": "#/$defs/ButtonItem" }, { "$ref": "#/$defs/ClockItem" }, { "$ref": "#/$defs/SysItem" }, { "$ref": "#/$defs/StatusesItem" }, { "$ref": "#/$defs/StatusTile" }, { "$ref": "#/$defs/NotificationsItem" } ] },
     "Page": { "type": "object", "required": ["id","name","items"],
-      "properties": { "id": { "$ref": "#/$defs/Id" }, "name": { "type": "string", "minLength": 1, "maxLength": 30 }, "items": { "type": "array", "maxItems": 15, "items": { "$ref": "#/$defs/KnownItem" } } } },
+      "properties": { "id": { "$ref": "#/$defs/Id" }, "name": { "type": "string", "minLength": 1, "maxLength": 30 }, "items": { "type": "array", "maxItems": 40, "items": { "$ref": "#/$defs/KnownItem" } } } },
     "DisplaySettings": { "type": "object", "required": ["dimAfterSec","dimLevel","sleepAfterSec","pixelShift","night"],
       "properties": {
         "dimAfterSec": { "type": "integer", "minimum": 0, "maximum": 3600 },
@@ -307,7 +309,7 @@ export interface DeviceInfo { id: Id; name: string; createdAt: number; lastSeenA
           "from": { "type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$" }, "to": { "type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$" } } } } },
     "ClientLayout": { "type": "object", "required": ["grid","display","pages"],
       "properties": {
-        "grid": { "type": "object", "required": ["cols","rows"], "properties": { "cols": { "const": 5 }, "rows": { "const": 3 } } },
+        "grid": { "type": "object", "required": ["cols","rows"], "properties": { "cols": { "type": "integer", "minimum": 3, "maximum": 8 }, "rows": { "type": "integer", "minimum": 2, "maximum": 5 } } },
         "display": { "$ref": "#/$defs/DisplaySettings" },
         "pages": { "type": "array", "minItems": 1, "maxItems": 10, "items": { "$ref": "#/$defs/Page" } } } },
     "LayoutFile": { "allOf": [ { "$ref": "#/$defs/ClientLayout" }, { "required": ["version"], "properties": { "version": { "const": 1 } } } ] }
