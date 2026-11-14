@@ -1,6 +1,7 @@
 pub mod actions;
 pub mod agent;
 pub mod auth;
+pub mod collectors;
 pub mod config;
 pub mod model;
 pub mod paths;

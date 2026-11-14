@@ -164,6 +164,7 @@ struct Inner {
     store: Store,
     statuses: crate::statuses::Statuses,
     background: Mutex<Vec<JoinHandle<()>>>,
+    sys_collector: Mutex<Option<crate::collectors::sys::SysCollector>>,
     pairing: Pairing,
     devices: Devices,
     notif_counter: AtomicU64,
@@ -203,6 +204,7 @@ impl Agent {
                 statuses: crate::statuses::Statuses::new(store.clone()),
                 store,
                 background: Mutex::new(Vec::new()),
+                sys_collector: Mutex::new(None),
                 pairing: Pairing::new(opts.fixed_pair_code.clone()),
                 devices: Devices::new(config_dir.join("devices.json"), devices),
                 notif_counter: AtomicU64::new(1),
@@ -252,6 +254,7 @@ impl Agent {
             });
             agent.inner.background.lock().unwrap().push(ticker);
         }
+        agent.restart_collectors();
         agent.start_server().await;
         match crate::watch::spawn(&agent) {
             Ok(handle) => *agent.inner.watcher.lock().unwrap() = Some(handle),
@@ -262,6 +265,23 @@ impl Agent {
 
     pub fn store(&self) -> &Store {
         &self.inner.store
+    }
+
+    /// Stops the running collectors and starts them again from the current config.
+    pub fn restart_collectors(&self) {
+        let config = self.config();
+        let old = self.inner.sys_collector.lock().unwrap().take();
+        drop(old); // joins the old thread before a new one starts
+        let new = if config.collectors.sys.enabled {
+            Some(crate::collectors::sys::SysCollector::start(
+                self.inner.store.clone(),
+                config.collectors.sys.interval_sec.max(1) as u64,
+            ))
+        } else {
+            self.inner.store.set("sys", serde_json::Value::Null);
+            None
+        };
+        *self.inner.sys_collector.lock().unwrap() = new;
     }
 
     pub fn statuses(&self) -> &crate::statuses::Statuses {
@@ -529,6 +549,8 @@ impl Agent {
         for task in self.inner.background.lock().unwrap().drain(..) {
             task.abort();
         }
+        let collector = self.inner.sys_collector.lock().unwrap().take();
+        drop(collector); // joins the thread
         self.stop_server().await;
     }
 
