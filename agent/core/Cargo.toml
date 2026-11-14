@@ -32,3 +32,6 @@ url = "2.5.8"
 reqwest = "0.13.5"
 tempfile = "3.27.0"
 tokio-tungstenite = "0.30.0"
+
+[target."cfg(windows)".dependencies]
+enigo = "0.6.1"

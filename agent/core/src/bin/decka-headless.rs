@@ -27,7 +27,7 @@ async fn main() {
         config_dir: None,
         client_dist: None,
         port_override: None,
-        runner: Arc::new(WindowsRunner),
+        runner: Arc::new(WindowsRunner::new()),
         fixed_pair_code: None,
     };
     while let Some(arg) = args.next() {
