@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { onNavigate } from "./ipc";
+import PairingTab from "./tabs/PairingTab";
 import StatusTab from "./tabs/StatusTab";
 import Tabs, { type TabDef } from "./ui/Tabs";
 
@@ -20,6 +21,8 @@ function TabBody({ tab }: { tab: TabId }) {
   switch (tab) {
     case "status":
       return <StatusTab />;
+    case "pairing":
+      return <PairingTab />;
     default:
       return <p className="muted">This tab is not built yet.</p>; // filled in by T6.5-T6.8
   }

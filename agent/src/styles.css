@@ -70,6 +70,15 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="color"]), select, te
 .banner-warning { border-color: var(--warn); color: var(--warn); }
 .banner-info { background: var(--panel); }
 
+.pair-box { display: flex; gap: 24px; align-items: flex-start; }
+.qr { flex: none; width: 260px; padding: 16px; border-radius: 8px; background: #fff; box-sizing: content-box; }
+.qr svg { display: block; width: 260px; height: 260px; }
+.pair-info { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; min-width: 0; }
+.pair-code { font-family: Consolas, "Cascadia Mono", monospace; font-size: 40px; font-weight: 700; letter-spacing: 4px; }
+.pair-url { font-size: 11px; color: var(--muted); word-break: break-all; }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--muted); }
+.dot.online { background: var(--ok); }
+
 .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
 .field-label { font-weight: 600; }
 .field-hint { color: var(--muted); font-size: 12px; }
