@@ -1,3 +1,4 @@
+mod commands;
 mod tray;
 
 use std::sync::Arc;
@@ -5,7 +6,7 @@ use std::sync::Arc;
 use decka_core::actions::WindowsRunner;
 use decka_core::{Agent, AgentOptions};
 use tauri::path::BaseDirectory;
-use tauri::{AppHandle, Manager, WindowEvent};
+use tauri::{AppHandle, Emitter, Manager, WindowEvent};
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 
 fn log_level() -> tracing::Level {
@@ -48,6 +49,24 @@ pub fn run() {
                 let _ = window.hide();
             }
         })
+        .invoke_handler(tauri::generate_handler![
+            commands::get_status,
+            commands::get_config,
+            commands::save_config,
+            commands::restart_server,
+            commands::regenerate_api_token,
+            commands::get_actions,
+            commands::save_actions,
+            commands::get_layout,
+            commands::save_layout,
+            commands::test_action,
+            commands::start_pairing,
+            commands::cancel_pairing,
+            commands::list_devices,
+            commands::revoke_device,
+            commands::send_test_notification,
+            commands::open_config_dir,
+        ])
         .setup(|app| {
             let minimized = std::env::args().any(|a| a == "--minimized");
             let first_run = !decka_core::paths::config_dir(None).join("config.json").exists();
@@ -65,6 +84,17 @@ pub fn run() {
             match tauri::async_runtime::block_on(Agent::start(opts)) {
                 Ok(agent) => {
                     sync_autostart(app.handle(), agent.config().autostart);
+
+                    // Forward every status change to the window as `decka://status-changed`.
+                    let handle = app.handle().clone();
+                    let mut status = agent.subscribe_status();
+                    tauri::async_runtime::spawn(async move {
+                        while status.changed().await.is_ok() {
+                            let snapshot = status.borrow_and_update().clone();
+                            let _ = handle.emit("decka://status-changed", snapshot);
+                        }
+                    });
+
                     app.manage(agent);
                 }
                 Err(e) => tracing::error!("agent did not start: {e}"),

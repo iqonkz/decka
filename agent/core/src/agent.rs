@@ -9,7 +9,7 @@ use std::time::Duration;
 
 use serde::Serialize;
 use tokio::net::TcpListener;
-use tokio::sync::oneshot;
+use tokio::sync::{oneshot, watch};
 use tokio::task::JoinHandle;
 
 use crate::actions::ActionRunner;
@@ -147,6 +147,7 @@ pub struct ConnGuard {
 impl Drop for ConnGuard {
     fn drop(&mut self) {
         self.agent.inner.conns.lock().unwrap().remove(&self.id);
+        self.agent.publish_status();
     }
 }
 
@@ -179,6 +180,7 @@ struct Inner {
     /// Last content of each watched file that the agent applied or wrote itself.
     applied: Mutex<HashMap<&'static str, String>>,
     watcher: Mutex<Option<crate::watch::WatchHandle>>,
+    status_tx: watch::Sender<AgentStatus>,
 }
 
 #[derive(Clone)]
@@ -219,9 +221,11 @@ impl Agent {
                 server: tokio::sync::Mutex::new(None),
                 applied: Mutex::new(HashMap::new()),
                 watcher: Mutex::new(None),
+                status_tx: watch::channel(blank_status(&config_dir)).0,
                 opts,
             }),
         };
+        agent.publish_status();
 
         // One error notification per invalid file (DATA_MODEL.md 1): body = first problem.
         let mut reported = std::collections::HashSet::new();
@@ -328,6 +332,7 @@ impl Agent {
             kick: Some(kick),
         };
         self.inner.conns.lock().unwrap().insert(id, conn);
+        self.publish_status();
         (ConnGuard { agent: self.clone(), id }, kicked)
     }
 
@@ -335,10 +340,76 @@ impl Agent {
         &self.inner.devices
     }
 
-    /// New pairing code (cancels the previous one). `url` and `qr_svg` are filled in T6.3.
+    /// New pairing code (cancels the previous one) with the URL and QR code for it.
     pub fn start_pairing(&self) -> PairingInfo {
         let (code, expires_at) = self.inner.pairing.start();
-        PairingInfo { code, url: String::new(), qr_svg: String::new(), expires_at }
+        let config = self.config();
+        // USB-only mode or no LAN address: the phone reaches the PC through 127.0.0.1 (adb reverse).
+        let mut ips = if config.bind == "127.0.0.1" { Vec::new() } else { lan_ips() };
+        if ips.is_empty() {
+            ips.push("127.0.0.1".to_string());
+        }
+        let port = self.inner.listening.lock().unwrap().as_ref().map_or(config.port as u16, |l| l.port);
+        let url = crate::qr::pair_url(&ips[0], &ips, port, &code, &config.agent_name);
+        let qr_svg = crate::qr::qr_svg(&url);
+        PairingInfo { code, url, qr_svg, expires_at }
+    }
+
+    /// Latest status; the receiver updates on connect/disconnect, server restart and config changes.
+    pub fn subscribe_status(&self) -> watch::Receiver<AgentStatus> {
+        self.inner.status_tx.subscribe()
+    }
+
+    /// Recomputes the status and wakes subscribers if it changed.
+    pub(crate) fn publish_status(&self) {
+        let new = self.status();
+        self.inner.status_tx.send_if_modified(|current| {
+            if *current == new {
+                false
+            } else {
+                *current = new;
+                true
+            }
+        });
+    }
+
+    fn write_config(&self, config: ConfigFile) -> SaveResult {
+        let rejected = |message: String| SaveResult::Rejected(vec![ValidationIssue { path: String::new(), message }]);
+        let text = match json_text(&config) {
+            Ok(t) => t,
+            Err(e) => return rejected(e.to_string()),
+        };
+        if let Err(e) = save_text_atomic(&self.inner.config_dir.join("config.json"), &text) {
+            return rejected(format!("cannot write config.json: {e}"));
+        }
+        *self.inner.config.lock().unwrap() = config;
+        SaveResult::Saved
+    }
+
+    /// Validates and writes config.json, then restarts the collectors. `port` and `bind` take effect
+    /// only after `restart_server`.
+    pub fn save_config(&self, config: ConfigFile) -> SaveResult {
+        let issues = crate::validate::validate_config(&config);
+        if !issues.is_empty() {
+            return SaveResult::Rejected(issues);
+        }
+        let result = self.write_config(config);
+        if result == SaveResult::Saved {
+            self.restart_collectors();
+            self.publish_status();
+        }
+        result
+    }
+
+    /// Replaces the API token; scripts that use the old one stop working immediately.
+    pub fn regenerate_api_token(&self) -> Result<String, String> {
+        let token = config::generate_api_token();
+        let mut config = self.config();
+        config.api_token = token.clone();
+        match self.write_config(config) {
+            SaveResult::Saved => Ok(token),
+            SaveResult::Rejected(issues) => Err(issues.first().map(|i| i.message.clone()).unwrap_or_default()),
+        }
     }
 
     pub fn cancel_pairing(&self) {
@@ -600,6 +671,7 @@ impl Agent {
                 tracing::error!("cannot listen on {}:{}: {e}", config.bind, port);
             }
         }
+        self.publish_status();
     }
 
     async fn stop_server(&self) {
@@ -608,6 +680,20 @@ impl Agent {
             let _ = handle.join.await;
         }
         *self.inner.listening.lock().unwrap() = None;
+        self.publish_status();
+    }
+}
+
+/// Placeholder for the status channel's initial value; replaced right after construction.
+fn blank_status(config_dir: &std::path::Path) -> AgentStatus {
+    AgentStatus {
+        version: crate::VERSION.to_string(),
+        listening: None,
+        listen_error: None,
+        lan_ips: Vec::new(),
+        clients: Vec::new(),
+        usb: UsbStatus { enabled: false, adb_found: false, devices: Vec::new(), last_error: None },
+        config_dir: config_dir.display().to_string(),
     }
 }
 

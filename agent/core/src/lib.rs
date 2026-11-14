@@ -6,6 +6,7 @@ pub mod config;
 pub mod model;
 pub mod paths;
 pub mod proto;
+pub mod qr;
 pub mod ratelimit;
 pub mod server;
 pub mod state;
