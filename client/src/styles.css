@@ -86,6 +86,16 @@ input { user-select: text; touch-action: manipulation; }
   gap: 1.2vmin;
   pointer-events: none;
 }
+.page-hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 2.6vmin;
+  text-align: center;
+  font-size: 2.4vmin;
+  color: #6b7280;
+  pointer-events: none;
+}
 .dot { width: 1.2vmin; height: 1.2vmin; border-radius: 50%; background: #3a3a40; }
 .dot.active { background: #e5e5e5; }
 

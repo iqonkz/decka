@@ -4,7 +4,7 @@ import { parsePairUrl } from "@decka/shared";
 import { buildCandidates } from "../net/candidates";
 import { Connection, type ConnFailure, type WebSocketCtor } from "../net/connection";
 import { clientInfo, isNative } from "../platform/native";
-import { applyPatch, applyWelcome, setState } from "../store/store";
+import { applyPatch, applyWelcome, navigateManually, setState } from "../store/store";
 import { clearConn, loadConn, saveConn } from "../store/storage";
 
 /** Where the next pairing attempt goes; null when not pairing. */
@@ -73,7 +73,7 @@ export async function pairWith(hosts: string[], port: number, code: string, agen
 export function unpair(): void {
   clearConn();
   conn().stop();
-  setState({ conn: "unpaired", via: null, agentName: null, state: null, rev: 0, pageIndex: 0, lastError: null });
+  setState({ conn: "unpaired", via: null, agentName: null, state: null, rev: 0, pageIndex: 0, homePageIndex: 0, autoPageId: null, hint: null, lastError: null });
 }
 
 export function press(actionId: string): Promise<void> {
@@ -84,8 +84,9 @@ export function dismiss(notifId: string): void {
   conn().dismiss(notifId);
 }
 
+/** Manual navigation (swipe, `navigate` button). */
 export function setPage(pageIndex: number): void {
-  setState({ pageIndex });
+  navigateManually(pageIndex);
 }
 
 export function init(): void {

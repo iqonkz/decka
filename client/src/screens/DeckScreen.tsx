@@ -8,8 +8,10 @@ import { usePixelShift } from "../display/pixelShift";
 import Grid from "../deck/Grid";
 import PageDots from "../deck/PageDots";
 import Toasts from "../deck/Toasts";
-import { useAppState } from "../store/store";
+import PageHint from "../deck/PageHint";
+import { noteTouch, runContext, useAppState } from "../store/store";
 
+const CONTEXT_TICK_MS = 1000;
 const SWIPE_MIN_X = 60;
 const SWIPE_MAX_Y = 40;
 const UNPAIR_TAPS = 5;
@@ -38,6 +40,22 @@ function useUnpairGesture(onTrigger: () => void) {
   }, [onTrigger]);
 }
 
+/**
+ * Context pages (DATA_MODEL.md 6.1): remembers the last touch and re-evaluates once a second.
+ * Switching a page is not a touch: it never wakes a dimmed screen.
+ */
+function useContextPages() {
+  useEffect(() => {
+    const touch = () => noteTouch();
+    window.addEventListener("pointerdown", touch, true);
+    const timer = window.setInterval(() => runContext(), CONTEXT_TICK_MS);
+    return () => {
+      window.removeEventListener("pointerdown", touch, true);
+      window.clearInterval(timer);
+    };
+  }, []);
+}
+
 export default function DeckScreen() {
   const layout = useAppState((s) => s.state?.layout ?? null);
   const pageIndex = useAppState((s) => s.pageIndex);
@@ -45,6 +63,7 @@ export default function DeckScreen() {
   const [confirmUnpair, setConfirmUnpair] = useState(false);
   const openUnpair = useCallback(() => setConfirmUnpair(true), []); // stable: the tap counter lives in the effect
   useUnpairGesture(openUnpair);
+  useContextPages();
   const mode = useDisplayMode(layout?.display ?? null);
   const shift = usePixelShift(layout?.display.pixelShift === true);
   if (!layout) return null;
@@ -78,6 +97,7 @@ export default function DeckScreen() {
         <div className="deck-inner" style={{ transform: `translate(${shift.x}px, ${shift.y}px)` }}>
           {page && <Grid page={page} grid={layout.grid} />}
           <PageDots count={count} active={pageIndex} />
+          <PageHint />
           <ConnBadge />
         </div>
         <Toasts />

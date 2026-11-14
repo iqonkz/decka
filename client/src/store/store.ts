@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import type { FullState, NotifLevel, Notification, PatchMsg, SectionName, WelcomeMsg } from "@decka/shared";
+import { decideContextPage } from "../deck/context";
 
 export type ConnState = "unpaired" | "connecting" | "online" | "offline" | "update_required";
 
@@ -18,11 +19,19 @@ export interface AppState {
   rev: number;
   state: FullState | null;
   pageIndex: number;
+  /** The page the user picked by hand (swipe, `navigate` button); context pages return here. */
+  homePageIndex: number;
+  /** Id of the page opened automatically for the active PC application, or null. */
+  autoPageId: string | null;
+  /** Time of the last touch (ms); a recent touch postpones automatic page switches. */
+  lastTouch: number;
+  /** Name of the page just opened automatically, shown for a moment. */
+  hint: { id: number; text: string } | null;
   toasts: Toast[];
   lastError: string | null;
 }
 
-const SECTIONS: readonly string[] = ["layout", "sys", "statuses", "notifications", "vars"];
+const SECTIONS: readonly string[] = ["layout", "sys", "statuses", "notifications", "vars", "focus", "media"];
 const MAX_TOASTS = 3;
 const DEFAULT_TOAST_MS = 8000;
 
@@ -33,6 +42,10 @@ const initial = (): AppState => ({
   rev: 0,
   state: null,
   pageIndex: 0,
+  homePageIndex: 0,
+  autoPageId: null,
+  lastTouch: 0,
+  hint: null,
   toasts: [],
   lastError: null,
 });
@@ -93,8 +106,10 @@ export function applyWelcome(msg: WelcomeMsg): void {
     conn: "online",
     agentName: msg.agent.name,
     pageIndex: fixPageIndex(s.pageIndex, msg.state),
+    homePageIndex: fixPageIndex(s.homePageIndex, msg.state),
     lastError: null,
   }));
+  runContext();
 }
 
 export function applyPatch(msg: PatchMsg): void {
@@ -102,12 +117,52 @@ export function applyPatch(msg: PatchMsg): void {
   if (!s.state || msg.rev <= s.rev) return;
   if (!SECTIONS.includes(msg.section)) return; // unknown sections are ignored (forward compatibility)
   const next = { ...s.state, [msg.section as SectionName]: msg.value } as FullState;
+  const layoutChanged = msg.section === "layout";
   setState({
     state: next,
     rev: msg.rev,
-    pageIndex: msg.section === "layout" ? fixPageIndex(s.pageIndex, next) : s.pageIndex,
+    pageIndex: layoutChanged ? fixPageIndex(s.pageIndex, next) : s.pageIndex,
+    homePageIndex: layoutChanged ? fixPageIndex(s.homePageIndex, next) : s.homePageIndex,
   });
   if (msg.section === "notifications") toastNewNotifications(s.state.notifications, msg.value as Notification[]);
+  if (msg.section === "focus" || layoutChanged) runContext();
+}
+
+let hintCounter = 0;
+
+/** DATA_MODEL.md 6.1: applies `decideContextPage` to the current state. Does not touch the idle timer. */
+export function runContext(now: number = Date.now()): void {
+  const s = current;
+  if (!s.state) return;
+  const d = decideContextPage({
+    pages: s.state.layout.pages,
+    display: s.state.layout.display,
+    focusApp: s.state.focus,
+    pageIndex: s.pageIndex,
+    homePageIndex: s.homePageIndex,
+    autoPageId: s.autoPageId,
+    now,
+    lastTouch: s.lastTouch,
+  });
+  if (d.pageIndex === s.pageIndex && d.autoPageId === s.autoPageId && d.hint === null) return;
+  setState({
+    pageIndex: d.pageIndex,
+    autoPageId: d.autoPageId,
+    ...(d.hint !== null ? { hint: { id: ++hintCounter, text: d.hint } } : {}),
+  });
+}
+
+/** The user chose a page (swipe, `navigate` button): it becomes home and the automatic page is forgotten. */
+export function navigateManually(pageIndex: number): void {
+  setState({ pageIndex, homePageIndex: pageIndex, autoPageId: null, hint: null });
+}
+
+export function noteTouch(now: number = Date.now()): void {
+  setState({ lastTouch: now });
+}
+
+export function clearHint(id: number): void {
+  if (current.hint?.id === id) setState({ hint: null });
 }
 
 /** One 8 s toast per id that was not in the previous value (oldest first). */
