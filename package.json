@@ -1,7 +1,7 @@
 {
   "name": "decka",
   "private": true,
-  "workspaces": ["shared"],
+  "workspaces": ["shared", "client"],
   "engines": { "node": ">=22.12" },
   "scripts": {
     "typecheck": "npm run typecheck --workspaces --if-present",

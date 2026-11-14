@@ -1,0 +1,17 @@
+html, body, #root {
+  margin: 0;
+  height: 100%;
+  background: #000;
+  color: #e5e5e5;
+  font-family: system-ui, sans-serif;
+  overflow: hidden;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none;
+}
+
+.center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
