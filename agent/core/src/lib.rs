@@ -3,6 +3,7 @@ pub mod agent;
 pub mod auth;
 pub mod collectors;
 pub mod config;
+pub mod logging;
 pub mod model;
 pub mod paths;
 pub mod proto;

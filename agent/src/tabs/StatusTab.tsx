@@ -117,7 +117,10 @@ export default function StatusTab() {
         <p>
           <code>{status.configDir}</code>
         </p>
-        <Button onClick={() => call("open_config_dir")}>Open</Button>
+        <div className="row">
+          <Button onClick={() => call("open_config_dir")}>Open</Button>
+          <Button onClick={() => call("open_logs_dir")}>Open logs</Button>
+        </div>
       </section>
 
       {status.listening?.bind === "0.0.0.0" && (

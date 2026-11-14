@@ -9,16 +9,6 @@ use tauri::path::BaseDirectory;
 use tauri::{AppHandle, Emitter, Manager, WindowEvent};
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 
-fn log_level() -> tracing::Level {
-    match std::env::var("DECKA_LOG").unwrap_or_default().to_ascii_lowercase().as_str() {
-        "trace" => tracing::Level::TRACE,
-        "debug" => tracing::Level::DEBUG,
-        "warn" => tracing::Level::WARN,
-        "error" => tracing::Level::ERROR,
-        _ => tracing::Level::INFO,
-    }
-}
-
 /// Makes the OS autostart entry match `config.autostart` (only touches it when they differ).
 pub fn sync_autostart(app: &AppHandle, wanted: bool) {
     let manager = app.autolaunch();
@@ -36,7 +26,7 @@ pub fn sync_autostart(app: &AppHandle, wanted: bool) {
 }
 
 pub fn run() {
-    let _ = tracing_subscriber::fmt().with_max_level(log_level()).try_init();
+    decka_core::logging::init_file_logging(&decka_core::paths::config_dir(None));
 
     tauri::Builder::default()
         // Registered first: a second launch just brings the first window forward.
@@ -67,6 +57,7 @@ pub fn run() {
             commands::revoke_device,
             commands::send_test_notification,
             commands::open_config_dir,
+            commands::open_logs_dir,
             commands::list_window_apps,
             commands::get_templates,
             commands::add_template,

@@ -38,4 +38,5 @@ export interface IpcCommands {
   get_templates(): PageTemplate[];                             // M11: DATA_MODEL.md 7
   add_template(args: { templateId: string }): SaveResult;      // M11: adds the template's actions and page, saves both files
   open_config_dir(): void;
+  open_logs_dir(): void;                                       // opens <configDir>\logs
 }
