@@ -181,6 +181,8 @@ struct Inner {
     applied: Mutex<HashMap<&'static str, String>>,
     watcher: Mutex<Option<crate::watch::WatchHandle>>,
     status_tx: watch::Sender<AgentStatus>,
+    usb_state: Mutex<crate::usb::UsbState>,
+    usb_task: Mutex<Option<JoinHandle<()>>>,
     /// Runtime of `Agent::start`; lets synchronous callers (UI commands) start background tasks.
     runtime: tokio::runtime::Handle,
 }
@@ -224,6 +226,8 @@ impl Agent {
                 applied: Mutex::new(HashMap::new()),
                 watcher: Mutex::new(None),
                 status_tx: watch::channel(blank_status(&config_dir)).0,
+                usb_state: Mutex::new(crate::usb::UsbState::default()),
+                usb_task: Mutex::new(None),
                 runtime: tokio::runtime::Handle::current(),
                 opts,
             }),
@@ -265,6 +269,7 @@ impl Agent {
         }
         agent.restart_collectors();
         agent.start_server().await;
+        agent.restart_usb();
         match crate::watch::spawn(&agent) {
             Ok(handle) => *agent.inner.watcher.lock().unwrap() = Some(handle),
             Err(e) => tracing::warn!("cannot watch the config directory: {e}"),
@@ -297,6 +302,29 @@ impl Agent {
         drop(old_checks);
         let checks = crate::collectors::checks::ChecksCollector::start(&self.inner.runtime, self.inner.statuses.clone(), config.collectors.checks);
         *self.inner.checks_collector.lock().unwrap() = Some(checks);
+    }
+
+    /// Stops the USB loop (forgetting every forwarded device) and, when `usb.enabled`, starts it again.
+    /// Safe to call from any thread: the task is spawned on the stored runtime handle.
+    pub fn restart_usb(&self) {
+        if let Some(old) = self.inner.usb_task.lock().unwrap().take() {
+            old.abort();
+        }
+        *self.inner.usb_state.lock().unwrap() = crate::usb::UsbState::default();
+        if self.config().usb.enabled {
+            let task = crate::usb::spawn(&self.inner.runtime, self.clone());
+            *self.inner.usb_task.lock().unwrap() = Some(task);
+        }
+        self.publish_status();
+    }
+
+    pub(crate) fn listening_port(&self) -> Option<u16> {
+        self.inner.listening.lock().unwrap().as_ref().map(|l| l.port)
+    }
+
+    pub(crate) fn set_usb_state(&self, state: crate::usb::UsbState) {
+        *self.inner.usb_state.lock().unwrap() = state;
+        self.publish_status();
     }
 
     pub fn statuses(&self) -> &crate::statuses::Statuses {
@@ -399,6 +427,7 @@ impl Agent {
         let result = self.write_config(config);
         if result == SaveResult::Saved {
             self.restart_collectors();
+            self.restart_usb();
             self.publish_status();
         }
         result
@@ -620,7 +649,10 @@ impl Agent {
                 .values()
                 .map(|c| ClientStatus { device_id: c.device_id.clone(), name: c.name.clone(), remote: c.remote.clone(), connected_at: c.connected_at })
                 .collect(),
-            usb: UsbStatus { enabled: self.config().usb.enabled, adb_found: false, devices: Vec::new(), last_error: None },
+            usb: {
+                let state = self.inner.usb_state.lock().unwrap().clone();
+                UsbStatus { enabled: self.config().usb.enabled, adb_found: state.adb_found, devices: state.devices, last_error: state.last_error }
+            },
             config_dir: self.inner.config_dir.display().to_string(),
         }
     }
@@ -628,6 +660,9 @@ impl Agent {
     pub async fn shutdown(&self) {
         let watcher = self.inner.watcher.lock().unwrap().take();
         drop(watcher);
+        if let Some(usb) = self.inner.usb_task.lock().unwrap().take() {
+            usb.abort();
+        }
         for task in self.inner.background.lock().unwrap().drain(..) {
             task.abort();
         }
@@ -641,6 +676,7 @@ impl Agent {
     pub async fn restart_server(&self) -> AgentStatus {
         self.stop_server().await;
         self.start_server().await;
+        self.restart_usb(); // the port may have changed
         self.status()
     }
 
