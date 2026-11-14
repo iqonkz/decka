@@ -31,6 +31,22 @@ function NumberSelect({ label, value, options, onChange }: { label: string; valu
   );
 }
 
+/** An action of the `media` widget's key; `None` = no key. */
+function ActionSelect({ label, value, actions, onChange }: { label: string; value: string | undefined; actions: ActionsFile; onChange: (id: string | undefined) => void }) {
+  const entries = Object.entries(actions.actions).sort(([, a], [, b]) => a.name.localeCompare(b.name));
+  return (
+    <Field label={label}>
+      <select value={value ?? ""} onChange={(e) => onChange(e.target.value || undefined)}>
+        <option value="">None</option>
+        {value !== undefined && !actions.actions[value] && <option value={value}>{value} (missing)</option>}
+        {entries.map(([id, a]) => (
+          <option key={id} value={id}>{`${a.name} (${id})`}</option>
+        ))}
+      </select>
+    </Field>
+  );
+}
+
 function LookFields({ look, onChange }: { look: ButtonLook; onChange: (look: ButtonLook) => void }) {
   const set = (key: keyof ButtonLook, value: string) => {
     const next = { ...look };
@@ -89,6 +105,13 @@ export default function ItemForm({ item, pages, grid, actions, onChange, onDelet
           <Field label="Group" hint="Show only statuses of this group. Empty = all.">
             <input value={item.group ?? ""} onChange={(e) => patch({ group: e.target.value || undefined })} />
           </Field>
+        </>
+      )}
+      {item.kind === "media" && (
+        <>
+          <ActionSelect label="Previous" value={item.prevAction} actions={actions} onChange={(prevAction) => patch({ prevAction })} />
+          <ActionSelect label="Play / Pause" value={item.playAction} actions={actions} onChange={(playAction) => patch({ playAction })} />
+          <ActionSelect label="Next" value={item.nextAction} actions={actions} onChange={(nextAction) => patch({ nextAction })} />
         </>
       )}
       {item.kind === "status" && (

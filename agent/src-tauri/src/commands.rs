@@ -113,6 +113,18 @@ pub fn list_window_apps() -> Vec<String> {
     decka_core::collectors::focus::list_window_apps()
 }
 
+/// The built-in context page templates (DATA_MODEL.md 7).
+#[tauri::command]
+pub fn get_templates(app: AppHandle) -> Result<Vec<decka_core::templates::PageTemplate>, String> {
+    Ok(agent(&app)?.get_templates())
+}
+
+/// Adds a template's actions and page and saves both files.
+#[tauri::command]
+pub fn add_template(app: AppHandle, template_id: String) -> Result<SaveResult, String> {
+    Ok(agent(&app)?.add_template(&template_id))
+}
+
 #[tauri::command]
 pub fn open_config_dir(app: AppHandle) -> Result<(), String> {
     let agent = agent(&app)?;

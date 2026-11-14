@@ -54,6 +54,15 @@ th { color: var(--muted); font-weight: 600; font-size: 12px; }
 .row { display: flex; gap: 8px; align-items: center; }
 .row input { flex: 1; }
 
+/* Context pages and templates (M11) */
+.chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 4px 2px 10px; border: 1px solid var(--border); border-radius: 999px; background: var(--bg); font-family: Consolas, "Cascadia Mono", monospace; font-size: 13px; }
+.chip-x { border: 0; background: transparent; color: var(--muted); font-size: 16px; line-height: 1; cursor: pointer; padding: 0 6px; }
+.chip-x:hover { color: var(--danger); }
+.dialog-backdrop { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.45); }
+.dialog { display: flex; flex-direction: column; gap: 12px; width: min(640px, 92vw); max-height: 86vh; overflow: auto; padding: 20px 22px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); }
+.template-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.template-card { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+
 input:not([type="checkbox"]):not([type="radio"]):not([type="color"]), select, textarea {
   padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); font: inherit;
 }

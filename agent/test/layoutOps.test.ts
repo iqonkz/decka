@@ -1,13 +1,39 @@
 import { describe, expect, test } from "vitest";
 import type { LayoutFile, Page } from "@decka/shared";
 import layoutDefault from "@decka/shared/fixtures/layout.default.json";
-import { addItem, findFreeSpot, fits, makeItem, movePage, newItemId, NO_SPACE, removeItem, sizeRange, updateItem } from "../src/tabs/layoutOps";
+import { addItem, findFreeSpot, fits, makeItem, movePage, newItemId, NO_SPACE, normalizeApp, removeItem, sizeRange, updateItem, withApps, withMediaDefaults } from "../src/tabs/layoutOps";
 
 const layout = layoutDefault as unknown as LayoutFile;
 const grid = layout.grid; // 7 x 4
 // "main" has free cells (3,3), (4,3), (5,3) only; "dev" is free from (4,1) down, except (6,3).
 const main = layout.pages[0] as Page;
 const dev = layout.pages[1] as Page;
+
+describe("context page helpers (M11)", () => {
+  test("normalizeApp lower-cases and appends .exe", () => {
+    expect(normalizeApp("Code")).toBe("code.exe");
+    expect(normalizeApp("  Chrome.EXE ")).toBe("chrome.exe");
+    expect(normalizeApp("   ")).toBeNull();
+  });
+
+  test("withApps drops the field when the list is empty", () => {
+    expect(withApps(dev, ["code.exe"]).apps).toEqual(["code.exe"]);
+    expect("apps" in withApps(dev, [])).toBe(false);
+  });
+
+  test("a new media widget gets the standard media actions that exist", () => {
+    const media = makeItem("media", 3, 3, "w-test");
+    expect(media).toMatchObject({ kind: "media", w: 3, h: 1 });
+    expect(withMediaDefaults(media, ["media-prev", "media-play", "media-next"])).toMatchObject({ prevAction: "media-prev", playAction: "media-play", nextAction: "media-next" });
+    const partial = withMediaDefaults(media, ["media-play"]);
+    expect(partial).toMatchObject({ playAction: "media-play" });
+    expect("prevAction" in partial).toBe(false);
+  });
+
+  test("media may be 2 to all columns wide and 1 or 2 rows high", () => {
+    expect(sizeRange("media", grid)).toEqual([2, 7, 1, 2]);
+  });
+});
 
 describe("fits (grid 7x4)", () => {
   test("the default grid is 7x4", () => {

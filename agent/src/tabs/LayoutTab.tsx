@@ -6,9 +6,11 @@ import Banner from "../ui/Banner";
 import Button from "../ui/Button";
 import Field from "../ui/Field";
 import ItemForm from "./itemForm";
-import { addItem, COLS_RANGE, DEFAULT_SIZE, makeItem, movePage, newPageId, removeItem, ROWS_RANGE, updateItem, type Kind } from "./layoutOps";
+import { addItem, COLS_RANGE, DEFAULT_SIZE, makeItem, movePage, newPageId, removeItem, ROWS_RANGE, updateItem, withMediaDefaults, type Kind } from "./layoutOps";
+import PageApps from "./PageApps";
+import TemplatesDialog from "./TemplatesDialog";
 
-const KINDS: Kind[] = ["button", "clock", "sys", "status", "statuses", "notifications"];
+const KINDS: Kind[] = ["button", "clock", "sys", "status", "statuses", "notifications", "media"];
 const CELL_W = 120;
 const CELL_H = 90;
 
@@ -35,14 +37,17 @@ export default function LayoutTab() {
   const [serverIssues, setServerIssues] = useState<ValidationIssue[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
 
   const load = useCallback(async () => {
-    setLayout(await call("get_layout"));
+    const fresh = await call("get_layout");
+    setLayout(fresh);
     setActions(await call("get_actions"));
     setServerIssues([]);
     setMessage(null);
     setSelectedId(null);
     setCreating(null);
+    return fresh;
   }, []);
 
   useEffect(() => {
@@ -76,7 +81,7 @@ export default function LayoutTab() {
 
   function create(kind: Kind) {
     if (!creating || !page) return;
-    const result = addItem(page, layout!.grid, makeItem(kind, creating.x, creating.y));
+    const result = addItem(page, layout!.grid, withMediaDefaults(makeItem(kind, creating.x, creating.y), Object.keys(actions!.actions)));
     if (!result.ok) return setNotice(result.error);
     const added = result.page.items[result.page.items.length - 1];
     setNotice(null);
@@ -154,6 +159,7 @@ export default function LayoutTab() {
           ))}
         </div>
         <Button onClick={addPage} disabled={layout.pages.length >= 10}>Add page</Button>
+        <Button onClick={() => setTemplatesOpen(true)}>Add page from template</Button>
         <Button onClick={() => setRenaming(page.name)}>Rename</Button>
         <Button onClick={deletePage} disabled={layout.pages.length <= 1}>Delete page</Button>
         <Button onClick={() => shiftPage(-1)} disabled={pageIdx === 0} aria-label="Move page left">←</Button>
@@ -166,6 +172,8 @@ export default function LayoutTab() {
           <Button onClick={() => setRenaming(null)}>Cancel</Button>
         </div>
       )}
+
+      <PageApps page={page} isFirst={pageIdx === 0} onChange={setPage} />
 
       <div className="split">
         <div className="layout-pane">
@@ -238,6 +246,9 @@ export default function LayoutTab() {
             <input type="checkbox" checked={layout.display.pixelShift} onChange={(e) => setDisplay({ pixelShift: e.target.checked })} /> Pixel shift
           </label>
         </div>
+        <label className="check">
+          <input type="checkbox" checked={layout.display.contextPages !== false} onChange={(e) => setDisplay({ contextPages: e.target.checked })} /> Switch to app pages automatically
+        </label>
         <div className="row">
           <label className="check">
             <input type="checkbox" checked={layout.display.night.enabled} onChange={(e) => setDisplay({ night: { ...layout.display.night, enabled: e.target.checked } })} /> Night mode
@@ -267,6 +278,16 @@ export default function LayoutTab() {
         </Button>
         <Button onClick={() => void load()}>Revert</Button>
       </div>
+      {templatesOpen && (
+        <TemplatesDialog
+          onClose={() => setTemplatesOpen(false)}
+          onAdded={() => {
+            setTemplatesOpen(false);
+            // The new page is the last one; open it.
+            load().then((fresh) => setPageIdx(fresh.pages.length - 1), (e) => setError(String(e)));
+          }}
+        />
+      )}
     </div>
   );
 }

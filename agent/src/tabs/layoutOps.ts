@@ -123,6 +123,31 @@ export function makeItem(kind: Kind, x: number, y: number, id = newItemId(kind))
   }
 }
 
+/** What the user typed -> an exe name: trimmed, lower case, `.exe` appended when missing. Empty input -> null. */
+export function normalizeApp(input: string): string | null {
+  const name = input.trim().toLowerCase();
+  if (name === "") return null;
+  return name.endsWith(".exe") ? name : `${name}.exe`;
+}
+
+/** The page without `apps` when the list is empty, otherwise with the list. */
+export function withApps(page: Page, apps: string[]): Page {
+  const { apps: _old, ...rest } = page;
+  return apps.length > 0 ? { ...rest, apps } : rest;
+}
+
+/** A new `media` widget uses the standard media actions when they exist. */
+export function withMediaDefaults(item: LayoutItem, actionIds: string[]): LayoutItem {
+  if (item.kind !== "media") return item;
+  const has = (id: string) => actionIds.includes(id);
+  return {
+    ...item,
+    ...(has("media-prev") ? { prevAction: "media-prev" } : {}),
+    ...(has("media-play") ? { playAction: "media-play" } : {}),
+    ...(has("media-next") ? { nextAction: "media-next" } : {}),
+  };
+}
+
 /** Page ids: `p-xxxxxx`. */
 export function newPageId(random: () => number = Math.random): string {
   return `p-${newItemId("sys", random).slice(2)}`;
