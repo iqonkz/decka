@@ -1,0 +1,1 @@
+{ "t": "error", "code": "PROTOCOL_VERSION", "message": "unsupported protocol version 2", "fatal": true, "supported": [1] }

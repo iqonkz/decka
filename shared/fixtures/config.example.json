@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "agentName": "DESKTOP-MAIN",
+  "port": 9247,
+  "bind": "0.0.0.0",
+  "apiToken": "dk_pX3v8Zq1mB7kT0aYw2LrN5cE9uHs4JdG6fQoViC_-AA",
+  "autostart": false,
+  "usb": { "enabled": false, "adbPath": "adb" },
+  "collectors": {
+    "sys": { "enabled": true, "intervalSec": 2 },
+    "checks": [ { "id": "api-prod", "label": "API prod", "url": "https://example.com/health", "intervalSec": 60, "timeoutSec": 5, "group": "services" } ]
+  }
+}

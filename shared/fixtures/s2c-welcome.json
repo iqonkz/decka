@@ -1,0 +1,19 @@
+{
+  "t": "welcome", "v": 1,
+  "agent": { "name": "DESKTOP-MAIN", "version": "0.1.0" },
+  "deviceId": "d-3f9a1c", "rev": 42,
+  "state": {
+    "layout": {
+      "grid": { "cols": 5, "rows": 3 },
+      "display": { "dimAfterSec": 60, "dimLevel": 0.3, "sleepAfterSec": 600, "pixelShift": true, "night": { "enabled": false, "from": "23:00", "to": "07:00" } },
+      "pages": [ { "id": "main", "name": "Main", "items": [
+        { "id": "b-play", "kind": "button", "x": 1, "y": 1, "w": 1, "h": 1, "label": "Play", "icon": "lucide:play", "actionId": "media-play" },
+        { "id": "w-clock", "kind": "clock", "x": 0, "y": 0, "w": 2, "h": 1 }
+      ] } ]
+    },
+    "sys": { "cpu": 12, "mem": { "usedMb": 9120, "totalMb": 32000 }, "disks": [ { "mount": "C:", "usedGb": 210, "totalGb": 476 } ], "net": { "rxKbps": 80, "txKbps": 12 }, "uptimeSec": 86400 },
+    "statuses": [ { "id": "api-prod", "label": "API prod", "state": "ok", "text": "200 · 84 ms", "group": "services", "source": "check", "updatedAt": 1794650000000 } ],
+    "notifications": [ { "id": "7", "ts": 1794650001000, "title": "Deploy finished", "body": "web@1.4.2", "level": "success", "source": "ci" } ],
+    "vars": { "mic.muted": false }
+  }
+}

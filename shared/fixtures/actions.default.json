@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "actions": {
+    "media-play":  { "name": "Play / Pause", "type": "media", "op": "play_pause" },
+    "media-next":  { "name": "Next track", "type": "media", "op": "next" },
+    "media-prev":  { "name": "Previous track", "type": "media", "op": "prev" },
+    "vol-up":      { "name": "Volume up", "type": "media", "op": "vol_up" },
+    "vol-down":    { "name": "Volume down", "type": "media", "op": "vol_down" },
+    "vol-mute":    { "name": "Mute", "type": "media", "op": "mute", "toggleVar": "audio.muted" },
+    "lock":        { "name": "Lock PC", "type": "system", "op": "lock" },
+    "task-manager":{ "name": "Task Manager", "type": "hotkey", "keys": ["ctrl", "shift", "esc"] },
+    "notepad":     { "name": "Notepad", "type": "launch", "program": "notepad.exe" },
+    "github":      { "name": "GitHub", "type": "open_url", "url": "https://github.com" }
+  }
+}

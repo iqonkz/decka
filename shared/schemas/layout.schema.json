@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://decka.invalid/schemas/layout.schema.json",
+  "$defs": {
+    "Id": { "type": "string", "pattern": "^[a-z0-9_-]{1,64}$" },
+    "Icon": { "type": "string", "pattern": "^(lucide:[a-z0-9-]{1,40}|emoji:.{1,8})$" },
+    "Color": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+    "ButtonLook": { "type": "object", "properties": { "label": { "type": "string", "maxLength": 24 }, "icon": { "$ref": "#/$defs/Icon" }, "color": { "$ref": "#/$defs/Color" } } },
+    "ItemBase": { "type": "object", "required": ["id","kind","x","y","w","h"],
+      "properties": { "id": { "$ref": "#/$defs/Id" }, "kind": { "type": "string" },
+        "x": { "type": "integer", "minimum": 0, "maximum": 4 }, "y": { "type": "integer", "minimum": 0, "maximum": 2 },
+        "w": { "type": "integer", "minimum": 1, "maximum": 5 }, "h": { "type": "integer", "minimum": 1, "maximum": 3 } } },
+    "ButtonItem": { "allOf": [ { "$ref": "#/$defs/ItemBase" }, { "$ref": "#/$defs/ButtonLook" }, {
+      "properties": { "kind": { "const": "button" }, "w": { "const": 1 }, "h": { "const": 1 },
+        "actionId": { "$ref": "#/$defs/Id" }, "navigate": { "$ref": "#/$defs/Id" }, "confirm": { "type": "boolean" },
+        "bind": { "type": "object", "required": ["var","states"], "properties": {
+          "var": { "type": "string", "pattern": "^[a-z0-9_.-]{1,64}$" },
+          "states": { "type": "object", "minProperties": 1, "maxProperties": 8, "propertyNames": { "maxLength": 40 }, "additionalProperties": { "$ref": "#/$defs/ButtonLook" } } } } },
+      "oneOf": [ { "required": ["actionId"] }, { "required": ["navigate"] } ] } ] },
+    "ClockItem": { "allOf": [ { "$ref": "#/$defs/ItemBase" }, { "properties": { "kind": { "const": "clock" }, "w": { "maximum": 2 }, "h": { "const": 1 }, "seconds": { "type": "boolean" } } } ] },
+    "SysItem": { "allOf": [ { "$ref": "#/$defs/ItemBase" }, { "properties": { "kind": { "const": "sys" }, "w": { "const": 2 }, "h": { "maximum": 2 } } } ] },
+    "StatusesItem": { "allOf": [ { "$ref": "#/$defs/ItemBase" }, { "properties": { "kind": { "const": "statuses" }, "w": { "minimum": 2 }, "group": { "type": "string", "maxLength": 40 }, "title": { "type": "string", "maxLength": 30 } } } ] },
+    "StatusTile": { "allOf": [ { "$ref": "#/$defs/ItemBase" }, { "required": ["statusId"], "properties": { "kind": { "const": "status" }, "w": { "const": 1 }, "h": { "const": 1 }, "statusId": { "$ref": "#/$defs/Id" } } } ] },
+    "NotificationsItem": { "allOf": [ { "$ref": "#/$defs/ItemBase" }, { "properties": { "kind": { "const": "notifications" }, "w": { "minimum": 2 } } } ] },
+    "KnownItem": { "oneOf": [ { "$ref": "#/$defs/ButtonItem" }, { "$ref": "#/$defs/ClockItem" }, { "$ref": "#/$defs/SysItem" }, { "$ref": "#/$defs/StatusesItem" }, { "$ref": "#/$defs/StatusTile" }, { "$ref": "#/$defs/NotificationsItem" } ] },
+    "Page": { "type": "object", "required": ["id","name","items"],
+      "properties": { "id": { "$ref": "#/$defs/Id" }, "name": { "type": "string", "minLength": 1, "maxLength": 30 }, "items": { "type": "array", "maxItems": 15, "items": { "$ref": "#/$defs/KnownItem" } } } },
+    "DisplaySettings": { "type": "object", "required": ["dimAfterSec","dimLevel","sleepAfterSec","pixelShift","night"],
+      "properties": {
+        "dimAfterSec": { "type": "integer", "minimum": 0, "maximum": 3600 },
+        "dimLevel": { "type": "number", "minimum": 0.05, "maximum": 1 },
+        "sleepAfterSec": { "type": "integer", "minimum": 0, "maximum": 86400 },
+        "pixelShift": { "type": "boolean" },
+        "night": { "type": "object", "required": ["enabled","from","to"], "properties": { "enabled": { "type": "boolean" },
+          "from": { "type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$" }, "to": { "type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$" } } } } },
+    "ClientLayout": { "type": "object", "required": ["grid","display","pages"],
+      "properties": {
+        "grid": { "type": "object", "required": ["cols","rows"], "properties": { "cols": { "const": 5 }, "rows": { "const": 3 } } },
+        "display": { "$ref": "#/$defs/DisplaySettings" },
+        "pages": { "type": "array", "minItems": 1, "maxItems": 10, "items": { "$ref": "#/$defs/Page" } } } },
+    "LayoutFile": { "allOf": [ { "$ref": "#/$defs/ClientLayout" }, { "required": ["version"], "properties": { "version": { "const": 1 } } } ] }
+  }
+}

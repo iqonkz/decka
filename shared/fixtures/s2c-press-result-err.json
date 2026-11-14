@@ -1,0 +1,1 @@
+{ "t": "press_result", "id": 18, "ok": false, "error": { "code": "UNKNOWN_ACTION", "message": "action 'foo' is not defined" } }
