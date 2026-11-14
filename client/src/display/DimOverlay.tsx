@@ -5,7 +5,7 @@ import type { DisplayMode } from "./idle";
  * so the button under the finger is not pressed); while active it lets touches through.
  */
 export default function DimOverlay({ mode, dimLevel }: { mode: DisplayMode; dimLevel: number }) {
-  const dimmed = mode !== "active";
+  const dimmed = mode === "dim"; // in sleep the screen saver covers the screen itself
   return (
     <div
       className="dim-overlay"

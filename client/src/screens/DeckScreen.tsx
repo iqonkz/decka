@@ -3,6 +3,7 @@ import { setPage, unpair } from "../app/controller";
 import ConnBadge from "../deck/ConnBadge";
 import DimOverlay from "../display/DimOverlay";
 import { useDisplayMode } from "../display/idle";
+import Screensaver from "../display/Screensaver";
 import { usePixelShift } from "../display/pixelShift";
 import Grid from "../deck/Grid";
 import PageDots from "../deck/PageDots";
@@ -54,7 +55,7 @@ export default function DeckScreen() {
   return (
     <>
       <div
-        className="deck"
+        className={mode === "sleep" ? "deck asleep" : "deck"}
         onPointerDown={(e) => {
           start.current = { x: e.clientX, y: e.clientY };
         }}
@@ -82,6 +83,7 @@ export default function DeckScreen() {
         <Toasts />
       </div>
       <DimOverlay mode={mode} dimLevel={layout.display.dimLevel} />
+      {mode === "sleep" && <Screensaver />}
       {confirmUnpair && (
         <div className="dialog-backdrop">
           <div className="dialog" role="dialog" aria-label="Unpair this device?">

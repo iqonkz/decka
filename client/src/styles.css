@@ -56,6 +56,12 @@ input { user-select: text; touch-action: manipulation; }
 
 .deck { position: fixed; inset: 0; background: #000; }
 .deck-inner { position: absolute; inset: 6px; transition: transform 2s ease; }
+.deck.asleep { visibility: hidden; }
+.saver { position: fixed; inset: 0; z-index: 1000; background: #000; }
+.saver-box { position: absolute; text-align: center; transition: opacity 1s ease; }
+.saver-time { font-size: 12vmin; font-weight: 200; color: #4b5563; line-height: 1.1; }
+.saver-line { font-size: 3vmin; color: #4b5563; }
+.saver-errors { color: #7f1d1d; }
 .dim-overlay { position: fixed; inset: 0; z-index: 1000; background: #000; opacity: 0; pointer-events: none; transition: opacity 600ms ease; }
 .grid {
   display: grid;
