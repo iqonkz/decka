@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import type { ButtonItem } from "@decka/shared";
 import { press, setPage } from "../app/controller";
 import type { ConnFailure } from "../net/connection";
 import { getState, pushToast, useAppState } from "../store/store";
 import Icon from "./Icon";
-import { pressErrorTitle, resolveLook } from "./look";
+import { keyColors, pressErrorTitle, resolveLook } from "./look";
+import { useKeySize } from "./useKeySize";
 
 const TAP_SLOP_PX = 20;
 const CONFIRM_HOLD_MS = 800;
@@ -31,8 +32,8 @@ export default function Button({ item }: { item: ButtonItem }) {
   const holdTimer = useRef<number | null>(null);
   const resetTimer = useRef<number | null>(null);
   const mounted = useRef(true);
-  const box = useRef<HTMLDivElement>(null);
-  const [iconSize, setIconSize] = useState(32);
+  const [box, side] = useKeySize();
+  const colors = keyColors(look.color);
 
   useEffect(() => {
     mounted.current = true;
@@ -41,17 +42,6 @@ export default function Button({ item }: { item: ButtonItem }) {
       if (holdTimer.current !== null) window.clearTimeout(holdTimer.current);
       if (resetTimer.current !== null) window.clearTimeout(resetTimer.current);
     };
-  }, []);
-
-  // Icon size = 38% of the tile's smaller side.
-  useEffect(() => {
-    const el = box.current;
-    if (!el) return;
-    const measure = () => setIconSize(Math.round(Math.min(el.clientWidth, el.clientHeight) * 0.38));
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(el);
-    return () => observer.disconnect();
   }, []);
 
   function clearHold() {
@@ -129,31 +119,35 @@ export default function Button({ item }: { item: ButtonItem }) {
     }
   }
 
-  const classes = ["btn", phase, disabled ? "disabled" : ""].filter(Boolean).join(" ");
+  // The whole cell is the touch target; the key inside it is what the eye sees.
+  const classes = ["btn", disabled ? "disabled" : ""].filter(Boolean).join(" ");
+  const keyStyle: CSSProperties = {
+    width: side,
+    height: side,
+    borderRadius: 0.22 * side,
+    background: phase === "pressed" ? colors.pressed : colors.background,
+    color: colors.ink,
+  };
   return (
-    <div
-      ref={box}
-      className={classes}
-      style={{ background: look.color ?? "#1e1e24" }}
-      onPointerDown={onDown}
-      onPointerMove={onMove}
-      onPointerUp={onUp}
-      onPointerCancel={cancel}
-    >
-      {look.icon ? (
-        <>
-          <div className="btn-icon">
-            <Icon icon={look.icon} size={iconSize} />
+    <div ref={box} className={classes} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={cancel}>
+      <div className={`key ${phase}`} style={keyStyle}>
+        {look.icon ? (
+          <Icon icon={look.icon} size={Math.round(0.5 * side)} />
+        ) : (
+          <div className="key-text" style={{ fontSize: 0.2 * side }}>
+            {look.label ?? ""}
           </div>
-          {look.label && <div className="btn-label">{look.label}</div>}
-        </>
-      ) : (
-        <div className="btn-label solo">{look.label ?? ""}</div>
-      )}
-      {phase === "confirming" && (
-        <svg className="ring" viewBox="0 0 36 36" aria-hidden="true">
-          <circle cx="18" cy="18" r="16" />
-        </svg>
+        )}
+        {phase === "confirming" && (
+          <svg className="ring" width={side} height={side} viewBox={`0 0 ${side} ${side}`} aria-hidden="true">
+            <rect x="1" y="1" width={side - 2} height={side - 2} rx={0.22 * side} pathLength="100" />
+          </svg>
+        )}
+      </div>
+      {look.icon && look.label && (
+        <div className="key-label" style={{ marginTop: 0.06 * side, fontSize: Math.max(11, 0.16 * side) }}>
+          {look.label}
+        </div>
       )}
     </div>
   );
