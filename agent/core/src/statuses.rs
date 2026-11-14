@@ -1,7 +1,7 @@
 //! Status manager: pushed statuses with optional TTL (PROTOCOL.md 5) and, later, HTTP-check results.
 
 use std::collections::HashMap;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use crate::auth::now_ms;
@@ -14,14 +14,16 @@ struct Entry {
     expires: Option<Instant>,
 }
 
+/// Cheap to clone: all clones share the same entries.
+#[derive(Clone)]
 pub struct Statuses {
     store: Store,
-    entries: Mutex<HashMap<String, Entry>>,
+    entries: Arc<Mutex<HashMap<String, Entry>>>,
 }
 
 impl Statuses {
     pub fn new(store: Store) -> Statuses {
-        Statuses { store, entries: Mutex::new(HashMap::new()) }
+        Statuses { store, entries: Arc::new(Mutex::new(HashMap::new())) }
     }
 
     /// Writes the whole list to the store; `Store::set` drops it if nothing changed.
@@ -74,6 +76,46 @@ impl Statuses {
         }
         self.publish(&entries);
         Ok(())
+    }
+
+    /// Publishes the result of an HTTP check. Bypasses the rule that forbids changing `source: "check"`.
+    /// `updatedAt` moves only when `state` or `text` change.
+    pub fn set_check(&self, id: &str, label: &str, group: Option<&str>, state: StatusState, text: Option<String>) {
+        let mut entries = self.entries.lock().unwrap();
+        match entries.get_mut(id) {
+            Some(e) if e.item.source == StatusSource::Check => {
+                if e.item.state != state || e.item.text != text {
+                    e.item.updated_at = now_ms();
+                }
+                e.item.state = state;
+                e.item.text = text;
+                e.item.label = label.to_string();
+                e.item.group = group.map(str::to_string);
+            }
+            _ => {
+                let item = StatusItem {
+                    id: id.to_string(),
+                    label: label.to_string(),
+                    state,
+                    text,
+                    group: group.map(str::to_string),
+                    source: StatusSource::Check,
+                    updated_at: now_ms(),
+                };
+                entries.insert(id.to_string(), Entry { item, expires: None });
+            }
+        }
+        self.publish(&entries);
+    }
+
+    /// Removes every check status whose id is not in `keep` (a check was deleted from the config).
+    pub fn retain_checks(&self, keep: &std::collections::HashSet<String>) {
+        let mut entries = self.entries.lock().unwrap();
+        let before = entries.len();
+        entries.retain(|id, e| e.item.source != StatusSource::Check || keep.contains(id));
+        if entries.len() != before {
+            self.publish(&entries);
+        }
     }
 
     /// `DELETE /api/status/{id}`: false if there is no such pushed status.
@@ -156,6 +198,36 @@ mod tests {
         assert_eq!(store.rev(), rev);
     }
 
+    #[test]
+    fn check_results_keep_updated_at_while_state_and_text_are_equal() {
+        let (store, s) = statuses();
+        s.set_check("c", "C", None, StatusState::Ok, Some("200 · 80 ms".into()));
+        let first = store.get("statuses")[0]["updatedAt"].as_u64().unwrap();
+        let rev = store.rev();
+        std::thread::sleep(Duration::from_millis(5));
+        s.set_check("c", "C", None, StatusState::Ok, Some("200 · 80 ms".into()));
+        assert_eq!(store.rev(), rev, "an identical result must not be rebroadcast");
+        assert_eq!(store.get("statuses")[0]["updatedAt"].as_u64().unwrap(), first);
+    }
+
+    #[test]
+    fn deleted_checks_lose_their_status_but_pushed_ones_stay() {
+        let (store, s) = statuses();
+        s.set_check("gone", "Gone", None, StatusState::Ok, None);
+        s.set_check("kept", "Kept", None, StatusState::Ok, None);
+        s.upsert(req(json!({ "id": "pushed", "state": "ok" }))).unwrap();
+        s.retain_checks(&["kept".to_string()].into_iter().collect());
+        let ids: Vec<String> = store.get("statuses").as_array().unwrap().iter().map(|i| i["id"].as_str().unwrap().to_string()).collect();
+        assert_eq!(ids, ["kept", "pushed"]);
+    }
+
+    #[test]
+    fn the_api_cannot_overwrite_or_delete_a_check() {
+        let (_, s) = statuses();
+        s.set_check("c", "C", None, StatusState::Ok, None);
+        assert!(s.upsert(req(json!({ "id": "c", "state": "error" }))).is_err());
+        assert!(!s.delete("c"));
+    }
     #[test]
     fn delete_removes_once() {
         let (store, s) = statuses();

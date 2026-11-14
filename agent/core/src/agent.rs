@@ -165,6 +165,7 @@ struct Inner {
     statuses: crate::statuses::Statuses,
     background: Mutex<Vec<JoinHandle<()>>>,
     sys_collector: Mutex<Option<crate::collectors::sys::SysCollector>>,
+    checks_collector: Mutex<Option<crate::collectors::checks::ChecksCollector>>,
     pairing: Pairing,
     devices: Devices,
     notif_counter: AtomicU64,
@@ -205,6 +206,7 @@ impl Agent {
                 store,
                 background: Mutex::new(Vec::new()),
                 sys_collector: Mutex::new(None),
+                checks_collector: Mutex::new(None),
                 pairing: Pairing::new(opts.fixed_pair_code.clone()),
                 devices: Devices::new(config_dir.join("devices.json"), devices),
                 notif_counter: AtomicU64::new(1),
@@ -282,6 +284,12 @@ impl Agent {
             None
         };
         *self.inner.sys_collector.lock().unwrap() = new;
+
+        // HTTP checks: stop the old tasks (dropping aborts them), then start from the new config.
+        let old_checks = self.inner.checks_collector.lock().unwrap().take();
+        drop(old_checks);
+        let checks = crate::collectors::checks::ChecksCollector::start(self.inner.statuses.clone(), config.collectors.checks);
+        *self.inner.checks_collector.lock().unwrap() = Some(checks);
     }
 
     pub fn statuses(&self) -> &crate::statuses::Statuses {
@@ -551,6 +559,8 @@ impl Agent {
         }
         let collector = self.inner.sys_collector.lock().unwrap().take();
         drop(collector); // joins the thread
+        let checks = self.inner.checks_collector.lock().unwrap().take();
+        drop(checks);
         self.stop_server().await;
     }
 
