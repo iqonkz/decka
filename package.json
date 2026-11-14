@@ -7,6 +7,8 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "build:ui": "npm run build -w client && npm run build -w agent",
-    "tauri": "npm run tauri -w agent --"
+    "tauri": "npm run tauri -w agent --",
+    "release:agent": "npm run build:ui && npm run tauri -- build",
+    "release:apk": "npm run android:sync -w client && npm run android:apk -w client"
   }
 }
