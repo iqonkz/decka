@@ -125,6 +125,43 @@ pub fn add_template(app: AppHandle, template_id: String) -> Result<SaveResult, S
     Ok(agent(&app)?.add_template(&template_id))
 }
 
+/// `{ icon: "img:<hash16>" }` or `{ error }`, as in PROTOCOL.md 9.
+#[derive(Serialize)]
+#[serde(untagged)]
+pub enum IconResult {
+    Icon { icon: String },
+    Error { error: String },
+}
+
+impl From<Result<String, String>> for IconResult {
+    fn from(r: Result<String, String>) -> Self {
+        match r {
+            Ok(icon) => IconResult::Icon { icon },
+            Err(error) => IconResult::Error { error },
+        }
+    }
+}
+
+/// Icon of a program (exe) from the Shell; runs off the UI thread.
+#[tauri::command]
+pub async fn icon_from_program(app: AppHandle, path: String) -> Result<IconResult, String> {
+    let agent = agent(&app)?;
+    tauri::async_runtime::spawn_blocking(move || agent.icon_from_program(&path).into()).await.map_err(|e| e.to_string())
+}
+
+/// Icon from a picture file (png, jpg, ico, bmp); runs off the UI thread.
+#[tauri::command]
+pub async fn icon_from_image(app: AppHandle, path: String) -> Result<IconResult, String> {
+    let agent = agent(&app)?;
+    tauri::async_runtime::spawn_blocking(move || agent.icon_from_image(&path).into()).await.map_err(|e| e.to_string())
+}
+
+/// Data URL of a stored `img:` icon (settings-window preview); `null` for other kinds or a missing file.
+#[tauri::command]
+pub fn get_icon_preview(app: AppHandle, icon: String) -> Result<Option<String>, String> {
+    Ok(agent(&app)?.icon_preview(&icon))
+}
+
 /// Opens `<configDir>\logs` in Explorer (created when missing).
 #[tauri::command]
 pub fn open_logs_dir(app: AppHandle) -> Result<(), String> {

@@ -207,6 +207,7 @@ impl Agent {
 
         let layout_value = serde_json::to_value(layout.to_client()).expect("layout serializes");
         let store = Store::new(layout_value);
+        store.set("icons", crate::icons::collect_icons(&config_dir, &layout));
         let agent = Agent {
             inner: Arc::new(Inner {
                 config_dir: config_dir.clone(),
@@ -567,8 +568,30 @@ impl Agent {
 
     fn apply_layout(&self, layout: LayoutFile) {
         let value = serde_json::to_value(layout.to_client()).expect("layout serializes");
+        let icons = crate::icons::collect_icons(&self.inner.config_dir, &layout);
         *self.inner.layout.lock().unwrap() = layout;
         self.inner.store.set("layout", value);
+        self.inner.store.set("icons", icons);
+    }
+
+    /// Layout issues of the first kind that need the disk: `img:` icons must have their files (DATA_MODEL.md 8.2).
+    fn icon_issues(&self, layout: &LayoutFile) -> Vec<ValidationIssue> {
+        crate::icons::missing_icon_issues(&self.inner.config_dir, layout)
+    }
+
+    /// Icon of a program (`.exe`) as `img:<hash16>`; blocks (Shell + imaging), call it from a blocking context.
+    pub fn icon_from_program(&self, path: &str) -> Result<String, String> {
+        crate::icons::icon_from_program(&self.inner.config_dir, path)
+    }
+
+    /// Icon from a picture file as `img:<hash16>`; blocks, call it from a blocking context.
+    pub fn icon_from_image(&self, path: &str) -> Result<String, String> {
+        crate::icons::icon_from_image(&self.inner.config_dir, path)
+    }
+
+    /// Data URL of a stored `img:` icon for the settings window.
+    pub fn icon_preview(&self, icon: &str) -> Option<String> {
+        crate::icons::icon_preview(&self.inner.config_dir, icon)
     }
 
     /// Called by the file watcher after the debounce: re-reads one file and applies it if valid.
@@ -593,7 +616,7 @@ impl Agent {
             },
             "layout.json" => match serde_json::from_str::<LayoutFile>(&text) {
                 Err(e) => self.invalid_file_notification(name, &format!("invalid JSON: {e}")),
-                Ok(layout) => match crate::validate::validate_layout(&layout, &self.actions()).first() {
+                Ok(layout) => match crate::validate::validate_layout(&layout, &self.actions()).into_iter().chain(self.icon_issues(&layout)).next().as_ref() {
                     Some(issue) => self.invalid_file_notification(name, &issue.message),
                     None => self.apply_layout(layout),
                 },
@@ -634,7 +657,8 @@ impl Agent {
 
     /// Validates against the current actions, writes layout.json, updates memory and the layout section.
     pub fn save_layout(&self, layout: LayoutFile) -> SaveResult {
-        let issues = crate::validate::validate_layout(&layout, &self.actions());
+        let mut issues = crate::validate::validate_layout(&layout, &self.actions());
+        issues.extend(self.icon_issues(&layout));
         if !issues.is_empty() {
             return SaveResult::Rejected(issues);
         }

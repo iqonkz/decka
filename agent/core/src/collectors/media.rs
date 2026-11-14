@@ -186,13 +186,9 @@ fn warn_once_a_minute(last: &mut Option<Instant>, message: &str) {
 mod winrt {
     use super::{art_target_size, cover_data_uri, now_ms, truncate_chars, ART_MAX_SIDE, MAX_SOURCE, MAX_TEXT};
     use crate::model::MediaInfo;
-    use windows::core::HSTRING;
-    use windows::Foundation::{PropertyType, PropertyValue};
-    use windows::Graphics::Imaging::{
-        BitmapAlphaMode, BitmapDecoder, BitmapEncoder, BitmapInterpolationMode, BitmapPixelFormat, BitmapPropertySet, BitmapTransform, BitmapTypedValue, ColorManagementMode, ExifOrientationMode,
-    };
+    use crate::imaging::{self, read_all};
+    use windows::Graphics::Imaging::BitmapAlphaMode;
     use windows::Media::Control::{GlobalSystemMediaTransportControlsSession, GlobalSystemMediaTransportControlsSessionManager, GlobalSystemMediaTransportControlsSessionPlaybackStatus};
-    use windows::Storage::Streams::{DataReader, DataWriter, IInputStream, InMemoryRandomAccessStream};
 
     /// 100 ns ticks between 1601-01-01 (Windows) and 1970-01-01 (unix).
     const EPOCH_DIFF_MS: i64 = 11_644_473_600_000;
@@ -290,77 +286,29 @@ mod winrt {
     /// Covers larger than this are not even decoded.
     const MAX_SOURCE_BYTES: u32 = 8_000_000;
 
-    fn read_all(stream: &impl windows::core::Interface, size: u32) -> windows::core::Result<Vec<u8>> {
-        let input: IInputStream = stream.cast()?;
-        let reader = DataReader::CreateDataReader(&input)?;
-        reader.LoadAsync(size)?.join()?;
-        let mut bytes = vec![0u8; size as usize];
-        reader.ReadBytes(&mut bytes)?;
-        reader.DetachStream()?;
-        Ok(bytes)
-    }
-
-    fn to_stream(bytes: &[u8]) -> windows::core::Result<InMemoryRandomAccessStream> {
-        let stream = InMemoryRandomAccessStream::new()?;
-        let writer = DataWriter::CreateDataWriter(&stream)?;
-        writer.WriteBytes(bytes)?;
-        writer.StoreAsync()?.join()?;
-        writer.DetachStream()?;
-        stream.Seek(0)?;
-        Ok(stream)
-    }
-
     /// The bytes to send as a cover: the original when it is small enough in both pixels and characters,
     /// otherwise a JPEG (quality 0.8) whose longer side is 192 px, scaled by Windows (no extra libraries).
     pub fn shrink_art(bytes: &[u8]) -> windows::core::Result<Vec<u8>> {
-        let decoder = BitmapDecoder::CreateAsync(&to_stream(bytes)?)?.join()?;
-        let (width, height) = (decoder.PixelWidth()?, decoder.PixelHeight()?);
+        let (width, height) = imaging::decoded_size(bytes)?;
         if width.max(height) <= ART_MAX_SIDE && cover_data_uri(bytes).is_some() {
             return Ok(bytes.to_vec());
         }
         let (target_w, target_h) = art_target_size(width, height);
-        let transform = BitmapTransform::new()?;
-        transform.SetScaledWidth(target_w)?;
-        transform.SetScaledHeight(target_h)?;
-        transform.SetInterpolationMode(BitmapInterpolationMode::Fant)?;
-        let pixels = decoder
-            .GetPixelDataTransformedAsync(BitmapPixelFormat::Bgra8, BitmapAlphaMode::Straight, &transform, ExifOrientationMode::IgnoreExifOrientation, ColorManagementMode::DoNotColorManage)?
-            .join()?
-            .DetachPixelData()?;
-        encode(BitmapEncoder::JpegEncoderId()?, Some(0.8), &pixels, target_w, target_h)
-    }
-
-    /// Encodes BGRA pixels with the given encoder (JPEG quality only applies to JPEG).
-    fn encode(encoder_id: windows::core::GUID, quality: Option<f32>, pixels: &[u8], width: u32, height: u32) -> windows::core::Result<Vec<u8>> {
-        let out = InMemoryRandomAccessStream::new()?;
-        let encoder = match quality {
-            Some(q) => {
-                let options = BitmapPropertySet::new()?;
-                let value = BitmapTypedValue::Create(&PropertyValue::CreateSingle(q)?, PropertyType::Single)?;
-                options.Insert(&HSTRING::from("ImageQuality"), &value)?;
-                BitmapEncoder::CreateWithEncodingOptionsAsync(encoder_id, &out, &options)?.join()?
-            }
-            None => BitmapEncoder::CreateAsync(encoder_id, &out)?.join()?,
-        };
-        encoder.SetPixelData(BitmapPixelFormat::Bgra8, BitmapAlphaMode::Ignore, width, height, 96.0, 96.0, pixels)?;
-        encoder.FlushAsync()?.join()?;
-        let size = out.Size()? as u32;
-        out.Seek(0)?;
-        read_all(&out, size)
+        let pixels = imaging::scaled_pixels(bytes, target_w, target_h, BitmapAlphaMode::Straight)?;
+        imaging::encode_jpeg(&pixels, target_w, target_h, 0.8)
     }
 
     /// A solid-colour PNG, for tests.
     #[cfg(test)]
     pub fn solid_png(width: u32, height: u32) -> windows::core::Result<Vec<u8>> {
         let pixels: Vec<u8> = std::iter::repeat([200u8, 100, 50, 255]).take((width * height) as usize).flatten().collect();
-        encode(BitmapEncoder::PngEncoderId()?, None, &pixels, width, height)
+        imaging::encode_png(&pixels, width, height)
     }
 
     /// Size of an encoded picture, for tests.
     #[cfg(test)]
     pub fn decoded_size(bytes: &[u8]) -> windows::core::Result<(u32, u32)> {
-        let decoder = BitmapDecoder::CreateAsync(&to_stream(bytes)?)?.join()?;
-        Ok((decoder.PixelWidth()?, decoder.PixelHeight()?))
+        imaging::decoded_size(bytes)
     }
 }
 

@@ -78,6 +78,9 @@ fn is_valid_icon(s: &str) -> bool {
     if let Some(sym) = s.strip_prefix("emoji:") {
         return (1..=8).contains(&sym.encode_utf16().count());
     }
+    if let Some(hash) = s.strip_prefix("img:") {
+        return crate::icons::is_hash(hash);
+    }
     false
 }
 
@@ -166,7 +169,7 @@ fn check_look(path: &str, look_label: &Option<String>, icon: &Option<String>, co
     }
     if let Some(i) = icon {
         if !is_valid_icon(i) {
-            out.push(issue(format!("{path}/icon"), "icon must be lucide:<name> or emoji:<symbol>"));
+            out.push(issue(format!("{path}/icon"), "icon must be lucide:<name>, emoji:<symbol> or img:<16 hex characters>"));
         }
     }
     if let Some(c) = color {
