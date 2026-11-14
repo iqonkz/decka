@@ -107,6 +107,12 @@ pub fn send_test_notification(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+/// Exe names of programs that currently have a visible window (suggestions for a page's apps).
+#[tauri::command]
+pub fn list_window_apps() -> Vec<String> {
+    decka_core::collectors::focus::list_window_apps()
+}
+
 #[tauri::command]
 pub fn open_config_dir(app: AppHandle) -> Result<(), String> {
     let agent = agent(&app)?;

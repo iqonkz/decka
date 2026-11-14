@@ -92,6 +92,12 @@
 - DONE (автоматически): `npm run typecheck -w agent`, тесты `applyPickedProgram` (заполнение `Program`/`Name`/`Working directory`, непустые поля сохраняются), `npm run build:ui`, `cargo build -p decka-agent` (плагин `tauri-plugin-dialog` зарегистрирован, `dialog:allow-open` в capabilities).
 - PENDING (owner): `npm run tauri dev` или установленный агент → Actions → тип `Launch a program` → `Browse…` → `C:\Windows\System32\charmap.exe` → `Name` = `charmap`, `Working directory` = `C:\Windows\System32` → `Save` → `Test` открывает «Таблицу символов». Проверить `New action…` в форме кнопки на вкладке Layout (переключает на Actions с формой нового действия; несохранённые правки формы кнопки теряются). Я не смог проверить окно: во время работы уже был запущен `target\release\decka-agent.exe` (запущен не мной в 22:27), а single-instance передаёт запуск dev-версии ему; системный диалог выбора файла CDP не управляется.
 
+## T11.3–T11.4 — сборщики `focus` и `media`
+
+- DONE (автоматически, этот ПК): headless + `ws-smoke watch` 9 с, пока запускались `notepad` и затем `charmap` → `patch` секции `focus` с `notepad.exe` и с `charmap.exe`. `ws-smoke state` при играющем Spotify → `media` с `title`, `artist`, `album`, `durationSec`, `positionSec`, `source`.
+- Наблюдение: обложка Spotify (PNG ≈ 176 КБ) длиннее лимита 65 536 символов data URI, поэтому по спецификации секция идёт без `art` (виджет покажет заглушку). Если нужны обложки Spotify — нужно уменьшение картинки (библиотека обработки изображений не входит в ARCHITECTURE.md §8), решение за владельцем.
+- PENDING (owner): обложка у источников с маленькой картинкой (браузер, другие плееры); вкладка Status показывает `Active app: …` при переключении окон.
+
 ## T10.5 — настраиваемая сетка и обводка клавиш
 
 - DONE (A57 only — S9 PENDING (owner)): свежий агент с конфигурацией по умолчанию → снимок `.tmp\grid74.png`: 7 столбцов × 4 строки, у клавиш тонкая обводка, `Lock` с цветной подложкой и обводкой.

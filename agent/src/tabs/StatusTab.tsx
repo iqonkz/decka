@@ -108,6 +108,11 @@ export default function StatusTab() {
       </section>
 
       <section className="card">
+        <h3>Active app</h3>
+        <p>Active app: {status.focusApp ?? "—"}</p>
+      </section>
+
+      <section className="card">
         <h3>Config folder</h3>
         <p>
           <code>{status.configDir}</code>

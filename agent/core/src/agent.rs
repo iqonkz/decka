@@ -81,6 +81,8 @@ pub struct AgentStatus {
     pub lan_ips: Vec<String>,
     pub clients: Vec<ClientStatus>,
     pub usb: UsbStatus,
+    /// M11: the active app on the PC (exe name), `None` when unknown or the collector is off.
+    pub focus_app: Option<String>,
     pub config_dir: String,
 }
 
@@ -183,6 +185,9 @@ struct Inner {
     status_tx: watch::Sender<AgentStatus>,
     usb_state: Mutex<crate::usb::UsbState>,
     usb_task: Mutex<Option<JoinHandle<()>>>,
+    focus_collector: Mutex<Option<crate::collectors::focus::FocusCollector>>,
+    media_collector: Mutex<Option<crate::collectors::media::MediaCollector>>,
+    focus_app: Mutex<Option<String>>,
     /// Runtime of `Agent::start`; lets synchronous callers (UI commands) start background tasks.
     runtime: tokio::runtime::Handle,
 }
@@ -228,6 +233,9 @@ impl Agent {
                 status_tx: watch::channel(blank_status(&config_dir)).0,
                 usb_state: Mutex::new(crate::usb::UsbState::default()),
                 usb_task: Mutex::new(None),
+                focus_collector: Mutex::new(None),
+                media_collector: Mutex::new(None),
+                focus_app: Mutex::new(None),
                 runtime: tokio::runtime::Handle::current(),
                 opts,
             }),
@@ -296,6 +304,34 @@ impl Agent {
             None
         };
         *self.inner.sys_collector.lock().unwrap() = new;
+
+        // "Now playing" collector (M11): off = the section is null.
+        let old_media = self.inner.media_collector.lock().unwrap().take();
+        drop(old_media);
+        if config.collectors.media_enabled() {
+            *self.inner.media_collector.lock().unwrap() = Some(crate::collectors::media::MediaCollector::start(self.inner.store.clone()));
+        } else {
+            self.inner.store.set("media", serde_json::Value::Null);
+        }
+
+        // Active-app collector (M11): off = the section is null and the status shows no app.
+        let old_focus = self.inner.focus_collector.lock().unwrap().take();
+        drop(old_focus);
+        if config.collectors.focus_enabled() {
+            let weak = Arc::downgrade(&self.inner);
+            let on_change: crate::collectors::focus::OnChange = Arc::new(move |app| {
+                if let Some(inner) = weak.upgrade() {
+                    *inner.focus_app.lock().unwrap() = app;
+                    Agent { inner }.publish_status();
+                }
+            });
+            let collector = crate::collectors::focus::FocusCollector::start(self.inner.store.clone(), on_change);
+            *self.inner.focus_collector.lock().unwrap() = Some(collector);
+        } else {
+            self.inner.store.set("focus", serde_json::Value::Null);
+            *self.inner.focus_app.lock().unwrap() = None;
+            self.publish_status();
+        }
 
         // HTTP checks: stop the old tasks (dropping aborts them), then start from the new config.
         let old_checks = self.inner.checks_collector.lock().unwrap().take();
@@ -670,11 +706,16 @@ impl Agent {
                 let state = self.inner.usb_state.lock().unwrap().clone();
                 UsbStatus { enabled: self.config().usb.enabled, adb_found: state.adb_found, devices: state.devices, last_error: state.last_error }
             },
+            focus_app: self.inner.focus_app.lock().unwrap().clone(),
             config_dir: self.inner.config_dir.display().to_string(),
         }
     }
 
     pub async fn shutdown(&self) {
+        let focus = self.inner.focus_collector.lock().unwrap().take();
+        drop(focus); // joins the thread
+        let media = self.inner.media_collector.lock().unwrap().take();
+        drop(media);
         let watcher = self.inner.watcher.lock().unwrap().take();
         drop(watcher);
         if let Some(usb) = self.inner.usb_task.lock().unwrap().take() {
@@ -749,6 +790,7 @@ fn blank_status(config_dir: &std::path::Path) -> AgentStatus {
         lan_ips: Vec::new(),
         clients: Vec::new(),
         usb: UsbStatus { enabled: false, adb_found: false, devices: Vec::new(), last_error: None },
+        focus_app: None,
         config_dir: config_dir.display().to_string(),
     }
 }

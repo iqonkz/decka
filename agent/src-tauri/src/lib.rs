@@ -67,6 +67,7 @@ pub fn run() {
             commands::revoke_device,
             commands::send_test_notification,
             commands::open_config_dir,
+            commands::list_window_apps,
         ])
         .setup(|app| {
             let minimized = std::env::args().any(|a| a == "--minimized");

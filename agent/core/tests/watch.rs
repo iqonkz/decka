@@ -101,9 +101,11 @@ async fn save_layout_writes_updates_the_section_and_is_not_reapplied_by_the_watc
     assert_eq!(read_layout(dir.path())["pages"][0]["name"], "Saved");
 
     // The watcher must treat our own write as already applied: no further change, no notification.
-    let rev = agent.store().rev();
+    // (`rev` is not compared: the focus collector legitimately publishes its first value after 700 ms.)
+    let (layout_before, notifications_before) = (agent.store().get("layout"), agent.store().get("notifications"));
     tokio::time::sleep(Duration::from_millis(800)).await;
-    assert_eq!(agent.store().rev(), rev);
+    assert_eq!(agent.store().get("layout"), layout_before);
+    assert_eq!(agent.store().get("notifications"), notifications_before);
     agent.shutdown().await;
 }
 
