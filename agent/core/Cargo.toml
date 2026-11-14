@@ -1,0 +1,11 @@
+[package]
+name = "decka-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+
+[[bin]]
+name = "decka-headless"
+path = "src/bin/decka-headless.rs"
