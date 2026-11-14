@@ -32,10 +32,12 @@ pub async fn api_not_found() -> Response {
 }
 
 /// Reads the body with the 16 KiB limit; an oversized body becomes 413 with an HttpError body.
+/// A leading UTF-8 BOM is dropped (Windows PowerShell 5.1 writes files with one), PROTOCOL.md 5.
 pub(super) async fn read_body(req: Request) -> Result<axum::body::Bytes, Response> {
-    to_bytes(req.into_body(), MAX_BODY_BYTES)
+    let body = to_bytes(req.into_body(), MAX_BODY_BYTES)
         .await
-        .map_err(|_| error_response(StatusCode::PAYLOAD_TOO_LARGE, ErrorCode::PayloadTooLarge, "request body is too large"))
+        .map_err(|_| error_response(StatusCode::PAYLOAD_TOO_LARGE, ErrorCode::PayloadTooLarge, "request body is too large"))?;
+    Ok(if body.starts_with(&[0xEF, 0xBB, 0xBF]) { body.slice(3..) } else { body })
 }
 
 fn is_json(req: &Request) -> bool {

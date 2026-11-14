@@ -85,6 +85,17 @@ async fn json_fixture_is_accepted_and_goes_first() {
 }
 
 #[tokio::test]
+async fn a_leading_bom_is_stripped_from_the_body() {
+    let e = env().await;
+    let mut body = vec![0xEF, 0xBB, 0xBF];
+    body.extend_from_slice(r#"{"title":"Тест"}"#.as_bytes());
+    let res = e.authed("/api/notify").header("Content-Type", "application/json").body(body).send().await.unwrap();
+    assert_eq!(res.status(), 202);
+    assert_eq!(e.section("notifications")[0]["title"], "Тест");
+    e.agent.shutdown().await;
+}
+
+#[tokio::test]
 async fn plain_text_becomes_the_title_with_level_info() {
     let e = env().await;
     let res = e.authed("/api/notify").header("Content-Type", "text/plain").body("  hello \n").send().await.unwrap();

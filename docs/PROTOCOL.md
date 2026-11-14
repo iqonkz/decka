@@ -231,6 +231,7 @@ export interface HttpError { error: { code: ErrorCode; message: string } }
 
 Правила:
 - `POST /api/notify` с `Content-Type: text/plain` (или без Content-Type): всё тело, обрезанное до 120 символов, становится `title`; `level = "info"`.
+- Начальный UTF-8 BOM (`EF BB BF`) в теле любого запроса отбрасывается до разбора (Windows PowerShell 5.1 пишет файлы с BOM).
 - `level` по умолчанию `"info"`. Строки длиннее лимитов (title 120, body 500, source 40, text 80, group 40, label 60) → 400 `BAD_MESSAGE` (не обрезаются; исключение — text/plain выше).
 - `POST /api/status`: upsert по `id`, `source` всегда `"push"`. Если элемента нет и `label` не передан → `label = id`. Если элемент есть и `label`/`group` не переданы → сохраняются прежние; `text` не передан → очищается. `ttlSec` (целое 1..86400): по истечении без нового upsert элемент получает `state: "unknown"` и `text: "stale"`. Элемент с `source: "check"` через API изменить нельзя → 400.
 - `PUT /api/vars/{name}`: строковое значение ≤ 200 символов.
