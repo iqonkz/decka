@@ -14,7 +14,7 @@ use tokio::task::JoinHandle;
 
 use crate::actions::ActionRunner;
 use crate::auth::{Devices, Pairing};
-use crate::config::{self, Loaded};
+use crate::config::{self, json_text, save_text_atomic, Loaded};
 use crate::model::*;
 use crate::proto::NotifyReq;
 use crate::ratelimit::RateLimiter;
@@ -105,6 +105,22 @@ pub struct DeviceInfo {
     pub connected: bool,
 }
 
+/// Result of `save_*`; serializes like `SaveResult` in shared/src/ipc.ts.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SaveResult {
+    Saved,
+    Rejected(Vec<ValidationIssue>),
+}
+
+impl Serialize for SaveResult {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        match self {
+            SaveResult::Saved => serde_json::json!({ "ok": true }).serialize(s),
+            SaveResult::Rejected(issues) => serde_json::json!({ "ok": false, "issues": issues }).serialize(s),
+        }
+    }
+}
+
 /// A live authorized WebSocket connection.
 struct Conn {
     device_id: String,
@@ -147,6 +163,9 @@ struct Inner {
     listening: Mutex<Option<Listening>>,
     listen_error: Mutex<Option<String>>,
     server: tokio::sync::Mutex<Option<ServerHandle>>,
+    /// Last content of each watched file that the agent applied or wrote itself.
+    applied: Mutex<HashMap<&'static str, String>>,
+    watcher: Mutex<Option<crate::watch::WatchHandle>>,
 }
 
 #[derive(Clone)]
@@ -179,6 +198,8 @@ impl Agent {
                 listening: Mutex::new(None),
                 listen_error: Mutex::new(None),
                 server: tokio::sync::Mutex::new(None),
+                applied: Mutex::new(HashMap::new()),
+                watcher: Mutex::new(None),
                 opts,
             }),
         };
@@ -196,7 +217,19 @@ impl Agent {
             }
         }
 
+        {
+            let mut applied = agent.inner.applied.lock().unwrap();
+            for name in crate::watch::WATCHED {
+                if let Ok(text) = std::fs::read_to_string(agent.inner.config_dir.join(name)) {
+                    applied.insert(name, text.strip_prefix('\u{feff}').unwrap_or(&text).to_string());
+                }
+            }
+        }
         agent.start_server().await;
+        match crate::watch::spawn(&agent) {
+            Ok(handle) => *agent.inner.watcher.lock().unwrap() = Some(handle),
+            Err(e) => tracing::warn!("cannot watch the config directory: {e}"),
+        }
         Ok(agent)
     }
 
@@ -291,6 +324,99 @@ impl Agent {
         self.inner.layout.lock().unwrap().clone()
     }
 
+    fn invalid_file_notification(&self, file: &str, body: &str) {
+        self.push_notification(NotifyReq {
+            title: format!("{file} invalid"),
+            body: Some(body.chars().take(MAX_BODY_CHARS).collect()),
+            level: Some(NotifLevel::Error),
+            source: Some("decka".to_string()),
+        });
+    }
+
+    fn apply_layout(&self, layout: LayoutFile) {
+        let value = serde_json::to_value(layout.to_client()).expect("layout serializes");
+        *self.inner.layout.lock().unwrap() = layout;
+        self.inner.store.set("layout", value);
+    }
+
+    /// Called by the file watcher after the debounce: re-reads one file and applies it if valid.
+    pub(crate) fn reload_file(&self, name: &'static str) {
+        let Ok(text) = std::fs::read_to_string(self.inner.config_dir.join(name)) else { return };
+        let text = text.strip_prefix('\u{feff}').unwrap_or(&text).to_string();
+        {
+            let mut applied = self.inner.applied.lock().unwrap();
+            if applied.get(name) == Some(&text) {
+                return; // unchanged, or our own write
+            }
+            applied.insert(name, text.clone());
+        }
+        match name {
+            "actions.json" => match serde_json::from_str::<ActionsFile>(&text) {
+                Err(e) => self.invalid_file_notification(name, &format!("invalid JSON: {e}")),
+                Ok(actions) => match crate::validate::validate_actions(&actions).first() {
+                    Some(issue) => self.invalid_file_notification(name, &issue.message),
+                    // A dangling button reference is allowed: the press answers UNKNOWN_ACTION.
+                    None => *self.inner.actions.lock().unwrap() = actions,
+                },
+            },
+            "layout.json" => match serde_json::from_str::<LayoutFile>(&text) {
+                Err(e) => self.invalid_file_notification(name, &format!("invalid JSON: {e}")),
+                Ok(layout) => match crate::validate::validate_layout(&layout, &self.actions()).first() {
+                    Some(issue) => self.invalid_file_notification(name, &issue.message),
+                    None => self.apply_layout(layout),
+                },
+            },
+            _ => {}
+        }
+    }
+
+    /// Writes a watched file atomically; the text is recorded first so the watcher ignores our own write.
+    fn write_watched(&self, name: &'static str, text: &str) -> Result<(), SaveResult> {
+        let previous = self.inner.applied.lock().unwrap().insert(name, text.to_string());
+        save_text_atomic(&self.inner.config_dir.join(name), text).map_err(|e| {
+            let mut applied = self.inner.applied.lock().unwrap();
+            match previous {
+                Some(p) => applied.insert(name, p),
+                None => applied.remove(name),
+            };
+            SaveResult::Rejected(vec![ValidationIssue { path: String::new(), message: format!("cannot write {name}: {e}") }])
+        })
+    }
+
+    /// Validates the actions themselves (not button references), writes actions.json, updates memory.
+    pub fn save_actions(&self, actions: ActionsFile) -> SaveResult {
+        let issues = crate::validate::validate_actions(&actions);
+        if !issues.is_empty() {
+            return SaveResult::Rejected(issues);
+        }
+        let text = match json_text(&actions) {
+            Ok(t) => t,
+            Err(e) => return SaveResult::Rejected(vec![ValidationIssue { path: String::new(), message: e.to_string() }]),
+        };
+        if let Err(rejected) = self.write_watched("actions.json", &text) {
+            return rejected;
+        }
+        *self.inner.actions.lock().unwrap() = actions;
+        SaveResult::Saved
+    }
+
+    /// Validates against the current actions, writes layout.json, updates memory and the layout section.
+    pub fn save_layout(&self, layout: LayoutFile) -> SaveResult {
+        let issues = crate::validate::validate_layout(&layout, &self.actions());
+        if !issues.is_empty() {
+            return SaveResult::Rejected(issues);
+        }
+        let text = match json_text(&layout) {
+            Ok(t) => t,
+            Err(e) => return SaveResult::Rejected(vec![ValidationIssue { path: String::new(), message: e.to_string() }]),
+        };
+        if let Err(rejected) = self.write_watched("layout.json", &text) {
+            return rejected;
+        }
+        self.apply_layout(layout);
+        SaveResult::Saved
+    }
+
     /// Adds a notification at the front (newest first, max 20) and returns its id.
     pub fn push_notification(&self, req: NotifyReq) -> String {
         let id = self.inner.notif_counter.fetch_add(1, Ordering::Relaxed).to_string();
@@ -333,6 +459,8 @@ impl Agent {
     }
 
     pub async fn shutdown(&self) {
+        let watcher = self.inner.watcher.lock().unwrap().take();
+        drop(watcher);
         self.stop_server().await;
     }
 

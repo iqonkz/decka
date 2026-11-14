@@ -9,8 +9,9 @@ pub mod ratelimit;
 pub mod server;
 pub mod state;
 pub mod validate;
+pub mod watch;
 
-pub use agent::{Agent, AgentOptions, AgentStatus, StartError};
+pub use agent::{Agent, AgentOptions, AgentStatus, SaveResult, StartError};
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const PROTOCOL_VERSION: u32 = 1;

@@ -78,13 +78,23 @@ pub fn empty_layout() -> LayoutFile {
     layout
 }
 
+/// Exact text written to disk: pretty JSON (2 spaces) plus a trailing newline.
+pub fn json_text<T: Serialize>(value: &T) -> std::io::Result<String> {
+    let mut text = serde_json::to_string_pretty(value).map_err(std::io::Error::other)?;
+    text.push('\n');
+    Ok(text)
+}
+
 /// Write `<path>.tmp`, fsync, then rename over the target.
 pub fn save_json_atomic<T: Serialize>(path: &Path, value: &T) -> std::io::Result<()> {
+    let text = json_text(value)?;
+    save_text_atomic(path, &text)
+}
+
+pub fn save_text_atomic(path: &Path, text: &str) -> std::io::Result<()> {
     let mut tmp = path.as_os_str().to_owned();
     tmp.push(".tmp");
     let tmp = PathBuf::from(tmp);
-    let mut text = serde_json::to_string_pretty(value).map_err(std::io::Error::other)?;
-    text.push('\n');
     let result = (|| {
         let mut f = fs::File::create(&tmp)?;
         f.write_all(text.as_bytes())?;
