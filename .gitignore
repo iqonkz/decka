@@ -1,0 +1,10 @@
+node_modules/
+dist/
+target/
+.tmp/
+*.log
+client/android/app/build/
+client/android/build/
+client/android/.gradle/
+client/android/local.properties
+agent/src-tauri/gen/

@@ -1,0 +1,418 @@
+# PROTOCOL.md — протокол Decka v1
+
+Единственный источник правды по сообщениям. Типы из этого файла переносятся в `/shared/src/protocol.ts` дословно, схемы — в `/shared/schemas/protocol.schema.json` дословно, примеры — в `/shared/fixtures/` (по одному файлу на пример, имя указано над примером).
+
+## 1. Общие правила
+
+| Параметр | Значение |
+|---|---|
+| Порт по умолчанию | `9247` (TCP) |
+| WebSocket | `ws://<host>:<port>/ws`, текстовые кадры, один JSON-объект на кадр, UTF-8 |
+| HTTP API | `http://<host>:<port>/api/...`, тело JSON UTF-8 |
+| Статика клиента | `GET /` и всё, что не `/api/*` и не `/ws` |
+| Версия протокола | целое `PROTOCOL_VERSION = 1` |
+| Макс. размер кадра WS от клиента | 4096 байт (больше → закрытие с кодом 1009) |
+| Макс. тело HTTP | 16384 байт (больше → 413 `PAYLOAD_TOO_LARGE`) |
+| Таймаут рукопожатия WS | 5 с от открытия сокета до `pair` или `hello`, иначе закрытие 4401 |
+| Heartbeat | клиент шлёт `ping` каждые 10 с; нет `pong` 25 с → клиент рвёт сокет и переподключается; сервер закрывает сокет, если 30 с не было ни одного кадра |
+| Идентификаторы (`Id`) | regex `^[a-z0-9_-]{1,64}$` |
+| Имена переменных (`VarName`) | regex `^[a-z0-9_.-]{1,64}$` |
+| Время | `ts` — миллисекунды Unix epoch (number) |
+
+Поле-дискриминатор всех WS-сообщений — `t`.
+
+**Правило безопасности (MUST):** единственное сообщение клиента, вызывающее действие на ПК, — `press`, и оно содержит только `actionId`. В протоколе нет и NEVER не появится сообщение, несущее команду, путь, аргументы, клавиши или URL от клиента.
+
+## 2. Версионирование
+
+- Клиент передаёт `v` в `pair` и `hello`. Сервер поддерживает ровно список `SUPPORTED = [1]`.
+- `v` не из списка → сервер шлёт `error` с `code: "PROTOCOL_VERSION"`, `fatal: true`, затем закрывает сокет кодом 4426. Клиент показывает экран «Обновите приложение Decka».
+- Совместимые изменения (версию НЕ меняют): новое необязательное поле, новый тип сообщения сервера, новая секция состояния, новый `kind` виджета, новый `type` действия, новый код ошибки.
+- Обязанности клиента ради совместимости: игнорировать неизвестное `t`; игнорировать неизвестную секцию в `patch`; неизвестный `kind` элемента раскладки рисовать как пустую плитку с текстом `?`; неизвестный код ошибки показывать через `message`.
+- Обязанность сервера: неизвестные поля во входящих сообщениях игнорировать (не ошибка).
+- Несовместимое изменение (удаление/переименование поля, смена смысла) → `PROTOCOL_VERSION` увеличивается на 1, сервер добавляет новую версию в `SUPPORTED`.
+- `GET /api/health` возвращает `protocol` — по нему клиент может проверить версию до открытия сокета.
+
+## 3. Типы TypeScript
+
+```ts
+// ===== Базовые =====
+export const PROTOCOL_VERSION = 1;
+export type Id = string;        // ^[a-z0-9_-]{1,64}$
+export type VarName = string;   // ^[a-z0-9_.-]{1,64}$
+export type VarValue = string | number | boolean;
+
+export type ErrorCode =
+  | "UNAUTHORIZED" | "PAIR_CODE_INVALID" | "DEVICE_REVOKED" | "PROTOCOL_VERSION"
+  | "BAD_MESSAGE" | "UNKNOWN_ACTION" | "ACTION_FAILED" | "RATE_LIMITED"
+  | "PAYLOAD_TOO_LARGE" | "NOT_FOUND" | "INTERNAL";
+
+// ===== Клиент -> Сервер (WS) =====
+export interface ClientInfo { name: string; app: "capacitor" | "web"; version: string; }
+
+export interface PairMsg  { t: "pair";  v: number; code: string; client: ClientInfo; }
+export interface HelloMsg { t: "hello"; v: number; token: string; client: ClientInfo; }
+export interface PressMsg { t: "press"; id: number; actionId: Id; }
+export interface NotifDismissMsg { t: "notif_dismiss"; notifId: string; }
+export interface PingMsg  { t: "ping"; ts: number; }
+export type ClientMsg = PairMsg | HelloMsg | PressMsg | NotifDismissMsg | PingMsg;
+
+// ===== Сервер -> Клиент (WS) =====
+export interface PairedMsg  { t: "paired"; deviceId: Id; token: string; }
+export interface WelcomeMsg {
+  t: "welcome"; v: number;
+  agent: { name: string; version: string };
+  deviceId: Id; rev: number; state: FullState;
+}
+export interface PatchMsg<K extends SectionName = SectionName> {
+  t: "patch"; rev: number; section: K; value: FullState[K];
+}
+export interface PressResultMsg { t: "press_result"; id: number; ok: boolean; error?: { code: ErrorCode; message: string }; }
+export interface PongMsg  { t: "pong"; ts: number; }
+export interface ErrorMsg { t: "error"; code: ErrorCode; message: string; fatal: boolean; supported?: number[]; }
+export type ServerMsg = PairedMsg | WelcomeMsg | PatchMsg | PressResultMsg | PongMsg | ErrorMsg;
+
+// ===== Состояние (секции) =====
+export type SectionName = "layout" | "sys" | "statuses" | "notifications" | "vars";
+export interface FullState {
+  layout: ClientLayout;            // см. DATA_MODEL.md §3
+  sys: SysStats | null;            // null = сборщик выключен
+  statuses: StatusItem[];          // отсортированы по (group, id)
+  notifications: Notification[];   // новые первыми, максимум 20
+  vars: Record<VarName, VarValue>;
+}
+
+export interface SysStats {
+  cpu: number;                               // 0..100, целое
+  mem: { usedMb: number; totalMb: number };  // целые
+  disks: { mount: string; usedGb: number; totalGb: number }[]; // целые, только фиксированные диски
+  net: { rxKbps: number; txKbps: number };   // целые, сумма по всем интерфейсам
+  uptimeSec: number;                         // округлено вниз до 60
+}
+
+export type StatusState = "ok" | "warn" | "error" | "running" | "unknown";
+export interface StatusItem {
+  id: Id; label: string; state: StatusState;
+  text?: string;                 // <= 80 символов
+  group?: string;                // <= 40 символов
+  source: "push" | "check";
+  updatedAt: number;
+}
+
+export type NotifLevel = "info" | "success" | "warning" | "error";
+export interface Notification {
+  id: string;                    // десятичная строка счётчика: "1", "2", ...
+  ts: number; title: string;     // title <= 120
+  body?: string;                 // <= 500
+  level: NotifLevel;
+  source?: string;               // <= 40
+}
+
+// ===== HTTP =====
+export interface HealthRes { name: "decka"; version: string; protocol: number; }
+export interface NotifyReq { title: string; body?: string; level?: NotifLevel; source?: string; }
+export interface NotifyRes { id: string; }
+export interface StatusReq { id: Id; state: StatusState; label?: string; text?: string; group?: string; ttlSec?: number; }
+export interface OkRes { ok: true; }
+export interface VarReq { value: VarValue; }
+export interface HttpError { error: { code: ErrorCode; message: string } }
+```
+
+`ClientLayout`, `LayoutItem`, `DisplaySettings` определены в DATA_MODEL.md §3 и лежат в `/shared/src/layout.ts`.
+
+## 4. Сценарии WebSocket
+
+### 4.1 Сопряжение (первое подключение)
+
+1. Клиент открывает сокет, шлёт `pair`.
+2. Сервер проверяет код (правила — ARCHITECTURE.md §6.2). Успех → `paired`, затем сразу `welcome` (сокет уже авторизован, `hello` не нужен).
+3. Неуспех → `error` `PAIR_CODE_INVALID`, `fatal: true`, закрытие 4401. Причина (истёк / неверный / исчерпаны попытки) клиенту не сообщается.
+
+`fixtures/c2s-pair.json`
+```json
+{ "t": "pair", "v": 1, "code": "K7M2QX9D", "client": { "name": "Galaxy S9", "app": "capacitor", "version": "0.1.0" } }
+```
+`fixtures/s2c-paired.json`
+```json
+{ "t": "paired", "deviceId": "d-3f9a1c", "token": "pX3v8Zq1mB7kT0aYw2LrN5cE9uHs4JdG6fQoViC_-AA" }
+```
+
+### 4.2 Обычное подключение
+
+Клиент шлёт `hello` → сервер отвечает `welcome` с полным состоянием. Неверный токен → `error UNAUTHORIZED` fatal + закрытие 4401. Устройство отозвано → `DEVICE_REVOKED` fatal + 4403; клиент удаляет токен и показывает экран сопряжения.
+
+`fixtures/c2s-hello.json`
+```json
+{ "t": "hello", "v": 1, "token": "pX3v8Zq1mB7kT0aYw2LrN5cE9uHs4JdG6fQoViC_-AA", "client": { "name": "Galaxy S9", "app": "capacitor", "version": "0.1.0" } }
+```
+`fixtures/s2c-welcome.json`
+```json
+{
+  "t": "welcome", "v": 1,
+  "agent": { "name": "DESKTOP-MAIN", "version": "0.1.0" },
+  "deviceId": "d-3f9a1c", "rev": 42,
+  "state": {
+    "layout": {
+      "grid": { "cols": 5, "rows": 3 },
+      "display": { "dimAfterSec": 60, "dimLevel": 0.3, "sleepAfterSec": 600, "pixelShift": true, "night": { "enabled": false, "from": "23:00", "to": "07:00" } },
+      "pages": [ { "id": "main", "name": "Main", "items": [
+        { "id": "b-play", "kind": "button", "x": 1, "y": 1, "w": 1, "h": 1, "label": "Play", "icon": "lucide:play", "actionId": "media-play" },
+        { "id": "w-clock", "kind": "clock", "x": 0, "y": 0, "w": 2, "h": 1 }
+      ] } ]
+    },
+    "sys": { "cpu": 12, "mem": { "usedMb": 9120, "totalMb": 32000 }, "disks": [ { "mount": "C:", "usedGb": 210, "totalGb": 476 } ], "net": { "rxKbps": 80, "txKbps": 12 }, "uptimeSec": 86400 },
+    "statuses": [ { "id": "api-prod", "label": "API prod", "state": "ok", "text": "200 · 84 ms", "group": "services", "source": "check", "updatedAt": 1794650000000 } ],
+    "notifications": [ { "id": "7", "ts": 1794650001000, "title": "Deploy finished", "body": "web@1.4.2", "level": "success", "source": "ci" } ],
+    "vars": { "mic.muted": false }
+  }
+}
+```
+
+### 4.3 Обновления состояния
+
+Сервер хранит глобальный счётчик `rev` (u64, +1 на каждое фактическое изменение любой секции). `patch` всегда несёт **полное новое значение секции** (частичных патчей нет). Рассылка только если новое значение секции не равно старому (глубокое сравнение JSON). Клиент заменяет секцию целиком; `patch` с `rev` ≤ уже применённого игнорирует.
+
+`fixtures/s2c-patch-vars.json`
+```json
+{ "t": "patch", "rev": 43, "section": "vars", "value": { "mic.muted": true } }
+```
+
+### 4.4 Нажатие кнопки
+
+Клиент шлёт `press` с собственным возрастающим `id` (начиная с 1 на каждое соединение). Сервер отвечает `press_result` с тем же `id` после завершения запуска действия (не после завершения запущенной программы). Таймаут ожидания на клиенте — 5 с, после чего кнопка показывает ошибку.
+
+`fixtures/c2s-press.json`
+```json
+{ "t": "press", "id": 17, "actionId": "media-play" }
+```
+`fixtures/s2c-press-result-ok.json`
+```json
+{ "t": "press_result", "id": 17, "ok": true }
+```
+`fixtures/s2c-press-result-err.json`
+```json
+{ "t": "press_result", "id": 18, "ok": false, "error": { "code": "UNKNOWN_ACTION", "message": "action 'foo' is not defined" } }
+```
+
+Лимит: не более 20 `press` в секунду на соединение; сверх лимита → `press_result` с `RATE_LIMITED` (сокет не закрывается).
+
+### 4.5 Прочее
+
+`fixtures/c2s-notif-dismiss.json` — удаляет уведомление у всех клиентов (сервер меняет секцию `notifications`); неизвестный `notifId` молча игнорируется.
+```json
+{ "t": "notif_dismiss", "notifId": "7" }
+```
+`fixtures/c2s-ping.json` / `fixtures/s2c-pong.json` — сервер возвращает тот же `ts`.
+```json
+{ "t": "ping", "ts": 1794650002000 }
+```
+```json
+{ "t": "pong", "ts": 1794650002000 }
+```
+`fixtures/s2c-error.json`
+```json
+{ "t": "error", "code": "PROTOCOL_VERSION", "message": "unsupported protocol version 2", "fatal": true, "supported": [1] }
+```
+
+До авторизации любое сообщение кроме `pair`/`hello` → `UNAUTHORIZED` fatal + 4401. Невалидный JSON или сообщение не по схеме после авторизации → `error BAD_MESSAGE`, `fatal: false`, сокет остаётся открытым.
+
+## 5. HTTP API
+
+Авторизация всех эндпоинтов кроме `/api/health`: заголовок `Authorization: Bearer <apiToken>` (`apiToken` из `config.json`, формат `dk_` + 43 символа base64url). Токен в query-строке не принимается. CORS-заголовки сервер NEVER не отдаёт (API предназначен для скриптов, не для браузеров). Ошибки — тело `HttpError`.
+
+| Метод и путь | Тело | Успех | Ошибки |
+|---|---|---|---|
+| `GET /api/health` | — | 200 `HealthRes` | — |
+| `POST /api/notify` | `NotifyReq` (JSON) **или** `text/plain` | 202 `NotifyRes` | 400 `BAD_MESSAGE`, 401 `UNAUTHORIZED`, 413, 429 `RATE_LIMITED` |
+| `POST /api/status` | `StatusReq` | 200 `OkRes` | 400, 401, 413, 429 |
+| `DELETE /api/status/{id}` | — | 200 `OkRes` | 401, 404 `NOT_FOUND` |
+| `PUT /api/vars/{name}` | `VarReq` | 200 `OkRes` | 400, 401, 413, 429 |
+| `DELETE /api/vars/{name}` | — | 200 `OkRes` | 401, 404 |
+
+Правила:
+- `POST /api/notify` с `Content-Type: text/plain` (или без Content-Type): всё тело, обрезанное до 120 символов, становится `title`; `level = "info"`.
+- `level` по умолчанию `"info"`. Строки длиннее лимитов (title 120, body 500, source 40, text 80, group 40, label 60) → 400 `BAD_MESSAGE` (не обрезаются; исключение — text/plain выше).
+- `POST /api/status`: upsert по `id`, `source` всегда `"push"`. Если элемента нет и `label` не передан → `label = id`. Если элемент есть и `label`/`group` не переданы → сохраняются прежние; `text` не передан → очищается. `ttlSec` (целое 1..86400): по истечении без нового upsert элемент получает `state: "unknown"` и `text: "stale"`. Элемент с `source: "check"` через API изменить нельзя → 400.
+- `PUT /api/vars/{name}`: строковое значение ≤ 200 символов.
+- Лимит: 60 запросов в минуту на IP-адрес отправителя суммарно по всем авторизованным эндпоинтам → 429.
+- Неверный/отсутствующий токен → 401; после 10 ответов 401 за минуту с одного IP → 429 на 60 с.
+
+Примеры:
+
+`fixtures/http-notify-req.json`
+```json
+{ "title": "Deploy finished", "body": "web@1.4.2", "level": "success", "source": "ci" }
+```
+`fixtures/http-status-req.json`
+```json
+{ "id": "claude-decka", "label": "Claude: Decka", "state": "running", "text": "editing files", "group": "ai", "ttlSec": 900 }
+```
+`fixtures/http-var-req.json`
+```json
+{ "value": true }
+```
+`fixtures/http-error.json`
+```json
+{ "error": { "code": "UNAUTHORIZED", "message": "missing or invalid API token" } }
+```
+
+Проверка из PowerShell (`$t` — apiToken):
+```
+curl.exe -s -X POST http://127.0.0.1:9247/api/notify -H "Authorization: Bearer $t" -H "Content-Type: application/json" --data-binary "@shared/fixtures/http-notify-req.json"
+```
+
+## 6. Коды ошибок
+
+| Код | HTTP | WS: fatal / код закрытия | Когда |
+|---|---|---|---|
+| `UNAUTHORIZED` | 401 | да / 4401 | нет токена, неверный токен, сообщение до авторизации, таймаут рукопожатия |
+| `PAIR_CODE_INVALID` | — | да / 4401 | код неверный, истёк, использован или исчерпаны попытки |
+| `DEVICE_REVOKED` | — | да / 4403 | токен принадлежит отозванному устройству; также шлётся в открытый сокет в момент отзыва |
+| `PROTOCOL_VERSION` | — | да / 4426 | `v` не поддерживается |
+| `BAD_MESSAGE` | 400 | нет | невалидный JSON, нарушение схемы или лимитов длины |
+| `UNKNOWN_ACTION` | — | нет (в `press_result`) | `actionId` нет в actions.json |
+| `ACTION_FAILED` | — | нет (в `press_result`) | исполнитель вернул ошибку (программа не найдена и т. п.) |
+| `RATE_LIMITED` | 429 | нет; для `pair` — да / 4429 | превышен лимит |
+| `PAYLOAD_TOO_LARGE` | 413 | закрытие 1009 без `error` | превышен размер |
+| `NOT_FOUND` | 404 | — | нет такого status/var/пути `/api/*` |
+| `INTERNAL` | 500 | нет | непредвиденная ошибка сервера |
+
+`message` — английский текст для логов; клиент показывает пользователю собственные тексты по `code`.
+
+## 7. JSON Schema (draft 2020-12)
+
+Файл `/shared/schemas/protocol.schema.json`. Валидируется в тестах `ajv` (импорт `ajv/dist/2020`). `$defs.ClientLayout` — ссылка на `layout.schema.json#/$defs/ClientLayout` (DATA_MODEL.md §5).
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://decka.invalid/schemas/protocol.schema.json",
+  "$defs": {
+    "Id": { "type": "string", "pattern": "^[a-z0-9_-]{1,64}$" },
+    "VarName": { "type": "string", "pattern": "^[a-z0-9_.-]{1,64}$" },
+    "VarValue": { "oneOf": [ { "type": "string", "maxLength": 200 }, { "type": "number" }, { "type": "boolean" } ] },
+    "ErrorCode": { "enum": ["UNAUTHORIZED","PAIR_CODE_INVALID","DEVICE_REVOKED","PROTOCOL_VERSION","BAD_MESSAGE","UNKNOWN_ACTION","ACTION_FAILED","RATE_LIMITED","PAYLOAD_TOO_LARGE","NOT_FOUND","INTERNAL"] },
+    "ClientInfo": {
+      "type": "object", "required": ["name","app","version"],
+      "properties": { "name": { "type": "string", "minLength": 1, "maxLength": 60 }, "app": { "enum": ["capacitor","web"] }, "version": { "type": "string", "maxLength": 20 } }
+    },
+    "PairMsg": { "type": "object", "required": ["t","v","code","client"],
+      "properties": { "t": { "const": "pair" }, "v": { "type": "integer" }, "code": { "type": "string", "pattern": "^[A-Z2-9]{8}$" }, "client": { "$ref": "#/$defs/ClientInfo" } } },
+    "HelloMsg": { "type": "object", "required": ["t","v","token","client"],
+      "properties": { "t": { "const": "hello" }, "v": { "type": "integer" }, "token": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" }, "client": { "$ref": "#/$defs/ClientInfo" } } },
+    "PressMsg": { "type": "object", "required": ["t","id","actionId"],
+      "properties": { "t": { "const": "press" }, "id": { "type": "integer", "minimum": 1 }, "actionId": { "$ref": "#/$defs/Id" } } },
+    "NotifDismissMsg": { "type": "object", "required": ["t","notifId"],
+      "properties": { "t": { "const": "notif_dismiss" }, "notifId": { "type": "string", "pattern": "^[0-9]{1,20}$" } } },
+    "PingMsg": { "type": "object", "required": ["t","ts"], "properties": { "t": { "const": "ping" }, "ts": { "type": "number" } } },
+    "ClientMsg": { "oneOf": [ { "$ref": "#/$defs/PairMsg" }, { "$ref": "#/$defs/HelloMsg" }, { "$ref": "#/$defs/PressMsg" }, { "$ref": "#/$defs/NotifDismissMsg" }, { "$ref": "#/$defs/PingMsg" } ] },
+
+    "SysStats": { "type": "object", "required": ["cpu","mem","disks","net","uptimeSec"],
+      "properties": {
+        "cpu": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "mem": { "type": "object", "required": ["usedMb","totalMb"], "properties": { "usedMb": { "type": "integer", "minimum": 0 }, "totalMb": { "type": "integer", "minimum": 0 } } },
+        "disks": { "type": "array", "items": { "type": "object", "required": ["mount","usedGb","totalGb"], "properties": { "mount": { "type": "string" }, "usedGb": { "type": "integer", "minimum": 0 }, "totalGb": { "type": "integer", "minimum": 0 } } } },
+        "net": { "type": "object", "required": ["rxKbps","txKbps"], "properties": { "rxKbps": { "type": "integer", "minimum": 0 }, "txKbps": { "type": "integer", "minimum": 0 } } },
+        "uptimeSec": { "type": "integer", "minimum": 0 } } },
+    "StatusState": { "enum": ["ok","warn","error","running","unknown"] },
+    "StatusItem": { "type": "object", "required": ["id","label","state","source","updatedAt"],
+      "properties": { "id": { "$ref": "#/$defs/Id" }, "label": { "type": "string", "minLength": 1, "maxLength": 60 }, "state": { "$ref": "#/$defs/StatusState" },
+        "text": { "type": "string", "maxLength": 80 }, "group": { "type": "string", "maxLength": 40 }, "source": { "enum": ["push","check"] }, "updatedAt": { "type": "number" } } },
+    "NotifLevel": { "enum": ["info","success","warning","error"] },
+    "Notification": { "type": "object", "required": ["id","ts","title","level"],
+      "properties": { "id": { "type": "string", "pattern": "^[0-9]{1,20}$" }, "ts": { "type": "number" }, "title": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "body": { "type": "string", "maxLength": 500 }, "level": { "$ref": "#/$defs/NotifLevel" }, "source": { "type": "string", "maxLength": 40 } } },
+    "ClientLayout": { "$ref": "layout.schema.json#/$defs/ClientLayout" },
+    "FullState": { "type": "object", "required": ["layout","sys","statuses","notifications","vars"],
+      "properties": {
+        "layout": { "$ref": "#/$defs/ClientLayout" },
+        "sys": { "oneOf": [ { "$ref": "#/$defs/SysStats" }, { "type": "null" } ] },
+        "statuses": { "type": "array", "items": { "$ref": "#/$defs/StatusItem" } },
+        "notifications": { "type": "array", "maxItems": 20, "items": { "$ref": "#/$defs/Notification" } },
+        "vars": { "type": "object", "propertyNames": { "pattern": "^[a-z0-9_.-]{1,64}$" }, "additionalProperties": { "$ref": "#/$defs/VarValue" } } } },
+
+    "PairedMsg": { "type": "object", "required": ["t","deviceId","token"],
+      "properties": { "t": { "const": "paired" }, "deviceId": { "$ref": "#/$defs/Id" }, "token": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" } } },
+    "WelcomeMsg": { "type": "object", "required": ["t","v","agent","deviceId","rev","state"],
+      "properties": { "t": { "const": "welcome" }, "v": { "type": "integer" },
+        "agent": { "type": "object", "required": ["name","version"], "properties": { "name": { "type": "string" }, "version": { "type": "string" } } },
+        "deviceId": { "$ref": "#/$defs/Id" }, "rev": { "type": "integer", "minimum": 0 }, "state": { "$ref": "#/$defs/FullState" } } },
+    "PatchMsg": { "type": "object", "required": ["t","rev","section","value"],
+      "properties": { "t": { "const": "patch" }, "rev": { "type": "integer", "minimum": 0 }, "section": { "type": "string" }, "value": {} } },
+    "ErrorBody": { "type": "object", "required": ["code","message"], "properties": { "code": { "$ref": "#/$defs/ErrorCode" }, "message": { "type": "string" } } },
+    "PressResultMsg": { "type": "object", "required": ["t","id","ok"],
+      "properties": { "t": { "const": "press_result" }, "id": { "type": "integer" }, "ok": { "type": "boolean" }, "error": { "$ref": "#/$defs/ErrorBody" } } },
+    "PongMsg": { "type": "object", "required": ["t","ts"], "properties": { "t": { "const": "pong" }, "ts": { "type": "number" } } },
+    "ErrorMsg": { "type": "object", "required": ["t","code","message","fatal"],
+      "properties": { "t": { "const": "error" }, "code": { "$ref": "#/$defs/ErrorCode" }, "message": { "type": "string" }, "fatal": { "type": "boolean" }, "supported": { "type": "array", "items": { "type": "integer" } } } },
+    "ServerMsg": { "oneOf": [ { "$ref": "#/$defs/PairedMsg" }, { "$ref": "#/$defs/WelcomeMsg" }, { "$ref": "#/$defs/PatchMsg" }, { "$ref": "#/$defs/PressResultMsg" }, { "$ref": "#/$defs/PongMsg" }, { "$ref": "#/$defs/ErrorMsg" } ] },
+
+    "HealthRes": { "type": "object", "required": ["name","version","protocol"], "properties": { "name": { "const": "decka" }, "version": { "type": "string" }, "protocol": { "type": "integer" } } },
+    "NotifyReq": { "type": "object", "required": ["title"],
+      "properties": { "title": { "type": "string", "minLength": 1, "maxLength": 120 }, "body": { "type": "string", "maxLength": 500 }, "level": { "$ref": "#/$defs/NotifLevel" }, "source": { "type": "string", "maxLength": 40 } } },
+    "StatusReq": { "type": "object", "required": ["id","state"],
+      "properties": { "id": { "$ref": "#/$defs/Id" }, "state": { "$ref": "#/$defs/StatusState" }, "label": { "type": "string", "minLength": 1, "maxLength": 60 },
+        "text": { "type": "string", "maxLength": 80 }, "group": { "type": "string", "maxLength": 40 }, "ttlSec": { "type": "integer", "minimum": 1, "maximum": 86400 } } },
+    "VarReq": { "type": "object", "required": ["value"], "properties": { "value": { "$ref": "#/$defs/VarValue" } } },
+    "HttpError": { "type": "object", "required": ["error"], "properties": { "error": { "$ref": "#/$defs/ErrorBody" } } }
+  }
+}
+```
+
+Схемы намеренно без `additionalProperties: false` (правило совместимости из §2). `PatchMsg.value` проверяется клиентом по секции: `layout`→`ClientLayout`, `sys`→`SysStats|null`, `statuses`→`StatusItem[]`, `notifications`→`Notification[]`, `vars`→map.
+
+## 8. Формат QR и ручного сопряжения
+
+QR содержит URL (одна строка):
+
+```
+http://<primaryIp>:<port>/#c=<CODE>&h=<ip1>,<ip2>&p=<port>&n=<agentName url-encoded>
+```
+
+- `CODE` — 8 символов алфавита `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` (без `I`, `O`, `0`, `1`).
+- `h` — все IPv4-адреса ПК из частных диапазонов, первым идёт `primaryIp`; максимум 4.
+- Системная камера телефона открывает URL в браузере → веб-клиент, отданный агентом, читает `location.hash`, сопрягается и стирает hash (`history.replaceState`).
+- Приложение Capacitor сканирует тот же QR встроенным сканером и разбирает тот же URL.
+- Ручной ввод: поле «адрес ПК» (`host` или `host:port`) + поле кода (отображается как `XXXX-XXXX`, дефис и регистр при вводе игнорируются).
+
+Код передаётся во фрагменте URL (`#`), а не в query, чтобы он не попадал в HTTP-запрос и логи.
+
+## 9. IPC окна настроек (Tauri commands)
+
+Только между React-окном настроек и Rust внутри агента; по сети недоступно. Имена команд — snake_case, вызываются через `invoke`. Типы лежат в `/shared/src/ipc.ts`. `ActionsFile`, `LayoutFile`, `ConfigFile`, `DeviceInfo` — DATA_MODEL.md.
+
+```ts
+export interface AgentStatus {
+  version: string;
+  listening: { bind: string; port: number } | null;   // null = порт занят / сервер не поднялся
+  listenError?: string;
+  lanIps: string[];
+  clients: { deviceId: Id; name: string; remote: string; connectedAt: number }[];
+  usb: { enabled: boolean; adbFound: boolean; devices: { serial: string; reversed: boolean }[]; lastError?: string };
+  configDir: string;
+}
+export interface PairingInfo { code: string; url: string; qrSvg: string; expiresAt: number; }
+export interface ValidationIssue { path: string; message: string; }   // path — JSON pointer
+export type SaveResult = { ok: true } | { ok: false; issues: ValidationIssue[] };
+
+export interface IpcCommands {
+  get_status(): AgentStatus;
+  get_config(): ConfigFile;
+  save_config(args: { config: ConfigFile }): SaveResult;       // port/bind применяются после restart_server
+  restart_server(): AgentStatus;
+  regenerate_api_token(): { apiToken: string };
+  get_actions(): ActionsFile;
+  save_actions(args: { actions: ActionsFile }): SaveResult;
+  get_layout(): LayoutFile;
+  save_layout(args: { layout: LayoutFile }): SaveResult;
+  test_action(args: { actionId: Id }): { ok: boolean; error?: string };
+  start_pairing(): PairingInfo;                                // отменяет предыдущий активный код
+  cancel_pairing(): void;
+  list_devices(): DeviceInfo[];
+  revoke_device(args: { deviceId: Id }): void;
+  send_test_notification(): void;                              // title "Decka test", level "info", source "decka"
+  open_config_dir(): void;
+}
+```
+
+Событие Rust → окно: `decka://status-changed` (payload `AgentStatus`) — при подключении/отключении клиента, изменении USB-состояния, завершении сопряжения.
