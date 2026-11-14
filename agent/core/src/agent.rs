@@ -181,6 +181,8 @@ struct Inner {
     applied: Mutex<HashMap<&'static str, String>>,
     watcher: Mutex<Option<crate::watch::WatchHandle>>,
     status_tx: watch::Sender<AgentStatus>,
+    /// Runtime of `Agent::start`; lets synchronous callers (UI commands) start background tasks.
+    runtime: tokio::runtime::Handle,
 }
 
 #[derive(Clone)]
@@ -222,6 +224,7 @@ impl Agent {
                 applied: Mutex::new(HashMap::new()),
                 watcher: Mutex::new(None),
                 status_tx: watch::channel(blank_status(&config_dir)).0,
+                runtime: tokio::runtime::Handle::current(),
                 opts,
             }),
         };
@@ -292,7 +295,7 @@ impl Agent {
         // HTTP checks: stop the old tasks (dropping aborts them), then start from the new config.
         let old_checks = self.inner.checks_collector.lock().unwrap().take();
         drop(old_checks);
-        let checks = crate::collectors::checks::ChecksCollector::start(self.inner.statuses.clone(), config.collectors.checks);
+        let checks = crate::collectors::checks::ChecksCollector::start(&self.inner.runtime, self.inner.statuses.clone(), config.collectors.checks);
         *self.inner.checks_collector.lock().unwrap() = Some(checks);
     }
 

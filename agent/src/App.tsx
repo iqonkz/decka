@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { onNavigate } from "./ipc";
 import ActionsTab from "./tabs/ActionsTab";
+import IntegrationsTab from "./tabs/IntegrationsTab";
 import LayoutTab from "./tabs/LayoutTab";
 import PairingTab from "./tabs/PairingTab";
+import SettingsTab from "./tabs/SettingsTab";
 import StatusTab from "./tabs/StatusTab";
 import Tabs, { type TabDef } from "./ui/Tabs";
 
@@ -29,8 +31,10 @@ function TabBody({ tab }: { tab: TabId }) {
       return <ActionsTab />;
     case "layout":
       return <LayoutTab />;
-    default:
-      return <p className="muted">This tab is not built yet.</p>; // filled in by T6.5-T6.8
+    case "integrations":
+      return <IntegrationsTab />;
+    case "settings":
+      return <SettingsTab />;
   }
 }
 

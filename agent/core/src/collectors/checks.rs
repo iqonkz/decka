@@ -53,7 +53,8 @@ async fn check_once(client: &reqwest::Client, check: &HttpCheck) -> (StatusState
 impl ChecksCollector {
     /// Removes statuses of checks that no longer exist, publishes the rest as `unknown`, then runs
     /// every check immediately and then every `intervalSec`.
-    pub fn start(statuses: Statuses, checks: Vec<HttpCheck>) -> ChecksCollector {
+    /// Tasks are spawned on `runtime`, so this may be called from any thread (for example a UI callback).
+    pub fn start(runtime: &tokio::runtime::Handle, statuses: Statuses, checks: Vec<HttpCheck>) -> ChecksCollector {
         let keep: HashSet<String> = checks.iter().map(|c| c.id.clone()).collect();
         statuses.retain_checks(&keep);
         if checks.is_empty() {
@@ -69,7 +70,7 @@ impl ChecksCollector {
         for check in checks {
             statuses.set_check(&check.id, &check.label, check.group.as_deref(), StatusState::Unknown, None);
             let (client, statuses) = (client.clone(), statuses.clone());
-            tasks.push(tokio::spawn(async move {
+            tasks.push(runtime.spawn(async move {
                 let mut interval = tokio::time::interval(Duration::from_secs(check.interval_sec.max(1) as u64));
                 interval.set_missed_tick_behavior(MissedTickBehavior::Delay);
                 loop {

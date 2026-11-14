@@ -68,6 +68,21 @@ async fn replacing_a_check_swaps_its_status() {
     agent.shutdown().await;
 }
 
+/// Regression: the settings window calls `save_config` from a thread that has no Tokio context;
+/// starting the HTTP-check tasks used to panic there ("there is no reactor running").
+#[tokio::test]
+async fn save_config_works_from_a_thread_without_a_runtime() {
+    let dir = tempfile::tempdir().unwrap();
+    let agent = start_with(dir.path(), |c| c.collectors.sys.enabled = false).await;
+    let mut config = agent.config();
+    config.collectors.checks = vec![check("from-thread")];
+    let for_thread = agent.clone();
+    let result = std::thread::spawn(move || for_thread.save_config(config)).join().expect("save_config panicked");
+    assert_eq!(result, SaveResult::Saved);
+    assert!(wait_until(2, || status_ids(&agent).contains(&"from-thread".to_string())).await);
+    agent.shutdown().await;
+}
+
 #[tokio::test]
 async fn disabling_the_sys_collector_sets_the_section_to_null() {
     let dir = tempfile::tempdir().unwrap();

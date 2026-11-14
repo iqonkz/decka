@@ -88,6 +88,14 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="color"]), select, te
 .check { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
 
 .wrap { flex-wrap: wrap; }
+.between { justify-content: space-between; }
+.grow { flex: 1; }
+.command-box { display: flex; flex-direction: column; gap: 6px; }
+.command-box textarea { width: 100%; resize: none; white-space: pre; overflow-x: auto; }
+.checks input { width: 100%; min-width: 60px; }
+.checks input[type="number"] { width: 80px; }
+.radio-group { margin: 0 0 12px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; display: flex; flex-direction: column; gap: 6px; }
+.radio-group legend { padding: 0 6px; font-weight: 600; }
 .page-tabs { display: flex; gap: 4px; }
 .page-tab { padding: 6px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--text); font: inherit; cursor: pointer; }
 .page-tab.active { border-color: var(--accent); background: var(--accent); color: #fff; }
