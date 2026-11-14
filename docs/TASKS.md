@@ -1096,6 +1096,21 @@ cargo test -p decka-core media::; cargo build -p decka-agent
 ```
 Ручная: H-BUILD; H-START; H-TOKEN; `(node tools/ws-smoke.mjs state 127.0.0.1:19247 $tok | ConvertFrom-Json).media`; H-STOP. Без играющей музыки ожидается пусто (null); с музыкой — объект с `title`. Если музыку включить нельзя — PENDING (owner).
 
+### T11.4b — Уменьшение обложки средствами Windows
+**Цель:** обложка Spotify и других источников укладывается в лимит `art` (65 536 символов) без новых библиотек.
+**Файлы:** `agent/core/src/collectors/media.rs`, `agent/core/Cargo.toml` (только features крейта `windows`).
+**Шаги:**
+1. Добавь feature `Graphics_Imaging` (и зависимые, если требует docs.rs/windows/0.62.2) к уже подключённому `windows`. Новые крейты не добавлять.
+2. После чтения байтов `Thumbnail` (T11.4 шаг 4): поток в памяти (`InMemoryRandomAccessStream`) → `BitmapDecoder::CreateAsync` → если обе стороны ≤ 192 и исходный data URL ≤ 65 536 символов — использовать исходник как есть; иначе `BitmapEncoder::CreateForTranscodingAsync` или `CreateAsync` с `JpegEncoderId` в новый поток в памяти, `BitmapTransform`: масштаб с сохранением пропорций так, чтобы большая сторона = 192, интерполяция `Fant`; качество JPEG 0.8 (свойство `ImageQuality`, если доступно в API; иначе значение по умолчанию). Результат → `data:image/jpeg;base64,...`.
+3. Результат всё ещё > 65 536 символов или любая ошибка декодирования → без `art` (как раньше), лог `warn` не чаще раза в минуту.
+4. Преобразование выполняется только при смене трека (тот же кэш, что в T11.4 шаг 4) — не каждую секунду.
+5. Юнит-тест (под `#[cfg(windows)]`): PNG 600×600, сгенерированный в тесте через тот же `BitmapEncoder` из сплошного цвета, → функция `shrink_art(bytes)` возвращает JPEG (сигнатура `FF D8 FF`), длина data URL < 65 536, декодированный размер 192×192.
+**Приёмка:** тест проходит; ручная: при играющем Spotify `ws-smoke state` показывает `media.art`, начинающийся с `data:image/jpeg;base64,`.
+**Проверка:**
+```
+cargo test -p decka-core media::; cargo build -p decka-agent
+```
+
 ### T11.5 — Клиент: контекстное переключение страниц
 **Цель:** алгоритм DATA_MODEL.md §6.1.
 **Файлы:** `client/src/deck/context.ts`, `client/src/store/store.ts`, `client/src/screens/DeckScreen.tsx`, `client/src/deck/PageHint.tsx`, `client/test/context.test.ts`.
