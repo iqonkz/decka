@@ -42,13 +42,33 @@ export interface ErrorMsg { t: "error"; code: ErrorCode; message: string; fatal:
 export type ServerMsg = PairedMsg | WelcomeMsg | PatchMsg | PressResultMsg | PongMsg | ErrorMsg;
 
 // ===== State (sections) =====
-export type SectionName = "layout" | "sys" | "statuses" | "notifications" | "vars";
+export type SectionName = "layout" | "sys" | "statuses" | "notifications" | "vars" | "focus" | "media";
 export interface FullState {
   layout: ClientLayout;
   sys: SysStats | null;            // null = collector disabled
   statuses: StatusItem[];          // sorted by (group, id)
   notifications: Notification[];   // newest first, at most 20
   vars: Record<VarName, VarValue>;
+  focus?: FocusInfo | null;        // M11; absent from agents older than M11; null = collector disabled
+  media?: MediaInfo | null;        // M11; null = nothing playing or collector disabled
+}
+
+// Active PC window: the executable name only, NEVER the window title.
+export interface FocusInfo {
+  app: string | null;              // lower-case exe name ("code.exe"); null = unknown (desktop, lock screen)
+}
+
+// Current Windows media session (Spotify, a browser, a player).
+export interface MediaInfo {
+  source: string;                  // app identifier from Windows (<= 120), for display only
+  title: string;                   // <= 200
+  artist?: string;                 // <= 200
+  album?: string;                  // <= 200
+  playing: boolean;
+  positionSec?: number;            // integer; position at positionAt
+  durationSec?: number;            // integer
+  positionAt: number;              // ts the positionSec refers to
+  art?: string;                    // "data:image/png;base64,..." or "data:image/jpeg;base64,...", <= 65536 chars
 }
 
 export interface SysStats {

@@ -17,6 +17,8 @@ function sizeLimits(kind: string, grid: LayoutFile["grid"]): [number, number, nu
     case "statuses":
     case "notifications":
       return [2, grid.cols, 1, grid.rows];
+    case "media":
+      return [2, grid.cols, 1, 2];
     default:
       return undefined;
   }
@@ -43,6 +45,19 @@ export function validateLayout(layout: LayoutFile, actions: ActionsFile): Valida
     pageIds.add(page.id);
   });
 
+  // Context pages (DATA_MODEL.md 3.2 item 9): the first page is home; an app belongs to one page only.
+  const appOwner = new Map<string, string>();
+  layout.pages.forEach((page, pi) => {
+    if (page.apps === undefined) return;
+    if (pi === 0 && page.apps.length > 0) add("/pages/0/apps", "the first page is the home page and cannot have apps");
+    page.apps.forEach((app, ai) => {
+      const owner = appOwner.get(app);
+      if (owner !== undefined && owner !== page.id) add(`/pages/${pi}/apps/${ai}`, `${app} is already used by another page`);
+      else if (owner === page.id) add(`/pages/${pi}/apps/${ai}`, `duplicate app '${app}'`);
+      else appOwner.set(app, page.id);
+    });
+  });
+
   const itemIds = new Set<string>();
   layout.pages.forEach((page, pi) => {
     page.items.forEach((item, ii) => {
@@ -66,6 +81,12 @@ export function validateLayout(layout: LayoutFile, actions: ActionsFile): Valida
       const size = sizeLimits(item.kind, layout.grid);
       if (size && (item.w < size[0] || item.w > size[1] || item.h < size[2] || item.h > size[3])) {
         add(path, `size ${item.w}x${item.h} is not allowed for kind '${item.kind}'`);
+      }
+
+      if (item.kind === "media") {
+        for (const [field, id] of [["prevAction", item.prevAction], ["playAction", item.playAction], ["nextAction", item.nextAction]] as const) {
+          if (id !== undefined && !Object.hasOwn(actions.actions, id)) add(path, `unknown ${field} '${id}'`);
+        }
       }
 
       if (item.kind === "button") {

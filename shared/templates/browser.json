@@ -1,0 +1,27 @@
+{
+  "id": "browser",
+  "name": "Browser",
+  "apps": ["chrome.exe", "msedge.exe"],
+  "minGrid": { "cols": 7, "rows": 4 },
+  "actions": {
+    "tpl-browser-newtab": { "name": "New tab", "type": "hotkey", "keys": ["ctrl", "t"] },
+    "tpl-browser-closetab": { "name": "Close tab", "type": "hotkey", "keys": ["ctrl", "w"] },
+    "tpl-browser-reopen": { "name": "Reopen closed tab", "type": "hotkey", "keys": ["ctrl", "shift", "t"] },
+    "tpl-browser-back": { "name": "Back", "type": "hotkey", "keys": ["alt", "left"] },
+    "tpl-browser-forward": { "name": "Forward", "type": "hotkey", "keys": ["alt", "right"] },
+    "tpl-browser-reload": { "name": "Reload", "type": "hotkey", "keys": ["f5"] },
+    "tpl-browser-devtools": { "name": "DevTools", "type": "hotkey", "keys": ["f12"] },
+    "tpl-browser-private": { "name": "Private window", "type": "hotkey", "keys": ["ctrl", "shift", "n"] }
+  },
+  "items": [
+    { "id": "newtab", "kind": "button", "x": 0, "y": 0, "w": 1, "h": 1, "label": "New tab", "icon": "lucide:plus", "actionId": "tpl-browser-newtab" },
+    { "id": "closetab", "kind": "button", "x": 1, "y": 0, "w": 1, "h": 1, "label": "Close", "icon": "lucide:x", "actionId": "tpl-browser-closetab" },
+    { "id": "reopen", "kind": "button", "x": 2, "y": 0, "w": 1, "h": 1, "label": "Reopen", "icon": "lucide:refresh-cw", "actionId": "tpl-browser-reopen" },
+    { "id": "back", "kind": "button", "x": 0, "y": 1, "w": 1, "h": 1, "label": "Back", "icon": "lucide:arrow-left", "actionId": "tpl-browser-back" },
+    { "id": "forward", "kind": "button", "x": 1, "y": 1, "w": 1, "h": 1, "label": "Forward", "icon": "lucide:arrow-right", "actionId": "tpl-browser-forward" },
+    { "id": "reload", "kind": "button", "x": 2, "y": 1, "w": 1, "h": 1, "label": "Reload", "icon": "lucide:refresh-cw", "actionId": "tpl-browser-reload" },
+    { "id": "devtools", "kind": "button", "x": 4, "y": 0, "w": 1, "h": 1, "label": "DevTools", "icon": "lucide:bug", "actionId": "tpl-browser-devtools" },
+    { "id": "private", "kind": "button", "x": 5, "y": 0, "w": 1, "h": 1, "label": "Private", "icon": "lucide:moon", "actionId": "tpl-browser-private" },
+    { "id": "home", "kind": "button", "x": 6, "y": 3, "w": 1, "h": 1, "label": "Home", "icon": "lucide:home", "navigate": "$home" }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "id": "vscode",
+  "name": "VS Code",
+  "apps": ["code.exe"],
+  "minGrid": { "cols": 7, "rows": 4 },
+  "actions": {
+    "tpl-vscode-palette": { "name": "Command palette", "type": "hotkey", "keys": ["ctrl", "shift", "p"] },
+    "tpl-vscode-quickopen": { "name": "Quick open", "type": "hotkey", "keys": ["ctrl", "p"] },
+    "tpl-vscode-findall": { "name": "Find in files", "type": "hotkey", "keys": ["ctrl", "shift", "f"] },
+    "tpl-vscode-git": { "name": "Source control", "type": "hotkey", "keys": ["ctrl", "shift", "g"] },
+    "tpl-vscode-sidebar": { "name": "Toggle sidebar", "type": "hotkey", "keys": ["ctrl", "b"] },
+    "tpl-vscode-save": { "name": "Save", "type": "hotkey", "keys": ["ctrl", "s"] },
+    "tpl-vscode-format": { "name": "Format document", "type": "hotkey", "keys": ["shift", "alt", "f"] },
+    "tpl-vscode-run": { "name": "Start debugging", "type": "hotkey", "keys": ["f5"] },
+    "tpl-vscode-stop": { "name": "Stop debugging", "type": "hotkey", "keys": ["shift", "f5"] }
+  },
+  "items": [
+    { "id": "palette", "kind": "button", "x": 0, "y": 0, "w": 1, "h": 1, "label": "Palette", "icon": "lucide:terminal", "actionId": "tpl-vscode-palette" },
+    { "id": "quickopen", "kind": "button", "x": 1, "y": 0, "w": 1, "h": 1, "label": "Open", "icon": "lucide:search", "actionId": "tpl-vscode-quickopen" },
+    { "id": "findall", "kind": "button", "x": 2, "y": 0, "w": 1, "h": 1, "label": "Find", "icon": "lucide:folder", "actionId": "tpl-vscode-findall" },
+    { "id": "git", "kind": "button", "x": 3, "y": 0, "w": 1, "h": 1, "label": "Git", "icon": "lucide:git-branch", "actionId": "tpl-vscode-git" },
+    { "id": "sidebar", "kind": "button", "x": 4, "y": 0, "w": 1, "h": 1, "label": "Sidebar", "icon": "lucide:arrow-left", "actionId": "tpl-vscode-sidebar" },
+    { "id": "save", "kind": "button", "x": 0, "y": 1, "w": 1, "h": 1, "label": "Save", "icon": "lucide:check", "actionId": "tpl-vscode-save" },
+    { "id": "format", "kind": "button", "x": 1, "y": 1, "w": 1, "h": 1, "label": "Format", "icon": "lucide:code", "actionId": "tpl-vscode-format" },
+    { "id": "run", "kind": "button", "x": 0, "y": 2, "w": 1, "h": 1, "label": "Run", "icon": "lucide:play", "actionId": "tpl-vscode-run" },
+    { "id": "stop", "kind": "button", "x": 1, "y": 2, "w": 1, "h": 1, "label": "Stop", "icon": "lucide:x", "actionId": "tpl-vscode-stop" },
+    { "id": "home", "kind": "button", "x": 6, "y": 3, "w": 1, "h": 1, "label": "Home", "icon": "lucide:home", "navigate": "$home" }
+  ]
+}

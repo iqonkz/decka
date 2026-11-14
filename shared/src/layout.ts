@@ -6,7 +6,10 @@ export interface LayoutFile {
   display: DisplaySettings;
   pages: Page[];                  // 1..10 pages, order = swipe order
 }
-export interface Page { id: Id; name: string; items: LayoutItem[]; }
+export interface Page {
+  id: Id; name: string; items: LayoutItem[];
+  apps?: string[];        // M11: context page - shown automatically while one of these apps is active on the PC (lower-case exe names)
+}
 
 export interface DisplaySettings {
   dimAfterSec: number;    // 0 = never dim; otherwise 10..3600. Default 60
@@ -14,6 +17,7 @@ export interface DisplaySettings {
   sleepAfterSec: number;  // 0 = no screensaver; otherwise 30..86400 and > dimAfterSec. Default 600
   pixelShift: boolean;    // default true
   night: { enabled: boolean; from: string; to: string }; // "HH:MM", phone local time
+  contextPages?: boolean; // M11: switch to context pages automatically; absent = true
 }
 
 interface ItemBase { id: Id; x: number; y: number; w: number; h: number; }
@@ -32,7 +36,12 @@ export interface StatusesItem extends ItemBase { kind: "statuses"; group?: strin
 export interface StatusItemTile extends ItemBase { kind: "status"; statusId: Id; }
 export interface NotificationsItem extends ItemBase { kind: "notifications"; }
 
-export type LayoutItem = ButtonItem | ClockItem | SysItem | StatusesItem | StatusItemTile | NotificationsItem;
+export interface MediaItem extends ItemBase {   // M11: "Now playing"
+  kind: "media";
+  prevAction?: Id; playAction?: Id; nextAction?: Id;  // actions of the widget's keys; absent = no key
+}
+
+export type LayoutItem = ButtonItem | ClockItem | SysItem | StatusesItem | StatusItemTile | NotificationsItem | MediaItem;
 
 // What is sent to the phone in the "layout" section: LayoutFile without "version".
 export type ClientLayout = Omit<LayoutFile, "version">;

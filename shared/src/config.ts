@@ -11,6 +11,8 @@ export interface ConfigFile {
   collectors: {
     sys: { enabled: boolean; intervalSec: number };   // default { true, 2 }; 1..60
     checks: HttpCheck[];                              // default []; max 20
+    focus?: { enabled: boolean };                     // M11; absent = { true }
+    media?: { enabled: boolean };                     // M11; absent = { true }
   };
 }
 export interface HttpCheck {

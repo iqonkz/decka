@@ -2,6 +2,7 @@ export * from "./protocol";
 export * from "./layout";
 export * from "./actions";
 export * from "./config";
+export * from "./templates";
 export * from "./ipc";
 export * from "./validate";
 export * from "./pairUrl";

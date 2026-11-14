@@ -18,6 +18,7 @@ export const DEFAULT_SIZE: Record<Kind, { w: number; h: number }> = {
   status: { w: 1, h: 1 },
   statuses: { w: 2, h: 2 },
   notifications: { w: 2, h: 2 },
+  media: { w: 3, h: 1 },
 };
 
 /** Allowed sizes per kind (DATA_MODEL.md 3.2 item 4): [minW, maxW, minH, maxH]; list widgets may fill the grid. */
@@ -33,6 +34,8 @@ export function sizeRange(kind: Kind, grid: Grid): [number, number, number, numb
     case "statuses":
     case "notifications":
       return [2, grid.cols, 1, grid.rows];
+    case "media":
+      return [2, grid.cols, 1, 2];
   }
 }
 
@@ -114,6 +117,8 @@ export function makeItem(kind: Kind, x: number, y: number, id = newItemId(kind))
     case "statuses":
       return { ...base, kind };
     case "notifications":
+      return { ...base, kind };
+    case "media":
       return { ...base, kind };
   }
 }

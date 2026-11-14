@@ -1,0 +1,19 @@
+{
+  "id": "zoom",
+  "name": "Zoom",
+  "apps": ["zoom.exe"],
+  "minGrid": { "cols": 7, "rows": 4 },
+  "actions": {
+    "tpl-zoom-mute": { "name": "Mute / unmute", "type": "hotkey", "keys": ["alt", "a"] },
+    "tpl-zoom-video": { "name": "Start / stop video", "type": "hotkey", "keys": ["alt", "v"] },
+    "tpl-zoom-share": { "name": "Share screen", "type": "hotkey", "keys": ["alt", "s"] },
+    "tpl-zoom-leave": { "name": "Leave meeting", "type": "hotkey", "keys": ["alt", "q"] }
+  },
+  "items": [
+    { "id": "mute", "kind": "button", "x": 0, "y": 0, "w": 1, "h": 1, "label": "Mic", "icon": "lucide:mic-off", "actionId": "tpl-zoom-mute" },
+    { "id": "video", "kind": "button", "x": 1, "y": 0, "w": 1, "h": 1, "label": "Camera", "icon": "lucide:video-off", "actionId": "tpl-zoom-video" },
+    { "id": "share", "kind": "button", "x": 2, "y": 0, "w": 1, "h": 1, "label": "Share", "icon": "lucide:monitor", "actionId": "tpl-zoom-share" },
+    { "id": "leave", "kind": "button", "x": 6, "y": 0, "w": 1, "h": 1, "label": "Leave", "icon": "lucide:power", "color": "#b91c1c", "actionId": "tpl-zoom-leave", "confirm": true },
+    { "id": "home", "kind": "button", "x": 6, "y": 3, "w": 1, "h": 1, "label": "Home", "icon": "lucide:home", "navigate": "$home" }
+  ]
+}

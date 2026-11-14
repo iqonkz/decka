@@ -2,9 +2,11 @@ import type { Id } from "./protocol";
 import type { ActionsFile } from "./actions";
 import type { LayoutFile } from "./layout";
 import type { ConfigFile, DeviceInfo } from "./config";
+import type { PageTemplate } from "./templates";
 
 export interface AgentStatus {
   version: string;
+  focusApp: string | null;                            // M11: the active app on the PC (Status tab)
   listening: { bind: string; port: number } | null;   // null = port busy / server did not start
   listenError?: string;
   lanIps: string[];
@@ -32,5 +34,8 @@ export interface IpcCommands {
   list_devices(): DeviceInfo[];
   revoke_device(args: { deviceId: Id }): void;
   send_test_notification(): void;                              // title "Decka test", level "info", source "decka"
+  list_window_apps(): string[];                                // M11: exe names (lower case, unique, sorted) of processes with visible top-level windows, without decka-agent.exe
+  get_templates(): PageTemplate[];                             // M11: DATA_MODEL.md 7
+  add_template(args: { templateId: string }): SaveResult;      // M11: adds the template's actions and page, saves both files
   open_config_dir(): void;
 }

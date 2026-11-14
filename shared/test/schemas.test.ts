@@ -21,6 +21,9 @@ import http_var_req from "../fixtures/http-var-req.json";
 import http_error from "../fixtures/http-error.json";
 import actions_default from "../fixtures/actions.default.json";
 import layout_default from "../fixtures/layout.default.json";
+import s2c_patch_focus from "../fixtures/s2c-patch-focus.json";
+import s2c_patch_media from "../fixtures/s2c-patch-media.json";
+import layout_context from "../fixtures/layout.context.json";
 
 const fixtures: [string, unknown][] = [
   ["c2s-pair", c2s_pair],
@@ -41,6 +44,9 @@ const fixtures: [string, unknown][] = [
   ["http-error", http_error],
   ["actions.default", actions_default],
   ["layout.default", layout_default],
+  ["s2c-patch-focus", s2c_patch_focus],
+  ["s2c-patch-media", s2c_patch_media],
+  ["layout.context", layout_context],
 ];
 
 const ajv = new Ajv2020({ allErrors: true, strict: false });
@@ -56,6 +62,7 @@ const refFor = (name: string): string | null => {
     "http-error": `${ID}/protocol.schema.json#/$defs/HttpError`,
     "actions.default": `${ID}/actions.schema.json#/$defs/ActionsFile`,
     "layout.default": `${ID}/layout.schema.json#/$defs/LayoutFile`,
+    "layout.context": `${ID}/layout.schema.json#/$defs/LayoutFile`,
   };
   return map[name] ?? null; // config.example has no schema
 };
@@ -67,7 +74,7 @@ const valid = (ref: string, data: unknown): boolean => {
 };
 
 describe("fixtures are valid", () => {
-  test("18 validated fixtures", () => expect(fixtures.length).toBe(18));
+  test("21 validated fixtures", () => expect(fixtures.length).toBe(21));
 
   test.each(fixtures)("%s", (name, data) => {
     const ref = refFor(name) as string;
@@ -111,11 +118,15 @@ describe("invalid inputs are rejected", () => {
     ],
     ["button with both actionId and navigate", layoutRef, layoutWith({ ...button, navigate: "main" })],
     ["button sized 2x1", layoutRef, layoutWith({ ...button, w: 2 })],
+    ["patch value of section media is checked by the client, but MediaInfo needs a title", `${ID}/protocol.schema.json#/$defs/MediaInfo`, { source: "x", playing: true, positionAt: 1 }],
+    ["MediaInfo with a non-image art", `${ID}/protocol.schema.json#/$defs/MediaInfo`, { source: "x", title: "t", playing: true, positionAt: 1, art: "http://x" }],
+    ["FocusInfo with a window title instead of an exe", `${ID}/protocol.schema.json#/$defs/FocusInfo`, { app: "Untitled - Notepad" }],
+    ["page with a non-exe app", layoutRef, { ...layoutWith(button), pages: [{ id: "main", name: "Main", items: [], apps: ["notepad"] }] }],
     ["grid 9x4", layoutRef, layoutWith(button, { cols: 9, rows: 4 })],
     ["grid 7x1", layoutRef, layoutWith(button, { cols: 7, rows: 1 })],
   ];
 
-  test("10 negative cases", () => expect(cases.length).toBe(10));
+  test("14 negative cases", () => expect(cases.length).toBe(14));
 
   test("grids from 3x2 to 8x5 are valid", () => {
     for (const grid of [{ cols: 3, rows: 2 }, { cols: 7, rows: 4 }, { cols: 8, rows: 5 }]) {
