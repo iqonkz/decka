@@ -936,3 +936,69 @@ cargo test -p decka-core --test press; npm run typecheck; npm test
 (Select-String -Path docs\MANUAL_CHECKS.md -Pattern 'FAIL').Count
 ```
 (две последние команды печатают `0`)
+
+---
+
+## M10 — Доработки по отзыву владельца (2026-11-14)
+
+Отзыв: иконки на телефоне не отображаются; серые плашки под кнопками и виджетами лишние и занимают место; кнопки слишком большие; нужно удобно выбирать программу для действия на ПК. Выполнять по порядку.
+
+### T10.1 — Иконки не отображаются
+**Цель:** все 60 иконок рисуются в браузере и в APK.
+**Файлы:** `client/src/deck/Icon.tsx`, `client/src/deck/icons.ts`, `client/test/icons.test.tsx`.
+**Шаги:**
+1. Воспроизведи: открой клиент в настольном Chrome (headless + `client/dist`) и в APK на подключённом телефоне; для APK — `chrome://inspect` на ПК (debug-сборка Capacitor разрешает отладку WebView). Найди причину по DOM: есть ли `<svg>`, его `width`/`height`, `stroke`, вычисленный `color`.
+2. Исправь причину. Требования к результату: размер иконки задаётся числом пикселей, вычисленным из размера клавиши (T10.2), а не процентной строкой; `stroke` = `currentColor`; цвет задаётся через CSS `color` на контейнере.
+3. Тест `icons.test.tsx` (`react-dom/server` → `renderToString`): для каждого из 60 имён DATA_MODEL.md §3.6 `Icon` даёт строку с `<svg`; ни одно имя, кроме неизвестного, не падает на запасной `square` (сравни разметку с разметкой `square`); `emoji:🚀` даёт `<span`.
+4. Причину опиши в описании коммита одной фразой.
+**Приёмка:** тест проходит; на снимке экрана телефона (`adb exec-out screencap -p > .tmp\icons.png`) видны иконки кнопок первой страницы.
+**Проверка:**
+```
+npm test -w client; npm run android:sync -w client; npm run android:apk -w client; adb install -r client\android\app\build\outputs\apk\debug\app-debug.apk
+```
+
+### T10.2 — Новый вид сетки: без плашек, компактные клавиши
+**Цель:** лёгкий интерфейс на чёрном фоне, клавиши меньше ячейки.
+**Файлы:** `client/src/deck/Grid.tsx`, `Tile.tsx`, `Button.tsx`, `deck/widgets/*.tsx`, `styles.css`.
+**Шаги:**
+1. Сетка: `gap: 2vmin`, `padding: 4vmin` (ARCHITECTURE.md §7). Ячейки и раскладка 5×3 не меняются.
+2. `Tile`: фон и радиус убрать (прозрачный). Виджеты рисуются прямо на чёрном фоне; заголовки виджетов (`statuses.title`) — 2.2vmin, `#6b7280`, верхний регистр, `letter-spacing: 0.08em`.
+3. Кнопка = ячейка-контейнер (вся ячейка — зона касания) + внутри по центру «клавиша»: квадрат со стороной `s = round(0.62 × min(ширина, высота ячейки))` (`ResizeObserver` на ячейке), радиус `0.22 × s`.
+   - Без `color`: клавиша прозрачная, иконка `#e5e5e5`.
+   - С `color`: фон клавиши — `color` с непрозрачностью 0.16, иконка — `color` (если `color` темнее `#404040` по яркости `0.2126R+0.7152G+0.0722B < 64` — иконка `#e5e5e5`).
+   - Иконка: `round(0.5 × s)` px, `strokeWidth 1.75`.
+   - Подпись: под клавишей, отступ `0.06 × s`, размер `max(11px, 0.16 × s)`, `#9ca3af`, одна строка с многоточием, ширина не больше ячейки. Кнопка без иконки: подпись внутри клавиши по центру, размер `0.2 × s`, `#e5e5e5`, до двух строк.
+4. Состояния (DATA_MODEL.md §3.4) применяются к клавише, не к ячейке: `pressed` — фон клавиши `rgba(255,255,255,0.10)` (или `color` с 0.30) и масштаб 0.92; `pending` — рамка 2px `#2563eb` пульсирует; `ok` — рамка 2px `#16a34a` 300 мс; `error` — рамка 2px `#dc2626` 1500 мс; `confirming` — круговой прогресс по контуру клавиши; `disabled` — непрозрачность 0.35.
+5. Виджет `status` (1×1) рисуется как клавиша того же размера: фон — цвет состояния с непрозрачностью 0.16, точка состояния и `label` под клавишей как подпись кнопки.
+6. Ничего не светится постоянно ярче `#e5e5e5`; крупных светлых заливок нет (защита AMOLED).
+**Приёмка:** typecheck, тесты и сборка проходят; снимок экрана телефона показывает первую страницу: чёрный фон без серых плашек, клавиши заметно меньше ячеек, иконки видны; кнопки `Lock` и `Mute` (с `color`) — с цветной полупрозрачной подложкой. Снимок сохрани в `.tmp\grid.png` и приложи путь в отчёте.
+**Проверка:**
+```
+npm run typecheck -w client; npm test -w client; npm run android:sync -w client; npm run android:apk -w client; adb install -r client\android\app\build\outputs\apk\debug\app-debug.apk
+```
+
+### T10.3 — Выбор программы кнопкой «Browse…» в окне настроек
+**Цель:** пользователь выбирает exe в проводнике, а не вписывает путь вручную.
+**Файлы:** `agent/src-tauri/Cargo.toml`, `src/lib.rs`, `capabilities/default.json`, `agent/package.json`, `agent/src/tabs/actionForm.tsx`.
+**Шаги:**
+1. `cargo add -p decka-agent tauri-plugin-dialog`; `npm install -w agent @tauri-apps/plugin-dialog` (последние 2.x). Зарегистрируй плагин; в `capabilities/default.json` добавь `dialog:allow-open`.
+2. В форме `launch` рядом с полем `Program` — кнопка `Browse…`: диалог открытия одного файла, фильтр `Programs` → `exe`. Выбранный путь → поле `Program`; если поле `Name` пустое — подставить имя файла без `.exe`; поле `Working directory` — папка файла, если оно пустое.
+3. Ярлыки `.lnk` не поддерживаются (`Command` их не запускает) — фильтр только `exe`.
+4. В редакторе раскладки (T6.7) в форме кнопки рядом с select действия — кнопка `New action…`: переключает на вкладку `Actions` с открытой формой нового действия (событие `decka://navigate` с payload `"actions:new"`).
+**Приёмка:** typecheck и сборка проходят. Ручная (`npm run tauri dev`): `Browse…` → выбрать `C:\Windows\System32\charmap.exe` → поля заполнены (`Name` = `charmap`) → `Save` → `Test` открывает «Таблицу символов».
+**Проверка:**
+```
+npm run typecheck -w agent; npm run build:ui; cargo build -p decka-agent
+```
+
+### T10.4 — Установка агента для владельца
+**Цель:** у владельца работает настоящее приложение-агент, а не headless.
+**Шаги:**
+1. Останови все процессы `decka-headless` и `decka-agent`.
+2. `npm run release:agent`; путь установщика — в отчёт.
+3. Установку не запускай (это действие владельца). В отчёте дай владельцу три шага: запустить установщик → найти иконку Decka в трее → вкладка `Pairing` → `Pair a new device` и сканировать QR приложением на телефоне.
+**Приёмка:** установщик собран; ни одного процесса `decka-headless` не запущено.
+**Проверка:**
+```
+npm run release:agent; (Get-Process decka-headless -ErrorAction SilentlyContinue | Measure-Object).Count; Get-ChildItem target\release\bundle\nsis\*.exe | Select-Object -ExpandProperty FullName
+```
