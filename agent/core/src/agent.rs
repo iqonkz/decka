@@ -166,6 +166,7 @@ struct Inner {
     devices: Devices,
     notif_counter: AtomicU64,
     pair_limiter: RateLimiter,
+    api_guard: crate::server::api_auth::ApiGuard,
     conns: Mutex<HashMap<u64, Conn>>,
     conn_counter: AtomicU64,
     listening: Mutex<Option<Listening>>,
@@ -201,6 +202,7 @@ impl Agent {
                 devices: Devices::new(config_dir.join("devices.json"), devices),
                 notif_counter: AtomicU64::new(1),
                 pair_limiter: RateLimiter::new(10, Duration::from_secs(60)),
+                api_guard: crate::server::api_auth::ApiGuard::new(),
                 conns: Mutex::new(HashMap::new()),
                 conn_counter: AtomicU64::new(1),
                 listening: Mutex::new(None),
@@ -255,6 +257,10 @@ impl Agent {
 
     pub fn pairing(&self) -> &Pairing {
         &self.inner.pairing
+    }
+
+    pub fn api_guard(&self) -> &crate::server::api_auth::ApiGuard {
+        &self.inner.api_guard
     }
 
     pub fn pair_limiter(&self) -> &RateLimiter {

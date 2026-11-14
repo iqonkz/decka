@@ -1,3 +1,4 @@
+pub mod api_auth;
 pub mod http;
 pub mod static_files;
 pub mod ws;
@@ -6,7 +7,7 @@ use std::path::PathBuf;
 
 use axum::extract::DefaultBodyLimit;
 use axum::http::{header, HeaderValue};
-use axum::routing::{any, get};
+use axum::routing::{any, get, post};
 use axum::{middleware, Router};
 use tower_http::set_header::SetResponseHeaderLayer;
 
@@ -19,6 +20,7 @@ pub fn router(agent: Agent, client_dist: Option<PathBuf>) -> Router {
     let router = Router::new()
         .route("/ws", get(ws::handler))
         .route("/api/health", get(http::health))
+        .route("/api/notify", post(http::notify))
         .route("/api", any(http::api_not_found))
         .route("/api/{*rest}", any(http::api_not_found));
     static_files::attach(router, client_dist)
