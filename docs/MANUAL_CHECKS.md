@@ -75,6 +75,10 @@
 - DONE (автоматически): `parse_devices` (4 теста) и цикл целиком против поддельного `adb` (.cmd): устройство `device` получает `reverse tcp:<port> tcp:<port>`, `unauthorized` попадает в статус с `reversed: false` и текстом ошибки, отсутствующий `adb` даёт `adbFound: false` (`agent/core/tests/usb.rs`).
 - PENDING (owner): телефон с отладкой по USB, `adb` в PATH, `USB mode` включён: `adb reverse --list` показывает `tcp:9247 tcp:9247` в течение 10 с после подключения кабеля.
 
+## T9.1 — веб-манифест и иконки клиента
+
+- T9.1: Android launcher icon is the Capacitor template icon — replace before public release (owner)
+
 ## T8.1–T8.3 — затемнение, pixel shift, заставка
 
 - DONE (автоматически, headless Chrome через CDP, агент `decka-headless --dry-run` с `dimAfterSec: 10`, `sleepAfterSec: 30`): через 10 с слой затемнения (непрозрачность 0.7, перехватывает касания); первое касание возвращает яркость и не нажимает кнопку; через 30 с остаются только серые часы `HH:MM`, сетка скрыта; уведомление `info` не будит экран и не даёт тост; `error` будит и показывает тост; касание будит заставку.
