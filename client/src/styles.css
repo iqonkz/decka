@@ -150,6 +150,7 @@ input { user-select: text; touch-action: manipulation; }
   pointer-events: none;
 }
 .badge.connecting { color: #9ca3af; }
+.badge.channel { color: #6b7280; }
 .badge.offline { background: #7f1d1d; color: #fff; }
 
 .toasts {
