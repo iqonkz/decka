@@ -300,6 +300,7 @@ Decka превращает старый Android-телефон в настоль
 | | `typescript` | 7.0.2 (запасной вариант `typescript@6` в T0.1) |
 | Тесты TS | `vitest` | 5.1.0 |
 | | `ajv` | 8.20.0 |
+| | `@types/node` (только devDependencies пакетов `shared`, `client`, `agent`; для тестов и `vite.config.ts`) | последняя `[unverified]` |
 | Android | `@capacitor/core` | 8.6.2 (minSdk 24 → Android 10 поддерживается) |
 | | `@capacitor/android`, `@capacitor/cli` | 8.6.2 `[unverified — предполагается равной core]` |
 | | `@capacitor-community/keep-awake` | 8.0.1 |

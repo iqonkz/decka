@@ -16,7 +16,7 @@ use crate::actions::ActionRunner;
 use crate::auth::{Devices, Pairing};
 use crate::config::{self, json_text, save_text_atomic, Loaded};
 use crate::model::*;
-use crate::proto::NotifyReq;
+use crate::proto::{ErrorCode, NotifyReq};
 use crate::ratelimit::RateLimiter;
 use crate::state::{Store, MAX_NOTIFICATIONS};
 
@@ -103,6 +103,14 @@ pub struct DeviceInfo {
     pub created_at: u64,
     pub last_seen_at: u64,
     pub connected: bool,
+}
+
+/// Mirrors the `test_action` result in shared/src/ipc.ts.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct TestActionResult {
+    pub ok: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
 }
 
 /// Result of `save_*`; serializes like `SaveResult` in shared/src/ipc.ts.
@@ -322,6 +330,36 @@ impl Agent {
 
     pub fn layout(&self) -> LayoutFile {
         self.inner.layout.lock().unwrap().clone()
+    }
+
+    /// Runs an action by id: runner on the blocking pool, then `toggleVar` on success.
+    pub async fn execute(&self, action_id: &str) -> Result<(), (ErrorCode, String)> {
+        let action = self.inner.actions.lock().unwrap().actions.get(action_id).cloned();
+        let Some(action) = action else {
+            return Err((ErrorCode::UnknownAction, format!("action '{action_id}' is not defined")));
+        };
+        let runner = self.inner.opts.runner.clone();
+        let id = action_id.to_string();
+        let toggle = action.toggle_var().map(str::to_string);
+        let result = tokio::task::spawn_blocking(move || runner.run(&id, &action))
+            .await
+            .map_err(|e| (ErrorCode::Internal, format!("action task failed: {e}")))?;
+        result.map_err(|msg| (ErrorCode::ActionFailed, msg))?;
+        if let Some(var) = toggle {
+            self.inner.store.update_vars(|vars| {
+                let next = !matches!(vars.get(&var), Some(VarValue::Bool(true)));
+                vars.insert(var, VarValue::Bool(next));
+            });
+        }
+        Ok(())
+    }
+
+    /// Same as `execute`, shaped like the `test_action` IPC result.
+    pub async fn test_action(&self, action_id: &str) -> TestActionResult {
+        match self.execute(action_id).await {
+            Ok(()) => TestActionResult { ok: true, error: None },
+            Err((_, message)) => TestActionResult { ok: false, error: Some(message) },
+        }
     }
 
     fn invalid_file_notification(&self, file: &str, body: &str) {

@@ -8,15 +8,18 @@ use axum::extract::{ConnectInfo, State};
 use axum::http::{header, HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
 use tokio::sync::broadcast::error::RecvError;
+use tokio::sync::mpsc;
 use tokio::time::{sleep, timeout, Instant};
 
 use crate::agent::Agent;
 use crate::model::Notification;
+use crate::ratelimit::RateLimiter;
 use crate::proto::{AgentInfo, ClientMsg, ErrorBody, ErrorCode, ServerMsg};
 
 const MAX_MESSAGE_BYTES: usize = 4096;
 const HANDSHAKE_TIMEOUT: Duration = Duration::from_secs(5);
 const IDLE_TIMEOUT: Duration = Duration::from_secs(30);
+const PRESS_PER_SECOND: u32 = 20;
 const SUPPORTED_VERSIONS: [u32; 1] = [1];
 
 const CLOSE_GOING_AWAY: u16 = 1001;
@@ -156,8 +159,14 @@ async fn session(
 ) {
     let idle = sleep(IDLE_TIMEOUT);
     tokio::pin!(idle);
+    // Per-socket press limit; press tasks answer through `out_tx` so reading is never blocked.
+    let press_limiter = RateLimiter::new(PRESS_PER_SECOND, Duration::from_secs(1));
+    let (out_tx, mut out_rx) = mpsc::unbounded_channel::<ServerMsg>();
     loop {
         tokio::select! {
+            Some(msg) = out_rx.recv() => {
+                if !send(socket, &msg).await { return; }
+            }
             patch = patches.recv() => match patch {
                 Ok(p) if p.rev > snapshot_rev => {
                     let msg = ServerMsg::Patch { rev: p.rev, section: p.section.to_string(), value: (*p.value).clone() };
@@ -176,7 +185,7 @@ async fn session(
                 idle.as_mut().reset(Instant::now() + IDLE_TIMEOUT);
                 match frame {
                     Message::Text(text) => {
-                        if !handle_text(agent, socket, text.as_str()).await { return; }
+                        if !handle_text(agent, socket, text.as_str(), &press_limiter, &out_tx).await { return; }
                     }
                     Message::Binary(_) => {
                         if !send(socket, &error_msg(ErrorCode::BadMessage, "binary frames are not supported")).await { return; }
@@ -190,7 +199,13 @@ async fn session(
 }
 
 /// Handles one authorized text frame. Returns false if the socket is gone.
-async fn handle_text(agent: &Agent, socket: &mut WebSocket, text: &str) -> bool {
+async fn handle_text(
+    agent: &Agent,
+    socket: &mut WebSocket,
+    text: &str,
+    press_limiter: &RateLimiter,
+    out: &mpsc::UnboundedSender<ServerMsg>,
+) -> bool {
     match serde_json::from_str::<ClientMsg>(text) {
         Ok(ClientMsg::Ping { ts }) => send(socket, &ServerMsg::Pong { ts }).await,
         Ok(ClientMsg::NotifDismiss { notif_id }) => {
@@ -198,9 +213,17 @@ async fn handle_text(agent: &Agent, socket: &mut WebSocket, text: &str) -> bool 
             true
         }
         Ok(ClientMsg::Press { id, action_id }) => {
-            // Real execution arrives in T3.1.
-            let error = ErrorBody { code: ErrorCode::UnknownAction, message: format!("action '{action_id}' is not defined") };
-            send(socket, &ServerMsg::PressResult { id, ok: false, error: Some(error) }).await
+            if !press_limiter.check("press") {
+                let error = ErrorBody { code: ErrorCode::RateLimited, message: "too many presses".to_string() };
+                return send(socket, &ServerMsg::PressResult { id, ok: false, error: Some(error) }).await;
+            }
+            let agent = agent.clone();
+            let out = out.clone();
+            tokio::spawn(async move {
+                let error = agent.execute(&action_id).await.err().map(|(code, message)| ErrorBody { code, message });
+                let _ = out.send(ServerMsg::PressResult { id, ok: error.is_none(), error });
+            });
+            true
         }
         Ok(ClientMsg::Pair { .. }) | Ok(ClientMsg::Hello { .. }) => true,
         Err(_) => send(socket, &error_msg(ErrorCode::BadMessage, "invalid message")).await,

@@ -1,3 +1,5 @@
+pub mod testing;
+
 use crate::model::Action;
 
 /// Executes an action on the PC. Implementations must not block for long: spawn and return.
