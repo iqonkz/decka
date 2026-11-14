@@ -1,6 +1,7 @@
 import type { LayoutItem } from "@decka/shared";
 import Button from "./Button";
 import Clock from "./widgets/Clock";
+import Media from "./widgets/Media";
 import Notifications from "./widgets/Notifications";
 import Statuses from "./widgets/Statuses";
 import StatusTile from "./widgets/StatusTile";
@@ -29,6 +30,9 @@ export default function Tile({ item }: { item: LayoutItem }) {
       break;
     case "notifications":
       content = <Notifications item={item} />;
+      break;
+    case "media":
+      content = <Media item={item} />;
       break;
     default:
       content = <div className="tile-body">?</div>;
