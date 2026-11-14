@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from "react";
-import { normalizeCode, parseHostInput } from "@decka/shared";
+import { normalizeCode, parseHostInput, parsePairUrl } from "@decka/shared";
 import { pairErrorText, pairWith } from "../app/controller";
 import { isNative } from "../platform/native";
+import { scanQr } from "../platform/scan";
 import { useAppState } from "../store/store";
 import type { ConnFailure } from "../net/connection";
 
@@ -30,10 +31,30 @@ export default function PairScreen() {
     }
   }
 
+  async function scan() {
+    setError(null);
+    const text = await scanQr();
+    if (text === null) return; // cancelled: stay on the screen
+    const parsed = parsePairUrl(text);
+    if (!parsed) return setError("This is not a Decka QR code");
+    setBusy(true);
+    try {
+      await pairWith(parsed.hosts, parsed.port, parsed.code, parsed.agentName);
+    } catch (err) {
+      setError(pairErrorText((err as ConnFailure).code));
+      setBusy(false);
+    }
+  }
+
   return (
     <form className="pair" onSubmit={submit}>
       <h1>Pair with your PC</h1>
       <p className="hint">Open Decka on your PC → Pairing, then scan the QR code or type the code below.</p>
+      {native && (
+        <button className="primary" type="button" disabled={busy} onClick={() => void scan()}>
+          Scan QR code
+        </button>
+      )}
       {native && (
         <input
           className="field"
