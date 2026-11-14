@@ -1,4 +1,4 @@
-//! State store: seven JSON sections (five from the start, `focus` and `media` from M11), a global `rev`, broadcast of changes only (ARCHITECTURE.md 5.2).
+//! State store: eight JSON sections (five from the start, `focus` and `media` from M11, `icons` from M12), a global `rev`, broadcast of changes only (ARCHITECTURE.md 5.2).
 
 use std::collections::{BTreeMap, HashMap};
 use std::sync::{Arc, Mutex};
@@ -8,7 +8,7 @@ use tokio::sync::broadcast;
 
 use crate::model::{Notification, StatusItem, VarValue};
 
-pub const SECTIONS: [&str; 7] = ["layout", "sys", "statuses", "notifications", "vars", "focus", "media"];
+pub const SECTIONS: [&str; 8] = ["layout", "sys", "statuses", "notifications", "vars", "focus", "media", "icons"];
 pub const MAX_NOTIFICATIONS: usize = 20;
 
 /// A change to one section; `value` is always the complete new value of the section.
@@ -58,6 +58,7 @@ impl Store {
         sections.insert("vars", Value::Object(Default::default()));
         sections.insert("focus", Value::Null);
         sections.insert("media", Value::Null);
+        sections.insert("icons", Value::Object(Default::default()));
         let (tx, _) = broadcast::channel(64);
         Store { inner: Arc::new(Mutex::new(Inner { sections, rev: 0 })), tx }
     }
@@ -179,6 +180,7 @@ mod tests {
         }
         assert_eq!(obj["sys"], Value::Null);
         assert_eq!((&obj["focus"], &obj["media"]), (&Value::Null, &Value::Null));
+        assert_eq!(obj["icons"], json!({}));
         assert_eq!(obj["layout"], json!({ "pages": [] }));
     }
 

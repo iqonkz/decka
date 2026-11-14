@@ -14,6 +14,14 @@ export interface AgentStatus {
   usb: { enabled: boolean; adbFound: boolean; devices: { serial: string; reversed: boolean }[]; lastError?: string };
   configDir: string;
 }
+/** A Start menu shortcut to a program (M12, DATA_MODEL.md 8.3). */
+export interface InstalledApp {
+  name: string;          // shortcut name without .lnk
+  program: string;       // full path of the .exe
+  args: string[];        // shortcut arguments, split by the Windows command-line rules
+  cwd?: string;          // working folder of the shortcut
+  icon?: string;         // 32 px data URL for the list (may be absent)
+}
 export interface PairingInfo { code: string; url: string; qrSvg: string; expiresAt: number; }
 export interface ValidationIssue { path: string; message: string; }   // path = JSON pointer
 export type SaveResult = { ok: true } | { ok: false; issues: ValidationIssue[] };
@@ -39,4 +47,8 @@ export interface IpcCommands {
   add_template(args: { templateId: string }): SaveResult;      // M11: adds the template's actions and page, saves both files
   open_config_dir(): void;
   open_logs_dir(): void;                                       // opens <configDir>\logs
+  list_installed_apps(): InstalledApp[];                       // M12: Start menu shortcuts, DATA_MODEL.md 8
+  icon_from_program(args: { path: string }): { icon: string } | { error: string };  // M12: icon of an exe -> "img:<hash16>"
+  icon_from_image(args: { path: string }): { icon: string } | { error: string };    // M12: png/jpg/ico/bmp -> "img:<hash16>"
+  get_icon_preview(args: { icon: string }): string | null;     // M12: data URL for the settings window
 }

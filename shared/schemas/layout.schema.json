@@ -3,7 +3,7 @@
   "$id": "https://decka.invalid/schemas/layout.schema.json",
   "$defs": {
     "Id": { "type": "string", "pattern": "^[a-z0-9_-]{1,64}$" },
-    "Icon": { "type": "string", "pattern": "^(lucide:[a-z0-9-]{1,40}|emoji:.{1,8})$" },
+    "Icon": { "type": "string", "pattern": "^(lucide:[a-z0-9-]{1,40}|emoji:.{1,8}|img:[0-9a-f]{16})$" },
     "Color": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
     "ButtonLook": { "type": "object", "properties": { "label": { "type": "string", "maxLength": 24 }, "icon": { "$ref": "#/$defs/Icon" }, "color": { "$ref": "#/$defs/Color" } } },
     "ItemBase": { "type": "object", "required": ["id","kind","x","y","w","h"],

@@ -24,6 +24,7 @@ import layout_default from "../fixtures/layout.default.json";
 import s2c_patch_focus from "../fixtures/s2c-patch-focus.json";
 import s2c_patch_media from "../fixtures/s2c-patch-media.json";
 import layout_context from "../fixtures/layout.context.json";
+import s2c_patch_icons from "../fixtures/s2c-patch-icons.json";
 
 const fixtures: [string, unknown][] = [
   ["c2s-pair", c2s_pair],
@@ -47,6 +48,7 @@ const fixtures: [string, unknown][] = [
   ["s2c-patch-focus", s2c_patch_focus],
   ["s2c-patch-media", s2c_patch_media],
   ["layout.context", layout_context],
+  ["s2c-patch-icons", s2c_patch_icons],
 ];
 
 const ajv = new Ajv2020({ allErrors: true, strict: false });
@@ -74,7 +76,7 @@ const valid = (ref: string, data: unknown): boolean => {
 };
 
 describe("fixtures are valid", () => {
-  test("21 validated fixtures", () => expect(fixtures.length).toBe(21));
+  test("22 validated fixtures", () => expect(fixtures.length).toBe(22));
 
   test.each(fixtures)("%s", (name, data) => {
     const ref = refFor(name) as string;
@@ -99,6 +101,14 @@ describe("invalid inputs are rejected", () => {
 
   test("sanity: the minimal layout helper is valid", () => {
     expect(valid(layoutRef, layoutWith(button))).toBe(true);
+  });
+
+  test("img: icons need exactly 16 lower-case hex characters", () => {
+    const withIcon = (icon: string) => layoutWith({ ...button, icon });
+    expect(valid(layoutRef, withIcon("img:0123456789abcdef"))).toBe(true);
+    expect(valid(layoutRef, withIcon("img:XYZ"))).toBe(false);
+    expect(valid(layoutRef, withIcon("img:0123"))).toBe(false);
+    expect(valid(layoutRef, withIcon("img:0123456789ABCDEF"))).toBe(false);
   });
 
   const cases: [string, string, unknown][] = [

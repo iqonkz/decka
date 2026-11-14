@@ -42,7 +42,7 @@ export interface ErrorMsg { t: "error"; code: ErrorCode; message: string; fatal:
 export type ServerMsg = PairedMsg | WelcomeMsg | PatchMsg | PressResultMsg | PongMsg | ErrorMsg;
 
 // ===== State (sections) =====
-export type SectionName = "layout" | "sys" | "statuses" | "notifications" | "vars" | "focus" | "media";
+export type SectionName = "layout" | "sys" | "statuses" | "notifications" | "vars" | "focus" | "media" | "icons";
 export interface FullState {
   layout: ClientLayout;
   sys: SysStats | null;            // null = collector disabled
@@ -51,6 +51,7 @@ export interface FullState {
   vars: Record<VarName, VarValue>;
   focus?: FocusInfo | null;        // M11; absent from agents older than M11; null = collector disabled
   media?: MediaInfo | null;        // M11; null = nothing playing or collector disabled
+  icons?: Record<string, string>;  // M12: "<hash16>" -> "data:image/png;base64,..."; only the images the layout refers to; absent = {}
 }
 
 // Active PC window: the executable name only, NEVER the window title.

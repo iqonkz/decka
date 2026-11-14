@@ -37,6 +37,7 @@ fn server_messages() {
         "s2c-patch-vars",
         "s2c-patch-focus",
         "s2c-patch-media",
+        "s2c-patch-icons",
         "s2c-press-result-ok",
         "s2c-press-result-err",
         "s2c-pong",
@@ -59,6 +60,11 @@ fn m11_sections_have_typed_shapes() {
     roundtrip_value::<FocusInfo>("focus", load("s2c-patch-focus")["value"].clone());
     roundtrip_value::<MediaInfo>("media", load("s2c-patch-media")["value"].clone());
     roundtrip_value::<FocusInfo>("focus null app", serde_json::json!({ "app": null }));
+}
+
+#[test]
+fn m12_icons_section_is_a_map_of_data_urls() {
+    roundtrip_value::<std::collections::BTreeMap<String, String>>("icons", load("s2c-patch-icons")["value"].clone());
 }
 
 #[test]
