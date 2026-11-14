@@ -95,8 +95,16 @@
 ## T11.3–T11.4 — сборщики `focus` и `media`
 
 - DONE (автоматически, этот ПК): headless + `ws-smoke watch` 9 с, пока запускались `notepad` и затем `charmap` → `patch` секции `focus` с `notepad.exe` и с `charmap.exe`. `ws-smoke state` при играющем Spotify → `media` с `title`, `artist`, `album`, `durationSec`, `positionSec`, `source`.
-- Наблюдение: обложка Spotify (PNG ≈ 176 КБ) длиннее лимита 65 536 символов data URI, поэтому по спецификации секция идёт без `art` (виджет покажет заглушку). Если нужны обложки Spotify — нужно уменьшение картинки (библиотека обработки изображений не входит в ARCHITECTURE.md §8), решение за владельцем.
+- Наблюдение: обложка Spotify (PNG ≈ 176 КБ) длиннее лимита 65 536 символов data URI. Решено в T11.4b: уменьшение до 192 px JPEG через Windows.Graphics.Imaging.
 - PENDING (owner): обложка у источников с маленькой картинкой (браузер, другие плееры); вкладка Status показывает `Active app: …` при переключении окон.
+
+## T11.4b–T11.7 — обложка, контекстные страницы, виджет, окно настроек
+
+- DONE (автоматически): тесты `media::` (уменьшение PNG 600×600 → JPEG 192×192, data URL < 65 536; малая обложка остаётся как есть), клиент 95 тестов (`decideContextPage`, `currentPosition`, `formatTime`, store), агент 27 тестов (`normalizeApp`, `withApps`, `withMediaDefaults`), `npm run build -w client`, `npm run build:ui`, `cargo build -p decka-agent`, в `commands.rs` 19 команд.
+- PENDING (owner): T11.4b — при играющем Spotify `ws-smoke state` показывает `media.art`, начинающийся с `data:image/jpeg;base64,`.
+- PENDING (owner): T11.5 — на телефоне: страница `VS Code` открывается при фокусе VS Code, подсказка с именем 2 с, возврат при уходе; касание откладывает на 5 с; затемнённый экран не просыпается от переключения.
+- PENDING (owner): T11.6 — вид виджета `media` на телефоне (обложка, полоса, клавиши при `h = 1` и `h = 2`), `play` ставит на паузу.
+- PENDING (owner): T11.7 — окно настроек (`npm run tauri dev` или установленный агент): блок `Show this page automatically when active`, `Refresh`, диалог `Add page from template`, форма `media`. Окно я не проверял.
 
 ## T10.5 — настраиваемая сетка и обводка клавиш
 

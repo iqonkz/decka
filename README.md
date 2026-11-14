@@ -10,6 +10,7 @@ Decka turns an old Android phone into a desk panel for a Windows PC: a 5x3 grid 
 
 - **USB mode.** The phone can work over a cable with no Wi-Fi at all, through `adb reverse`. In "USB only" mode the agent listens on `127.0.0.1` and opens no port to your local network.
 - **AMOLED burn-in protection.** Pure black background, slow pixel shift, dimming after inactivity, and a screen saver with a wandering clock. A night interval and a "PC offline" screen saver are built in too.
+- **Context pages.** The phone opens the right page by itself while a given program is in front on your PC (VS Code, a browser, Zoom) and goes back when you leave it. A "Now playing" widget shows the current track with cover and play/pause/next keys.
 - **Webhook-first for developers.** `POST /api/notify` (even a plain-text one-liner with curl) and `POST /api/status` with a TTL give you deploy and AI-session statuses without plugins. Built-in HTTP checks watch your own services.
 
 ## Quick start
@@ -20,6 +21,16 @@ Decka turns an old Android phone into a desk panel for a Windows PC: a 5x3 grid 
 4. Edit buttons in the **Actions** and **Layout** tabs. Changes appear on the phone within a second.
 
 A browser also works for a quick try: open `http://<PC>:9247/` on the phone and paste the pairing details (no camera, no wake lock there).
+
+## Context pages and Now Playing
+
+**Ready-made pages.** In the settings window open **Layout** and press **Add page from template**. Templates for VS Code, a browser, Zoom and Spotify add a page with buttons and their actions in one click. A template needs a big enough grid (the dialog tells you if not) and is added only once per program.
+
+**Your own context pages.** Select a page (not the first one, which is your home page) and, under **Show this page automatically when active**, add the programs by their exe name (`code.exe`; the field suggests programs that have a window open right now). While one of them is in front on the PC, the phone switches to that page, shows its name for a moment, and returns to the page you chose yourself when you leave the program. A touch on the phone postpones the switch by 5 seconds, so it never jumps under your finger. To turn this off, clear **Switch to app pages automatically** in the **Display** block.
+
+**Now Playing.** Add a `media` widget (at least 2×1) and pick the actions for its keys. It reads the system media session of Windows, so it works with Spotify, browsers and most players. The cover is scaled down on the PC (192 px, JPEG) before it is sent.
+
+**Privacy.** Only the exe name of the active program is read and sent to your phone (`code.exe`); window titles are never read. From the media session only the title, artist, album, state, position and cover are taken. Both collectors can be switched off in `config.json`: `"collectors": { "focus": { "enabled": false }, "media": { "enabled": false } }`.
 
 ## USB mode
 
