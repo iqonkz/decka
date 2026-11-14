@@ -18,7 +18,7 @@
     ] },
     { "id": "dev", "name": "Dev", "items": [
       { "id": "w-statuses", "kind": "statuses", "x": 0, "y": 0, "w": 3, "h": 3, "title": "Services" },
-      { "id": "b-github", "kind": "button", "x": 3, "y": 0, "w": 1, "h": 1, "label": "GitHub", "icon": "lucide:github", "actionId": "github" },
+      { "id": "b-github", "kind": "button", "x": 3, "y": 0, "w": 1, "h": 1, "label": "GitHub", "icon": "lucide:globe", "actionId": "github" },
       { "id": "b-notepad", "kind": "button", "x": 4, "y": 0, "w": 1, "h": 1, "label": "Notepad", "icon": "lucide:file-text", "actionId": "notepad" },
       { "id": "b-taskmgr", "kind": "button", "x": 3, "y": 1, "w": 1, "h": 1, "label": "Tasks", "icon": "lucide:activity", "actionId": "task-manager" },
       { "id": "b-home", "kind": "button", "x": 4, "y": 2, "w": 1, "h": 1, "label": "Main", "icon": "lucide:home", "navigate": "main" }

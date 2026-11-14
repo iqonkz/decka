@@ -198,7 +198,7 @@ export type ClientLayout = Omit<LayoutFile, "version">;
     ] },
     { "id": "dev", "name": "Dev", "items": [
       { "id": "w-statuses", "kind": "statuses", "x": 0, "y": 0, "w": 3, "h": 3, "title": "Services" },
-      { "id": "b-github", "kind": "button", "x": 3, "y": 0, "w": 1, "h": 1, "label": "GitHub", "icon": "lucide:github", "actionId": "github" },
+      { "id": "b-github", "kind": "button", "x": 3, "y": 0, "w": 1, "h": 1, "label": "GitHub", "icon": "lucide:globe", "actionId": "github" },
       { "id": "b-notepad", "kind": "button", "x": 4, "y": 0, "w": 1, "h": 1, "label": "Notepad", "icon": "lucide:file-text", "actionId": "notepad" },
       { "id": "b-taskmgr", "kind": "button", "x": 3, "y": 1, "w": 1, "h": 1, "label": "Tasks", "icon": "lucide:activity", "actionId": "task-manager" },
       { "id": "b-home", "kind": "button", "x": 4, "y": 2, "w": 1, "h": 1, "label": "Main", "icon": "lucide:home", "navigate": "main" }
@@ -209,9 +209,9 @@ export type ClientLayout = Omit<LayoutFile, "version">;
 
 ### 3.6 Набор иконок Lucide в сборке клиента (60)
 
-`play, pause, skip-back, skip-forward, volume, volume-1, volume-2, volume-x, mic, mic-off, video, video-off, monitor, lock, power, moon, sun, home, settings, terminal, code, github, git-branch, globe, folder, file-text, activity, cpu, hard-drive, wifi, bell, bell-off, mail, message-square, music, headphones, camera, image, calendar, clock, timer, star, heart, zap, rocket, bug, check, x, plus, minus, refresh-cw, search, download, upload, copy, trash-2, square, circle, arrow-left, arrow-right`
+`play, pause, skip-back, skip-forward, volume, volume-1, volume-2, volume-x, mic, mic-off, video, video-off, monitor, lock, power, moon, sun, home, settings, terminal, code, link, git-branch, globe, folder, file-text, activity, cpu, hard-drive, wifi, bell, bell-off, mail, message-square, music, headphones, camera, image, calendar, clock, timer, star, heart, zap, rocket, bug, check, x, plus, minus, refresh-cw, search, download, upload, copy, trash-2, square, circle, arrow-left, arrow-right`
 
-Если имя в установленной версии `lucide-react` отсутствует (переименовано), исполнитель заменяет его на `square` и перечисляет замены в описании коммита — список в этом файле не меняется.
+Брендовых иконок (github и т. п.) в `lucide-react` 1.x нет — в набор они не входят. Если имя в установленной версии `lucide-react` отсутствует (переименовано), исполнитель заменяет его на `square` и перечисляет замены в описании коммита — список в этом файле не меняется.
 
 ## 4. config.json и devices.json
 

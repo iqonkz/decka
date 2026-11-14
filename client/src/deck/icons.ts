@@ -24,6 +24,7 @@ import {
   Heart,
   House,
   Image as ImageIcon,
+  Link as LinkIcon,
   Lock,
   Mail,
   MessageSquare,
@@ -84,7 +85,7 @@ export const ICONS: Record<string, LucideIcon> = {
   settings: Settings,
   terminal: Terminal,
   code: Code,
-  github: Square, // lucide-react 1.73.0 has no brand icons: replaced by `square`
+  link: LinkIcon,
   "git-branch": GitBranch,
   globe: Globe,
   folder: Folder,
