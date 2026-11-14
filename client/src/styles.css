@@ -79,3 +79,55 @@ input { user-select: text; touch-action: manipulation; }
 }
 .dot { width: 1.2vmin; height: 1.2vmin; border-radius: 50%; background: #3a3a40; }
 .dot.active { background: #e5e5e5; }
+
+.btn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  border-radius: 2.5vmin;
+  color: #e5e5e5;
+  transition: transform 80ms;
+}
+.btn-icon { display: flex; align-items: center; justify-content: center; flex: 1; }
+.btn-label {
+  max-width: 92%;
+  padding-bottom: 1vmin;
+  font-size: 2.6vmin;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.btn-label.solo {
+  padding: 0 1vmin;
+  font-size: 3.4vmin;
+  text-align: center;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.btn.pressed, .btn.confirming { transform: scale(0.94); }
+.btn.pending { animation: btn-pulse 0.9s ease-in-out infinite; }
+.btn.ok { box-shadow: inset 0 0 0 0.6vmin #16a34a; }
+.btn.error { box-shadow: inset 0 0 0 0.6vmin #dc2626; }
+.btn.disabled { opacity: 0.4; }
+@keyframes btn-pulse {
+  0%, 100% { box-shadow: inset 0 0 0 0.6vmin rgba(229, 229, 229, 0.15); }
+  50% { box-shadow: inset 0 0 0 0.6vmin rgba(229, 229, 229, 0.7); }
+}
+.ring { position: absolute; inset: 22%; width: 56%; height: 56%; transform: rotate(-90deg); pointer-events: none; }
+.ring circle {
+  fill: none;
+  stroke: #e5e5e5;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 100.53;
+  stroke-dashoffset: 100.53;
+  animation: ring-fill 800ms linear forwards;
+}
+@keyframes ring-fill { to { stroke-dashoffset: 0; } }
