@@ -56,6 +56,7 @@ input { user-select: text; touch-action: manipulation; }
 
 .deck { position: fixed; inset: 0; background: #000; }
 .deck-inner { position: absolute; inset: 6px; }
+.dim-overlay { position: fixed; inset: 0; z-index: 1000; background: #000; opacity: 0; pointer-events: none; transition: opacity 600ms ease; }
 .grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);

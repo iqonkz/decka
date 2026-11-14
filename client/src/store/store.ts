@@ -48,6 +48,13 @@ export function onAttention(fn: (level: NotifLevel) => void): () => void {
   return () => attentionListeners.delete(fn);
 }
 
+let toastGate: ((level: NotifLevel) => boolean) | null = null;
+
+/** Decides per new notification whether it may show a toast (the screen saver keeps quiet for info/success). */
+export function setToastGate(gate: ((level: NotifLevel) => boolean) | null): void {
+  toastGate = gate;
+}
+
 export function getState(): AppState {
   return current;
 }
@@ -108,6 +115,7 @@ function toastNewNotifications(before: Notification[], after: Notification[]): v
   const known = new Set(before.map((n) => n.id));
   for (const n of [...after].reverse()) {
     if (known.has(n.id)) continue;
+    if (toastGate && !toastGate(n.level)) continue;
     const toast: NewToast = { level: n.level, title: n.title };
     if (n.body !== undefined) toast.body = n.body;
     pushToast(toast);

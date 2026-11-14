@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { setPage, unpair } from "../app/controller";
 import ConnBadge from "../deck/ConnBadge";
+import DimOverlay from "../display/DimOverlay";
+import { useDisplayMode } from "../display/idle";
 import Grid from "../deck/Grid";
 import PageDots from "../deck/PageDots";
 import Toasts from "../deck/Toasts";
@@ -41,6 +43,7 @@ export default function DeckScreen() {
   const [confirmUnpair, setConfirmUnpair] = useState(false);
   const openUnpair = useCallback(() => setConfirmUnpair(true), []); // stable: the tap counter lives in the effect
   useUnpairGesture(openUnpair);
+  const mode = useDisplayMode(layout?.display ?? null);
   if (!layout) return null;
 
   const count = layout.pages.length;
@@ -76,6 +79,7 @@ export default function DeckScreen() {
         </div>
         <Toasts />
       </div>
+      <DimOverlay mode={mode} dimLevel={layout.display.dimLevel} />
       {confirmUnpair && (
         <div className="dialog-backdrop">
           <div className="dialog" role="dialog" aria-label="Unpair this device?">
