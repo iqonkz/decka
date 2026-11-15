@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { MediaItem } from "@decka/shared";
-import { useAppState } from "../../store/store";
+import { useDeckEnv } from "../deckEnv";
 import Icon from "../Icon";
 import Key from "../Key";
 import { useDeckMetrics } from "../metricsContext";
@@ -26,7 +26,7 @@ function useHeight(): [React.RefObject<HTMLDivElement | null>, number] {
 
 /** "Now playing" (DATA_MODEL.md 6.2): cover, title, artist, progress and the three transport keys. */
 export default function Media({ item }: { item: MediaItem }) {
-  const media = useAppState((s) => s.state?.media ?? null);
+  const { media } = useDeckEnv();
   const { side } = useDeckMetrics();
   const [ref, height] = useHeight();
   const playing = media?.playing === true;

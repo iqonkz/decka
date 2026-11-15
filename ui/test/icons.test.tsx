@@ -1,9 +1,11 @@
 import { renderToString } from "react-dom/server";
 import { describe, expect, test } from "vitest";
-import type { FullState } from "@decka/shared";
-import Icon from "../src/deck/Icon";
-import { resetState, setState } from "../src/store/store";
-import { ICONS } from "../src/deck/icons";
+import { DeckEnvContext, EMPTY_DATA, type DeckEnv } from "../src/deckEnv";
+import Icon from "../src/Icon";
+import { ICONS } from "../src/icons";
+
+const NOOP = () => {};
+const envWith = (icons: Record<string, string>): DeckEnv => ({ ...EMPTY_DATA, icons, onPress: () => Promise.resolve(), onPressError: NOOP, onNavigate: NOOP, onDismiss: NOOP });
 
 // DATA_MODEL.md 3.6
 const NAMES =
@@ -11,7 +13,7 @@ const NAMES =
     ", ",
   );
 
-const render = (icon: string) => renderToString(<Icon icon={icon} size={40} />);
+const render = (icon: string, icons: Record<string, string> = {}) => renderToString(<DeckEnvContext.Provider value={envWith(icons)}><Icon icon={icon} size={40} /></DeckEnvContext.Provider>);
 
 describe("Icon", () => {
   test("the set has exactly 60 names", () => {
@@ -39,16 +41,13 @@ describe("Icon", () => {
   test("img: shows the picture from the icons section, a square without an entry", () => {
     const hash = "0123456789abcdef";
     const url = "data:image/png;base64,iVBORw0KGgo=";
-    resetState();
-    setState({ state: { icons: { [hash]: url } } as unknown as FullState });
-    const html = render(`img:${hash}`);
+    const html = render(`img:${hash}`, { [hash]: url });
     expect(html).toContain("<img");
     expect(html).toContain(url);
     expect(html).toContain('width="40"');
-    expect(render("img:fedcba9876543210")).toBe(render("lucide:square"));
-    expect(render("img:XYZ")).toBe("");
-    resetState();
-    expect(render(`img:${hash}`)).toBe(render("lucide:square")); // no state at all
+    expect(render("img:fedcba9876543210", { [hash]: url })).toBe(render("lucide:square"));
+    expect(render("img:XYZ", { [hash]: url })).toBe("");
+    expect(render(`img:${hash}`)).toBe(render("lucide:square")); // empty section
   });
 
   test("emoji renders a span, anything else nothing", () => {

@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { dismissToast, expireToasts, useAppState } from "../store/store";
-import { LEVEL_COLOR } from "./widgets/statusOrder";
+import { LEVEL_COLOR } from "@decka/ui";
 
 
 export default function Toasts() {

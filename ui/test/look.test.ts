@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import type { ButtonItem } from "@decka/shared";
-import { pressErrorTitle, resolveLook } from "../src/deck/look";
+import { pressErrorTitle, resolveLook } from "../src/look";
 
 const mute: ButtonItem = {
   id: "b-mute",

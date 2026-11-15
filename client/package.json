@@ -17,6 +17,7 @@
     "@capacitor/barcode-scanner": "^3.1.3",
     "@capacitor/core": "^8.6.2",
     "@decka/shared": "*",
+    "@decka/ui": "*",
     "lucide-react": "^1.73.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"

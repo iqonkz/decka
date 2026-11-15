@@ -63,28 +63,6 @@ input { user-select: text; touch-action: manipulation; }
 .saver-line { font-size: 3vmin; color: #4b5563; }
 .saver-errors { color: #7f1d1d; }
 .dim-overlay { position: fixed; inset: 0; z-index: 1000; background: #000; opacity: 0; pointer-events: none; transition: opacity 600ms ease; }
-.grid { position: relative; width: 100%; height: 100%; }
-/* Square cells: the column/row sizes, the gap and the position come from gridMetrics (inline style). */
-.grid-inner { position: absolute; display: grid; }
-.tile { min-width: 0; min-height: 0; }
-/* Widgets are panels with the plain key face (T11.10); the screen itself stays black (AMOLED). */
-.tile.panel {
-  box-sizing: border-box;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.10);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 2px 6px rgba(0, 0, 0, 0.7);
-}
-.tile-body { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-size: 3vmin; }
-.page-dots {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0.6vmin;
-  display: flex;
-  justify-content: center;
-  gap: 1.2vmin;
-  pointer-events: none;
-}
 .page-hint {
   position: absolute;
   left: 0;
@@ -95,92 +73,6 @@ input { user-select: text; touch-action: manipulation; }
   color: #6b7280;
   pointer-events: none;
 }
-.dot { width: 1.2vmin; height: 1.2vmin; border-radius: 50%; background: #3a3a40; }
-.dot.active { background: #e5e5e5; }
-
-/* A key: a square face with a gradient, a thin outline, a top highlight and a shadow (T11.10). Size is inline. */
-.key {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
-  box-sizing: border-box;
-  border: 1px solid rgba(255, 255, 255, 0.10); /* colour per key, inline */
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 2px 6px rgba(0, 0, 0, 0.7);
-  color: #f2f2f2;
-  overflow: hidden;
-  transition: transform 80ms;
-}
-.key.pressed, .key.confirming {
-  transform: scale(0.94);
-  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.8);
-  filter: brightness(1.25);
-}
-/* The 2 px state frames replace the outline while the state lasts. */
-.key.pending, .key.ok, .key.error { border-color: transparent !important; }
-.key.pending { animation: key-pulse 0.9s ease-in-out infinite; }
-.key.ok { box-shadow: inset 0 0 0 2px #22c55e, 0 2px 6px rgba(0, 0, 0, 0.7); }
-.key.error { box-shadow: inset 0 0 0 2px #ef4444, 0 2px 6px rgba(0, 0, 0, 0.7); }
-.key.disabled { opacity: 0.35; box-shadow: none; }
-@keyframes key-pulse {
-  0%, 100% { box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.35), 0 2px 6px rgba(0, 0, 0, 0.7); }
-  50% { box-shadow: inset 0 0 0 2px #3b82f6, 0 2px 6px rgba(0, 0, 0, 0.7); }
-}
-.key-icon { display: flex; align-items: center; justify-content: center; }
-.key-text {
-  box-sizing: border-box;
-  width: 100%;
-  text-align: center;
-  font-weight: 600;
-  color: #ffffff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-/* The caption sits on the face, at the bottom. */
-.key-label {
-  position: absolute;
-  text-align: center;
-  font-weight: 600;
-  color: #ffffff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.key-chevron { position: absolute; line-height: 1; color: rgba(255, 255, 255, 0.5); pointer-events: none; }
-/* Status panel: dot, label, text in the middle. */
-.status-cell { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; min-width: 0; }
-.key-caption { max-width: 100%; color: #e5e5e5; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.key-sub { color: #9ca3af; font-weight: 400; }
-/* "Now playing" widget (DATA_MODEL.md 6.2) */
-.media { display: flex; align-items: center; gap: 2vmin; width: 100%; height: 100%; box-sizing: border-box; min-width: 0; }
-.media-art { flex: none; border-radius: 12%; opacity: 0.85; object-fit: cover; }
-.media-art-empty { display: flex; align-items: center; justify-content: center; box-sizing: border-box; border: 1px solid rgba(255, 255, 255, 0.16); color: #e5e5e5; opacity: 1; }
-.media-text { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 0.8vmin; }
-.media-title { font-size: 2.8vmin; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.media-title.two-lines { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-.media-artist { font-size: 2.4vmin; color: #9ca3af; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.media-nothing { font-size: 2.8vmin; color: #6b7280; }
-.media-progress { height: 0.5vmin; background: #26262c; border-radius: 0.25vmin; overflow: hidden; }
-.media-progress-fill { height: 100%; background: #e5e5e5; opacity: 0.6; }
-.media-keys { display: flex; align-items: center; gap: 1vmin; flex: none; }
-.status-key-dot { display: block; border-radius: 50%; }
-/* Confirm-by-holding: a progress line runs round the key's outline. */
-.ring { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
-.ring rect {
-  fill: none;
-  stroke: #e5e5e5;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-dasharray: 100;
-  stroke-dashoffset: 100;
-  animation: ring-fill 800ms linear forwards;
-}
-@keyframes ring-fill { to { stroke-dashoffset: 0; } }
 
 .badge {
   position: absolute;
@@ -238,44 +130,3 @@ input { user-select: text; touch-action: manipulation; }
   font-size: 3.2vmin;
 }
 .primary.danger { background: #b91c1c; }
-
-.clock { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; }
-.clock-time { font-weight: 300; font-variant-numeric: tabular-nums; line-height: 1.05; }
-.clock-date { font-size: 2.6vmin; color: #9ca3af; }
-
-.sys { display: flex; flex-direction: column; justify-content: center; gap: 1.2vmin; width: 100%; height: 100%; padding: 0 2.2vmin; box-sizing: border-box; }
-.sys-row { display: flex; align-items: center; gap: 1.2vmin; font-size: 2.4vmin; }
-.sys-label { width: 7vmin; color: #9ca3af; }
-.sys-bar { flex: 1; height: 1.2vmin; border-radius: 0.6vmin; background: #26262c; overflow: hidden; }
-.sys-fill { display: block; height: 100%; }
-.sys-value { width: 7vmin; text-align: right; font-variant-numeric: tabular-nums; }
-.sys-net { font-size: 2.4vmin; color: #9ca3af; white-space: nowrap; }
-
-.statuses { display: flex; flex-direction: column; width: 100%; height: 100%; padding: 1.2vmin 2vmin; box-sizing: border-box; overflow: hidden; }
-.statuses-title { font-size: 2.2vmin; color: #6b7280; text-transform: uppercase; letter-spacing: 0.08em; }
-.statuses-empty { margin: auto; color: #9ca3af; font-size: 2.6vmin; }
-.status-row { display: flex; align-items: center; gap: 1.4vmin; height: 5vmin; flex: none; }
-.status-dot { width: 1.6vmin; height: 1.6vmin; border-radius: 50%; flex: none; }
-.status-label { flex: 1; min-width: 0; font-size: 2.8vmin; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.status-text { max-width: 45%; font-size: 2.4vmin; color: #9ca3af; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.status-more { height: 5vmin; flex: none; display: flex; align-items: center; font-size: 2.4vmin; color: #9ca3af; }
-.pulse { animation: state-pulse 1.6s ease-in-out infinite; }
-@keyframes state-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-
-
-.notifs { width: 100%; height: 100%; overflow-y: auto; touch-action: pan-y; padding: 1vmin 1.4vmin; box-sizing: border-box; }
-.notif-empty { color: #9ca3af; font-size: 2.6vmin; }
-.notif {
-  display: flex;
-  align-items: center;
-  gap: 1.4vmin;
-  margin-bottom: 1vmin;
-  padding: 1vmin 1.4vmin;
-  border-left: 0.6vmin solid #2563eb;
-  background: #1e1e24;
-  border-radius: 1vmin;
-}
-.notif-main { flex: 1; min-width: 0; }
-.notif-title { font-size: 2.8vmin; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.notif-body { font-size: 2.4vmin; color: #9ca3af; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.notif-meta { font-size: 2vmin; color: #9ca3af; white-space: nowrap; }

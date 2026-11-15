@@ -1,18 +1,11 @@
 import type { ButtonItem } from "@decka/shared";
-import { setPage } from "../app/controller";
-import { getState, useAppState } from "../store/store";
+import { useDeckEnv } from "./deckEnv";
 import Key from "./Key";
 import { resolveLook } from "./look";
 
 export default function Button({ item }: { item: ButtonItem }) {
-  const vars = useAppState((s) => s.state?.vars);
+  const { vars, onNavigate } = useDeckEnv();
   const look = resolveLook(item, vars);
-
-  function navigate() {
-    if (item.navigate === undefined) return;
-    const index = getState().state?.layout.pages.findIndex((p) => p.id === item.navigate) ?? -1;
-    if (index >= 0) setPage(index);
-  }
 
   return (
     <Key
@@ -22,7 +15,7 @@ export default function Button({ item }: { item: ButtonItem }) {
       {...(look.label !== undefined ? { label: look.label } : {})}
       {...(look.color !== undefined ? { color: look.color } : {})}
       {...(item.navigate !== undefined ? { chevron: true } : {})}
-      onTap={navigate}
+      onTap={() => item.navigate !== undefined && onNavigate(item.navigate)}
     />
   );
 }

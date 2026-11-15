@@ -1,5 +1,5 @@
 import type { SysItem } from "@decka/shared";
-import { useAppState } from "../../store/store";
+import { useDeckEnv } from "../deckEnv";
 import { formatRate, percent } from "./format";
 
 function barColor(value: number): string {
@@ -21,7 +21,7 @@ function Row({ label, value }: { label: string; value: number }) {
 }
 
 export default function Sys({ item }: { item: SysItem }) {
-  const sys = useAppState((s) => s.state?.sys ?? null);
+  const { sys } = useDeckEnv();
   if (!sys) return <div className="tile-body">—</div>;
 
   const disk = sys.disks[0];

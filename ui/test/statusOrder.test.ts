@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import type { StatusItem, StatusState } from "@decka/shared";
-import { sortStatuses } from "../src/deck/widgets/statusOrder";
+import { sortStatuses } from "../src/widgets/statusOrder";
 
 const s = (id: string, label: string, state: StatusState, group?: string): StatusItem => {
   const item: StatusItem = { id, label, state, source: "push", updatedAt: 0 };

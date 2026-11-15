@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import type { StatusesItem } from "@decka/shared";
-import { useAppState } from "../../store/store";
+import { useDeckEnv } from "../deckEnv";
 import { sortStatuses, STATE_COLOR } from "./statusOrder";
 
 const ROW_VMIN = 5;
 
 export default function Statuses({ item }: { item: StatusesItem }) {
-  const statuses = useAppState((s) => s.state?.statuses);
+  const { statuses } = useDeckEnv();
   const box = useRef<HTMLDivElement>(null);
   const titleEl = useRef<HTMLDivElement>(null);
   const [capacity, setCapacity] = useState(3);
@@ -26,7 +26,7 @@ export default function Statuses({ item }: { item: StatusesItem }) {
     return () => observer.disconnect();
   }, []);
 
-  const list = sortStatuses(statuses ?? [], item.group);
+  const list = sortStatuses(statuses, item.group);
   const overflow = list.length > capacity;
   const shown = overflow ? list.slice(0, Math.max(0, capacity - 1)) : list;
 

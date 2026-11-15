@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { gridMetrics, spanSize } from "../src/deck/gridMetrics";
+import { gridMetrics, spanSize } from "../src/gridMetrics";
 
 const fits = (w: number, h: number, cols: number, rows: number) => {
   const m = gridMetrics({ w, h }, cols, rows);

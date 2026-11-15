@@ -1,14 +1,13 @@
 import { useEffect, useState } from "react";
 import type { NotificationsItem } from "@decka/shared";
-import { dismiss } from "../../app/controller";
-import { useAppState } from "../../store/store";
+import { useDeckEnv } from "../deckEnv";
 import { relTime } from "./relTime";
 import { LEVEL_COLOR } from "./statusOrder";
 
 const REFRESH_MS = 30_000;
 
 export default function Notifications(_props: { item: NotificationsItem }) {
-  const list = useAppState((s) => s.state?.notifications);
+  const { notifications: list, onDismiss } = useDeckEnv();
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -21,7 +20,7 @@ export default function Notifications(_props: { item: NotificationsItem }) {
     // Vertical scrolling stays inside the widget: its pointerdown never reaches the page swipe handler.
     <div className="notifs" onPointerDown={(e) => e.stopPropagation()}>
       {list.map((n) => (
-        <div className="notif" key={n.id} style={{ borderLeftColor: LEVEL_COLOR[n.level] }} onClick={() => dismiss(n.id)}>
+        <div className="notif" key={n.id} style={{ borderLeftColor: LEVEL_COLOR[n.level] }} onClick={() => onDismiss(n.id)}>
           <div className="notif-main">
             <div className="notif-title">{n.title}</div>
             {n.body && <div className="notif-body">{n.body}</div>}

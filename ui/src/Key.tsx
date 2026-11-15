@@ -1,16 +1,13 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
-import { press } from "../app/controller";
-import type { ConnFailure } from "../net/connection";
-import { pushToast, useAppState } from "../store/store";
+import { useDeckEnv } from "./deckEnv";
 import Icon from "./Icon";
-import { keyFace, pressErrorTitle } from "./look";
+import { keyFace } from "./look";
 import { useDeckMetrics } from "./metricsContext";
 
 const TAP_SLOP_PX = 20;
 const CONFIRM_HOLD_MS = 800;
 const OK_MS = 300;
 const ERROR_MS = 1500;
-const ERROR_TOAST_MS = 4000;
 
 type Phase = "idle" | "pressed" | "confirming" | "pending" | "ok" | "error";
 
@@ -32,7 +29,7 @@ export interface KeyProps {
 
 /** One key with the shared press states: pressed, confirming, pending, ok, error. Used by buttons and widgets. */
 export default function Key({ actionId, onTap, confirm, icon, label, color, side: fixedSide, chevron }: KeyProps) {
-  const online = useAppState((s) => s.conn === "online");
+  const { online, onPress, onPressError } = useDeckEnv();
   const disabled = actionId !== undefined && !online;
 
   const [phase, setPhaseState] = useState<Phase>("idle");
@@ -73,14 +70,14 @@ export default function Key({ actionId, onTap, confirm, icon, label, color, side
   function doPress() {
     if (actionId === undefined) return;
     setPhase("pending");
-    press(actionId).then(
+    onPress(actionId).then(
       () => {
         if (!mounted.current) return;
         setPhase("ok");
         settleAfter(OK_MS);
       },
-      (e: ConnFailure) => {
-        pushToast({ level: "error", title: pressErrorTitle(e), ms: ERROR_TOAST_MS });
+      (e: { code: string; message?: string }) => {
+        onPressError(e);
         if (!mounted.current) return;
         setPhase("error");
         settleAfter(ERROR_MS);

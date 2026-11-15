@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { formatClock, formatRate, percent } from "../src/deck/widgets/format";
+import { formatClock, formatRate, percent } from "../src/widgets/format";
 
 describe("formatRate", () => {
   test("Kbps below 1000, Mbps with one decimal from 1000", () => {

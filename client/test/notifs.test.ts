@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test } from "vitest";
 import type { Notification, NotifLevel, PatchMsg, WelcomeMsg } from "@decka/shared";
 import welcomeFixture from "@decka/shared/fixtures/s2c-welcome.json";
-import { relTime } from "../src/deck/widgets/relTime";
+import { relTime } from "@decka/ui";
 import { applyPatch, applyWelcome, getState, onAttention, resetState } from "../src/store/store";
 
 const welcome = welcomeFixture as unknown as WelcomeMsg; // rev 42, one notification (id "7")

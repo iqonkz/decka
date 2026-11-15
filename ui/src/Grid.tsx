@@ -1,11 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ClientLayout, Page } from "@decka/shared";
+import { DeckEnvContext, type DeckCallbacks, type DeckData } from "./deckEnv";
 import { gridMetrics } from "./gridMetrics";
 import { DeckMetricsContext } from "./metricsContext";
 import Tile from "./Tile";
 
+export interface GridProps extends DeckCallbacks {
+  page: Page;
+  grid: ClientLayout["grid"];
+  data: DeckData;
+}
+
 /** Square keys of equal size with a small gap, centered; empty cells are not drawn. */
-export default function Grid({ page, grid }: { page: Page; grid: ClientLayout["grid"] }) {
+export default function Grid({ page, grid, data, onPress, onPressError, onNavigate, onDismiss }: GridProps) {
+  const env = useMemo(() => ({ ...data, onPress, onPressError, onNavigate, onDismiss }), [data, onPress, onPressError, onNavigate, onDismiss]);
   const root = useRef<HTMLDivElement>(null);
   const [viewport, setViewport] = useState({ w: window.innerWidth, h: window.innerHeight });
   useEffect(() => {
@@ -22,6 +30,7 @@ export default function Grid({ page, grid }: { page: Page; grid: ClientLayout["g
   const value = useMemo(() => ({ side: m.side, gap: m.gap }), [m.side, m.gap]);
   return (
     <div ref={root} className="grid">
+      <DeckEnvContext.Provider value={env}>
       <DeckMetricsContext.Provider value={value}>
         <div
           className="grid-inner"
@@ -38,6 +47,7 @@ export default function Grid({ page, grid }: { page: Page; grid: ClientLayout["g
           ))}
         </div>
       </DeckMetricsContext.Provider>
+      </DeckEnvContext.Provider>
     </div>
   );
 }

@@ -1,11 +1,11 @@
 import type { StatusItemTile } from "@decka/shared";
-import { useAppState } from "../../store/store";
+import { useDeckEnv } from "../deckEnv";
 import { useDeckMetrics } from "../metricsContext";
 import { STATE_COLOR } from "./statusOrder";
 
 /** A 1x1 status: a panel with a state dot, the label and the text. */
 export default function StatusTile({ item }: { item: StatusItemTile }) {
-  const status = useAppState((s) => s.state?.statuses.find((x) => x.id === item.statusId));
+  const status = useDeckEnv().statuses.find((x) => x.id === item.statusId);
   const { side } = useDeckMetrics();
   // A missing status is shown as unknown, labelled with its id.
   const state = status?.state ?? "unknown";

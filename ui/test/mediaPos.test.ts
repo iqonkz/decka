@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import type { MediaInfo } from "@decka/shared";
-import { currentPosition, formatTime } from "../src/deck/widgets/mediaPos";
+import { currentPosition, formatTime } from "../src/widgets/mediaPos";
 
 const media = (over: Partial<MediaInfo> = {}): MediaInfo => ({
   source: "Spotify.exe",

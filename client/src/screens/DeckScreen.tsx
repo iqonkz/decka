@@ -5,8 +5,8 @@ import DimOverlay from "../display/DimOverlay";
 import { useDisplayMode } from "../display/idle";
 import Screensaver from "../display/Screensaver";
 import { usePixelShift } from "../display/pixelShift";
-import Grid from "../deck/Grid";
-import PageDots from "../deck/PageDots";
+import { PageDots } from "@decka/ui";
+import DeckBridge from "../deck/DeckBridge";
 import Toasts from "../deck/Toasts";
 import PageHint from "../deck/PageHint";
 import { noteTouch, runContext, useAppState } from "../store/store";
@@ -95,7 +95,7 @@ export default function DeckScreen() {
         }}
       >
         <div className="deck-inner" style={{ transform: `translate(${shift.x}px, ${shift.y}px)` }}>
-          {page && <Grid page={page} grid={layout.grid} />}
+          {page && <DeckBridge page={page} grid={layout.grid} />}
           <PageDots count={count} active={pageIndex} />
           <PageHint />
           <ConnBadge />

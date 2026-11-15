@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { keyFace, PLAIN_FACE } from "../src/deck/look";
+import { keyFace, PLAIN_FACE } from "../src/look";
 
 describe("keyFace", () => {
   test("no colour: dark gradient, light icon, faint outline", () => {
