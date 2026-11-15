@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { colorVars, shade, parseHex } from "../src/theme/colors";
-import { contrast, hexOfRgb, readableFace, readableOn } from "../src/theme/contrast";
+import { contrast, hexOfRgb, readableFace } from "../src/theme/contrast";
 import { materialRoles } from "../src/theme/material";
 
 /** The 8 accents of the Appearance tab (DESIGN.md 4.4, T13.10). */
@@ -47,26 +47,48 @@ describe("labels are readable in every theme (WCAG AA, >= 4.5:1)", () => {
     }
   });
 
-  test("Glass: white on the glass over the darkest and the brightest stops of each wallpaper", () => {
-    // Worst case = the lightest colour a wallpaper puts behind a key, plus the 7% white of the glass layer.
-    const brightest: Record<string, string> = { aurora: "#0ea5e9", sunset: "#f97316", ocean: "#0891b2", graphite: "#3f3f46" };
-    const ratios = Object.fromEntries(
-      Object.entries(brightest).map(([name, stop]) => {
-        const rgb = parseHex(stop)!;
-        const glass = hexOfRgb(shade(rgb, 0.07));
-        return [name, contrast("#ffffff", glass)];
-      }),
-    );
-    // Recorded for docs/BLOCKERS.md: bright wallpaper stops are below 4.5 with white labels (see the report of T13.11).
-    expect(ratios.graphite).toBeGreaterThanOrEqual(MIN);
-    for (const [name, ratio] of Object.entries(ratios)) expect(ratio, name).toBeGreaterThan(2);
+  // Every colour stop of every wallpaper except `album` (DESIGN.md 1.5), under the 0.35 black dimming layer (D-1) and
+  // the 7% white of the glass layer. This is the worst case: a key sits over a stop at full strength.
+  const STOPS: Record<string, string[]> = {
+    aurora: ["#6d28d9", "#0ea5e9", "#10b981"],
+    sunset: ["#f97316", "#db2777", "#7c3aed"],
+    ocean: ["#1d4ed8", "#0891b2", "#0f766e"],
+    graphite: ["#3f3f46", "#27272a"],
+  };
+  const MUTED_GLASS = "#f9fafb"; // `--muted` in glass.css
+  const glassOver = (stop: string): string => {
+    const dimmed = shade(parseHex(stop)!, -0.35);
+    return hexOfRgb(shade(dimmed.split(",").map(Number) as [number, number, number], 0.07));
+  };
+
+  test("Glass: white labels on the dimmed glass over every wallpaper stop, strictly >= 4.5", () => {
+    for (const [name, stops] of Object.entries(STOPS))
+      for (const stop of stops) expect(contrast("#ffffff", glassOver(stop)), `${name} ${stop}`).toBeGreaterThanOrEqual(MIN);
+  });
+
+  test("Glass: secondary text (--muted) on the glass over every wallpaper stop", () => {
+    for (const [name, stops] of Object.entries(STOPS))
+      for (const stop of stops) expect(contrast(MUTED_GLASS, glassOver(stop)), `${name} ${stop}`).toBeGreaterThanOrEqual(MIN);
+  });
+
+  test("secondary text on the other themes: #9ca3af on the panel", () => {
+    expect(contrast("#9ca3af", "#000000")).toBeGreaterThanOrEqual(MIN); // AMOLED
+    for (const end of ["#1c1c22", "#0d0d10"]) expect(contrast("#9ca3af", end), `Studio ${end}`).toBeGreaterThanOrEqual(MIN);
   });
 });
 
 describe("readableFace", () => {
   test("a face that already reads is left alone", () => {
     expect(readableFace("#1c1c22", "#0d0d10")).toEqual({ top: "#1c1c22", bottom: "#0d0d10", label: "#ffffff" });
-    expect(readableFace("#fde047", "#ca8a04").label).toBe("#0b0b0e");
+  });
+
+  test("the label is always white; light colours are darkened, never given a dark label", () => {
+    for (const [top, bottom] of [["#fde047", "#ca8a04"], ["#ffffff", "#e5e5e5"], ["#22d3ee", "#0891b2"]] as const) {
+      const face = readableFace(top, bottom);
+      expect(face.label).toBe("#ffffff");
+      expect(contrast("#ffffff", face.top)).toBeGreaterThanOrEqual(MIN);
+      expect(contrast("#ffffff", face.bottom)).toBeGreaterThanOrEqual(MIN);
+    }
   });
 
   test("a mid tone is darkened, keeping its hue, until a white label passes", () => {
@@ -75,12 +97,5 @@ describe("readableFace", () => {
     expect(contrast("#ffffff", face.top)).toBeGreaterThanOrEqual(MIN);
     expect(contrast("#ffffff", face.bottom)).toBeGreaterThanOrEqual(MIN);
     expect(face.top).not.toBe("#7e60ff");
-  });
-});
-
-describe("readableOn", () => {
-  test("white on dark faces, near-black on light ones", () => {
-    expect(readableOn("#1c1c22", "#0d0d10")).toBe("#ffffff");
-    expect(readableOn("#fde047", "#ca8a04")).toBe("#0b0b0e");
   });
 });

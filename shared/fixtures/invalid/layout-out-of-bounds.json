@@ -96,7 +96,7 @@
             "y": 2,
             "w": 1,
             "h": 1,
-            "icon": "lucide:volume-2",
+            "icon": "lucide:volume",
             "actionId": "vol-mute",
             "bind": {
               "var": "audio.muted",

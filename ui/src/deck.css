@@ -78,7 +78,7 @@
 /* Status panel: dot, label, text in the middle. */
 .status-cell { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; min-width: 0; }
 .key-caption { max-width: 100%; color: #e5e5e5; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.key-sub { color: #9ca3af; font-weight: 400; }
+.key-sub { color: var(--muted, #9ca3af); font-weight: 400; }
 /* "Now playing" widget (DATA_MODEL.md 6.2) */
 .media { display: flex; align-items: center; gap: 2vmin; width: 100%; height: 100%; box-sizing: border-box; min-width: 0; }
 .media-art { flex: none; border-radius: 12%; opacity: 0.85; object-fit: cover; }
@@ -86,7 +86,7 @@
 .media-text { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 0.8vmin; }
 .media-title { font-size: 2.8vmin; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .media-title.two-lines { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-.media-artist { font-size: 2.4vmin; color: #9ca3af; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.media-artist { font-size: 2.4vmin; color: var(--muted, #9ca3af); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .media-nothing { font-size: 2.8vmin; color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .media-progress { height: 0.5vmin; background: #26262c; border-radius: 0.25vmin; overflow: hidden; }
 .media-progress-fill { height: 100%; background: #e5e5e5; opacity: 0.6; }
@@ -108,29 +108,29 @@
 
 .clock { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; }
 .clock-time { font-weight: 300; font-variant-numeric: tabular-nums; line-height: 1.05; }
-.clock-date { font-size: 2.6vmin; color: #9ca3af; }
+.clock-date { font-size: 2.6vmin; color: var(--muted, #9ca3af); }
 
 .sys { display: flex; flex-direction: column; justify-content: center; gap: 1.2vmin; width: 100%; height: 100%; padding: 0 2.2vmin; box-sizing: border-box; }
 .sys-row { display: flex; align-items: center; gap: 1.2vmin; font-size: 2.4vmin; }
-.sys-label { width: 7vmin; color: #9ca3af; }
+.sys-label { width: 7vmin; color: var(--muted, #9ca3af); }
 .sys-bar { flex: 1; height: 1.2vmin; border-radius: 0.6vmin; background: #26262c; overflow: hidden; }
 .sys-fill { display: block; height: 100%; }
 .sys-value { width: 7vmin; text-align: right; font-variant-numeric: tabular-nums; }
-.sys-net { font-size: 2.4vmin; color: #9ca3af; white-space: nowrap; }
+.sys-net { font-size: 2.4vmin; color: var(--muted, #9ca3af); white-space: nowrap; }
 
 .statuses { display: flex; flex-direction: column; width: 100%; height: 100%; padding: 1.2vmin 2vmin; box-sizing: border-box; overflow: hidden; }
 .statuses-title { font-size: 2.2vmin; color: #6b7280; text-transform: uppercase; letter-spacing: 0.08em; }
-.statuses-empty { margin: auto; color: #9ca3af; font-size: 2.6vmin; }
+.statuses-empty { margin: auto; color: var(--muted, #9ca3af); font-size: 2.6vmin; }
 .status-row { display: flex; align-items: center; gap: 1.4vmin; height: 5vmin; flex: none; }
 .status-dot { width: 1.6vmin; height: 1.6vmin; border-radius: 50%; flex: none; }
 .status-label { flex: 1; min-width: 0; font-size: 2.8vmin; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.status-text { max-width: 45%; font-size: 2.4vmin; color: #9ca3af; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.status-more { height: 5vmin; flex: none; display: flex; align-items: center; font-size: 2.4vmin; color: #9ca3af; }
+.status-text { max-width: 45%; font-size: 2.4vmin; color: var(--muted, #9ca3af); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.status-more { height: 5vmin; flex: none; display: flex; align-items: center; font-size: 2.4vmin; color: var(--muted, #9ca3af); }
 .pulse { animation: state-pulse 1.6s ease-in-out infinite; }
 @keyframes state-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
 .notifs { width: 100%; height: 100%; overflow-y: auto; touch-action: pan-y; padding: 1vmin 1.4vmin; box-sizing: border-box; }
-.notif-empty { color: #9ca3af; font-size: 2.6vmin; }
+.notif-empty { color: var(--muted, #9ca3af); font-size: 2.6vmin; }
 .notif {
   display: flex;
   align-items: center;
@@ -143,5 +143,5 @@
 }
 .notif-main { flex: 1; min-width: 0; }
 .notif-title { font-size: 2.8vmin; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.notif-body { font-size: 2.4vmin; color: #9ca3af; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.notif-meta { font-size: 2vmin; color: #9ca3af; white-space: nowrap; }
+.notif-body { font-size: 2.4vmin; color: var(--muted, #9ca3af); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.notif-meta { font-size: 2vmin; color: var(--muted, #9ca3af); white-space: nowrap; }
