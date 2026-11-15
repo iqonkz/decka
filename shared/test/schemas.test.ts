@@ -103,6 +103,18 @@ describe("invalid inputs are rejected", () => {
     expect(valid(layoutRef, layoutWith(button))).toBe(true);
   });
 
+  test("theme, accent and wallpaper are checked (M13)", () => {
+    const withDisplay = (extra: Record<string, unknown>) => {
+      const l = layoutWith(button) as { display: Record<string, unknown> };
+      Object.assign(l.display, extra);
+      return l;
+    };
+    expect(valid(layoutRef, withDisplay({ theme: "glass", accent: "#7c5cff", wallpaper: "album" }))).toBe(true);
+    expect(valid(layoutRef, withDisplay({ theme: "neon" }))).toBe(false);
+    expect(valid(layoutRef, withDisplay({ accent: "purple" }))).toBe(false);
+    expect(valid(layoutRef, withDisplay({ wallpaper: "forest" }))).toBe(false);
+  });
+
   test("img: icons need exactly 16 lower-case hex characters", () => {
     const withIcon = (icon: string) => layoutWith({ ...button, icon });
     expect(valid(layoutRef, withIcon("img:0123456789abcdef"))).toBe(true);

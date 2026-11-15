@@ -161,6 +161,15 @@ pub struct DisplaySettings {
     /// M11: switch to context pages automatically; absent = true.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub context_pages: Option<bool>,
+    /// M13: `amoled` | `studio` | `material` | `glass`; absent = amoled (checked by `validate_layout`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub theme: Option<String>,
+    /// M13: `#rrggbb`; absent = `#7c5cff`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub accent: Option<String>,
+    /// M13: `aurora` | `sunset` | `ocean` | `graphite` | `album` (Glass only); absent = aurora.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub wallpaper: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

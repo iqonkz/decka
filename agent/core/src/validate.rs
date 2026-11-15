@@ -345,6 +345,15 @@ pub fn validate_layout(layout: &LayoutFile, actions: &ActionsFile) -> Vec<Valida
     if !is_hhmm(&d.night.to) {
         out.push(issue("/display/night/to", "must be HH:MM"));
     }
+    if d.theme.as_deref().is_some_and(|t| !["amoled", "studio", "material", "glass"].contains(&t)) {
+        out.push(issue("/display/theme", "theme must be amoled, studio, material or glass"));
+    }
+    if d.accent.as_deref().is_some_and(|c| !is_color(c)) {
+        out.push(issue("/display/accent", "accent must be #rrggbb"));
+    }
+    if d.wallpaper.as_deref().is_some_and(|w| !["aurora", "sunset", "ocean", "graphite", "album"].contains(&w)) {
+        out.push(issue("/display/wallpaper", "wallpaper must be aurora, sunset, ocean, graphite or album"));
+    }
     out
 }
 

@@ -1,0 +1,39 @@
+/** `#rgb` / `#rrggbb` -> [r, g, b]; anything else -> null. */
+export function parseHex(color: string): [number, number, number] | null {
+  const m = /^#([0-9a-fA-F]{6})$/.exec(color) ?? /^#([0-9a-fA-F]{3})$/.exec(color);
+  if (!m || !m[1]) return null;
+  const h = m[1].length === 3 ? [...m[1]].map((c) => c + c).join("") : m[1];
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+}
+
+const mix = (c: number, target: number, amount: number): number => Math.round(c + (target - c) * amount);
+
+/** `rgb` mixed with white (`amount` > 0) or black (`amount` < 0) in sRGB, as `r,g,b`. */
+export function shade([r, g, b]: [number, number, number], amount: number): string {
+  const target = amount >= 0 ? 255 : 0;
+  const a = Math.abs(amount);
+  return `${mix(r, target, a)},${mix(g, target, a)},${mix(b, target, a)}`;
+}
+
+export const luminance = ([r, g, b]: [number, number, number]): number => 0.2126 * r + 0.7152 * g + 0.0722 * b;
+
+/**
+ * CSS variables of a coloured key, so that every theme can build its own look from one colour:
+ * `--c`, `--c-top` (12% lighter), `--c-bottom` (18% darker), `--c-a16/a30/a50` (the colour with that opacity)
+ * and `--c-ink` (the colour itself, or a light grey when it is too dark to read on black).
+ * No valid colour: no variables.
+ */
+export function colorVars(color: string | undefined): Record<string, string> {
+  const rgb = color ? parseHex(color) : null;
+  if (!rgb || !color) return {};
+  const [r, g, b] = rgb;
+  return {
+    "--c": color,
+    "--c-top": `rgb(${shade(rgb, 0.12)})`,
+    "--c-bottom": `rgb(${shade(rgb, -0.18)})`,
+    "--c-a16": `rgba(${r},${g},${b},0.16)`,
+    "--c-a30": `rgba(${r},${g},${b},0.30)`,
+    "--c-a50": `rgba(${r},${g},${b},0.5)`,
+    "--c-ink": luminance(rgb) < 64 ? "#e5e5e5" : color,
+  };
+}

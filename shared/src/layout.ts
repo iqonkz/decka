@@ -18,7 +18,12 @@ export interface DisplaySettings {
   pixelShift: boolean;    // default true
   night: { enabled: boolean; from: string; to: string }; // "HH:MM", phone local time
   contextPages?: boolean; // M11: switch to context pages automatically; absent = true
+  theme?: ThemeId;        // M13: DESIGN.md 1; absent = "amoled"; new installs get "studio"
+  accent?: string;        // M13: "#rrggbb", accent of the Material theme and of the settings window; absent = "#7c5cff"
+  wallpaper?: WallpaperId; // M13: Glass theme only; absent = "aurora"
 }
+export type ThemeId = "amoled" | "studio" | "material" | "glass";
+export type WallpaperId = "aurora" | "sunset" | "ocean" | "graphite" | "album";
 
 interface ItemBase { id: Id; x: number; y: number; w: number; h: number; }
 

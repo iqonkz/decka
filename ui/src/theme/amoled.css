@@ -1,0 +1,31 @@
+/* AMOLED: a black screen and a thin outline (DESIGN.md 1.1). Keys have no face, widgets no panel. */
+[data-theme="amoled"] {
+  --k-radius: 0.22;
+  --ink: #e5e5e5;
+  --label-color: #9ca3af;
+  --text-color: #e5e5e5;
+  --label-weight: 500;
+  --label-shadow: none;
+  --key-shadow: none;
+}
+[data-theme="amoled"] .key {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow: none;
+}
+[data-theme="amoled"] .key.colored {
+  background: var(--c-a16);
+  border-color: var(--c-a50);
+  --ink: var(--c-ink);
+  --label-color: #e5e5e5;
+}
+[data-theme="amoled"] .key.pressed,
+[data-theme="amoled"] .key.confirming {
+  background: rgba(255, 255, 255, 0.10);
+  box-shadow: none;
+  filter: none;
+}
+[data-theme="amoled"] .key.colored.pressed,
+[data-theme="amoled"] .key.colored.confirming { background: var(--c-a30); }
+[data-theme="amoled"] .key.disabled { box-shadow: none; }
+[data-theme="amoled"] .tile.panel { background: none; border-color: transparent; box-shadow: none; }

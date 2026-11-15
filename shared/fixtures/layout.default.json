@@ -1,7 +1,7 @@
 {
   "version": 1,
   "grid": { "cols": 7, "rows": 4 },
-  "display": { "dimAfterSec": 60, "dimLevel": 0.3, "sleepAfterSec": 600, "pixelShift": true, "night": { "enabled": false, "from": "23:00", "to": "07:00" } },
+  "display": { "dimAfterSec": 60, "dimLevel": 0.3, "sleepAfterSec": 600, "pixelShift": true, "night": { "enabled": false, "from": "23:00", "to": "07:00" }, "theme": "studio" },
   "pages": [
     { "id": "main", "name": "Main", "items": [
       { "id": "w-clock", "kind": "clock", "x": 0, "y": 0, "w": 2, "h": 1 },

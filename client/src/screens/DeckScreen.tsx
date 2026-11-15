@@ -5,7 +5,7 @@ import DimOverlay from "../display/DimOverlay";
 import { useDisplayMode } from "../display/idle";
 import Screensaver from "../display/Screensaver";
 import { usePixelShift } from "../display/pixelShift";
-import { PageDots } from "@decka/ui";
+import { applyTheme, PageDots } from "@decka/ui";
 import DeckBridge from "../deck/DeckBridge";
 import Toasts from "../deck/Toasts";
 import PageHint from "../deck/PageHint";
@@ -64,6 +64,10 @@ export default function DeckScreen() {
   const openUnpair = useCallback(() => setConfirmUnpair(true), []); // stable: the tap counter lives in the effect
   useUnpairGesture(openUnpair);
   useContextPages();
+  const display = layout?.display;
+  useEffect(() => {
+    applyTheme(document.documentElement, display); // `data-theme` + `--accent` on the root; a missing theme is amoled
+  }, [display?.theme, display?.accent, display?.wallpaper]); // eslint-disable-line react-hooks/exhaustive-deps
   const mode = useDisplayMode(layout?.display ?? null);
   const shift = usePixelShift(layout?.display.pixelShift === true);
   if (!layout) return null;

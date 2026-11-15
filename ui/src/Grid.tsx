@@ -37,6 +37,7 @@ export default function Grid({ page, grid, data, onPress, onPressError, onNaviga
           style={{
             left: m.offsetX,
             top: m.offsetY,
+            ["--side" as string]: `${m.side}px`,
             gridTemplateColumns: `repeat(${grid.cols}, ${m.side}px)`,
             gridTemplateRows: `repeat(${grid.rows}, ${m.side}px)`,
             gap: m.gap,

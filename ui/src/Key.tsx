@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { useDeckEnv } from "./deckEnv";
 import Icon from "./Icon";
-import { keyFace } from "./look";
 import { useDeckMetrics } from "./metricsContext";
+import { colorVars, parseHex } from "./theme/colors";
 
 const TAP_SLOP_PX = 20;
 const CONFIRM_HOLD_MS = 800;
@@ -45,7 +45,7 @@ export default function Key({ actionId, onTap, confirm, icon, label, color, side
   const mounted = useRef(true);
   const metrics = useDeckMetrics();
   const side = fixedSide ?? metrics.side;
-  const face = keyFace(color);
+  const coloured = color !== undefined && parseHex(color) !== null;
 
   useEffect(() => {
     mounted.current = true;
@@ -128,16 +128,14 @@ export default function Key({ actionId, onTap, confirm, icon, label, color, side
   }
 
   // The key is the touch target and the face at once: `side` x `side` px.
-  const radius = 0.16 * side;
-  const keyStyle: CSSProperties = {
+  // Colours, face and radius come from the theme through CSS variables; only the size and the key colour are set here.
+  const keyStyle = {
     width: side,
     height: side,
-    borderRadius: radius,
-    background: face.background,
-    borderColor: face.border,
-    color: face.ink,
-  };
-  const classes = ["key", phase, disabled ? "disabled" : ""].filter(Boolean).join(" ");
+    ...(fixedSide !== undefined ? { "--side": `${fixedSide}px` } : {}),
+    ...(coloured ? colorVars(color) : {}),
+  } as CSSProperties;
+  const classes = ["key", phase, coloured ? "colored" : "", disabled ? "disabled" : ""].filter(Boolean).join(" ");
   const labelPad = 0.07 * side;
   return (
     <div className={classes} style={keyStyle} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={cancel}>
@@ -163,7 +161,7 @@ export default function Key({ actionId, onTap, confirm, icon, label, color, side
       )}
       {phase === "confirming" && (
         <svg className="ring" width={side} height={side} viewBox={`0 0 ${side} ${side}`} aria-hidden="true">
-          <rect x="1" y="1" width={side - 2} height={side - 2} rx={radius} pathLength="100" />
+          <rect x="1" y="1" width={side - 2} height={side - 2} pathLength="100" />
         </svg>
       )}
     </div>
