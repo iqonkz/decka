@@ -119,6 +119,8 @@ export interface DisplaySettings {
   theme?: "amoled" | "studio" | "material" | "glass";       // M13: DESIGN.md §1; отсутствует = "amoled"; новые установки — "studio"
   accent?: string;        // M13: "#rrggbb", акцент темы Material и окна настроек; отсутствует = "#7c5cff"
   wallpaper?: "aurora" | "sunset" | "ocean" | "graphite" | "album"; // M13: только тема glass; отсутствует = "aurora"
+  keyFace?: "standard" | "full";   // M14: стиль кнопок по умолчанию, DESIGN.md §2.1; отсутствует = "standard"
+  keyLabels?: boolean;             // M14: показывать подписи кнопок по умолчанию; отсутствует = true
 }
 
 interface ItemBase { id: Id; x: number; y: number; w: number; h: number; }
@@ -131,6 +133,8 @@ export interface ButtonItem extends ItemBase, ButtonLook {
   popup?: Id;             // M13: id popup-страницы
   confirm?: boolean;      // true → нажатие удержанием 800 мс
   bind?: { var: VarName; states: Record<string, ButtonLook> }; // ключ = String(значение переменной)
+  face?: "standard" | "full";   // M14: переопределяет display.keyFace для этой кнопки
+  showLabel?: boolean;          // M14: переопределяет display.keyLabels; подпись видна, если label непустой и (showLabel ?? display.keyLabels ?? true)
 }
 export interface ClockItem    extends ItemBase { kind: "clock"; seconds?: boolean; }
 export interface SysItem      extends ItemBase { kind: "sys"; }
@@ -500,6 +504,7 @@ export interface PageTemplate {
 
 - Каталог `<configDir>\icons\`, файлы `<hash16>.png`, где `hash16` — первые 16 hex-символов SHA-256 содержимого PNG.
 - Каждая иконка — PNG 96×96 с прозрачностью; data URL не длиннее 32 768 символов (иначе иконка отклоняется с ошибкой `Icon is too large`).
+- **M14 (режим «Большая иконка», DESIGN.md §2.1):** новые иконки из `icon_from_program` и `icon_from_image` — PNG **256×256**, предел data URL — **131 072** символа. Если PNG 256 больше предела — повтор с 192×192, затем 128×128; иначе ошибка `Icon is too large`. Существующие файлы 96×96 остаются валидными. Команда `refresh_program_icons` (PROTOCOL.md §9) для каждой кнопки с `img:`-иконкой и действием `launch` извлекает иконку заново, если текущий файл меньше 256 px, заменяет `icon` в раскладке и сохраняет её; старые файлы не удаляются (на них могут ссылаться другие кнопки). SVG-иконки (§8.4) не затрагиваются.
 - Источники: (а) `icon_from_program(path)` — системная иконка exe через Shell (`IShellItemImageFactory::GetImage` с размером 96×96, флаг «только иконка», не миниатюра); (б) `icon_from_image(path)` — файл png/jpg/ico/bmp, декодирование и масштабирование до 96×96 с сохранением пропорций и прозрачными полями (`Windows.Graphics.Imaging`, как в T11.4b). Результат кодируется в PNG через `BitmapEncoder` (`PngEncoderId`).
 - Иконки никогда не скачиваются из интернета и не поставляются с Decka (DECISIONS.md D-35).
 - Файлы, на которые не ссылается ни одна кнопка, не удаляются автоматически (в MVP; занимают килобайты).

@@ -364,7 +364,7 @@ curl.exe -s -X POST http://127.0.0.1:9247/api/notify -H "Authorization: Bearer $
         "notifications": { "type": "array", "maxItems": 20, "items": { "$ref": "#/$defs/Notification" } },
         "vars": { "type": "object", "propertyNames": { "pattern": "^[a-z0-9_.-]{1,64}$" }, "additionalProperties": { "$ref": "#/$defs/VarValue" } },
         "icons": { "type": "object", "maxProperties": 200, "propertyNames": { "pattern": "^[0-9a-f]{16}$" },
-          "additionalProperties": { "type": "string", "pattern": "^data:image/(png|svg\\+xml);base64,", "maxLength": 32768 } },
+          "additionalProperties": { "type": "string", "pattern": "^data:image/(png|svg\\+xml);base64,", "maxLength": 131072 } },
         "focus": { "oneOf": [ { "$ref": "#/$defs/FocusInfo" }, { "type": "null" } ] },
         "media": { "oneOf": [ { "$ref": "#/$defs/MediaInfo" }, { "type": "null" } ] } } },
     "FocusInfo": { "type": "object", "required": ["app"],
@@ -474,6 +474,8 @@ export interface IpcCommands {
   get_icon_preview(args: { icon: string }): string | null;     // M12: data URL для окна настроек
   icon_from_svg(args: { svg: string }): { icon: string } | { error: string };       // M13: DATA_MODEL.md §8.4
   is_first_run(): boolean;                                     // M13: devices.json пуст и layout.json не менялся с создания (DESIGN.md §4.4)
+  refresh_program_icons(): { updated: number; failed: number };  // M14: DATA_MODEL.md §8.1; сохраняет раскладку, если updated > 0
+  count_lowres_icons(): number;                                  // M14: число кнопок с img:-png < 256 px и действием launch (для строки «Sharpen» в Look)
   describe_program(args: { path: string }): InstalledApp | { error: string };   // M14: .exe → name = FileDescription версии файла (нет → имя файла без .exe), args [], icon 32 px; .lnk → разбор ярлыка как в list_installed_apps; иное расширение или файла нет → error. Только читает файл, ничего не запускает.
 }
 ```
