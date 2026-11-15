@@ -158,3 +158,9 @@
 - Frame rate on A57 (`dumpsys gfxinfo`, 3 swipe round trips per theme; p50 frame time -> fps): AMOLED 10 ms (~100), Studio 10 ms (~100), Material 11 ms (~90), Glass 27 ms (~37, 536 frames, 0.56% janky). Glass is below the 45 fps threshold, so the client's own probe puts it in `reduced` mode.
 - Method note: the theme was switched by temporarily editing `display.theme` in the owner's `%APPDATA%\Decka\layout.json` (file watcher applied it live); the original file was restored byte-for-byte (`fc /b` identical).
 - PENDING (owner): popup groups on the phone (the owner's layout has none), `album` wallpaper with music, screensaver, perception of the vibration strength/pattern.
+## T13.13 — светлые клавиши, клавиши media, к/с reduced (2026-11-15)
+
+- DONE (A57): `.tmp\design\a57-glass-1.png` (Glass, виджет media 3×1: видны название и исполнитель, клавиш нет), `.tmp\design\a57-studio-keys.png` (Studio: белая и жёлтая — тёмная подпись, `#7c5cff` затемнена под белую, красная — белая).
+- Method: files in `%APPDATA%\Decka` were not touched. A second agent (`decka-headless`, port 19247, `--config-dir .tmp\cfg-phone`, a copy of the owner's config) was opened in Chrome on the phone (the installed app stays paired with the owner's agent). Chrome's bars are cropped out of the screenshots. Landscape was forced with `settings put system user_rotation` and restored (`accelerometer_rotation 1`).
+- DONE: к/с Glass `reduced` и обычный режим — см. BLOCKERS.md D-2 (оба ~37 к/с). Переключатель `Reduce effects` в приложении возвращён в выключенное состояние.
+- PENDING (owner): виджет media на экране приложения с твоей раскладки (3×1 — без клавиш; 4×1 — одна `pause`; клавиши `prev/next` появляются с `w ≥ 5`).
