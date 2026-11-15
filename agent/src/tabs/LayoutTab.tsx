@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ActionsFile, LayoutFile, LayoutItem, ValidationIssue } from "@decka/shared";
+import type { ActionsFile, InstalledApp, LayoutFile, LayoutItem, Page, ValidationIssue } from "@decka/shared";
 import { validateLayout } from "@decka/shared";
 import { call } from "../ipc";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
 import Field from "../ui/Field";
-import { canRedo, canUndo, itemAt, newHistory, pushHistory, redo, undo, type History } from "./editorOps";
-import EditorCanvas, { type DragPayload } from "./EditorCanvas";
+import { getCurrentWebview } from "@tauri-apps/api/webview";
+import type { DragPayload } from "./dragMachine";
+import { canRedo, canUndo, itemAt, moveItem, nearestFreeCell, newHistory, pushHistory, redo, undo, type History } from "./editorOps";
+import EditorCanvas from "./EditorCanvas";
+import { useDragSession, type Cell } from "./useDragSession";
 import Palette from "./Palette";
 import ItemForm from "./itemForm";
 import { describeIssue, itemPath } from "./issueText";
@@ -45,6 +48,43 @@ export default function LayoutTab() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [templatesOpen, setTemplatesOpen] = useState(false);
+
+  // Drag and drop on pointer events (D-38) plus files dropped from Explorer (Tauri). The handlers are set below, once the data is loaded.
+  const cellAtRef = useRef<(clientX: number, clientY: number) => Cell | null>(() => null);
+  const dropRef = useRef<(payload: DragPayload, cell: Cell) => void>(() => {});
+  const clickRef = useRef<(payload: DragPayload) => void>(() => {});
+  const filesRef = useRef<(paths: string[], cell: Cell | null) => void>(() => {});
+  const [fileHover, setFileHover] = useState<Cell | null>(null);
+  const session = useDragSession({
+    cellAt: (x, y) => cellAtRef.current(x, y),
+    onDrop: (payload, cell) => dropRef.current(payload, cell),
+    onClick: (payload) => clickRef.current(payload),
+  });
+  useEffect(() => {
+    let dead = false;
+    let unlisten: (() => void) | undefined;
+    try {
+      void getCurrentWebview()
+        .onDragDropEvent((event) => {
+          const p = event.payload;
+          if (p.type === "leave") return setFileHover(null);
+          const dpr = window.devicePixelRatio || 1;
+          const cell = cellAtRef.current(p.position.x / dpr, p.position.y / dpr);
+          if (p.type === "drop") {
+            setFileHover(null);
+            filesRef.current(p.paths, cell);
+          } else setFileHover(cell);
+        })
+        .then((fn) => (dead ? fn() : (unlisten = fn)))
+        .catch(() => {});
+    } catch {
+      // not running inside the Tauri window (tests): no Explorer drops
+    }
+    return () => {
+      dead = true;
+      unlisten?.();
+    };
+  }, []);
 
   const load = useCallback(async () => {
     const fresh = await call("get_layout");
@@ -186,9 +226,61 @@ export default function LayoutTab() {
   }
   saveRef.current = () => void save();
 
-  /** Something from the palette was dropped on cell (x, y): a program, an action or a widget becomes an item. */
+  /** A program as a new button at (x, y) of `cur`: saves its action and takes its icon. */
+  async function appButton(app: InstalledApp, x: number, y: number, cur: Page, acts: ActionsFile): Promise<{ page: Page; actions: ActionsFile; id: string } | { error: string }> {
+    const actionId = newAppActionId(app.name, acts.actions);
+    const next: ActionsFile = { ...acts, actions: { ...acts.actions, [actionId]: launchActionOf(app) } };
+    const saved = await call("save_actions", { actions: next });
+    if (!saved.ok) return { error: saved.issues[0]?.message ?? "Cannot save the action" };
+    const icon = await call("icon_from_program", { path: app.program }).catch(() => ({ error: "" }));
+    const item = { ...makeItem("button", x, y), label: app.name.slice(0, 24), actionId, ...("icon" in icon ? { icon: icon.icon } : {}) } as LayoutItem;
+    const added = addItem(cur, layout!.grid, item);
+    return added.ok ? { page: added.page, actions: next, id: item.id } : { error: added.error };
+  }
+
+  /** `.exe` / `.lnk` files dropped from Explorer: each becomes a button in the cell under the pointer or the nearest free one. */
+  async function dropFiles(paths: string[], cell: Cell | null) {
+    if (!cell || !page) return;
+    setNotice(null);
+    let cur: Page = page;
+    let acts: ActionsFile = actions!;
+    let lastId: string | null = null;
+    for (const path of paths) {
+      const app = await call("describe_program", { path });
+      if ("error" in app) {
+        setNotice(`${path.split(/[\\/]/).pop()}: ${app.error}`);
+        continue;
+      }
+      const spot = nearestFreeCell(cur, layout!.grid, cell.x, cell.y);
+      if (!spot) {
+        setNotice("No free cell on this page");
+        break;
+      }
+      const made = await appButton(app, spot.x, spot.y, cur, acts);
+      if ("error" in made) {
+        setNotice(made.error);
+        break;
+      }
+      cur = made.page;
+      acts = made.actions;
+      lastId = made.id;
+    }
+    if (lastId) {
+      setActions(acts);
+      setPage(cur);
+      setSelectedId(lastId);
+      setCreating(null);
+    }
+  }
+
+  /** Something was dropped on cell (x, y): a key moved or swapped, or a program, an action or a widget from the palette becomes an item. */
   async function dropOnCell(payload: DragPayload, x: number, y: number) {
     setNotice(null);
+    if (payload.type === "item") {
+      const moved = moveItem(page!, layout!.grid, payload.id, x, y);
+      if (moved) setPage(moved);
+      return;
+    }
     const ids = Object.keys(actions!.actions);
     let item: LayoutItem | null = null;
     if (payload.type === "widget") {
@@ -213,6 +305,23 @@ export default function LayoutTab() {
     setSelectedId(item.id);
     setCreating(null);
   }
+
+  dropRef.current = (payload, cell) => void dropOnCell(payload, cell.x, cell.y);
+  clickRef.current = (payload) => {
+    if (payload.type !== "item") return;
+    setSelectedId(payload.id);
+    setCreating(null);
+  };
+  filesRef.current = (paths, cell) => void dropFiles(paths, cell);
+  const ghostLabel = (payload: DragPayload): string => {
+    if (payload.type === "app") return payload.app.name;
+    if (payload.type === "action") return payload.label;
+    if (payload.type === "widget") return payload.kind;
+    const item = page.items.find((i) => i.id === payload.id);
+    if (item && "label" in item && item.label) return item.label;
+    const action = item && item.kind === "button" && item.actionId ? actions.actions[item.actionId] : undefined;
+    return action?.name ?? item?.kind ?? "";
+  };
 
   return (
     <div className="stack">
@@ -293,7 +402,7 @@ export default function LayoutTab() {
       </div>
 
       <div className="editor">
-        <Palette actions={actions} />
+        <Palette actions={actions} onBegin={session.begin} />
         <div className="editor-main" ref={mainRef}>
           <EditorCanvas
             layout={layout}
@@ -302,7 +411,10 @@ export default function LayoutTab() {
             availableWidth={mainWidth - 16}
             onSelect={(id) => { setSelectedId(id); setCreating(null); }}
             onChangePage={setPage}
-            onDropPayload={(payload, x, y) => void dropOnCell(payload, x, y)}
+            hover={session.hover ?? fileHover}
+            draggingId={session.dragging?.payload.type === "item" ? session.dragging.payload.id : null}
+            cellAtRef={cellAtRef}
+            onItemPointerDown={session.begin}
             onEmptyCell={(x, y) => { setCreating({ x, y }); setSelectedId(null); setNotice(null); }}
           />
           {notice && !creating && <p className="warn-text">{notice}</p>}
@@ -364,6 +476,11 @@ export default function LayoutTab() {
         {dirty && <span className="unsaved">Unsaved changes</span>}
         <span className="muted">Ctrl+S saves, Ctrl+Z / Ctrl+Y undo and redo.</span>
       </div>
+      {session.dragging && (
+        <div className="drag-ghost" style={{ left: session.dragging.x + 12, top: session.dragging.y + 12 }}>
+          {ghostLabel(session.dragging.payload)}
+        </div>
+      )}
       {templatesOpen && (
         <TemplatesDialog
           onClose={() => setTemplatesOpen(false)}

@@ -2,27 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { InstalledApp, LayoutFile, LayoutItem, Page, SysStats } from "@decka/shared";
 import { EMPTY_DATA, GlassLayer, Grid, gridMetrics, resolveTheme, type DeckData } from "@decka/ui";
 import { call } from "../ipc";
-import { dragSize, itemAt, moveItem, resizeItem } from "./editorOps";
+import { cellFromPoint, type DragPayload } from "./dragMachine";
+import { dragSize, itemAt, resizeItem } from "./editorOps";
 import { sizeRange, type Grid as GridSize, type Kind } from "./layoutOps";
 import PhoneFrame, { PHONE_H, PHONE_W } from "./PhoneFrame";
-
-/** What can be dragged onto the canvas, as JSON in the drag data. */
-export type DragPayload =
-  | { type: "item"; id: string }
-  | { type: "widget"; kind: Kind }
-  | { type: "action"; actionId: string; label: string }
-  | { type: "app"; app: InstalledApp };
-
-export const DRAG_MIME = "application/x-decka";
-
-export function readPayload(e: React.DragEvent): DragPayload | null {
-  try {
-    const raw = e.dataTransfer.getData(DRAG_MIME);
-    return raw ? (JSON.parse(raw) as DragPayload) : null;
-  } catch {
-    return null;
-  }
-}
 
 /** Plausible numbers so that widgets in the preview look alive. */
 const SAMPLE_SYS: SysStats = { uptimeSec: 86_400, cpu: 23, mem: { usedMb: 9800, totalMb: 16000 }, disks: [{ mount: "C:", usedGb: 310, totalGb: 476 }], net: { rxKbps: 820, txKbps: 140 } };
@@ -35,18 +18,24 @@ interface Props {
   onSelect: (id: string | null) => void;
   /** The page changed by a drag (move, swap, resize). */
   onChangePage: (page: Page) => void;
-  /** Something was dropped from the palette on a cell. */
-  onDropPayload: (payload: DragPayload, x: number, y: number) => void;
+  /** The cell under the pointer while something is dragged (move, palette or Explorer), highlighted. */
+  hover: { x: number; y: number } | null;
+  /** The item being dragged, dimmed. */
+  draggingId: string | null;
+  /** Filled with a function that maps a screen point to a cell of this canvas, for the drag session. */
+  cellAtRef: React.MutableRefObject<(clientX: number, clientY: number) => { x: number; y: number } | null>;
+  /** A pointer went down on an item: the start of a click or a drag (pointer events, D-38). */
+  onItemPointerDown: (payload: DragPayload, e: React.PointerEvent) => void;
   /** An empty cell was clicked. */
   onEmptyCell: (x: number, y: number) => void;
 }
 
 /** The deck as it looks on the phone, in the chosen theme, with drag and drop on top of it (DESIGN.md 4.4). */
-export default function EditorCanvas({ layout, page, selectedId, availableWidth, onSelect, onChangePage, onDropPayload, onEmptyCell }: Props) {
+export default function EditorCanvas({ layout, page, selectedId, availableWidth, onSelect, onChangePage, hover, draggingId, cellAtRef, onItemPointerDown, onEmptyCell }: Props) {
   const grid: GridSize = layout.grid;
   const scale = Math.max(0.2, Math.min(1, availableWidth / PHONE_W));
   const m = useMemo(() => gridMetrics({ w: PHONE_W, h: PHONE_H }, grid.cols, grid.rows), [grid.cols, grid.rows]);
-  const [hover, setHover] = useState<{ x: number; y: number } | null>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
   const [icons, setIcons] = useState<Record<string, string>>({});
   const resize = useRef<{ id: string; x0: number; y0: number } | null>(null);
   const theme = resolveTheme(layout.display);
@@ -85,19 +74,9 @@ export default function EditorCanvas({ layout, page, selectedId, availableWidth,
     height: (h * m.side + (h - 1) * m.gap) * scale,
   });
 
-  const drop = (e: React.DragEvent, x: number, y: number) => {
-    e.preventDefault();
-    setHover(null);
-    const payload = readPayload(e);
-    if (!payload) return;
-    if (payload.type === "item") {
-      const moved = moveItem(page, grid, payload.id, x, y);
-      if (moved) onChangePage(moved);
-    } else onDropPayload(payload, x, y);
-  };
-  const over = (e: React.DragEvent, x: number, y: number) => {
-    e.preventDefault();
-    setHover((h) => (h && h.x === x && h.y === y ? h : { x, y }));
+  cellAtRef.current = (clientX, clientY) => {
+    const box = overlayRef.current?.getBoundingClientRect();
+    return box ? cellFromPoint(clientX - box.left, clientY - box.top, m, scale, grid) : null;
   };
 
   const cells: React.ReactNode[] = [];
@@ -107,12 +86,9 @@ export default function EditorCanvas({ layout, page, selectedId, availableWidth,
       cells.push(
         <div
           key={`c${x}-${y}`}
-          className={`editor-cell${taken ? " taken" : " empty"}${hover && hover.x === x && hover.y === y ? " over" : ""}`}
+          className={`editor-cell${taken ? " taken" : " empty"}${hover && hover.x === x && hover.y === y ? (taken ? " over swap" : " over") : ""}`}
           style={rect(x, y, 1, 1)}
           onClick={() => (taken ? onSelect(taken.id) : onEmptyCell(x, y))}
-          onDragOver={(e) => over(e, x, y)}
-          onDragLeave={() => setHover(null)}
-          onDrop={(e) => drop(e, x, y)}
         />,
       );
     }
@@ -142,7 +118,7 @@ export default function EditorCanvas({ layout, page, selectedId, availableWidth,
           <Grid page={page} grid={grid} data={data} {...noop} />
         </div>
       </PhoneFrame>
-      <div className="editor-overlay" style={{ width: PHONE_W * scale, height: PHONE_H * scale }}>
+      <div ref={overlayRef} className="editor-overlay" style={{ width: PHONE_W * scale, height: PHONE_H * scale }}>
         {cells}
         {page.items.map((item) => {
           const selected = item.id === selectedId;
@@ -153,17 +129,9 @@ export default function EditorCanvas({ layout, page, selectedId, availableWidth,
           return (
             <div
               key={item.id}
-              className={`editor-item${selected ? " selected" : ""}`}
+              className={`editor-item${selected ? " selected" : ""}${item.id === draggingId ? " dragging" : ""}`}
               style={rect(item.x, item.y, item.w, item.h)}
-              draggable
-              onDragOver={(e) => over(e, item.x, item.y)}
-              onDragLeave={() => setHover(null)}
-              onDrop={(e) => drop(e, item.x, item.y)}
-              onDragStart={(e) => {
-                e.dataTransfer.setData(DRAG_MIME, JSON.stringify({ type: "item", id: item.id } satisfies DragPayload));
-                e.dataTransfer.effectAllowed = "move";
-              }}
-              onClick={() => onSelect(item.id)}
+              onPointerDown={(e) => onItemPointerDown({ type: "item", id: item.id }, e)}
             >
               {canResize && <span className="editor-handle" aria-label="Resize" onPointerDown={(e) => startResize(e, item)} onPointerUp={(e) => endResize(e, item)} />}
             </div>

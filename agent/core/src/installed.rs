@@ -79,6 +79,38 @@ pub fn list_installed_apps() -> Vec<InstalledApp> {
     }
 }
 
+/// File name without the extension: the name of a program that has no better one.
+pub fn stem_of(path: &str) -> String {
+    let file = path.rsplit(['\\', '/']).next().unwrap_or(path);
+    match file.rfind('.') {
+        Some(i) if i > 0 => file[..i].to_string(),
+        _ => file.to_string(),
+    }
+}
+
+/// What the picker would show for one file dropped or chosen by the user (PROTOCOL.md 9, `describe_program`):
+/// `.exe` -> the file's `FileDescription` (else its name without `.exe`); `.lnk` -> the shortcut's target, arguments and
+/// working folder. Only reads the file; nothing is started.
+pub fn describe_program(path: &str) -> Result<InstalledApp, String> {
+    let lower = path.to_lowercase();
+    let is_exe = lower.ends_with(".exe");
+    let is_lnk = lower.ends_with(".lnk");
+    if !is_exe && !is_lnk {
+        return Err("Only .exe programs and .lnk shortcuts are supported".to_string());
+    }
+    if !std::path::Path::new(path).is_file() {
+        return Err("The file does not exist".to_string());
+    }
+    #[cfg(windows)]
+    {
+        let path = path.to_string();
+        crate::sta::run(move || if is_lnk { win::describe_lnk(&path) } else { win::describe_exe(&path) })?
+    }
+    #[cfg(not(windows))]
+    {
+        Err("Reading programs is only supported on Windows".to_string())
+    }
+}
 #[cfg(windows)]
 mod win {
     use std::collections::HashMap;
@@ -162,6 +194,73 @@ mod win {
         }
     }
 
+    /// `FileDescription` from the version resource of an `.exe`, if it has one.
+    fn file_description(path: &str) -> Option<String> {
+        use windows::Win32::Storage::FileSystem::{GetFileVersionInfoSizeW, GetFileVersionInfoW, VerQueryValueW};
+        let file = HSTRING::from(path);
+        // SAFETY: the buffer is sized by the API itself and outlives the queries; returned pointers point into it.
+        unsafe {
+            let size = GetFileVersionInfoSizeW(PCWSTR(file.as_ptr()), None);
+            if size == 0 {
+                return None;
+            }
+            let mut block = vec![0u8; size as usize];
+            GetFileVersionInfoW(PCWSTR(file.as_ptr()), None, size, block.as_mut_ptr().cast()).ok()?;
+            let mut ptr: *mut std::ffi::c_void = std::ptr::null_mut();
+            let mut len = 0u32;
+            // The first (language, code page) pair of the file; English and neutral as fallbacks.
+            let mut langs: Vec<String> = Vec::new();
+            if VerQueryValueW(block.as_ptr().cast(), &HSTRING::from(r"\VarFileInfo\Translation"), &mut ptr, &mut len).as_bool() && len >= 4 {
+                let pair = std::slice::from_raw_parts(ptr as *const u16, 2);
+                langs.push(format!("{:04x}{:04x}", pair[0], pair[1]));
+            }
+            langs.push("040904b0".to_string());
+            langs.push("040904e4".to_string());
+            langs.push("000004b0".to_string());
+            for lang in langs {
+                let key = HSTRING::from(format!(r"\StringFileInfo\{lang}\FileDescription"));
+                if VerQueryValueW(block.as_ptr().cast(), &key, &mut ptr, &mut len).as_bool() && len > 1 {
+                    let text = std::slice::from_raw_parts(ptr as *const u16, len as usize);
+                    let text = wide_to_string(text).trim().to_string();
+                    if !text.is_empty() {
+                        return Some(text);
+                    }
+                }
+            }
+            None
+        }
+    }
+
+    pub fn describe_exe(path: &str) -> Result<InstalledApp, String> {
+        let name = file_description(path).unwrap_or_else(|| super::stem_of(path));
+        Ok(InstalledApp { name, program: path.to_string(), args: Vec::new(), cwd: None, icon: crate::icons::win::list_icon_data_url(path) })
+    }
+
+    pub fn describe_lnk(path: &str) -> Result<InstalledApp, String> {
+        // SAFETY: standard in-process COM activation on the apartment thread.
+        let link: IShellLinkW = unsafe { CoCreateInstance(&ShellLink, None, CLSCTX_INPROC_SERVER) }.map_err(|e| format!("Cannot read the shortcut: {e}"))?;
+        let file = Path::new(path);
+        let (target, args, cwd) = read_link(&link, file).ok_or_else(|| "Cannot read the shortcut".to_string())?;
+        if !target.to_lowercase().ends_with(".exe") || !Path::new(&target).is_file() {
+            return Err("The shortcut does not point to a program (.exe)".to_string());
+        }
+        let name = super::stem_of(path);
+        let cwd = (!cwd.is_empty()).then_some(cwd);
+        let icon = crate::icons::win::list_icon_data_url(&target);
+        Ok(InstalledApp { name, program: target, args: split_args(&args), cwd, icon })
+    }
+
+    /// Creates a shortcut file (tests).
+    #[cfg(test)]
+    pub fn write_lnk(lnk: &str, target: &str, args: &str) -> Result<(), String> {
+        let link: IShellLinkW = unsafe { CoCreateInstance(&ShellLink, None, CLSCTX_INPROC_SERVER) }.map_err(|e| e.to_string())?;
+        unsafe {
+            link.SetPath(&HSTRING::from(target)).map_err(|e| e.to_string())?;
+            link.SetArguments(&HSTRING::from(args)).map_err(|e| e.to_string())?;
+            let persist: IPersistFile = link.cast().map_err(|e| e.to_string())?;
+            persist.Save(&HSTRING::from(lnk), true).map_err(|e| e.to_string())
+        }
+    }
     pub fn scan() -> Vec<InstalledApp> {
         // SAFETY: standard in-process COM activation on the apartment thread.
         let link: IShellLinkW = match unsafe { CoCreateInstance(&ShellLink, None, CLSCTX_INPROC_SERVER) } {
@@ -253,4 +352,54 @@ mod tests {
         sorted.sort();
         assert_eq!(names, sorted);
     }
-}
+
+    #[test]
+    fn stem_drops_the_directory_and_the_extension() {
+        assert_eq!(stem_of(r"C:\Apps\Foo Bar.exe"), "Foo Bar");
+        assert_eq!(stem_of("foo.exe"), "foo");
+        assert_eq!(stem_of(r"C:\x\.hidden"), ".hidden");
+    }
+
+    #[test]
+    fn other_extensions_and_missing_files_are_errors() {
+        assert!(describe_program(r"C:\Windows\System32\drivers\etc\hosts").is_err());
+        assert!(describe_program(r"C:\Windows\readme.txt").unwrap_err().contains(".exe"));
+        assert_eq!(describe_program(r"C:\definitely\not\here.exe").unwrap_err(), "The file does not exist");
+        assert_eq!(describe_program(r"C:\definitely\not\here.lnk").unwrap_err(), "The file does not exist");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn an_exe_is_named_by_its_file_description() {
+        let notepad = r"C:\Windows\System32\notepad.exe";
+        let app = describe_program(notepad).unwrap();
+        assert_eq!(app.program, notepad);
+        assert!(app.args.is_empty() && app.cwd.is_none());
+        // The description is localised ("Notepad", "Блокнот"), so only its presence is checked.
+        assert!(!app.name.trim().is_empty());
+        assert!(app.icon.as_deref().is_some_and(|i| i.starts_with("data:image/png;base64,")));
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn a_shortcut_gives_its_target_arguments_and_name() {
+        let dir = tempfile::tempdir().unwrap();
+        let lnk = dir.path().join("My Notes.lnk");
+        let notepad = r"C:\Windows\System32\notepad.exe";
+        let (l, n) = (lnk.to_string_lossy().into_owned(), notepad.to_string());
+        crate::sta::run(move || win::write_lnk(&l, &n, r#"--flag "two words""#)).unwrap().unwrap();
+        let app = describe_program(&lnk.to_string_lossy()).unwrap();
+        assert_eq!(app.name, "My Notes");
+        assert_eq!(app.program.to_lowercase(), notepad.to_lowercase());
+        assert_eq!(app.args, ["--flag", "two words"]);
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn a_shortcut_to_a_non_program_is_an_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let lnk = dir.path().join("Hosts.lnk");
+        let (l, n) = (lnk.to_string_lossy().into_owned(), r"C:\Windows\System32\drivers\etc\hosts".to_string());
+        crate::sta::run(move || win::write_lnk(&l, &n, "")).unwrap().unwrap();
+        assert!(describe_program(&lnk.to_string_lossy()).is_err());
+    }}

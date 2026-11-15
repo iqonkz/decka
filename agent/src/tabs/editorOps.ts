@@ -6,6 +6,22 @@ export function itemAt(page: Page, x: number, y: number): LayoutItem | undefined
   return page.items.find((i) => x >= i.x && x < i.x + i.w && y >= i.y && y < i.y + i.h);
 }
 
+/**
+ * The free cell closest to (x, y) where a w x h item fits (a program dropped on an occupied cell goes there,
+ * DESIGN.md 4.5); ties go to the upper row, then the left column. `null` when the page has no room.
+ */
+export function nearestFreeCell(page: Page, grid: Grid, x: number, y: number, w = 1, h = 1): { x: number; y: number } | null {
+  let best: { x: number; y: number; d: number } | null = null;
+  for (let cy = 0; cy < grid.rows; cy++) {
+    for (let cx = 0; cx < grid.cols; cx++) {
+      if (!fits(page, grid, { x: cx, y: cy, w, h })) continue;
+      const d = (cx - x) ** 2 + (cy - y) ** 2;
+      if (best === null || d < best.d) best = { x: cx, y: cy, d };
+    }
+  }
+  return best ? { x: best.x, y: best.y } : null;
+}
+
 const withItem = (page: Page, id: string, patch: Partial<LayoutItem>): Page => ({
   ...page,
   items: page.items.map((i) => (i.id === id ? ({ ...i, ...patch } as LayoutItem) : i)),

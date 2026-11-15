@@ -174,6 +174,22 @@ pub async fn list_installed_apps() -> Result<Vec<decka_core::installed::Installe
     tauri::async_runtime::spawn_blocking(decka_core::installed::list_installed_apps).await.map_err(|e| e.to_string())
 }
 
+/// One `.exe` or `.lnk` (dropped from Explorer or chosen with the dialog) as a program: name, target, arguments, icon (M14).
+#[tauri::command]
+pub async fn describe_program(path: String) -> Result<DescribeResult, String> {
+    tauri::async_runtime::spawn_blocking(move || decka_core::installed::describe_program(&path).map(DescribeResult::App).unwrap_or_else(|error| DescribeResult::Error { error }))
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// `InstalledApp` or `{ error }`, as in PROTOCOL.md 9.
+#[derive(Serialize)]
+#[serde(untagged)]
+pub enum DescribeResult {
+    App(decka_core::installed::InstalledApp),
+    Error { error: String },
+}
+
 /// Data URL of a stored `img:` icon (settings-window preview); `null` for other kinds or a missing file.
 #[tauri::command]
 pub fn get_icon_preview(app: AppHandle, icon: String) -> Result<Option<String>, String> {

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import type { LayoutItem, Page } from "@decka/shared";
-import { canRedo, canUndo, dragSize, HISTORY_LIMIT, itemAt, moveItem, newHistory, pushHistory, redo, resizeItem, swapItems, undo } from "../src/tabs/editorOps";
+import { canRedo, canUndo, dragSize, HISTORY_LIMIT, itemAt, moveItem, nearestFreeCell, newHistory, pushHistory, redo, resizeItem, swapItems, undo } from "../src/tabs/editorOps";
 
 const grid = { cols: 5, rows: 3 };
 const btn = (id: string, x: number, y: number): LayoutItem => ({ id, kind: "button", x, y, w: 1, h: 1, label: id, actionId: "a" });
@@ -129,5 +129,19 @@ describe("history (undo / redo, 50 steps)", () => {
     expect(h.past[0]).toBe(80 - HISTORY_LIMIT);
     for (let i = 0; i < 60; i++) h = undo(h);
     expect(h.present).toBe(80 - HISTORY_LIMIT);
+  });
+});
+
+describe("nearestFreeCell", () => {
+  const p = page([btn("a", 0, 0), btn("b", 1, 0), btn("c", 0, 1)]);
+  test("a free target stays, an occupied one goes to the closest free cell", () => {
+    expect(nearestFreeCell(p, grid, 3, 1)).toEqual({ x: 3, y: 1 });
+    expect(nearestFreeCell(p, grid, 0, 0)).toEqual({ x: 1, y: 1 });
+  });
+  test("a wide item needs room for its width; a full page has none", () => {
+    const wide = nearestFreeCell(p, grid, 0, 0, 2, 1);
+    expect(wide).toEqual({ x: 1, y: 1 }); // (1,1)-(2,1) is the nearest free 2x1 slot
+    const full = page(Array.from({ length: 15 }, (_, i) => btn(`k${i}`, i % 5, Math.floor(i / 5))));
+    expect(nearestFreeCell(full, grid, 2, 1)).toBeNull();
   });
 });

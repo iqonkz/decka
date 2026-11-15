@@ -64,6 +64,7 @@ pub fn run() {
             commands::icon_from_svg,
             commands::is_first_run,
             commands::list_installed_apps,
+            commands::describe_program,
             commands::list_window_apps,
             commands::get_templates,
             commands::add_template,

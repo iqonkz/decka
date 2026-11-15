@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ActionsFile, InstalledApp } from "@decka/shared";
 import { call } from "../ipc";
-import { DRAG_MIME, type DragPayload } from "./EditorCanvas";
+import type { DragPayload } from "./dragMachine";
 import type { Kind } from "./layoutOps";
 
 type Tab = "apps" | "actions" | "widgets";
@@ -18,13 +18,8 @@ const WIDGETS: { kind: Kind; name: string }[] = [
 /** The palette is loaded once per window session, like the app picker. */
 let appsCache: InstalledApp[] | null = null;
 
-function startDrag(e: React.DragEvent, payload: DragPayload) {
-  e.dataTransfer.setData(DRAG_MIME, JSON.stringify(payload));
-  e.dataTransfer.effectAllowed = "copy";
-}
-
 /** Things to drag onto the canvas: programs, actions, widgets (DESIGN.md 4.4). */
-export default function Palette({ actions }: { actions: ActionsFile }) {
+export default function Palette({ actions, onBegin }: { actions: ActionsFile; onBegin: (payload: DragPayload, e: React.PointerEvent) => void }) {
   const [tab, setTab] = useState<Tab>("apps");
   const [query, setQuery] = useState("");
   const [apps, setApps] = useState<InstalledApp[] | null>(appsCache);
@@ -64,21 +59,21 @@ export default function Palette({ actions }: { actions: ActionsFile }) {
         {tab === "apps" && error && <p className="warn-text">{error}</p>}
         {tab === "apps" &&
           shownApps.map((app) => (
-            <div key={`${app.program}|${app.args.join(" ")}|${app.name}`} className="palette-item" draggable onDragStart={(e) => startDrag(e, { type: "app", app })}>
+            <div key={`${app.program}|${app.args.join(" ")}|${app.name}`} className="palette-item" onPointerDown={(e) => onBegin({ type: "app", app }, e)}>
               {app.icon ? <img src={app.icon} width={24} height={24} alt="" /> : <span className="app-noicon" style={{ width: 24, height: 24 }} />}
               <span>{app.name}</span>
             </div>
           ))}
         {tab === "actions" &&
           shownActions.map(([id, a]) => (
-            <div key={id} className="palette-item" draggable onDragStart={(e) => startDrag(e, { type: "action", actionId: id, label: a.name })}>
+            <div key={id} className="palette-item" onPointerDown={(e) => onBegin({ type: "action", actionId: id, label: a.name }, e)}>
               <span>{a.name}</span>
               <small className="muted">{id}</small>
             </div>
           ))}
         {tab === "widgets" &&
           WIDGETS.map((w) => (
-            <div key={w.kind} className="palette-item" draggable onDragStart={(e) => startDrag(e, { type: "widget", kind: w.kind })}>
+            <div key={w.kind} className="palette-item" onPointerDown={(e) => onBegin({ type: "widget", kind: w.kind }, e)}>
               <span>{w.name}</span>
             </div>
           ))}
