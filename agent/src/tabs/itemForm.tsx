@@ -92,7 +92,7 @@ export default function ItemForm({ item, display, page, pages, grid, actions, on
         {item.kind} <code>{item.id}</code>
       </h3>
       {item.kind === "button" && <KeyPreview item={item} display={display} />}
-      {item.kind === "button" && <ButtonFields item={item} pages={pages} inPopup={page.popup === true} actions={actions} patch={patch} onChangeAction={onChangeAction} position={position} />}
+      {item.kind === "button" && <ButtonFields display={display} item={item} pages={pages} inPopup={page.popup === true} actions={actions} patch={patch} onChangeAction={onChangeAction} position={position} />}
       {item.kind !== "button" && (
         <details className="advanced">
           <summary>More options: position and size</summary>
@@ -135,7 +135,7 @@ export default function ItemForm({ item, display, page, pages, grid, actions, on
   );
 }
 
-function ButtonFields({ item, pages, inPopup, actions, patch, onChangeAction, position }: { item: ButtonItem; pages: Page[]; inPopup: boolean; actions: ActionsFile; patch: (p: Record<string, unknown>) => void; onChangeAction: () => void; position: React.ReactNode }) {
+function ButtonFields({ display, item, pages, inPopup, actions, patch, onChangeAction, position }: { display: DisplaySettings; item: ButtonItem; pages: Page[]; inPopup: boolean; actions: ActionsFile; patch: (p: Record<string, unknown>) => void; onChangeAction: () => void; position: React.ReactNode }) {
   const mode = tapModeOf(item);
   const normal = normalPages(pages);
   const popups = popupPages(pages);
@@ -163,6 +163,13 @@ function ButtonFields({ item, pages, inPopup, actions, patch, onChangeAction, po
       <Field label="Icon">
         <IconField value={item.icon} onChange={(icon) => patch({ icon })} program={launchProgram} />
       </Field>
+      <div className="seg" role="group" aria-label="Key style">
+        {(["standard", "full"] as const).map((face) => (
+          <button key={face} type="button" className={(item.face ?? display.keyFace ?? "standard") === face ? "on" : ""} onClick={() => patch({ face })}>
+            {face === "standard" ? "Standard" : "Big icon"}
+          </button>
+        ))}
+      </div>
       <div className="does-row">
         <span className="muted">Does:</span>
         <strong title={describeAction(selectedAction)}>{describeAction(selectedAction)}</strong>

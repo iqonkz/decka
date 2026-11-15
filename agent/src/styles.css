@@ -231,3 +231,10 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="color"]), select, te
 .empty-page strong { font-size: 16px; }
 .wizard-presets { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-bottom: 8px; }
 .key-preview { display: flex; justify-content: center; margin: 4px 0 8px; }
+
+.style-cards { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 8px; }
+.style-card { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 190px; padding: 10px; border: 2px solid var(--border); border-radius: 10px; background: var(--bg); color: inherit; font: inherit; cursor: pointer; text-align: center; }
+.style-card.selected { border-color: var(--accent); }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.seg button { padding: 4px 12px; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.seg button.on { background: var(--accent); color: #fff; }

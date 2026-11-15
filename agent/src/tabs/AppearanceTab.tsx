@@ -4,7 +4,11 @@ import { call } from "../ipc";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
 import Field from "../ui/Field";
+import KeyPreview from "./KeyPreview";
 import ThemeCards from "./ThemeCards";
+
+/** A sample key for the style cards. */
+const SAMPLE = { id: "sample", kind: "button", x: 0, y: 0, w: 1, h: 1, label: "Music", icon: "lucide:music", actionId: "sample" } as const;
 
 export const ACCENTS = ["#7c5cff", "#3b82f6", "#06b6d4", "#16a34a", "#eab308", "#f97316", "#ef4444", "#ec4899"];
 const WALLPAPERS = ["aurora", "sunset", "ocean", "graphite", "album"] as const;
@@ -16,6 +20,11 @@ export default function AppearanceTab() {
   const [issues, setIssues] = useState<ValidationIssue[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [lowres, setLowres] = useState(0);
+
+  useEffect(() => {
+    call("count_lowres_icons").then(setLowres, () => {});
+  }, []);
 
   useEffect(() => {
     call("get_layout").then(
@@ -59,6 +68,37 @@ export default function AppearanceTab() {
       <section className="card">
         <h3>Look</h3>
         <ThemeCards value={display.theme ?? "amoled"} display={display} onPick={(theme) => set({ theme })} />
+      </section>
+
+      <section className="card">
+        <h3>Key style</h3>
+        <div className="style-cards">
+          {(["standard", "full"] as const).map((face) => (
+            <button key={face} type="button" className={(display.keyFace ?? "standard") === face ? "style-card selected" : "style-card"} onClick={() => set({ keyFace: face })}>
+              <KeyPreview item={SAMPLE} display={{ ...display, keyFace: face }} />
+              <strong>{face === "standard" ? "Standard" : "Big icon"}</strong>
+              <small className="muted">{face === "standard" ? "A small icon in a frame" : "The icon fills the key, like on a home screen"}</small>
+            </button>
+          ))}
+        </div>
+        <label className="check">
+          <input type="checkbox" checked={display.keyLabels !== false} onChange={(e) => set({ keyLabels: e.target.checked })} /> Show names
+        </label>
+        {lowres > 0 && (
+          <div className="row">
+            <span className="muted">Some app icons are low-resolution —</span>
+            <Button
+              onClick={() =>
+                void call("refresh_program_icons").then(async (r) => {
+                  setLowres(await call("count_lowres_icons"));
+                  setMessage(r.updated > 0 ? `Sharpened ${r.updated} icon${r.updated === 1 ? "" : "s"}.` : "Nothing to sharpen.");
+                })
+              }
+            >
+              Sharpen
+            </Button>
+          </div>
+        )}
       </section>
 
       <section className="card">

@@ -381,6 +381,16 @@ export default function LayoutTab() {
     const r = await call("test_action", { actionId: item.actionId }).catch((e) => ({ ok: false, error: String(e) }));
     setNotice(r.ok ? "Sent to the PC" : `Test failed: ${"error" in r && r.error ? r.error : "unknown error"}`);
   }
+  /** The program a button starts, when its action launches one (the `Refresh app icon` item is only for these). */
+  const launchProgramOf = (item: ButtonItem): string | null => {
+    const a = item.actionId ? actions!.actions[item.actionId] : undefined;
+    return a?.type === "launch" ? a.program : null;
+  };
+  async function refreshIcon(id: string, program: string) {
+    const r = await call("icon_from_program", { path: program }).catch(() => ({ error: "" }));
+    if ("icon" in r) patchItem(id, { icon: r.icon });
+    else setNotice("Cannot read the icon of this program");
+  }
   function pickCustomColor(item: ButtonItem) {
     const input = document.createElement("input");
     input.type = "color";
@@ -411,12 +421,15 @@ export default function LayoutTab() {
             { label: "Default", onClick: () => patchItem(item.id, { color: undefined }) },
           ],
         },
+        { label: "Big icon", icon: "frame-corners", separator: true, checked: (item.face ?? layout!.display.keyFace ?? "standard") === "full", onClick: () => patchItem(item.id, { face: (item.face ?? layout!.display.keyFace ?? "standard") === "full" ? "standard" : "full" }) },
+        { label: "Show name", icon: "text-t", checked: item.showLabel ?? layout!.display.keyLabels ?? true, onClick: () => patchItem(item.id, { showLabel: !(item.showLabel ?? layout!.display.keyLabels ?? true) }) },
         { label: "Ask before running", icon: "hand-palm", checked: item.confirm === true, onClick: () => patchItem(item.id, { confirm: item.confirm === true ? undefined : true }) },
         { label: "Test on PC", icon: "play", separator: true, disabled: !item.actionId, onClick: () => void testItem(item) },
         { label: "Duplicate", icon: "copy", hint: "Ctrl+D", onClick: () => duplicateItem(item.id) },
         item.popup !== undefined
           ? { label: "Edit popup group", icon: "squares-four", onClick: () => goToPage(item.popup) }
           : { label: "Make popup group", icon: "squares-four", disabled: page.popup === true, onClick: () => makePopup(item.id) },
+        ...(launchProgramOf(item) !== null ? [{ label: "Refresh app icon", icon: "arrows-clockwise", onClick: () => void refreshIcon(item.id, launchProgramOf(item)!) }] : []),
         { label: "Delete", icon: "trash", hint: "Del", danger: true, separator: true, onClick: () => deleteItem(item.id) },
       ];
     } else {

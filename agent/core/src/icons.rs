@@ -650,6 +650,21 @@ mod tests {
         }
     }
 
+    /// stores the icons of the programs in `DECKA_PROGRAMS` (`;`-separated paths) through the real path and prints `path img:<hash>`
+    /// (for design snapshots of the `full` face).
+    #[cfg(windows)]
+    #[test]
+    #[ignore]
+    fn make_program_icons() {
+        let (Ok(dir), Ok(list)) = (std::env::var("DECKA_MAKE_ICONS"), std::env::var("DECKA_PROGRAMS")) else { return };
+        for program in list.split(';').filter(|p| !p.is_empty()) {
+            match icon_from_program(std::path::Path::new(&dir), program) {
+                Ok(icon) => println!("{program} {icon}"),
+                Err(e) => println!("{program} ERROR {e}"),
+            }
+        }
+    }
+
     #[test]
     fn rule_11_accepts_an_svg_file() {
         let dir = tempfile::tempdir().unwrap();
