@@ -156,6 +156,12 @@ pub async fn icon_from_image(app: AppHandle, path: String) -> Result<IconResult,
     tauri::async_runtime::spawn_blocking(move || agent.icon_from_image(&path).into()).await.map_err(|e| e.to_string())
 }
 
+/// Start menu programs for the picker; takes seconds, so it runs off the UI thread.
+#[tauri::command]
+pub async fn list_installed_apps() -> Result<Vec<decka_core::installed::InstalledApp>, String> {
+    tauri::async_runtime::spawn_blocking(decka_core::installed::list_installed_apps).await.map_err(|e| e.to_string())
+}
+
 /// Data URL of a stored `img:` icon (settings-window preview); `null` for other kinds or a missing file.
 #[tauri::command]
 pub fn get_icon_preview(app: AppHandle, icon: String) -> Result<Option<String>, String> {

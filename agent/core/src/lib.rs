@@ -4,6 +4,7 @@ pub mod auth;
 pub mod collectors;
 pub mod config;
 pub mod icons;
+pub mod installed;
 #[cfg(windows)]
 pub mod imaging;
 pub mod logging;
