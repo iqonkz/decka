@@ -1,4 +1,4 @@
-import type { LayoutFile, LayoutItem, Page } from "@decka/shared";
+import type { Action, ActionsFile, InstalledApp, LayoutFile, LayoutItem, Page } from "@decka/shared";
 
 /** Grid size of the layout being edited (DATA_MODEL.md 3.1: cols 3..8, rows 2..5). */
 export interface Grid {
@@ -121,6 +121,47 @@ export function makeItem(kind: Kind, x: number, y: number, id = newItemId(kind))
     case "media":
       return { ...base, kind };
   }
+}
+
+/** `Notepad` -> `app-notepad`; the first free id when it is taken. */
+export function newAppActionId(name: string, taken: Record<string, unknown>): string {
+  const base = `app-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 50) || "program"}`;
+  if (!(base in taken)) return base;
+  for (let n = 2; ; n++) if (!(`${base}-${n}` in taken)) return `${base}-${n}`;
+}
+
+/** The launch action of an installed program (DATA_MODEL.md 2). */
+export function launchActionOf(app: InstalledApp): Action {
+  return { name: app.name.slice(0, 60), type: "launch", program: app.program, ...(app.args.length > 0 ? { args: app.args } : {}), ...(app.cwd ? { cwd: app.cwd } : {}) };
+}
+
+/**
+ * Adds the chosen programs to the first page: one launch action and one button each, in the free cells in reading order.
+ * `icons` maps a program path (lower case) to its `img:` icon, when one could be made. Programs that find no free
+ * cell are counted in `skipped`.
+ */
+export function planAppButtons(
+  selected: InstalledApp[],
+  layout: LayoutFile,
+  actions: ActionsFile,
+  icons: Record<string, string | undefined> = {},
+): { layout: LayoutFile; actions: ActionsFile; placed: number; skipped: number } {
+  const first = layout.pages[0];
+  if (!first) return { layout, actions, placed: 0, skipped: selected.length };
+  let page = first;
+  const nextActions: ActionsFile = { ...actions, actions: { ...actions.actions } };
+  let placed = 0;
+  for (const app of selected) {
+    const spot = findFreeSpot(page, layout.grid, 1, 1);
+    if (!spot) continue;
+    const actionId = newAppActionId(app.name, nextActions.actions);
+    nextActions.actions[actionId] = launchActionOf(app);
+    const icon = icons[app.program.toLowerCase()];
+    const item = { ...makeItem("button", spot.x, spot.y), label: app.name.slice(0, 24), actionId, ...(icon ? { icon } : {}) } as LayoutItem;
+    page = { ...page, items: [...page.items, item] };
+    placed++;
+  }
+  return { layout: { ...layout, pages: layout.pages.map((p, i) => (i === 0 ? page : p)) }, actions: nextActions, placed, skipped: selected.length - placed };
 }
 
 /** What a button does on a tap (DESIGN.md 4.1): the four combinations rule 12 allows. */

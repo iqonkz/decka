@@ -673,6 +673,11 @@ impl Agent {
         SaveResult::Saved
     }
 
+    /// First run (DESIGN.md 4.4): no phone is paired yet and the layout is still the one Decka created.
+    pub fn is_first_run(&self) -> bool {
+        self.list_devices().is_empty() && self.layout() == crate::config::default_layout()
+    }
+
     pub fn get_templates(&self) -> Vec<crate::templates::PageTemplate> {
         crate::templates::all()
     }

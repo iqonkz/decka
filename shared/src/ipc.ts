@@ -51,5 +51,6 @@ export interface IpcCommands {
   icon_from_program(args: { path: string }): { icon: string } | { error: string };  // M12: icon of an exe -> "img:<hash16>"
   icon_from_image(args: { path: string }): { icon: string } | { error: string };    // M12: png/jpg/ico/bmp -> "img:<hash16>"
   icon_from_svg(args: { svg: string }): { icon: string } | { error: string };         // M13: an SVG from the icon library -> "img:<hash16>" (DATA_MODEL.md 8.4)
+  is_first_run(): boolean;                                     // M13: nothing paired and the layout is untouched (DESIGN.md 4.4)
   get_icon_preview(args: { icon: string }): string | null;     // M12: data URL for the settings window
 }

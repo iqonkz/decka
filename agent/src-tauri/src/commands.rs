@@ -156,6 +156,12 @@ pub async fn icon_from_image(app: AppHandle, path: String) -> Result<IconResult,
     tauri::async_runtime::spawn_blocking(move || agent.icon_from_image(&path).into()).await.map_err(|e| e.to_string())
 }
 
+/// True while nothing is paired and the layout is untouched: the settings window shows the first-run guide.
+#[tauri::command]
+pub fn is_first_run(app: AppHandle) -> Result<bool, String> {
+    Ok(agent(&app)?.is_first_run())
+}
+
 /// Stores an SVG from the icon library as `img:<hash16>` (DATA_MODEL.md 8.4); `{ error: "Unsupported SVG" }` otherwise.
 #[tauri::command]
 pub fn icon_from_svg(app: AppHandle, svg: String) -> Result<IconResult, String> {

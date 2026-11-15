@@ -66,6 +66,17 @@ async fn the_icons_section_follows_the_layout() {
 }
 
 #[tokio::test]
+async fn first_run_until_the_layout_changes() {
+    let dir = tempfile::tempdir().unwrap();
+    let agent = start(dir.path()).await;
+    assert!(agent.is_first_run(), "a fresh install is a first run");
+    let layout = set_first_button_icon(&agent, "lucide:star");
+    assert_eq!(agent.save_layout(layout), SaveResult::Saved);
+    assert!(!agent.is_first_run(), "a changed layout is not");
+    agent.shutdown().await;
+}
+
+#[tokio::test]
 async fn the_section_is_filled_at_start() {
     let dir = tempfile::tempdir().unwrap();
     let icon = save_icon(dir.path(), b"\x89PNG start icon").unwrap();

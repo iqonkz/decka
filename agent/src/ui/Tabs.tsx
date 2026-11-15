@@ -1,6 +1,10 @@
+import PhIcon from "./PhIcon";
+
 export interface TabDef<Id extends string> {
   id: Id;
   label: string;
+  /** Name of a Phosphor icon for the side menu. */
+  icon?: string;
 }
 
 /** Vertical tab list. */
@@ -9,7 +13,8 @@ export default function Tabs<Id extends string>({ tabs, active, onSelect }: { ta
     <nav className="tabs" role="tablist" aria-orientation="vertical">
       {tabs.map((t) => (
         <button key={t.id} role="tab" aria-selected={t.id === active} className={t.id === active ? "tab active" : "tab"} onClick={() => onSelect(t.id)}>
-          {t.label}
+          {t.icon && <PhIcon name={t.icon} />}
+          <span>{t.label}</span>
         </button>
       ))}
     </nav>

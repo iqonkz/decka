@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ActionsFile, DisplaySettings, LayoutFile, LayoutItem, ValidationIssue } from "@decka/shared";
+import type { ActionsFile, LayoutFile, LayoutItem, ValidationIssue } from "@decka/shared";
 import { validateLayout } from "@decka/shared";
 import { call } from "../ipc";
 import Banner from "../ui/Banner";
@@ -10,7 +10,7 @@ import EditorCanvas, { type DragPayload } from "./EditorCanvas";
 import Palette from "./Palette";
 import ItemForm from "./itemForm";
 import { describeIssue, itemPath } from "./issueText";
-import { addItem, COLS_RANGE, DEFAULT_SIZE, makeItem, movePage, newPageId, newPopupPage, removeItem, ROWS_RANGE, updateItem, withMediaDefaults, type Kind } from "./layoutOps";
+import { addItem, COLS_RANGE, DEFAULT_SIZE, launchActionOf, makeItem, movePage, newAppActionId, newPageId, newPopupPage, removeItem, ROWS_RANGE, updateItem, withMediaDefaults, type Kind } from "./layoutOps";
 import PageApps from "./PageApps";
 import TemplatesDialog from "./TemplatesDialog";
 
@@ -26,13 +26,6 @@ function withButtonDefault(item: LayoutItem, actions: ActionsFile, pages: Layout
 }
 
 const sameLayout = (a: LayoutFile, b: LayoutFile) => JSON.stringify(a) === JSON.stringify(b);
-
-/** `Notepad` -> `app-notepad`; the first free id when it is taken. */
-function newAppActionId(name: string, taken: Record<string, unknown>): string {
-  const base = `app-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 50) || "program"}`;
-  if (!(base in taken)) return base;
-  for (let n = 2; ; n++) if (!(`${base}-${n}` in taken)) return `${base}-${n}`;
-}
 
 export default function LayoutTab() {
   // The layout being edited, with 50 steps of undo/redo; `saved` is what is on the PC now.
@@ -127,7 +120,6 @@ export default function LayoutTab() {
     setMessage(null);
   };
   const setPage = (p: typeof page) => edit({ ...layout, pages: layout.pages.map((x, i) => (i === pageIdx ? p : x)) });
-  const setDisplay = (d: Partial<DisplaySettings>) => edit({ ...layout, display: { ...layout.display, ...d } });
   // Items are never moved by a size change: those that no longer fit are flagged by validation (red) and block Save.
   const setGrid = (g: Partial<LayoutFile["grid"]>) => edit({ ...layout, grid: { ...layout.grid, ...g } });
   const { cols, rows } = layout.grid;
@@ -207,10 +199,7 @@ export default function LayoutTab() {
       const { app } = payload;
       if (itemAt(page!, x, y)) return setNotice("Drop a program on an empty cell.");
       const actionId = newAppActionId(app.name, actions!.actions);
-      const next: ActionsFile = {
-        ...actions!,
-        actions: { ...actions!.actions, [actionId]: { name: app.name.slice(0, 60), type: "launch", program: app.program, ...(app.args.length > 0 ? { args: app.args } : {}), ...(app.cwd ? { cwd: app.cwd } : {}) } },
-      };
+      const next: ActionsFile = { ...actions!, actions: { ...actions!.actions, [actionId]: launchActionOf(app) } };
       const result = await call("save_actions", { actions: next });
       if (!result.ok) return setNotice(result.issues[0]?.message ?? "Cannot save the action");
       setActions(next);
@@ -347,35 +336,6 @@ export default function LayoutTab() {
         </div>
         </div>
       </div>
-
-      <section className="card">
-        <h3>Display</h3>
-        <div className="grid-4">
-          <Field label="Dim after, s" hint="0 = never">
-            <input type="number" value={layout.display.dimAfterSec} onChange={(e) => setDisplay({ dimAfterSec: Number(e.target.value) })} />
-          </Field>
-          <Field label="Dim level" hint="0.05 to 1">
-            <input type="number" step="0.05" value={layout.display.dimLevel} onChange={(e) => setDisplay({ dimLevel: Number(e.target.value) })} />
-          </Field>
-          <Field label="Screen saver after, s" hint="0 = never">
-            <input type="number" value={layout.display.sleepAfterSec} onChange={(e) => setDisplay({ sleepAfterSec: Number(e.target.value) })} />
-          </Field>
-          <label className="check">
-            <input type="checkbox" checked={layout.display.pixelShift} onChange={(e) => setDisplay({ pixelShift: e.target.checked })} /> Pixel shift
-          </label>
-        </div>
-        <label className="check">
-          <input type="checkbox" checked={layout.display.contextPages !== false} onChange={(e) => setDisplay({ contextPages: e.target.checked })} /> Switch to app pages automatically
-        </label>
-        <div className="row">
-          <label className="check">
-            <input type="checkbox" checked={layout.display.night.enabled} onChange={(e) => setDisplay({ night: { ...layout.display.night, enabled: e.target.checked } })} /> Night mode
-          </label>
-          <input aria-label="Night from" value={layout.display.night.from} placeholder="23:00" onChange={(e) => setDisplay({ night: { ...layout.display.night, from: e.target.value } })} />
-          <span>to</span>
-          <input aria-label="Night to" value={layout.display.night.to} placeholder="07:00" onChange={(e) => setDisplay({ night: { ...layout.display.night, to: e.target.value } })} />
-        </div>
-      </section>
 
       {shownIssues.length > 0 && (
         <Banner kind="error">

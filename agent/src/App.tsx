@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
-import { onNavigate } from "./ipc";
+import { useCallback, useEffect, useState } from "react";
+import { call, onNavigate } from "./ipc";
 import ActionsTab from "./tabs/ActionsTab";
+import AppearanceTab from "./tabs/AppearanceTab";
+import FirstRun, { wizardDone } from "./tabs/FirstRun";
 import IntegrationsTab from "./tabs/IntegrationsTab";
 import LayoutTab from "./tabs/LayoutTab";
 import PairingTab from "./tabs/PairingTab";
@@ -8,15 +10,16 @@ import SettingsTab from "./tabs/SettingsTab";
 import StatusTab from "./tabs/StatusTab";
 import Tabs, { type TabDef } from "./ui/Tabs";
 
-type TabId = "status" | "pairing" | "layout" | "actions" | "integrations" | "settings";
+type TabId = "status" | "pairing" | "appearance" | "layout" | "actions" | "integrations" | "settings";
 
 const TABS: TabDef<TabId>[] = [
-  { id: "status", label: "Status" },
-  { id: "pairing", label: "Pairing" },
-  { id: "layout", label: "Layout" },
-  { id: "actions", label: "Actions" },
-  { id: "integrations", label: "Integrations" },
-  { id: "settings", label: "Settings" },
+  { id: "status", label: "Status", icon: "pulse" },
+  { id: "pairing", label: "Pairing", icon: "qr-code" },
+  { id: "appearance", label: "Appearance", icon: "palette" },
+  { id: "layout", label: "Layout", icon: "squares-four" },
+  { id: "actions", label: "Actions", icon: "lightning" },
+  { id: "integrations", label: "Integrations", icon: "plugs-connected" },
+  { id: "settings", label: "Settings", icon: "gear" },
 ];
 
 const isTab = (s: string): s is TabId => TABS.some((t) => t.id === s);
@@ -27,6 +30,8 @@ function TabBody({ tab }: { tab: TabId }) {
       return <StatusTab />;
     case "pairing":
       return <PairingTab />;
+    case "appearance":
+      return <AppearanceTab />;
     case "actions":
       return <ActionsTab />;
     case "layout":
@@ -40,6 +45,22 @@ function TabBody({ tab }: { tab: TabId }) {
 
 export default function App() {
   const [tab, setTab] = useState<TabId>("status");
+  const [firstRun, setFirstRun] = useState(false);
+
+  // The accent of the deck is also the accent of this window.
+  const refreshAccent = useCallback(() => {
+    call("get_layout").then(
+      (l) => document.documentElement.style.setProperty("--accent", l.display.accent ?? "#7c5cff"),
+      () => {},
+    );
+  }, []);
+  useEffect(refreshAccent, [tab, refreshAccent]);
+
+  // The first-run guide: nothing paired, the layout untouched, and not dismissed before.
+  useEffect(() => {
+    if (wizardDone()) return;
+    call("is_first_run").then((first) => setFirstRun(first), () => {});
+  }, []);
 
   // The tray asks for a tab through `decka://navigate`.
   useEffect(() => {
@@ -65,6 +86,14 @@ export default function App() {
       <main className="content">
         <TabBody tab={tab} />
       </main>
+      {firstRun && (
+        <FirstRun
+          onClose={() => {
+            setFirstRun(false);
+            refreshAccent();
+          }}
+        />
+      )}
     </div>
   );
 }
