@@ -114,6 +114,14 @@
 - PENDING (owner): T11.11 — лог: `Open logs` на вкладке Status открывает `%APPDATA%\Decka\logs\decka.log`, строки `press …` попадают в файл. Нажатие `media-play` доходит до агента и возвращает ok, но Spotify на этом ПК состояние не меняет (ни через enigo, ни через сырой `keybd_event`) — проверить на ПК владельца по логу.
 - PENDING (owner): T12.5 — окно настроек (`npm run tauri dev` или установленный агент): диалог `Choose installed app…`, поле иконки кнопки (`From program`, `From image…`, `Clear`, список Lucide), иконка на телефоне ≤ 1 с после `Save`. Окно я не проверял.
 
+## T12.0, T13.1–T13.5 — сессия Windows, @decka/ui, темы
+
+- DONE (автоматически): T12.0 — `via session` для play/pause/next/prev на реальной медиасессии (Chrome, собственный PID); `via key` без сессии. Тесты: shared 80, ui 43, client 71, agent 36, `cargo test -p decka-core` зелёный.
+- PENDING (owner): T12.0 — то же на живом Spotify (во время проверки Spotify не был запущен).
+- PENDING (owner): T13.5 — телефон был отключён (`adb devices` пуст). Нужно: открыть `client/dev/glass-probe.html?mode=url` и `?mode=plain` на A57 (`adb reverse` + Chrome, `adb logcat -s chromium | Select-String GLASSPROBE`) и записать `supportsUrl`, видимое искажение (`?bg=stripes`) и `fps`; затем тема Glass на телефоне: средняя частота кадров, режим `reduced`, обои `album` при играющей музыке (`glass-album.png`).
+- Результат на ПК (Chromium 157, headless): `backdrop-filter: url(#decka-glass)` поддерживается — полосы в `glass-probe-stripes-url.png` искажены; 28 клавиш ≈ 130–145 к/с. Слой преломления оставлен; на медленном устройстве клиент сам переходит в `reduced` (< 45 к/с, ключ `decka.glass.reduced.v1`).
+- Снимки тем (рендер в Chrome 915×412 @2x на тестовом агенте, не на телефоне): `.tmp\design\amoled.png`, `studio.png` (нажата первая клавиша), `material.png`, `material-green.png`, `glass-aurora.png`, `glass-reduced.png`.
+
 ## T10.5 — настраиваемая сетка и обводка клавиш
 
 - DONE (A57 only — S9 PENDING (owner)): свежий агент с конфигурацией по умолчанию → снимок `.tmp\grid74.png`: 7 столбцов × 4 строки, у клавиш тонкая обводка, `Lock` с цветной подложкой и обводкой.

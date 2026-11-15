@@ -5,7 +5,8 @@ import DimOverlay from "../display/DimOverlay";
 import { useDisplayMode } from "../display/idle";
 import Screensaver from "../display/Screensaver";
 import { usePixelShift } from "../display/pixelShift";
-import { applyTheme, PageDots } from "@decka/ui";
+import { applyTheme, GlassLayer, PageDots, resolveTheme } from "@decka/ui";
+import { loadReduced, measureFps, saveReduced, shouldReduce } from "../platform/glassPerf";
 import DeckBridge from "../deck/DeckBridge";
 import Toasts from "../deck/Toasts";
 import PageHint from "../deck/PageHint";
@@ -65,9 +66,28 @@ export default function DeckScreen() {
   useUnpairGesture(openUnpair);
   useContextPages();
   const display = layout?.display;
+  const theme = resolveTheme(display);
+  const art = useAppState((s) => s.state?.media?.art);
+  const [reduced, setReduced] = useState(() => loadReduced() ?? false);
   useEffect(() => {
-    applyTheme(document.documentElement, display); // `data-theme` + `--accent` on the root; a missing theme is amoled
-  }, [display?.theme, display?.accent, display?.wallpaper]); // eslint-disable-line react-hooks/exhaustive-deps
+    applyTheme(document.documentElement, display, { reduced }); // `data-theme` + `--accent` on the root; a missing theme is amoled
+  }, [display?.theme, display?.accent, display?.wallpaper, reduced]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Glass: measure the frame rate once (3 s); a slow device gets the lighter look and remembers it.
+  useEffect(() => {
+    if (theme.theme !== "glass" || loadReduced() !== null) return;
+    let live = true;
+    void measureFps().then((fps) => {
+      if (!live) return;
+      console.log(`decka glass: ${fps === null ? "unknown" : fps.toFixed(1)} fps`);
+      if (fps === null) return;
+      const slow = shouldReduce(fps);
+      saveReduced(slow);
+      setReduced(slow);
+    });
+    return () => {
+      live = false;
+    };
+  }, [theme.theme]);
   const mode = useDisplayMode(layout?.display ?? null);
   const shift = usePixelShift(layout?.display.pixelShift === true);
   if (!layout) return null;
@@ -77,6 +97,7 @@ export default function DeckScreen() {
 
   return (
     <>
+      {theme.theme === "glass" && <GlassLayer wallpaper={theme.wallpaper} art={art} />}
       <div
         className={mode === "sleep" ? "deck asleep" : "deck"}
         onPointerDown={(e) => {

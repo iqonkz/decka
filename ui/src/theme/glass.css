@@ -1,1 +1,109 @@
-/* Glass: placeholder (T13.5). Until then the theme shares the Studio look, see studio.css. */
+/* Glass: "liquid glass" over a wallpaper (DESIGN.md 1.4, 1.5). A reinterpretation made of blur, saturation, a
+   displacement filter, an edge highlight and a spring on press; Apple's own material is not available in a WebView. */
+[data-theme="glass"] {
+  --screen-bg: #05060a;
+  --k-radius: 0.26;
+  --ink: #ffffff;
+  --label-color: #ffffff;
+  --text-color: #ffffff;
+  --label-weight: 600;
+  --label-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --key-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.45), inset 0 -1px 1px rgba(255, 255, 255, 0.08), 0 6px 18px rgba(0, 0, 0, 0.35);
+  --glass-blur: url(#decka-glass) blur(16px) saturate(180%);
+}
+/* `reduced` (slow device or `Reduce effects`): no refraction layer, a lighter blur. */
+[data-theme="glass"][data-reduced="1"] { --glass-blur: blur(10px) saturate(180%); }
+/* The wallpaper shows through the deck. */
+[data-theme="glass"] .deck { background: transparent; }
+
+/* The glass: layers 1 and 2 (blur + refraction), 4 (inner highlight) and 5 (shadow). */
+[data-theme="glass"] .key,
+[data-theme="glass"] .tile.panel {
+  background: rgba(255, 255, 255, 0.07);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border-color: transparent;
+  box-shadow: var(--key-shadow);
+}
+/* A coloured key gets its colour (opacity 0.32) under the highlight. */
+[data-theme="glass"] .key.colored {
+  background: linear-gradient(var(--c-a32), var(--c-a32)), rgba(255, 255, 255, 0.07);
+}
+/* Layer 3: the edge, a 1 px ring with a gradient mask. */
+[data-theme="glass"] .key::before,
+[data-theme="glass"] .tile.panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.08) 40%, rgba(255, 255, 255, 0) 60%, rgba(255, 255, 255, 0.25));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  pointer-events: none;
+}
+[data-theme="glass"] .tile.panel { position: relative; }
+/* Press: a spring on release, a brighter highlight and a light spot where the finger is. */
+[data-theme="glass"] .key { transition: transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+[data-theme="glass"] .key::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle at var(--tx, 50%) var(--ty, 50%), rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0) 60%);
+  opacity: 0;
+  transition: opacity 300ms ease-out;
+  pointer-events: none;
+}
+[data-theme="glass"] .key.pressed,
+[data-theme="glass"] .key.confirming {
+  transform: scale(0.92);
+  transition: transform 80ms ease-out;
+  filter: none;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.75), inset 0 -1px 1px rgba(255, 255, 255, 0.08), 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+[data-theme="glass"] .key.pressed::after,
+[data-theme="glass"] .key.confirming::after { opacity: 1; transition: opacity 0ms; }
+[data-theme="glass"] .key.disabled { box-shadow: none; }
+[data-theme="glass"] .key .key-icon { filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35)); }
+[data-theme="glass"] .dot { background: rgba(255, 255, 255, 0.25); }
+[data-theme="glass"] .dot.active { background: #ffffff; }
+
+/* Wallpapers (DESIGN.md 1.5). The layer drifts slowly in a circle of 3% (period 180 s) against burn-in. */
+.wallpaper { display: none; }
+[data-theme="glass"] .wallpaper {
+  display: block;
+  position: fixed;
+  inset: -8%;
+  z-index: 0;
+  overflow: hidden;
+  background-color: #05060a;
+  animation: wall-drift 180s linear infinite;
+  pointer-events: none;
+}
+@keyframes wall-drift {
+  0%, 100% { transform: translate(3%, 0); }
+  12.5% { transform: translate(2.1%, 2.1%); }
+  25% { transform: translate(0, 3%); }
+  37.5% { transform: translate(-2.1%, 2.1%); }
+  50% { transform: translate(-3%, 0); }
+  62.5% { transform: translate(-2.1%, -2.1%); }
+  75% { transform: translate(0, -3%); }
+  87.5% { transform: translate(2.1%, -2.1%); }
+}
+[data-theme="glass"] .wallpaper[data-wallpaper="aurora"] {
+  background-image: radial-gradient(60% 80% at 15% 20%, #6d28d9 0%, transparent 60%), radial-gradient(50% 70% at 85% 30%, #0ea5e9 0%, transparent 60%), radial-gradient(70% 60% at 50% 100%, #10b981 0%, transparent 65%);
+}
+[data-theme="glass"] .wallpaper[data-wallpaper="sunset"] {
+  background-image: radial-gradient(60% 80% at 20% 30%, #f97316, transparent 60%), radial-gradient(60% 80% at 80% 20%, #db2777, transparent 60%), radial-gradient(80% 60% at 50% 100%, #7c3aed, transparent 65%);
+}
+[data-theme="glass"] .wallpaper[data-wallpaper="ocean"] {
+  background-image: radial-gradient(60% 80% at 20% 20%, #1d4ed8, transparent 60%), radial-gradient(60% 70% at 80% 60%, #0891b2, transparent 60%), radial-gradient(70% 60% at 40% 100%, #0f766e, transparent 65%);
+}
+[data-theme="glass"] .wallpaper[data-wallpaper="graphite"] {
+  background-image: radial-gradient(70% 90% at 30% 20%, #3f3f46, transparent 60%), radial-gradient(60% 80% at 80% 80%, #27272a, transparent 60%);
+}
+/* `album`: the cover of the current track, blurred and darkened. */
+.wallpaper-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scale(1.3); filter: blur(48px) brightness(0.55) saturate(140%); }
+[data-theme="glass"] .deck-inner, [data-theme="glass"] .toasts { position: absolute; z-index: 1; }

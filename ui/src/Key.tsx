@@ -90,6 +90,13 @@ export default function Key({ actionId, onTap, confirm, icon, label, color, side
     if (disabled || phaseRef.current === "pending") return;
     if (resetTimer.current !== null) window.clearTimeout(resetTimer.current);
     start.current = { x: e.clientX, y: e.clientY };
+    // Where the finger is on the key, for the light spot of the Glass theme (`--tx`, `--ty`; harmless elsewhere).
+    const box = e.currentTarget.getBoundingClientRect();
+    if (box.width > 0 && box.height > 0) {
+      const el = e.currentTarget as HTMLElement;
+      el.style.setProperty("--tx", `${Math.round(((e.clientX - box.left) / box.width) * 100)}%`);
+      el.style.setProperty("--ty", `${Math.round(((e.clientY - box.top) / box.height) * 100)}%`);
+    }
     if (actionId !== undefined && confirm) {
       setPhase("confirming");
       holdTimer.current = window.setTimeout(() => {

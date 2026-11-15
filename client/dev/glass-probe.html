@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Decka glass probe</title>
+<!--
+  T13.5 prototype (not part of the build): does this WebView support `backdrop-filter: url(#decka-glass) ...` and how fast is it?
+  Open as glass-probe.html?mode=url (refraction filter) or ?mode=plain (blur + saturate only).
+  Results are written to the page and to console.log ("GLASSPROBE {...}"), which `adb logcat -s chromium` shows.
+-->
+<style>
+  html, body { margin: 0; height: 100%; background: #05060a; overflow: hidden; font-family: system-ui, sans-serif; }
+  .wall {
+    position: fixed; inset: -6%;
+    background:
+      radial-gradient(60% 80% at 15% 20%, #6d28d9 0%, transparent 60%),
+      radial-gradient(50% 70% at 85% 30%, #0ea5e9 0%, transparent 60%),
+      radial-gradient(70% 60% at 50% 100%, #10b981 0%, transparent 65%);
+    animation: drift 20s linear infinite;
+  }
+  @keyframes drift { from { transform: translate(-3%, 0) rotate(0deg); } 50% { transform: translate(3%, 3%) rotate(2deg); } to { transform: translate(-3%, 0) rotate(0deg); } }
+  .grid { position: fixed; inset: 0; display: grid; grid-template-columns: repeat(7, 1fr); grid-template-rows: repeat(4, 1fr); gap: 2.4vmin; padding: 4vmin 8vmin; }
+  .key {
+    position: relative; border-radius: 26%;
+    background: rgba(255, 255, 255, 0.07);
+    -webkit-backdrop-filter: blur(16px) saturate(180%); backdrop-filter: blur(16px) saturate(180%);
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.45), inset 0 -1px 1px rgba(255, 255, 255, 0.08), 0 6px 18px rgba(0, 0, 0, 0.35);
+    display: flex; align-items: center; justify-content: center; color: #fff; font-size: 4vmin; font-weight: 600;
+  }
+  body.url .key { -webkit-backdrop-filter: url(#decka-glass) blur(16px) saturate(180%); backdrop-filter: url(#decka-glass) blur(16px) saturate(180%); }
+  /* ?bg=stripes: a sharp pattern with only the url() filter (no blur), so any displacement is easy to see. */
+  body.stripes .wall { background: repeating-linear-gradient(90deg, #fff 0 14px, #111 14px 28px); animation: none; }
+  body.stripes.url .key { -webkit-backdrop-filter: url(#decka-glass); backdrop-filter: url(#decka-glass); background: transparent; }
+  body.stripes.plain .key { -webkit-backdrop-filter: none; backdrop-filter: none; background: transparent; }
+  #out { position: fixed; left: 8px; bottom: 6px; color: #fff; font: 12px/1.3 monospace; background: rgba(0,0,0,.55); padding: 4px 6px; border-radius: 4px; max-width: 90vw; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="decka-glass" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB">
+    <feTurbulence type="fractalNoise" baseFrequency="0.008" numOctaves="2" seed="3" result="noise"/>
+    <feGaussianBlur in="noise" stdDeviation="2" result="soft"/>
+    <feDisplacementMap in="SourceGraphic" in2="soft" scale="26" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</svg>
+<div class="wall"></div>
+<div class="grid" id="grid"></div>
+<div id="out">measuring…</div>
+<script>
+  const mode = new URLSearchParams(location.search).get("mode") === "url" ? "url" : "plain";
+  document.body.className = mode + (new URLSearchParams(location.search).get("bg") === "stripes" ? " stripes" : "");
+  const grid = document.getElementById("grid");
+  for (let i = 0; i < 28; i++) { const k = document.createElement("div"); k.className = "key"; k.textContent = i + 1; grid.appendChild(k); }
+
+  const sample = document.querySelector(".key");
+  const supports = (v) => (window.CSS && CSS.supports) ? CSS.supports("backdrop-filter", v) || CSS.supports("-webkit-backdrop-filter", v) : null;
+  const info = {
+    mode,
+    ua: navigator.userAgent,
+    supportsBlur: supports("blur(16px) saturate(180%)"),
+    supportsUrl: supports("url(#decka-glass) blur(16px) saturate(180%)"),
+    computed: getComputedStyle(sample).backdropFilter || getComputedStyle(sample).webkitBackdropFilter,
+    dpr: devicePixelRatio, w: innerWidth, h: innerHeight,
+  };
+
+  // Mean frame rate over 3 s of the drifting wallpaper behind 28 glass keys.
+  let frames = 0; const t0 = performance.now();
+  function tick(t) {
+    frames++;
+    if (t - t0 < 3000) requestAnimationFrame(tick);
+    else {
+      info.fps = Math.round((frames / ((t - t0) / 1000)) * 10) / 10;
+      const text = JSON.stringify(info);
+      document.getElementById("out").textContent = text;
+      console.log("GLASSPROBE " + text);
+    }
+  }
+  requestAnimationFrame(tick);
+</script>
+</body>
+</html>

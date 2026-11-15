@@ -25,10 +25,17 @@ export function resolveTheme(display: Pick<DisplaySettings, "theme" | "accent" |
 }
 
 /** Puts the theme on `root`: `data-theme`, `data-wallpaper` and the `--accent` variable. */
-export function applyTheme(root: HTMLElement, display: Pick<DisplaySettings, "theme" | "accent" | "wallpaper"> | null | undefined): ResolvedTheme {
+export function applyTheme(
+  root: HTMLElement,
+  display: Pick<DisplaySettings, "theme" | "accent" | "wallpaper"> | null | undefined,
+  options: { reduced?: boolean } = {},
+): ResolvedTheme {
   const resolved = resolveTheme(display);
   root.dataset.theme = resolved.theme;
   root.dataset.wallpaper = resolved.wallpaper;
+  // `reduced`: slow device or "Reduce effects" - the Glass theme drops its refraction layer.
+  if (options.reduced) root.dataset.reduced = "1";
+  else delete root.dataset.reduced;
   root.style.setProperty("--accent", resolved.accent);
   // The Material scheme comes from the accent; other themes do not need it.
   if (resolved.theme === "material") {

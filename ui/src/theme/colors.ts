@@ -36,6 +36,7 @@ export function colorVars(color: string | undefined): Record<string, string> {
     "--c-bottom": `rgb(${shade(rgb, -0.18)})`,
     "--c-a16": `rgba(${r},${g},${b},0.16)`,
     "--c-a30": `rgba(${r},${g},${b},0.30)`,
+    "--c-a32": `rgba(${r},${g},${b},0.32)`,
     "--c-a50": `rgba(${r},${g},${b},0.5)`,
     "--c-ink": luminance(rgb) < 64 ? "#e5e5e5" : color,
   };
