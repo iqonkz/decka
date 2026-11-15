@@ -3,6 +3,8 @@ import type { ConfigFile, HttpCheck, ValidationIssue } from "@decka/shared";
 import { call } from "../ipc";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
+import Field from "../ui/Field";
+import { makeActionId } from "../editor/addButton";
 
 function CopyButton({ text }: { text: string }) {
   const [done, setDone] = useState(false);
@@ -32,7 +34,10 @@ function CommandBox({ title, command }: { title: string; command: string }) {
   );
 }
 
-const newCheck = (n: number): HttpCheck => ({ id: `check-${n}`, label: "New check", url: "https://example.com", intervalSec: 60, timeoutSec: 5 });
+const newCheck = (n: number): HttpCheck => ({ id: `check-${n}`, label: "", url: "https://", intervalSec: 60, timeoutSec: 5 });
+
+/** The ID of a check is made from its name and never typed. */
+const checkId = (label: string, existing: HttpCheck[]): string => makeActionId(label || "check", Object.fromEntries(existing.map((c) => [c.id, 1])));
 
 export default function IntegrationsTab() {
   const [config, setConfig] = useState<ConfigFile | null>(null);
@@ -40,6 +45,7 @@ export default function IntegrationsTab() {
   const [showToken, setShowToken] = useState(false);
   const [confirmRegen, setConfirmRegen] = useState(false);
   const [checks, setChecks] = useState<HttpCheck[]>([]);
+  const [editing, setEditing] = useState<{ index: number; check: HttpCheck } | null>(null);
   const [issues, setIssues] = useState<ValidationIssue[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -81,13 +87,8 @@ export default function IntegrationsTab() {
     setConfig({ ...config!, apiToken: result.apiToken });
   }
 
-  const updateCheck = (i: number, patch: Partial<HttpCheck>) => {
-    setChecks(checks.map((c, n) => (n === i ? { ...c, ...patch } : c)));
-    setMessage(null);
-  };
-
-  async function saveChecks() {
-    const result = await call("save_config", { config: { ...config!, collectors: { ...config!.collectors, checks } } });
+  async function saveChecks(next: HttpCheck[]) {
+    const result = await call("save_config", { config: { ...config!, collectors: { ...config!.collectors, checks: next } } });
     if (result.ok) {
       setIssues([]);
       setMessage("Saved");
@@ -125,6 +126,8 @@ export default function IntegrationsTab() {
         )}
       </section>
 
+      <details className="advanced">
+        <summary>Show examples</summary>
       <section className="card">
         <h3>Send a notification</h3>
         <div className="stack">
@@ -141,71 +144,87 @@ export default function IntegrationsTab() {
         <h3>Update a status</h3>
         <CommandBox title="curl.exe" command={curlStatus} />
       </section>
+      </details>
 
       <section className="card">
-        <h3>HTTP checks</h3>
-        <p className="muted">The PC requests each URL and shows the result as a status on the phone.</p>
-        {checks.length > 0 && (
-          <table className="checks">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Label</th>
-                <th>URL</th>
-                <th>Every, s</th>
-                <th>Timeout, s</th>
-                <th>Expect</th>
-                <th>Group</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {checks.map((c, i) => (
-                <tr key={i}>
-                  <td><input aria-label="ID" value={c.id} onChange={(e) => updateCheck(i, { id: e.target.value })} /></td>
-                  <td><input aria-label="Label" value={c.label} onChange={(e) => updateCheck(i, { label: e.target.value })} /></td>
-                  <td><input aria-label="URL" value={c.url} onChange={(e) => updateCheck(i, { url: e.target.value })} /></td>
-                  <td><input aria-label="Interval" type="number" value={c.intervalSec} onChange={(e) => updateCheck(i, { intervalSec: Number(e.target.value) })} /></td>
-                  <td><input aria-label="Timeout" type="number" value={c.timeoutSec} onChange={(e) => updateCheck(i, { timeoutSec: Number(e.target.value) })} /></td>
-                  <td>
-                    <input
-                      aria-label="Expected status"
-                      type="number"
-                      placeholder="2xx-3xx"
-                      value={c.expectStatus ?? ""}
-                      onChange={(e) => updateCheck(i, { expectStatus: e.target.value === "" ? undefined : Number(e.target.value) })}
-                    />
-                  </td>
-                  <td><input aria-label="Group" value={c.group ?? ""} onChange={(e) => updateCheck(i, { group: e.target.value || undefined })} /></td>
-                  <td>
-                    <Button onClick={() => setChecks(checks.filter((_, n) => n !== i))}>Delete</Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+        <h3>Website checks</h3>
+        <p className="muted">The PC opens each address now and then and shows the result as a status on the phone.</p>
+        {checks.length === 0 && <p className="muted">No checks yet.</p>}
+        <ul className="plain-list">
+          {checks.map((c, i) => (
+            <li key={i} className="check-row">
+              <span className="status-dot wait" aria-hidden="true" />
+              <strong>{c.label}</strong>
+              <span className="muted grow">{c.url}</span>
+              <Button onClick={() => setEditing({ index: i, check: c })}>Edit</Button>
+              <Button onClick={() => void saveChecks(checks.filter((_, n) => n !== i))}>Remove</Button>
+            </li>
+          ))}
+        </ul>
         {issues.length > 0 && (
           <Banner kind="error">
             <ul>
               {issues.map((i, n) => (
-                <li key={n}>
-                  <code>{i.path || "/"}</code>: {i.message}
-                </li>
+                <li key={n}>{i.message}</li>
               ))}
             </ul>
           </Banner>
         )}
         {message && <Banner kind="success">{message}</Banner>}
         <div className="row">
-          <Button disabled={checks.length >= 20} onClick={() => setChecks([...checks, newCheck(checks.length + 1)])}>
+          <Button variant="primary" disabled={checks.length >= 20} onClick={() => setEditing({ index: -1, check: newCheck(checks.length + 1) })}>
             Add check
-          </Button>
-          <Button variant="primary" onClick={() => void saveChecks()}>
-            Save checks
           </Button>
         </div>
       </section>
-    </div>
+
+      {editing && (
+        <div className="dialog-backdrop">
+          <div className="dialog" role="dialog" aria-label="Check">
+            <h2>{editing.index < 0 ? "Add check" : "Edit check"}</h2>
+            <Field label="Name">
+              <input autoFocus value={editing.check.label} onChange={(e) => setEditing({ ...editing, check: { ...editing.check, label: e.target.value } })} />
+            </Field>
+            <Field label="Address">
+              <input value={editing.check.url} onChange={(e) => setEditing({ ...editing, check: { ...editing.check, url: e.target.value } })} />
+            </Field>
+            <details className="advanced">
+              <summary>More options</summary>
+              <div className="grid-4">
+                <Field label="Check every, s">
+                  <input type="number" value={editing.check.intervalSec} onChange={(e) => setEditing({ ...editing, check: { ...editing.check, intervalSec: Number(e.target.value) } })} />
+                </Field>
+                <Field label="Give up after, s">
+                  <input type="number" value={editing.check.timeoutSec} onChange={(e) => setEditing({ ...editing, check: { ...editing.check, timeoutSec: Number(e.target.value) } })} />
+                </Field>
+                <Field label="Expected answer" hint="Empty = any success">
+                  <input
+                    type="number"
+                    placeholder="200"
+                    value={editing.check.expectStatus ?? ""}
+                    onChange={(e) => setEditing({ ...editing, check: { ...editing.check, expectStatus: e.target.value === "" ? undefined : Number(e.target.value) } })}
+                  />
+                </Field>
+                <Field label="Group">
+                  <input value={editing.check.group ?? ""} onChange={(e) => setEditing({ ...editing, check: { ...editing.check, group: e.target.value || undefined } })} />
+                </Field>
+              </div>
+            </details>
+            <div className="row">
+              <Button
+                variant="primary"
+                onClick={() => {
+                  const next = editing.index < 0 ? [...checks, { ...editing.check, id: checkId(editing.check.label, checks) }] : checks.map((c, n) => (n === editing.index ? editing.check : c));
+                  setEditing(null);
+                  void saveChecks(next);
+                }}
+              >
+                Save
+              </Button>
+              <Button onClick={() => setEditing(null)}>Cancel</Button>
+            </div>
+          </div>
+        </div>
+      )}    </div>
   );
 }

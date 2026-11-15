@@ -22,6 +22,9 @@ import QuickPicker from "../editor/QuickPicker";
 import EditorTips from "../editor/EditorTips";
 import PhoneStrip from "../editor/PhoneStrip";
 import PageApps from "./PageApps";
+import GridPicker from "../editor/GridPicker";
+import { overflowItems, resizeGridMoving } from "../editor/gridResize";
+import PhIcon from "../ui/PhIcon";
 import TemplatesDialog from "./TemplatesDialog";
 
 const sameLayout = (a: LayoutFile, b: LayoutFile) => JSON.stringify(a) === JSON.stringify(b);
@@ -46,6 +49,7 @@ export default function LayoutTab() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [templatesOpen, setTemplatesOpen] = useState(false);
+  const [resizing, setResizing] = useState<{ cols: number; rows: number; count: number } | null>(null);
   // Autosave (DESIGN.md 4.6): `saved` / `savedActions` are what is on the PC; 600 ms after the last edit the difference is written.
   const [savedActions, setSavedActions] = useState("");
   const [savedFlash, setSavedFlash] = useState(false);
@@ -173,6 +177,21 @@ export default function LayoutTab() {
   // Items are never moved by a size change: those that no longer fit are flagged by validation (red) and block Save.
   const setGrid = (g: Partial<LayoutFile["grid"]>) => edit({ ...layout, grid: { ...layout.grid, ...g } });
   const { cols, rows } = layout.grid;
+  /** A new grid size: applied at once when nothing sticks out, else after the `Move them?` question (DESIGN.md 4.6a). */
+  function requestGrid(c: number, r: number) {
+    if (c === cols && r === rows) return;
+    const stuck = overflowItems(layout!, c, r);
+    if (stuck.length === 0) return setGrid({ cols: c, rows: r });
+    setResizing({ cols: c, rows: r, count: stuck.length });
+  }
+  function confirmResize() {
+    if (!resizing) return;
+    const result = resizeGridMoving(layout!, resizing.cols, resizing.rows);
+    setResizing(null);
+    if (result.lost > 0) return setNotice(`${result.lost} widget${result.lost === 1 ? "" : "s"} are too big for this grid and were not moved.`);
+    edit(result.layout);
+    setSelectedId(null);
+  }
   const options = (range: readonly [number, number]) => Array.from({ length: range[1] - range[0] + 1 }, (_, i) => range[0] + i);
 
   /** Clicking an issue opens the page and the form of the element it is about. */
@@ -566,54 +585,66 @@ export default function LayoutTab() {
 
   return (
     <div className="stack">
-      <h2>Layout</h2>
+      <h2>Deck</h2>
 
-      <div className="row">
-        <Field label="Columns">
-          <select value={cols} onChange={(e) => setGrid({ cols: Number(e.target.value) })}>
-            {options(COLS_RANGE).map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="Rows">
-          <select value={rows} onChange={(e) => setGrid({ rows: Number(e.target.value) })}>
-            {options(ROWS_RANGE).map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <span className="muted">Grid size. Items outside a smaller grid must be moved before saving.</span>
-      </div>
-
-      <div className="row wrap">
+      <div className="row wrap deck-bar">
         <div className="page-tabs">
-          {layout.pages.map((p, i) => (
-            <button key={p.id} className={i === pageIdx ? "page-tab active" : "page-tab"} onClick={() => { setPageIdx(i); setSelectedId(null); setCreating(null); }} onContextMenu={(e) => pageMenu(i, e.clientX, e.clientY)}>
-              {p.name}
-              {p.popup === true && <span className="tag popup-tag">Popup</span>}
-            </button>
-          ))}
+          {layout.pages.map((p, i) =>
+            renaming !== null && i === pageIdx ? (
+              <input
+                key={p.id}
+                className="page-tab-input"
+                aria-label="Page name"
+                autoFocus
+                maxLength={30}
+                value={renaming}
+                onChange={(e) => setRenaming(e.target.value)}
+                onFocus={(e) => e.currentTarget.select()}
+                onBlur={() => {
+                  if (renaming.trim() !== "") setPage({ ...page, name: renaming.trim() });
+                  setRenaming(null);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") e.currentTarget.blur();
+                  else if (e.key === "Escape") setRenaming(null);
+                }}
+              />
+            ) : (
+              <button
+                key={p.id}
+                className={i === pageIdx ? "page-tab active" : "page-tab"}
+                onClick={() => { setPageIdx(i); setSelectedId(null); setCreating(null); }}
+                onDoubleClick={() => { setPageIdx(i); setRenaming(p.name); }}
+                onContextMenu={(e) => pageMenu(i, e.clientX, e.clientY)}
+              >
+                {p.name}
+                {p.popup === true && <span className="tag popup-tag">Popup</span>}
+              </button>
+            ),
+          )}
+          <button
+            type="button"
+            className="page-tab"
+            aria-label="Add a page"
+            disabled={layout.pages.length >= 10}
+            onClick={(e) => {
+              const box = e.currentTarget.getBoundingClientRect();
+              setMenu({
+                x: box.left,
+                y: box.bottom + 4,
+                items: [
+                  { label: "New page", icon: "file-plus", onClick: addPage },
+                  { label: "New popup group", icon: "squares-four", onClick: addPopupPage },
+                  { label: "From a template…", icon: "layout", onClick: () => setTemplatesOpen(true) },
+                ],
+              });
+            }}
+          >
+            +
+          </button>
         </div>
-        <Button onClick={addPage} disabled={layout.pages.length >= 10}>Add page</Button>
-        <Button onClick={addPopupPage} disabled={layout.pages.length >= 10}>Add popup group</Button>
-        <Button onClick={() => setTemplatesOpen(true)}>Add page from template</Button>
-        <Button onClick={() => setRenaming(page.name)}>Rename</Button>
-        <Button onClick={deletePage} disabled={layout.pages.length <= 1}>Delete page</Button>
-        <Button onClick={() => shiftPage(-1)} disabled={pageIdx === 0} aria-label="Move page left">←</Button>
-        <Button onClick={() => shiftPage(1)} disabled={pageIdx === layout.pages.length - 1} aria-label="Move page right">→</Button>
+        <GridPicker cols={cols} rows={rows} onPick={requestGrid} />
       </div>
-      {renaming !== null && (
-        <div className="row">
-          <input autoFocus value={renaming} maxLength={30} onChange={(e) => setRenaming(e.target.value)} />
-          <Button variant="primary" onClick={() => { setPage({ ...page, name: renaming }); setRenaming(null); }}>OK</Button>
-          <Button onClick={() => setRenaming(null)}>Cancel</Button>
-        </div>
-      )}
 
       {page.popup === true ? (
         <section className="card">
@@ -634,19 +665,22 @@ export default function LayoutTab() {
       ) : (
         <PageApps page={page} isFirst={pageIdx === 0} onChange={setPage} />
       )}
-
-      <div className="row wrap editor-toolbar">
-        <Button onClick={() => step(undo)} disabled={!canUndo(hist!)} aria-label="Undo">↶ Undo</Button>
-        <Button onClick={() => step(redo)} disabled={!canRedo(hist!)} aria-label="Redo">↷ Redo</Button>
-        {badItems.size > 0 && <span className="muted">Items with problems are listed below.</span>}
-      </div>
-
+      {badItems.size > 0 && <p className="muted">Keys with problems are listed below.</p>}
       <div className="editor">
         <Palette actions={actions} onBegin={session.begin} />
         <div className="editor-main" ref={mainRef} style={{ position: "relative" }}>
-          {savedFlash && <span className="saved-flag">Saved</span>}
-          <PhoneStrip />
-          <EditorCanvas
+          <div className="preview-bar">
+            <div className="grow">
+              <PhoneStrip />
+            </div>
+            {savedFlash && <span className="saved-flag">Saved</span>}
+            <button type="button" className="icon-btn" aria-label="Undo" title="Undo (Ctrl+Z)" disabled={!canUndo(hist!)} onClick={() => step(undo)}>
+              <PhIcon name="arrow-counter-clockwise" size={16} />
+            </button>
+            <button type="button" className="icon-btn" aria-label="Redo" title="Redo (Ctrl+Y)" disabled={!canRedo(hist!)} onClick={() => step(redo)}>
+              <PhIcon name="arrow-clockwise" size={16} />
+            </button>
+          </div>          <EditorCanvas
             layout={layout}
             page={page}
             selectedId={selectedId}
@@ -731,6 +765,20 @@ export default function LayoutTab() {
       {session.dragging && (
         <div className="drag-ghost" style={{ left: session.dragging.x + 12, top: session.dragging.y + 12 }}>
           {ghostLabel(session.dragging.payload)}
+        </div>
+      )}
+      {resizing && (
+        <div className="dialog-backdrop">
+          <div className="dialog" role="dialog" aria-label="Keys do not fit">
+            <h2>
+              {resizing.count} key{resizing.count === 1 ? "" : "s"} {resizing.count === 1 ? "doesn't" : "don't"} fit
+            </h2>
+            <p>Move {resizing.count === 1 ? "it" : "them"} to a new page?</p>
+            <div className="row">
+              <Button variant="primary" onClick={confirmResize}>Move</Button>
+              <Button onClick={() => setResizing(null)}>Cancel</Button>
+            </div>
+          </div>
         </div>
       )}
       {templatesOpen && (

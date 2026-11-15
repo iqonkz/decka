@@ -89,7 +89,7 @@ export default function ItemForm({ item, display, page, pages, grid, actions, on
   return (
     <div className="item-form">
       <h3>
-        {item.kind} <code>{item.id}</code>
+        {item.kind === "button" ? "Button" : "Widget"}
       </h3>
       {item.kind === "button" && <KeyPreview item={item} display={display} />}
       {item.kind === "button" && <ButtonFields display={display} item={item} pages={pages} inPopup={page.popup === true} actions={actions} patch={patch} onChangeAction={onChangeAction} position={position} />}
@@ -219,7 +219,7 @@ function ButtonFields({ display, item, pages, inPopup, actions, patch, onChangeA
           <Field label="Action" hint="New action… leaves this form: save the layout first.">
             <div className="row">
               <select value={item.actionId ?? ""} onChange={(e) => selectAction(e.target.value)}>
-                {item.actionId !== undefined && !actions.actions[item.actionId] && <option value={item.actionId}>{item.actionId} (missing)</option>}
+                {item.actionId !== undefined && !actions.actions[item.actionId] && <option value={item.actionId}>(deleted action)</option>}
                 {actionEntries.map(([id, a]) => (
                   <option key={id} value={id}>{`${a.name} (${id})`}</option>
                 ))}

@@ -37,6 +37,8 @@ interface Props {
   actions: ActionsFile;
   /** Changing the action of a key: no widgets in the list. */
   hideWidgets?: boolean;
+  /** Only the `Apps` group and `Browse for a program…` (the action form picks a program). */
+  appsOnly?: boolean;
   onChoose: (choice: Choice) => void;
   onClose: () => void;
 }
@@ -44,7 +46,7 @@ interface Props {
 type Mode = "list" | "website" | "keys";
 
 /** The quick picker (DESIGN.md 4.5): one popup next to an empty cell; one click on a row makes the button. */
-export default function QuickPicker({ anchor, cell, page, grid, actions, hideWidgets, onChoose, onClose }: Props) {
+export default function QuickPicker({ anchor, cell, page, grid, actions, hideWidgets, appsOnly, onChoose, onClose }: Props) {
   const [query, setQuery] = useState("");
   const [apps, setApps] = useState<InstalledApp[] | null>(cachedApps());
   const [active, setActive] = useState(0);
@@ -66,19 +68,19 @@ export default function QuickPicker({ anchor, cell, page, grid, actions, hideWid
     for (const app of apps ?? []) {
       if (match(app.name)) out.push({ key: `app|${app.program}|${app.args.join(" ")}|${app.name}`, group: "Apps", label: app.name, icon: app.icon, hint: undefined, choice: { type: "app", app } });
     }
-    for (const p of presetActions()) {
+    for (const p of appsOnly ? [] : presetActions()) {
       if (match(p.label)) out.push({ key: `preset|${p.id}`, group: "Media & system", label: p.label, phIcon: undefined, choice: { type: "preset", presetId: p.id } });
     }
-    const yours = Object.entries(actions.actions)
+    const yours = Object.entries(appsOnly ? {} : actions.actions)
       .filter(([id, a]) => match(a.name) || match(id))
       .sort(([, a], [, b]) => a.name.localeCompare(b.name));
     for (const [id, a] of yours) out.push({ key: `action|${id}`, group: "Your actions", label: a.name, hint: defaultIconFor(a).replace("lucide:", ""), choice: { type: "action", actionId: id } });
-    for (const w of hideWidgets ? [] : WIDGETS) {
+    for (const w of hideWidgets || appsOnly ? [] : WIDGETS) {
       const size = DEFAULT_SIZE[w.kind];
       if (match(w.name) && fits(page, grid, { x: cell.x, y: cell.y, w: size.w, h: size.h })) out.push({ key: `widget|${w.kind}`, group: "Widgets", label: w.name, hint: `${size.w}×${size.h}`, choice: { type: "widget", kind: w.kind } });
     }
     return out;
-  }, [apps, actions, query, page, grid, cell.x, cell.y, hideWidgets]);
+  }, [apps, actions, query, page, grid, cell.x, cell.y, hideWidgets, appsOnly]);
 
   useEffect(() => setActive(0), [query]);
   useEffect(() => {
@@ -175,14 +177,14 @@ export default function QuickPicker({ anchor, cell, page, grid, actions, hideWid
                 <PhIcon name="folder-open" size={18} />
                 <span className="picker-label">Browse for a program…</span>
               </button>
-              <button type="button" className="picker-row" onClick={() => { setMode("website"); setError(null); }}>
+              {!appsOnly && <button type="button" className="picker-row" onClick={() => { setMode("website"); setError(null); }}>
                 <PhIcon name="globe" size={18} />
                 <span className="picker-label">Website…</span>
-              </button>
-              <button type="button" className="picker-row" onClick={() => { setMode("keys"); setChord([]); setHint(null); setError(null); }}>
+              </button>}
+              {!appsOnly && <button type="button" className="picker-row" onClick={() => { setMode("keys"); setChord([]); setHint(null); setError(null); }}>
                 <PhIcon name="keyboard" size={18} />
                 <span className="picker-label">Keyboard shortcut…</span>
-              </button>
+              </button>}
             </div>
           </>
         )}

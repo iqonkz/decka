@@ -11,9 +11,11 @@ export default function SettingsTab() {
   const [message, setMessage] = useState<string | null>(null);
   const [needsRestart, setNeedsRestart] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [adbMissing, setAdbMissing] = useState(false);
 
   const load = useCallback(async () => {
     setConfig(await call("get_config"));
+    call("get_status").then((s) => setAdbMissing(!s.usb.adbFound), () => {});
   }, []);
 
   useEffect(() => {
@@ -50,64 +52,63 @@ export default function SettingsTab() {
   return (
     <div className="stack">
       <h2>Settings</h2>
-
-      <section className="card">
-        <h3>About</h3>
-        <p className="muted">Decka turns an old phone into a panel for this PC. The setup guide pairs the phone, picks a look and adds your apps.</p>
-        <Button onClick={() => window.dispatchEvent(new CustomEvent("decka:run-setup", { detail: { step: 0 } }))}>Run setup again</Button>
-      </section>
-
       <section className="card">
         <Field label="PC name" hint="Shown on the phone.">
           <input value={config.agentName} maxLength={40} onChange={(e) => edit({ agentName: e.target.value })} />
         </Field>
-        <Field label="Port" hint="1024 to 65535. Applies after a server restart.">
-          <input type="number" value={config.port} onChange={(e) => edit({ port: Number(e.target.value) })} />
-        </Field>
-
-        <fieldset className="radio-group">
-          <legend>Network access</legend>
-          <label>
-            <input type="radio" name="bind" checked={config.bind === "0.0.0.0"} onChange={() => edit({ bind: "0.0.0.0" })} /> Wi-Fi and USB (0.0.0.0)
-          </label>
-          <label>
-            <input type="radio" name="bind" checked={config.bind === "127.0.0.1"} onChange={() => edit({ bind: "127.0.0.1" })} /> USB only (127.0.0.1)
-          </label>
-        </fieldset>
-
         <label className="check">
           <input type="checkbox" checked={config.autostart} onChange={(e) => edit({ autostart: e.target.checked })} /> Start with Windows
         </label>
-
-        <div className="row">
-          <label className="check">
-            <input
-              type="checkbox"
-              checked={config.collectors.sys.enabled}
-              onChange={(e) => edit({ collectors: { ...config.collectors, sys: { ...config.collectors.sys, enabled: e.target.checked } } })}
-            />{" "}
-            System stats widget
-          </label>
-          <Field label="Interval, s">
-            <input
-              type="number"
-              value={config.collectors.sys.intervalSec}
-              onChange={(e) => edit({ collectors: { ...config.collectors, sys: { ...config.collectors.sys, intervalSec: Number(e.target.value) } } })}
-            />
-          </Field>
-        </div>
-      </section>
-
-      <section className="card">
-        <h3>USB mode</h3>
         <label className="check">
-          <input type="checkbox" checked={config.usb.enabled} onChange={(e) => edit({ usb: { ...config.usb, enabled: e.target.checked } })} /> Forward port over USB (adb)
+          <input type="checkbox" checked={config.usb.enabled} onChange={(e) => edit({ usb: { ...config.usb, enabled: e.target.checked } })} /> USB connection
         </label>
-        <Field label="adb path" hint="Requires Android platform-tools and USB debugging enabled on the phone.">
-          <input value={config.usb.adbPath} onChange={(e) => edit({ usb: { ...config.usb, adbPath: e.target.value } })} />
-        </Field>
+        <p className="muted">Needs USB debugging on the phone. Wi-Fi works without it.</p>
+        {config.usb.enabled && adbMissing && (
+          <Field label="adb program" hint="Decka could not find adb by itself: choose adb.exe from Android platform-tools.">
+            <input value={config.usb.adbPath} onChange={(e) => edit({ usb: { ...config.usb, adbPath: e.target.value } })} />
+          </Field>
+        )}
       </section>
 
+      <details className="advanced">
+        <summary>More options</summary>
+        <section className="card">
+          <Field label="Port" hint="1024 to 65535. Applies after a server restart.">
+            <input type="number" value={config.port} onChange={(e) => edit({ port: Number(e.target.value) })} />
+          </Field>
+
+          <fieldset className="radio-group">
+            <legend>Who can connect</legend>
+            <label>
+              <input type="radio" name="bind" checked={config.bind === "0.0.0.0"} onChange={() => edit({ bind: "0.0.0.0" })} /> Phones on Wi-Fi and USB
+            </label>
+            <label>
+              <input type="radio" name="bind" checked={config.bind === "127.0.0.1"} onChange={() => edit({ bind: "127.0.0.1" })} /> USB only
+            </label>
+          </fieldset>
+
+          <div className="row">
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={config.collectors.sys.enabled}
+                onChange={(e) => edit({ collectors: { ...config.collectors, sys: { ...config.collectors.sys, enabled: e.target.checked } } })}
+              />{" "}
+              Show CPU and memory on the phone
+            </label>
+            <Field label="Refresh every, s">
+              <input
+                type="number"
+                value={config.collectors.sys.intervalSec}
+                onChange={(e) => edit({ collectors: { ...config.collectors, sys: { ...config.collectors.sys, intervalSec: Number(e.target.value) } } })}
+              />
+            </Field>
+          </div>
+          <Field label="adb program" hint="Only changes where Decka looks for adb.">
+            <input value={config.usb.adbPath} onChange={(e) => edit({ usb: { ...config.usb, adbPath: e.target.value } })} />
+          </Field>
+        </section>
+      </details>
       {issues.length > 0 && (
         <Banner kind="error">
           <ul>

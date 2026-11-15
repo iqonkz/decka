@@ -7,7 +7,7 @@ import Button from "../ui/Button";
 const fmtCode = (code: string): string => `${code.slice(0, 4)}-${code.slice(4)}`;
 const fmtTime = (ms: number): string => new Date(ms).toLocaleString();
 
-export default function PairingTab() {
+export default function PairingTab({ embedded = false }: { embedded?: boolean } = {}) {
   const [info, setInfo] = useState<PairingInfo | null>(null);
   const [remainingMs, setRemainingMs] = useState(0);
   const [expired, setExpired] = useState(false);
@@ -98,7 +98,7 @@ export default function PairingTab() {
 
   return (
     <div className="stack">
-      <h2>Pairing</h2>
+      {!embedded && <h2>Pairing</h2>}
       {error && <Banner kind="error">{error}</Banner>}
 
       <section className="card">
@@ -121,7 +121,7 @@ export default function PairingTab() {
             {expired && <p className="muted">Code expired</p>}
             <div>
               <Button variant="primary" onClick={() => void start()}>
-                Pair a new device
+                Pair a new phone
               </Button>
             </div>
           </div>
@@ -129,9 +129,9 @@ export default function PairingTab() {
       </section>
 
       <section className="card">
-        <h3>Paired devices</h3>
+        <h3>Your phones</h3>
         {devices.length === 0 ? (
-          <p className="muted">No paired devices yet.</p>
+          <p className="muted">No phones paired yet.</p>
         ) : (
           <table>
             <thead>
@@ -155,14 +155,14 @@ export default function PairingTab() {
                   <td>
                     {confirmId === d.id ? (
                       <span className="row">
-                        <span>Revoke {d.name}? It will need to pair again.</span>
+                        <span>Forget {d.name}? It will need to pair again.</span>
                         <Button variant="danger" onClick={() => void revoke(d.id)}>
-                          Revoke
+                          Forget
                         </Button>
                         <Button onClick={() => setConfirmId(null)}>Cancel</Button>
                       </span>
                     ) : (
-                      <Button onClick={() => setConfirmId(d.id)}>Revoke</Button>
+                      <Button onClick={() => setConfirmId(d.id)}>Forget</Button>
                     )}
                   </td>
                 </tr>

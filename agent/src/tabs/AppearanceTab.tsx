@@ -5,6 +5,7 @@ import Banner from "../ui/Banner";
 import Button from "../ui/Button";
 import Field from "../ui/Field";
 import KeyPreview from "./KeyPreview";
+import { applyScreenPreset, fracToPercent, minToSec, percentToFrac, PRESET_LABELS, screenPreset, secToMin, type ScreenPreset } from "../editor/screenPreset";
 import ThemeCards from "./ThemeCards";
 
 /** A sample key for the style cards. */
@@ -21,6 +22,7 @@ export default function AppearanceTab() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [lowres, setLowres] = useState(0);
+  const [custom, setCustom] = useState(false);
 
   useEffect(() => {
     call("count_lowres_icons").then(setLowres, () => {});
@@ -45,6 +47,7 @@ export default function AppearanceTab() {
     setIssues([]);
   };
   const dirty = JSON.stringify(display) !== saved;
+  const preset = screenPreset(display);
   const accent = display.accent ?? "#7c5cff";
 
   async function save() {
@@ -63,10 +66,10 @@ export default function AppearanceTab() {
 
   return (
     <div className="stack">
-      <h2>Appearance</h2>
+      <h2>Look</h2>
 
       <section className="card">
-        <h3>Look</h3>
+        <h3>Theme</h3>
         <ThemeCards value={display.theme ?? "amoled"} display={display} onPick={(theme) => set({ theme })} />
       </section>
 
@@ -137,31 +140,45 @@ export default function AppearanceTab() {
       </section>
 
       <section className="card">
-        <h3>Screen</h3>
-        <div className="grid-4">
-          <Field label="Dim after, s" hint="0 = never">
-            <input type="number" value={display.dimAfterSec} onChange={(e) => set({ dimAfterSec: Number(e.target.value) })} />
-          </Field>
-          <Field label="Dim level" hint="0.05 to 1">
-            <input type="number" step="0.05" value={display.dimLevel} onChange={(e) => set({ dimLevel: Number(e.target.value) })} />
-          </Field>
-          <Field label="Screen saver after, s" hint="0 = never">
-            <input type="number" value={display.sleepAfterSec} onChange={(e) => set({ sleepAfterSec: Number(e.target.value) })} />
-          </Field>
-          <label className="check">
-            <input type="checkbox" checked={display.pixelShift} onChange={(e) => set({ pixelShift: e.target.checked })} /> Pixel shift
-          </label>
+        <h3>Screen saving</h3>
+        <div className="seg" role="group" aria-label="Screen saving">
+          {(["off", "balanced", "maximum", "custom"] as ScreenPreset[]).map((p) => (
+            <button key={p} type="button" className={(custom ? "custom" : preset) === p ? "on" : ""} onClick={() => (p === "custom" ? setCustom(true) : (setCustom(false), set(applyScreenPreset(display, p))))}>
+              {PRESET_LABELS[p]}
+            </button>
+          ))}
         </div>
+        <p className="muted">
+          {preset === "balanced" && !custom && "Dims after 1 minute to 30%, shows a clock screen after 10 minutes."}
+          {preset === "maximum" && !custom && "Dims after 30 seconds to 15%, shows a clock screen after 3 minutes."}
+          {preset === "off" && !custom && "The screen stays as it is."}
+          {(custom || preset === "custom") && "Your own times."}
+        </p>
+        {(custom || preset === "custom") && (
+          <div className="grid-4">
+            <Field label="Dim after, min" hint="0 = never">
+              <input type="number" min={0} step={0.5} value={secToMin(display.dimAfterSec)} onChange={(e) => set({ dimAfterSec: minToSec(Number(e.target.value)) })} />
+            </Field>
+            <Field label="Brightness when dimmed, %" hint="5 to 100">
+              <input type="number" min={5} max={100} value={fracToPercent(display.dimLevel)} onChange={(e) => set({ dimLevel: percentToFrac(Number(e.target.value)) })} />
+            </Field>
+            <Field label="Screen saver after, min" hint="0 = never">
+              <input type="number" min={0} step={0.5} value={secToMin(display.sleepAfterSec)} onChange={(e) => set({ sleepAfterSec: minToSec(Number(e.target.value)) })} />
+            </Field>
+          </div>
+        )}
+        <label className="check">
+          <input type="checkbox" checked={display.pixelShift} onChange={(e) => set({ pixelShift: e.target.checked })} /> Move the picture a little now and then (protects the screen)
+        </label>
         <div className="row">
           <label className="check">
-            <input type="checkbox" checked={display.night.enabled} onChange={(e) => set({ night: { ...display.night, enabled: e.target.checked } })} /> Night mode
+            <input type="checkbox" checked={display.night.enabled} onChange={(e) => set({ night: { ...display.night, enabled: e.target.checked } })} /> Darker at night
           </label>
-          <input aria-label="Night from" value={display.night.from} placeholder="23:00" onChange={(e) => set({ night: { ...display.night, from: e.target.value } })} />
+          <input type="time" aria-label="Night from" value={display.night.from} onChange={(e) => set({ night: { ...display.night, from: e.target.value } })} />
           <span>to</span>
-          <input aria-label="Night to" value={display.night.to} placeholder="07:00" onChange={(e) => set({ night: { ...display.night, to: e.target.value } })} />
+          <input type="time" aria-label="Night to" value={display.night.to} onChange={(e) => set({ night: { ...display.night, to: e.target.value } })} />
         </div>
       </section>
-
       {issues.length > 0 && (
         <Banner kind="error">
           <ul>

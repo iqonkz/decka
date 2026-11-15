@@ -3,10 +3,11 @@ import type { ActionsFile, LayoutFile, ValidationIssue } from "@decka/shared";
 import { call } from "../ipc";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
+import { makeActionId } from "../editor/addButton";
+import { describeAction } from "../editor/describeAction";
 import ActionForm, { emptyDraft, fromDraft, toDraft, type Draft } from "./actionForm";
 
 const NEW = "";
-const ID_RE = /^[a-z0-9_-]{1,64}$/;
 
 export default function ActionsTab() {
   const [file, setFile] = useState<ActionsFile | null>(null);
@@ -49,11 +50,9 @@ export default function ActionsTab() {
     if (!file) return;
     setMessage(null);
     setTestResult(null);
-    const id = isNew ? draft.id.trim() : selected;
-    if (isNew) {
-      if (!ID_RE.test(id)) return setIssues([{ path: "/id", message: "ID must be 1 to 64 characters: a-z, 0-9, _ or -." }]);
-      if (file.actions[id]) return setIssues([{ path: "/id", message: `An action with ID "${id}" already exists.` }]);
-    }
+    if (draft.name.trim() === "") return setIssues([{ path: "/name", message: "Give the action a name." }]);
+    // The ID is never typed: a new action gets one made from its name.
+    const id = isNew ? makeActionId(draft.name, file.actions) : selected;
     const built = fromDraft(draft);
     if ("error" in built) return setIssues([{ path: "/keys", message: built.error }]);
 
@@ -105,9 +104,7 @@ export default function ActionsTab() {
             <li key={id}>
               <button className={id === selected ? "list-item active" : "list-item"} onClick={() => select(id)}>
                 <strong>{a.name}</strong>
-                <span className="muted">
-                  {a.type} · {id}
-                </span>
+                <span className="muted">{describeAction(a)}</span>
               </button>
             </li>
           ))}
@@ -115,16 +112,14 @@ export default function ActionsTab() {
       </div>
 
       <div className="form-pane">
-        <h2>{isNew ? "New action" : draft.name || selected}</h2>
+        <h2>{isNew ? "New action" : draft.name || "Action"}</h2>
         <ActionForm draft={draft} isNew={isNew} onChange={setDraft} />
 
         {issues.length > 0 && (
           <Banner kind="error">
             <ul>
               {issues.map((i, n) => (
-                <li key={n}>
-                  <code>{i.path}</code>: {i.message}
-                </li>
+                <li key={n}>{i.message}</li>
               ))}
             </ul>
           </Banner>
@@ -147,7 +142,7 @@ export default function ActionsTab() {
         {confirmDelete && (
           <Banner kind="warning">
             <span>
-              Delete {draft.name || selected}?{users.length > 0 ? ` It is used by these layout buttons: ${users.join(", ")}.` : ""}
+              Delete {draft.name || "this action"}?{users.length > 0 ? ` ${users.length} button${users.length === 1 ? " uses" : "s use"} it and will stop working.` : ""}
             </span>
             <span className="row">
               <Button variant="danger" onClick={() => void remove()}>

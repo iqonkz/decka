@@ -1,20 +1,22 @@
 import type { Action, MediaOp } from "@decka/shared";
 import { useState } from "react";
-import { open } from "@tauri-apps/plugin-dialog";
 import Field from "../ui/Field";
-import AppPickerDialog from "./AppPickerDialog";
+import { presetActions } from "../editor/addButton";
+import ChordField from "../editor/ChordField";
+import QuickPicker from "../editor/QuickPicker";
+import PhIcon from "../ui/PhIcon";
 import { formatKeys, parseKeys } from "./keys";
 import { applyInstalledApp, applyPickedProgram } from "./programPick";
 
 export type ActionType = Action["type"];
 
 export const MEDIA_OPS: MediaOp[] = ["play_pause", "next", "prev", "vol_up", "vol_down", "mute"];
-export const ACTION_TYPES: { id: ActionType; label: string }[] = [
-  { id: "hotkey", label: "Hotkey" },
-  { id: "media", label: "Media key" },
-  { id: "launch", label: "Launch a program" },
-  { id: "open_url", label: "Open a URL" },
-  { id: "system", label: "System (lock / sleep)" },
+export const ACTION_TYPES: { id: ActionType; label: string; icon: string }[] = [
+  { id: "launch", label: "App", icon: "rocket-launch" },
+  { id: "open_url", label: "Website", icon: "globe" },
+  { id: "hotkey", label: "Shortcut", icon: "keyboard" },
+  { id: "media", label: "Media", icon: "play-circle" },
+  { id: "system", label: "System", icon: "power" },
 ];
 
 /** Everything the form edits, as strings and booleans. */
@@ -79,7 +81,7 @@ export function fromDraft(d: Draft): { action: Action } | { error: string } {
   switch (d.type) {
     case "hotkey": {
       const keys = parseKeys(d.keysText);
-      if (!keys) return { error: "Keys: use 1 to 5 key names joined by +, for example ctrl+shift+m." };
+      if (!keys) return { error: "Click the field and press the keys you want." };
       return { action: { ...base, type: "hotkey", keys } };
     }
     case "media":
@@ -110,104 +112,142 @@ interface FormProps {
   onChange: (draft: Draft) => void;
 }
 
-export default function ActionForm({ draft, isNew, onChange }: FormProps) {
-  const set = <K extends keyof Draft>(key: K, value: Draft[K]) => onChange({ ...draft, [key]: value });
+/** The name of a program for the form: the file without folder and `.exe`. */
+const programName = (path: string): string => (path.split(/[\\/]/).pop() ?? path).replace(/\.exe$/i, "");
+
+const EMPTY_PAGE = { id: "p", name: "", items: [] };
+const NO_ACTIONS = { version: 1 as const, actions: {} };
+
+/**
+ * The form of one action (DESIGN.md 4.6a): the ID is never shown (it is made from the name), the type is picked from
+ * icons, a program is chosen from a list, a shortcut is recorded, media and system actions are big tiles; arguments,
+ * working folder and the toggle variable are under `More options`.
+ */
+export default function ActionForm({ draft, onChange }: FormProps) {
   const [picking, setPicking] = useState(false);
+  const set = <K extends keyof Draft>(key: K, value: Draft[K]) => onChange({ ...draft, [key]: value });
+  const keys = parseKeys(draft.keysText) ?? [];
+  const mediaTiles = presetActions().filter((p) => p.action.type === "media");
+  const systemTiles = presetActions().filter((p) => p.action.type === "system");
+  // A name that was filled in by a tile or a program follows the choice; one the user typed is kept.
+  const autoNames = new Set(["", ...presetActions().map((p) => p.label), programName(draft.program)]);
+  const nameFor = (label: string) => (autoNames.has(draft.name.trim()) ? label : draft.name);
+
   return (
     <div>
-      {isNew && (
-        <Field label="ID" hint="Lower-case letters, digits, _ and -. Cannot be changed later.">
-          <input value={draft.id} onChange={(e) => set("id", e.target.value)} placeholder="open-notes" />
-        </Field>
-      )}
       <Field label="Name">
-        <input value={draft.name} onChange={(e) => set("name", e.target.value)} />
-      </Field>
-      <Field label="Type">
-        <select value={draft.type} onChange={(e) => set("type", e.target.value as ActionType)}>
-          {ACTION_TYPES.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.label}
-            </option>
-          ))}
-        </select>
+        <input value={draft.name} onChange={(e) => set("name", e.target.value)} placeholder="What is it called?" />
       </Field>
 
-      {draft.type === "hotkey" && (
-        <Field label="Keys" hint="Joined by +, for example ctrl+shift+m. Up to 5 keys.">
-          <input value={draft.keysText} onChange={(e) => set("keysText", e.target.value)} placeholder="ctrl+shift+m" />
-        </Field>
-      )}
-      {draft.type === "media" && (
-        <Field label="Operation">
-          <select value={draft.mediaOp} onChange={(e) => set("mediaOp", e.target.value as MediaOp)}>
-            {MEDIA_OPS.map((op) => (
-              <option key={op} value={op}>
-                {op}
-              </option>
-            ))}
-          </select>
-        </Field>
-      )}
+      <div className="type-seg" role="group" aria-label="Type">
+        {ACTION_TYPES.map((t) => (
+          <button key={t.id} type="button" className={draft.type === t.id ? "on" : ""} onClick={() => set("type", t.id)}>
+            <PhIcon name={t.icon} size={18} />
+            {t.label}
+          </button>
+        ))}
+      </div>
+
       {draft.type === "launch" && (
         <>
-          <Field label="Program" hint="Shortcuts (.lnk) are not supported: pick the .exe itself.">
-            <div className="row">
-              <input value={draft.program} onChange={(e) => set("program", e.target.value)} placeholder="notepad.exe" />
-              <button
-                type="button"
-                onClick={() =>
-                  void open({ multiple: false, directory: false, filters: [{ name: "Programs", extensions: ["exe"] }] }).then((picked) => {
-                    if (typeof picked === "string") onChange(applyPickedProgram(draft, picked));
-                  })
-                }
-              >
-                Browse…
-              </button>
-              <button type="button" onClick={() => setPicking(true)}>
-                Choose installed app…
-              </button>
-            </div>
-          </Field>
+          <div className="program-row">
+            <strong>{draft.program ? programName(draft.program) : "No program chosen"}</strong>
+            <button type="button" onClick={() => setPicking(true)}>
+              Choose…
+            </button>
+          </div>
+          {draft.program && <small className="muted">{draft.program}</small>}
           {picking && (
-            <AppPickerDialog
+            <QuickPicker
+              anchor={{ left: window.innerWidth / 2 - 180, top: 120, bottom: 120 }}
+              cell={{ x: 0, y: 0 }}
+              page={EMPTY_PAGE}
+              grid={{ cols: 3, rows: 2 }}
+              actions={NO_ACTIONS}
+              appsOnly
               onClose={() => setPicking(false)}
-              onPick={(app) => {
+              onChoose={(choice) => {
                 setPicking(false);
-                onChange(applyInstalledApp(draft, app));
+                if (choice.type === "app") onChange({ ...applyInstalledApp(draft, choice.app), name: nameFor(choice.app.name) });
               }}
             />
           )}
-          <Field label="Arguments" hint="One argument per line.">
-            <textarea rows={3} value={draft.argsText} onChange={(e) => set("argsText", e.target.value)} />
-          </Field>
-          <Field label="Working directory">
-            <input value={draft.cwd} onChange={(e) => set("cwd", e.target.value)} />
-          </Field>
-          <label className="check">
-            <input type="checkbox" checked={draft.hidden} onChange={(e) => set("hidden", e.target.checked)} /> Hide window
-          </label>
+          <p className="warn-text">This program will run on your PC whenever the button is pressed on a paired phone.</p>
         </>
       )}
+
       {draft.type === "open_url" && (
-        <Field label="URL" hint="http or https only.">
-          <input value={draft.url} onChange={(e) => set("url", e.target.value)} placeholder="https://example.com" />
+        <Field label="Address" hint="http or https only.">
+          <input value={draft.url} onChange={(e) => set("url", e.target.value)} placeholder="github.com" />
         </Field>
       )}
+
+      {draft.type === "hotkey" && (
+        <Field label="Keys">
+          <ChordField keys={keys} onChange={(next) => set("keysText", formatKeys(next))} />
+        </Field>
+      )}
+
+      {draft.type === "media" && (
+        <div className="tile-grid" role="group" aria-label="Media">
+          {mediaTiles.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              className={p.action.type === "media" && p.action.op === draft.mediaOp ? "on" : ""}
+              onClick={() => p.action.type === "media" && onChange({ ...draft, mediaOp: p.action.op, name: nameFor(p.label) })}
+            >
+              <PhIcon name={MEDIA_TILE_ICONS[p.id] ?? "play"} size={24} />
+              {p.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {draft.type === "system" && (
-        <Field label="Operation">
-          <select value={draft.systemOp} onChange={(e) => set("systemOp", e.target.value as "lock" | "sleep")}>
-            <option value="lock">lock</option>
-            <option value="sleep">sleep</option>
-          </select>
-        </Field>
+        <div className="tile-grid" role="group" aria-label="System">
+          {systemTiles.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              className={p.action.type === "system" && p.action.op === draft.systemOp ? "on" : ""}
+              onClick={() => p.action.type === "system" && onChange({ ...draft, systemOp: p.action.op, name: nameFor(p.label) })}
+            >
+              <PhIcon name={p.id === "sleep" ? "moon" : "lock"} size={24} />
+              {p.label}
+            </button>
+          ))}
+        </div>
       )}
 
-      <Field label="Toggle variable" hint="Optional. After a successful run this on/off variable flips; buttons can change their look with it.">
-        <input value={draft.toggleVar} onChange={(e) => set("toggleVar", e.target.value)} placeholder="audio.muted" />
-      </Field>
-
-      {draft.type === "launch" && <p className="warn-text">This program will run on your PC whenever the button is pressed on a paired phone.</p>}
+      <details className="advanced">
+        <summary>More options</summary>
+        {draft.type === "launch" && (
+          <>
+            <Field label="Arguments" hint="One per line.">
+              <textarea rows={3} value={draft.argsText} onChange={(e) => set("argsText", e.target.value)} />
+            </Field>
+            <Field label="Start in folder">
+              <input value={draft.cwd} onChange={(e) => set("cwd", e.target.value)} />
+            </Field>
+            <label className="check">
+              <input type="checkbox" checked={draft.hidden} onChange={(e) => set("hidden", e.target.checked)} /> Start without a window
+            </label>
+          </>
+        )}
+        <Field label="Switch a state after running" hint="For buttons that show on/off: this on/off variable flips after a successful run.">
+          <input value={draft.toggleVar} onChange={(e) => set("toggleVar", e.target.value)} placeholder="audio.muted" />
+        </Field>
+      </details>
     </div>
   );
 }
+
+const MEDIA_TILE_ICONS: Record<string, string> = {
+  "play-pause": "play-pause",
+  "next-track": "skip-forward",
+  "prev-track": "skip-back",
+  "volume-up": "speaker-high",
+  "volume-down": "speaker-low",
+  mute: "speaker-slash",
+};
