@@ -75,12 +75,15 @@ export default function ItemForm({ item, page, pages, grid, actions, onChange, o
       <h3>
         {item.kind} <code>{item.id}</code>
       </h3>
-      <div className="grid-4">
-        <NumberSelect label="X" value={item.x} options={range(0, grid.cols - item.w)} onChange={(x) => patch({ x })} />
-        <NumberSelect label="Y" value={item.y} options={range(0, grid.rows - item.h)} onChange={(y) => patch({ y })} />
-        <NumberSelect label="W" value={item.w} options={range(minW, maxW)} onChange={(w) => patch({ w })} />
-        <NumberSelect label="H" value={item.h} options={range(minH, maxH)} onChange={(h) => patch({ h })} />
-      </div>
+      <details className="advanced">
+        <summary>Advanced: position and size</summary>
+        <div className="grid-4">
+          <NumberSelect label="X" value={item.x} options={range(0, grid.cols - item.w)} onChange={(x) => patch({ x })} />
+          <NumberSelect label="Y" value={item.y} options={range(0, grid.rows - item.h)} onChange={(y) => patch({ y })} />
+          <NumberSelect label="W" value={item.w} options={range(minW, maxW)} onChange={(w) => patch({ w })} />
+          <NumberSelect label="H" value={item.h} options={range(minH, maxH)} onChange={(h) => patch({ h })} />
+        </div>
+      </details>
 
       {item.kind === "button" && <ButtonFields item={item} pages={pages} inPopup={page.popup === true} actions={actions} patch={patch} />}
 

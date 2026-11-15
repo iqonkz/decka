@@ -1,10 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ActionsFile, DisplaySettings, LayoutFile, LayoutItem, ValidationIssue } from "@decka/shared";
 import { validateLayout } from "@decka/shared";
 import { call } from "../ipc";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
 import Field from "../ui/Field";
+import { canRedo, canUndo, itemAt, newHistory, pushHistory, redo, undo, type History } from "./editorOps";
+import EditorCanvas, { type DragPayload } from "./EditorCanvas";
+import Palette from "./Palette";
 import ItemForm from "./itemForm";
 import { describeIssue, itemPath } from "./issueText";
 import { addItem, COLS_RANGE, DEFAULT_SIZE, makeItem, movePage, newPageId, newPopupPage, removeItem, ROWS_RANGE, updateItem, withMediaDefaults, type Kind } from "./layoutOps";
@@ -12,8 +15,6 @@ import PageApps from "./PageApps";
 import TemplatesDialog from "./TemplatesDialog";
 
 const KINDS: Kind[] = ["button", "clock", "sys", "status", "statuses", "notifications", "media"];
-const CELL_W = 120;
-const CELL_H = 90;
 
 /** A new button starts with the first action by name; without actions it opens another page. */
 function withButtonDefault(item: LayoutItem, actions: ActionsFile, pages: LayoutFile["pages"], currentPageId: string): LayoutItem {
@@ -24,15 +25,24 @@ function withButtonDefault(item: LayoutItem, actions: ActionsFile, pages: Layout
   return other ? { ...item, navigate: other.id } : item;
 }
 
-function itemLabel(item: LayoutItem): string {
-  if (item.kind === "button") return item.label ?? item.icon?.replace(/^lucide:/, "") ?? item.id;
-  if (item.kind === "status") return item.statusId || "status";
-  return item.kind;
+const sameLayout = (a: LayoutFile, b: LayoutFile) => JSON.stringify(a) === JSON.stringify(b);
+
+/** `Notepad` -> `app-notepad`; the first free id when it is taken. */
+function newAppActionId(name: string, taken: Record<string, unknown>): string {
+  const base = `app-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 50) || "program"}`;
+  if (!(base in taken)) return base;
+  for (let n = 2; ; n++) if (!(`${base}-${n}` in taken)) return `${base}-${n}`;
 }
 
 export default function LayoutTab() {
-  const [layout, setLayout] = useState<LayoutFile | null>(null);
+  // The layout being edited, with 50 steps of undo/redo; `saved` is what is on the PC now.
+  const [hist, setHist] = useState<History<LayoutFile> | null>(null);
+  const [saved, setSaved] = useState("");
+  const layout = hist?.present ?? null;
   const [actions, setActions] = useState<ActionsFile | null>(null);
+  const [mainWidth, setMainWidth] = useState(640);
+  const mainRef = useRef<HTMLDivElement>(null);
+  const saveRef = useRef<() => void>(() => {});
   const [pageIdx, setPageIdx] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [creating, setCreating] = useState<{ x: number; y: number } | null>(null);
@@ -45,7 +55,8 @@ export default function LayoutTab() {
 
   const load = useCallback(async () => {
     const fresh = await call("get_layout");
-    setLayout(fresh);
+    setHist(newHistory(fresh));
+    setSaved(JSON.stringify(fresh));
     setActions(await call("get_actions"));
     setServerIssues([]);
     setMessage(null);
@@ -57,6 +68,39 @@ export default function LayoutTab() {
   useEffect(() => {
     load().catch((e) => setError(String(e)));
   }, [load]);
+
+  // The preview takes the width of its column.
+  const loaded = layout !== null;
+  useEffect(() => {
+    const el = mainRef.current;
+    if (!el) return;
+    const measure = () => setMainWidth(el.clientWidth);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [loaded]);
+
+  // Ctrl+Z / Ctrl+Y / Ctrl+S (text fields keep their own undo).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      const key = e.key.toLowerCase();
+      const typing = e.target instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
+      if (key === "s") {
+        e.preventDefault();
+        saveRef.current();
+      } else if (!typing && key === "z") {
+        e.preventDefault();
+        setHist((h) => (h ? (e.shiftKey ? redo(h) : undo(h)) : h));
+      } else if (!typing && key === "y") {
+        e.preventDefault();
+        setHist((h) => (h ? redo(h) : h));
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const issues = useMemo(() => (layout && actions ? validateLayout(layout, actions) : []), [layout, actions]);
   const shownIssues = [...issues, ...serverIssues.filter((s) => !issues.some((i) => i.path === s.path && i.message === s.message))];
@@ -72,7 +116,13 @@ export default function LayoutTab() {
   );
 
   const edit = (next: LayoutFile) => {
-    setLayout(next);
+    setHist((h) => (h ? pushHistory(h, next, sameLayout) : h));
+    setServerIssues([]);
+    setMessage(null);
+  };
+  const dirty = JSON.stringify(layout) !== saved;
+  const step = (change: (h: History<LayoutFile>) => History<LayoutFile>) => {
+    setHist((h) => (h ? change(h) : h));
     setServerIssues([]);
     setMessage(null);
   };
@@ -131,19 +181,49 @@ export default function LayoutTab() {
   }
 
   async function save() {
+    if (shownIssues.length > 0) return;
     const result = await call("save_layout", { layout: layout! });
     if (result.ok) {
       setServerIssues([]);
       setMessage("Saved");
+      setSaved(JSON.stringify(layout));
     } else {
       setServerIssues(result.issues);
       setMessage(null);
     }
   }
+  saveRef.current = () => void save();
 
-  // Which cells are covered by an item.
-  const covered = new Set<string>();
-  for (const it of page.items) for (let dx = 0; dx < it.w; dx++) for (let dy = 0; dy < it.h; dy++) covered.add(`${it.x + dx},${it.y + dy}`);
+  /** Something from the palette was dropped on cell (x, y): a program, an action or a widget becomes an item. */
+  async function dropOnCell(payload: DragPayload, x: number, y: number) {
+    setNotice(null);
+    const ids = Object.keys(actions!.actions);
+    let item: LayoutItem | null = null;
+    if (payload.type === "widget") {
+      item = withMediaDefaults(makeItem(payload.kind, x, y), ids);
+    } else if (payload.type === "action") {
+      item = { ...makeItem("button", x, y), label: payload.label.slice(0, 24), actionId: payload.actionId } as LayoutItem;
+    } else if (payload.type === "app") {
+      const { app } = payload;
+      if (itemAt(page!, x, y)) return setNotice("Drop a program on an empty cell.");
+      const actionId = newAppActionId(app.name, actions!.actions);
+      const next: ActionsFile = {
+        ...actions!,
+        actions: { ...actions!.actions, [actionId]: { name: app.name.slice(0, 60), type: "launch", program: app.program, ...(app.args.length > 0 ? { args: app.args } : {}), ...(app.cwd ? { cwd: app.cwd } : {}) } },
+      };
+      const result = await call("save_actions", { actions: next });
+      if (!result.ok) return setNotice(result.issues[0]?.message ?? "Cannot save the action");
+      setActions(next);
+      const icon = await call("icon_from_program", { path: app.program }).catch(() => ({ error: "" }));
+      item = { ...makeItem("button", x, y), label: app.name.slice(0, 24), actionId, ...("icon" in icon ? { icon: icon.icon } : {}) } as LayoutItem;
+    }
+    if (!item) return;
+    const result = addItem(page!, layout!.grid, item);
+    if (!result.ok) return setNotice(result.error);
+    setPage(result.page);
+    setSelectedId(item.id);
+    setCreating(null);
+  }
 
   return (
     <div className="stack">
@@ -216,31 +296,27 @@ export default function LayoutTab() {
         <PageApps page={page} isFirst={pageIdx === 0} onChange={setPage} />
       )}
 
-      <div className="split">
-        <div className="layout-pane">
-          <div className="layout-grid" style={{ gridTemplateColumns: `repeat(${cols}, ${CELL_W}px)`, gridTemplateRows: `repeat(${rows}, ${CELL_H}px)` }}>
-            {Array.from({ length: rows }, (_, y) =>
-              Array.from({ length: cols }, (_, x) =>
-                covered.has(`${x},${y}`) ? null : (
-                  <button key={`e${x}${y}`} className="cell empty" style={{ gridColumn: x + 1, gridRow: y + 1 }} aria-label={`Add item at ${x},${y}`} onClick={() => { setCreating({ x, y }); setSelectedId(null); setNotice(null); }}>
-                    +
-                  </button>
-                ),
-              ),
-            )}
-            {page.items.map((it) => (
-              <button
-                key={it.id}
-                className={`cell item${it.id === selectedId ? " selected" : ""}${badItems.has(it.id) ? " bad" : ""}`}
-                style={{ gridColumn: `${it.x + 1} / span ${it.w}`, gridRow: `${it.y + 1} / span ${it.h}`, background: it.kind === "button" ? (it.color ?? undefined) : undefined }}
-                onClick={() => { setSelectedId(it.id); setCreating(null); }}
-              >
-                <span className="muted">{it.kind}</span>
-                <strong>{itemLabel(it)}</strong>
-              </button>
-            ))}
-          </div>
-        </div>
+      <div className="row wrap editor-toolbar">
+        <Button onClick={() => step(undo)} disabled={!canUndo(hist!)} aria-label="Undo">↶ Undo</Button>
+        <Button onClick={() => step(redo)} disabled={!canRedo(hist!)} aria-label="Redo">↷ Redo</Button>
+        {dirty && <span className="unsaved">Unsaved changes</span>}
+        {badItems.size > 0 && <span className="muted">Items with problems are listed below.</span>}
+      </div>
+
+      <div className="editor">
+        <Palette actions={actions} />
+        <div className="editor-main" ref={mainRef}>
+          <EditorCanvas
+            layout={layout}
+            page={page}
+            selectedId={selectedId}
+            availableWidth={mainWidth - 16}
+            onSelect={(id) => { setSelectedId(id); setCreating(null); }}
+            onChangePage={setPage}
+            onDropPayload={(payload, x, y) => void dropOnCell(payload, x, y)}
+            onEmptyCell={(x, y) => { setCreating({ x, y }); setSelectedId(null); setNotice(null); }}
+          />
+          {notice && !creating && <p className="warn-text">{notice}</p>}
 
         <div className="form-pane">
           {creating && (
@@ -267,7 +343,8 @@ export default function LayoutTab() {
               onDelete={() => { setPage(removeItem(page, selected.id)); setSelectedId(null); }}
             />
           )}
-          {!creating && !selected && <p className="muted">Click an empty cell to add an item, or an item to edit it.</p>}
+          {!creating && !selected && <p className="muted">Drag programs, actions and widgets from the left onto a cell, drag keys to move or swap them, or click one to edit it.</p>}
+        </div>
         </div>
       </div>
 
@@ -324,6 +401,8 @@ export default function LayoutTab() {
           Save
         </Button>
         <Button onClick={() => void load()}>Revert</Button>
+        {dirty && <span className="unsaved">Unsaved changes</span>}
+        <span className="muted">Ctrl+S saves, Ctrl+Z / Ctrl+Y undo and redo.</span>
       </div>
       {templatesOpen && (
         <TemplatesDialog

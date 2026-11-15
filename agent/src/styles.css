@@ -62,6 +62,27 @@ th { color: var(--muted); font-weight: 600; font-size: 12px; }
 .chip-x:hover { color: var(--danger); }
 .dialog-backdrop { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.45); }
 .dialog { display: flex; flex-direction: column; gap: 12px; width: min(640px, 92vw); max-height: 86vh; overflow: auto; padding: 20px 22px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); }
+/* Layout editor (T13.9): a phone-shaped preview with drag and drop, a palette on the left */
+.editor { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 12px; align-items: start; }
+.editor-main { min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.palette { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel); max-height: 520px; }
+.palette-hint { margin: 0; font-size: 12px; }
+.palette-list { display: flex; flex-direction: column; gap: 4px; overflow: auto; min-height: 0; }
+.palette-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); cursor: grab; user-select: none; }
+.palette-item span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.editor-canvas { position: relative; width: max-content; max-width: 100%; border-radius: 14px; box-shadow: 0 0 0 6px #111, 0 0 0 7px var(--border); overflow: hidden; }
+.phone-frame { position: relative; overflow: hidden; background: #000; }
+.phone-frame iframe { display: block; border: 0; pointer-events: none; }
+.editor-overlay { position: absolute; left: 0; top: 0; }
+.editor-cell, .editor-item { position: absolute; box-sizing: border-box; }
+.editor-cell.empty { border: 1px dashed rgba(128, 128, 128, 0.35); border-radius: 8px; cursor: copy; }
+.editor-cell.over, .editor-cell.empty:hover { background: rgba(96, 165, 250, 0.22); border-color: var(--accent); }
+.editor-item { border-radius: 10px; cursor: grab; }
+.editor-item:hover { outline: 1px solid rgba(96, 165, 250, 0.7); }
+.editor-item.selected { outline: 2px solid var(--accent); }
+.editor-handle { position: absolute; right: -5px; bottom: -5px; width: 14px; height: 14px; border-radius: 4px; background: var(--accent); cursor: nwse-resize; }
+.advanced > summary { cursor: pointer; color: var(--muted); }
+.unsaved { color: var(--warn); font-weight: 600; }
 .popup-tag { background: var(--accent); }
 .icon-value { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
 .phosphor-scroll { overflow-y: auto; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); }

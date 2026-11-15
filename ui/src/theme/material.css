@@ -54,5 +54,5 @@
   border-color: transparent;
   box-shadow: none;
 }
-[data-theme="material"] .dot { background: var(--m-outline-variant); }
-[data-theme="material"] .dot.active { background: var(--m-on-surface); }
+[data-theme="material"] .page-dots .dot { background: var(--m-outline-variant); }
+[data-theme="material"] .page-dots .dot.active { background: var(--m-on-surface); }

@@ -22,8 +22,8 @@
   gap: 1.2vmin;
   pointer-events: none;
 }
-.dot { width: 1.2vmin; height: 1.2vmin; border-radius: 50%; background: #3a3a40; }
-.dot.active { background: #e5e5e5; }
+.page-dots .dot { display: block; width: 1.2vmin; height: 1.2vmin; border-radius: 50%; background: #3a3a40; }
+.page-dots .dot.active { background: #e5e5e5; }
 
 /* A key: the structure and the states; the face (colours, gradient, shadow, radius factor) comes from the theme. */
 .key {
