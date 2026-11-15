@@ -474,6 +474,7 @@ export interface IpcCommands {
   get_icon_preview(args: { icon: string }): string | null;     // M12: data URL для окна настроек
   icon_from_svg(args: { svg: string }): { icon: string } | { error: string };       // M13: DATA_MODEL.md §8.4
   is_first_run(): boolean;                                     // M13: devices.json пуст и layout.json не менялся с создания (DESIGN.md §4.4)
+  describe_program(args: { path: string }): InstalledApp | { error: string };   // M14: .exe → name = FileDescription версии файла (нет → имя файла без .exe), args [], icon 32 px; .lnk → разбор ярлыка как в list_installed_apps; иное расширение или файла нет → error. Только читает файл, ничего не запускает.
 }
 ```
 

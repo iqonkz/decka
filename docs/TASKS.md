@@ -1438,6 +1438,7 @@ npm run typecheck; npm test; npm run release:apk; adb install -r client\android\
 ```
 
 ### T13.13 — Светлые клавиши, клавиши виджета media, замер Glass reduced
+Выполнена (отчёт 2026-11-15). Отклонение принято: при `h = 1` правило минимальной ширины текста даёт 3×1 без клавиш, 4×1 — `play`, `w ≥ 5` — три клавиши.
 1. `readableFace` по DESIGN.md §1.6, абзац «Исключение для светлых цветов»: тёмная подпись `#0b0b0f` при контрасте ≥ 7 с исходным цветом, иначе белая с затемнением. Тесты: `#ffffff` и `#facc15` не меняются, подпись тёмная; `#7c5cff` затемняется, подпись белая; все результаты ≥ 4.5.
 2. Виджет `media` по DATA_MODEL.md §6.2 (новое правило клавиш при `h = 1` и минимальная ширина текста). Цвет `artist` — токен `--muted`. Тест на выбор набора клавиш по `w`, `h`, `side`.
 3. A57, тема Glass: замерить к/с в режиме `reduced` (переключатель `Reduce effects`) тем же способом, что в T13.11. Если < 45 и в `reduced`, записать в BLOCKERS.md и не трогать спецификацию.
@@ -1446,4 +1447,40 @@ npm run typecheck; npm test; npm run release:apk; adb install -r client\android\
 **Приёмка:** все тесты, к/с reduced в отчёте, снимки.
 ```
 npm run typecheck; npm test; npm run release:apk; adb install -r client\android\app\build\outputs\apk\debug\app-debug.apk
+```
+
+## M14 — Простое создание кнопок и онбординг (отзыв владельца 2026-11-15)
+
+Источник: DESIGN.md §4.5–§4.7, DECISIONS.md D-38 (дополнение), D-41, BLOCKERS.md D-2. Общее правило M14: всё, что касается окна настроек, проверяется в **настоящем окне** (`npm run tauri dev` или установленный агент), не в Chrome с подменой IPC. Снимки окна — `.tmp\design\m14-*.png` (снимок окна через `PrintWindow`/`CopyFromScreen` в PowerShell-скрипте из scratch-папки, не в репозитории).
+
+### T14.0 — Скорость Glass (D-2)
+1. По DESIGN.md §1.4–§1.5: обложка `album` через `canvas` 24×24 один раз на смену `media.art`; ступенчатое смещение обоев (30 с, переход 2 с); `reduced` без `backdrop-filter` и без смещения.
+2. Замер на A57 в приложении (раскладка владельца, тот же метод `gfxinfo`): Glass обычный и `reduced`, обои `album` и `aurora` (переключать на копии конфигурации — правило T13.13 п. 4; для раскладки владельца замер только с теми обоями, что уже выбраны).
+**Приёмка:** тесты; таблица к/с. Цель: обычный ≥ 45, `reduced` ≥ 55. Не достигнуто → BLOCKERS.md, спецификацию не менять.
+
+### T14.1 — Перетаскивание на pointer-событиях
+1. Убрать HTML5 drag-and-drop (`draggable`, `onDragStart`, `onDrop`) из `EditorCanvas` и `Palette`. Перетаскивание клавиш и пунктов палитры — pointer-события с `setPointerCapture`, порог 4 px, призрак клавиши, подсветка клетки, анимация обмена (DESIGN.md §4.6). Чистая функция-автомат `dragReducer(state, event)` (idle → pressed → dragging → drop/cancel) с тестами; `Esc` отменяет перетаскивание.
+2. `dragDropEnabled` в `tauri.conf.json` не трогать (остаётся по умолчанию `true`).
+3. Бросок `.exe`/`.lnk` из Проводника: `getCurrentWebview().onDragDropEvent` → позиция → клетка превью → `describe_program` → создание кнопки по DESIGN.md §4.5. Агент: команда `describe_program` (PROTOCOL.md §9) с тестами в `decka-core` для разбора .lnk и .exe (фикстуры — ярлык на `C:\Windows\System32\notepad.exe`, создаваемый в тесте; FileDescription `notepad.exe`).
+**Приёмка:** тесты; в настоящем окне: перемещение клавиши, обмен, перенос программы из палитры, бросок `notepad.exe` из Проводника — каждое видно на телефоне. Что исполнитель не может сделать мышью сам — пункт в MANUAL_CHECKS.md как PENDING (owner), но запуск окна и отсутствие ошибок в консоли проверить обязательно.
+
+### T14.2 — Быстрый выбор: кнопка за два клика
+1. `+` на пустой клетке и окно быстрого выбора (DESIGN.md §4.5): поиск, группы `Apps` / `Media & system` / `Your actions` / `Widgets`, нижняя строка `Browse for a program…` (диалог `tauri-plugin-dialog`, фильтр `exe`, `lnk`) / `Website…` / `Keyboard shortcut…`.
+2. Чистые функции в `agent/src/editor/`: `presetActions()` (таблица §4.5), `actionFromApp(app)`, `actionFromUrl(url)`, `actionFromKeys(keys)`, `findSameAction(actions, action)`, `makeActionId(name, existing)`, `addButtonAt(layout, actions, page, cell, choice)` → новые `layout` и `actions`. Тесты: переиспользование одинакового действия; суффиксы id; подпись обрезается до 24; URL → домен без `www.`; результат проходит `validateLayout`/`validateActions`.
+3. Запись сочетания клавиш: `keydown` в поле записи → имена клавиш по DATA_MODEL.md §2 (функция `keyNameFromEvent(e)` с тестами на `Ctrl`, `Shift`, `Alt`, `Win`, буквы, цифры, `F1..F24`, стрелки); неподдерживаемая клавиша — подсказка `This key is not supported`.
+**Приёмка:** тесты; в настоящем окне: клик по пустой клетке → выбрать Spotify (или любую программу из списка) → кнопка с иконкой программы на телефоне, всего два клика; снимки `m14-picker.png`, `m14-created.png`.
+
+### T14.3 — Автосохранение, контекстное меню, панель свойств
+1. Автосохранение по DESIGN.md §4.6 (600 мс, `Saved`, невалидное не сохраняется); убрать `Unsaved changes` и обязательность `Ctrl+S` (сочетание оставить как немедленное сохранение). Отмена/повтор тоже сохраняются. Порядок записи: сначала `save_actions`, затем `save_layout`; ошибка — показ у поля и без потери истории.
+2. Контекстное меню клавиши и клавиша `Delete` (§4.6).
+3. Панель свойств кнопки в новом порядке (§4.6), строка `Does: …` (функция `describeAction(action)` с тестами: `Launch Spotify`, `Open github.com`, `Press Ctrl+Shift+M`, `Play / Pause`, `Lock PC`).
+**Приёмка:** тесты; в настоящем окне: изменение подписи появляется на телефоне без `Ctrl+S`; `Ctrl+Z` возвращает; снимок `m14-props.png`.
+
+### T14.4 — Онбординг
+1. Мастер: строка `Media & system` в шаге 3 (§4.7); `Run setup again` во вкладке `About` и в пустом состоянии; мастер только добавляет в свободные клетки (используй `addButtonAt`).
+2. Подсказки редактора (три шага, `localStorage` `decka.editor.tips.v1`), пустое состояние страницы, полоса `Phone not connected`.
+3. README: раздел «Add your first button» (3 строки).
+**Приёмка:** тесты; в настоящем окне на чистом `DECKA_CONFIG_DIR`: мастер до конца → кнопки программ и медиа на телефоне; подсказки показываются один раз; снимки `m14-wizard.png`, `m14-tips.png`.
+```
+npm run typecheck; npm test; cargo test -p decka-core; npm run release:agent; npm run release:apk; adb install -r client\android\app\build\outputs\apk\debug\app-debug.apk
 ```
