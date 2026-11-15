@@ -210,7 +210,19 @@ pub fn validate_layout(layout: &LayoutFile, actions: &ActionsFile) -> Vec<Valida
         if page.items.len() > 40 {
             out.push(issue(format!("{path}/items"), "at most 40 items per page"));
         }
+        // Popup groups (DATA_MODEL.md 3.2 rule 12)
+        let is_popup = page.popup == Some(true);
+        if is_popup && pi == 0 {
+            out.push(issue("/pages/0/popup", "the first page cannot be a popup group"));
+        }
+        if is_popup && page.apps.as_ref().is_some_and(|a| !a.is_empty()) {
+            out.push(issue(format!("{path}/apps"), "a popup group cannot show itself for apps: remove them"));
+        }
+        if page.stay_open.is_some() && !is_popup {
+            out.push(issue(format!("{path}/stayOpen"), "stayOpen only makes sense for a popup group"));
+        }
     }
+    let popup_ids: HashSet<&str> = layout.pages.iter().filter(|p| p.popup == Some(true)).map(|p| p.id.as_str()).collect();
 
     // Context pages (DATA_MODEL.md 3.2 item 9): the first page is home; an app belongs to one page only.
     let mut app_owner: std::collections::HashMap<&str, &str> = std::collections::HashMap::new();
@@ -268,18 +280,36 @@ pub fn validate_layout(layout: &LayoutFile, actions: &ActionsFile) -> Vec<Valida
             match item {
                 LayoutItem::Button(b) => {
                     check_look(&path, &b.label, &b.icon, &b.color, &mut out);
-                    if b.action_id.is_some() == b.navigate.is_some() {
-                        out.push(issue(path.clone(), "button needs exactly one of actionId / navigate"));
+                    // Allowed: actionId | navigate | popup | actionId + popup (same texts as shared/src/validate.ts).
+                    let (has_action, has_nav, has_popup) = (b.action_id.is_some(), b.navigate.is_some(), b.popup.is_some());
+                    if !has_action && !has_nav && !has_popup {
+                        out.push(issue(path.clone(), "choose an action or a page for this button"));
+                    } else if has_nav && has_action {
+                        out.push(issue(path.clone(), "a button can either run an action or open a page, not both"));
+                    } else if has_nav && has_popup {
+                        out.push(issue(path.clone(), "a button can open a page or a popup group, not both"));
                     }
                     if let Some(a) = &b.action_id {
                         if !actions.actions.contains_key(a) {
-                            out.push(issue(path.clone(), format!("unknown actionId '{a}'")));
+                            out.push(issue(path.clone(), format!("action \"{a}\" no longer exists — choose another")));
                         }
                     }
                     if let Some(n) = &b.navigate {
                         if !page_ids.contains(n.as_str()) {
-                            out.push(issue(path.clone(), format!("unknown page '{n}'")));
+                            out.push(issue(path.clone(), format!("page \"{n}\" no longer exists — choose another")));
+                        } else if popup_ids.contains(n.as_str()) {
+                            out.push(issue(path.clone(), format!("page \"{n}\" is a popup group — choose a normal page")));
                         }
+                    }
+                    if let Some(p) = &b.popup {
+                        if !page_ids.contains(p.as_str()) {
+                            out.push(issue(path.clone(), format!("popup group \"{p}\" no longer exists — choose another")));
+                        } else if !popup_ids.contains(p.as_str()) {
+                            out.push(issue(path.clone(), format!("page \"{p}\" is not a popup group")));
+                        }
+                    }
+                    if page.popup == Some(true) && (has_nav || has_popup) {
+                        out.push(issue(path.clone(), "a key inside a popup group cannot open a page or another group"));
                     }
                     if b.confirm.is_some() && b.action_id.is_none() {
                         out.push(issue(path.clone(), "confirm is only allowed with actionId"));

@@ -148,6 +148,12 @@ pub struct Page {
     /// Context page (M11): shown while one of these apps (lower-case exe names) is active on the PC.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub apps: Option<Vec<String>>,
+    /// M13: a popup group, opened over the current page by a button with `popup`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub popup: Option<bool>,
+    /// M13: popup pages only: keep the panel open after a key inside it was pressed.
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "stayOpen")]
+    pub stay_open: Option<bool>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -213,6 +219,9 @@ pub struct ButtonItem {
     pub action_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub navigate: Option<String>,
+    /// M13: id of a popup page opened over the current one (alone, or after `actionId` succeeded).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub popup: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub confirm: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

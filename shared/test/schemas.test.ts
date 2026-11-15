@@ -25,6 +25,7 @@ import s2c_patch_focus from "../fixtures/s2c-patch-focus.json";
 import s2c_patch_media from "../fixtures/s2c-patch-media.json";
 import layout_context from "../fixtures/layout.context.json";
 import s2c_patch_icons from "../fixtures/s2c-patch-icons.json";
+import layout_popup from "../fixtures/layout.popup.json";
 
 const fixtures: [string, unknown][] = [
   ["c2s-pair", c2s_pair],
@@ -49,6 +50,7 @@ const fixtures: [string, unknown][] = [
   ["s2c-patch-media", s2c_patch_media],
   ["layout.context", layout_context],
   ["s2c-patch-icons", s2c_patch_icons],
+  ["layout.popup", layout_popup],
 ];
 
 const ajv = new Ajv2020({ allErrors: true, strict: false });
@@ -65,6 +67,7 @@ const refFor = (name: string): string | null => {
     "actions.default": `${ID}/actions.schema.json#/$defs/ActionsFile`,
     "layout.default": `${ID}/layout.schema.json#/$defs/LayoutFile`,
     "layout.context": `${ID}/layout.schema.json#/$defs/LayoutFile`,
+    "layout.popup": `${ID}/layout.schema.json#/$defs/LayoutFile`,
   };
   return map[name] ?? null; // config.example has no schema
 };
@@ -76,7 +79,7 @@ const valid = (ref: string, data: unknown): boolean => {
 };
 
 describe("fixtures are valid", () => {
-  test("22 validated fixtures", () => expect(fixtures.length).toBe(22));
+  test("23 validated fixtures", () => expect(fixtures.length).toBe(23));
 
   test.each(fixtures)("%s", (name, data) => {
     const ref = refFor(name) as string;
@@ -138,7 +141,8 @@ describe("invalid inputs are rejected", () => {
       actionsRef,
       { version: 1, actions: { u: { name: "U", type: "open_url", url: "file:///c:/x" } } },
     ],
-    ["button with both actionId and navigate", layoutRef, layoutWith({ ...button, navigate: "main" })],
+    // "actionId + navigate" is no longer a schema matter: the code rule 12 refuses it (validate.test.ts).
+    ["button with nothing to do (no actionId, navigate or popup)", layoutRef, layoutWith({ id: "b", kind: "button", x: 0, y: 0, w: 1, h: 1 })],
     ["button sized 2x1", layoutRef, layoutWith({ ...button, w: 2 })],
     ["patch value of section media is checked by the client, but MediaInfo needs a title", `${ID}/protocol.schema.json#/$defs/MediaInfo`, { source: "x", playing: true, positionAt: 1 }],
     ["MediaInfo with a non-image art", `${ID}/protocol.schema.json#/$defs/MediaInfo`, { source: "x", title: "t", playing: true, positionAt: 1, art: "http://x" }],

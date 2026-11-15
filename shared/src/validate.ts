@@ -40,9 +40,15 @@ export function validateLayout(layout: LayoutFile, actions: ActionsFile): Valida
   if (!Number.isInteger(rows) || rows < 2 || rows > 5) add("/grid/rows", "grid rows must be an integer from 2 to 5");
 
   const pageIds = new Set<string>();
+  const popupIds = new Set<string>();
   layout.pages.forEach((page, pi) => {
     if (pageIds.has(page.id)) add(`/pages/${pi}`, `duplicate page id '${page.id}'`);
     pageIds.add(page.id);
+    if (page.popup === true) popupIds.add(page.id);
+    // Popup groups (DATA_MODEL.md 3.2 rule 12)
+    if (page.popup === true && pi === 0) add("/pages/0/popup", "the first page cannot be a popup group");
+    if (page.popup === true && page.apps !== undefined && page.apps.length > 0) add(`/pages/${pi}/apps`, "a popup group cannot show itself for apps: remove them");
+    if (page.stayOpen !== undefined && page.popup !== true) add(`/pages/${pi}/stayOpen`, "stayOpen only makes sense for a popup group");
   });
 
   // Context pages (DATA_MODEL.md 3.2 item 9): the first page is home; an app belongs to one page only.
@@ -92,16 +98,28 @@ export function validateLayout(layout: LayoutFile, actions: ActionsFile): Valida
       if (item.kind === "button") {
         const hasAction = item.actionId !== undefined;
         const hasNav = item.navigate !== undefined;
-        if (!hasAction && !hasNav) {
+        const hasPopup = item.popup !== undefined;
+        // Allowed: actionId | navigate | popup | actionId + popup.
+        if (!hasAction && !hasNav && !hasPopup) {
           add(path, "choose an action or a page for this button");
-        } else if (hasAction && hasNav) {
+        } else if (hasNav && hasAction) {
           add(path, "a button can either run an action or open a page, not both");
+        } else if (hasNav && hasPopup) {
+          add(path, "a button can open a page or a popup group, not both");
         }
         if (item.actionId !== undefined && !Object.hasOwn(actions.actions, item.actionId)) {
           add(path, `action "${item.actionId}" no longer exists — choose another`);
         }
-        if (item.navigate !== undefined && !pageIds.has(item.navigate)) {
-          add(path, `page "${item.navigate}" no longer exists — choose another`);
+        if (item.navigate !== undefined) {
+          if (!pageIds.has(item.navigate)) add(path, `page "${item.navigate}" no longer exists — choose another`);
+          else if (popupIds.has(item.navigate)) add(path, `page "${item.navigate}" is a popup group — choose a normal page`);
+        }
+        if (item.popup !== undefined) {
+          if (!pageIds.has(item.popup)) add(path, `popup group "${item.popup}" no longer exists — choose another`);
+          else if (!popupIds.has(item.popup)) add(path, `page "${item.popup}" is not a popup group`);
+        }
+        if (page.popup === true && (hasNav || hasPopup)) {
+          add(path, "a key inside a popup group cannot open a page or another group");
         }
         if (item.confirm !== undefined && !hasAction) {
           add(path, "confirm is only allowed with actionId");

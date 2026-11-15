@@ -92,7 +92,7 @@ async fn a_5x3_grid_is_too_small() {
     let agent = start(dir.path(), |layout, _| {
         layout.grid.cols = 5;
         layout.grid.rows = 3;
-        layout.pages = vec![Page { id: "main".into(), name: "Main".into(), items: Vec::new(), apps: None }];
+        layout.pages = vec![Page { id: "main".into(), name: "Main".into(), items: Vec::new(), apps: None, popup: None, stay_open: None }];
     })
     .await;
     let issues = rejected(agent.add_template("browser"));
@@ -104,7 +104,7 @@ async fn a_5x3_grid_is_too_small() {
 async fn ten_pages_is_the_limit() {
     let dir = tempfile::tempdir().unwrap();
     let agent = start(dir.path(), |layout, _| {
-        layout.pages = (0..10).map(|n| Page { id: format!("p{n}"), name: format!("P{n}"), items: Vec::new(), apps: None }).collect();
+        layout.pages = (0..10).map(|n| Page { id: format!("p{n}"), name: format!("P{n}"), items: Vec::new(), apps: None, popup: None, stay_open: None }).collect();
     })
     .await;
     let issues = rejected(agent.add_template("zoom"));
@@ -138,7 +138,7 @@ async fn an_existing_action_with_the_same_id_is_not_overwritten() {
 async fn a_taken_page_id_gets_a_numeric_suffix() {
     let dir = tempfile::tempdir().unwrap();
     let agent = start(dir.path(), |layout, _| {
-        layout.pages.push(Page { id: "spotify".into(), name: "Mine".into(), items: Vec::new(), apps: None });
+        layout.pages.push(Page { id: "spotify".into(), name: "Mine".into(), items: Vec::new(), apps: None, popup: None, stay_open: None });
     })
     .await;
     assert_eq!(agent.add_template("spotify"), SaveResult::Saved);

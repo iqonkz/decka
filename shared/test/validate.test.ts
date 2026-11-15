@@ -4,6 +4,7 @@ import type { ActionsFile } from "../src/actions";
 import type { LayoutFile } from "../src/layout";
 import layoutDefault from "../fixtures/layout.default.json";
 import layoutContext from "../fixtures/layout.context.json";
+import layoutPopup from "../fixtures/layout.popup.json";
 import actionsDefault from "../fixtures/actions.default.json";
 import overlap from "../fixtures/invalid/layout-overlap.json";
 import outOfBounds from "../fixtures/invalid/layout-out-of-bounds.json";
@@ -32,6 +33,72 @@ describe("validateLayout", () => {
     const issues = validateLayout(fx.layout as LayoutFile, actions);
     expect(issues.length).toBeGreaterThanOrEqual(1);
     expect(issues[0]?.path).toBe(fx.expectPath);
+  });
+});
+
+describe("validateLayout: popup groups (rule 12)", () => {
+  const popupLayout = layoutPopup as unknown as LayoutFile;
+  const clone = (): LayoutFile => structuredClone(popupLayout);
+  /** The first problem a mutation of the popup fixture causes, as [path, message]. */
+  const problems = (mutate: (l: LayoutFile) => void): [string, string][] => {
+    const l = clone();
+    mutate(l);
+    return validateLayout(l, actions).map((i) => [i.path, i.message]);
+  };
+  const popupPage = (l: LayoutFile) => l.pages.find((p) => p.popup === true)!;
+  const button = (l: LayoutFile, id: string) => l.pages.flatMap((p) => p.items).find((i) => i.id === id) as unknown as Record<string, unknown>;
+
+  test("the fixture is valid", () => {
+    expect(validateLayout(popupLayout, actions)).toEqual([]);
+  });
+
+  test("a key may run an action, open a page, open a group, or run an action and then open a group", () => {
+    expect(problems((l) => Object.assign(button(l, "b-more"), { actionId: "media-play" }))).toEqual([]);
+  });
+
+  test("a button with nothing to do is an error", () => {
+    expect(problems((l) => delete button(l, "b-more").popup)).toEqual([["/pages/0/items/14", "choose an action or a page for this button"]]);
+  });
+
+  test("a page and a group together are refused", () => {
+    expect(problems((l) => Object.assign(button(l, "b-more"), { navigate: "dev" }))).toEqual([["/pages/0/items/14", "a button can open a page or a popup group, not both"]]);
+  });
+
+  test("an action and a page together are still refused", () => {
+    expect(problems((l) => Object.assign(button(l, "b-to-dev"), { actionId: "media-play" }))).toEqual([["/pages/0/items/15", "a button can either run an action or open a page, not both"]]);
+  });
+
+  test("popup must name an existing popup page", () => {
+    expect(problems((l) => Object.assign(button(l, "b-more"), { popup: "nowhere" }))).toEqual([["/pages/0/items/14", 'popup group "nowhere" no longer exists — choose another']]);
+    expect(problems((l) => Object.assign(button(l, "b-more"), { popup: "dev" }))).toEqual([["/pages/0/items/14", 'page "dev" is not a popup group']]);
+  });
+
+  test("navigate cannot point at a popup page", () => {
+    expect(problems((l) => Object.assign(button(l, "b-to-dev"), { navigate: "media-more" }))).toEqual([["/pages/0/items/15", 'page "media-more" is a popup group — choose a normal page']]);
+  });
+
+  test("the first page cannot be a popup group", () => {
+    expect(problems((l) => (l.pages[0]!.popup = true)).map(([p]) => p)).toContain("/pages/0/popup");
+  });
+
+  test("a popup group cannot have apps", () => {
+    expect(problems((l) => (popupPage(l).apps = ["code.exe"]))).toEqual([["/pages/2/apps", "a popup group cannot show itself for apps: remove them"]]);
+  });
+
+  test("a key inside a popup group cannot open a page or another group", () => {
+    expect(
+      problems((l) => {
+        const b = button(l, "b-pop-up");
+        delete b.actionId;
+        b.navigate = "main";
+      }),
+    ).toEqual([["/pages/2/items/2", "a key inside a popup group cannot open a page or another group"]]);
+    expect(problems((l) => Object.assign(button(l, "b-pop-up"), { popup: "media-more", actionId: "vol-up" }))).toEqual([["/pages/2/items/2", "a key inside a popup group cannot open a page or another group"]]);
+  });
+
+  test("stayOpen belongs to popup pages only", () => {
+    expect(problems((l) => (popupPage(l).stayOpen = true))).toEqual([]);
+    expect(problems((l) => (l.pages[1]!.stayOpen = true))).toEqual([["/pages/1/stayOpen", "stayOpen only makes sense for a popup group"]]);
   });
 });
 

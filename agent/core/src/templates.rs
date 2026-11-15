@@ -101,7 +101,7 @@ pub fn build(template_id: &str, layout: &LayoutFile, actions: &ActionsFile) -> R
         .collect();
 
     let mut new_layout = layout.clone();
-    new_layout.pages.push(Page { id: page_id, name: template.name.clone(), items, apps: Some(template.apps.clone()) });
+    new_layout.pages.push(Page { id: page_id, name: template.name.clone(), items, apps: Some(template.apps.clone()), popup: None, stay_open: None });
 
     let mut issues = validate_actions(&new_actions);
     issues.extend(validate_layout(&new_layout, &new_actions));

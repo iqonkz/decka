@@ -9,6 +9,8 @@ export interface LayoutFile {
 export interface Page {
   id: Id; name: string; items: LayoutItem[];
   apps?: string[];        // M11: context page - shown automatically while one of these apps is active on the PC (lower-case exe names)
+  popup?: boolean;        // M13: a popup group - opens over the current page from a button with `popup`; not part of the swipe (DESIGN.md 4.1)
+  stayOpen?: boolean;     // M13: popup pages only: keep the panel open after a key inside it was pressed
 }
 
 export interface DisplaySettings {
@@ -30,8 +32,9 @@ interface ItemBase { id: Id; x: number; y: number; w: number; h: number; }
 export interface ButtonLook { label?: string; icon?: string; color?: string; }
 export interface ButtonItem extends ItemBase, ButtonLook {
   kind: "button";
-  actionId?: Id;          // exactly one of actionId / navigate
-  navigate?: Id;          // page id
+  actionId?: Id;          // M13: allowed combinations: actionId | navigate | popup | actionId + popup
+  navigate?: Id;          // id of a normal (not popup) page
+  popup?: Id;             // M13: id of a popup page (`popup: true`)
   confirm?: boolean;      // true = press by holding 800 ms
   bind?: { var: VarName; states: Record<string, ButtonLook> }; // key = String(variable value)
 }
