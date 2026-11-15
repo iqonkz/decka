@@ -82,6 +82,7 @@ export interface FullState {
   vars: Record<VarName, VarValue>;
   focus?: FocusInfo | null;        // M11; отсутствует у агентов до M11; null = сборщик выключен
   media?: MediaInfo | null;        // M11; null = ничего не играет или сборщик выключен
+  icons?: Record<string, string>;  // M12: "<hash16>" → "data:image/png;base64,..."; только иконки, на которые ссылается раскладка
 }
 
 // Активное окно ПК: только имя исполняемого файла, НИКОГДА не заголовок окна.
@@ -362,6 +363,8 @@ curl.exe -s -X POST http://127.0.0.1:9247/api/notify -H "Authorization: Bearer $
         "statuses": { "type": "array", "items": { "$ref": "#/$defs/StatusItem" } },
         "notifications": { "type": "array", "maxItems": 20, "items": { "$ref": "#/$defs/Notification" } },
         "vars": { "type": "object", "propertyNames": { "pattern": "^[a-z0-9_.-]{1,64}$" }, "additionalProperties": { "$ref": "#/$defs/VarValue" } },
+        "icons": { "type": "object", "maxProperties": 200, "propertyNames": { "pattern": "^[0-9a-f]{16}$" },
+          "additionalProperties": { "type": "string", "pattern": "^data:image/(png|svg\\+xml);base64,", "maxLength": 32768 } },
         "focus": { "oneOf": [ { "$ref": "#/$defs/FocusInfo" }, { "type": "null" } ] },
         "media": { "oneOf": [ { "$ref": "#/$defs/MediaInfo" }, { "type": "null" } ] } } },
     "FocusInfo": { "type": "object", "required": ["app"],
@@ -433,6 +436,13 @@ export interface AgentStatus {
   usb: { enabled: boolean; adbFound: boolean; devices: { serial: string; reversed: boolean }[]; lastError?: string };
   configDir: string;
 }
+export interface InstalledApp {                       // M12
+  name: string;          // имя ярлыка без .lnk
+  program: string;       // полный путь к .exe
+  args: string[];        // аргументы ярлыка, разбитые по правилам командной строки Windows
+  cwd?: string;          // рабочая папка ярлыка
+  icon?: string;         // data URL 32 px для списка (может отсутствовать)
+}
 export interface PairingInfo { code: string; url: string; qrSvg: string; expiresAt: number; }
 export interface ValidationIssue { path: string; message: string; }   // path — JSON pointer
 export type SaveResult = { ok: true } | { ok: false; issues: ValidationIssue[] };
@@ -457,6 +467,13 @@ export interface IpcCommands {
   get_templates(): PageTemplate[];                             // M11: DATA_MODEL.md §7
   add_template(args: { templateId: string }): SaveResult;      // M11: добавляет действия и страницу шаблона, сохраняет оба файла
   open_config_dir(): void;
+  open_logs_dir(): void;                                       // T11.11: <configDir>\logs
+  list_installed_apps(): InstalledApp[];                       // M12: ярлыки меню «Пуск», DATA_MODEL.md §8
+  icon_from_program(args: { path: string }): { icon: string } | { error: string };  // M12: иконка exe → "img:<hash16>"
+  icon_from_image(args: { path: string }): { icon: string } | { error: string };    // M12: png/jpg/ico/bmp → "img:<hash16>"
+  get_icon_preview(args: { icon: string }): string | null;     // M12: data URL для окна настроек
+  icon_from_svg(args: { svg: string }): { icon: string } | { error: string };       // M13: DATA_MODEL.md §8.4
+  is_first_run(): boolean;                                     // M13: devices.json пуст и layout.json не менялся с создания (DESIGN.md §4.4)
 }
 ```
 

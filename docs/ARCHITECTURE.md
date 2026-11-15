@@ -90,6 +90,7 @@ Decka превращает старый Android-телефон в настоль
   public/                manifest.webmanifest, иконки
   android/               проект Capacitor (в git)
   capacitor.config.ts
+/ui/                     @decka/ui (M13): темы, Grid, Key, виджеты, gridMetrics — презентационные компоненты без сети; используются client и agent (превью редактора)
 /agent/                  @decka/agent (окно настроек)
   src/                   React: tabs/, ui/, ipc.ts
   core/                  crate decka-core (+ bin decka-headless)
@@ -262,11 +263,11 @@ Decka превращает старый Android-телефон в настоль
 | Параметр | Значение |
 |---|---|
 | Фон экрана | `#000000` |
-| Фон плиток и кнопок | **нет** (прозрачный) — решение владельца 2026-11-14 (M10): меньше светящихся пикселей, интерфейс легче |
-| Кнопка | квадратная «клавиша» размером `0.7 × min(ширина, высота ячейки)` по центру ячейки, тонкая обводка 1 px; подпись под клавишей; подробности — TASKS.md T10.2, T10.5 |
-| Основной текст | `#e5e5e5`; вторичный `#9ca3af` |
-| Радиус клавиши | `22%` её стороны |
-| Сетка | `cols×rows` из `layout.grid` (3..8 × 2..5, по умолчанию 7×4 — решение владельца 2026-11-14), `gap: 2vmin`, `padding: 4vmin`, внешний запас 6 px |
+| Темы (M13) | **DESIGN.md — единственный источник визуальных значений**; строки ниже описывают тему `studio` до M13 |
+| Стиль | «аппаратная дека» (решение владельца 2026-11-14): квадратные клавиши с тёмной градиентной лицевой стороной, обводкой, бликом и тенью; подпись на лицевой стороне; виджеты — панели того же стиля. Точные значения — TASKS.md T11.10 «Итоговая спецификация» (заменяет T10.2/T10.5) |
+| Основной текст | `#f2f2f2`; вторичный `#9ca3af` |
+| Радиус клавиши | `16%` стороны |
+| Сетка | `cols×rows` из `layout.grid` (3..8 × 2..5, по умолчанию 7×4); клавиши квадратные, зазор `4%` стороны (не меньше 4 px), сетка центрирована; внешний запас 6 px (pixel shift) |
 | Шрифт | `system-ui, sans-serif` |
 | Цвета состояний | DATA_MODEL.md §6 |
 | Язык интерфейса | английский |
@@ -281,6 +282,8 @@ Decka превращает старый Android-телефон в настоль
 | | `@tauri-apps/api` / `@tauri-apps/cli` | 2.12.4 / 2.12.4 |
 | | `tauri-plugin-autostart` / `tauri-plugin-single-instance` | 2.7.0 / 2.5.5 |
 | | `tauri-plugin-dialog` / `@tauri-apps/plugin-dialog` (M10, выбор exe) | 2.8.4 (поставлена в T10.3) |
+| UI (M13) | `@phosphor-icons/core` (MIT; только окно настроек) | 2.1.1 |
+| | `@material/material-color-utilities` (Apache-2.0; тема Material) | 0.4.0 |
 | Windows API (M11) | `windows` (MIT/Apache-2.0; активное окно, медиасессия WinRT) | 0.62.2; имена features `[unverified]` — сверить с docs.rs |
 | Сервер | `axum` (feature `ws`) | 0.8.9 |
 | | `tokio` | 1.54.1 |
@@ -308,6 +311,7 @@ Decka превращает старый Android-телефон в настоль
 | Android | `@capacitor/core` | 8.6.2 (minSdk поднят до 26 по требованию `@capacitor/barcode-scanner`; Android 10 = API 29 поддерживается) |
 | | `@capacitor/android`, `@capacitor/cli` | 8.6.2 `[unverified — предполагается равной core]` |
 | | `@capacitor-community/keep-awake` | 8.0.1 |
+| | `@capacitor/haptics` (MIT; виброотклик, M13) | 8.0.2 |
 | | `@capacitor/barcode-scanner` (MIT) | 3.1.3 |
 | Внешние инструменты | Node.js ≥ 22.12, Rust stable, Android Studio + JDK для Capacitor 8 `[unverified: версия JDK]`, WebView2 (есть в Windows 11), adb (опционально) | — |
 

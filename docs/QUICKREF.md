@@ -60,6 +60,7 @@ tools/    ws-smoke.mjs, make-icon.ps1
 | Форматы файлов, валидация, значения по умолчанию, поведение виджетов | DATA_MODEL.md |
 | Модули, API `Agent`, потоки данных, безопасность, цвета, версии пакетов | ARCHITECTURE.md §4–§8 |
 | Почему так, а не иначе | DECISIONS.md |
+| Любые цвета, размеры, тени, анимации, UX-потоки (M13+) | DESIGN.md |
 | Макросы проверки H-BUILD / H-START / H-STOP / H-TOKEN / H-API | TASKS.md §0 |
 
 ## Команды

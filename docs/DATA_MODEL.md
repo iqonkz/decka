@@ -59,7 +59,7 @@ export type KeyName = string; // см. 2.2
 | type | Исполнение на Windows | Валидация |
 |---|---|---|
 | `hotkey` | crate `enigo`, см. 2.2 | `keys`: 1..5, каждая из набора, без повторов |
-| `media` | `enigo`: `play_pause`→MediaPlayPause, `next`→MediaNextTrack, `prev`→MediaPrevTrack, `vol_up`→VolumeUp, `vol_down`→VolumeDown, `mute`→VolumeMute (click) | `op` из списка |
+| `media` | (с T12.0) `play_pause`/`next`/`prev` — сначала через текущую медиасессию Windows (`GlobalSystemMediaTransportControlsSession::TryTogglePlayPauseAsync` / `TrySkipNextAsync` / `TrySkipPreviousAsync`); нет сессии или вызов вернул `false`/ошибку → запасной путь медиаклавишей ниже. Громкость — всегда клавишами. `enigo`: `play_pause`→MediaPlayPause, `next`→MediaNextTrack, `prev`→MediaPrevTrack, `vol_up`→VolumeUp, `vol_down`→VolumeDown, `mute`→VolumeMute (click) | `op` из списка |
 | `launch` | `std::process::Command::new(program).args(args)`, **без shell**; `cwd` → `current_dir`; `hidden: true` → флаг создания `CREATE_NO_WINDOW` (0x08000000); процесс не ожидается (spawn и забыть) | `program` 1..500 символов; `args` ≤ 32 элементов по ≤ 500 символов; `cwd` ≤ 500 |
 | `open_url` | `rundll32.exe url.dll,FileProtocolHandler <url>` через `Command` без shell | `url` ≤ 2000 символов, парсится crate `url`, схема строго `http` или `https` |
 | `system` | `lock` → `rundll32.exe user32.dll,LockWorkStation`; `sleep` → `rundll32.exe powrprof.dll,SetSuspendState 0,1,0` | `op` из списка |
@@ -105,6 +105,8 @@ export interface LayoutFile {
 export interface Page {
   id: Id; name: string; items: LayoutItem[];
   apps?: string[];        // M11: контекстная страница — показывается сама, когда на ПК активно одно из этих приложений (имена exe, нижний регистр)
+  popup?: boolean;        // M13: страница-группа — открывается поверх по нажатию кнопки с popup, не участвует в свайпе (DESIGN.md §4.1)
+  stayOpen?: boolean;     // M13: только для popup-страниц: не закрывать панель после нажатия кнопки внутри
 }
 
 export interface DisplaySettings {
@@ -114,6 +116,9 @@ export interface DisplaySettings {
   pixelShift: boolean;    // по умолчанию true
   night: { enabled: boolean; from: string; to: string }; // "HH:MM", локальное время телефона
   contextPages?: boolean; // M11: автопереключение на контекстные страницы; отсутствует = true
+  theme?: "amoled" | "studio" | "material" | "glass";       // M13: DESIGN.md §1; отсутствует = "amoled"; новые установки — "studio"
+  accent?: string;        // M13: "#rrggbb", акцент темы Material и окна настроек; отсутствует = "#7c5cff"
+  wallpaper?: "aurora" | "sunset" | "ocean" | "graphite" | "album"; // M13: только тема glass; отсутствует = "aurora"
 }
 
 interface ItemBase { id: Id; x: number; y: number; w: number; h: number; }
@@ -121,8 +126,9 @@ interface ItemBase { id: Id; x: number; y: number; w: number; h: number; }
 export interface ButtonLook { label?: string; icon?: string; color?: string; }
 export interface ButtonItem extends ItemBase, ButtonLook {
   kind: "button";
-  actionId?: Id;          // ровно одно из actionId / navigate
-  navigate?: Id;          // id страницы
+  actionId?: Id;          // M13: допустимые сочетания — actionId | navigate | popup | actionId+popup
+  navigate?: Id;          // id обычной (не popup) страницы
+  popup?: Id;             // M13: id popup-страницы
   confirm?: boolean;      // true → нажатие удержанием 800 мс
   bind?: { var: VarName; states: Record<string, ButtonLook> }; // ключ = String(значение переменной)
 }
@@ -158,7 +164,9 @@ export type ClientLayout = Omit<LayoutFile, "version">;
 7. `bind.states`: 1..8 ключей, каждый ключ ≤ 40 символов.
 8. `display`: диапазоны из комментариев в §3.1; `night.from`/`to` — regex `^([01][0-9]|2[0-3]):[0-5][0-9]$`.
 9. (M11) `apps`: 0..10 элементов, каждый — regex `^[a-z0-9._ ()-]{1,60}\.exe$`, без повторов внутри страницы; одно приложение может быть указано только на одной странице файла (иначе ошибка на второй странице: `/pages/<i>/apps/<j>`). Первая страница (`pages[0]`) не может иметь `apps` — она домашняя по умолчанию.
+9a. (M13, правило 12) Кнопка: допустимы только сочетания `actionId`, `navigate`, `popup`, `actionId + popup` (иначе ошибка с текстом T11.9). `navigate` указывает на существующую страницу без `popup`; `popup` — на существующую страницу с `popup: true`. Страница с `popup: true` не может быть первой, не может иметь `apps`, её кнопки не могут иметь `popup` и `navigate` (из панели нельзя уйти на другую страницу). `stayOpen` допустим только при `popup: true`. `display.accent` — regex `^#[0-9a-fA-F]{6}$`. Правило 5 (ровно одно из `actionId`/`navigate`) заменяется этим правилом.
 10. (M11) `media`: размер от 2×1 до `cols×2`; `prevAction`/`playAction`/`nextAction`, если заданы, должны существовать в `actions.json` (как `actionId` кнопки).
+11. (M12) см. §8.2.
 
 Проверки 1–4, 6–8 выражены в JSON Schema там, где это возможно (§5); пересечения, уникальность, ссылки (п. 3, 5) проверяются кодом — одинаково в Rust (`decka-core::config::validate_layout`) и в TS (`shared/src/validate.ts`, используется редактором в окне настроек).
 
@@ -169,8 +177,7 @@ export type ClientLayout = Omit<LayoutFile, "version">;
 Поле `icon` — строка одного из двух видов:
 - `lucide:<name>` — имя иконки Lucide в kebab-case (`lucide:play`, `lucide:volume-2`). Regex `^lucide:[a-z0-9-]{1,40}$`. Клиент включает в сборку **фиксированный набор** из 60 иконок (список — §3.6); неизвестное имя → иконка `lucide:square`.
 - `emoji:<символ>` — один emoji (`emoji:🚀`), ≤ 8 UTF-16 единиц после префикса.
-
-Пользовательские картинки — вне MVP.
+- (M12) `img:<hash16>` — картинка из хранилища иконок агента (§8); regex `^img:[0-9a-f]{16}$`. Клиент берёт data URL из секции `icons`; нет в секции → иконка `lucide:square`.
 
 ### 3.4 Состояния кнопок
 
@@ -295,7 +302,7 @@ export interface DeviceInfo { id: Id; name: string; createdAt: number; lastSeenA
   "$id": "https://decka.invalid/schemas/layout.schema.json",
   "$defs": {
     "Id": { "type": "string", "pattern": "^[a-z0-9_-]{1,64}$" },
-    "Icon": { "type": "string", "pattern": "^(lucide:[a-z0-9-]{1,40}|emoji:.{1,8})$" },
+    "Icon": { "type": "string", "pattern": "^(lucide:[a-z0-9-]{1,40}|emoji:.{1,8}|img:[0-9a-f]{16})$" },
     "Color": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
     "ButtonLook": { "type": "object", "properties": { "label": { "type": "string", "maxLength": 24 }, "icon": { "$ref": "#/$defs/Icon" }, "color": { "$ref": "#/$defs/Color" } } },
     "ItemBase": { "type": "object", "required": ["id","kind","x","y","w","h"],
@@ -304,11 +311,11 @@ export interface DeviceInfo { id: Id; name: string; createdAt: number; lastSeenA
         "w": { "type": "integer", "minimum": 1, "maximum": 8 }, "h": { "type": "integer", "minimum": 1, "maximum": 5 } } },
     "ButtonItem": { "allOf": [ { "$ref": "#/$defs/ItemBase" }, { "$ref": "#/$defs/ButtonLook" }, {
       "properties": { "kind": { "const": "button" }, "w": { "const": 1 }, "h": { "const": 1 },
-        "actionId": { "$ref": "#/$defs/Id" }, "navigate": { "$ref": "#/$defs/Id" }, "confirm": { "type": "boolean" },
+        "actionId": { "$ref": "#/$defs/Id" }, "navigate": { "$ref": "#/$defs/Id" }, "popup": { "$ref": "#/$defs/Id" }, "confirm": { "type": "boolean" },
         "bind": { "type": "object", "required": ["var","states"], "properties": {
           "var": { "type": "string", "pattern": "^[a-z0-9_.-]{1,64}$" },
           "states": { "type": "object", "minProperties": 1, "maxProperties": 8, "propertyNames": { "maxLength": 40 }, "additionalProperties": { "$ref": "#/$defs/ButtonLook" } } } } },
-      "oneOf": [ { "required": ["actionId"] }, { "required": ["navigate"] } ] } ] },
+      "anyOf": [ { "required": ["actionId"] }, { "required": ["navigate"] }, { "required": ["popup"] } ] } ] },
     "ClockItem": { "allOf": [ { "$ref": "#/$defs/ItemBase" }, { "properties": { "kind": { "const": "clock" }, "w": { "maximum": 2 }, "h": { "const": 1 }, "seconds": { "type": "boolean" } } } ] },
     "SysItem": { "allOf": [ { "$ref": "#/$defs/ItemBase" }, { "properties": { "kind": { "const": "sys" }, "w": { "const": 2 }, "h": { "maximum": 2 } } } ] },
     "StatusesItem": { "allOf": [ { "$ref": "#/$defs/ItemBase" }, { "properties": { "kind": { "const": "statuses" }, "w": { "minimum": 2 }, "group": { "type": "string", "maxLength": 40 }, "title": { "type": "string", "maxLength": 30 } } } ] },
@@ -319,7 +326,8 @@ export interface DeviceInfo { id: Id; name: string; createdAt: number; lastSeenA
     "KnownItem": { "oneOf": [ { "$ref": "#/$defs/ButtonItem" }, { "$ref": "#/$defs/ClockItem" }, { "$ref": "#/$defs/SysItem" }, { "$ref": "#/$defs/StatusesItem" }, { "$ref": "#/$defs/StatusTile" }, { "$ref": "#/$defs/NotificationsItem" }, { "$ref": "#/$defs/MediaItem" } ] },
     "Page": { "type": "object", "required": ["id","name","items"],
       "properties": { "id": { "$ref": "#/$defs/Id" }, "name": { "type": "string", "minLength": 1, "maxLength": 30 }, "items": { "type": "array", "maxItems": 40, "items": { "$ref": "#/$defs/KnownItem" } },
-        "apps": { "type": "array", "maxItems": 10, "uniqueItems": true, "items": { "type": "string", "pattern": "^[a-z0-9._ ()-]{1,60}\\.exe$" } } } },
+        "apps": { "type": "array", "maxItems": 10, "uniqueItems": true, "items": { "type": "string", "pattern": "^[a-z0-9._ ()-]{1,60}\\.exe$" } },
+        "popup": { "type": "boolean" }, "stayOpen": { "type": "boolean" } } },
     "DisplaySettings": { "type": "object", "required": ["dimAfterSec","dimLevel","sleepAfterSec","pixelShift","night"],
       "properties": {
         "dimAfterSec": { "type": "integer", "minimum": 0, "maximum": 3600 },
@@ -327,6 +335,9 @@ export interface DeviceInfo { id: Id; name: string; createdAt: number; lastSeenA
         "sleepAfterSec": { "type": "integer", "minimum": 0, "maximum": 86400 },
         "pixelShift": { "type": "boolean" },
         "contextPages": { "type": "boolean" },
+        "theme": { "enum": ["amoled","studio","material","glass"] },
+        "accent": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+        "wallpaper": { "enum": ["aurora","sunset","ocean","graphite","album"] },
         "night": { "type": "object", "required": ["enabled","from","to"], "properties": { "enabled": { "type": "boolean" },
           "from": { "type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$" }, "to": { "type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$" } } } } },
     "ClientLayout": { "type": "object", "required": ["grid","display","pages"],
@@ -481,4 +492,38 @@ export interface PageTemplate {
 
 Плюс элемент `{ "id": "now", "kind": "media", "x": 0, "y": 0, "w": 4, "h": 2, "prevAction": "tpl-spotify-prev", "playAction": "tpl-spotify-play", "nextAction": "tpl-spotify-next" }`.
 
-Все элементы-кнопки шаблонов — `kind: "button"`, `w: 1`, `h: 1`, `icon` с префиксом `lucide:`; id элемента = id действия без префикса (`palette`, `newtab`, …), у кнопки «Home» id `home`.
+Все элементы-кнопки шаблонов (см. ниже) — `kind: "button"`, `w: 1`, `h: 1`, `icon` с префиксом `lucide:`; id элемента = id действия без префикса (`palette`, `newtab`, …), у кнопки «Home» id `home`.
+
+## 8. Иконки программ и установленные приложения (M12)
+
+### 8.1 Хранилище иконок
+
+- Каталог `<configDir>\icons\`, файлы `<hash16>.png`, где `hash16` — первые 16 hex-символов SHA-256 содержимого PNG.
+- Каждая иконка — PNG 96×96 с прозрачностью; data URL не длиннее 32 768 символов (иначе иконка отклоняется с ошибкой `Icon is too large`).
+- Источники: (а) `icon_from_program(path)` — системная иконка exe через Shell (`IShellItemImageFactory::GetImage` с размером 96×96, флаг «только иконка», не миниатюра); (б) `icon_from_image(path)` — файл png/jpg/ico/bmp, декодирование и масштабирование до 96×96 с сохранением пропорций и прозрачными полями (`Windows.Graphics.Imaging`, как в T11.4b). Результат кодируется в PNG через `BitmapEncoder` (`PngEncoderId`).
+- Иконки никогда не скачиваются из интернета и не поставляются с Decka (DECISIONS.md D-35).
+- Файлы, на которые не ссылается ни одна кнопка, не удаляются автоматически (в MVP; занимают килобайты).
+
+### 8.2 Секция `icons`
+
+- Значение = `{ hash16: dataURL }` для всех `img:`-иконок, встречающихся в текущей раскладке (`icon` кнопок и `bind.states[*].icon`). Пересчитывается при каждом изменении раскладки; рассылается только при изменении (обычное правило `Store::set`).
+- Валидация раскладки (новое правило 11 к §3.2): `img:<hash>` без файла `<configDir>\icons\<hash>.png` → ошибка `icon file not found — choose the icon again`. Правило проверяется только агентом (TS-валидатор окна настроек его пропускает: сервер вернёт замечание при сохранении).
+
+### 8.3 Установленные приложения
+
+`list_installed_apps()`:
+1. Рекурсивно обойти `.lnk` в `%ProgramData%\Microsoft\Windows\Start Menu\Programs` и `%APPDATA%\Microsoft\Windows\Start Menu\Programs`.
+2. Каждый ярлык разобрать через `IShellLinkW` (`IPersistFile::Load`): путь цели, аргументы, рабочая папка. Аргументы разбить по правилам `CommandLineToArgvW`.
+3. Оставить только цели, которые оканчиваются на `.exe` и существуют. Исключить ярлыки, у которых имя ярлыка содержит `uninstall` / `удал` (без учёта регистра) или имя файла цели начинается с `unins`.
+4. Убрать дубликаты по паре (путь цели в нижнем регистре, аргументы); при дубликате оставить ярлык из `%APPDATA%`.
+5. Иконка списка — та же Shell-иконка размером 32×32 PNG (data URL), без записи в хранилище; ошибка → без иконки.
+6. Сортировка по `name` без учёта регистра. Ограничение — первые 500 результатов. Время выполнения на типовом ПК — несколько секунд: вызов асинхронный, окно показывает индикатор загрузки.
+7. Приложения Microsoft Store (без `.exe`-ярлыка) в MVP не поддерживаются — для них остаётся `Browse…` или горячая клавиша.
+
+### 8.4 SVG-иконки (M13)
+
+- `icon_from_svg(svg: string) → { icon } | { error }`: принимает SVG-разметку из библиотеки Phosphor окна настроек.
+- Проверка (иначе `{ error: "Unsupported SVG" }`): длина ≤ 12 000 символов; начинается с `<svg` (после пробелов); не содержит без учёта регистра `<script`, `<foreignObject`, `javascript:`, `href=` со значением не на `#`, атрибутов вида `on[a-z]+=`; корневой `viewBox` присутствует.
+- Перед сохранением: заливки и обводки, отличные от `none`, заменяются на `#000` (маске важна только альфа), атрибуты `width`/`height` корня удаляются.
+- Хранение: `<configDir>\icons\<hash16>.svg` (hash — от итоговой разметки); ссылка `img:<hash16>`; в секции `icons` — `data:image/svg+xml;base64,...` (≤ 16 384 символов).
+- Клиент: data URL с `image/svg+xml` рисуется элементом с `mask-image: url(<dataURL>)`, `mask-size: contain`, `background-color: currentColor`; `image/png` — элементом `<img>`.

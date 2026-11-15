@@ -1157,7 +1157,80 @@ npm run typecheck -w agent; npm test -w agent; npm run build:ui; cargo build -p 
 ```
 (последняя команда печатает `19`)
 
+### T11.9 — Понятные ошибки редактора раскладки (отзыв владельца)
+**Цель:** вместо JSON-пути пользователь видит, какой элемент и что исправить.
+**Файлы:** `agent/src/tabs/LayoutTab.tsx`, `agent/src/tabs/issueText.ts`, `agent/src/tabs/itemForm.tsx`, `agent/test/issueText.test.ts`.
+**Шаги:**
+1. `issueText.ts`: `describeIssue(issue: ValidationIssue, layout: LayoutFile): string`. Путь `/pages/<p>/items/<i>[/...]` → префикс `Page "<name>", <kind> at column <x+1>, row <y+1>: `; путь `/pages/<p>/apps/...` → `Page "<name>": `; `/grid` → `Grid: `; иначе путь как есть. Далее — `message`. Тексты `message` в `validate.ts` (TS) для кнопок заменить на пользовательские: «choose an action or a page for this button» (нет ни одного из `actionId`/`navigate`), «a button can either run an action or open a page, not both», «action "<id>" no longer exists — choose another», «page "<id>" no longer exists — choose another». Rust-валидацию не трогать (серверные замечания проходят через тот же `describeIssue`).
+2. Список замечаний в редакторе показывает `describeIssue`; клик по замечанию выделяет элемент и открывает его форму.
+3. Новая кнопка, созданная кликом по пустой ячейке, сразу открывает форму с режимом `Runs action` и **первым действием по алфавиту `name`** уже выбранным (если действий нет — режим `Opens page` и первая страница, кроме текущей; если и страниц других нет — замечание остаётся).
+4. Тесты `describeIssue`: кнопка без действия на (0,3) страницы "Main" → `Page "Main", button at column 1, row 4: choose an action or a page for this button`; путь `/grid` и неизвестный путь.
+**Приёмка:** тесты, typecheck и сборка проходят.
+**Проверка:**
+```
+npm run typecheck -w agent; npm test -w agent; npm run build:ui; cargo build -p decka-agent
+```
+
+### T11.10 — Клавиши в стиле аппаратной деки (отзыв владельца)
+**Выполнена (`0790bf3`). В M13 её стиль становится темой `studio` (T13.3 — перенос в движок тем, а не повторная реализация).**
+**Цель:** крупные квадратные клавиши с «лицевой стороной», как у аппаратных панелей кнопок; зазор 3–5%. Стиль собственный: ресурсы, иконки и фирменные элементы Elgato NEVER не используются.
+
+**Отменяет шаги 1–3 ниже (оставлены для истории) — выполняй блок «Итоговая спецификация».**
+
+**Итоговая спецификация:**
+1. `gridMetrics(viewport, cols, rows) → { side, gap, offsetX, offsetY }`: `pad = round(0.02 × min(w, h)) + 6`; `side0 = min((w − 2·pad)/cols, (h − 2·pad)/rows)`; `gap = max(4, round(0.04 × side0))`; `side = floor(min((w − 2·pad − (cols−1)·gap)/cols, (h − 2·pad − (rows−1)·gap)/rows))`. Клавиши **квадратные** (`side × side`), сетка центрирована: остаток места делится поровну на внешние поля (`offsetX`, `offsetY`). Элемент `w×h` занимает `w·side + (w−1)·gap` × `h·side + (h−1)·gap`. Тесты: 915×412 при 7×4 и 640×360 при 5×3 → `gap/side` в 0.03..0.05, сетка помещается в экран.
+2. Лицевая сторона клавиши (`Key`), радиус `0.16 × side`:
+   - без `color`: фон `linear-gradient(180deg, #1c1c22 0%, #0d0d10 100%)`; иконка `#f2f2f2`;
+   - с `color`: фон `linear-gradient(180deg, <color светлее на 12%> 0%, <color темнее на 18%> 100%)` (смешивание с белым/чёрным в sRGB); иконка `#ffffff`;
+   - обводка `1px solid rgba(255,255,255,0.10)` (с `color` — `rgba(255,255,255,0.18)`), внутренний блик сверху `inset 0 1px 0 rgba(255,255,255,0.08)`, тень `0 2px 6px rgba(0,0,0,0.7)`.
+3. Иконка: `lucide:`/`emoji:` — `round(0.46 × side)`, по центру (со смещением вверх `0.07 × side`, если есть подпись); `img:` — `round(0.62 × side)`, `object-fit: contain`, скругление `0.10 × side`.
+4. Подпись — поверх лицевой стороны внизу: отступ снизу `0.07 × side`, `max(11px, 0.14 × side)`, вес 600, `#ffffff`, `text-shadow: 0 1px 2px rgba(0,0,0,0.9)`, одна строка с многоточием, боковые поля `0.07 × side`. Кнопка без иконки — подпись по центру, `0.19 × side`, до двух строк.
+5. Кнопка `navigate` — маленький шеврон `›` в правом верхнем углу (`0.14 × side`, `rgba(255,255,255,0.5)`).
+6. Состояния: `pressed` — масштаб 0.94, тень `inset 0 2px 6px rgba(0,0,0,0.8)`, яркость `filter: brightness(1.25)`; `pending` — обводка 2px `#3b82f6` пульсирует; `ok` — обводка 2px `#22c55e` 300 мс; `error` — 2px `#ef4444` 1500 мс; `confirming` — круговой прогресс по контуру; `disabled` — `opacity: 0.35`, без тени. Переход трансформации 80 мс.
+7. Виджеты (`clock`, `sys`, `statuses`, `notifications`, `media`, `status`) — «панели» с той же лицевой стороной без `color` (градиент, обводка, тень), внутренний отступ `0.08 × side`. Внутренние клавиши `media` — тот же `Key` со стороной `0.55 × side`.
+8. Пустые ячейки — едва заметный контур `1px dashed rgba(255,255,255,0.05)` только в окне настроек; на телефоне пустые ячейки не рисуются.
+9. Защита AMOLED: фон экрана `#000`; заливки клавиш тёмные; цветные клавиши — по решению пользователя; режимы `dim`/`sleep` (M8) не меняются.
+**Приёмка:** тесты `gridMetrics`, typecheck и сборка проходят; снимок `.tmp\keys-deck.png` с телефона: квадратные клавиши с градиентом и тенью, зазор ~4%, подписи на лицевой стороне, шеврон на кнопке `Dev`.
+**Проверка:**
+```
+npm run typecheck -w client; npm test -w client; npm run release:apk; adb install -r client\android\app\build\outputs\apk\debug\app-debug.apk; adb shell screencap -p /sdcard/keys.png; adb pull /sdcard/keys.png .tmp\keys-deck.png
+```
+
+**Прежняя версия (не выполнять):**
+Клавиши занимают всю ячейку, зазор между ними 3–5% их размера.
+**Файлы:** `client/src/deck/Grid.tsx`, `Key.tsx`, `Button.tsx`, `deck/widgets/StatusTile.tsx`, `deck/widgets/Media.tsx`, `client/src/styles.css`, `client/test/gridMetrics.test.ts`.
+**Шаги:**
+1. `gridMetrics.ts`: чистая `gridMetrics(viewport: {w, h}, cols, rows) → { gap, pad, cellW, cellH }`: `pad = round(0.02 × min(w, h))` + 6 (запас pixel shift); сначала ячейки без зазора `c0 = min((w − 2·pad)/cols, (h − 2·pad)/rows)`, `gap = max(4, round(0.04 × c0))`; затем `cellW = (w − 2·pad − (cols−1)·gap)/cols`, `cellH = (h − 2·pad − (rows−1)·gap)/rows`. Тесты: 915×412 при 7×4 → `gap/min(cellW, cellH)` в диапазоне 0.03..0.05; 640×360 при 5×3 — то же; `gap ≥ 4`.
+2. `Grid`: размеры из `gridMetrics` (`ResizeObserver` на корне), CSS `gap`/`padding` в px; прежние `2vmin`/`4vmin` убрать.
+3. `Key`: заполняет ячейку целиком (`width/height: 100%`), радиус `0.14 × min(cellW, cellH)`, обводка и цвета состояний — как в T10.5. Иконка `round(0.42 × min(cellW, cellH))` px по центру; если есть подпись — иконка смещена вверх на `0.08 × cellH`, подпись внутри клавиши снизу: отступ снизу `0.08 × cellH`, размер `max(11px, 0.15 × min(cellW, cellH))`, `#9ca3af` (на цветной клавише — `#e5e5e5`), одна строка с многоточием, поля по бокам `0.08 × cellW`. Кнопка без иконки — подпись по центру, `0.2 × min(cellW, cellH)`, до двух строк. Множитель `0.7` и подпись под клавишей из T10.2/T10.5 убрать.
+4. Плитка `status` и клавиши виджета `media` используют тот же `Key` (у `media` клавиши `0.55 × cellH` остаются, они внутри виджета).
+5. Виджеты (`clock`, `sys`, `statuses`, `notifications`, `media`) занимают свои ячейки целиком с внутренним отступом `0.06 × min(cellW, cellH)`, без фона и обводки.
+**Приёмка:** тесты, typecheck и сборка проходят; снимок экрана телефона `.tmp\keys-big.png`: клавиши почти касаются друг друга, зазор заметно меньше клавиши, подписи внутри клавиш.
+**Проверка:**
+```
+npm run typecheck -w client; npm test -w client; npm run release:apk; adb install -r client\android\app\build\outputs\apk\debug\app-debug.apk; adb shell screencap -p /sdcard/keys.png; adb pull /sdcard/keys.png .tmp\keys-big.png
+```
+(В Windows PowerShell 5.1 перенаправление `>` портит бинарный вывод, поэтому снимок — через `adb pull`.)
+
+### T11.11 — Лог в файл и разбор: кнопки виджета media не управляют воспроизведением (отзыв владельца)
+**Симптом:** у владельца на A57 виджет показывает трек, но `prev`/`play`/`next` не работают. Конфигурация верна: у виджета `prevAction: media-prev`, `playAction: media-play`, `nextAction: media-next`, действия существуют.
+**Файлы:** `agent/src-tauri/src/lib.rs`, `agent/core/src/logging.rs`, `client/src/deck/widgets/Media.tsx`, `client/src/deck/Key.tsx`, тесты.
+**Шаги:**
+1. Лог в файл (без новых крейтов): `logging.rs` — `init_file_logging(dir)`: файл `<configDir>\logs\decka.log`; при старте, если файл > 5 МБ, переименовать в `decka.log.1` (старый `.1` удалить); `tracing_subscriber` с writer'ом поверх `Mutex<File>` (режим append), уровень из `DECKA_LOG`, по умолчанию `info`. Вызывается в Tauri-приложении; headless продолжает писать в stdout. Строки S15 (`press …`) попадают в файл.
+2. Новая IPC-команда `open_logs_dir(): void` (открывает `<configDir>\logs` через `explorer.exe`, создав папку при отсутствии) и кнопка `Open logs` на вкладке Status рядом с `Config folder`. Итог — 20 команд.
+3. Воспроизведи на A57 с headless (dry-run) и раскладкой `layout.context.json`: нажми каждую клавишу виджета (`adb shell input tap <x> <y>`; координаты — по снимку экрана). В логе headless должны быть `press media-prev`, `press media-play`, `press media-next`. Если строк нет — дефект клиента: найди причину (перехват касаний свайпом/`touch-action` контейнера виджета, `pointer-events`, состояние `disabled`, не тот `actionId`), исправь, добавь тест (рендер `Media` с поддельным `controller.press`, клик по каждой клавише → вызов с правильным id).
+4. Если строки есть — нажатия доходят; проверь реальное исполнение: headless без `--dry-run`, при играющем Spotify `ws-smoke press … media-play` должен ставить на паузу. Не ставит — опиши в отчёте (это поведение enigo/плеера), не меняй тип действия без решения архитектора.
+5. Причину одной фразой — в отчёт и в описание коммита.
+**Приёмка:** тест клиента проходит; в отчёте — три строки `press media-*` из лога headless после касаний по виджету на A57.
+**Проверка:**
+```
+npm run typecheck; npm test -w client; cargo build -p decka-agent
+(Select-String -Path agent\src-tauri\src\commands.rs -Pattern '#\[tauri::command\]').Count
+```
+(последняя команда печатает `20`)
+
 ### T11.8 — Документация и итог M11
+(выполнена; см. ниже. M12 идёт после T11.9–T11.11.)
 **Цель:** пользователь знает о новых функциях.
 **Файлы:** `README.md`, `docs/MANUAL_CHECKS.md`, `docs/TESTING.md`.
 **Шаги:**
@@ -1169,3 +1242,186 @@ npm run typecheck -w agent; npm test -w agent; npm run build:ui; cargo build -p 
 ```
 npm run typecheck; npm test; cargo test -p decka-core; npm run release:apk; adb install -r client\android\app\build\outputs\apk\debug\app-debug.apk
 ```
+
+---
+
+## M12 — Выбор установленной программы и её иконка (решение владельца 2026-11-14)
+
+Спецификация: DATA_MODEL.md §3.3 (`img:`), §5 (`Icon`), §8; PROTOCOL.md §3 (`FullState.icons`), §7, §9 (`InstalledApp`, 4 новые команды); DECISIONS.md D-35. Иконки из интернета не скачивать и в репозиторий не добавлять.
+
+### T12.0 — Управление воспроизведением через медиасессию Windows (срочно, по итогам T11.11)
+**Выполнять сразу после текущей задачи M12** (номер 12.0 — для порядка в документе).
+**Причина:** T11.11 показала: нажатия с телефона доходят до агента, но эмулированная медиаклавиша не меняет состояние Spotify.
+**Файлы:** `agent/core/src/actions/windows.rs`, `agent/core/src/collectors/media.rs` (или новый `media_control.rs`), тесты.
+**Шаги:**
+1. Для `media` с `op` `play_pause`/`next`/`prev` — путь по DATA_MODEL.md §2.3 (обновлённая строка `media`): менеджер сессий получить один раз и переиспользовать (тот же поток WinRT, что у сборщика `media`, или свой поток с MTA; вызовы — через канал), `Try…Async` ожидать блокирующе с таймаутом 2 с.
+2. Результат: сессия вернула `true` → `Ok`; иначе медиаклавиша (прежний путь); в лог `info`: `media <op> via session|key`.
+3. После успешной команды через сессию — немедленно перечитать сессию и опубликовать `media` (кнопка паузы на телефоне меняется сразу, без ожидания тика 1 с).
+4. Юнит-тест чистой функции выбора пути (`session ok` → session; `no session`/`false`/`error` → key).
+**Приёмка:** тест проходит. Ручная: при играющем Spotify headless без `--dry-run` и `ws-smoke press … media-play` ставит на паузу, повтор — снимает; `media-next` переключает трек; в логе `via session`.
+**Проверка:**
+```
+cargo test -p decka-core; cargo build -p decka-agent
+```
+
+### T12.1 — Контракт: `img:`-иконки, секция `icons`, новые IPC-типы
+**Файлы:** `shared/src/*.ts`, `shared/schemas/*.json`, `shared/fixtures/s2c-patch-icons.json`, тесты; `agent/core/src/model.rs`, `proto.rs`, `state.rs`, `tests/fixtures.rs`.
+**Шаги:**
+1. Типы и схемы — дословно из мест, перечисленных в шапке M12. Секция `icons` в `Store` (начальное значение `{}`), в `snapshot()` и `welcome`; клиент считает отсутствующую секцию `{}`.
+2. Фикстура `s2c-patch-icons.json`: `{ "t": "patch", "rev": 46, "section": "icons", "value": { "0123456789abcdef": "data:image/png;base64,iVBORw0KGgo=" } }` → `ServerMsg` (TS-схема) и round-trip (Rust).
+3. Тесты схемы: иконка `img:0123456789abcdef` валидна; `img:XYZ` и `img:0123` — нет.
+**Приёмка/Проверка:**
+```
+npm test -w shared; cargo test -p decka-core --test fixtures
+```
+
+### T12.2 — Агент: хранилище иконок и извлечение из exe/картинок
+**Файлы:** `agent/core/src/icons.rs`, `agent.rs`, `validate.rs`, `agent/core/Cargo.toml` (только features `windows`), `agent/src-tauri/src/commands.rs`, тесты.
+**Шаги:**
+1. Features `windows`: всё нужное для `IShellItemImageFactory`, `SHCreateItemFromParsingName`, `GetDIBits`/`DeleteObject`, `CoInitializeEx` (имена — по docs.rs/windows/0.62.2); `Graphics_Imaging` уже подключён.
+2. `icons.rs` строго по DATA_MODEL.md §8.1: `icon_from_program(path) -> Result<String /* "img:<hash>" */, String>`, `icon_from_image(path)`, `icon_data_url(hash) -> Option<String>`. Shell-вызовы — в выделенном потоке с COM в STA (`CoInitializeEx(COINIT_APARTMENTTHREADED)`), команды через канал (как поток enigo). Пиксели HBITMAP (BGRA, 32 бит) → `BitmapEncoder` PNG (`BitmapPixelFormat::Bgra8`, `BitmapAlphaMode::Premultiplied`). Повторное извлечение того же содержимого даёт тот же hash и не плодит файлы.
+3. Секция `icons` пересчитывается из раскладки при каждом её изменении (`save_layout`, наблюдатель файлов, `add_template`, старт).
+4. Правило валидации 11 (DATA_MODEL.md §8.2) — только в Rust.
+5. IPC `icon_from_program`, `icon_from_image`, `get_icon_preview` (PROTOCOL.md §9).
+6. Тесты (под `#[cfg(windows)]`): `icon_from_program("C:\\Windows\\System32\\notepad.exe")` → `img:` + 16 hex, файл существует, PNG 96×96 (проверка через `BitmapDecoder`), data URL ≤ 32 768; повторный вызов → тот же hash; несуществующий путь → `Err`; `icon_from_image` на PNG 600×600, сгенерированном в тесте, → 96×96; раскладка со ссылкой на отсутствующий `img:` → замечание правила 11; после `save_layout` с `img:`-кнопкой секция `icons` содержит этот hash.
+**Проверка:**
+```
+cargo test -p decka-core icons::; cargo build -p decka-agent
+```
+
+### T12.3 — Агент: список установленных программ
+**Файлы:** `agent/core/src/installed.rs`, `agent/src-tauri/src/commands.rs`, тесты.
+**Шаги:**
+1. Строго по DATA_MODEL.md §8.3 (`IShellLinkW` + `IPersistFile`, `CommandLineToArgvW`; COM-поток из T12.2). Вызов из IPC — через `spawn_blocking`/поток, окно не блокируется.
+2. Чистые функции с юнит-тестами: `is_uninstaller(name, target) -> bool` (`Uninstall Foo` → да; `Удалить Foo` → да; цель `unins000.exe` → да; `Foo` → нет); `dedupe(apps)` (дубликат из ProgramData и APPDATA → остаётся APPDATA); сортировка без учёта регистра.
+3. Тест под `#[cfg(windows)]`: `list_installed_apps()` не падает, возвращает ≤ 500 элементов, у каждого `program` оканчивается на `.exe` и существует.
+4. IPC `list_installed_apps`; итог — 24 команды.
+**Проверка:**
+```
+cargo test -p decka-core installed::; cargo build -p decka-agent
+(Select-String -Path agent\src-tauri\src\commands.rs -Pattern '#\[tauri::command\]').Count
+```
+(последняя команда печатает `24`)
+
+### T12.4 — Клиент: отображение `img:`-иконок
+**Файлы:** `client/src/deck/Icon.tsx`, `client/src/store/store.ts`, `client/test/icons.test.tsx`.
+**Шаги:**
+1. Секция `icons` принимается стором (добавь её в список принимаемых секций — см. баг T11.5).
+2. `Icon`: `img:<hash>` → `<img src={dataURL} draggable={false}>` размером как у lucide-иконки (T11.10), `object-fit: contain`, без фильтров цвета; нет в секции → `square`.
+3. Тест: `img:` с data URL в секции → разметка содержит `<img`; без записи → разметка как у `square`.
+**Проверка:**
+```
+npm run typecheck -w client; npm test -w client; npm run build -w client
+```
+
+### T12.5 — Окно настроек: выбор установленной программы и иконки
+**Файлы:** `agent/src/tabs/AppPickerDialog.tsx`, `agent/src/tabs/actionForm.tsx`, `agent/src/tabs/itemForm.tsx`, `agent/src/tabs/IconField.tsx`.
+**Шаги:**
+1. `AppPickerDialog`: при открытии вызывает `list_installed_apps` (индикатор `Loading installed apps…`); поле поиска (фильтр по подстроке `name` без учёта регистра); список строк «иконка 32 px + name + путь мелко»; клик → выбор. Результат кэшируется на время жизни окна настроек, кнопка `Refresh`.
+2. Форма действия `launch`: рядом с `Browse…` — кнопка `Choose installed app…` → диалог → заполнить `Program`, `Arguments` (по одному в строке), `Working directory`, `Name` (если пустое — имя ярлыка). В форме действия поле иконки не появляется (иконка — свойство кнопки).
+3. `IconField` (форма кнопки, вместо прежнего поля `Icon`): превью текущей иконки (`get_icon_preview` для `img:`, компонент lucide для `lucide:`, текст для `emoji:`); кнопки `Lucide…` (прежний выпадающий список 60 имён), `From program` (активна, если у кнопки выбрано действие типа `launch`: `icon_from_program(action.program)`), `From image…` (диалог файла, фильтр `Images` → `png`, `jpg`, `jpeg`, `ico`, `bmp`; `icon_from_image`), `Clear`. Ошибка → текст под полем.
+4. Автоподстановка: при выборе в форме кнопки действия типа `launch`, если `icon` пуст, — вызвать `icon_from_program` и подставить результат (без сохранения раскладки до `Save`).
+5. То же поле `IconField` — в редакторе состояний `bind.states` (только кнопки `Lucide…`, `From image…`, `Clear`).
+**Приёмка:** typecheck и сборка проходят. Ручная (`npm run tauri dev`): `Choose installed app…` показывает список с иконками; выбранная программа → действие сохраняется; кнопка с этим действием получает иконку программы автоматически, после `Save` иконка видна на телефоне ≤ 1 с.
+**Проверка:**
+```
+npm run typecheck -w agent; npm test -w agent; npm run build:ui; cargo build -p decka-agent
+```
+
+### T12.6 — Итог M12
+**Шаги:** README — в раздел Quick start абзац «Pick an installed app and its icon»; `TESTING.md` — ручные пункты T12.2–T12.5; собрать установщик (если запущен `decka-agent` — остановись и сообщи) и APK, установить APK на подключённый телефон.
+**Проверка:**
+```
+npm run typecheck; npm test; cargo test -p decka-core; npm run release:agent; npm run release:apk; adb install -r client\android\app\build\outputs\apk\debug\app-debug.apk
+```
+
+---
+
+## M13 — Визуальная система, всплывающие группы, простой редактор (решение владельца 2026-11-15)
+
+Главный приоритет продукта. Спецификация — **DESIGN.md целиком**; данные — DATA_MODEL.md §3.1 (`theme`, `accent`, `wallpaper`, `popup`, `stayOpen`), §3.2 правило 12 («9a»), §5, §8.4; PROTOCOL.md §7 (`icons`), §9 (`icon_from_svg`, `is_first_run`); DECISIONS.md D-36..D-40. Выполняется после M12. Каждая визуальная задача сдаётся со снимками экрана телефона в `.tmp\design\` (через `adb shell screencap` + `adb pull`).
+
+### T13.1 — Пакет `@decka/ui` и перенос компонентов
+**Цель:** презентационные компоненты деки живут в общем пакете.
+**Шаги:**
+1. Workspace `ui/` (`@decka/ui`, исходники TS без сборки, как `shared`), добавить в корневые `workspaces`. Зависимости: `react@19.3.1`, `lucide-react@1.73.0` (peer — из корня), `@decka/shared`.
+2. Перенести из `client/src/deck` в `ui/src`: `Grid`, `Key`, `Icon`, `icons.ts`, `look.ts`, `gridMetrics.ts` (новая, DESIGN.md §2), все виджеты и их чистые функции, `PageDots`. Компоненты получают данные и колбэки через props (`onPress(actionId)`, `onNavigate`, `onOpenPopup`), не импортируют `controller`, `store`, `WebSocket`.
+3. `client` импортирует их из `@decka/ui`; поведение и тесты не меняются (тесты переезжают в `ui/test`).
+**Приёмка/Проверка:** все тесты и сборки зелёные; `client/src/deck` содержит только связку с контроллером.
+```
+npm run typecheck; npm test; npm run build -w client; npm run build -w agent
+(Get-ChildItem ui\src -Recurse -Include *.ts,*.tsx | Select-String -Pattern 'controller|WebSocket|localStorage' | Measure-Object).Count
+```
+(последняя команда печатает `0`)
+
+### T13.2 — Движок тем и тема AMOLED
+**Цель:** переключаемые темы через CSS-переменные; AMOLED по DESIGN.md §1.1.
+**Шаги:**
+1. Контракт: поля `theme`, `accent`, `wallpaper` в TS/Rust/схемах (DATA_MODEL.md §3.1, §5); тесты схемы.
+2. `ui/src/theme/`: `applyTheme(root, display)` ставит `data-theme` и переменные; файлы `amoled.css`, `studio.css`, `material.css`, `glass.css` (пока заглушки, кроме amoled). Геометрия — только из `gridMetrics` (DESIGN.md §2).
+3. Тема AMOLED строго по §1.1. Значение по умолчанию при отсутствии поля — `amoled`.
+4. Новые установки: в `shared/fixtures/layout.default.json` → `"theme": "studio"`.
+**Приёмка:** тесты; снимок `.tmp\design\amoled.png`.
+
+### T13.3 — Тема Studio
+Перенеси стиль из T11.10 (`0790bf3`) в движок тем как `studio.css`, сверив значения с DESIGN.md §1.2 (при расхождении — по DESIGN.md). Снимок `.tmp\design\studio.png` (первая страница, одна клавиша в состоянии `pressed` — зажать через `adb shell input swipe x y x y 2000` во время снимка).
+
+### T13.4 — Тема Material
+1. `npm install -w ui @material/material-color-utilities@0.4.0`.
+2. `ui/src/theme/material.ts`: генерация схемы по DESIGN.md §1.3 (точное имя класса схемы — по README пакета этой версии), кэш схем по цвету, запись ролей в CSS-переменные.
+3. Морфинг формы и слой состояния при нажатии.
+4. Тест: для `#7c5cff` роли `surface`, `primaryContainer`, `onPrimaryContainer` — валидные `#rrggbb`, контраст `onPrimaryContainer`/`primaryContainer` ≥ 4.5.
+**Приёмка:** снимки `.tmp\design\material.png` (акцент по умолчанию) и `material-green.png` (акцент `#16a34a`).
+
+### T13.5 — Тема Glass: прототип, затем реализация
+1. **Прототип (сначала):** страница-стенд `client/dev/glass-probe.html` (в сборку не входит) с одной клавишей на обоях `aurora` в двух вариантах — с `backdrop-filter: url(#decka-glass) …` и без. На A57 (`chrome://inspect`) проверить: поддерживается ли `url()` в `backdrop-filter` (вычисленный стиль и визуальное искажение), частота кадров при 28 клавишах. Результат — в отчёт и в `docs/BLOCKERS.md`, **если** `url()` не поддерживается: тогда слой 2 DESIGN.md §1.4 не делается, остальное — делается (это заранее разрешённое упрощение, не блокер для задачи).
+2. Реализация DESIGN.md §1.4 и §1.5 (обои, включая `album` из `media.art`, медленный дрейф обоев).
+3. Замер частоты кадров и режим `reduced` (`localStorage` в try/catch).
+**Приёмка:** снимки `.tmp\design\glass-aurora.png`, `glass-album.png` (при играющей музыке; иначе PENDING owner), `glass-reduced.png`; в отчёте — средняя частота кадров на A57 в обоих режимах.
+
+### T13.6 — Движение
+Анимации DESIGN.md §3: свайп страниц за пальцем, переходы, нажатия по темам, тосты; `prefers-reduced-motion` и `Reduce effects`. Тест: чистая функция `swipeDecision(dx, vx, width) → "next" | "prev" | "stay"` (порог 25% или 0.5 px/мс).
+
+### T13.6a — Виброотклик
+1. `npm install -w client @capacitor/haptics@8.0.2`; `npm run android:sync -w client` (разрешение `VIBRATE` плагин добавляет сам — проверь манифест после sync).
+2. `client/src/platform/haptics.ts` и `hapticFor` строго по DESIGN.md §3a; тесты `hapticFor` на каждую строку таблицы и каждое исключение (успех без вибрации, пробуждающее касание, контекстная смена страницы, выключенная настройка).
+3. Подключить вызовы в клиенте (кнопки, ключи виджета `media`, `confirm`, ошибки `press`, смена страницы); для групп и меню — вызовы добавляются в T13.7 и T13.11 (оставь в них по одной строке `haptic("open")` / `haptic("menu")`).
+**Приёмка:** тесты, сборка, APK установлен. Ручная на A57: лёгкий отклик на каждое касание, двойной импульс при ошибке (`press` на действие, которое падает), переключатель в меню (после T13.11) отключает отклик.
+**Проверка:**
+```
+npm run typecheck -w client; npm test -w client; npm run release:apk; adb install -r client\android\app\build\outputs\apk\debug\app-debug.apk
+```
+
+### T13.7 — Всплывающие группы
+1. Контракт: `popup`, `stayOpen` на странице, `popup` у кнопки, правило 12 (TS и Rust, тексты ошибок в стиле T11.9); фикстура `layout.popup.json` (копия `layout.default.json` + popup-страница `media-more` с кнопками `vol-mute`, `vol-down`, `vol-up` в ряд и кнопка на `main` в свободной клетке `x: 3, y: 3` с `popup: "media-more"`); негативные тесты на каждое ограничение правила 12.
+2. Клиент: свайп и точки пропускают popup-страницы; панель по DESIGN.md §4.1 (позиционирование — чистая функция `placePopup(anchorRect, panelSize, viewport, pad)` с тестами: панель внутри экрана во всех углах); `actionId + popup` — панель после `ok`; закрытие по всем четырём правилам; автосмена страницы закрывает панель.
+3. Окно настроек: страницы-группы с меткой `Popup` и кнопка `Add popup group`; в форме кнопки — `On tap`: `Run action` / `Open page` / `Open popup group` / `Run action, then open popup group`.
+**Приёмка:** тесты; снимок `.tmp\design\popup.png` с открытой панелью.
+
+### T13.8 — Иконки Phosphor
+1. `npm install -w agent @phosphor-icons/core@2.1.1`; индекс иконок (имя, теги, начертания) строится из пакета при сборке окна настроек; SVG загружаются по требованию (динамический импорт или `?raw`).
+2. Агент: `icon_from_svg` по DATA_MODEL.md §8.4 (проверка, нормализация, хранение, секция `icons`); тесты: допустимый SVG Phosphor → `img:`; SVG с `<script>`, с `onload=`, с внешним `href` → ошибка; повтор → тот же hash.
+3. Клиент: рендер SVG-иконок маской (DATA_MODEL.md §8.4), цвет — из темы; тест разметки.
+4. `IconField`: вкладки `Phosphor` / `Quick` / `Program` / `Image` / `Emoji` (DESIGN.md §5), поиск, переключатель начертания, виртуализированная сетка (рендерить только видимые строки).
+**Приёмка:** тесты; снимок телефона с клавишами в иконках Phosphor во всех четырёх темах (`.tmp\design\phosphor-<theme>.png`).
+
+### T13.9 — Редактор «что видишь — то и получишь»
+По DESIGN.md §4.4 (пункт «Редактор раскладки»): превью из `@decka/ui` в выбранной теме внутри рамки телефона; перетаскивание (перемещение, обмен, создание из палитры `Apps`/`Actions`/`Widgets`, изменение размера виджета); отмена/повтор (50 шагов); `Ctrl+S`; метка `Unsaved changes`. Чистые функции `moveItem`, `swapItems`, `resizeItem`, `history` — с тестами в `agent/test`. Старые числовые поля `X/Y/W/H` остаются в панели свойств (свёрнуты в `Advanced`).
+**Приёмка:** тесты; ручная (`npm run tauri dev`) — перетаскивание программы из палитры `Apps` на клетку создаёт кнопку с иконкой программы; видна на телефоне после `Ctrl+S`.
+
+### T13.10 — Вкладка Appearance, мастер первого запуска, обновлённый вид окна
+1. Вкладка `Appearance` (DESIGN.md §4.4): карточки 4 тем с живым превью (компоненты `@decka/ui`, мини-сетка 3×2), акцент (8 образцов: `#7c5cff`, `#3b82f6`, `#06b6d4`, `#16a34a`, `#eab308`, `#f97316`, `#ef4444`, `#ec4899` + произвольный), обои (для Glass), контекстные страницы, блок `Display` (переносится из Layout). Смена применяется на телефоне ≤ 1 с после `Save`.
+2. Мастер первого запуска (`is_first_run`), три шага по DESIGN.md §4.4.
+3. Вид окна: боковое меню с иконками Phosphor, отступы 8 px, системный шрифт, светлая/тёмная тема по системе, акцент = `display.accent`.
+**Приёмка:** typecheck/сборка; ручная — мастер на чистом `DECKA_CONFIG_DIR` проходит до конца, выбранные программы появляются кнопками.
+
+### T13.11 — Меню телефона и дизайн-приёмка
+1. Меню телефона по DESIGN.md §4.3; удалить жест «5 тапов».
+2. Дизайн-приёмка: для каждой темы — снимки первой страницы, страницы с виджетами (`media`, `statuses`, `notifications` с данными), открытой группы и заставки в `.tmp\design\final-<theme>-<n>.png`; автоматическая проверка контраста подписей ≥ 4.5 для всех тем и 8 акцентов (чистая функция `contrast(a, b)` + тест по токенам); частота кадров на A57 для каждой темы — в отчёт.
+3. README: раздел `## Looks` со списком тем (без картинок, место под скриншоты `docs/img/theme-*.png`).
+4. Собрать установщик и APK, установить APK.
+**Приёмка:** все тесты; отчёт со ссылками на снимки и таблицей «тема → к/с».
+```
+npm run typecheck; npm test; cargo test -p decka-core; npm run release:agent; npm run release:apk; adb install -r client\android\app\build\outputs\apk\debug\app-debug.apk
+```
+добавь еще виброотклик на нажатия
