@@ -4,6 +4,7 @@ import { useDeckEnv } from "../deckEnv";
 import Icon from "../Icon";
 import Key from "../Key";
 import { useDeckMetrics } from "../metricsContext";
+import { mediaKeySet } from "./mediaKeys";
 import { currentPosition, formatTime } from "./mediaPos";
 
 const KEY_RATIO = 0.55;
@@ -27,7 +28,7 @@ function useHeight(): [React.RefObject<HTMLDivElement | null>, number] {
 /** "Now playing" (DATA_MODEL.md 6.2): cover, title, artist, progress and the three transport keys. */
 export default function Media({ item }: { item: MediaItem }) {
   const { media } = useDeckEnv();
-  const { side } = useDeckMetrics();
+  const { side, gap } = useDeckMetrics();
   const [ref, height] = useHeight();
   const playing = media?.playing === true;
 
@@ -45,10 +46,12 @@ export default function Media({ item }: { item: MediaItem }) {
   const position = media ? currentPosition(media, now) : null;
   const progress = media?.durationSec && position !== null ? Math.min(1, position / media.durationSec) : null;
 
-  const keys: { action: string | undefined; icon: string; label: string }[] = [];
-  if (item.w >= 3) keys.push({ action: item.prevAction, icon: "lucide:skip-back", label: "Previous" });
-  keys.push({ action: item.playAction, icon: playing ? "lucide:pause" : "lucide:play", label: playing ? "Pause" : "Play" });
-  if (item.w >= 3) keys.push({ action: item.nextAction, icon: "lucide:skip-forward", label: "Next" });
+  const all = {
+    prev: { action: item.prevAction, icon: "lucide:skip-back", label: "Previous" },
+    play: { action: item.playAction, icon: playing ? "lucide:pause" : "lucide:play", label: playing ? "Pause" : "Play" },
+    next: { action: item.nextAction, icon: "lucide:skip-forward", label: "Next" },
+  };
+  const keys = mediaKeySet(item.w, item.h, side, gap).map((name) => all[name]);
   const controls = (
     <div className="media-keys">
       {keys.map((k) => k.action !== undefined && <Key key={k.label} actionId={k.action} icon={k.icon} side={keySide} />)}

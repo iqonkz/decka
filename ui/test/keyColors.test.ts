@@ -28,9 +28,9 @@ describe("colorVars", () => {
 
   test("a colour darker than luminance 64 keeps a light ink; short hex works", () => {
     expect(colorVars("#202020")["--c-ink"]).toBe("#e5e5e5");
-    // A white key keeps the white label (DESIGN.md 1.6), so its face is darkened until 4.5:1 instead.
-    expect(colorVars("#fff")["--c-on"]).toBe("#ffffff");
-    expect(colorVars("#fff")["--c-bottom"]).toBe("#606060");
+    // A white key stays white and gets the dark label (DESIGN.md 1.6, light colours).
+    expect(colorVars("#fff")["--c-on"]).toBe("#0b0b0f");
+    expect(colorVars("#fff")["--c-bottom"]).toBe("#d1d1d1");
     expect(parseHex("#abc")).toEqual([170, 187, 204]);
   });
 });

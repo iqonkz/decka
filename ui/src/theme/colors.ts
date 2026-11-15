@@ -33,7 +33,7 @@ export function colorVars(color: string | undefined): Record<string, string> {
   if (!rgb || !color) return {};
   const [r, g, b] = rgb;
   // The gradient of Studio/Glass; where the colour is a mid tone the face is darkened until its label is readable.
-  const face = readableFace(hexOfRgb(shade(rgb, 0.12)), hexOfRgb(shade(rgb, -0.18)));
+  const face = readableFace(hexOfRgb(shade(rgb, 0.12)), hexOfRgb(shade(rgb, -0.18)), hexOfRgb(rgb.join(",")));
   return {
     "--c": color,
     "--c-on": face.label,

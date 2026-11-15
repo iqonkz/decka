@@ -82,12 +82,28 @@ describe("readableFace", () => {
     expect(readableFace("#1c1c22", "#0d0d10")).toEqual({ top: "#1c1c22", bottom: "#0d0d10", label: "#ffffff" });
   });
 
-  test("the label is always white; light colours are darkened, never given a dark label", () => {
-    for (const [top, bottom] of [["#fde047", "#ca8a04"], ["#ffffff", "#e5e5e5"], ["#22d3ee", "#0891b2"]] as const) {
-      const face = readableFace(top, bottom);
-      expect(face.label).toBe("#ffffff");
-      expect(contrast("#ffffff", face.top)).toBeGreaterThanOrEqual(MIN);
-      expect(contrast("#ffffff", face.bottom)).toBeGreaterThanOrEqual(MIN);
+  test("light colours keep their face and get the dark label (white, yellow)", () => {
+    for (const color of ["#ffffff", "#facc15"]) {
+      const vars = colorVars(color);
+      expect(vars["--c-on"], color).toBe("#0b0b0f");
+      expect(vars["--c-on-shadow"], color).toBe("none");
+      expect(vars["--c-top"], color).toBe(hexOfRgb(shade(parseHex(color)!, 0.12)));
+      expect(vars["--c-bottom"], color).toBe(hexOfRgb(shade(parseHex(color)!, -0.18)));
+      expect(contrast("#0b0b0f", color), color).toBeGreaterThanOrEqual(7);
+    }
+  });
+  test("#7c5cff is darkened and gets the white label; every result reads >= 4.5", () => {
+    const vars = colorVars("#7c5cff");
+    expect(vars["--c-on"]).toBe("#ffffff");
+    for (const end of ["--c-top", "--c-bottom"]) {
+      const v = vars[end]!;
+      expect(contrast("#ffffff", v.startsWith("#") ? v : hexOfRgb(v.slice(4, -1)))).toBeGreaterThanOrEqual(MIN);
+    }
+    for (const color of ["#ffffff", "#facc15", "#ef4444", "#16a34a"]) {
+      const v = colorVars(color);
+      const hex = (s: string) => (s.startsWith("#") ? s : hexOfRgb(s.slice(4, -1)));
+      expect(contrast(v["--c-on"]!, hex(v["--c-top"]!)), color).toBeGreaterThanOrEqual(MIN);
+      expect(contrast(v["--c-on"]!, hex(v["--c-bottom"]!)), color).toBeGreaterThanOrEqual(MIN);
     }
   });
 
