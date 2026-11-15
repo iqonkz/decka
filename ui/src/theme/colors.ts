@@ -1,3 +1,6 @@
+/** Accent colour when the layout names none (DATA_MODEL.md 3.1). */
+export const DEFAULT_ACCENT = "#7c5cff";
+
 /** `#rgb` / `#rrggbb` -> [r, g, b]; anything else -> null. */
 export function parseHex(color: string): [number, number, number] | null {
   const m = /^#([0-9a-fA-F]{6})$/.exec(color) ?? /^#([0-9a-fA-F]{3})$/.exec(color);

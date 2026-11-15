@@ -1,6 +1,5 @@
-/* Studio: a hardware deck (DESIGN.md 1.2). Material and Glass use this look until their own sheets land. */
+/* Studio: a hardware deck (DESIGN.md 1.2). Glass shares this look until its own sheet lands (T13.5). */
 [data-theme="studio"],
-[data-theme="material"],
 [data-theme="glass"] {
   --k-radius: 0.16;
   --ink: #f2f2f2;
@@ -11,14 +10,12 @@
   --key-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 2px 6px rgba(0, 0, 0, 0.7);
 }
 [data-theme="studio"] .key,
-[data-theme="material"] .key,
 [data-theme="glass"] .key {
   background: linear-gradient(180deg, #1c1c22 0%, #0d0d10 100%);
   border-color: rgba(255, 255, 255, 0.10);
   box-shadow: var(--key-shadow);
 }
 [data-theme="studio"] .key.colored,
-[data-theme="material"] .key.colored,
 [data-theme="glass"] .key.colored {
   background: linear-gradient(180deg, var(--c-top) 0%, var(--c-bottom) 100%);
   border-color: rgba(255, 255, 255, 0.18);
@@ -26,18 +23,14 @@
 }
 [data-theme="studio"] .key.pressed,
 [data-theme="studio"] .key.confirming,
-[data-theme="material"] .key.pressed,
-[data-theme="material"] .key.confirming,
 [data-theme="glass"] .key.pressed,
 [data-theme="glass"] .key.confirming {
   box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.8);
   filter: brightness(1.25);
 }
 [data-theme="studio"] .key.disabled,
-[data-theme="material"] .key.disabled,
 [data-theme="glass"] .key.disabled { box-shadow: none; }
 [data-theme="studio"] .tile.panel,
-[data-theme="material"] .tile.panel,
 [data-theme="glass"] .tile.panel {
   background: linear-gradient(180deg, #1c1c22 0%, #0d0d10 100%);
   border-color: rgba(255, 255, 255, 0.10);

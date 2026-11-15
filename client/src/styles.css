@@ -1,7 +1,7 @@
 html, body, #root {
   margin: 0;
   height: 100%;
-  background: #000;
+  background: var(--screen-bg, #000);
   color: #e5e5e5;
   font-family: system-ui, sans-serif;
   overflow: hidden;
@@ -54,7 +54,7 @@ input { user-select: text; touch-action: manipulation; }
 }
 .primary:disabled { opacity: 0.5; }
 
-.deck { position: fixed; inset: 0; background: #000; }
+.deck { position: fixed; inset: 0; background: var(--screen-bg, #000); }
 .deck-inner { position: absolute; inset: 0; transition: transform 2s ease; }
 .deck.asleep { visibility: hidden; }
 .saver { position: fixed; inset: 0; z-index: 1000; background: #000; }

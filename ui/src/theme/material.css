@@ -1,1 +1,58 @@
-/* Material: placeholder (T13.4). Until then the theme shares the Studio look, see studio.css. */
+/* Material: tonal surfaces generated from the accent (DESIGN.md 1.3). No outlines, no shadows. */
+[data-theme="material"] {
+  --screen-bg: var(--m-surface);
+  --k-radius: 0.24;
+  --ink: var(--m-on-surface);
+  --label-color: var(--m-on-surface-variant);
+  --text-color: var(--m-on-surface);
+  --label-weight: 500;
+  --label-shadow: none;
+  --key-shadow: none;
+}
+[data-theme="material"] .key {
+  background: var(--m-surface-container-high);
+  border-color: transparent;
+  box-shadow: none;
+  transition: transform 150ms, border-radius 150ms;
+}
+[data-theme="material"] .key.colored {
+  background: var(--mk-container);
+  --ink: var(--mk-on);
+  --label-color: var(--mk-on);
+  --text-color: var(--mk-on);
+}
+/* A state layer in the on-surface colour, and the shape morphs from 0.24 to 0.36 of the key side. */
+[data-theme="material"] .key::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--m-on-surface);
+  opacity: 0;
+  transition: opacity 150ms;
+  pointer-events: none;
+}
+[data-theme="material"] .key.pressed,
+[data-theme="material"] .key.confirming {
+  transform: none;
+  filter: none;
+  border-radius: calc(0.36 * var(--side, 96px));
+}
+[data-theme="material"] .key.pressed::after,
+[data-theme="material"] .key.confirming::after { opacity: 0.12; }
+[data-theme="material"] .key.ok { box-shadow: inset 0 0 0 2px #22c55e; }
+[data-theme="material"] .key.error { box-shadow: inset 0 0 0 2px #ef4444; }
+/* `pending` pulses a ring in the primary colour. */
+[data-theme="material"] .key.pending { animation: key-pulse-material 0.9s ease-in-out infinite; }
+@keyframes key-pulse-material {
+  0%, 100% { box-shadow: inset 0 0 0 2px transparent; }
+  50% { box-shadow: inset 0 0 0 3px var(--m-primary); }
+}
+[data-theme="material"] .key.disabled { box-shadow: none; }
+[data-theme="material"] .tile.panel {
+  background: var(--m-surface-container);
+  border-color: transparent;
+  box-shadow: none;
+}
+[data-theme="material"] .dot { background: var(--m-outline-variant); }
+[data-theme="material"] .dot.active { background: var(--m-on-surface); }

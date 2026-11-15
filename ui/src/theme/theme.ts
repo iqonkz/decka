@@ -1,8 +1,11 @@
 import type { DisplaySettings, ThemeId, WallpaperId } from "@decka/shared";
+import { DEFAULT_ACCENT } from "./colors";
+import { materialRootVars } from "./material";
+
+export { DEFAULT_ACCENT };
 
 export const THEMES: ThemeId[] = ["amoled", "studio", "material", "glass"];
 export const WALLPAPERS: WallpaperId[] = ["aurora", "sunset", "ocean", "graphite", "album"];
-export const DEFAULT_ACCENT = "#7c5cff";
 
 export interface ResolvedTheme {
   theme: ThemeId;
@@ -27,5 +30,9 @@ export function applyTheme(root: HTMLElement, display: Pick<DisplaySettings, "th
   root.dataset.theme = resolved.theme;
   root.dataset.wallpaper = resolved.wallpaper;
   root.style.setProperty("--accent", resolved.accent);
+  // The Material scheme comes from the accent; other themes do not need it.
+  if (resolved.theme === "material") {
+    for (const [name, value] of Object.entries(materialRootVars(resolved.accent))) root.style.setProperty(name, value);
+  }
   return resolved;
 }

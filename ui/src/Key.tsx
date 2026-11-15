@@ -3,6 +3,7 @@ import { useDeckEnv } from "./deckEnv";
 import Icon from "./Icon";
 import { useDeckMetrics } from "./metricsContext";
 import { colorVars, parseHex } from "./theme/colors";
+import { materialKeyVars } from "./theme/material";
 
 const TAP_SLOP_PX = 20;
 const CONFIRM_HOLD_MS = 800;
@@ -133,7 +134,7 @@ export default function Key({ actionId, onTap, confirm, icon, label, color, side
     width: side,
     height: side,
     ...(fixedSide !== undefined ? { "--side": `${fixedSide}px` } : {}),
-    ...(coloured ? colorVars(color) : {}),
+    ...(coloured ? { ...colorVars(color), ...materialKeyVars(color as string) } : {}),
   } as CSSProperties;
   const classes = ["key", phase, coloured ? "colored" : "", disabled ? "disabled" : ""].filter(Boolean).join(" ");
   const labelPad = 0.07 * side;
