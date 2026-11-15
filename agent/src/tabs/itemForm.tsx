@@ -3,7 +3,7 @@ import { call, navigate } from "../ipc";
 import IconField from "./IconField";
 import Button from "../ui/Button";
 import Field from "../ui/Field";
-import { sizeRange, type Grid } from "./layoutOps";
+import { normalPages, popupPages, sizeRange, TAP_MODE_LABELS, tapModeOf, tapModePatch, type Grid, type TapMode } from "./layoutOps";
 
 
 const range = (from: number, to: number): number[] => Array.from({ length: Math.max(0, to - from + 1) }, (_, i) => from + i);
@@ -66,7 +66,7 @@ interface Props {
   onDelete: () => void;
 }
 
-export default function ItemForm({ item, pages, grid, actions, onChange, onDelete }: Props) {
+export default function ItemForm({ item, page, pages, grid, actions, onChange, onDelete }: Props) {
   const [minW, maxW, minH, maxH] = sizeRange(item.kind, grid);
   const patch = (p: Record<string, unknown>) => onChange(p as Partial<LayoutItem>);
 
@@ -82,7 +82,7 @@ export default function ItemForm({ item, pages, grid, actions, onChange, onDelet
         <NumberSelect label="H" value={item.h} options={range(minH, maxH)} onChange={(h) => patch({ h })} />
       </div>
 
-      {item.kind === "button" && <ButtonFields item={item} pages={pages} actions={actions} patch={patch} />}
+      {item.kind === "button" && <ButtonFields item={item} pages={pages} inPopup={page.popup === true} actions={actions} patch={patch} />}
 
       {item.kind === "clock" && (
         <label className="check">
@@ -119,8 +119,10 @@ export default function ItemForm({ item, pages, grid, actions, onChange, onDelet
   );
 }
 
-function ButtonFields({ item, pages, actions, patch }: { item: ButtonItem; pages: Page[]; actions: ActionsFile; patch: (p: Record<string, unknown>) => void }) {
-  const mode: "action" | "page" = item.navigate !== undefined ? "page" : "action";
+function ButtonFields({ item, pages, inPopup, actions, patch }: { item: ButtonItem; pages: Page[]; inPopup: boolean; actions: ActionsFile; patch: (p: Record<string, unknown>) => void }) {
+  const mode = tapModeOf(item);
+  const normal = normalPages(pages);
+  const popups = popupPages(pages);
   const actionEntries = Object.entries(actions.actions).sort(([, a], [, b]) => a.name.localeCompare(b.name));
   const states = Object.entries(item.bind?.states ?? {});
   const selectedAction = item.actionId !== undefined ? actions.actions[item.actionId] : undefined;
@@ -152,20 +154,30 @@ function ButtonFields({ item, pages, actions, patch }: { item: ButtonItem; pages
         </div>
       </Field>
 
-      <div className="row radios">
-        <label>
-          <input
-            type="radio"
-            checked={mode === "action"}
-            onChange={() => patch({ navigate: undefined, confirm: undefined, actionId: item.actionId ?? Object.keys(actions.actions)[0] })}
-          />{" "}
-          Runs action
-        </label>
-        <label>
-          <input type="radio" checked={mode === "page"} onChange={() => patch({ actionId: undefined, confirm: undefined, navigate: pages[0]?.id })} /> Opens page
-        </label>
-      </div>
-      {mode === "action" ? (
+      <Field label="On tap" hint={inPopup ? "Keys inside a popup group can only run an action." : undefined}>
+        <select
+          value={mode}
+          onChange={(e) =>
+            patch(tapModePatch(item, e.target.value as TapMode, { firstActionId: Object.keys(actions.actions)[0], firstPageId: normal[0]?.id, firstPopupId: popups[0]?.id }))
+          }
+        >
+          <option value="action">{TAP_MODE_LABELS.action}</option>
+          {!inPopup && <option value="page">{TAP_MODE_LABELS.page}</option>}
+          {!inPopup && (
+            <option value="popup" disabled={popups.length === 0}>
+              {TAP_MODE_LABELS.popup}
+              {popups.length === 0 ? " (add a popup group first)" : ""}
+            </option>
+          )}
+          {!inPopup && (
+            <option value="action-popup" disabled={popups.length === 0}>
+              {TAP_MODE_LABELS["action-popup"]}
+              {popups.length === 0 ? " (add a popup group first)" : ""}
+            </option>
+          )}
+        </select>
+      </Field>
+      {(mode === "action" || mode === "action-popup") && (
         <>
           <Field label="Action" hint="New action… leaves this form: save the layout first.">
             <div className="row">
@@ -184,10 +196,22 @@ function ButtonFields({ item, pages, actions, patch }: { item: ButtonItem; pages
             <input type="checkbox" checked={item.confirm === true} onChange={(e) => patch({ confirm: e.target.checked || undefined })} /> Hold to confirm
           </label>
         </>
-      ) : (
+      )}
+      {mode === "page" && (
         <Field label="Page">
           <select value={item.navigate ?? ""} onChange={(e) => patch({ navigate: e.target.value })}>
-            {pages.map((p) => (
+            {normal.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+      )}
+      {(mode === "popup" || mode === "action-popup") && (
+        <Field label="Popup group">
+          <select value={item.popup ?? ""} onChange={(e) => patch({ popup: e.target.value })}>
+            {popups.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
               </option>

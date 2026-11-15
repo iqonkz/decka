@@ -7,7 +7,7 @@ import Button from "../ui/Button";
 import Field from "../ui/Field";
 import ItemForm from "./itemForm";
 import { describeIssue, itemPath } from "./issueText";
-import { addItem, COLS_RANGE, DEFAULT_SIZE, makeItem, movePage, newPageId, removeItem, ROWS_RANGE, updateItem, withMediaDefaults, type Kind } from "./layoutOps";
+import { addItem, COLS_RANGE, DEFAULT_SIZE, makeItem, movePage, newPageId, newPopupPage, removeItem, ROWS_RANGE, updateItem, withMediaDefaults, type Kind } from "./layoutOps";
 import PageApps from "./PageApps";
 import TemplatesDialog from "./TemplatesDialog";
 
@@ -112,6 +112,12 @@ export default function LayoutTab() {
     setSelectedId(null);
   }
 
+  function addPopupPage() {
+    edit({ ...layout!, pages: [...layout!.pages, newPopupPage(layout!.pages)] });
+    setPageIdx(layout!.pages.length);
+    setSelectedId(null);
+  }
+
   function deletePage() {
     if (layout!.pages.length <= 1) return;
     edit({ ...layout!, pages: layout!.pages.filter((_, i) => i !== pageIdx) });
@@ -170,10 +176,12 @@ export default function LayoutTab() {
           {layout.pages.map((p, i) => (
             <button key={p.id} className={i === pageIdx ? "page-tab active" : "page-tab"} onClick={() => { setPageIdx(i); setSelectedId(null); setCreating(null); }}>
               {p.name}
+              {p.popup === true && <span className="tag popup-tag">Popup</span>}
             </button>
           ))}
         </div>
         <Button onClick={addPage} disabled={layout.pages.length >= 10}>Add page</Button>
+        <Button onClick={addPopupPage} disabled={layout.pages.length >= 10}>Add popup group</Button>
         <Button onClick={() => setTemplatesOpen(true)}>Add page from template</Button>
         <Button onClick={() => setRenaming(page.name)}>Rename</Button>
         <Button onClick={deletePage} disabled={layout.pages.length <= 1}>Delete page</Button>
@@ -188,7 +196,25 @@ export default function LayoutTab() {
         </div>
       )}
 
-      <PageApps page={page} isFirst={pageIdx === 0} onChange={setPage} />
+      {page.popup === true ? (
+        <section className="card">
+          <h3>Popup group</h3>
+          <p className="muted">A group opens over the page when a key with “Open popup group” is tapped. It is not part of the swipe and has no pages of its own to go to.</p>
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={page.stayOpen === true}
+              onChange={(e) => {
+                const { stayOpen: _old, ...rest } = page;
+                setPage(e.target.checked ? { ...rest, stayOpen: true } : rest);
+              }}
+            />{" "}
+            Keep the group open after a key is pressed
+          </label>
+        </section>
+      ) : (
+        <PageApps page={page} isFirst={pageIdx === 0} onChange={setPage} />
+      )}
 
       <div className="split">
         <div className="layout-pane">

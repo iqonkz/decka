@@ -123,6 +123,50 @@ export function makeItem(kind: Kind, x: number, y: number, id = newItemId(kind))
   }
 }
 
+/** What a button does on a tap (DESIGN.md 4.1): the four combinations rule 12 allows. */
+export type TapMode = "action" | "page" | "popup" | "action-popup";
+
+export const TAP_MODE_LABELS: Record<TapMode, string> = {
+  action: "Run action",
+  page: "Open page",
+  popup: "Open popup group",
+  "action-popup": "Run action, then open popup group",
+};
+
+export function tapModeOf(item: { actionId?: string; navigate?: string; popup?: string }): TapMode {
+  if (item.popup !== undefined) return item.actionId !== undefined ? "action-popup" : "popup";
+  return item.navigate !== undefined ? "page" : "action";
+}
+
+/** The fields to change when the user picks `mode`; others are cleared (`undefined`). */
+export function tapModePatch(
+  item: { actionId?: string },
+  mode: TapMode,
+  options: { firstActionId: string | undefined; firstPageId: string | undefined; firstPopupId: string | undefined },
+): Record<string, unknown> {
+  const action = item.actionId ?? options.firstActionId;
+  switch (mode) {
+    case "action":
+      return { navigate: undefined, popup: undefined, actionId: action };
+    case "page":
+      return { actionId: undefined, popup: undefined, confirm: undefined, navigate: options.firstPageId };
+    case "popup":
+      return { actionId: undefined, navigate: undefined, confirm: undefined, popup: options.firstPopupId };
+    case "action-popup":
+      return { navigate: undefined, actionId: action, popup: options.firstPopupId };
+  }
+}
+
+/** The page list a "page" button may point at (popup groups are not pages to go to). */
+export const normalPages = (pages: Page[]): Page[] => pages.filter((p) => p.popup !== true);
+export const popupPages = (pages: Page[]): Page[] => pages.filter((p) => p.popup === true);
+
+/** A new popup group page, appended after the others. */
+export function newPopupPage(pages: Page[], random: () => number = Math.random): Page {
+  const n = popupPages(pages).length + 1;
+  return { id: newPageId(random), name: `Group ${n}`, popup: true, items: [] };
+}
+
 /** What the user typed -> an exe name: trimmed, lower case, `.exe` appended when missing. Empty input -> null. */
 export function normalizeApp(input: string): string | null {
   const name = input.trim().toLowerCase();

@@ -15,8 +15,10 @@ type Phase = "idle" | "pressed" | "confirming" | "pending" | "ok" | "error";
 export interface KeyProps {
   /** Sent to the PC on a tap (T10.5 states, error toasts); disabled while offline. */
   actionId?: string;
-  /** Called on a tap when there is no `actionId` (page navigation). */
-  onTap?: () => void;
+  /** Called on a tap when there is no `actionId` (page navigation, opening a popup group); gets the key's box. */
+  onTap?: (box: DOMRect) => void;
+  /** Called after the action of this key succeeded (`actionId` + popup: the group opens now); gets the key's box. */
+  onPressed?: (box: DOMRect) => void;
   /** Hold 800 ms instead of tapping. */
   confirm?: boolean;
   icon?: string;
@@ -26,10 +28,13 @@ export interface KeyProps {
   side?: number;
   /** Small `›` in the corner: the key opens another page. */
   chevron?: boolean;
+  /** Small `•••` in the corner: the key opens a popup group. */
+  dots?: boolean;
 }
 
 /** One key with the shared press states: pressed, confirming, pending, ok, error. Used by buttons and widgets. */
-export default function Key({ actionId, onTap, confirm, icon, label, color, side: fixedSide, chevron }: KeyProps) {
+export default function Key({ actionId, onTap, onPressed, confirm, icon, label, color, side: fixedSide, chevron, dots }: KeyProps) {
+  const element = useRef<HTMLDivElement>(null);
   const { online, onPress, onPressError, onFeedback } = useDeckEnv();
   const disabled = actionId !== undefined && !online;
 
@@ -70,9 +75,12 @@ export default function Key({ actionId, onTap, confirm, icon, label, color, side
 
   function doPress() {
     if (actionId === undefined) return;
+    const box = element.current?.getBoundingClientRect();
     setPhase("pending");
     onPress(actionId).then(
       () => {
+        // The group opens even if this key is gone by now (its box was read at the touch).
+        if (box) onPressed?.(box);
         if (!mounted.current) return;
         setPhase("ok");
         settleAfter(OK_MS);
@@ -134,7 +142,8 @@ export default function Key({ actionId, onTap, confirm, icon, label, color, side
     if (moved || confirm) return setPhase("idle"); // released early: confirm is cancelled without sending
     if (actionId !== undefined) return doPress();
     setPhase("idle");
-    onTap?.();
+    const box = element.current?.getBoundingClientRect();
+    if (box) onTap?.(box);
   }
 
   // The key is the touch target and the face at once: `side` x `side` px.
@@ -148,7 +157,7 @@ export default function Key({ actionId, onTap, confirm, icon, label, color, side
   const classes = ["key", phase, coloured ? "colored" : "", disabled ? "disabled" : ""].filter(Boolean).join(" ");
   const labelPad = 0.07 * side;
   return (
-    <div className={classes} style={keyStyle} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={cancel}>
+    <div ref={element} className={classes} style={keyStyle} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={cancel}>
       {icon && (
         <div className="key-icon" style={label ? { transform: `translateY(${-0.07 * side}px)` } : undefined}>
           <Icon icon={icon} size={Math.round((icon.startsWith("img:") ? 0.62 : 0.46) * side)} />
@@ -167,6 +176,11 @@ export default function Key({ actionId, onTap, confirm, icon, label, color, side
       {chevron && (
         <div className="key-chevron" style={{ top: 0.04 * side, right: 0.07 * side, fontSize: 0.14 * side }} aria-hidden="true">
           ›
+        </div>
+      )}
+      {dots && (
+        <div className="key-chevron" style={{ top: 0.04 * side, right: 0.07 * side, fontSize: 0.12 * side, letterSpacing: "0.05em" }} aria-hidden="true">
+          •••
         </div>
       )}
       {phase === "confirming" && (

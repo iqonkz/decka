@@ -27,6 +27,8 @@ export interface AppState {
   lastTouch: number;
   /** Name of the page just opened automatically, shown for a moment. */
   hint: { id: number; text: string } | null;
+  /** The open popup group: its page and the box of the key that opened it (DESIGN.md 4.1). */
+  popup: { pageId: string; anchor: { x: number; y: number; width: number; height: number } } | null;
   toasts: Toast[];
   lastError: string | null;
 }
@@ -46,6 +48,7 @@ const initial = (): AppState => ({
   autoPageId: null,
   lastTouch: 0,
   hint: null,
+  popup: null,
   toasts: [],
   lastError: null,
 });
@@ -124,6 +127,8 @@ export function applyPatch(msg: PatchMsg): void {
     rev: msg.rev,
     pageIndex: layoutChanged ? fixPageIndex(s.pageIndex, next) : s.pageIndex,
     homePageIndex: layoutChanged ? fixPageIndex(s.homePageIndex, next) : s.homePageIndex,
+    // An open group whose page is gone (or is no longer a popup page) closes.
+    ...(layoutChanged && s.popup && !next.layout.pages.some((p) => p.id === s.popup!.pageId && p.popup === true) ? { popup: null } : {}),
   });
   if (msg.section === "notifications") toastNewNotifications(s.state.notifications, msg.value as Notification[]);
   if (msg.section === "focus" || layoutChanged) runContext();
@@ -150,12 +155,21 @@ export function runContext(now: number = Date.now()): void {
     pageIndex: d.pageIndex,
     autoPageId: d.autoPageId,
     ...(d.hint !== null ? { hint: { id: ++hintCounter, text: d.hint } } : {}),
+    ...(d.pageIndex !== s.pageIndex ? { popup: null } : {}), // an automatic page change closes an open group
   });
 }
 
 /** The user chose a page (swipe, `navigate` button): it becomes home and the automatic page is forgotten. */
 export function navigateManually(pageIndex: number): void {
-  setState({ pageIndex, homePageIndex: pageIndex, autoPageId: null, hint: null });
+  setState({ pageIndex, homePageIndex: pageIndex, autoPageId: null, hint: null, popup: null });
+}
+
+export function openPopup(pageId: string, anchor: { x: number; y: number; width: number; height: number }): void {
+  setState({ popup: { pageId, anchor } });
+}
+
+export function closePopup(): void {
+  if (current.popup !== null) setState({ popup: null });
 }
 
 export function noteTouch(now: number = Date.now()): void {

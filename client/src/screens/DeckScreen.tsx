@@ -8,6 +8,8 @@ import { usePixelShift } from "../display/pixelShift";
 import { applyTheme, GlassLayer, PageDots, resolveTheme } from "@decka/ui";
 import { loadReduced, measureFps, saveReduced, shouldReduce } from "../platform/glassPerf";
 import PageStrip from "../deck/PageStrip";
+import PopupPanel from "../deck/PopupPanel";
+import { navigableIndices, navigablePosition } from "../deck/popup";
 import Toasts from "../deck/Toasts";
 import PageHint from "../deck/PageHint";
 import { noteTouch, runContext, useAppState } from "../store/store";
@@ -65,6 +67,7 @@ export default function DeckScreen() {
   const display = layout?.display;
   const theme = resolveTheme(display);
   const art = useAppState((s) => s.state?.media?.art);
+  const popup = useAppState((s) => s.popup);
   const [reduced, setReduced] = useState(() => loadReduced() ?? false);
   useEffect(() => {
     applyTheme(document.documentElement, display, { reduced }); // `data-theme` + `--accent` on the root; a missing theme is amoled
@@ -89,7 +92,10 @@ export default function DeckScreen() {
   const shift = usePixelShift(layout?.display.pixelShift === true);
   if (!layout) return null;
 
-  const count = layout.pages.length;
+  // Dots and swipe count only normal pages; popup groups are not among them.
+  const count = navigableIndices(layout.pages).length;
+  const active = navigablePosition(layout.pages, pageIndex);
+  const popupPage = popup ? layout.pages.find((p) => p.id === popup.pageId && p.popup === true) : undefined;
 
   return (
     <>
@@ -97,10 +103,11 @@ export default function DeckScreen() {
       <div className={mode === "sleep" ? "deck asleep" : "deck"}>
         <div className="deck-inner" style={{ transform: `translate(${shift.x}px, ${shift.y}px)` }}>
           <PageStrip pages={layout.pages} pageIndex={pageIndex} grid={layout.grid} onCommit={setPage} />
-          <PageDots count={count} active={pageIndex} />
+          <PageDots count={count} active={active} />
           <PageHint />
           <ConnBadge />
         </div>
+        {popup && popupPage && <PopupPanel page={popupPage} anchor={popup.anchor} grid={layout.grid} />}
         <Toasts />
       </div>
       <DimOverlay mode={mode} dimLevel={layout.display.dimLevel} />

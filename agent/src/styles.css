@@ -62,6 +62,7 @@ th { color: var(--muted); font-weight: 600; font-size: 12px; }
 .chip-x:hover { color: var(--danger); }
 .dialog-backdrop { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.45); }
 .dialog { display: flex; flex-direction: column; gap: 12px; width: min(640px, 92vw); max-height: 86vh; overflow: auto; padding: 20px 22px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); }
+.popup-tag { background: var(--accent); }
 .icon-field { display: flex; flex-direction: column; gap: 6px; }
 .icon-preview { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 36px; height: 36px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); }
 .app-list { display: flex; flex-direction: column; max-height: 50vh; overflow: auto; border: 1px solid var(--border); border-radius: 6px; }

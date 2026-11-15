@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Page } from "@decka/shared";
 import DeckBridge from "./DeckBridge";
+import { navigableIndices } from "./popup";
 import { dragOffset, SWIPE_START_PX, swipeDecision, targetPage, velocity } from "./swipe";
 
 const SETTLE_MS = 220;
@@ -16,15 +17,17 @@ interface Track {
 
 interface Props {
   pages: Page[];
+  /** Index of the current page in `pages`. */
   pageIndex: number;
   grid: { cols: number; rows: number };
-  /** The user finished a swipe on this page. */
+  /** The user finished a swipe on this page; gets the index in `pages`. */
   onCommit: (index: number) => void;
 }
 
 /**
- * The pages: the current page follows the finger, the neighbour slides in beside it, and the release settles in
- * 220 ms (DESIGN.md 3). A page that changes by itself (a button, a context page) slides in from its side.
+ * The pages: the current one follows the finger, the neighbour slides in beside it, and the release settles in
+ * 220 ms (DESIGN.md 3). Popup groups are not part of the swipe. A page that changes by itself (a button, a context
+ * page) slides in from its side.
  */
 export default function PageStrip({ pages, pageIndex, grid, onCommit }: Props) {
   const root = useRef<HTMLDivElement>(null);
@@ -36,7 +39,10 @@ export default function PageStrip({ pages, pageIndex, grid, onCommit }: Props) {
   const previous = useRef(pageIndex);
   const ownCommit = useRef(false);
   const timer = useRef<number | null>(null);
-  const count = pages.length;
+
+  const nav = navigableIndices(pages);
+  const count = nav.length;
+  const position = Math.max(0, nav.indexOf(pageIndex));
 
   // A change of page that did not come from a swipe here slides in from its side.
   useEffect(() => {
@@ -72,9 +78,9 @@ export default function PageStrip({ pages, pageIndex, grid, onCommit }: Props) {
     t.dx = dx;
     t.samples.push({ x: e.clientX, t: performance.now() });
     if (t.samples.length > 8) t.samples.shift();
-    setOffset(dragOffset(dx, pageIndex, count));
-    const neighbour = dx < 0 ? pageIndex + 1 : pageIndex - 1;
-    setLead(neighbour >= 0 && neighbour < count ? neighbour : null);
+    setOffset(dragOffset(dx, position, count));
+    const neighbour = nav[dx < 0 ? position + 1 : position - 1];
+    setLead(neighbour ?? null);
   }
 
   function finish(commit: boolean) {
@@ -87,10 +93,11 @@ export default function PageStrip({ pages, pageIndex, grid, onCommit }: Props) {
     const last = t.samples[t.samples.length - 1];
     const v = first && last ? velocity(first.x, first.t, last.x, last.t) : 0;
     const decision = commit ? swipeDecision(t.dx, v, width()) : "stay";
-    const target = targetPage(pageIndex, decision, count);
+    const targetPosition = targetPage(position, decision, count);
+    const target = nav[targetPosition] ?? pageIndex;
     setSettling(true);
     if (target !== pageIndex) {
-      setOffset(target > pageIndex ? -width() : width());
+      setOffset(targetPosition > position ? -width() : width());
       timer.current = window.setTimeout(() => {
         ownCommit.current = true;
         onCommit(target);

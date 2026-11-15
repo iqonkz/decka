@@ -12,10 +12,10 @@ export interface GridProps extends DeckCallbacks {
 }
 
 /** Square keys of equal size with a small gap, centered; empty cells are not drawn. */
-export default function Grid({ page, grid, data, onPress, onPressError, onNavigate, onDismiss, onFeedback }: GridProps) {
+export default function Grid({ page, grid, data, onPress, onPressError, onNavigate, onDismiss, onOpenPopup, onFeedback }: GridProps) {
   const env = useMemo(
-    () => ({ ...data, onPress, onPressError, onNavigate, onDismiss, ...(onFeedback ? { onFeedback } : {}) }),
-    [data, onPress, onPressError, onNavigate, onDismiss, onFeedback],
+    () => ({ ...data, onPress, onPressError, onNavigate, onDismiss, ...(onOpenPopup ? { onOpenPopup } : {}), ...(onFeedback ? { onFeedback } : {}) }),
+    [data, onPress, onPressError, onNavigate, onDismiss, onOpenPopup, onFeedback],
   );
   const root = useRef<HTMLDivElement>(null);
   const [viewport, setViewport] = useState({ w: window.innerWidth, h: window.innerHeight });

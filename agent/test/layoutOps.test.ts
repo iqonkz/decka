@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import type { LayoutFile, Page } from "@decka/shared";
 import layoutDefault from "@decka/shared/fixtures/layout.default.json";
+import { newPopupPage, normalPages, popupPages, tapModeOf, tapModePatch } from "../src/tabs/layoutOps";
 import { addItem, findFreeSpot, fits, makeItem, movePage, newItemId, NO_SPACE, normalizeApp, removeItem, sizeRange, updateItem, withApps, withMediaDefaults } from "../src/tabs/layoutOps";
 
 const layout = layoutDefault as unknown as LayoutFile;
@@ -8,6 +9,33 @@ const grid = layout.grid; // 7 x 4
 // "main" has free cells (3,3), (4,3), (5,3) only; "dev" is free from (4,1) down, except (6,3).
 const main = layout.pages[0] as Page;
 const dev = layout.pages[1] as Page;
+
+describe("popup groups (M13): On tap modes", () => {
+  const opts = { firstActionId: "media-play", firstPageId: "main", firstPopupId: "media-more" };
+
+  test("the mode of a button comes from its fields", () => {
+    expect(tapModeOf({ actionId: "a" })).toBe("action");
+    expect(tapModeOf({ navigate: "p" })).toBe("page");
+    expect(tapModeOf({ popup: "g" })).toBe("popup");
+    expect(tapModeOf({ actionId: "a", popup: "g" })).toBe("action-popup");
+    expect(tapModeOf({})).toBe("action");
+  });
+
+  test("picking a mode sets its fields and clears the others", () => {
+    expect(tapModePatch({ actionId: "x" }, "page", opts)).toEqual({ actionId: undefined, popup: undefined, confirm: undefined, navigate: "main" });
+    expect(tapModePatch({}, "popup", opts)).toEqual({ actionId: undefined, navigate: undefined, confirm: undefined, popup: "media-more" });
+    expect(tapModePatch({ actionId: "x" }, "action-popup", opts)).toEqual({ navigate: undefined, actionId: "x", popup: "media-more" });
+    expect(tapModePatch({}, "action", opts)).toEqual({ navigate: undefined, popup: undefined, actionId: "media-play" });
+  });
+
+  test("a new popup group is a popup page named Group N, and the page lists split by kind", () => {
+    const pages: Page[] = [{ id: "main", name: "Main", items: [] }, { id: "g1", name: "Group 1", popup: true, items: [] }];
+    const group = newPopupPage(pages);
+    expect(group).toMatchObject({ name: "Group 2", popup: true, items: [] });
+    expect(normalPages(pages).map((p) => p.id)).toEqual(["main"]);
+    expect(popupPages(pages).map((p) => p.id)).toEqual(["g1"]);
+  });
+});
 
 describe("context page helpers (M11)", () => {
   test("normalizeApp lower-cases and appends .exe", () => {

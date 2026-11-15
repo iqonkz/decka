@@ -4,8 +4,9 @@ import Key from "./Key";
 import { resolveLook } from "./look";
 
 export default function Button({ item }: { item: ButtonItem }) {
-  const { vars, onNavigate } = useDeckEnv();
+  const { vars, onNavigate, onOpenPopup } = useDeckEnv();
   const look = resolveLook(item, vars);
+  const open = (box: DOMRect) => item.popup !== undefined && onOpenPopup?.(item.popup, { x: box.x, y: box.y, width: box.width, height: box.height });
 
   return (
     <Key
@@ -15,7 +16,9 @@ export default function Button({ item }: { item: ButtonItem }) {
       {...(look.label !== undefined ? { label: look.label } : {})}
       {...(look.color !== undefined ? { color: look.color } : {})}
       {...(item.navigate !== undefined ? { chevron: true } : {})}
-      onTap={() => item.navigate !== undefined && onNavigate(item.navigate)}
+      {...(item.popup !== undefined ? { dots: true } : {})}
+      onTap={(box) => (item.navigate !== undefined ? onNavigate(item.navigate) : open(box))}
+      onPressed={open}
     />
   );
 }

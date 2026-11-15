@@ -12,6 +12,7 @@ export { default as PageDots } from "./PageDots";
 export { default as Key, type KeyProps } from "./Key";
 export { default as Icon } from "./Icon";
 export { default as GlassLayer } from "./GlassLayer";
+export { default as PopupGrid, popupBounds, popupSize, type PopupGridProps } from "./PopupGrid";
 export { DeckEnvContext, useDeckEnv, EMPTY_DATA, type DeckData, type DeckCallbacks, type DeckEnv } from "./deckEnv";
 export { gridMetrics, spanSize, type GridMetrics } from "./gridMetrics";
 export { DeckMetricsContext, useDeckMetrics } from "./metricsContext";
