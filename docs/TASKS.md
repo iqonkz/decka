@@ -1436,3 +1436,14 @@ npm run typecheck; npm test; cargo test -p decka-core; npm run release:agent; np
 ```
 npm run typecheck; npm test; npm run release:apk; adb install -r client\android\app\build\outputs\apk\debug\app-debug.apk
 ```
+
+### T13.13 — Светлые клавиши, клавиши виджета media, замер Glass reduced
+1. `readableFace` по DESIGN.md §1.6, абзац «Исключение для светлых цветов»: тёмная подпись `#0b0b0f` при контрасте ≥ 7 с исходным цветом, иначе белая с затемнением. Тесты: `#ffffff` и `#facc15` не меняются, подпись тёмная; `#7c5cff` затемняется, подпись белая; все результаты ≥ 4.5.
+2. Виджет `media` по DATA_MODEL.md §6.2 (новое правило клавиш при `h = 1` и минимальная ширина текста). Цвет `artist` — токен `--muted`. Тест на выбор набора клавиш по `w`, `h`, `side`.
+3. A57, тема Glass: замерить к/с в режиме `reduced` (переключатель `Reduce effects`) тем же способом, что в T13.11. Если < 45 и в `reduced`, записать в BLOCKERS.md и не трогать спецификацию.
+4. Проверки на телефоне — только на копии конфигурации: агент с `DECKA_CONFIG_DIR=.tmp\cfg-phone` (копия `%APPDATA%\Decka`); файлы владельца в `%APPDATA%\Decka` не менять даже временно. Перед съёмкой — `adb shell input keyevent KEYCODE_WAKEUP` и проверка, что на переднем плане `app.decka.client` (`dumpsys activity activities | findstr mResumed`); кнопку «назад» не нажимать.
+5. Снимки `a57-glass-1.png` (раскладка владельца с виджетом media 3×1) и `a57-studio-keys.png` (страница с клавишами белого, жёлтого, `#7c5cff`, красного цвета на тестовой конфигурации).
+**Приёмка:** все тесты, к/с reduced в отчёте, снимки.
+```
+npm run typecheck; npm test; npm run release:apk; adb install -r client\android\app\build\outputs\apk\debug\app-debug.apk
+```
