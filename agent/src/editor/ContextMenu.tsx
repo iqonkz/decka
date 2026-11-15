@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import PhIcon from "../ui/PhIcon";
+import { placeMenu } from "./placeMenu";
 
 export interface MenuItem {
   label: string;
@@ -39,7 +40,7 @@ export default function ContextMenu({ x, y, items, onClose }: Props) {
   useLayoutEffect(() => {
     const box = ref.current?.getBoundingClientRect();
     if (!box) return;
-    setPos({ left: Math.max(4, Math.min(x, window.innerWidth - box.width - 4)), top: Math.max(4, Math.min(y, window.innerHeight - box.height - 4)) });
+    setPos(placeMenu({ x, y }, { w: box.width, h: box.height }, { w: window.innerWidth, h: window.innerHeight }));
   }, [x, y, items]);
 
   useEffect(() => {

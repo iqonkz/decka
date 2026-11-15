@@ -379,11 +379,6 @@ export default function LayoutTab() {
     const r = await call("test_action", { actionId: item.actionId }).catch((e) => ({ ok: false, error: String(e) }));
     setNotice(r.ok ? "Sent to the PC" : `Test failed: ${"error" in r && r.error ? r.error : "unknown error"}`);
   }
-  async function refreshIcon(id: string, program: string) {
-    const r = await call("icon_from_program", { path: program }).catch(() => ({ error: "" }));
-    if ("icon" in r) patchItem(id, { icon: r.icon });
-    else setNotice("Cannot read the icon of this program");
-  }
   function pickCustomColor(item: ButtonItem) {
     const input = document.createElement("input");
     input.type = "color";
@@ -400,7 +395,6 @@ export default function LayoutTab() {
     setCreating(null);
     let items: MenuItem[];
     if (item.kind === "button") {
-      const action = item.actionId ? actions!.actions[item.actionId] : undefined;
       items = [
         { label: "Change action…", icon: "lightning", onClick: () => setCreating({ x: item.x, y: item.y, rect: new DOMRect(x, y, 0, 0), replaceId: item.id }) },
         { label: "Change icon…", icon: "image", onClick: () => document.querySelector(".item-form")?.scrollIntoView({ block: "start" }) },
@@ -421,7 +415,6 @@ export default function LayoutTab() {
         item.popup !== undefined
           ? { label: "Edit popup group", icon: "squares-four", onClick: () => goToPage(item.popup) }
           : { label: "Make popup group", icon: "squares-four", disabled: page.popup === true, onClick: () => makePopup(item.id) },
-        ...(action?.type === "launch" ? [{ label: "Refresh app icon", icon: "arrows-clockwise", onClick: () => void refreshIcon(item.id, action.program) }] : []),
         { label: "Delete", icon: "trash", hint: "Del", danger: true, separator: true, onClick: () => deleteItem(item.id) },
       ];
     } else {
