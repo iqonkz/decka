@@ -188,3 +188,17 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="color"]), select, te
 .editor-cell.over { background: rgba(96, 165, 250, 0.3); border: 2px solid var(--accent); border-radius: 8px; }
 .editor-cell.over.swap { background: rgba(250, 204, 21, 0.25); border-color: #facc15; }
 .palette-item { touch-action: none; }
+/* Quick picker (DESIGN.md 4.5) and the "+" of an empty cell. */
+.picker-backdrop { position: fixed; inset: 0; z-index: 900; }
+.quick-picker { position: fixed; z-index: 901; max-height: 430px; display: flex; flex-direction: column; gap: 6px; padding: 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel); box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45); }
+.picker-list { overflow: auto; min-height: 120px; flex: 1; }
+.picker-group { padding: 8px 6px 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.picker-row { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 8px; border: 0; border-radius: 6px; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.picker-row.active, .picker-row:hover { background: rgba(96, 165, 250, 0.2); }
+.picker-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.picker-bottom { display: flex; flex-direction: column; border-top: 1px solid var(--border); padding-top: 4px; }
+.picker-form { display: flex; flex-direction: column; gap: 8px; padding: 4px; }
+.picker-note { margin: 4px 6px; font-size: 12px; }
+.chord { padding: 14px; border: 1px dashed var(--border); border-radius: 8px; text-align: center; font-size: 18px; font-weight: 600; }
+.editor-cell.empty .cell-plus { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; opacity: 0; color: var(--muted); pointer-events: none; transition: opacity 120ms; }
+.editor-cell.empty:hover .cell-plus { opacity: 1; }

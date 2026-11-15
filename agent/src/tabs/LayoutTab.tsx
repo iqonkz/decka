@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ActionsFile, InstalledApp, LayoutFile, LayoutItem, Page, ValidationIssue } from "@decka/shared";
+import type { ActionsFile, LayoutFile, ValidationIssue } from "@decka/shared";
 import { validateLayout } from "@decka/shared";
 import { call } from "../ipc";
 import Banner from "../ui/Banner";
@@ -13,20 +13,11 @@ import { useDragSession, type Cell } from "./useDragSession";
 import Palette from "./Palette";
 import ItemForm from "./itemForm";
 import { describeIssue, itemPath } from "./issueText";
-import { addItem, COLS_RANGE, DEFAULT_SIZE, launchActionOf, makeItem, movePage, newAppActionId, newPageId, newPopupPage, removeItem, ROWS_RANGE, updateItem, withMediaDefaults, type Kind } from "./layoutOps";
+import { COLS_RANGE, movePage, newPageId, newPopupPage, removeItem, ROWS_RANGE, updateItem } from "./layoutOps";
+import { addButtonAt, type Choice } from "../editor/addButton";
+import QuickPicker from "../editor/QuickPicker";
 import PageApps from "./PageApps";
 import TemplatesDialog from "./TemplatesDialog";
-
-const KINDS: Kind[] = ["button", "clock", "sys", "status", "statuses", "notifications", "media"];
-
-/** A new button starts with the first action by name; without actions it opens another page. */
-function withButtonDefault(item: LayoutItem, actions: ActionsFile, pages: LayoutFile["pages"], currentPageId: string): LayoutItem {
-  if (item.kind !== "button") return item;
-  const first = Object.entries(actions.actions).sort(([, a], [, b]) => a.name.localeCompare(b.name))[0];
-  if (first) return { ...item, actionId: first[0] };
-  const other = pages.find((p) => p.id !== currentPageId);
-  return other ? { ...item, navigate: other.id } : item;
-}
 
 const sameLayout = (a: LayoutFile, b: LayoutFile) => JSON.stringify(a) === JSON.stringify(b);
 
@@ -41,7 +32,8 @@ export default function LayoutTab() {
   const saveRef = useRef<() => void>(() => {});
   const [pageIdx, setPageIdx] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [creating, setCreating] = useState<{ x: number; y: number } | null>(null);
+  // The quick picker (DESIGN.md 4.5): the empty cell that was clicked and where it is on screen.
+  const [creating, setCreating] = useState<{ x: number; y: number; rect: DOMRect } | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [serverIssues, setServerIssues] = useState<ValidationIssue[]>([]);
@@ -165,18 +157,6 @@ export default function LayoutTab() {
   const { cols, rows } = layout.grid;
   const options = (range: readonly [number, number]) => Array.from({ length: range[1] - range[0] + 1 }, (_, i) => range[0] + i);
 
-  function create(kind: Kind) {
-    if (!creating || !page) return;
-    const fresh = withButtonDefault(withMediaDefaults(makeItem(kind, creating.x, creating.y), Object.keys(actions!.actions)), actions!, layout!.pages, page.id);
-    const result = addItem(page, layout!.grid, fresh);
-    if (!result.ok) return setNotice(result.error);
-    const added = result.page.items[result.page.items.length - 1];
-    setNotice(null);
-    setPage(result.page);
-    setCreating(null);
-    setSelectedId(added?.id ?? null);
-  }
-
   /** Clicking an issue opens the page and the form of the element it is about. */
   function selectIssue(path: string) {
     const p = itemPath(path);
@@ -226,23 +206,42 @@ export default function LayoutTab() {
   }
   saveRef.current = () => void save();
 
-  /** A program as a new button at (x, y) of `cur`: saves its action and takes its icon. */
-  async function appButton(app: InstalledApp, x: number, y: number, cur: Page, acts: ActionsFile): Promise<{ page: Page; actions: ActionsFile; id: string } | { error: string }> {
-    const actionId = newAppActionId(app.name, acts.actions);
-    const next: ActionsFile = { ...acts, actions: { ...acts.actions, [actionId]: launchActionOf(app) } };
-    const saved = await call("save_actions", { actions: next });
-    if (!saved.ok) return { error: saved.issues[0]?.message ?? "Cannot save the action" };
-    const icon = await call("icon_from_program", { path: app.program }).catch(() => ({ error: "" }));
-    const item = { ...makeItem("button", x, y), label: app.name.slice(0, 24), actionId, ...("icon" in icon ? { icon: icon.icon } : {}) } as LayoutItem;
-    const added = addItem(cur, layout!.grid, item);
-    return added.ok ? { page: added.page, actions: next, id: item.id } : { error: added.error };
+  /**
+   * Puts `choice` on cell (x, y) of the current page (DESIGN.md 4.5): takes the program's icon, saves a new action first,
+   * then returns the new layout and actions for the caller to apply.
+   */
+  async function addChoice(lay: LayoutFile, acts: ActionsFile, cell: { x: number; y: number }, choice: Choice): Promise<{ layout: LayoutFile; actions: ActionsFile; itemId: string } | { error: string }> {
+    let c = choice;
+    if (c.type === "app" && c.icon === undefined) {
+      const icon = await call("icon_from_program", { path: c.app.program }).catch(() => ({ error: "" }));
+      if ("icon" in icon) c = { ...c, icon: icon.icon };
+    }
+    const made = addButtonAt(lay, acts, pageIdx, cell, c);
+    if (!made.ok) return { error: made.error };
+    if (made.actionsChanged) {
+      const saved = await call("save_actions", { actions: made.actions });
+      if (!saved.ok) return { error: saved.issues[0]?.message ?? "Cannot save the action" };
+    }
+    return { layout: made.layout, actions: made.actions, itemId: made.itemId };
+  }
+
+  /** The quick picker's choice becomes a button on the clicked cell, selected, with its properties open. */
+  async function choose(choice: Choice) {
+    if (!creating) return;
+    setNotice(null);
+    const made = await addChoice(layout!, actions!, creating, choice);
+    if ("error" in made) return setNotice(made.error);
+    setActions(made.actions);
+    edit(made.layout);
+    setSelectedId(made.itemId);
+    setCreating(null);
   }
 
   /** `.exe` / `.lnk` files dropped from Explorer: each becomes a button in the cell under the pointer or the nearest free one. */
   async function dropFiles(paths: string[], cell: Cell | null) {
     if (!cell || !page) return;
     setNotice(null);
-    let cur: Page = page;
+    let lay: LayoutFile = layout!;
     let acts: ActionsFile = actions!;
     let lastId: string | null = null;
     for (const path of paths) {
@@ -251,23 +250,24 @@ export default function LayoutTab() {
         setNotice(`${path.split(/[\\/]/).pop()}: ${app.error}`);
         continue;
       }
-      const spot = nearestFreeCell(cur, layout!.grid, cell.x, cell.y);
+      const current = lay.pages[pageIdx] ?? page;
+      const spot = nearestFreeCell(current, lay.grid, cell.x, cell.y);
       if (!spot) {
         setNotice("No free cell on this page");
         break;
       }
-      const made = await appButton(app, spot.x, spot.y, cur, acts);
+      const made = await addChoice(lay, acts, spot, { type: "app", app });
       if ("error" in made) {
         setNotice(made.error);
         break;
       }
-      cur = made.page;
+      lay = made.layout;
       acts = made.actions;
-      lastId = made.id;
+      lastId = made.itemId;
     }
     if (lastId) {
       setActions(acts);
-      setPage(cur);
+      edit(lay);
       setSelectedId(lastId);
       setCreating(null);
     }
@@ -281,31 +281,15 @@ export default function LayoutTab() {
       if (moved) setPage(moved);
       return;
     }
-    const ids = Object.keys(actions!.actions);
-    let item: LayoutItem | null = null;
-    if (payload.type === "widget") {
-      item = withMediaDefaults(makeItem(payload.kind, x, y), ids);
-    } else if (payload.type === "action") {
-      item = { ...makeItem("button", x, y), label: payload.label.slice(0, 24), actionId: payload.actionId } as LayoutItem;
-    } else if (payload.type === "app") {
-      const { app } = payload;
-      if (itemAt(page!, x, y)) return setNotice("Drop a program on an empty cell.");
-      const actionId = newAppActionId(app.name, actions!.actions);
-      const next: ActionsFile = { ...actions!, actions: { ...actions!.actions, [actionId]: launchActionOf(app) } };
-      const result = await call("save_actions", { actions: next });
-      if (!result.ok) return setNotice(result.issues[0]?.message ?? "Cannot save the action");
-      setActions(next);
-      const icon = await call("icon_from_program", { path: app.program }).catch(() => ({ error: "" }));
-      item = { ...makeItem("button", x, y), label: app.name.slice(0, 24), actionId, ...("icon" in icon ? { icon: icon.icon } : {}) } as LayoutItem;
-    }
-    if (!item) return;
-    const result = addItem(page!, layout!.grid, item);
-    if (!result.ok) return setNotice(result.error);
-    setPage(result.page);
-    setSelectedId(item.id);
+    if (payload.type === "app" && itemAt(page!, x, y)) return setNotice("Drop a program on an empty cell.");
+    const choice: Choice = payload.type === "widget" ? { type: "widget", kind: payload.kind } : payload.type === "action" ? { type: "action", actionId: payload.actionId } : { type: "app", app: payload.app };
+    const made = await addChoice(layout!, actions!, { x, y }, choice);
+    if ("error" in made) return setNotice(made.error);
+    setActions(made.actions);
+    edit(made.layout);
+    setSelectedId(made.itemId);
     setCreating(null);
   }
-
   dropRef.current = (payload, cell) => void dropOnCell(payload, cell.x, cell.y);
   clickRef.current = (payload) => {
     if (payload.type !== "item") return;
@@ -415,24 +399,11 @@ export default function LayoutTab() {
             draggingId={session.dragging?.payload.type === "item" ? session.dragging.payload.id : null}
             cellAtRef={cellAtRef}
             onItemPointerDown={session.begin}
-            onEmptyCell={(x, y) => { setCreating({ x, y }); setSelectedId(null); setNotice(null); }}
+            onEmptyCell={(x, y, rect) => { setCreating({ x, y, rect }); setSelectedId(null); setNotice(null); }}
           />
           {notice && !creating && <p className="warn-text">{notice}</p>}
 
         <div className="form-pane">
-          {creating && (
-            <div className="card">
-              <h3>New item at {creating.x},{creating.y}</h3>
-              <div className="row wrap">
-                {KINDS.map((k) => (
-                  <Button key={k} onClick={() => create(k)}>
-                    {`${k} ${DEFAULT_SIZE[k].w}×${DEFAULT_SIZE[k].h}`}
-                  </Button>
-                ))}
-              </div>
-              {notice && <p className="warn-text">{notice}</p>}
-            </div>
-          )}
           {selected && (
             <ItemForm
               item={selected}
@@ -444,7 +415,7 @@ export default function LayoutTab() {
               onDelete={() => { setPage(removeItem(page, selected.id)); setSelectedId(null); }}
             />
           )}
-          {!creating && !selected && <p className="muted">Drag programs, actions and widgets from the left onto a cell, drag keys to move or swap them, or click one to edit it.</p>}
+          {!selected && <p className="muted">Click an empty cell to add an app or action, drag programs from the left, drag keys to move or swap them, or click a key to edit it.</p>}
         </div>
         </div>
       </div>
@@ -476,6 +447,9 @@ export default function LayoutTab() {
         {dirty && <span className="unsaved">Unsaved changes</span>}
         <span className="muted">Ctrl+S saves, Ctrl+Z / Ctrl+Y undo and redo.</span>
       </div>
+      {creating && (
+        <QuickPicker anchor={creating.rect} cell={creating} page={page} grid={layout.grid} actions={actions} onChoose={(c) => void choose(c)} onClose={() => setCreating(null)} />
+      )}
       {session.dragging && (
         <div className="drag-ghost" style={{ left: session.dragging.x + 12, top: session.dragging.y + 12 }}>
           {ghostLabel(session.dragging.payload)}

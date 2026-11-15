@@ -5,6 +5,7 @@ import { call } from "../ipc";
 import { cellFromPoint, type DragPayload } from "./dragMachine";
 import { dragSize, itemAt, resizeItem } from "./editorOps";
 import { sizeRange, type Grid as GridSize, type Kind } from "./layoutOps";
+import PhIcon from "../ui/PhIcon";
 import PhoneFrame, { PHONE_H, PHONE_W } from "./PhoneFrame";
 
 /** Plausible numbers so that widgets in the preview look alive. */
@@ -26,8 +27,8 @@ interface Props {
   cellAtRef: React.MutableRefObject<(clientX: number, clientY: number) => { x: number; y: number } | null>;
   /** A pointer went down on an item: the start of a click or a drag (pointer events, D-38). */
   onItemPointerDown: (payload: DragPayload, e: React.PointerEvent) => void;
-  /** An empty cell was clicked. */
-  onEmptyCell: (x: number, y: number) => void;
+  /** An empty cell was clicked; `rect` is where it is on screen (the quick picker opens next to it). */
+  onEmptyCell: (x: number, y: number, rect: DOMRect) => void;
 }
 
 /** The deck as it looks on the phone, in the chosen theme, with drag and drop on top of it (DESIGN.md 4.4). */
@@ -88,8 +89,14 @@ export default function EditorCanvas({ layout, page, selectedId, availableWidth,
           key={`c${x}-${y}`}
           className={`editor-cell${taken ? " taken" : " empty"}${hover && hover.x === x && hover.y === y ? (taken ? " over swap" : " over") : ""}`}
           style={rect(x, y, 1, 1)}
-          onClick={() => (taken ? onSelect(taken.id) : onEmptyCell(x, y))}
-        />,
+          onClick={(e) => (taken ? onSelect(taken.id) : onEmptyCell(x, y, e.currentTarget.getBoundingClientRect()))}
+        >
+          {!taken && (
+            <span className="cell-plus">
+              <PhIcon name="plus" size={Math.max(14, Math.round(m.side * scale * 0.3))} />
+            </span>
+          )}
+        </div>,
       );
     }
   }
