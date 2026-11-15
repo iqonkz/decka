@@ -7,6 +7,7 @@ import { dragSize, itemAt, resizeItem } from "./editorOps";
 import { sizeRange, type Grid as GridSize, type Kind } from "./layoutOps";
 import PhIcon from "../ui/PhIcon";
 import PhoneFrame, { PHONE_H, PHONE_W } from "./PhoneFrame";
+import { useIconPreviews } from "./useIconPreviews";
 
 /** Plausible numbers so that widgets in the preview look alive. */
 const SAMPLE_SYS: SysStats = { uptimeSec: 86_400, cpu: 23, mem: { usedMb: 9800, totalMb: 16000 }, disks: [{ mount: "C:", usedGb: 310, totalGb: 476 }], net: { rxKbps: 820, txKbps: 140 } };
@@ -21,6 +22,8 @@ interface Props {
   onChangePage: (page: Page) => void;
   /** The cell under the pointer while something is dragged (move, palette or Explorer), highlighted. */
   hover: { x: number; y: number } | null;
+  /** While a key hovers over a taken cell: the page as it will be after the drop, so the neighbour glides to the free cell. */
+  preview?: Page | null;
   /** The item being dragged, dimmed. */
   draggingId: string | null;
   /** Filled with a function that maps a screen point to a cell of this canvas, for the drag session. */
@@ -40,37 +43,15 @@ interface Props {
 }
 
 /** The deck as it looks on the phone, in the chosen theme, with drag and drop on top of it (DESIGN.md 4.4). */
-export default function EditorCanvas({ layout, page, selectedId, availableWidth, onSelect, onChangePage, hover, draggingId, cellAtRef, onItemPointerDown, onItemContextMenu, onCellContextMenu, renamingId, onRename, onEmptyCell }: Props) {
+export default function EditorCanvas({ layout, page, selectedId, availableWidth, onSelect, onChangePage, hover, draggingId, preview, cellAtRef, onItemPointerDown, onItemContextMenu, onCellContextMenu, renamingId, onRename, onEmptyCell }: Props) {
   const grid: GridSize = layout.grid;
   const scale = Math.max(0.2, Math.min(1, availableWidth / PHONE_W));
   const m = useMemo(() => gridMetrics({ w: PHONE_W, h: PHONE_H }, grid.cols, grid.rows), [grid.cols, grid.rows]);
   const overlayRef = useRef<HTMLDivElement>(null);
-  const [icons, setIcons] = useState<Record<string, string>>({});
   const resize = useRef<{ id: string; x0: number; y0: number } | null>(null);
   const theme = resolveTheme(layout.display);
 
-  // The pictures of `img:` icons used on this page, for the preview.
-  const wanted = useMemo(() => {
-    const out = new Set<string>();
-    for (const item of page.items) {
-      if (item.kind !== "button") continue;
-      for (const icon of [item.icon, ...Object.values(item.bind?.states ?? {}).map((s) => s.icon)]) if (icon?.startsWith("img:")) out.add(icon);
-    }
-    return [...out];
-  }, [page]);
-  useEffect(() => {
-    let live = true;
-    for (const icon of wanted) {
-      if (icons[icon.slice(4)]) continue;
-      call("get_icon_preview", { icon }).then(
-        (url) => live && url && setIcons((prev) => ({ ...prev, [icon.slice(4)]: url })),
-        () => {},
-      );
-    }
-    return () => {
-      live = false;
-    };
-  }, [wanted]); // eslint-disable-line react-hooks/exhaustive-deps
+  const icons = useIconPreviews(page);
 
   const data: DeckData = useMemo(() => ({ ...EMPTY_DATA, online: true, sys: SAMPLE_SYS, icons }), [icons]);
   const noop = useMemo(() => ({ onPress: () => Promise.resolve(), onPressError: () => {}, onNavigate: () => {}, onDismiss: () => {} }), []);
@@ -134,7 +115,7 @@ export default function EditorCanvas({ layout, page, selectedId, availableWidth,
       <PhoneFrame availableWidth={availableWidth} display={layout.display}>
         {theme.theme === "glass" && <GlassLayer wallpaper={theme.wallpaper} art={undefined} />}
         <div style={{ position: "absolute", inset: 0 }}>
-          <Grid page={page} grid={grid} data={data} {...noop} />
+          <Grid page={preview ?? page} grid={grid} data={data} animate {...noop} />
         </div>
       </PhoneFrame>
       <div ref={overlayRef} className="editor-overlay" style={{ width: PHONE_W * scale, height: PHONE_H * scale }}>

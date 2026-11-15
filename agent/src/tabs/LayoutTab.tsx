@@ -534,6 +534,13 @@ export default function LayoutTab() {
     setCreating(null);
   };
   filesRef.current = (paths, cell) => void dropFiles(paths, cell);
+  // A key dragged over a taken cell: show the page as it will be after the swap, so the neighbour glides over (and back when the key leaves).
+  const dragged = session.dragging?.payload;
+  const hoverCell = session.hover;
+  const swapPreview: Page | null =
+    dragged?.type === "item" && hoverCell && itemAt(page, hoverCell.x, hoverCell.y) && itemAt(page, hoverCell.x, hoverCell.y)!.id !== dragged.id
+      ? moveItem(page, layout.grid, dragged.id, hoverCell.x, hoverCell.y)
+      : null;
   const ghostLabel = (payload: DragPayload): string => {
     if (payload.type === "app") return payload.app.name;
     if (payload.type === "action") return payload.label;
@@ -635,6 +642,7 @@ export default function LayoutTab() {
             onChangePage={setPage}
             hover={session.hover ?? fileHover}
             draggingId={session.dragging?.payload.type === "item" ? session.dragging.payload.id : null}
+            preview={swapPreview}
             cellAtRef={cellAtRef}
             onItemPointerDown={session.begin}
             onItemContextMenu={(item, e) => itemMenu(item, e.clientX, e.clientY)}
@@ -669,6 +677,7 @@ export default function LayoutTab() {
           {selected && (
             <ItemForm
               item={selected}
+              display={layout.display}
               page={page}
               pages={layout.pages}
               grid={layout.grid}

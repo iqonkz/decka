@@ -16,6 +16,11 @@ describe("keyNameFromEvent", () => {
     expect(keyNameFromEvent(ev("M", "KeyM", { shiftKey: true }))).toBe("m");
     expect(keyNameFromEvent(ev("ь", "KeyM"))).toBe("m");
   });
+  test("without a physical code a Latin letter or digit is taken by its character", () => {
+    expect(keyNameFromEvent(ev("M", ""))).toBe("m");
+    expect(keyNameFromEvent(ev("7", ""))).toBe("7");
+    expect(keyNameFromEvent(ev("ь", ""))).toBeNull();
+  });
   test("digits, also on the numpad", () => {
     expect(keyNameFromEvent(ev("5", "Digit5"))).toBe("5");
     expect(keyNameFromEvent(ev("7", "Numpad7"))).toBe("7");

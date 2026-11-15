@@ -230,3 +230,4 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="color"]), select, te
 .empty-page { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 18px 22px; border-radius: 12px; background: var(--panel); border: 1px solid var(--border); z-index: 5; }
 .empty-page strong { font-size: 16px; }
 .wizard-presets { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-bottom: 8px; }
+.key-preview { display: flex; justify-content: center; margin: 4px 0 8px; }

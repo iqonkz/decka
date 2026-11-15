@@ -3,6 +3,8 @@ import { call, navigate } from "../ipc";
 import IconField from "./IconField";
 import Button from "../ui/Button";
 import Field from "../ui/Field";
+import type { DisplaySettings } from "@decka/shared";
+import KeyPreview from "./KeyPreview";
 import { describeAction } from "../editor/describeAction";
 import { normalPages, popupPages, sizeRange, TAP_MODE_LABELS, tapModeOf, tapModePatch, type Grid, type TapMode } from "./layoutOps";
 
@@ -59,6 +61,7 @@ function LookFields({ look, onChange }: { look: ButtonLook; onChange: (look: But
 
 interface Props {
   item: LayoutItem;
+  display: DisplaySettings;
   page: Page;
   pages: Page[];
   grid: Grid;
@@ -71,7 +74,7 @@ interface Props {
 
 const SWATCHES = ["#7c5cff", "#3b82f6", "#06b6d4", "#16a34a", "#eab308", "#f97316", "#ef4444", "#ec4899"];
 
-export default function ItemForm({ item, page, pages, grid, actions, onChange, onDelete, onChangeAction }: Props) {
+export default function ItemForm({ item, display, page, pages, grid, actions, onChange, onDelete, onChangeAction }: Props) {
   const [minW, maxW, minH, maxH] = sizeRange(item.kind, grid);
   const patch = (p: Record<string, unknown>) => onChange(p as Partial<LayoutItem>);
   const position = (
@@ -88,6 +91,7 @@ export default function ItemForm({ item, page, pages, grid, actions, onChange, o
       <h3>
         {item.kind} <code>{item.id}</code>
       </h3>
+      {item.kind === "button" && <KeyPreview item={item} display={display} />}
       {item.kind === "button" && <ButtonFields item={item} pages={pages} inPopup={page.popup === true} actions={actions} patch={patch} onChangeAction={onChangeAction} position={position} />}
       {item.kind !== "button" && (
         <details className="advanced">

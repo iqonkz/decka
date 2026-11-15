@@ -12,6 +12,8 @@ interface Props {
   availableWidth: number;
   display: DisplaySettings;
   children: ReactNode;
+  /** Another screen size than the phone (the key preview of the properties panel). */
+  view?: { w: number; h: number };
 }
 
 const SRC_DOC = `<!doctype html><html><head><meta charset="utf-8"></head><body></body></html>`;
@@ -20,10 +22,12 @@ const SRC_DOC = `<!doctype html><html><head><meta charset="utf-8"></head><body><
  * A phone-sized screen. The deck is drawn inside an `iframe` of 915x412 px, so that everything measured in
  * viewport units (the text of widgets) is exactly as on the phone, and the whole is scaled to fit the window.
  */
-export default function PhoneFrame({ availableWidth, display, children }: Props) {
+export default function PhoneFrame({ availableWidth, display, children, view }: Props) {
+  const viewW = view?.w ?? PHONE_W;
+  const viewH = view?.h ?? PHONE_H;
   const frame = useRef<HTMLIFrameElement>(null);
   const [doc, setDoc] = useState<Document | null>(null);
-  const scale = Math.max(0.2, Math.min(1, availableWidth / PHONE_W));
+  const scale = Math.max(0.2, Math.min(1, availableWidth / viewW));
 
   // Once the iframe exists: give it the window's styles (the deck's own sheets are among them) and a black screen.
   useEffect(() => {
@@ -54,12 +58,12 @@ export default function PhoneFrame({ availableWidth, display, children }: Props)
   }, [doc, display]);
 
   return (
-    <div className="phone-frame" style={{ width: PHONE_W * scale, height: PHONE_H * scale }}>
+    <div className="phone-frame" style={{ width: viewW * scale, height: viewH * scale }}>
       <iframe
         ref={frame}
         title="Layout preview"
         srcDoc={SRC_DOC}
-        style={{ width: PHONE_W, height: PHONE_H, transform: `scale(${scale})`, transformOrigin: "top left" }}
+        style={{ width: viewW, height: viewH, transform: `scale(${scale})`, transformOrigin: "top left" }}
       />
       {doc && createPortal(children, doc.body)}
     </div>

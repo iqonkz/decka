@@ -40,7 +40,7 @@ export default function Tile({ item }: { item: LayoutItem }) {
   // Keys draw their own face; every widget is a panel whose face the theme defines.
   const panel = item.kind !== "button";
   return (
-    <div className={panel ? "tile panel" : "tile"} style={{ gridColumn: `${item.x + 1} / span ${item.w}`, gridRow: `${item.y + 1} / span ${item.h}` }}>
+    <div className={panel ? "tile panel" : "tile"} data-tile-id={item.id} style={{ gridColumn: `${item.x + 1} / span ${item.w}`, gridRow: `${item.y + 1} / span ${item.h}` }}>
       {content}
     </div>
   );

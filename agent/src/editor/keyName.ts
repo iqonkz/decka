@@ -41,7 +41,10 @@ export function keyNameFromEvent(e: KeyEventLike): string | null {
   if (digit) return digit[1]!;
   const f = /^F([1-9]|1[0-9]|2[0-4])$/.exec(e.code) ?? /^F([1-9]|1[0-9]|2[0-4])$/.exec(e.key);
   if (f) return `f${f[1]}`;
-  return NAMED[e.code] ?? NAMED[e.key] ?? null;
+  const named = NAMED[e.code] ?? NAMED[e.key];
+  if (named) return named;
+  // Input without a physical key code (remote desktop, some virtual keyboards): a Latin letter or digit by its character.
+  return /^[a-zA-Z0-9]$/.test(e.key) ? e.key.toLowerCase() : null;
 }
 
 const ORDER = ["ctrl", "alt", "shift", "win"];
