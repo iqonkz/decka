@@ -1,3 +1,4 @@
+import type { InstalledApp } from "@decka/shared";
 import type { Draft } from "./actionForm";
 
 /**
@@ -15,4 +16,21 @@ export function applyPickedProgram(draft: Draft, path: string): Draft {
     name: draft.name.trim() === "" ? file.replace(/\.exe$/i, "") : draft.name,
     cwd: draft.cwd.trim() === "" ? dir : draft.cwd,
   };
+}
+
+/** Fills a `launch` draft from an installed program: Program, Arguments (one per line), Working directory; Name when empty. */
+export function applyInstalledApp(draft: Draft, app: InstalledApp): Draft {
+  return {
+    ...draft,
+    program: app.program,
+    argsText: app.args.join("\n"),
+    cwd: app.cwd ?? "",
+    name: draft.name.trim() === "" ? app.name : draft.name,
+  };
+}
+
+/** Programs whose name contains `query` (ignoring case); an empty query keeps all. */
+export function filterApps(apps: InstalledApp[], query: string): InstalledApp[] {
+  const q = query.trim().toLowerCase();
+  return q === "" ? apps : apps.filter((a) => a.name.toLowerCase().includes(q));
 }

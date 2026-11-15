@@ -1,18 +1,10 @@
 import type { ActionsFile, ButtonItem, ButtonLook, LayoutItem, Page } from "@decka/shared";
-import { navigate } from "../ipc";
+import { call, navigate } from "../ipc";
+import IconField from "./IconField";
 import Button from "../ui/Button";
 import Field from "../ui/Field";
 import { sizeRange, type Grid } from "./layoutOps";
 
-/** The 60 Lucide icons the client ships (DATA_MODEL.md 3.6). */
-export const ICON_NAMES = [
-  "play", "pause", "skip-back", "skip-forward", "volume", "volume-1", "volume-2", "volume-x", "mic", "mic-off",
-  "video", "video-off", "monitor", "lock", "power", "moon", "sun", "home", "settings", "terminal",
-  "code", "link", "git-branch", "globe", "folder", "file-text", "activity", "cpu", "hard-drive", "wifi",
-  "bell", "bell-off", "mail", "message-square", "music", "headphones", "camera", "image", "calendar", "clock",
-  "timer", "star", "heart", "zap", "rocket", "bug", "check", "x", "plus", "minus",
-  "refresh-cw", "search", "download", "upload", "copy", "trash-2", "square", "circle", "arrow-left", "arrow-right",
-];
 
 const range = (from: number, to: number): number[] => Array.from({ length: Math.max(0, to - from + 1) }, (_, i) => from + i);
 
@@ -57,7 +49,7 @@ function LookFields({ look, onChange }: { look: ButtonLook; onChange: (look: But
   return (
     <div className="look-fields">
       <input placeholder="Label" value={look.label ?? ""} maxLength={24} onChange={(e) => set("label", e.target.value)} />
-      <input placeholder="lucide:play" value={look.icon ?? ""} onChange={(e) => set("icon", e.target.value)} />
+      <IconField value={look.icon} onChange={(icon) => set("icon", icon ?? "")} />
       <input type="color" value={look.color ?? "#1e1e24"} onChange={(e) => set("color", e.target.value)} aria-label="Color" />
       <Button onClick={() => set("color", "")}>Clear</Button>
     </div>
@@ -131,6 +123,17 @@ function ButtonFields({ item, pages, actions, patch }: { item: ButtonItem; pages
   const mode: "action" | "page" = item.navigate !== undefined ? "page" : "action";
   const actionEntries = Object.entries(actions.actions).sort(([, a], [, b]) => a.name.localeCompare(b.name));
   const states = Object.entries(item.bind?.states ?? {});
+  const selectedAction = item.actionId !== undefined ? actions.actions[item.actionId] : undefined;
+  const launchProgram = selectedAction?.type === "launch" ? selectedAction.program : null;
+
+  /** Choosing a `launch` action on a button without an icon takes the program's icon (kept until Save). */
+  function selectAction(id: string) {
+    patch({ actionId: id });
+    const chosen = actions.actions[id];
+    if (chosen?.type === "launch" && !item.icon) {
+      call("icon_from_program", { path: chosen.program }).then((r) => "icon" in r && patch({ icon: r.icon }), () => {});
+    }
+  }
 
   const setStates = (entries: [string, ButtonLook][]) => patch({ bind: { var: item.bind?.var ?? "", states: Object.fromEntries(entries) } });
 
@@ -139,18 +142,8 @@ function ButtonFields({ item, pages, actions, patch }: { item: ButtonItem; pages
       <Field label="Label">
         <input value={item.label ?? ""} maxLength={24} onChange={(e) => patch({ label: e.target.value || undefined })} />
       </Field>
-      <Field label="Icon" hint="lucide:<name> or emoji:<symbol>">
-        <div className="row">
-          <input value={item.icon ?? ""} onChange={(e) => patch({ icon: e.target.value || undefined })} />
-          <select value="" aria-label="Pick an icon" onChange={(e) => e.target.value && patch({ icon: `lucide:${e.target.value}` })}>
-            <option value="">Pick…</option>
-            {ICON_NAMES.map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </select>
-        </div>
+      <Field label="Icon" hint="A Lucide icon, an emoji, the icon of the action's program, or a picture file.">
+        <IconField value={item.icon} onChange={(icon) => patch({ icon })} program={launchProgram} />
       </Field>
       <Field label="Color">
         <div className="row">
@@ -176,7 +169,7 @@ function ButtonFields({ item, pages, actions, patch }: { item: ButtonItem; pages
         <>
           <Field label="Action" hint="New action… leaves this form: save the layout first.">
             <div className="row">
-              <select value={item.actionId ?? ""} onChange={(e) => patch({ actionId: e.target.value })}>
+              <select value={item.actionId ?? ""} onChange={(e) => selectAction(e.target.value)}>
                 {item.actionId !== undefined && !actions.actions[item.actionId] && <option value={item.actionId}>{item.actionId} (missing)</option>}
                 {actionEntries.map(([id, a]) => (
                   <option key={id} value={id}>{`${a.name} (${id})`}</option>

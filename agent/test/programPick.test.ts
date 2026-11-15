@@ -1,6 +1,38 @@
 import { describe, expect, test } from "vitest";
 import { emptyDraft } from "../src/tabs/actionForm";
-import { applyPickedProgram } from "../src/tabs/programPick";
+import type { InstalledApp } from "@decka/shared";
+import { applyInstalledApp, applyPickedProgram, filterApps } from "../src/tabs/programPick";
+
+const app = (name: string, over: Partial<InstalledApp> = {}): InstalledApp => ({ name, program: `C:\\Apps\\${name}.exe`, args: [], ...over });
+
+describe("applyInstalledApp", () => {
+  test("fills program, arguments (one per line), working directory and the shortcut name", () => {
+    const d = applyInstalledApp(emptyDraft(), app("Chrome", { args: ["--profile-directory=Default", "--new-window"], cwd: "C:\\Apps" }));
+    expect(d.program).toBe("C:\\Apps\\Chrome.exe");
+    expect(d.argsText).toBe("--profile-directory=Default\n--new-window");
+    expect(d.cwd).toBe("C:\\Apps");
+    expect(d.name).toBe("Chrome");
+  });
+
+  test("keeps a name that is already set and clears stale arguments", () => {
+    const d = applyInstalledApp({ ...emptyDraft(), name: "My browser", argsText: "old", cwd: "D:\\x" }, app("Chrome"));
+    expect(d.name).toBe("My browser");
+    expect(d.argsText).toBe("");
+    expect(d.cwd).toBe("");
+  });
+});
+
+describe("filterApps", () => {
+  const list = [app("Visual Studio Code"), app("Notepad"), app("Steam")];
+  test("matches a substring of the name, ignoring case", () => {
+    expect(filterApps(list, "STUDIO").map((a) => a.name)).toEqual(["Visual Studio Code"]);
+    expect(filterApps(list, "te").map((a) => a.name)).toEqual(["Notepad", "Steam"]);
+  });
+  test("an empty query keeps everything; the path is not searched", () => {
+    expect(filterApps(list, "  ")).toHaveLength(3);
+    expect(filterApps(list, "Apps")).toHaveLength(0);
+  });
+});
 
 describe("applyPickedProgram", () => {
   test("fills program, name and working directory into an empty draft", () => {

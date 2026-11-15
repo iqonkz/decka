@@ -1,8 +1,10 @@
 import type { Action, MediaOp } from "@decka/shared";
+import { useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import Field from "../ui/Field";
+import AppPickerDialog from "./AppPickerDialog";
 import { formatKeys, parseKeys } from "./keys";
-import { applyPickedProgram } from "./programPick";
+import { applyInstalledApp, applyPickedProgram } from "./programPick";
 
 export type ActionType = Action["type"];
 
@@ -110,6 +112,7 @@ interface FormProps {
 
 export default function ActionForm({ draft, isNew, onChange }: FormProps) {
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) => onChange({ ...draft, [key]: value });
+  const [picking, setPicking] = useState(false);
   return (
     <div>
       {isNew && (
@@ -161,8 +164,20 @@ export default function ActionForm({ draft, isNew, onChange }: FormProps) {
               >
                 Browse…
               </button>
+              <button type="button" onClick={() => setPicking(true)}>
+                Choose installed app…
+              </button>
             </div>
           </Field>
+          {picking && (
+            <AppPickerDialog
+              onClose={() => setPicking(false)}
+              onPick={(app) => {
+                setPicking(false);
+                onChange(applyInstalledApp(draft, app));
+              }}
+            />
+          )}
           <Field label="Arguments" hint="One argument per line.">
             <textarea rows={3} value={draft.argsText} onChange={(e) => set("argsText", e.target.value)} />
           </Field>
