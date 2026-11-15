@@ -117,6 +117,13 @@ impl Drop for MediaCollector {
     }
 }
 
+static REFRESH: AtomicBool = AtomicBool::new(false);
+
+/// Wakes the collector for an immediate re-read (called after a media command through the session).
+pub fn request_refresh() {
+    REFRESH.store(true, Ordering::Relaxed);
+}
+
 fn now_ms() -> u64 {
     std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0)
 }
@@ -167,9 +174,13 @@ fn run(store: Store, stop: Arc<AtomicBool>) {
             _ => {}
         }
         // Sleep in short slices so a stop request is honoured quickly.
+        // A media command asks for an immediate re-read, so the pause button changes at once.
         let end = Instant::now() + POLL;
         while Instant::now() < end && !stop.load(Ordering::Relaxed) {
-            std::thread::sleep(Duration::from_millis(100));
+            if REFRESH.swap(false, Ordering::Relaxed) {
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(50));
         }
     }
 }

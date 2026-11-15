@@ -8,6 +8,7 @@ pub mod installed;
 #[cfg(windows)]
 pub mod imaging;
 pub mod logging;
+pub mod media_control;
 pub mod model;
 pub mod paths;
 pub mod proto;

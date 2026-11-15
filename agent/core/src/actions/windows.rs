@@ -97,7 +97,15 @@ impl ActionRunner for WindowsRunner {
                 let mapped: Option<Vec<_>> = names.iter().map(|n| keys::map_key(n)).collect();
                 self.send_keys(keyboard::Keys::Hotkey(mapped.ok_or("unknown key name")?))
             }
-            Action::Media { op, .. } => self.send_keys(keyboard::Keys::Click(keys::map_media(*op))),
+            Action::Media { op, .. } => {
+                use crate::media_control::{choose_path, op_name, try_session, uses_session, Path};
+                if uses_session(*op) && choose_path(try_session(*op)) == Path::Session {
+                    tracing::info!("media {} via session", op_name(*op));
+                    return Ok(());
+                }
+                tracing::info!("media {} via key", op_name(*op));
+                self.send_keys(keyboard::Keys::Click(keys::map_media(*op)))
+            }
         }
     }
 }
