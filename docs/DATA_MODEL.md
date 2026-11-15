@@ -211,7 +211,7 @@ export type ClientLayout = Omit<LayoutFile, "version">;
       { "id": "b-prev", "kind": "button", "x": 0, "y": 2, "w": 1, "h": 1, "icon": "lucide:skip-back", "actionId": "media-prev" },
       { "id": "b-play", "kind": "button", "x": 1, "y": 2, "w": 1, "h": 1, "icon": "lucide:play", "actionId": "media-play" },
       { "id": "b-next", "kind": "button", "x": 2, "y": 2, "w": 1, "h": 1, "icon": "lucide:skip-forward", "actionId": "media-next" },
-      { "id": "b-mute", "kind": "button", "x": 3, "y": 2, "w": 1, "h": 1, "icon": "lucide:volume-2", "actionId": "vol-mute",
+      { "id": "b-mute", "kind": "button", "x": 3, "y": 2, "w": 1, "h": 1, "icon": "lucide:volume", "actionId": "vol-mute",
         "bind": { "var": "audio.muted", "states": { "true": { "icon": "lucide:volume-x", "color": "#b45309" } } } },
       { "id": "b-voldown", "kind": "button", "x": 4, "y": 2, "w": 1, "h": 1, "icon": "lucide:volume-1", "actionId": "vol-down" },
       { "id": "b-volup", "kind": "button", "x": 5, "y": 2, "w": 1, "h": 1, "icon": "lucide:volume-2", "actionId": "vol-up" },

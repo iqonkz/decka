@@ -3,7 +3,7 @@
 Цель файла — экономия токенов: здесь всё, что нужно в каждой задаче. Полные документы открывай только по ссылке из задачи и только указанный раздел.
 
 ## Что строим
-Телефон (Android 10, альбомная ориентация) = панель 5×3 для Windows-ПК. ПК исполняет действия; телефон шлёт только `actionId`.
+Телефон (Android 10+, альбомная ориентация) = панель с сеткой 7×4 (настраивается) для Windows-ПК. ПК исполняет действия; телефон шлёт только `actionId`.
 
 ## Жёсткие правила
 - Телефон NEVER не передаёт команду/путь/аргументы/клавиши/URL. Только `{"t":"press","id":n,"actionId":"..."}`.
@@ -14,7 +14,7 @@
 - Коммит после каждой задачи: `T<номер>: <название>`.
 
 - Методы `Agent` вызываются и из потоков без рантайма tokio (команды Tauri): фоновые задачи запускать только через сохранённый `tokio::runtime::Handle`, никогда не голым `tokio::spawn`.
-- Сгенерированные инструментами файлы, которые не нужны, можно удалять только если они ещё не в git; иначе — спросить.
+- Сгенерированные инструментами файлы, которые не нужны, можно удалять, только если они ещё не в git. Файлы из git удаляются только по требованию задачи и только `git rm` (перенос — `git mv`), никогда `Remove-Item`.
 
 ## Карта репозитория
 ```
@@ -37,7 +37,7 @@ tools/    ws-smoke.mjs, make-icon.ps1
 | apiToken | `dk_` + 43 символа, заголовок `Authorization: Bearer` |
 | Лимиты | press 20/с на сокет; HTTP 60/мин на IP; pair 10/мин на IP |
 | Id | `^[a-z0-9_-]{1,64}$`; VarName `^[a-z0-9_.-]{1,64}$` |
-| Секции | `layout`, `sys`, `statuses`, `notifications` (≤ 20), `vars`; M11: `focus`, `media` (необязательные) |
+| Секции | `layout`, `sys`, `statuses`, `notifications` (≤ 20), `vars`; M11: `focus`, `media`; M12: `icons` (необязательные) |
 | Сетка | `layout.grid`: cols 3..8 × rows 2..5, по умолчанию 7×4 |
 | Каталог конфигурации | `%APPDATA%\Decka` или env `DECKA_CONFIG_DIR` |
 | Close-коды WS | 4401 unauthorized, 4403 revoked, 4426 version, 4429 rate, 1009 size, 1011 lagged |
@@ -51,7 +51,7 @@ tools/    ws-smoke.mjs, make-icon.ps1
 `hotkey{keys[]}`, `media{op}`, `launch{program,args?,cwd?,hidden?}`, `open_url{url}`, `system{op: lock|sleep}`; общие поля `name`, `toggleVar?`. Запуск — `Command` без shell, дочерние процессы с `CREATE_NO_WINDOW`.
 
 ## Элементы раскладки (DATA_MODEL.md §3)
-`button` (1×1; `actionId` xor `navigate`; `confirm?`; `bind?`), `clock`, `sys`, `statuses`, `status`, `notifications`. Иконки: `lucide:<имя>` из набора 60 штук или `emoji:<символ>`.
+`button` (1×1; `actionId` | `navigate` | `popup` | `actionId`+`popup`; `confirm?`; `bind?`), `clock`, `sys`, `statuses`, `status`, `notifications`, `media`. Иконки: `lucide:<имя>` (60 штук), `emoji:<символ>`, `img:<hash16>` (хранилище иконок, DATA_MODEL.md §8).
 
 ## Где что искать
 | Нужно | Документ |
