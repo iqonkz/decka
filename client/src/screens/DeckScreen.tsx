@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { setPage, unpair } from "../app/controller";
 import ConnBadge from "../deck/ConnBadge";
 import DimOverlay from "../display/DimOverlay";
@@ -7,14 +7,12 @@ import Screensaver from "../display/Screensaver";
 import { usePixelShift } from "../display/pixelShift";
 import { applyTheme, GlassLayer, PageDots, resolveTheme } from "@decka/ui";
 import { loadReduced, measureFps, saveReduced, shouldReduce } from "../platform/glassPerf";
-import DeckBridge from "../deck/DeckBridge";
+import PageStrip from "../deck/PageStrip";
 import Toasts from "../deck/Toasts";
 import PageHint from "../deck/PageHint";
 import { noteTouch, runContext, useAppState } from "../store/store";
 
 const CONTEXT_TICK_MS = 1000;
-const SWIPE_MIN_X = 60;
-const SWIPE_MAX_Y = 40;
 const UNPAIR_TAPS = 5;
 const UNPAIR_WINDOW_MS = 3000;
 const UNPAIR_ZONE_VMIN = 12;
@@ -60,7 +58,6 @@ function useContextPages() {
 export default function DeckScreen() {
   const layout = useAppState((s) => s.state?.layout ?? null);
   const pageIndex = useAppState((s) => s.pageIndex);
-  const start = useRef<{ x: number; y: number } | null>(null);
   const [confirmUnpair, setConfirmUnpair] = useState(false);
   const openUnpair = useCallback(() => setConfirmUnpair(true), []); // stable: the tap counter lives in the effect
   useUnpairGesture(openUnpair);
@@ -93,34 +90,13 @@ export default function DeckScreen() {
   if (!layout) return null;
 
   const count = layout.pages.length;
-  const page = layout.pages[pageIndex] ?? layout.pages[0];
 
   return (
     <>
       {theme.theme === "glass" && <GlassLayer wallpaper={theme.wallpaper} art={art} />}
-      <div
-        className={mode === "sleep" ? "deck asleep" : "deck"}
-        onPointerDown={(e) => {
-          start.current = { x: e.clientX, y: e.clientY };
-        }}
-        onPointerUp={(e) => {
-          const s = start.current;
-          start.current = null;
-          if (!s) return;
-          const dx = e.clientX - s.x;
-          const dy = Math.abs(e.clientY - s.y);
-          if (Math.abs(dx) >= SWIPE_MIN_X && dy < SWIPE_MAX_Y) {
-            // No wrap-around, no animation.
-            const next = dx < 0 ? Math.min(pageIndex + 1, count - 1) : Math.max(pageIndex - 1, 0);
-            if (next !== pageIndex) setPage(next);
-          }
-        }}
-        onPointerCancel={() => {
-          start.current = null;
-        }}
-      >
+      <div className={mode === "sleep" ? "deck asleep" : "deck"}>
         <div className="deck-inner" style={{ transform: `translate(${shift.x}px, ${shift.y}px)` }}>
-          {page && <DeckBridge page={page} grid={layout.grid} />}
+          <PageStrip pages={layout.pages} pageIndex={pageIndex} grid={layout.grid} onCommit={setPage} />
           <PageDots count={count} active={pageIndex} />
           <PageHint />
           <ConnBadge />

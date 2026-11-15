@@ -1,0 +1,15 @@
+/* Reduced motion (DESIGN.md 3): `prefers-reduced-motion` or the `reduced` mode - transitions of at most 100 ms,
+   no scaling, springs replaced by ease-out. */
+@media (prefers-reduced-motion: reduce) {
+  .key, [data-theme="glass"] .key, [data-theme="material"] .key { transition-duration: 80ms !important; transition-timing-function: ease-out !important; }
+  .key.pressed, .key.confirming { transform: none !important; }
+  .wallpaper { animation: none !important; }
+  .page-layer.from-right, .page-layer.from-left { animation-duration: 100ms !important; }
+}
+[data-reduced="1"] .key,
+[data-reduced="1"][data-theme="glass"] .key,
+[data-reduced="1"][data-theme="material"] .key { transition-duration: 80ms !important; transition-timing-function: ease-out !important; }
+[data-reduced="1"] .key.pressed,
+[data-reduced="1"] .key.confirming { transform: none !important; }
+[data-reduced="1"] .page-layer.from-right,
+[data-reduced="1"] .page-layer.from-left { animation-duration: 100ms !important; }

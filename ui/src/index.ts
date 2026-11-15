@@ -5,6 +5,7 @@ import "./theme/amoled.css";
 import "./theme/studio.css";
 import "./theme/material.css";
 import "./theme/glass.css";
+import "./theme/motion.css";
 
 export { default as Grid, type GridProps } from "./Grid";
 export { default as PageDots } from "./PageDots";
