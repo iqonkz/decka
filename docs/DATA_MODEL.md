@@ -121,6 +121,8 @@ export interface DisplaySettings {
   wallpaper?: "aurora" | "sunset" | "ocean" | "graphite" | "album"; // M13: только тема glass; отсутствует = "aurora"
   keyFace?: "standard" | "full";   // M14: стиль кнопок по умолчанию, DESIGN.md §2.1; отсутствует = "standard"
   keyLabels?: boolean;             // M14: показывать подписи кнопок по умолчанию; отсутствует = true
+  language?: "auto" | "en" | "ru"; // M14: язык интерфейса, DESIGN.md §6; отсутствует = "auto"
+  orientation?: "landscape" | "portrait"; // M14: ориентация телефона, §3.7; отсутствует = "landscape"
 }
 
 interface ItemBase { id: Id; x: number; y: number; w: number; h: number; }
@@ -157,7 +159,7 @@ export type ClientLayout = Omit<LayoutFile, "version">;
 
 ### 3.2 Валидация раскладки
 
-1. `grid.cols` — целое 3..8, `grid.rows` — целое 2..5.
+1. `grid.cols` — целое 3..8, `grid.rows` — целое 2..5. **M14:** при `display.orientation = "portrait"` — `cols` 2..5, `rows` 3..8 (JSON-схема допускает объединение 2..8 по обеим осям, точная проверка по ориентации — в валидаторах TS и Rust, `path: "/grid"`, `message: "Grid <c>×<r> does not fit portrait (2–5 columns, 3–8 rows)"` / `… landscape (3–8 columns, 2–5 rows)`).
 2. `pages`: 1..10; `id` уникальны; `name` 1..30 символов.
 3. Каждый элемент: `0 ≤ x`, `0 ≤ y`, `w ≥ 1`, `h ≥ 1`, `x + w ≤ grid.cols`, `y + h ≤ grid.rows`; элементы одной страницы не пересекаются; `id` уникальны в пределах всего файла.
 4. Размеры по видам (w×h): `button` — только 1×1; `clock` — 1×1, 2×1; `sys` — 2×1, 2×2; `status` — 1×1; `statuses` — от 2×1 до `cols×rows`; `notifications` — от 2×1 до `cols×rows`.
@@ -242,6 +244,18 @@ export type ClientLayout = Omit<LayoutFile, "version">;
 
 Брендовых иконок (github и т. п.) в `lucide-react` 1.x нет — в набор они не входят. Если имя в установленной версии `lucide-react` отсутствует (переименовано), исполнитель заменяет его на `square` и перечисляет замены в описании коммита — список в этом файле не меняется.
 
+### 3.7 Ориентация (M14, решение владельца 2026-11-15)
+
+- `display.orientation` — одна на раскладку (телефон стоит на столе в одном положении; поворот по датчику не поддерживается). Телефон блокирует выбранную ориентацию; все страницы используют одну сетку `grid`.
+- **Смена ориентации в окне** (`Look → Orientation`: `Landscape` / `Portrait`, карточки с силуэтом телефона) всегда идёт через `rotateLayout(layout, to)` — чистая функция в `shared`, результат проходит валидацию:
+  1. Новая сетка — транспонированная: `cols' = rows`, `rows' = cols`, затем зажатая в пределы новой ориентации (§3.2 п. 1). Пример: 7×4 → 4×7; 8×5 → 5×8; 3×2 → 2×3.
+  2. Кнопки (`w = h = 1`) — транспонирование позиции: `x' = y`, `y' = x`. Порядок чтения меняется со «строки» на «столбцы» — это ожидаемо: вид на телефоне остаётся «повёрнутым», привычные места кнопок сохраняются относительно корпуса телефона.
+  3. Виджеты: позиция `x' = y`, `y' = x`, размер **не транспонируется** (часы 2×1 остаются 2×1), но ширина зажимается в `cols'`, высота — в `rows'` с учётом минимальных размеров виджета. Если виджет не помещается в своей позиции или пересекается с уже размещёнными — первая свободная позиция при обходе сверху вниз, слева направо.
+  4. Элементы, которым не нашлось места, переносятся на новую страницу `<имя страницы> 2` (с тем же `apps`, без `popup`), сразу после исходной; popup-страница при переполнении получает ошибку «не помещается», и ориентация не меняется — окно показывает `Popup group "<name>" doesn't fit. Make it smaller first.`.
+  5. Порядок обработки — элементы в порядке `(y, x)` исходной страницы: сначала кнопки, затем виджеты по убыванию площади.
+- Перед применением окно показывает превью результата и число перенесённых элементов: `3 items moved to new pages` с кнопками `Rotate` / `Cancel`. `Ctrl+Z` отменяет поворот целиком.
+- Шаблоны контекстных страниц (§7): `minGrid` сравнивается с сеткой после транспонирования шаблона, если ориентация `portrait` (шаблон добавляется через `rotateLayout` его страницы).
+
 ## 4. config.json и devices.json
 
 ```ts
@@ -260,6 +274,7 @@ export interface ConfigFile {
     focus?: { enabled: boolean };                     // M11; отсутствует = { true }
     media?: { enabled: boolean };                     // M11; отсутствует = { true }
   };
+  updateCheck?: boolean;             // M14: проверка новых релизов на GitHub, ARCHITECTURE.md §8a; отсутствует = true
 }
 export interface HttpCheck {
   id: Id; label: string;             // label 1..60
@@ -270,9 +285,9 @@ export interface HttpCheck {
   group?: string;                    // <= 40
 }
 
-export interface DeviceInfo { id: Id; name: string; createdAt: number; lastSeenAt: number; connected: boolean; }
+export interface DeviceInfo { id: Id; name: string; createdAt: number; lastSeenAt: number; connected: boolean; appVersion?: string; } // appVersion — M14: client.version из последнего pair/hello
 // devices.json на диске:
-// { "version": 1, "devices": [ { "id", "name", "tokenHash", "createdAt", "lastSeenAt" } ] }
+// { "version": 1, "devices": [ { "id", "name", "tokenHash", "createdAt", "lastSeenAt", "appVersion"? } ] }
 // tokenHash = hex(SHA-256(token)); сам токен на диск NEVER не пишется.
 ```
 
@@ -346,7 +361,7 @@ export interface DeviceInfo { id: Id; name: string; createdAt: number; lastSeenA
           "from": { "type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$" }, "to": { "type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$" } } } } },
     "ClientLayout": { "type": "object", "required": ["grid","display","pages"],
       "properties": {
-        "grid": { "type": "object", "required": ["cols","rows"], "properties": { "cols": { "type": "integer", "minimum": 3, "maximum": 8 }, "rows": { "type": "integer", "minimum": 2, "maximum": 5 } } },
+        "grid": { "type": "object", "required": ["cols","rows"], "properties": { "cols": { "type": "integer", "minimum": 2, "maximum": 8 }, "rows": { "type": "integer", "minimum": 2, "maximum": 8 } } },
         "display": { "$ref": "#/$defs/DisplaySettings" },
         "pages": { "type": "array", "minItems": 1, "maxItems": 10, "items": { "$ref": "#/$defs/Page" } } } },
     "LayoutFile": { "allOf": [ { "$ref": "#/$defs/ClientLayout" }, { "required": ["version"], "properties": { "version": { "const": 1 } } } ] }
@@ -505,6 +520,7 @@ export interface PageTemplate {
 - Каталог `<configDir>\icons\`, файлы `<hash16>.png`, где `hash16` — первые 16 hex-символов SHA-256 содержимого PNG.
 - Каждая иконка — PNG 96×96 с прозрачностью; data URL не длиннее 32 768 символов (иначе иконка отклоняется с ошибкой `Icon is too large`).
 - **M14 (режим «Большая иконка», DESIGN.md §2.1):** новые иконки из `icon_from_program` и `icon_from_image` — PNG **256×256**, предел data URL — **131 072** символа. Если PNG 256 больше предела — повтор с 192×192, затем 128×128; иначе ошибка `Icon is too large`. Существующие файлы 96×96 остаются валидными. Команда `refresh_program_icons` (PROTOCOL.md §9) для каждой кнопки с `img:`-иконкой и действием `launch` извлекает иконку заново, если текущий файл меньше 256 px, заменяет `icon` в раскладке и сохраняет её; старые файлы не удаляются (на них могут ссылаться другие кнопки). SVG-иконки (§8.4) не затрагиваются.
+- **Маленькие иконки без версии 256 (уточнение 2026-11-15, пример — 7-Zip: крошечный знак в рамке посреди 256-px поля).** Для `icon_from_program` порядок: 1) `SHDefExtractIconW(path, 0, 0, &large, null, 256)` — самая большая иконка из ресурсов файла, без рамки Shell; ошибка → 2) `IShellItemImageFactory` как раньше. Затем для любого источника: обрезать прозрачные поля по рамке пикселей с альфой > 16 и вписать содержимое в 256×256 с полем 6% (качественное масштабирование `BitmapInterpolationMode::Fant`). Если в результате шага 2 по краю остаётся однотонная рамка толщиной 1–2 px (все пиксели внешнего контура одного цвета ±8 по каналам, альфа > 200) — это рамка Shell: срезать её и повторить обрезку.
 - Источники: (а) `icon_from_program(path)` — системная иконка exe через Shell (`IShellItemImageFactory::GetImage` с размером 96×96, флаг «только иконка», не миниатюра); (б) `icon_from_image(path)` — файл png/jpg/ico/bmp, декодирование и масштабирование до 96×96 с сохранением пропорций и прозрачными полями (`Windows.Graphics.Imaging`, как в T11.4b). Результат кодируется в PNG через `BitmapEncoder` (`PngEncoderId`).
 - Иконки никогда не скачиваются из интернета и не поставляются с Decka (DECISIONS.md D-35).
 - Файлы, на которые не ссылается ни одна кнопка, не удаляются автоматически (в MVP; занимают килобайты).

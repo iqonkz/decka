@@ -436,6 +436,14 @@ export interface AgentStatus {
   usb: { enabled: boolean; adbFound: boolean; devices: { serial: string; reversed: boolean }[]; lastError?: string };
   configDir: string;
 }
+export interface UpdateInfo {                         // M14
+  current: string;                 // версия агента
+  latest?: string;                 // из tag_name без "v"; нет — проверка не удалась или выключена
+  url?: string;                    // html_url релиза (только https://github.com/iqonkz/decka/releases/...)
+  available: boolean;              // latest новее current
+  checkedAt?: number;              // unix ms
+  error?: string;                  // для отображения в About мелким текстом
+}
 export interface InstalledApp {                       // M12
   name: string;          // имя ярлыка без .lnk
   program: string;       // полный путь к .exe
@@ -474,6 +482,7 @@ export interface IpcCommands {
   get_icon_preview(args: { icon: string }): string | null;     // M12: data URL для окна настроек
   icon_from_svg(args: { svg: string }): { icon: string } | { error: string };       // M13: DATA_MODEL.md §8.4
   is_first_run(): boolean;                                     // M13: devices.json пуст и layout.json не менялся с создания (DESIGN.md §4.4)
+  check_updates(args: { force: boolean }): UpdateInfo;           // M14: ARCHITECTURE.md §8a; force=false → кеш последней проверки (≤ 24 ч), true → новый запрос
   refresh_program_icons(): { updated: number; failed: number };  // M14: DATA_MODEL.md §8.1; сохраняет раскладку, если updated > 0
   count_lowres_icons(): number;                                  // M14: число кнопок с img:-png < 256 px и действием launch (для строки «Sharpen» в Look)
   describe_program(args: { path: string }): InstalledApp | { error: string };   // M14: .exe → name = FileDescription версии файла (нет → имя файла без .exe), args [], icon 32 px; .lnk → разбор ярлыка как в list_installed_apps; иное расширение или файла нет → error. Только читает файл, ничего не запускает.
