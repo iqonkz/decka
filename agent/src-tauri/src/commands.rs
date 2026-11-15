@@ -156,6 +156,12 @@ pub async fn icon_from_image(app: AppHandle, path: String) -> Result<IconResult,
     tauri::async_runtime::spawn_blocking(move || agent.icon_from_image(&path).into()).await.map_err(|e| e.to_string())
 }
 
+/// Stores an SVG from the icon library as `img:<hash16>` (DATA_MODEL.md 8.4); `{ error: "Unsupported SVG" }` otherwise.
+#[tauri::command]
+pub fn icon_from_svg(app: AppHandle, svg: String) -> Result<IconResult, String> {
+    Ok(decka_core::icons::icon_from_svg(agent(&app)?.config_dir(), &svg).into())
+}
+
 /// Start menu programs for the picker; takes seconds, so it runs off the UI thread.
 #[tauri::command]
 pub async fn list_installed_apps() -> Result<Vec<decka_core::installed::InstalledApp>, String> {

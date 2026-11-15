@@ -106,6 +106,15 @@ describe("invalid inputs are rejected", () => {
     expect(valid(layoutRef, layoutWith(button))).toBe(true);
   });
 
+  test("the icons section takes PNG and SVG data URLs only", () => {
+    const fs = `${ID}/protocol.schema.json#/$defs/FullState`;
+    const base = (s2c_welcome as unknown as { state: Record<string, unknown> }).state;
+    const state = (value: string) => ({ ...base, icons: { "0123456789abcdef": value } });
+    expect(valid(fs, state("data:image/svg+xml;base64,PHN2Zz48L3N2Zz4="))).toBe(true);
+    expect(valid(fs, state("data:image/png;base64,iVBORw0KGgo="))).toBe(true);
+    expect(valid(fs, state("data:text/html;base64,PGI+"))).toBe(false);
+  });
+
   test("theme, accent and wallpaper are checked (M13)", () => {
     const withDisplay = (extra: Record<string, unknown>) => {
       const l = layoutWith(button) as { display: Record<string, unknown> };

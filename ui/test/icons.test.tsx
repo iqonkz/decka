@@ -50,6 +50,24 @@ describe("Icon", () => {
     expect(render(`img:${hash}`)).toBe(render("lucide:square")); // empty section
   });
 
+  test("an SVG picture is a mask in the text colour, a PNG stays an img; PNG may be bigger", () => {
+    const hash = "0123456789abcdef";
+    const svg = "data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=";
+    const html = render(`img:${hash}`, { [hash]: svg });
+    expect(html).not.toContain("<img");
+    expect(html).toContain("mask-image");
+    expect(html).toContain("background-color:currentColor");
+    expect(html).toContain(svg);
+    expect(html).toContain("width:40px");
+    const png = renderToString(
+      <DeckEnvContext.Provider value={envWith({ [hash]: "data:image/png;base64,iVBORw0KGgo=" })}>
+        <Icon icon={`img:${hash}`} size={40} bitmapSize={56} />
+      </DeckEnvContext.Provider>,
+    );
+    expect(png).toContain("<img");
+    expect(png).toContain('width="56"');
+  });
+
   test("emoji renders a span, anything else nothing", () => {
     expect(render("emoji:🚀")).toContain("<span");
     expect(render("play")).toBe("");

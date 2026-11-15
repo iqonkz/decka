@@ -8,3 +8,4 @@ client/android/build/
 client/android/.gradle/
 client/android/local.properties
 agent/src-tauri/gen/
+agent/public/phosphor/

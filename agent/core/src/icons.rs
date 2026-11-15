@@ -76,14 +76,156 @@ pub fn save_icon(config_dir: &Path, png: &[u8]) -> Result<String, String> {
     Ok(format!("img:{hash}"))
 }
 
-/// The data URL of a stored icon; missing or oversized files -> `None`.
+/// The data URL of a stored icon (a PNG, or an SVG from Phosphor); missing or oversized files -> `None`.
 pub fn icon_data_url(config_dir: &Path, hash: &str) -> Option<String> {
     if !is_hash(hash) {
         return None;
     }
-    let png = std::fs::read(icons_dir(config_dir).join(format!("{hash}.png"))).ok()?;
-    let url = data_url(&png);
-    (url.len() <= MAX_DATA_URL_CHARS).then_some(url)
+    let dir = icons_dir(config_dir);
+    if let Ok(png) = std::fs::read(dir.join(format!("{hash}.png"))) {
+        let url = data_url(&png);
+        return (url.len() <= MAX_DATA_URL_CHARS).then_some(url);
+    }
+    let svg = std::fs::read(dir.join(format!("{hash}.svg"))).ok()?;
+    let url = svg_data_url(&svg);
+    (url.len() <= MAX_SVG_DATA_URL_CHARS).then_some(url)
+}
+
+fn icon_file_exists(dir: &Path, hash: &str) -> bool {
+    dir.join(format!("{hash}.png")).exists() || dir.join(format!("{hash}.svg")).exists()
+}
+
+// ===== SVG icons (DATA_MODEL.md 8.4) =====
+
+/// Longest SVG markup accepted.
+pub const MAX_SVG_CHARS: usize = 12_000;
+/// An SVG data URL longer than this is refused.
+pub const MAX_SVG_DATA_URL_CHARS: usize = 16_384;
+const UNSUPPORTED_SVG: &str = "Unsupported SVG";
+
+pub fn svg_data_url(svg: &[u8]) -> String {
+    format!("data:image/svg+xml;base64,{}", base64::engine::general_purpose::STANDARD.encode(svg))
+}
+
+/// Checks that `svg` is plain vector markup from the icon library and nothing that can run or load something.
+pub fn validate_svg(svg: &str) -> Result<(), String> {
+    let bad = || Err(UNSUPPORTED_SVG.to_string());
+    if svg.chars().count() > MAX_SVG_CHARS || !svg.trim_start().to_ascii_lowercase().starts_with("<svg") {
+        return bad();
+    }
+    let lower = svg.to_ascii_lowercase();
+    if ["<script", "<foreignobject", "javascript:"].iter().any(|needle| lower.contains(needle)) {
+        return bad();
+    }
+    if !lower.contains("viewbox=") || has_event_attribute(&lower) || has_external_href(&lower) {
+        return bad();
+    }
+    Ok(())
+}
+
+/// An attribute such as ` onload=`: whitespace, `on`, letters, optional spaces, `=`.
+fn has_event_attribute(lower: &str) -> bool {
+    let bytes = lower.as_bytes();
+    let mut i = 0;
+    while let Some(pos) = lower[i..].find("on") {
+        let at = i + pos;
+        i = at + 2;
+        let after_space = at > 0 && (bytes[at - 1].is_ascii_whitespace() || bytes[at - 1] == b'"' || bytes[at - 1] == b'\'');
+        if !after_space {
+            continue;
+        }
+        let mut j = at + 2;
+        while j < bytes.len() && bytes[j].is_ascii_lowercase() {
+            j += 1;
+        }
+        while j < bytes.len() && bytes[j].is_ascii_whitespace() {
+            j += 1;
+        }
+        if j > at + 2 && j < bytes.len() && bytes[j] == b'=' {
+            return true;
+        }
+    }
+    false
+}
+
+/// An `href` (also `xlink:href`) whose value does not point inside the document (`#...`).
+fn has_external_href(lower: &str) -> bool {
+    let bytes = lower.as_bytes();
+    let mut i = 0;
+    while let Some(pos) = lower[i..].find("href") {
+        let mut j = i + pos + 4;
+        i = j;
+        while j < bytes.len() && bytes[j].is_ascii_whitespace() {
+            j += 1;
+        }
+        if j >= bytes.len() || bytes[j] != b'=' {
+            continue;
+        }
+        j += 1;
+        while j < bytes.len() && bytes[j].is_ascii_whitespace() {
+            j += 1;
+        }
+        if j < bytes.len() && (bytes[j] == b'"' || bytes[j] == b'\'') {
+            j += 1;
+        }
+        if bytes.get(j) != Some(&b'#') {
+            return true;
+        }
+    }
+    false
+}
+
+/// Rewrites every ` name="value"` / ` name='value'` of the markup with `f(value)`; `None` drops the attribute.
+fn rewrite_attr(svg: &str, name: &str, f: impl Fn(&str) -> Option<String>) -> String {
+    let needle = format!(" {name}=");
+    let mut out = String::with_capacity(svg.len());
+    let mut rest = svg;
+    while let Some(pos) = rest.find(&needle) {
+        let after = &rest[pos + needle.len()..];
+        let Some(quote) = after.chars().next().filter(|c| *c == '"' || *c == '\'') else {
+            out.push_str(&rest[..pos + needle.len()]);
+            rest = after;
+            continue;
+        };
+        let Some(end) = after[1..].find(quote) else { break };
+        let value = &after[1..1 + end];
+        out.push_str(&rest[..pos]);
+        if let Some(new) = f(value) {
+            out.push_str(&format!(" {name}={quote}{new}{quote}"));
+        }
+        rest = &after[end + 2..];
+    }
+    out.push_str(rest);
+    out
+}
+
+/// What gets stored: fills and strokes other than `none` become `#000` (a mask only needs the alpha), and the root
+/// loses `width`/`height` so the picture scales with its box.
+pub fn normalize_svg(svg: &str) -> String {
+    let paint = |v: &str| Some(if v.trim().eq_ignore_ascii_case("none") { v.to_string() } else { "#000".to_string() });
+    let painted = rewrite_attr(&rewrite_attr(svg.trim(), "fill", paint), "stroke", paint);
+    // The root tag is the first `<svg ...>`.
+    let Some(end) = painted.find('>') else { return painted };
+    let (root, rest) = painted.split_at(end);
+    let root = rewrite_attr(&rewrite_attr(root, "width", |_| None), "height", |_| None);
+    format!("{root}{rest}")
+}
+
+/// Stores an SVG from the icon library as `<hash16>.svg` and returns `img:<hash16>` (same markup, same file).
+pub fn icon_from_svg(config_dir: &Path, svg: &str) -> Result<String, String> {
+    validate_svg(svg)?;
+    let normalized = normalize_svg(svg);
+    if svg_data_url(normalized.as_bytes()).len() > MAX_SVG_DATA_URL_CHARS {
+        return Err(UNSUPPORTED_SVG.to_string());
+    }
+    let hash = hash_of(normalized.as_bytes());
+    let dir = icons_dir(config_dir);
+    std::fs::create_dir_all(&dir).map_err(|e| format!("cannot create the icons folder: {e}"))?;
+    let file = dir.join(format!("{hash}.svg"));
+    if !file.exists() {
+        std::fs::write(&file, normalized).map_err(|e| format!("cannot write the icon: {e}"))?;
+    }
+    Ok(format!("img:{hash}"))
 }
 
 /// Data URL for a settings-window preview of an `img:` icon.
@@ -119,7 +261,7 @@ pub fn collect_icons(config_dir: &Path, layout: &LayoutFile) -> serde_json::Valu
 /// DATA_MODEL.md 8.2, rule 11: an `img:` icon needs its file.
 pub fn missing_icon_issues(config_dir: &Path, layout: &LayoutFile) -> Vec<ValidationIssue> {
     let dir = icons_dir(config_dir);
-    let missing = |icon: &Option<String>| icon.as_deref().and_then(img_hash).is_some_and(|h| !dir.join(format!("{h}.png")).exists());
+    let missing = |icon: &Option<String>| icon.as_deref().and_then(img_hash).is_some_and(|h| !icon_file_exists(&dir, h));
     let issue = |path: String| ValidationIssue { path, message: "icon file not found — choose the icon again".to_string() };
     let mut out = Vec::new();
     for (pi, page) in layout.pages.iter().enumerate() {
@@ -371,6 +513,83 @@ mod tests {
         assert_eq!(obj.len(), 1);
         assert!(obj[&hash].as_str().unwrap().starts_with("data:image/png;base64,"));
         assert_eq!(collect_icons(dir.path(), &layout_with("lucide:play", "lucide:pause")), serde_json::json!({}));
+    }
+
+    // A Phosphor "regular" icon: a root with width/height-less viewBox and a fill of currentColor.
+    const HEART: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M178,40c-20.65,0-38.73,8.88-50,23.89Z"/></svg>"##;
+
+    #[test]
+    fn a_phosphor_svg_is_stored_normalised_and_gives_an_img_icon() {
+        let dir = tempfile::tempdir().unwrap();
+        let icon = icon_from_svg(dir.path(), HEART).unwrap();
+        let hash = img_hash(&icon).expect("img: + 16 hex");
+        let stored = std::fs::read_to_string(icons_dir(dir.path()).join(format!("{hash}.svg"))).unwrap();
+        assert!(stored.contains(r##"fill="#000""##) && !stored.contains("currentColor"), "{stored}");
+        assert!(icon_data_url(dir.path(), hash).unwrap().starts_with("data:image/svg+xml;base64,"));
+        // The same markup gives the same icon and no second file.
+        assert_eq!(icon_from_svg(dir.path(), HEART).unwrap(), icon);
+        assert_eq!(std::fs::read_dir(icons_dir(dir.path())).unwrap().count(), 1);
+    }
+
+    #[test]
+    fn normalising_keeps_none_and_drops_root_size() {
+        let svg = r##"<svg width="32" height="32" viewBox="0 0 256 256" fill="none"><path d="M1" stroke="currentColor" stroke-width="16" fill="red"/></svg>"##;
+        let n = normalize_svg(svg);
+        assert!(n.starts_with(r##"<svg viewBox="0 0 256 256" fill="none">"##), "{n}");
+        assert!(n.contains(r##"stroke="#000""##) && n.contains(r##"fill="#000""##) && n.contains(r##"stroke-width="16""##), "{n}");
+    }
+
+    #[test]
+    fn dangerous_or_foreign_svgs_are_refused() {
+        let dir = tempfile::tempdir().unwrap();
+        let cases = [
+            r##"<svg viewBox="0 0 1 1"><script>alert(1)</script></svg>"##,
+            r##"<svg viewBox="0 0 1 1" onload="alert(1)"><path d="M0"/></svg>"##,
+            r##"<svg viewBox="0 0 1 1"><image href="https://evil.example/x.png"/></svg>"##,
+            r##"<svg viewBox="0 0 1 1"><use xlink:href="http://evil.example/x.svg#a"/></svg>"##,
+            r##"<svg viewBox="0 0 1 1"><foreignObject><div/></foreignObject></svg>"##,
+            r##"<svg viewBox="0 0 1 1"><a href="javascript:alert(1)"/></svg>"##,
+            r##"<svg><path d="M0"/></svg>"##, // no viewBox
+            r##"<html><svg viewBox="0 0 1 1"/></html>"##,
+        ];
+        for svg in cases {
+            assert_eq!(icon_from_svg(dir.path(), svg), Err("Unsupported SVG".to_string()), "{svg}");
+        }
+        assert!(!icons_dir(dir.path()).exists() || std::fs::read_dir(icons_dir(dir.path())).unwrap().count() == 0);
+    }
+
+    #[test]
+    fn an_internal_reference_is_fine_and_a_huge_svg_is_not() {
+        assert!(validate_svg(r##"<svg viewBox="0 0 1 1"><use href="#a"/></svg>"##).is_ok());
+        let big = format!("<svg viewBox=\"0 0 1 1\"><path d=\"{}\"/></svg>", "M0 0 ".repeat(3000));
+        assert_eq!(validate_svg(&big), Err("Unsupported SVG".to_string()));
+    }
+
+    #[test]
+    fn words_that_merely_contain_on_are_not_event_attributes() {
+        assert!(validate_svg(r##"<svg viewBox="0 0 1 1"><path d="M0" opacity="0.2" stroke-linejoin="round"/></svg>"##).is_ok());
+    }
+
+    /// Not a test: `DECKA_MAKE_ICONS=<config dir> DECKA_PHOSPHOR=<assets dir> cargo test make_design_icons -- --ignored --nocapture`
+    /// stores a few Phosphor icons through the real path and prints `name img:<hash>` (for design snapshots).
+    #[test]
+    #[ignore]
+    fn make_design_icons() {
+        let (Ok(dir), Ok(assets)) = (std::env::var("DECKA_MAKE_ICONS"), std::env::var("DECKA_PHOSPHOR")) else { return };
+        for (name, weight) in [("house", "bold"), ("music-notes", "fill"), ("rocket-launch", "duotone"), ("gear", "regular"), ("lightning", "fill"), ("microphone", "light"), ("camera", "bold"), ("heart", "duotone")] {
+            let file = if weight == "regular" { format!("{name}.svg") } else { format!("{name}-{weight}.svg") };
+            let svg = std::fs::read_to_string(std::path::Path::new(&assets).join(weight).join(file)).expect("phosphor svg");
+            println!("{name} {}", icon_from_svg(std::path::Path::new(&dir), &svg).expect("stored"));
+        }
+    }
+
+    #[test]
+    fn rule_11_accepts_an_svg_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let icon = icon_from_svg(dir.path(), HEART).unwrap();
+        assert!(missing_icon_issues(dir.path(), &layout_with(&icon, "lucide:play")).is_empty());
+        let section = collect_icons(dir.path(), &layout_with(&icon, "lucide:play"));
+        assert_eq!(section.as_object().unwrap().len(), 1);
     }
 
     #[cfg(windows)]
