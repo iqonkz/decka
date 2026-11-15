@@ -148,3 +148,13 @@
 
 - DONE (автоматически, headless Chrome через CDP, агент `decka-headless --dry-run` с `dimAfterSec: 10`, `sleepAfterSec: 30`): через 10 с слой затемнения (непрозрачность 0.7, перехватывает касания); первое касание возвращает яркость и не нажимает кнопку; через 30 с остаются только серые часы `HH:MM`, сетка скрыта; уведомление `info` не будит экран и не даёт тост; `error` будит и показывает тост; касание будит заставку.
 - PENDING (owner): на телефоне — внешний вид (яркость затемнения на AMOLED, серый цвет часов), смена места часов каждые 30 с с плавным исчезновением, `PC offline` на заставке после остановки агента на минуту, видимое смещение pixel shift (раз в минуту на 1–4 px).
+
+## T13.12 — Glass contrast, readableFace, A57 (2026-11-15)
+
+- DONE (A57, USB, APK from T13.12): screenshots of the phone screen, `adb pull`: `.tmp\design\a57-<amoled|studio|material|glass>-1.png` (page 1) and `-2.png` (page 2), `a57-glass-menu.png` (phone menu).
+- DONE: hold 1.2 s on an empty spot opens the phone menu (Reduce effects, Haptics, Reload, Unpair). A hold that lands on a widget does not open it (expected).
+- DONE: haptics - `dumpsys vibrator_manager` lists ~100 ms TOUCH effects from `app.decka.client` on taps and swipes.
+- DONE: Spotify playing - `media next`, `media play_pause` (twice) all logged `via session`.
+- Frame rate on A57 (`dumpsys gfxinfo`, 3 swipe round trips per theme; p50 frame time -> fps): AMOLED 10 ms (~100), Studio 10 ms (~100), Material 11 ms (~90), Glass 27 ms (~37, 536 frames, 0.56% janky). Glass is below the 45 fps threshold, so the client's own probe puts it in `reduced` mode.
+- Method note: the theme was switched by temporarily editing `display.theme` in the owner's `%APPDATA%\Decka\layout.json` (file watcher applied it live); the original file was restored byte-for-byte (`fc /b` identical).
+- PENDING (owner): popup groups on the phone (the owner's layout has none), `album` wallpaper with music, screensaver, perception of the vibration strength/pattern.
