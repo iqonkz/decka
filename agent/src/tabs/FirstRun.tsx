@@ -3,7 +3,8 @@ import type { InstalledApp, LayoutFile } from "@decka/shared";
 import { call } from "../ipc";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
-import { planAppButtons } from "./layoutOps";
+import { presetActions } from "../editor/addButton";
+import { DEFAULT_PRESETS, planWizard, type WizardPick } from "../editor/wizardPlan";
 import PairingTab from "./PairingTab";
 import ThemeCards from "./ThemeCards";
 
@@ -37,8 +38,9 @@ function safeStorage(): Storage | undefined {
 const MAX_PICKS = 20;
 
 /** The first-run guide (DESIGN.md 4.4): pair the phone, pick a look, add programs. Every step can be skipped. */
-export default function FirstRun({ onClose }: { onClose: () => void }) {
-  const [step, setStep] = useState(0);
+export default function FirstRun({ onClose, startStep = 0 }: { onClose: () => void; startStep?: number }) {
+  const [step, setStep] = useState(startStep);
+  const [presets, setPresets] = useState<Set<string>>(new Set(DEFAULT_PRESETS));
   const [layout, setLayout] = useState<LayoutFile | null>(null);
   const [apps, setApps] = useState<InstalledApp[] | null>(null);
   const [picked, setPicked] = useState<Set<string>>(new Set());
@@ -80,19 +82,18 @@ export default function FirstRun({ onClose }: { onClose: () => void }) {
 
   async function addApps() {
     const chosen = (apps ?? []).filter((a) => picked.has(key(a)));
-    if (chosen.length === 0) return finish();
+    if (chosen.length === 0 && presets.size === 0) return finish();
     setBusy(true);
     setError(null);
     try {
       const [currentLayout, currentActions] = await Promise.all([call("get_layout"), call("get_actions")]);
-      const icons: Record<string, string | undefined> = {};
-      await Promise.all(
-        chosen.map(async (a) => {
-          const r = await call("icon_from_program", { path: a.program }).catch(() => null);
-          if (r && "icon" in r) icons[a.program.toLowerCase()] = r.icon;
+      const picks: WizardPick[] = await Promise.all(
+        chosen.map(async (app) => {
+          const r = await call("icon_from_program", { path: app.program }).catch(() => null);
+          return r && "icon" in r ? { app, icon: r.icon } : { app };
         }),
       );
-      const plan = planAppButtons(chosen, currentLayout, currentActions, icons);
+      const plan = planWizard(currentLayout, currentActions, picks, [...presets]);
       const savedActions = await call("save_actions", { actions: plan.actions });
       if (!savedActions.ok) throw new Error(savedActions.issues[0]?.message ?? "Cannot save the actions");
       const savedLayout = await call("save_layout", { layout: plan.layout });
@@ -129,7 +130,28 @@ export default function FirstRun({ onClose }: { onClose: () => void }) {
         {step === 2 && (
           <>
             <h2>Add your apps</h2>
-            <p className="muted">Tick the programs you want as buttons on the first page.</p>
+            <p className="muted">Tick what you want as buttons on the first page. Nothing already there is changed.</p>
+            <h3>Media &amp; system</h3>
+            <div className="wizard-presets">
+              {presetActions().map((p) => (
+                <label key={p.id} className="check">
+                  <input
+                    type="checkbox"
+                    checked={presets.has(p.id)}
+                    onChange={(e) =>
+                      setPresets((prev) => {
+                        const next = new Set(prev);
+                        if (e.target.checked) next.add(p.id);
+                        else next.delete(p.id);
+                        return next;
+                      })
+                    }
+                  />{" "}
+                  {p.label}
+                </label>
+              ))}
+            </div>
+            <h3>Programs</h3>
             <input aria-label="Search" placeholder="Search" value={query} onChange={(e) => setQuery(e.target.value)} />
             {apps === null && !error && <p className="muted">Loading installed apps…</p>}
             <div className="app-list">
@@ -156,7 +178,7 @@ export default function FirstRun({ onClose }: { onClose: () => void }) {
                 </label>
               ))}
             </div>
-            <p className="muted">{picked.size} selected (up to {MAX_PICKS}).</p>
+            <p className="muted">{picked.size} programs and {presets.size} actions selected (up to {MAX_PICKS} programs).</p>
           </>
         )}
 
@@ -180,7 +202,7 @@ export default function FirstRun({ onClose }: { onClose: () => void }) {
           )}
           {step === 2 && (
             <Button variant="primary" disabled={busy} onClick={() => void addApps()}>
-              {picked.size > 0 ? "Add and finish" : "Finish"}
+              {picked.size + presets.size > 0 ? "Add and finish" : "Finish"}
             </Button>
           )}
         </div>

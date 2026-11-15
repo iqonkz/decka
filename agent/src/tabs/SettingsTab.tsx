@@ -52,6 +52,12 @@ export default function SettingsTab() {
       <h2>Settings</h2>
 
       <section className="card">
+        <h3>About</h3>
+        <p className="muted">Decka turns an old phone into a panel for this PC. The setup guide pairs the phone, picks a look and adds your apps.</p>
+        <Button onClick={() => window.dispatchEvent(new CustomEvent("decka:run-setup", { detail: { step: 0 } }))}>Run setup again</Button>
+      </section>
+
+      <section className="card">
         <Field label="PC name" hint="Shown on the phone.">
           <input value={config.agentName} maxLength={40} onChange={(e) => edit({ agentName: e.target.value })} />
         </Field>

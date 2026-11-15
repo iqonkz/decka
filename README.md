@@ -24,6 +24,10 @@ Decka turns an old Android phone into a desk panel for a Windows PC: a 5x3 grid 
 
 A browser also works for a quick try: open `http://<PC>:9247/` on the phone and paste the pairing details (no camera, no wake lock there).
 
+## Add your first button
+
+1. Open the Decka window on your PC and go to **Layout**.. Click an empty cell, then pick a program, a ready-made action (play, volume, lock) or **Website…** / **Keyboard shortcut…** in the list that opens.. The button is on your phone right away; drag it to move it, right-click it for more. You can also drop a program from Explorer onto a cell.
+
 ## Context pages and Now Playing
 
 **Ready-made pages.** In the settings window open **Layout** and press **Add page from template**. Templates for VS Code, a browser, Zoom and Spotify add a page with buttons and their actions in one click. A template needs a big enough grid (the dialog tells you if not) and is added only once per program.

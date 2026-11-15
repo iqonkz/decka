@@ -46,6 +46,25 @@ function TabBody({ tab }: { tab: TabId }) {
 export default function App() {
   const [tab, setTab] = useState<TabId>("status");
   const [firstRun, setFirstRun] = useState(false);
+  const [wizardStep, setWizardStep] = useState(0);
+
+  // Other tabs ask for the guide (`Run setup again`, the empty page) or for another tab through window events.
+  useEffect(() => {
+    const run = (e: Event) => {
+      setWizardStep((e as CustomEvent<{ step?: number }>).detail?.step ?? 0);
+      setFirstRun(true);
+    };
+    const go = (e: Event) => {
+      const target = (e as CustomEvent<{ tab?: string }>).detail?.tab ?? "";
+      if (isTab(target)) setTab(target);
+    };
+    window.addEventListener("decka:run-setup", run);
+    window.addEventListener("decka:go", go);
+    return () => {
+      window.removeEventListener("decka:run-setup", run);
+      window.removeEventListener("decka:go", go);
+    };
+  }, []);
 
   // The accent of the deck is also the accent of this window.
   const refreshAccent = useCallback(() => {
@@ -88,6 +107,8 @@ export default function App() {
       </main>
       {firstRun && (
         <FirstRun
+          key={wizardStep}
+          startStep={wizardStep}
           onClose={() => {
             setFirstRun(false);
             refreshAccent();

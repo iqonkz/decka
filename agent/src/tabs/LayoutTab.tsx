@@ -19,6 +19,8 @@ import ContextMenu, { suppressNativeMenu, type MenuItem } from "../editor/Contex
 import { describeAction } from "../editor/describeAction";
 import { addButtonAt, type Choice } from "../editor/addButton";
 import QuickPicker from "../editor/QuickPicker";
+import EditorTips from "../editor/EditorTips";
+import PhoneStrip from "../editor/PhoneStrip";
 import PageApps from "./PageApps";
 import TemplatesDialog from "./TemplatesDialog";
 
@@ -623,6 +625,7 @@ export default function LayoutTab() {
         <Palette actions={actions} onBegin={session.begin} />
         <div className="editor-main" ref={mainRef} style={{ position: "relative" }}>
           {savedFlash && <span className="saved-flag">Saved</span>}
+          <PhoneStrip />
           <EditorCanvas
             layout={layout}
             page={page}
@@ -643,6 +646,23 @@ export default function LayoutTab() {
             }}
             onEmptyCell={(x, y, rect) => { setCreating({ x, y, rect }); setSelectedId(null); setNotice(null); }}
           />
+          {page.items.length === 0 && page.popup !== true && (
+            <div className="empty-page">
+              <strong>This page is empty</strong>
+              <div className="row">
+                <Button onClick={() => window.dispatchEvent(new CustomEvent("decka:run-setup", { detail: { step: 2 } }))}>Add apps</Button>
+                <Button
+                  variant="primary"
+                  onClick={() => {
+                    const cell = document.querySelector(".editor-cell.empty");
+                    if (cell) setCreating({ x: 0, y: 0, rect: cell.getBoundingClientRect() });
+                  }}
+                >
+                  Add a button
+                </Button>
+              </div>
+            </div>
+          )}
           {notice && !creating && <p className="warn-text">{notice}</p>}
 
         <div className="form-pane">
@@ -684,6 +704,7 @@ export default function LayoutTab() {
       {creating && (
         <QuickPicker anchor={creating.rect} cell={creating} page={page} grid={layout.grid} actions={actions} hideWidgets={creating.replaceId !== undefined} onChoose={(c) => void choose(c)} onClose={() => setCreating(null)} />
       )}
+      <EditorTips ready={page.items.length > 0 || creating === null} />
       {menu && <ContextMenu x={menu.x} y={menu.y} items={menu.items} onClose={() => setMenu(null)} />}
       {session.dragging && (
         <div className="drag-ghost" style={{ left: session.dragging.x + 12, top: session.dragging.y + 12 }}>
