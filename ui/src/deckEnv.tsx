@@ -12,6 +12,9 @@ export interface DeckData {
   media: MediaInfo | null;
   /** `img:` pictures by hash (the `icons` section). */
   icons: Record<string, string>;
+  /** `display.keyFace` / `display.keyLabels` (DESIGN.md 2.1): the look keys have unless a key says otherwise. */
+  keyFace?: "standard" | "full";
+  keyLabels?: boolean;
 }
 
 export const EMPTY_DATA: DeckData = { online: false, vars: {}, sys: null, statuses: [], notifications: [], media: null, icons: {} };

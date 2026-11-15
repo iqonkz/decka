@@ -39,6 +39,8 @@ export function validateLayout(layout: LayoutFile, actions: ActionsFile): Valida
   if (!Number.isInteger(cols) || cols < 3 || cols > 8) add("/grid/cols", "grid columns must be an integer from 3 to 8");
   if (!Number.isInteger(rows) || rows < 2 || rows > 5) add("/grid/rows", "grid rows must be an integer from 2 to 5");
 
+  if (layout.display?.keyFace !== undefined && layout.display.keyFace !== "standard" && layout.display.keyFace !== "full") add("/display/keyFace", "keyFace must be standard or full");
+
   const pageIds = new Set<string>();
   const popupIds = new Set<string>();
   layout.pages.forEach((page, pi) => {
@@ -96,6 +98,7 @@ export function validateLayout(layout: LayoutFile, actions: ActionsFile): Valida
       }
 
       if (item.kind === "button") {
+        if (item.face !== undefined && item.face !== "standard" && item.face !== "full") add(`${path}/face`, "face must be standard or full");
         const hasAction = item.actionId !== undefined;
         const hasNav = item.navigate !== undefined;
         const hasPopup = item.popup !== undefined;

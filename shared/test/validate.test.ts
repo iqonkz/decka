@@ -183,3 +183,22 @@ describe("validateActions", () => {
     expect(validateActions(bad).map((i) => i.path)).toEqual(["/actions/Bad Id", "/actions/k/keys/2"]);
   });
 });
+
+describe("key face (M14)", () => {
+  const clone = () => structuredClone(layoutDefault) as unknown as LayoutFile;
+  test("known faces pass, an unknown face of a button or of the display is an error", () => {
+    const ok = clone();
+    ok.display.keyFace = "full";
+    const first = ok.pages[0]!.items.find((i) => i.kind === "button")!;
+    (first as { face?: string }).face = "full";
+    expect(validateLayout(ok, actionsDefault as unknown as ActionsFile)).toEqual([]);
+
+    const bad = clone();
+    (bad.pages[0]!.items.find((i) => i.kind === "button") as { face?: string }).face = "huge";
+    expect(validateLayout(bad, actionsDefault as unknown as ActionsFile).map((i) => i.message)).toContain("face must be standard or full");
+
+    const badDisplay = clone();
+    (badDisplay.display as { keyFace?: string }).keyFace = "huge";
+    expect(validateLayout(badDisplay, actionsDefault as unknown as ActionsFile).map((i) => i.path)).toContain("/display/keyFace");
+  });
+});

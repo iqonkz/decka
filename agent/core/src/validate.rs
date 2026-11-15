@@ -280,6 +280,9 @@ pub fn validate_layout(layout: &LayoutFile, actions: &ActionsFile) -> Vec<Valida
             match item {
                 LayoutItem::Button(b) => {
                     check_look(&path, &b.label, &b.icon, &b.color, &mut out);
+                    if b.face.as_deref().is_some_and(|f| !["standard", "full"].contains(&f)) {
+                        out.push(issue(format!("{path}/face"), "face must be standard or full"));
+                    }
                     // Allowed: actionId | navigate | popup | actionId + popup (same texts as shared/src/validate.ts).
                     let (has_action, has_nav, has_popup) = (b.action_id.is_some(), b.navigate.is_some(), b.popup.is_some());
                     if !has_action && !has_nav && !has_popup {
@@ -380,6 +383,9 @@ pub fn validate_layout(layout: &LayoutFile, actions: &ActionsFile) -> Vec<Valida
     }
     if d.accent.as_deref().is_some_and(|c| !is_color(c)) {
         out.push(issue("/display/accent", "accent must be #rrggbb"));
+    }
+    if d.key_face.as_deref().is_some_and(|f| !["standard", "full"].contains(&f)) {
+        out.push(issue("/display/keyFace", "keyFace must be standard or full"));
     }
     if d.wallpaper.as_deref().is_some_and(|w| !["aurora", "sunset", "ocean", "graphite", "album"].contains(&w)) {
         out.push(issue("/display/wallpaper", "wallpaper must be aurora, sunset, ocean, graphite or album"));

@@ -176,6 +176,12 @@ pub struct DisplaySettings {
     /// M13: `aurora` | `sunset` | `ocean` | `graphite` | `album` (Glass only); absent = aurora.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub wallpaper: Option<String>,
+    /// M14: `standard` | `full` (DESIGN.md 2.1); absent = standard.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub key_face: Option<String>,
+    /// M14: show the labels of keys by default; absent = true.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub key_labels: Option<bool>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -226,6 +232,12 @@ pub struct ButtonItem {
     pub confirm: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub bind: Option<Bind>,
+    /// M14: `standard` | `full`; overrides `display.keyFace`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub face: Option<String>,
+    /// M14: overrides `display.keyLabels`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub show_label: Option<bool>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

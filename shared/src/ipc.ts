@@ -48,6 +48,8 @@ export interface IpcCommands {
   open_config_dir(): void;
   open_logs_dir(): void;                                       // opens <configDir>\logs
   list_installed_apps(): InstalledApp[];                       // M12: Start menu shortcuts, DATA_MODEL.md 8
+  refresh_program_icons(): { updated: number; failed: number };  // M14: DATA_MODEL.md 8.1; saves the layout when updated > 0
+  count_lowres_icons(): number;                                  // M14: program buttons with a PNG icon < 256 px (the Sharpen line of Look)
   describe_program(args: { path: string }): InstalledApp | { error: string };  // M14: .exe / .lnk -> program (name, target, arguments, icon)
   icon_from_program(args: { path: string }): { icon: string } | { error: string };  // M12: icon of an exe -> "img:<hash16>"
   icon_from_image(args: { path: string }): { icon: string } | { error: string };    // M12: png/jpg/ico/bmp -> "img:<hash16>"

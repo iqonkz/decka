@@ -190,6 +190,19 @@ pub enum DescribeResult {
     Error { error: String },
 }
 
+/// Sharpens the icons of program buttons that have a 96 px picture (M14); runs off the UI thread.
+#[tauri::command]
+pub async fn refresh_program_icons(app: AppHandle) -> Result<decka_core::agent::RefreshIcons, String> {
+    let agent = agent(&app)?;
+    tauri::async_runtime::spawn_blocking(move || agent.refresh_program_icons()).await.map_err(|e| e.to_string())
+}
+
+/// How many program buttons have a low-resolution icon (M14).
+#[tauri::command]
+pub fn count_lowres_icons(app: AppHandle) -> Result<usize, String> {
+    Ok(agent(&app)?.count_lowres_icons())
+}
+
 /// Data URL of a stored `img:` icon (settings-window preview); `null` for other kinds or a missing file.
 #[tauri::command]
 pub fn get_icon_preview(app: AppHandle, icon: String) -> Result<Option<String>, String> {

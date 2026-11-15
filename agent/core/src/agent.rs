@@ -107,6 +107,13 @@ pub struct DeviceInfo {
     pub connected: bool,
 }
 
+/// `refresh_program_icons` result (PROTOCOL.md 9).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct RefreshIcons {
+    pub updated: usize,
+    pub failed: usize,
+}
+
 /// Mirrors the `test_action` result in shared/src/ipc.ts.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct TestActionResult {
@@ -587,6 +594,23 @@ impl Agent {
     /// Icon from a picture file as `img:<hash16>`; blocks, call it from a blocking context.
     pub fn icon_from_image(&self, path: &str) -> Result<String, String> {
         crate::icons::icon_from_image(&self.inner.config_dir, path)
+    }
+
+    /// Buttons of programs whose icon is a PNG narrower than 256 px (the `Sharpen` line of the `Look` tab, DESIGN.md 2.1).
+    pub fn count_lowres_icons(&self) -> usize {
+        crate::icons::count_lowres_icons(&self.inner.config_dir, &self.layout(), &self.actions())
+    }
+
+    /// Extracts the icons of low-resolution program buttons again at 256 px and saves the layout when something changed
+    /// (DATA_MODEL.md 8.1). Blocks (Shell calls): call it from a blocking context.
+    pub fn refresh_program_icons(&self) -> RefreshIcons {
+        let mut layout = self.layout();
+        let (updated, mut failed) = crate::icons::refresh_program_icons(&self.inner.config_dir, &mut layout, &self.actions());
+        if updated > 0 && !matches!(self.save_layout(layout), SaveResult::Saved) {
+            failed += updated;
+            return RefreshIcons { updated: 0, failed };
+        }
+        RefreshIcons { updated, failed }
     }
 
     /// Data URL of a stored `img:` icon for the settings window.

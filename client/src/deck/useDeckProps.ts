@@ -17,6 +17,8 @@ export function useDeckProps(): { data: DeckData } & Required<DeckCallbacks> {
   const notifications = useAppState((s) => s.state?.notifications);
   const media = useAppState((s) => s.state?.media);
   const icons = useAppState((s) => s.state?.icons);
+  const keyFace = useAppState((s) => s.state?.layout.display.keyFace);
+  const keyLabels = useAppState((s) => s.state?.layout.display.keyLabels);
 
   const data: DeckData = useMemo(
     () => ({
@@ -27,8 +29,10 @@ export function useDeckProps(): { data: DeckData } & Required<DeckCallbacks> {
       notifications: notifications ?? EMPTY_DATA.notifications,
       media: media ?? null,
       icons: icons ?? NO_ICONS,
+      ...(keyFace !== undefined ? { keyFace } : {}),
+      ...(keyLabels !== undefined ? { keyLabels } : {}),
     }),
-    [online, vars, sys, statuses, notifications, media, icons],
+    [online, vars, sys, statuses, notifications, media, icons, keyFace, keyLabels],
   );
 
   const onPressError = useCallback((e: { code: string; message?: string }) => {

@@ -127,6 +127,20 @@ describe("invalid inputs are rejected", () => {
     expect(valid(layoutRef, withDisplay({ wallpaper: "forest" }))).toBe(false);
   });
 
+  test("key face and labels (M14): known values only", () => {
+    const withDisplay = (extra: Record<string, unknown>) => {
+      const l = layoutWith(button) as { display: Record<string, unknown> };
+      Object.assign(l.display, extra);
+      return l;
+    };
+    expect(valid(layoutRef, withDisplay({ keyFace: "full", keyLabels: false }))).toBe(true);
+    expect(valid(layoutRef, withDisplay({ keyFace: "huge" }))).toBe(false);
+    expect(valid(layoutRef, withDisplay({ keyLabels: "yes" }))).toBe(false);
+    expect(valid(layoutRef, layoutWith({ ...button, face: "full", showLabel: false }))).toBe(true);
+    expect(valid(layoutRef, layoutWith({ ...button, face: "big" }))).toBe(false);
+    expect(valid(layoutRef, layoutWith({ ...button, showLabel: 1 }))).toBe(false);
+  });
+
   test("img: icons need exactly 16 lower-case hex characters", () => {
     const withIcon = (icon: string) => layoutWith({ ...button, icon });
     expect(valid(layoutRef, withIcon("img:0123456789abcdef"))).toBe(true);

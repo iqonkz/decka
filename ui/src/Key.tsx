@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { useDeckEnv } from "./deckEnv";
+import { faceLayout } from "./faceLayout";
 import Icon from "./Icon";
+import { useTile } from "./useTile";
 import { useDeckMetrics } from "./metricsContext";
 import { colorVars, parseHex } from "./theme/colors";
 import { materialKeyVars } from "./theme/material";
@@ -30,12 +32,20 @@ export interface KeyProps {
   chevron?: boolean;
   /** Small `•••` in the corner: the key opens a popup group. */
   dots?: boolean;
+  /** `full`: the icon fills the key like an app icon on a home screen (DESIGN.md 2.1). */
+  face?: "standard" | "full";
+}
+
+/** The corner mark of a `full` key sits on a dark disc of 0.2 x side (DESIGN.md 2.1). */
+function discStyle(side: number, font: number): CSSProperties {
+  const d = 0.2 * side;
+  return { top: 0.04 * side, right: 0.04 * side, width: d, height: d, fontSize: font * side, borderRadius: "50%", background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.8)" };
 }
 
 /** One key with the shared press states: pressed, confirming, pending, ok, error. Used by buttons and widgets. */
-export default function Key({ actionId, onTap, onPressed, confirm, icon, label, color, side: fixedSide, chevron, dots }: KeyProps) {
+export default function Key({ actionId, onTap, onPressed, confirm, icon, label, color, side: fixedSide, chevron, dots, face }: KeyProps) {
   const element = useRef<HTMLDivElement>(null);
-  const { online, onPress, onPressError, onFeedback } = useDeckEnv();
+  const { online, onPress, onPressError, onFeedback, icons } = useDeckEnv();
   const disabled = actionId !== undefined && !online;
 
   const [phase, setPhaseState] = useState<Phase>("idle");
@@ -52,6 +62,11 @@ export default function Key({ actionId, onTap, onPressed, confirm, icon, label, 
   const metrics = useDeckMetrics();
   const side = fixedSide ?? metrics.side;
   const coloured = color !== undefined && parseHex(color) !== null;
+  // `full` face: where the icon goes, and whether its corners say it is an opaque tile.
+  const hash = icon?.startsWith("img:") ? icon.slice(4) : undefined;
+  const iconUrl = hash !== undefined ? icons[hash] : undefined;
+  const tile = useTile(face === "full" ? iconUrl : undefined);
+  const full = face === "full" && icon !== undefined ? faceLayout(icon, tile, side, label !== undefined, iconUrl) : null;
 
   useEffect(() => {
     mounted.current = true;
@@ -154,16 +169,32 @@ export default function Key({ actionId, onTap, onPressed, confirm, icon, label, 
     ...(fixedSide !== undefined ? { "--side": `${fixedSide}px` } : {}),
     ...(coloured ? { ...colorVars(color), ...materialKeyVars(color as string) } : {}),
   } as CSSProperties;
-  const classes = ["key", phase, coloured ? "colored" : "", disabled ? "disabled" : ""].filter(Boolean).join(" ");
+  const classes = ["key", phase, coloured ? "colored" : "", disabled ? "disabled" : "", full ? "full" : "", full?.mode === "cover" ? "tile-face" : ""].filter(Boolean).join(" ");
   const labelPad = 0.07 * side;
   return (
     <div ref={element} className={classes} style={keyStyle} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={cancel}>
-      {icon && (
+      {full && full.mode === "cover" && iconUrl && <img className="key-cover" src={iconUrl} alt="" draggable={false} />}
+      {full && full.mode === "contain" && iconUrl && (
+        <div className="key-icon">
+          <img src={iconUrl} width={full.iconPx} height={full.iconPx} alt="" draggable={false} style={{ objectFit: "contain", pointerEvents: "none" }} />
+        </div>
+      )}
+      {full && full.mode === "center" && (
+        <div className="key-icon">
+          <Icon icon={icon} size={full.iconPx} />
+        </div>
+      )}
+      {full && full.overlayLabel && label && (
+        <div className="key-full-label" style={{ padding: `0 ${0.08 * side}px ${0.08 * side}px`, fontSize: Math.max(11, 0.13 * side) }}>
+          <span>{label}</span>
+        </div>
+      )}
+      {!full && icon && (
         <div className="key-icon" style={label ? { transform: `translateY(${-0.07 * side}px)` } : undefined}>
           <Icon icon={icon} size={Math.round(0.46 * side)} bitmapSize={Math.round((label ? 0.52 : 0.62) * side)} />
         </div>
       )}
-      {label && icon && (
+      {!full && label && icon && (
         <div className="key-label" style={{ left: labelPad, right: labelPad, bottom: labelPad, fontSize: Math.max(11, 0.14 * side) }}>
           {label}
         </div>
@@ -174,12 +205,12 @@ export default function Key({ actionId, onTap, onPressed, confirm, icon, label, 
         </div>
       )}
       {chevron && (
-        <div className="key-chevron" style={{ top: 0.04 * side, right: 0.07 * side, fontSize: 0.14 * side }} aria-hidden="true">
+        <div className={full ? "key-chevron on-disc" : "key-chevron"} style={full ? discStyle(side, 0.14) : { top: 0.04 * side, right: 0.07 * side, fontSize: 0.14 * side }} aria-hidden="true">
           ›
         </div>
       )}
       {dots && (
-        <div className="key-chevron" style={{ top: 0.04 * side, right: 0.07 * side, fontSize: 0.12 * side, letterSpacing: "0.05em" }} aria-hidden="true">
+        <div className={full ? "key-chevron on-disc" : "key-chevron"} style={full ? { ...discStyle(side, 0.12), letterSpacing: "0.05em" } : { top: 0.04 * side, right: 0.07 * side, fontSize: 0.12 * side, letterSpacing: "0.05em" }} aria-hidden="true">
           •••
         </div>
       )}

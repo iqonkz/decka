@@ -45,7 +45,7 @@
         "notifications": { "type": "array", "maxItems": 20, "items": { "$ref": "#/$defs/Notification" } },
         "vars": { "type": "object", "propertyNames": { "pattern": "^[a-z0-9_.-]{1,64}$" }, "additionalProperties": { "$ref": "#/$defs/VarValue" } },
         "icons": { "type": "object", "maxProperties": 200, "propertyNames": { "pattern": "^[0-9a-f]{16}$" },
-          "additionalProperties": { "type": "string", "pattern": "^data:image/(png|svg\\+xml);base64,", "maxLength": 32768 } },
+          "additionalProperties": { "type": "string", "pattern": "^data:image/(png|svg\\+xml);base64,", "maxLength": 131072 } },
         "focus": { "oneOf": [ { "$ref": "#/$defs/FocusInfo" }, { "type": "null" } ] },
         "media": { "oneOf": [ { "$ref": "#/$defs/MediaInfo" }, { "type": "null" } ] } } },
     "FocusInfo": { "type": "object", "required": ["app"],

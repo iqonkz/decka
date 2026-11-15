@@ -95,3 +95,19 @@ fn forty_items_per_page_are_allowed_forty_one_are_not() {
     assert_eq!(count(40), 0);
     assert_eq!(count(41), 1);
 }
+
+#[test]
+fn key_face_must_be_standard_or_full() {
+    let item = |face: &str| json!([{ "id": "b", "kind": "button", "x": 0, "y": 0, "w": 1, "h": 1, "actionId": "lock", "face": face, "showLabel": false }]);
+    assert!(paths(5, 3, item("full")).is_empty());
+    assert_eq!(paths(5, 3, item("standard")), Vec::<String>::new());
+    assert_eq!(paths(5, 3, item("huge")), ["/pages/0/items/0/face"]);
+
+    let mut l = layout(5, 3, button(0, 0)).unwrap();
+    l.display.key_face = Some("huge".into());
+    let p: Vec<String> = validate_layout(&l, &default_actions()).into_iter().map(|i| i.path).collect();
+    assert_eq!(p, ["/display/keyFace"]);
+    l.display.key_face = Some("full".into());
+    l.display.key_labels = Some(false);
+    assert!(validate_layout(&l, &default_actions()).is_empty());
+}

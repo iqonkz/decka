@@ -53,7 +53,11 @@ export default function EditorCanvas({ layout, page, selectedId, availableWidth,
 
   const icons = useIconPreviews(page);
 
-  const data: DeckData = useMemo(() => ({ ...EMPTY_DATA, online: true, sys: SAMPLE_SYS, icons }), [icons]);
+  const { keyFace, keyLabels } = layout.display;
+  const data: DeckData = useMemo(
+    () => ({ ...EMPTY_DATA, online: true, sys: SAMPLE_SYS, icons, ...(keyFace !== undefined ? { keyFace } : {}), ...(keyLabels !== undefined ? { keyLabels } : {}) }),
+    [icons, keyFace, keyLabels],
+  );
   const noop = useMemo(() => ({ onPress: () => Promise.resolve(), onPressError: () => {}, onNavigate: () => {}, onDismiss: () => {} }), []);
 
   const px = (cell: number, offset: number) => (offset + cell * (m.side + m.gap)) * scale;

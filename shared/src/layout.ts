@@ -23,7 +23,10 @@ export interface DisplaySettings {
   theme?: ThemeId;        // M13: DESIGN.md 1; absent = "amoled"; new installs get "studio"
   accent?: string;        // M13: "#rrggbb", accent of the Material theme and of the settings window; absent = "#7c5cff"
   wallpaper?: WallpaperId; // M13: Glass theme only; absent = "aurora"
+  keyFace?: KeyFace;       // M14: key style by default, DESIGN.md 2.1; absent = "standard"
+  keyLabels?: boolean;     // M14: show the labels of keys by default; absent = true
 }
+export type KeyFace = "standard" | "full";
 export type ThemeId = "amoled" | "studio" | "material" | "glass";
 export type WallpaperId = "aurora" | "sunset" | "ocean" | "graphite" | "album";
 
@@ -37,6 +40,8 @@ export interface ButtonItem extends ItemBase, ButtonLook {
   popup?: Id;             // M13: id of a popup page (`popup: true`)
   confirm?: boolean;      // true = press by holding 800 ms
   bind?: { var: VarName; states: Record<string, ButtonLook> }; // key = String(variable value)
+  face?: KeyFace;         // M14: overrides display.keyFace for this key
+  showLabel?: boolean;    // M14: overrides display.keyLabels; the label shows when it is not empty and (showLabel ?? display.keyLabels ?? true)
 }
 export interface ClockItem    extends ItemBase { kind: "clock"; seconds?: boolean; }
 export interface SysItem      extends ItemBase { kind: "sys"; }

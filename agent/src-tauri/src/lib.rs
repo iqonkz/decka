@@ -65,6 +65,8 @@ pub fn run() {
             commands::is_first_run,
             commands::list_installed_apps,
             commands::describe_program,
+            commands::refresh_program_icons,
+            commands::count_lowres_icons,
             commands::list_window_apps,
             commands::get_templates,
             commands::add_template,
