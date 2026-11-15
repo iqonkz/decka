@@ -12,8 +12,12 @@ describe("colorVars", () => {
     // #2563eb = 37,99,235: +12% towards white, -18% towards black
     expect(colorVars("#2563eb")).toEqual({
       "--c": "#2563eb",
-      "--c-top": "rgb(63,118,237)",
-      "--c-bottom": "rgb(30,81,193)",
+      "--c-on": "#ffffff",
+      "--c-on-shadow": "0 1px 2px rgba(0,0,0,0.9)",
+      // 12% lighter / 18% darker would be #3f76ed / #1e51c1; that is a mid tone where no label reaches 4.5:1,
+      // so the face is darkened until a white label does.
+      "--c-top": "#3b6fdf",
+      "--c-bottom": "#1c4cb5",
       "--c-a16": "rgba(37,99,235,0.16)",
       "--c-a30": "rgba(37,99,235,0.30)",
       "--c-a32": "rgba(37,99,235,0.32)",
@@ -24,7 +28,7 @@ describe("colorVars", () => {
 
   test("a colour darker than luminance 64 keeps a light ink; short hex works", () => {
     expect(colorVars("#202020")["--c-ink"]).toBe("#e5e5e5");
-    expect(colorVars("#fff")["--c-bottom"]).toBe("rgb(209,209,209)");
+    expect(colorVars("#fff")["--c-bottom"]).toBe("#d1d1d1");
     expect(parseHex("#abc")).toEqual([170, 187, 204]);
   });
 });

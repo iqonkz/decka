@@ -16,7 +16,11 @@
 [data-theme="studio"] .key.colored {
   background: linear-gradient(180deg, var(--c-top) 0%, var(--c-bottom) 100%);
   border-color: rgba(255, 255, 255, 0.18);
-  --ink: #ffffff;
+  /* white on dark colours, near-black on light ones (contrast >= 4.5) */
+  --ink: var(--c-on);
+  --label-color: var(--c-on);
+  --text-color: var(--c-on);
+  --label-shadow: var(--c-on-shadow);
 }
 [data-theme="studio"] .key.pressed,
 [data-theme="studio"] .key.confirming {

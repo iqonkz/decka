@@ -122,6 +122,13 @@
 - Результат на ПК (Chromium 157, headless): `backdrop-filter: url(#decka-glass)` поддерживается — полосы в `glass-probe-stripes-url.png` искажены; 28 клавиш ≈ 130–145 к/с. Слой преломления оставлен; на медленном устройстве клиент сам переходит в `reduced` (< 45 к/с, ключ `decka.glass.reduced.v1`).
 - Снимки тем (рендер в Chrome 915×412 @2x на тестовом агенте, не на телефоне): `.tmp\design\amoled.png`, `studio.png` (нажата первая клавиша), `material.png`, `material-green.png`, `glass-aurora.png`, `glass-reduced.png`.
 
+## T13.6–T13.11 — движение, вибрация, группы, Phosphor, редактор, вид окна, меню
+
+- DONE (автоматически): `swipeDecision`, `hapticFor` (каждая строка таблицы §3a и исключения), `placePopup`, правило 12 в TS и Rust (негативные тесты), `icon_from_svg` (допустимый SVG → `img:`; `<script>`, `onload=`, внешний `href` → `Unsupported SVG`; повтор → тот же hash), `visibleRows`, `moveItem`/`swapItems`/`resizeItem`/история, `planAppButtons`, `statusLine`, контраст (AMOLED, Studio, Material × 8 акцентов; Glass — см. BLOCKERS.md D-1); `is_first_run`. Итог: shared 93, ui 53, client 103, agent 69, `cargo test -p decka-core` зелёный; в `commands.rs` 26 команд.
+- Снимки в `.tmp\design\`: `final-<тема>-1..3.png` для четырёх тем (первая страница с данными, страница Dev, открытая группа), `final-glass-menu.png` (меню), `popup.png`, `swipe-mid*.png`, `editor.png`, `appearance.png`, `wizard-look.png`, `phosphor-<тема>.png`. Это рендеры в Chrome 915×412 @2x на тестовом агенте, не экран телефона.
+- PENDING (owner): всё это на телефоне A57 (отключён во время работы): вид и частота кадров четырёх тем, вибрация (APK установить не удалось — нет `adb`-устройства), жест удержания 1,2 с пальцем, свайп «за пальцем», группы, `album` при играющей музыке (`glass-album.png`), заставка (`final-saver.png`).
+- PENDING (owner): окно настроек в `npm run tauri dev` или из установщика: перетаскивание в редакторе (проверено в Chrome с подменой IPC: превью, наложение ячеек, выбор, ручка размера; сам drag мышью — не проверен), диалог мастера на чистом `DECKA_CONFIG_DIR`, вкладка Phosphor.
+
 ## T10.5 — настраиваемая сетка и обводка клавиш
 
 - DONE (A57 only — S9 PENDING (owner)): свежий агент с конфигурацией по умолчанию → снимок `.tmp\grid74.png`: 7 столбцов × 4 строки, у клавиш тонкая обводка, `Lock` с цветной подложкой и обводкой.

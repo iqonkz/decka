@@ -89,4 +89,12 @@ Run on a Galaxy S9 (or another Android 10+ phone) with the installed agent. Resu
 | T12.3 | Actions tab: `Launch a program` → `Choose installed app…` | `Loading installed apps…`, then a list with icons sorted by name; search narrows it; no `Uninstall …` entries |
 | T12.4 | Phone: a button with an `img:` icon, right after `Save` | The picture shows on the key within 1 s; an icon that is missing from the PC shows a square |
 | T12.5 | Pick an installed program; then select that action in a button with an empty icon; `Save` | `Program`, `Arguments` and `Working directory` are filled; the button gets the program's icon by itself; `From image…` accepts png/jpg/ico/bmp and `Clear` removes it |
+| T12.0 | Spotify playing; press `Play`, `Next`, `Prev` on the phone | The track pauses, skips, goes back; the agent log says `media … via session` |
+| T13.5 | Phone: Glass theme with the `aurora` and `album` wallpapers | Frosted keys over the wallpaper; with a playing track `album` shows its cover blurred; a slow phone drops to the lighter version |
+| T13.6a | Phone: touch keys, hold a `confirm` key, press an action that fails, swipe pages; turn Haptics off in the menu | A light tick per touch, a firmer one at the end of a hold, a double pulse on an error, a tick on a swipe; nothing with Haptics off |
+| T13.7 | Phone: tap the `Volume` key of `layout.popup.json` | A panel opens over the page; it closes after a press, on a tap outside, after 10 s, on a downward swipe; swipe and dots skip the group |
+| T13.8 | Layout tab: Icon → Phosphor tab, search, pick a weight, pick an icon; Save | The key shows the icon in the key colour on the phone in all four looks |
+| T13.9 | Layout tab: drag a program from `Apps` onto an empty cell; drag a key onto another; drag a widget corner; Ctrl+Z, Ctrl+Y, Ctrl+S | A key with the program's icon appears, keys swap, the widget grows, undo and redo work, `Unsaved changes` goes away after Ctrl+S |
+| T13.10 | Start with an empty `DECKA_CONFIG_DIR` | The guide opens: pair, pick a look, tick programs; they appear as buttons on the first page |
+| T13.11 | Phone: hold an empty spot for 1.2 s | A ring fills, then the menu opens with the connection, switches, Reload and Unpair; the five taps in the corner do nothing |
 | T9.1 | Look at the launcher icon of the APK | It is the Capacitor template icon — replace before a public release (owner) |

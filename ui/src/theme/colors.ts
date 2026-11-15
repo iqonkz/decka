@@ -1,3 +1,5 @@
+import { hexOfRgb, readableFace } from "./contrast";
+
 /** Accent colour when the layout names none (DATA_MODEL.md 3.1). */
 export const DEFAULT_ACCENT = "#7c5cff";
 
@@ -30,10 +32,14 @@ export function colorVars(color: string | undefined): Record<string, string> {
   const rgb = color ? parseHex(color) : null;
   if (!rgb || !color) return {};
   const [r, g, b] = rgb;
+  // The gradient of Studio/Glass; where the colour is a mid tone the face is darkened until its label is readable.
+  const face = readableFace(hexOfRgb(shade(rgb, 0.12)), hexOfRgb(shade(rgb, -0.18)));
   return {
     "--c": color,
-    "--c-top": `rgb(${shade(rgb, 0.12)})`,
-    "--c-bottom": `rgb(${shade(rgb, -0.18)})`,
+    "--c-on": face.label,
+    "--c-on-shadow": face.label === "#ffffff" ? "0 1px 2px rgba(0,0,0,0.9)" : "none",
+    "--c-top": face.top,
+    "--c-bottom": face.bottom,
     "--c-a16": `rgba(${r},${g},${b},0.16)`,
     "--c-a30": `rgba(${r},${g},${b},0.30)`,
     "--c-a32": `rgba(${r},${g},${b},0.32)`,

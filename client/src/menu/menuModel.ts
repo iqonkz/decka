@@ -1,0 +1,23 @@
+import type { ConnState } from "../store/store";
+
+/** How long a finger must stay on an empty spot to open the menu (DESIGN.md 4.3). */
+export const MENU_HOLD_MS = 1200;
+/** A finger that moves further than this while holding is a swipe, not a hold. */
+export const MENU_HOLD_SLOP_PX = 14;
+
+/** `Connected to DESKTOP · USB`, `Connected to DESKTOP · Wi-Fi` or `Offline`. */
+export function statusLine(conn: ConnState, via: "usb" | "lan" | null, agentName: string | null): string {
+  if (conn !== "online") return "Offline";
+  const route = via === "usb" ? " · USB" : via === "lan" ? " · Wi-Fi" : "";
+  return `Connected to ${agentName ?? "your PC"}${route}`;
+}
+
+/**
+ * A touch opens the menu only on empty space: not on a key, a widget, an open group, a toast or a dialog.
+ * `closest` is the element's `closest` function result for the selector of interactive parts.
+ */
+export const INTERACTIVE_SELECTOR = ".key, .tile, .popup-backdrop, .toasts, .dialog-backdrop, .menu-sheet, .menu-backdrop";
+
+export function isEmptySpot(target: EventTarget | null): boolean {
+  return typeof Element !== "undefined" && target instanceof Element && target.closest(INTERACTIVE_SELECTOR) === null;
+}

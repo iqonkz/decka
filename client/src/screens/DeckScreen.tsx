@@ -7,6 +7,9 @@ import Screensaver from "../display/Screensaver";
 import { usePixelShift } from "../display/pixelShift";
 import { applyTheme, GlassLayer, PageDots, resolveTheme } from "@decka/ui";
 import { loadReduced, measureFps, saveReduced, shouldReduce } from "../platform/glassPerf";
+import { hapticEvent, isHapticsEnabled, setHapticsEnabled } from "../platform/haptics";
+import PhoneMenu from "../menu/PhoneMenu";
+import { useMenuGesture } from "../menu/useMenuGesture";
 import PageStrip from "../deck/PageStrip";
 import PopupPanel from "../deck/PopupPanel";
 import { navigableIndices, navigablePosition } from "../deck/popup";
@@ -15,31 +18,6 @@ import PageHint from "../deck/PageHint";
 import { noteTouch, runContext, useAppState } from "../store/store";
 
 const CONTEXT_TICK_MS = 1000;
-const UNPAIR_TAPS = 5;
-const UNPAIR_WINDOW_MS = 3000;
-const UNPAIR_ZONE_VMIN = 12;
-
-/**
- * Five taps within 3 s in the top-left corner open the unpair dialog. Counted on `window` in the capture
- * phase by coordinates, so single taps still reach the tiles underneath.
- */
-function useUnpairGesture(onTrigger: () => void) {
-  useEffect(() => {
-    let taps: number[] = [];
-    const handler = (e: PointerEvent) => {
-      const zone = (Math.min(window.innerWidth, window.innerHeight) * UNPAIR_ZONE_VMIN) / 100;
-      if (e.clientX > zone || e.clientY > zone) return;
-      const now = Date.now();
-      taps = [...taps.filter((t) => now - t < UNPAIR_WINDOW_MS), now];
-      if (taps.length >= UNPAIR_TAPS) {
-        taps = [];
-        onTrigger();
-      }
-    };
-    window.addEventListener("pointerdown", handler, true);
-    return () => window.removeEventListener("pointerdown", handler, true);
-  }, [onTrigger]);
-}
 
 /**
  * Context pages (DATA_MODEL.md 6.1): remembers the last touch and re-evaluates once a second.
@@ -61,8 +39,14 @@ export default function DeckScreen() {
   const layout = useAppState((s) => s.state?.layout ?? null);
   const pageIndex = useAppState((s) => s.pageIndex);
   const [confirmUnpair, setConfirmUnpair] = useState(false);
-  const openUnpair = useCallback(() => setConfirmUnpair(true), []); // stable: the tap counter lives in the effect
-  useUnpairGesture(openUnpair);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [haptics, setHaptics] = useState(() => isHapticsEnabled());
+  const openMenu = useCallback(() => {
+    hapticEvent({ type: "menu" });
+    setMenuOpen(true);
+  }, []);
+  // A long press on empty space opens the menu (it replaces the old five taps in the corner).
+  const hold = useMenuGesture(openMenu, !menuOpen && !confirmUnpair);
   useContextPages();
   const display = layout?.display;
   const theme = resolveTheme(display);
@@ -110,6 +94,30 @@ export default function DeckScreen() {
         {popup && popupPage && <PopupPanel page={popupPage} anchor={popup.anchor} grid={layout.grid} />}
         <Toasts />
       </div>
+      {hold && (
+        <svg className="hold-ring" style={{ left: hold.x - 28, top: hold.y - 28 }} width="56" height="56" viewBox="0 0 56 56" aria-hidden="true">
+          <circle cx="28" cy="28" r="24" pathLength="100" />
+        </svg>
+      )}
+      {menuOpen && (
+        <PhoneMenu
+          reduced={reduced}
+          onToggleReduced={(value) => {
+            saveReduced(value);
+            setReduced(value);
+          }}
+          haptics={haptics}
+          onToggleHaptics={(value) => {
+            setHapticsEnabled(value);
+            setHaptics(value);
+          }}
+          onUnpair={() => {
+            setMenuOpen(false);
+            setConfirmUnpair(true);
+          }}
+          onClose={() => setMenuOpen(false)}
+        />
+      )}
       <DimOverlay mode={mode} dimLevel={layout.display.dimLevel} />
       {mode === "sleep" && <Screensaver />}
       {confirmUnpair && (

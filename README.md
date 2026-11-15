@@ -34,6 +34,21 @@ A browser also works for a quick try: open `http://<PC>:9247/` on the phone and 
 
 **Privacy.** Only the exe name of the active program is read and sent to your phone (`code.exe`); window titles are never read. From the media session only the title, artist, album, state, position and cover are taken. Both collectors can be switched off in `config.json`: `"collectors": { "focus": { "enabled": false }, "media": { "enabled": false } }`.
 
+## Looks
+
+Pick the look of the deck in **Appearance**; the phone changes within a second of **Save**. The same screen holds the accent colour, the wallpaper, switching to app pages, and dimming and the screen saver.
+
+- **AMOLED**: a black screen and thin outlines. The default for existing setups.
+- **Studio**: a hardware deck with shaded keys, depth and shadow. The default for new installs.
+- **Material**: tonal colours generated from your accent colour, with a rounder shape that morphs on press.
+- **Glass**: frosted glass over a wallpaper (aurora, sunset, ocean, graphite, or the cover of the current track). If the phone is too slow it drops to a lighter version by itself; **Reduce effects** in the phone menu switches it by hand.
+
+Screenshots will go to `docs/img/theme-amoled.png`, `theme-studio.png`, `theme-material.png` and `theme-glass.png`.
+
+A long press (1.2 s) on an empty spot of the phone screen opens the phone menu: the connection, **Reduce effects**, **Haptics**, **Reload** and **Unpair**. Keys can also give a short vibration; it is on by default and kept per phone.
+
+In **Layout** the preview is the real deck in the chosen look: drag a program, an action or a widget from the left onto a cell, drag keys to move or swap them, drag a corner to resize a widget, and use Ctrl+Z, Ctrl+Y and Ctrl+S. A key can open a popup group (a small panel of related keys) instead of, or after, running its action. For icons, **Phosphor** offers thousands of vector icons in six weights; they take the colour of the key.
+
 ## USB mode
 
 1. Install Android platform-tools (`adb`) and put it in `PATH` (or set the path in **Settings**). Decka does not bundle or download adb.
