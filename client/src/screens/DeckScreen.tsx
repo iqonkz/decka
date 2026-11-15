@@ -5,7 +5,7 @@ import DimOverlay from "../display/DimOverlay";
 import { useDisplayMode } from "../display/idle";
 import Screensaver from "../display/Screensaver";
 import { usePixelShift } from "../display/pixelShift";
-import { applyTheme, GlassLayer, PageDots, resolveTheme } from "@decka/ui";
+import { applyTheme, GlassLayer, PageDots, resolveTheme, useFrost } from "@decka/ui";
 import { loadReduced, measureFps, saveReduced, shouldReduce } from "../platform/glassPerf";
 import { hapticEvent, isHapticsEnabled, setHapticsEnabled } from "../platform/haptics";
 import PhoneMenu from "../menu/PhoneMenu";
@@ -72,6 +72,7 @@ export default function DeckScreen() {
       live = false;
     };
   }, [theme.theme]);
+  useFrost(theme.theme === "glass" && reduced); // position of the frosted wallpaper inside every key (DESIGN.md 1.4)
   const mode = useDisplayMode(layout?.display ?? null);
   const shift = usePixelShift(layout?.display.pixelShift === true);
   if (!layout) return null;
@@ -83,7 +84,7 @@ export default function DeckScreen() {
 
   return (
     <>
-      {theme.theme === "glass" && <GlassLayer wallpaper={theme.wallpaper} art={art} />}
+      {theme.theme === "glass" && <GlassLayer wallpaper={theme.wallpaper} art={art} frost={reduced} />}
       <div className={mode === "sleep" ? "deck asleep" : "deck"}>
         <div className="deck-inner" style={{ transform: `translate(${shift.x}px, ${shift.y}px)` }}>
           <PageStrip pages={layout.pages} pageIndex={pageIndex} grid={layout.grid} onCommit={setPage} />

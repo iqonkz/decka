@@ -13,16 +13,24 @@
   --key-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.45), inset 0 -1px 1px rgba(255, 255, 255, 0.08), 0 6px 18px rgba(0, 0, 0, 0.35);
   --glass-blur: url(#decka-glass) blur(16px) saturate(180%);
 }
-/* `reduced` (slow device or `Reduce effects`, D-2): no backdrop-filter at all - a solid light face over the dimmed
-   wallpaper; the edge, highlight and shadow stay. The wallpaper does not drift. */
+/* `reduced` (slow device or `Reduce effects`, D-2; DESIGN.md 1.4): no backdrop-filter at all. A key shows "frosted
+   glass": the pre-blurred picture of the wallpaper (`--frost-image`, set by GlassLayer), as large as the screen and
+   moved by minus the key's own position (`--frost-pos` / `--frost-size`, set by useFrost), under a light tone. The edge,
+   highlight and shadow stay. The wallpaper does not drift, so the frost lines up with it. */
 [data-theme="glass"][data-reduced="1"] .key,
 [data-theme="glass"][data-reduced="1"] .tile.panel {
-  background: rgba(255, 255, 255, 0.10);
+  background-color: transparent;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.08)), var(--frost-image, none);
+  background-size: 100% 100%, var(--frost-size, cover);
+  background-position: 0 0, var(--frost-pos, 0 0);
+  background-repeat: no-repeat;
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
 [data-theme="glass"][data-reduced="1"] .key.colored {
-  background: linear-gradient(var(--c-a32), var(--c-a32)), rgba(255, 255, 255, 0.10);
+  background-image: linear-gradient(var(--c-a32), var(--c-a32)), linear-gradient(rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.08)), var(--frost-image, none);
+  background-size: 100% 100%, 100% 100%, var(--frost-size, cover);
+  background-position: 0 0, 0 0, var(--frost-pos, 0 0);
 }
 [data-theme="glass"][data-reduced="1"] .wallpaper { animation: none; }
 /* The wallpaper shows through the deck. */
@@ -93,6 +101,9 @@
   z-index: 0;
   overflow: hidden;
   background-color: #05060a;
+  /* The pre-blurred picture of GlassLayer (a quarter of the screen), stretched with smoothing. */
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
   animation: wall-drift 240s linear infinite;
   pointer-events: none;
 }
@@ -108,28 +119,28 @@
   87.5%, 99.167% { transform: translate(2.1%, -2.1%); }
   100% { transform: translate(3%, 0); }
 }
-/* Dimming (D-1, DESIGN.md 1.5): a solid rgba(0,0,0,0.35) over the gradient, a child of the layer so it drifts with it.
-   `album` dims itself with brightness(0.55). */
-[data-theme="glass"] .wallpaper:not([data-wallpaper="album"])::before {
+/* The wallpaper normally is a canvas picture (GlassLayer + wallpaper.ts): blurred, dimmed (D-1) and noised in advance,
+   so nothing here is drawn per frame. Only when the canvas cannot be used (`data-status="failed"`) the plain CSS
+   gradients below take over, with the solid rgba(0,0,0,0.35) dimming layer (a child of the layer, so it drifts with it).
+   While the picture is being made (`pending`) the layer is just the dark base. Definitions: DESIGN.md 1.5, WALLPAPER_LAYERS. */
+[data-theme="glass"] .wallpaper[data-status="failed"]::before {
   content: "";
   position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.35);
   pointer-events: none;
 }
-[data-theme="glass"] .wallpaper[data-wallpaper="aurora"] {
+[data-theme="glass"] .wallpaper[data-status="failed"][data-wallpaper="aurora"],
+[data-theme="glass"] .wallpaper[data-status="failed"][data-wallpaper="album"] {
   background-image: radial-gradient(60% 80% at 15% 20%, #6d28d9 0%, transparent 60%), radial-gradient(50% 70% at 85% 30%, #0ea5e9 0%, transparent 60%), radial-gradient(70% 60% at 50% 100%, #10b981 0%, transparent 65%);
 }
-[data-theme="glass"] .wallpaper[data-wallpaper="sunset"] {
+[data-theme="glass"] .wallpaper[data-status="failed"][data-wallpaper="sunset"] {
   background-image: radial-gradient(60% 80% at 20% 30%, #f97316, transparent 60%), radial-gradient(60% 80% at 80% 20%, #db2777, transparent 60%), radial-gradient(80% 60% at 50% 100%, #7c3aed, transparent 65%);
 }
-[data-theme="glass"] .wallpaper[data-wallpaper="ocean"] {
+[data-theme="glass"] .wallpaper[data-status="failed"][data-wallpaper="ocean"] {
   background-image: radial-gradient(60% 80% at 20% 20%, #1d4ed8, transparent 60%), radial-gradient(60% 70% at 80% 60%, #0891b2, transparent 60%), radial-gradient(70% 60% at 40% 100%, #0f766e, transparent 65%);
 }
-[data-theme="glass"] .wallpaper[data-wallpaper="graphite"] {
+[data-theme="glass"] .wallpaper[data-status="failed"][data-wallpaper="graphite"] {
   background-image: radial-gradient(70% 90% at 30% 20%, #3f3f46, transparent 60%), radial-gradient(60% 80% at 80% 80%, #27272a, transparent 60%);
 }
-/* `album` (D-2): the cover of the current track, drawn once into a 24x24 canvas (already darkened) and stretched with
-   smoothing - a blur without `filter: blur()`. */
-.wallpaper-art { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: auto; }
 [data-theme="glass"] .deck-inner, [data-theme="glass"] .toasts { position: absolute; z-index: 1; }
