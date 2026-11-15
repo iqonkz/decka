@@ -146,7 +146,7 @@ export default function Key({ actionId, onTap, confirm, icon, label, color, side
     <div className={classes} style={keyStyle} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={cancel}>
       {icon && (
         <div className="key-icon" style={label ? { transform: `translateY(${-0.07 * side}px)` } : undefined}>
-          <Icon icon={icon} size={Math.round(0.46 * side)} />
+          <Icon icon={icon} size={Math.round((icon.startsWith("img:") ? 0.62 : 0.46) * side)} />
         </div>
       )}
       {label && icon && (

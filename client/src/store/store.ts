@@ -31,7 +31,7 @@ export interface AppState {
   lastError: string | null;
 }
 
-const SECTIONS: readonly string[] = ["layout", "sys", "statuses", "notifications", "vars", "focus", "media"];
+const SECTIONS: readonly string[] = ["layout", "sys", "statuses", "notifications", "vars", "focus", "media", "icons"];
 const MAX_TOASTS = 3;
 const DEFAULT_TOAST_MS = 8000;
 
@@ -84,7 +84,8 @@ export function subscribe(fn: () => void): () => void {
 }
 
 export function useAppState<T>(selector: (s: AppState) => T): T {
-  return useSyncExternalStore(subscribe, () => selector(current));
+  const snapshot = () => selector(current);
+  return useSyncExternalStore(subscribe, snapshot, snapshot); // the server snapshot lets components render to a string in tests
 }
 
 /** Test helper. */

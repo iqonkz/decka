@@ -1,6 +1,8 @@
 import { renderToString } from "react-dom/server";
 import { describe, expect, test } from "vitest";
+import type { FullState } from "@decka/shared";
 import Icon from "../src/deck/Icon";
+import { resetState, setState } from "../src/store/store";
 import { ICONS } from "../src/deck/icons";
 
 // DATA_MODEL.md 3.6
@@ -32,6 +34,21 @@ describe("Icon", () => {
     const square = render("lucide:square");
     for (const name of NAMES.filter((n) => n !== "square")) expect(render(`lucide:${name}`), name).not.toBe(square);
     expect(render("lucide:no-such-icon")).toBe(square);
+  });
+
+  test("img: shows the picture from the icons section, a square without an entry", () => {
+    const hash = "0123456789abcdef";
+    const url = "data:image/png;base64,iVBORw0KGgo=";
+    resetState();
+    setState({ state: { icons: { [hash]: url } } as unknown as FullState });
+    const html = render(`img:${hash}`);
+    expect(html).toContain("<img");
+    expect(html).toContain(url);
+    expect(html).toContain('width="40"');
+    expect(render("img:fedcba9876543210")).toBe(render("lucide:square"));
+    expect(render("img:XYZ")).toBe("");
+    resetState();
+    expect(render(`img:${hash}`)).toBe(render("lucide:square")); // no state at all
   });
 
   test("emoji renders a span, anything else nothing", () => {
