@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ActionsFile, LayoutFile, ValidationIssue } from "@decka/shared";
+import type { ActionsFile, ButtonItem, LayoutFile, LayoutItem, Page, ValidationIssue } from "@decka/shared";
 import { validateLayout } from "@decka/shared";
 import { call } from "../ipc";
 import Banner from "../ui/Banner";
@@ -13,7 +13,10 @@ import { useDragSession, type Cell } from "./useDragSession";
 import Palette from "./Palette";
 import ItemForm from "./itemForm";
 import { describeIssue, itemPath } from "./issueText";
-import { COLS_RANGE, movePage, newPageId, newPopupPage, removeItem, ROWS_RANGE, updateItem } from "./layoutOps";
+import { COLS_RANGE, DEFAULT_SIZE, fits, movePage, newItemId, newPageId, newPopupPage, removeItem, ROWS_RANGE, sizeRange, tapModePatch, updateItem } from "./layoutOps";
+import { resizeItem } from "./editorOps";
+import ContextMenu, { suppressNativeMenu, type MenuItem } from "../editor/ContextMenu";
+import { describeAction } from "../editor/describeAction";
 import { addButtonAt, type Choice } from "../editor/addButton";
 import QuickPicker from "../editor/QuickPicker";
 import PageApps from "./PageApps";
@@ -33,13 +36,23 @@ export default function LayoutTab() {
   const [pageIdx, setPageIdx] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   // The quick picker (DESIGN.md 4.5): the empty cell that was clicked and where it is on screen.
-  const [creating, setCreating] = useState<{ x: number; y: number; rect: DOMRect } | null>(null);
+  // `replaceId`: the picker changes the action of that button instead of adding one.
+  const [creating, setCreating] = useState<{ x: number; y: number; rect: DOMRect; replaceId?: string } | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [serverIssues, setServerIssues] = useState<ValidationIssue[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [templatesOpen, setTemplatesOpen] = useState(false);
+  // Autosave (DESIGN.md 4.6): `saved` / `savedActions` are what is on the PC; 600 ms after the last edit the difference is written.
+  const [savedActions, setSavedActions] = useState("");
+  const [savedFlash, setSavedFlash] = useState(false);
+  const [tick, setTick] = useState(0);
+  const savingRef = useRef(false);
+  const [menu, setMenu] = useState<{ x: number; y: number; items: MenuItem[] } | null>(null);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [clipboard, setClipboard] = useState<LayoutItem | null>(null);
+  const keysRef = useRef<(e: KeyboardEvent) => void>(() => {});
 
   // Drag and drop on pointer events (D-38) plus files dropped from Explorer (Tauri). The handlers are set below, once the data is loaded.
   const cellAtRef = useRef<(clientX: number, clientY: number) => Cell | null>(() => null);
@@ -82,7 +95,9 @@ export default function LayoutTab() {
     const fresh = await call("get_layout");
     setHist(newHistory(fresh));
     setSaved(JSON.stringify(fresh));
-    setActions(await call("get_actions"));
+    const acts = await call("get_actions");
+    setActions(acts);
+    setSavedActions(JSON.stringify(acts));
     setServerIssues([]);
     setMessage(null);
     setSelectedId(null);
@@ -106,35 +121,37 @@ export default function LayoutTab() {
     return () => observer.disconnect();
   }, [loaded]);
 
-  // Ctrl+Z / Ctrl+Y / Ctrl+S (text fields keep their own undo).
+  // The window has its own menus: no WebView2 menu (`Back`, `Refresh`, `Inspect`) over them.
+  useEffect(() => suppressNativeMenu(), []);
+
+  // Ctrl+Z / Ctrl+Y / Ctrl+S, Delete, F2, Ctrl+D, Ctrl+C / Ctrl+V (text fields keep their own keys).
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (!(e.ctrlKey || e.metaKey)) return;
-      const key = e.key.toLowerCase();
-      const typing = e.target instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
-      if (key === "s") {
-        e.preventDefault();
-        saveRef.current();
-      } else if (!typing && key === "z") {
-        e.preventDefault();
-        setHist((h) => (h ? (e.shiftKey ? redo(h) : undo(h)) : h));
-      } else if (!typing && key === "y") {
-        e.preventDefault();
-        setHist((h) => (h ? redo(h) : h));
-      }
-    };
+    const onKey = (e: KeyboardEvent) => keysRef.current(e);
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  useEffect(() => {
+    if (!savedFlash) return;
+    const timer = window.setTimeout(() => setSavedFlash(false), 1500);
+    return () => window.clearTimeout(timer);
+  }, [savedFlash]);
   const issues = useMemo(() => (layout && actions ? validateLayout(layout, actions) : []), [layout, actions]);
   const shownIssues = [...issues, ...serverIssues.filter((s) => !issues.some((i) => i.path === s.path && i.message === s.message))];
+
+  const dirty = layout !== null && actions !== null && (JSON.stringify(layout) !== saved || JSON.stringify(actions) !== savedActions);
+  useEffect(() => {
+    if (!dirty || shownIssues.length > 0) return;
+    const timer = window.setTimeout(() => saveRef.current(), 600);
+    return () => window.clearTimeout(timer);
+  }, [dirty, layout, actions, tick]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (error) return <Banner kind="error">{error}</Banner>;
   if (!layout || !actions) return <p>Loading…</p>;
 
-  const page = layout.pages[pageIdx] ?? layout.pages[0];
-  if (!page) return <Banner kind="error">The layout has no pages.</Banner>;
+  const firstPage = layout.pages[pageIdx] ?? layout.pages[0];
+  if (!firstPage) return <Banner kind="error">The layout has no pages.</Banner>;
+  const page: Page = firstPage; // a plain `Page` so that the helpers below need no checks
   const selected = page.items.find((i) => i.id === selectedId) ?? null;
   const badItems = new Set(
     shownIssues.map((i) => itemPath(i.path)).filter((p): p is [number, number] => p !== null && p[0] === pageIdx).map(([, n]) => page.items[n]?.id),
@@ -145,7 +162,6 @@ export default function LayoutTab() {
     setServerIssues([]);
     setMessage(null);
   };
-  const dirty = JSON.stringify(layout) !== saved;
   const step = (change: (h: History<LayoutFile>) => History<LayoutFile>) => {
     setHist((h) => (h ? change(h) : h));
     setServerIssues([]);
@@ -192,19 +208,32 @@ export default function LayoutTab() {
     setPageIdx(Math.min(layout!.pages.length - 1, Math.max(0, pageIdx + delta)));
   }
 
+  /** Writes what changed: the actions first, then the layout (DESIGN.md 4.6). An error stays at the fields; the history is kept. */
   async function save() {
-    if (shownIssues.length > 0) return;
-    const result = await call("save_layout", { layout: layout! });
-    if (result.ok) {
-      setServerIssues([]);
-      setMessage("Saved");
-      setSaved(JSON.stringify(layout));
-    } else {
-      setServerIssues(result.issues);
-      setMessage(null);
+    if (savingRef.current || shownIssues.length > 0) return;
+    const layoutNow = layout!;
+    const actionsNow = actions!;
+    savingRef.current = true;
+    try {
+      if (JSON.stringify(actionsNow) !== savedActions) {
+        const r = await call("save_actions", { actions: actionsNow });
+        if (!r.ok) return setServerIssues(r.issues);
+        setSavedActions(JSON.stringify(actionsNow));
+      }
+      if (JSON.stringify(layoutNow) !== saved) {
+        const result = await call("save_layout", { layout: layoutNow });
+        if (!result.ok) return setServerIssues(result.issues);
+        setServerIssues([]);
+        setSaved(JSON.stringify(layoutNow));
+      }
+      setSavedFlash(true);
+    } catch (e) {
+      setNotice(String(e));
+    } finally {
+      savingRef.current = false;
+      setTick((n) => n + 1); // edits made while saving are picked up
     }
-  }
-  saveRef.current = () => void save();
+  }  saveRef.current = () => void save();
 
   /**
    * Puts `choice` on cell (x, y) of the current page (DESIGN.md 4.5): takes the program's icon, saves a new action first,
@@ -225,18 +254,32 @@ export default function LayoutTab() {
     return { layout: made.layout, actions: made.actions, itemId: made.itemId };
   }
 
-  /** The quick picker's choice becomes a button on the clicked cell, selected, with its properties open. */
+  /** The quick picker's choice becomes a button on the clicked cell, selected, with its properties open; or the new action of a button. */
   async function choose(choice: Choice) {
     if (!creating) return;
     setNotice(null);
+    if (creating.replaceId) {
+      const old = page!.items.find((i) => i.id === creating.replaceId);
+      if (!old || old.kind !== "button") return setCreating(null);
+      // Build the choice on a page without the old key, then move its action (and its name, when that was automatic) over.
+      const without: LayoutFile = { ...layout!, pages: layout!.pages.map((p, i) => (i === pageIdx ? removeItem(p, old.id) : p)) };
+      const made = await addChoice(without, actions!, { x: old.x, y: old.y }, choice);
+      if ("error" in made) return setNotice(made.error);
+      const fresh = made.layout.pages[pageIdx]!.items.at(-1) as ButtonItem;
+      const oldAction = old.actionId ? actions!.actions[old.actionId] : undefined;
+      const automatic = !old.label || old.label === oldAction?.name.slice(0, 24);
+      applyActions(made.actions);
+      setPage(updateItem(page!, old.id, { actionId: fresh.actionId, ...(automatic ? { label: fresh.label, icon: fresh.icon } : {}), ...(fresh.confirm ? { confirm: true } : {}) } as Partial<LayoutItem>));
+      setSelectedId(old.id);
+      return setCreating(null);
+    }
     const made = await addChoice(layout!, actions!, creating, choice);
     if ("error" in made) return setNotice(made.error);
-    setActions(made.actions);
+    applyActions(made.actions);
     edit(made.layout);
     setSelectedId(made.itemId);
     setCreating(null);
   }
-
   /** `.exe` / `.lnk` files dropped from Explorer: each becomes a button in the cell under the pointer or the nearest free one. */
   async function dropFiles(paths: string[], cell: Cell | null) {
     if (!cell || !page) return;
@@ -266,7 +309,7 @@ export default function LayoutTab() {
       lastId = made.itemId;
     }
     if (lastId) {
-      setActions(acts);
+      applyActions(acts);
       edit(lay);
       setSelectedId(lastId);
       setCreating(null);
@@ -285,11 +328,210 @@ export default function LayoutTab() {
     const choice: Choice = payload.type === "widget" ? { type: "widget", kind: payload.kind } : payload.type === "action" ? { type: "action", actionId: payload.actionId } : { type: "app", app: payload.app };
     const made = await addChoice(layout!, actions!, { x, y }, choice);
     if ("error" in made) return setNotice(made.error);
-    setActions(made.actions);
+    applyActions(made.actions);
     edit(made.layout);
     setSelectedId(made.itemId);
     setCreating(null);
   }
+  const applyActions = (a: ActionsFile) => {
+    setActions(a);
+    setSavedActions(JSON.stringify(a)); // addChoice saved them already
+  };
+  const patchItem = (id: string, patch: Record<string, unknown>) => setPage(updateItem(page, id, patch as Partial<LayoutItem>));
+  const deleteItem = (id: string) => {
+    setPage(removeItem(page, id));
+    setSelectedId(null);
+  };
+  function duplicateItem(id: string) {
+    const item = page.items.find((i) => i.id === id);
+    if (!item) return;
+    const spot = nearestFreeCell(page, layout!.grid, item.x, item.y, item.w, item.h);
+    if (!spot) return setNotice("No free cell on this page");
+    const copy = { ...item, id: newItemId(item.kind), x: spot.x, y: spot.y } as LayoutItem;
+    setPage({ ...page, items: [...page.items, copy] });
+    setSelectedId(copy.id);
+  }
+  function pasteAt(cell: { x: number; y: number } | null) {
+    if (!clipboard) return;
+    const spot = nearestFreeCell(page, layout!.grid, cell?.x ?? clipboard.x, cell?.y ?? clipboard.y, clipboard.w, clipboard.h);
+    if (!spot) return setNotice("No free cell on this page");
+    const copy = { ...clipboard, id: newItemId(clipboard.kind), x: spot.x, y: spot.y } as LayoutItem;
+    setPage({ ...page, items: [...page.items, copy] });
+    setSelectedId(copy.id);
+  }
+  function makePopup(id: string) {
+    const item = page.items.find((i) => i.id === id);
+    if (!item || item.kind !== "button" || page.popup === true) return;
+    const group = newPopupPage(layout!.pages);
+    const patch = tapModePatch(item, item.actionId !== undefined ? "action-popup" : "popup", { firstActionId: undefined, firstPageId: undefined, firstPopupId: group.id });
+    edit({ ...layout!, pages: [...layout!.pages.map((p, i) => (i === pageIdx ? updateItem(p, id, patch as Partial<LayoutItem>) : p)), group] });
+    setSelectedId(id);
+  }
+  function goToPage(pageId: string | undefined) {
+    const i = layout!.pages.findIndex((p) => p.id === pageId);
+    if (i >= 0) {
+      setPageIdx(i);
+      setSelectedId(null);
+    }
+  }
+  async function testItem(item: ButtonItem) {
+    if (!item.actionId) return;
+    const r = await call("test_action", { actionId: item.actionId }).catch((e) => ({ ok: false, error: String(e) }));
+    setNotice(r.ok ? "Sent to the PC" : `Test failed: ${"error" in r && r.error ? r.error : "unknown error"}`);
+  }
+  async function refreshIcon(id: string, program: string) {
+    const r = await call("icon_from_program", { path: program }).catch(() => ({ error: "" }));
+    if ("icon" in r) patchItem(id, { icon: r.icon });
+    else setNotice("Cannot read the icon of this program");
+  }
+  function pickCustomColor(item: ButtonItem) {
+    const input = document.createElement("input");
+    input.type = "color";
+    input.value = item.color ?? "#7c5cff";
+    input.addEventListener("input", () => patchItem(item.id, { color: input.value }));
+    input.click();
+  }
+  const COLORS = ["#7c5cff", "#3b82f6", "#06b6d4", "#16a34a", "#eab308", "#f97316", "#ef4444", "#ec4899"];
+  const WIDGET_NAMES = { clock: "Clock", sys: "System", media: "Now playing", statuses: "Statuses", notifications: "Notifications" } as const;
+
+  /** The context menu of a key or widget (DESIGN.md 4.6). */
+  function itemMenu(item: LayoutItem, x: number, y: number) {
+    setSelectedId(item.id);
+    setCreating(null);
+    let items: MenuItem[];
+    if (item.kind === "button") {
+      const action = item.actionId ? actions!.actions[item.actionId] : undefined;
+      items = [
+        { label: "Change action…", icon: "lightning", onClick: () => setCreating({ x: item.x, y: item.y, rect: new DOMRect(x, y, 0, 0), replaceId: item.id }) },
+        { label: "Change icon…", icon: "image", onClick: () => document.querySelector(".item-form")?.scrollIntoView({ block: "start" }) },
+        { label: "Rename", icon: "pencil-simple", hint: "F2", onClick: () => setRenamingId(item.id) },
+        {
+          label: "Color",
+          icon: "palette",
+          separator: true,
+          submenu: [
+            ...COLORS.map((c) => ({ label: c, swatch: c, checked: item.color?.toLowerCase() === c, onClick: () => patchItem(item.id, { color: c }) })),
+            { label: "Custom…", onClick: () => pickCustomColor(item) },
+            { label: "Default", onClick: () => patchItem(item.id, { color: undefined }) },
+          ],
+        },
+        { label: "Ask before running", icon: "hand-palm", checked: item.confirm === true, onClick: () => patchItem(item.id, { confirm: item.confirm === true ? undefined : true }) },
+        { label: "Test on PC", icon: "play", separator: true, disabled: !item.actionId, onClick: () => void testItem(item) },
+        { label: "Duplicate", icon: "copy", hint: "Ctrl+D", onClick: () => duplicateItem(item.id) },
+        item.popup !== undefined
+          ? { label: "Edit popup group", icon: "squares-four", onClick: () => goToPage(item.popup) }
+          : { label: "Make popup group", icon: "squares-four", disabled: page.popup === true, onClick: () => makePopup(item.id) },
+        ...(action?.type === "launch" ? [{ label: "Refresh app icon", icon: "arrows-clockwise", onClick: () => void refreshIcon(item.id, action.program) }] : []),
+        { label: "Delete", icon: "trash", hint: "Del", danger: true, separator: true, onClick: () => deleteItem(item.id) },
+      ];
+    } else {
+      const [minW, maxW, minH, maxH] = sizeRange(item.kind, layout!.grid);
+      const sizes: MenuItem[] = [];
+      for (let w = minW; w <= maxW; w++)
+        for (let h = minH; h <= maxH; h++) {
+          sizes.push({
+            label: `${w}×${h}`,
+            checked: w === item.w && h === item.h,
+            onClick: () => {
+              const next = resizeItem(page, layout!.grid, item.id, w, h);
+              if (next) setPage(next);
+              else setNotice("Not enough free space for this size");
+            },
+          });
+        }
+      items = [
+        { label: "Settings…", icon: "gear", onClick: () => document.querySelector(".item-form")?.scrollIntoView({ block: "start" }) },
+        ...(sizes.length > 1 ? [{ label: "Size", icon: "arrows-out", submenu: sizes }] : []),
+        { label: "Duplicate", icon: "copy", hint: "Ctrl+D", onClick: () => duplicateItem(item.id) },
+        { label: "Delete", icon: "trash", hint: "Del", danger: true, separator: true, onClick: () => deleteItem(item.id) },
+      ];
+    }
+    setMenu({ x, y, items });
+  }
+
+  async function addWidget(kind: keyof typeof WIDGET_NAMES, cell: { x: number; y: number }) {
+    const made = await addChoice(layout!, actions!, cell, { type: "widget", kind });
+    if ("error" in made) return setNotice(made.error);
+    applyActions(made.actions);
+    edit(made.layout);
+    setSelectedId(made.itemId);
+  }
+
+  /** The context menu of an empty cell. */
+  function cellMenu(cell: { x: number; y: number }, x: number, y: number, rect: DOMRect) {
+    setSelectedId(null);
+    const fitting = (Object.keys(WIDGET_NAMES) as (keyof typeof WIDGET_NAMES)[]).filter((kind) => fits(page, layout!.grid, { x: cell.x, y: cell.y, w: DEFAULT_SIZE[kind].w, h: DEFAULT_SIZE[kind].h }));
+    setMenu({
+      x,
+      y,
+      items: [
+        { label: "Add button…", icon: "plus", onClick: () => setCreating({ ...cell, rect }) },
+        { label: "Add widget", icon: "squares-four", disabled: fitting.length === 0, submenu: fitting.map((kind) => ({ label: WIDGET_NAMES[kind], onClick: () => void addWidget(kind, cell) })) },
+        { label: "Paste", icon: "clipboard", hint: "Ctrl+V", disabled: clipboard === null, onClick: () => pasteAt(cell) },
+      ],
+    });
+  }
+
+  /** The context menu of a page tab. */
+  function pageMenu(index: number, x: number, y: number) {
+    setPageIdx(index);
+    setSelectedId(null);
+    const target = layout!.pages[index]!;
+    const many = layout!.pages.length;
+    setMenu({
+      x,
+      y,
+      items: [
+        { label: "Rename", icon: "pencil-simple", onClick: () => setRenaming(target.name) },
+        { label: "Move left", icon: "arrow-left", disabled: index === 0, onClick: () => { edit(movePage(layout!, index, -1)); setPageIdx(index - 1); } },
+        { label: "Move right", icon: "arrow-right", disabled: index === many - 1, onClick: () => { edit(movePage(layout!, index, 1)); setPageIdx(index + 1); } },
+        {
+          label: "Duplicate",
+          icon: "copy",
+          disabled: many >= 10,
+          onClick: () => {
+            const copy: Page = { ...target, id: newPageId(), name: `${target.name} copy`.slice(0, 30), items: target.items.map((i) => ({ ...i, id: newItemId(i.kind) }) as LayoutItem) };
+            edit({ ...layout!, pages: [...layout!.pages.slice(0, index + 1), copy, ...layout!.pages.slice(index + 1)] });
+            setPageIdx(index + 1);
+          },
+        },
+        { label: "Delete", icon: "trash", danger: true, separator: true, disabled: many <= 1, onClick: () => { setPageIdx(index); deletePage(); } },
+      ],
+    });
+  }
+
+  keysRef.current = (e) => {
+    const target = e.target;
+    const typing = target instanceof HTMLElement && (/^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName) || target.isContentEditable);
+    const ctrl = e.ctrlKey || e.metaKey;
+    const key = e.key.toLowerCase();
+    if (ctrl && key === "s") {
+      e.preventDefault();
+      return saveRef.current();
+    }
+    if (typing || menu || creating || renamingId) return;
+    if (ctrl && key === "z") {
+      e.preventDefault();
+      step(e.shiftKey ? redo : undo);
+    } else if (ctrl && key === "y") {
+      e.preventDefault();
+      step(redo);
+    } else if (ctrl && key === "d" && selected) {
+      e.preventDefault();
+      duplicateItem(selected.id);
+    } else if (ctrl && key === "c" && selected) {
+      setClipboard(selected);
+    } else if (ctrl && key === "v" && clipboard) {
+      e.preventDefault();
+      pasteAt(null);
+    } else if (e.key === "Delete" && selected) {
+      e.preventDefault();
+      deleteItem(selected.id);
+    } else if (e.key === "F2" && selected?.kind === "button") {
+      e.preventDefault();
+      setRenamingId(selected.id);
+    }
+  };
   dropRef.current = (payload, cell) => void dropOnCell(payload, cell.x, cell.y);
   clickRef.current = (payload) => {
     if (payload.type !== "item") return;
@@ -336,7 +578,7 @@ export default function LayoutTab() {
       <div className="row wrap">
         <div className="page-tabs">
           {layout.pages.map((p, i) => (
-            <button key={p.id} className={i === pageIdx ? "page-tab active" : "page-tab"} onClick={() => { setPageIdx(i); setSelectedId(null); setCreating(null); }}>
+            <button key={p.id} className={i === pageIdx ? "page-tab active" : "page-tab"} onClick={() => { setPageIdx(i); setSelectedId(null); setCreating(null); }} onContextMenu={(e) => pageMenu(i, e.clientX, e.clientY)}>
               {p.name}
               {p.popup === true && <span className="tag popup-tag">Popup</span>}
             </button>
@@ -381,13 +623,13 @@ export default function LayoutTab() {
       <div className="row wrap editor-toolbar">
         <Button onClick={() => step(undo)} disabled={!canUndo(hist!)} aria-label="Undo">↶ Undo</Button>
         <Button onClick={() => step(redo)} disabled={!canRedo(hist!)} aria-label="Redo">↷ Redo</Button>
-        {dirty && <span className="unsaved">Unsaved changes</span>}
         {badItems.size > 0 && <span className="muted">Items with problems are listed below.</span>}
       </div>
 
       <div className="editor">
         <Palette actions={actions} onBegin={session.begin} />
-        <div className="editor-main" ref={mainRef}>
+        <div className="editor-main" ref={mainRef} style={{ position: "relative" }}>
+          {savedFlash && <span className="saved-flag">Saved</span>}
           <EditorCanvas
             layout={layout}
             page={page}
@@ -399,6 +641,13 @@ export default function LayoutTab() {
             draggingId={session.dragging?.payload.type === "item" ? session.dragging.payload.id : null}
             cellAtRef={cellAtRef}
             onItemPointerDown={session.begin}
+            onItemContextMenu={(item, e) => itemMenu(item, e.clientX, e.clientY)}
+            onCellContextMenu={(x, y, e, rect) => cellMenu({ x, y }, e.clientX, e.clientY, rect)}
+            renamingId={renamingId}
+            onRename={(id, label) => {
+              setRenamingId(null);
+              if (label !== null) patchItem(id, { label: label === "" ? undefined : label });
+            }}
             onEmptyCell={(x, y, rect) => { setCreating({ x, y, rect }); setSelectedId(null); setNotice(null); }}
           />
           {notice && !creating && <p className="warn-text">{notice}</p>}
@@ -413,9 +662,10 @@ export default function LayoutTab() {
               actions={actions}
               onChange={(patch) => setPage(updateItem(page, selected.id, patch))}
               onDelete={() => { setPage(removeItem(page, selected.id)); setSelectedId(null); }}
+              onChangeAction={() => setCreating({ x: selected.x, y: selected.y, rect: new DOMRect(window.innerWidth / 2 - 180, window.innerHeight / 3, 0, 0), replaceId: selected.id })}
             />
           )}
-          {!selected && <p className="muted">Click an empty cell to add an app or action, drag programs from the left, drag keys to move or swap them, or click a key to edit it.</p>}
+          {!selected && <p className="muted">Select a key, or click an empty cell to add one.</p>}
         </div>
         </div>
       </div>
@@ -437,19 +687,11 @@ export default function LayoutTab() {
           </ul>
         </Banner>
       )}
-      {message && <Banner kind="success">{message}</Banner>}
 
-      <div className="row">
-        <Button variant="primary" disabled={shownIssues.length > 0} onClick={() => void save()}>
-          Save
-        </Button>
-        <Button onClick={() => void load()}>Revert</Button>
-        {dirty && <span className="unsaved">Unsaved changes</span>}
-        <span className="muted">Ctrl+S saves, Ctrl+Z / Ctrl+Y undo and redo.</span>
-      </div>
       {creating && (
-        <QuickPicker anchor={creating.rect} cell={creating} page={page} grid={layout.grid} actions={actions} onChoose={(c) => void choose(c)} onClose={() => setCreating(null)} />
+        <QuickPicker anchor={creating.rect} cell={creating} page={page} grid={layout.grid} actions={actions} hideWidgets={creating.replaceId !== undefined} onChoose={(c) => void choose(c)} onClose={() => setCreating(null)} />
       )}
+      {menu && <ContextMenu x={menu.x} y={menu.y} items={menu.items} onClose={() => setMenu(null)} />}
       {session.dragging && (
         <div className="drag-ghost" style={{ left: session.dragging.x + 12, top: session.dragging.y + 12 }}>
           {ghostLabel(session.dragging.payload)}

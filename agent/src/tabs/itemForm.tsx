@@ -3,6 +3,7 @@ import { call, navigate } from "../ipc";
 import IconField from "./IconField";
 import Button from "../ui/Button";
 import Field from "../ui/Field";
+import { describeAction } from "../editor/describeAction";
 import { normalPages, popupPages, sizeRange, TAP_MODE_LABELS, tapModeOf, tapModePatch, type Grid, type TapMode } from "./layoutOps";
 
 
@@ -64,28 +65,36 @@ interface Props {
   actions: ActionsFile;
   onChange: (patch: Partial<LayoutItem>) => void;
   onDelete: () => void;
+  /** Opens the quick picker to give this button another action. */
+  onChangeAction: () => void;
 }
 
-export default function ItemForm({ item, page, pages, grid, actions, onChange, onDelete }: Props) {
+const SWATCHES = ["#7c5cff", "#3b82f6", "#06b6d4", "#16a34a", "#eab308", "#f97316", "#ef4444", "#ec4899"];
+
+export default function ItemForm({ item, page, pages, grid, actions, onChange, onDelete, onChangeAction }: Props) {
   const [minW, maxW, minH, maxH] = sizeRange(item.kind, grid);
   const patch = (p: Record<string, unknown>) => onChange(p as Partial<LayoutItem>);
+  const position = (
+    <div className="grid-4">
+      <NumberSelect label="X" value={item.x} options={range(0, grid.cols - item.w)} onChange={(x) => patch({ x })} />
+      <NumberSelect label="Y" value={item.y} options={range(0, grid.rows - item.h)} onChange={(y) => patch({ y })} />
+      <NumberSelect label="W" value={item.w} options={range(minW, maxW)} onChange={(w) => patch({ w })} />
+      <NumberSelect label="H" value={item.h} options={range(minH, maxH)} onChange={(h) => patch({ h })} />
+    </div>
+  );
 
   return (
     <div className="item-form">
       <h3>
         {item.kind} <code>{item.id}</code>
       </h3>
-      <details className="advanced">
-        <summary>Advanced: position and size</summary>
-        <div className="grid-4">
-          <NumberSelect label="X" value={item.x} options={range(0, grid.cols - item.w)} onChange={(x) => patch({ x })} />
-          <NumberSelect label="Y" value={item.y} options={range(0, grid.rows - item.h)} onChange={(y) => patch({ y })} />
-          <NumberSelect label="W" value={item.w} options={range(minW, maxW)} onChange={(w) => patch({ w })} />
-          <NumberSelect label="H" value={item.h} options={range(minH, maxH)} onChange={(h) => patch({ h })} />
-        </div>
-      </details>
-
-      {item.kind === "button" && <ButtonFields item={item} pages={pages} inPopup={page.popup === true} actions={actions} patch={patch} />}
+      {item.kind === "button" && <ButtonFields item={item} pages={pages} inPopup={page.popup === true} actions={actions} patch={patch} onChangeAction={onChangeAction} position={position} />}
+      {item.kind !== "button" && (
+        <details className="advanced">
+          <summary>More options: position and size</summary>
+          {position}
+        </details>
+      )}
 
       {item.kind === "clock" && (
         <label className="check">
@@ -122,7 +131,7 @@ export default function ItemForm({ item, page, pages, grid, actions, onChange, o
   );
 }
 
-function ButtonFields({ item, pages, inPopup, actions, patch }: { item: ButtonItem; pages: Page[]; inPopup: boolean; actions: ActionsFile; patch: (p: Record<string, unknown>) => void }) {
+function ButtonFields({ item, pages, inPopup, actions, patch, onChangeAction, position }: { item: ButtonItem; pages: Page[]; inPopup: boolean; actions: ActionsFile; patch: (p: Record<string, unknown>) => void; onChangeAction: () => void; position: React.ReactNode }) {
   const mode = tapModeOf(item);
   const normal = normalPages(pages);
   const popups = popupPages(pages);
@@ -144,19 +153,33 @@ function ButtonFields({ item, pages, inPopup, actions, patch }: { item: ButtonIt
 
   return (
     <>
-      <Field label="Label">
+      <Field label="Name">
         <input value={item.label ?? ""} maxLength={24} onChange={(e) => patch({ label: e.target.value || undefined })} />
       </Field>
-      <Field label="Icon" hint="A Lucide icon, an emoji, the icon of the action's program, or a picture file.">
+      <Field label="Icon">
         <IconField value={item.icon} onChange={(icon) => patch({ icon })} program={launchProgram} />
       </Field>
+      <div className="does-row">
+        <span className="muted">Does:</span>
+        <strong title={describeAction(selectedAction)}>{describeAction(selectedAction)}</strong>
+        <Button onClick={onChangeAction}>Change</Button>
+      </div>
       <Field label="Color">
-        <div className="row">
-          <input type="color" value={item.color ?? "#1e1e24"} onChange={(e) => patch({ color: e.target.value })} />
-          <Button onClick={() => patch({ color: undefined })}>Clear</Button>
+        <div className="swatches">
+          {SWATCHES.map((c) => (
+            <button key={c} type="button" aria-label={`Color ${c}`} className={`swatch${item.color?.toLowerCase() === c ? " on" : ""}`} style={{ background: c }} onClick={() => patch({ color: c })} />
+          ))}
+          <input type="color" aria-label="Custom color" value={item.color ?? "#1e1e24"} onChange={(e) => patch({ color: e.target.value })} />
+          <Button onClick={() => patch({ color: undefined })}>Default</Button>
         </div>
       </Field>
+      <label className="check">
+        <input type="checkbox" checked={item.confirm === true} onChange={(e) => patch({ confirm: e.target.checked || undefined })} /> Ask before running
+      </label>
 
+      <details className="advanced">
+        <summary>More options</summary>
+        {position}
       <Field label="On tap" hint={inPopup ? "Keys inside a popup group can only run an action." : undefined}>
         <select
           value={mode}
@@ -195,9 +218,6 @@ function ButtonFields({ item, pages, inPopup, actions, patch }: { item: ButtonIt
               </button>
             </div>
           </Field>
-          <label className="check">
-            <input type="checkbox" checked={item.confirm === true} onChange={(e) => patch({ confirm: e.target.checked || undefined })} /> Hold to confirm
-          </label>
         </>
       )}
       {mode === "page" && (
@@ -251,6 +271,7 @@ function ButtonFields({ item, pages, inPopup, actions, patch }: { item: ButtonIt
           Add state
         </Button>
       </div>
+      </details>
     </>
   );
 }

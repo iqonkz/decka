@@ -35,6 +35,8 @@ interface Props {
   page: Page;
   grid: Grid;
   actions: ActionsFile;
+  /** Changing the action of a key: no widgets in the list. */
+  hideWidgets?: boolean;
   onChoose: (choice: Choice) => void;
   onClose: () => void;
 }
@@ -42,7 +44,7 @@ interface Props {
 type Mode = "list" | "website" | "keys";
 
 /** The quick picker (DESIGN.md 4.5): one popup next to an empty cell; one click on a row makes the button. */
-export default function QuickPicker({ anchor, cell, page, grid, actions, onChoose, onClose }: Props) {
+export default function QuickPicker({ anchor, cell, page, grid, actions, hideWidgets, onChoose, onClose }: Props) {
   const [query, setQuery] = useState("");
   const [apps, setApps] = useState<InstalledApp[] | null>(cachedApps());
   const [active, setActive] = useState(0);
@@ -71,12 +73,12 @@ export default function QuickPicker({ anchor, cell, page, grid, actions, onChoos
       .filter(([id, a]) => match(a.name) || match(id))
       .sort(([, a], [, b]) => a.name.localeCompare(b.name));
     for (const [id, a] of yours) out.push({ key: `action|${id}`, group: "Your actions", label: a.name, hint: defaultIconFor(a).replace("lucide:", ""), choice: { type: "action", actionId: id } });
-    for (const w of WIDGETS) {
+    for (const w of hideWidgets ? [] : WIDGETS) {
       const size = DEFAULT_SIZE[w.kind];
       if (match(w.name) && fits(page, grid, { x: cell.x, y: cell.y, w: size.w, h: size.h })) out.push({ key: `widget|${w.kind}`, group: "Widgets", label: w.name, hint: `${size.w}×${size.h}`, choice: { type: "widget", kind: w.kind } });
     }
     return out;
-  }, [apps, actions, query, page, grid, cell.x, cell.y]);
+  }, [apps, actions, query, page, grid, cell.x, cell.y, hideWidgets]);
 
   useEffect(() => setActive(0), [query]);
   useEffect(() => {

@@ -27,12 +27,20 @@ interface Props {
   cellAtRef: React.MutableRefObject<(clientX: number, clientY: number) => { x: number; y: number } | null>;
   /** A pointer went down on an item: the start of a click or a drag (pointer events, D-38). */
   onItemPointerDown: (payload: DragPayload, e: React.PointerEvent) => void;
+  /** Right click on a key or widget (the window's own menu, DESIGN.md 4.6). */
+  onItemContextMenu: (item: LayoutItem, e: React.MouseEvent) => void;
+  /** Right click on an empty cell; `rect` is where the cell is on screen. */
+  onCellContextMenu: (x: number, y: number, e: React.MouseEvent, rect: DOMRect) => void;
+  /** The key whose name is being edited on the key itself (F2 or `Rename`). */
+  renamingId: string | null;
+  /** The new name (`null` = cancelled). */
+  onRename: (id: string, label: string | null) => void;
   /** An empty cell was clicked; `rect` is where it is on screen (the quick picker opens next to it). */
   onEmptyCell: (x: number, y: number, rect: DOMRect) => void;
 }
 
 /** The deck as it looks on the phone, in the chosen theme, with drag and drop on top of it (DESIGN.md 4.4). */
-export default function EditorCanvas({ layout, page, selectedId, availableWidth, onSelect, onChangePage, hover, draggingId, cellAtRef, onItemPointerDown, onEmptyCell }: Props) {
+export default function EditorCanvas({ layout, page, selectedId, availableWidth, onSelect, onChangePage, hover, draggingId, cellAtRef, onItemPointerDown, onItemContextMenu, onCellContextMenu, renamingId, onRename, onEmptyCell }: Props) {
   const grid: GridSize = layout.grid;
   const scale = Math.max(0.2, Math.min(1, availableWidth / PHONE_W));
   const m = useMemo(() => gridMetrics({ w: PHONE_W, h: PHONE_H }, grid.cols, grid.rows), [grid.cols, grid.rows]);
@@ -90,6 +98,10 @@ export default function EditorCanvas({ layout, page, selectedId, availableWidth,
           className={`editor-cell${taken ? " taken" : " empty"}${hover && hover.x === x && hover.y === y ? (taken ? " over swap" : " over") : ""}`}
           style={rect(x, y, 1, 1)}
           onClick={(e) => (taken ? onSelect(taken.id) : onEmptyCell(x, y, e.currentTarget.getBoundingClientRect()))}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            if (!taken) onCellContextMenu(x, y, e, e.currentTarget.getBoundingClientRect());
+          }}
         >
           {!taken && (
             <span className="cell-plus">
@@ -139,7 +151,28 @@ export default function EditorCanvas({ layout, page, selectedId, availableWidth,
               className={`editor-item${selected ? " selected" : ""}${item.id === draggingId ? " dragging" : ""}`}
               style={rect(item.x, item.y, item.w, item.h)}
               onPointerDown={(e) => onItemPointerDown({ type: "item", id: item.id }, e)}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                onItemContextMenu(item, e);
+              }}
             >
+              {renamingId === item.id && item.kind === "button" && (
+                <input
+                  className="rename-input"
+                  autoFocus
+                  aria-label="Name"
+                  defaultValue={item.label ?? ""}
+                  maxLength={24}
+                  style={{ left: 2, right: 2, bottom: 2 }}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onFocus={(e) => e.currentTarget.select()}
+                  onBlur={(e) => onRename(item.id, e.currentTarget.value.trim())}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") onRename(item.id, e.currentTarget.value.trim());
+                    else if (e.key === "Escape") onRename(item.id, null);
+                  }}
+                />
+              )}
               {canResize && <span className="editor-handle" aria-label="Resize" onPointerDown={(e) => startResize(e, item)} onPointerUp={(e) => endResize(e, item)} />}
             </div>
           );
