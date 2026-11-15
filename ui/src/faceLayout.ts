@@ -44,4 +44,32 @@ export function isTileCorners(alphas: [number, number, number, number]): boolean
 }
 
 /** Opacity of the dark layer at the very bottom of the label gradient (DESIGN.md 2.1). */
-export const LABEL_GRADIENT_ALPHA = 0.72;
+export const LABEL_GRADIENT_ALPHA = 0.78;
+
+/** The stops of the label gradient, measured from the bottom of the key (the layer covers the whole key): [fraction, alpha]. */
+export const LABEL_GRADIENT_STOPS: ReadonlyArray<readonly [number, number]> = [
+  [0, 0.78],
+  [0.32, 0.6],
+  [0.62, 0],
+];
+
+/** CSS value of the label gradient, built from the stops so the test and the stylesheet cannot drift apart. */
+export const LABEL_GRADIENT_CSS = `linear-gradient(to top, ${LABEL_GRADIENT_STOPS.map(([at, a]) => `rgba(0,0,0,${a}) ${Math.round(at * 100)}%`).join(", ")})`;
+
+/** Opacity of the gradient at a distance `fromBottom` (0..1 of the key side) from the bottom edge. */
+export function labelGradientAlphaAt(fromBottom: number): number {
+  const s = LABEL_GRADIENT_STOPS;
+  if (fromBottom <= s[0]![0]) return s[0]![1];
+  for (let i = 1; i < s.length; i++) {
+    const [x0, a0] = s[i - 1]!;
+    const [x1, a1] = s[i]!;
+    if (fromBottom <= x1) return a0 + ((a1 - a0) * (fromBottom - x0)) / (x1 - x0);
+  }
+  return 0;
+}
+
+/** Where the top edge of the one-line label lies, as a fraction of the key side from the bottom: 0.08 padding + one line. */
+export function labelTopFromBottom(side: number): number {
+  const font = Math.max(11, 0.13 * side);
+  return (0.08 * side + 1.2 * font) / side;
+}

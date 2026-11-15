@@ -13,8 +13,6 @@ use crate::model::{LayoutFile, LayoutItem, ValidationIssue};
 pub const ICON_SIDE: u32 = 256;
 /// Smaller sides tried when the 256 px PNG does not fit `MAX_DATA_URL_CHARS`.
 pub const FALLBACK_SIDES: [u32; 2] = [192, 128];
-/// Icons narrower than this count as low-resolution (`count_lowres_icons`, `refresh_program_icons`).
-pub const SHARP_SIDE: u32 = 256;
 /// A data URL longer than this is refused.
 pub const MAX_DATA_URL_CHARS: usize = 131_072;
 const MAX_IMAGE_BYTES: u64 = 20 * 1024 * 1024;
@@ -294,6 +292,112 @@ pub fn png_size(png: &[u8]) -> Option<(u32, u32)> {
     Some((be(16), be(20)))
 }
 
+// ===== Icon clean-up (DATA_MODEL.md 8.1, "small icons") =====
+
+/// Version of the icon processing (trim, margin, frame cut). Icons stored by an older version are refreshed.
+pub const PROCESSING_VERSION: u32 = 2;
+/// Pixels with an alpha above this count as content when trimming.
+const CONTENT_ALPHA: u8 = 16;
+/// Share of the side kept free on every edge around the content.
+const CONTENT_MARGIN: f32 = 0.06;
+
+/// Side of the box the trimmed content is fitted into: the canvas minus a 6% margin on each edge.
+pub fn inner_side(side: u32) -> u32 {
+    side - 2 * (side as f32 * CONTENT_MARGIN).round() as u32
+}
+
+/// Bounding box `(x0, y0, x1, y1)` (end exclusive) of the pixels with alpha above 16; `None` when nothing is drawn.
+pub fn content_bounds(bgra: &[u8], w: u32, h: u32) -> Option<(u32, u32, u32, u32)> {
+    let (mut x0, mut y0, mut x1, mut y1) = (w, h, 0, 0);
+    for y in 0..h {
+        for x in 0..w {
+            if bgra[((y * w + x) * 4 + 3) as usize] > CONTENT_ALPHA {
+                x0 = x0.min(x);
+                y0 = y0.min(y);
+                x1 = x1.max(x + 1);
+                y1 = y1.max(y + 1);
+            }
+        }
+    }
+    (x1 > x0 && y1 > y0).then_some((x0, y0, x1, y1))
+}
+
+/// The part of the picture inside the box.
+pub fn crop_bgra(bgra: &[u8], w: u32, bounds: (u32, u32, u32, u32)) -> (Vec<u8>, u32, u32) {
+    let (x0, y0, x1, y1) = bounds;
+    let mut out = Vec::with_capacity(((x1 - x0) * (y1 - y0) * 4) as usize);
+    for y in y0..y1 {
+        out.extend_from_slice(&bgra[((y * w + x0) * 4) as usize..((y * w + x1) * 4) as usize]);
+    }
+    (out, x1 - x0, y1 - y0)
+}
+
+/// Thickness (0, 1 or 2 px) of a one-colour frame round the picture: every pixel of the outer ring has alpha above 200
+/// and the same colour (within 8 per channel). Such a frame is drawn by the Shell, not by the program.
+pub fn frame_width(bgra: &[u8], w: u32, h: u32) -> u32 {
+    let at = |x: u32, y: u32| &bgra[((y * w + x) * 4) as usize..((y * w + x) * 4 + 4) as usize];
+    let ring_is_flat = |t: u32, reference: &[u8]| -> bool {
+        if w <= 2 * t + 4 || h <= 2 * t + 4 {
+            return false;
+        }
+        let near = |p: &[u8]| p[3] > 200 && p[..3].iter().zip(&reference[..3]).all(|(a, b)| a.abs_diff(*b) <= 8);
+        (t..w - t).all(|x| near(at(x, t)) && near(at(x, h - 1 - t))) && (t..h - t).all(|y| near(at(t, y)) && near(at(w - 1 - t, y)))
+    };
+    let reference = at(0, 0).to_vec();
+    if reference[3] <= 200 || !ring_is_flat(0, &reference) {
+        return 0;
+    }
+    if ring_is_flat(1, &reference) { 2 } else { 1 }
+}
+
+/// Trims transparent margins; for a Shell image also cuts the Shell frame and trims again. A picture with nothing drawn
+/// is returned as it is.
+pub fn refine_icon(bgra: Vec<u8>, w: u32, h: u32, from_shell: bool) -> (Vec<u8>, u32, u32) {
+    let Some(bounds) = content_bounds(&bgra, w, h) else { return (bgra, w, h) };
+    let (mut px, mut pw, mut ph) = crop_bgra(&bgra, w, bounds);
+    if from_shell {
+        let f = frame_width(&px, pw, ph);
+        if f > 0 {
+            let inner = crop_bgra(&px, pw, (f, f, pw - f, ph - f));
+            (px, pw, ph) = inner;
+            if let Some(b) = content_bounds(&px, pw, ph) {
+                (px, pw, ph) = crop_bgra(&px, pw, b);
+            }
+        }
+    }
+    (px, pw, ph)
+}
+
+fn index_path(config_dir: &Path) -> PathBuf {
+    icons_dir(config_dir).join("index.json")
+}
+
+fn read_index(config_dir: &Path) -> BTreeMap<String, u32> {
+    std::fs::read(index_path(config_dir)).ok().and_then(|b| serde_json::from_slice(&b).ok()).unwrap_or_default()
+}
+
+/// Serialises read-modify-write of `index.json` (icons are made on blocking threads).
+static INDEX_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+/// Remembers that the file of `icon` (`img:<hash16>`) was made by the current processing version.
+pub fn mark_current(config_dir: &Path, icon: &str) {
+    let Some(hash) = img_hash(icon) else { return };
+    let _guard = INDEX_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let mut index = read_index(config_dir);
+    if index.get(hash) == Some(&PROCESSING_VERSION) {
+        return;
+    }
+    index.insert(hash.to_string(), PROCESSING_VERSION);
+    if let Ok(text) = serde_json::to_vec(&index) {
+        let _ = std::fs::write(index_path(config_dir), text);
+    }
+}
+
+/// Whether the file of `hash` was made by the current processing version.
+fn is_current(index: &BTreeMap<String, u32>, hash: &str) -> bool {
+    index.get(hash).is_some_and(|v| *v >= PROCESSING_VERSION)
+}
+
 /// Tries `render(side)` for 256, 192 and 128 px until the PNG fits the data URL limit, then stores it.
 pub fn save_first_that_fits(config_dir: &Path, mut render: impl FnMut(u32) -> Result<Vec<u8>, String>) -> Result<String, String> {
     for side in std::iter::once(ICON_SIDE).chain(FALLBACK_SIDES) {
@@ -310,7 +414,11 @@ pub fn icon_from_program(config_dir: &Path, path: &str) -> Result<String, String
     #[cfg(windows)]
     {
         let (dir, path) = (config_dir.to_path_buf(), path.to_string());
-        crate::sta::run(move || save_first_that_fits(&dir, |side| win::program_png(&path, side)))?
+        crate::sta::run(move || {
+            let icon = save_first_that_fits(&dir, |side| win::program_png(&path, side))?;
+            mark_current(&dir, &icon);
+            Ok(icon)
+        })?
     }
     #[cfg(not(windows))]
     {
@@ -319,10 +427,11 @@ pub fn icon_from_program(config_dir: &Path, path: &str) -> Result<String, String
     }
 }
 
-/// The buttons whose icon is a stored PNG narrower than 256 px and whose action launches a program:
-/// `(page index, item index, program)`. Those are the ones `refresh_program_icons` can sharpen.
+/// The buttons whose icon is a stored PNG made before the current processing version (`index.json`) and whose action
+/// launches a program: `(page index, item index, program)`. Those are the ones `refresh_program_icons` can redo.
 pub fn lowres_launch_buttons(config_dir: &Path, layout: &LayoutFile, actions: &crate::model::ActionsFile) -> Vec<(usize, usize, String)> {
     let dir = icons_dir(config_dir);
+    let index = read_index(config_dir);
     let mut out = Vec::new();
     for (pi, page) in layout.pages.iter().enumerate() {
         for (ii, item) in page.items.iter().enumerate() {
@@ -330,8 +439,10 @@ pub fn lowres_launch_buttons(config_dir: &Path, layout: &LayoutFile, actions: &c
             let Some(hash) = b.icon.as_deref().and_then(img_hash) else { continue };
             let Some(crate::model::Action::Launch { program, .. }) = b.action_id.as_ref().and_then(|id| actions.actions.get(id)) else { continue };
             // An SVG icon has no .png file and is left alone.
-            let Ok(bytes) = std::fs::read(dir.join(format!("{hash}.png"))) else { continue };
-            if png_size(&bytes).is_some_and(|(w, h)| w.max(h) < SHARP_SIDE) {
+            if !dir.join(format!("{hash}.png")).exists() {
+                continue;
+            }
+            if !is_current(&index, hash) {
                 out.push((pi, ii, program.clone()));
             }
         }
@@ -372,7 +483,11 @@ pub fn icon_from_image(config_dir: &Path, path: &str) -> Result<String, String> 
         }
         let bytes = std::fs::read(path).map_err(|e| format!("cannot read the file: {e}"))?;
         let dir = config_dir.to_path_buf();
-        crate::sta::run(move || save_first_that_fits(&dir, |side| win::picture_png(&bytes, side)))?
+        crate::sta::run(move || {
+            let icon = save_first_that_fits(&dir, |side| win::picture_png(&bytes, side))?;
+            mark_current(&dir, &icon);
+            Ok(icon)
+        })?
     }
     #[cfg(not(windows))]
     {
@@ -388,9 +503,10 @@ pub(crate) mod win {
     use windows::core::HSTRING;
     use windows::Graphics::Imaging::BitmapAlphaMode;
     use windows::Win32::Foundation::SIZE;
-    use windows::Win32::Graphics::Gdi::{DeleteObject, GetDC, GetDIBits, GetObjectW, ReleaseDC, BITMAP, BITMAPINFO, BITMAPINFOHEADER, BI_RGB, DIB_RGB_COLORS, HGDIOBJ};
+    use windows::Win32::Graphics::Gdi::{DeleteObject, GetDC, GetDIBits, GetObjectW, ReleaseDC, BITMAP, BITMAPINFO, BITMAPINFOHEADER, BI_RGB, DIB_RGB_COLORS, HBITMAP, HGDIOBJ};
     use windows::Win32::System::Com::IBindCtx;
-    use windows::Win32::UI::Shell::{IShellItemImageFactory, SHCreateItemFromParsingName, SIIGBF_ICONONLY};
+    use windows::Win32::UI::Shell::{IShellItemImageFactory, SHCreateItemFromParsingName, SHDefExtractIconW, SIIGBF_ICONONLY};
+    use windows::Win32::UI::WindowsAndMessaging::{DestroyIcon, GetIconInfo, HICON, ICONINFO};
 
     use super::{blit_centered, fit_into};
     use crate::imaging;
@@ -399,13 +515,10 @@ pub(crate) mod win {
         format!("{what}: {}", e.message())
     }
 
-    /// BGRA (premultiplied) pixels, width and height of the Shell icon of `path` at `size` px.
-    pub fn shell_icon_bgra(path: &str, size: i32) -> Result<(Vec<u8>, u32, u32), String> {
-        let wide = HSTRING::from(path);
-        // SAFETY: plain Shell/GDI calls; every handle created here is released before returning.
+    /// Reads (and deletes) a GDI bitmap as top-down 32-bit BGRA pixels.
+    fn read_bitmap(hbitmap: HBITMAP) -> Result<(Vec<u8>, u32, u32), String> {
+        // SAFETY: plain GDI calls; the bitmap is deleted before returning, the device context is released.
         unsafe {
-            let factory: IShellItemImageFactory = SHCreateItemFromParsingName(&wide, None::<&IBindCtx>).map_err(|e| err("cannot open the file", e))?;
-            let hbitmap = factory.GetImage(SIZE { cx: size, cy: size }, SIIGBF_ICONONLY).map_err(|e| err("the file has no icon", e))?;
             let object = HGDIOBJ(hbitmap.0);
             let mut bitmap = BITMAP::default();
             if GetObjectW(object, std::mem::size_of::<BITMAP>() as i32, Some(&mut bitmap as *mut BITMAP as *mut c_void)) == 0 {
@@ -433,41 +546,96 @@ pub(crate) mod win {
             if lines == 0 {
                 return Err("cannot read the icon pixels".to_string());
             }
-            // Icons without an alpha channel come back fully transparent: make them opaque.
-            if pixels.chunks_exact(4).all(|p| p[3] == 0) {
-                pixels.chunks_exact_mut(4).for_each(|p| p[3] = 255);
-            }
             Ok((pixels, w as u32, h as u32))
         }
     }
 
-    /// `side` x `side` PNG of the Shell icon of a program.
+    /// Icons without an alpha channel come back fully transparent: make them opaque.
+    fn opaque_if_no_alpha(pixels: &mut [u8]) {
+        if pixels.chunks_exact(4).all(|p| p[3] == 0) {
+            pixels.chunks_exact_mut(4).for_each(|p| p[3] = 255);
+        }
+    }
+
+    /// BGRA (premultiplied) pixels, width and height of the Shell icon of `path` at `size` px.
+    pub fn shell_icon_bgra(path: &str, size: i32) -> Result<(Vec<u8>, u32, u32), String> {
+        let wide = HSTRING::from(path);
+        // SAFETY: plain Shell calls; the bitmap is handed to `read_bitmap`, which deletes it.
+        let hbitmap = unsafe {
+            let factory: IShellItemImageFactory = SHCreateItemFromParsingName(&wide, None::<&IBindCtx>).map_err(|e| err("cannot open the file", e))?;
+            factory.GetImage(SIZE { cx: size, cy: size }, SIIGBF_ICONONLY).map_err(|e| err("the file has no icon", e))?
+        };
+        let (mut pixels, w, h) = read_bitmap(hbitmap)?;
+        opaque_if_no_alpha(&mut pixels);
+        Ok((pixels, w, h))
+    }
+
+    /// BGRA pixels of the biggest icon in the resources of `path` (up to 256 px), without the Shell frame; `None` when the
+    /// file has no icon of its own or anything goes wrong (the caller falls back to `shell_icon_bgra`).
+    pub fn extracted_icon_bgra(path: &str) -> Option<(Vec<u8>, u32, u32)> {
+        let wide = HSTRING::from(path);
+        let mut large = HICON::default();
+        // SAFETY: the icon handle is destroyed on every path; GetIconInfo bitmaps go to `read_bitmap`, which deletes them.
+        unsafe {
+            if SHDefExtractIconW(&wide, 0, 0, Some(&mut large), None, 256).is_err() || large.is_invalid() {
+                return None;
+            }
+            let mut info = ICONINFO::default();
+            let got = GetIconInfo(large, &mut info);
+            let _ = DestroyIcon(large);
+            got.ok()?;
+            if info.hbmColor.is_invalid() {
+                if !info.hbmMask.is_invalid() {
+                    let _ = DeleteObject(HGDIOBJ(info.hbmMask.0));
+                }
+                return None;
+            }
+            let color = read_bitmap(info.hbmColor);
+            let mask = if info.hbmMask.is_invalid() { None } else { read_bitmap(info.hbmMask).ok() };
+            let (mut pixels, w, h) = color.ok()?;
+            if pixels.chunks_exact(4).all(|p| p[3] == 0) {
+                // An icon without alpha: the AND mask says which pixels are drawn (black = drawn).
+                match mask {
+                    Some((m, mw, mh)) if mw == w && mh == h => {
+                        for (p, q) in pixels.chunks_exact_mut(4).zip(m.chunks_exact(4)) {
+                            p[3] = if q[0] < 128 { 255 } else { 0 };
+                        }
+                    }
+                    _ => opaque_if_no_alpha(&mut pixels),
+                }
+            }
+            Some((pixels, w, h))
+        }
+    }
+
+    /// `side` x `side` PNG of the Shell icon of a program: the biggest icon of the file, else the Shell image with its
+    /// frame cut off; transparent margins are trimmed and the content is fitted with a 6% margin (DATA_MODEL.md 8.1).
     pub fn program_png(path: &str, side: u32) -> Result<Vec<u8>, String> {
         if !std::path::Path::new(path).is_file() {
             return Err("The program was not found".to_string());
         }
-        let (pixels, w, h) = shell_icon_bgra(path, side as i32)?;
-        compose(&pixels, w, h, side)
+        let (pixels, w, h, from_shell) = match extracted_icon_bgra(path) {
+            Some((p, w, h)) => (p, w, h, false),
+            None => {
+                let (p, w, h) = shell_icon_bgra(path, side as i32)?;
+                (p, w, h, true)
+            }
+        };
+        let (pixels, w, h) = super::refine_icon(pixels, w, h, from_shell);
+        let png = imaging::encode_png(&pixels, w, h).map_err(|e| err("cannot encode the icon", e))?;
+        fit_and_center(&png, w, h, super::inner_side(side), side)
     }
 
     /// `side` x `side` PNG of a picture file's content.
     pub fn picture_png(bytes: &[u8], side: u32) -> Result<Vec<u8>, String> {
         let (w, h) = imaging::decoded_size(bytes).map_err(|_| "This file is not a picture Windows can read".to_string())?;
-        fit_and_center(bytes, w, h, side)
+        fit_and_center(bytes, w, h, side, side)
     }
 
-    /// BGRA pixels of any size -> `side` x `side` PNG.
-    fn compose(pixels: &[u8], w: u32, h: u32, side: u32) -> Result<Vec<u8>, String> {
-        if w <= side && h <= side && (w == side || h == side) {
-            return imaging::encode_png(&blit_centered(pixels, w, h, side), side, side).map_err(|e| err("cannot encode the icon", e));
-        }
-        let png = imaging::encode_png(pixels, w, h).map_err(|e| err("cannot encode the icon", e))?;
-        fit_and_center(&png, w, h, side)
-    }
-
-    /// Scale the encoded picture to fit `side` x `side` (keeping proportions) and centre it on a transparent canvas.
-    fn fit_and_center(encoded: &[u8], w: u32, h: u32, side: u32) -> Result<Vec<u8>, String> {
-        let (tw, th) = fit_into(w, h, side);
+    /// Scale the encoded picture to fit `inner` x `inner` (keeping proportions, Fant) and centre it on a transparent
+    /// `side` x `side` canvas.
+    fn fit_and_center(encoded: &[u8], w: u32, h: u32, inner: u32, side: u32) -> Result<Vec<u8>, String> {
+        let (tw, th) = fit_into(w, h, inner);
         let pixels = imaging::scaled_pixels(encoded, tw, th, BitmapAlphaMode::Premultiplied).map_err(|e| err("cannot scale the picture", e))?;
         imaging::encode_png(&blit_centered(&pixels, tw, th, side), side, side).map_err(|e| err("cannot encode the icon", e))
     }
@@ -689,7 +857,10 @@ mod tests {
         assert!([(256, 256), (192, 192), (128, 128)].contains(&size), "{size:?}");
         assert!(icon_data_url(dir.path(), hash).unwrap().len() <= MAX_DATA_URL_CHARS);
         assert_eq!(icon_from_program(dir.path(), notepad).unwrap(), icon);
-        assert_eq!(std::fs::read_dir(icons_dir(dir.path())).unwrap().count(), 1);
+        let pngs = std::fs::read_dir(icons_dir(dir.path())).unwrap().filter(|e| e.as_ref().unwrap().path().extension().is_some_and(|x| x == "png")).count();
+        assert_eq!(pngs, 1);
+        // The new icon is marked as made by the current processing version.
+        assert!(is_current(&read_index(dir.path()), hash));
     }
 
     #[cfg(windows)]
@@ -765,6 +936,66 @@ mod tests {
         assert_eq!(tried, [256]);
     }
 
+    /// BGRA picture `w` x `h`, transparent, with an opaque `size` x `size` square of `colour` in the middle.
+    fn square_on_clear(w: u32, h: u32, size: u32, colour: [u8; 3]) -> Vec<u8> {
+        let mut px = vec![0u8; (w * h * 4) as usize];
+        let (x0, y0) = ((w - size) / 2, (h - size) / 2);
+        for y in y0..y0 + size {
+            for x in x0..x0 + size {
+                let i = ((y * w + x) * 4) as usize;
+                px[i..i + 4].copy_from_slice(&[colour[0], colour[1], colour[2], 255]);
+            }
+        }
+        px
+    }
+
+    #[test]
+    fn a_32_px_mark_in_a_clear_256_field_fills_at_least_85_percent_after_processing() {
+        let px = square_on_clear(256, 256, 32, [200, 40, 40]);
+        let (out, w, h) = refine_icon(px, 256, 256, false);
+        assert_eq!((w, h, out.len()), (32, 32, 32 * 32 * 4));
+        let (tw, th) = fit_into(w, h, inner_side(256));
+        assert!(f64::from(tw) / 256.0 >= 0.85 && f64::from(th) / 256.0 >= 0.85, "{tw}x{th}");
+        assert_eq!(inner_side(256), 226);
+    }
+
+    /// `square_on_clear` plus a one-colour frame of `thickness` px round the 32 px mark.
+    fn framed(thickness: u32) -> Vec<u8> {
+        let mut px = square_on_clear(256, 256, 48, [90, 90, 90]);
+        let inner = 48 - 2 * thickness;
+        let (x0, y0) = ((256 - inner) / 2, (256 - inner) / 2);
+        for y in y0..y0 + inner {
+            for x in x0..x0 + inner {
+                let i = ((y * 256 + x) * 4) as usize;
+                px[i..i + 4].copy_from_slice(&[40, 160, 220, 255]);
+            }
+        }
+        px
+    }
+
+    #[test]
+    fn a_one_colour_shell_frame_is_cut_off_but_only_for_a_shell_image() {
+        for thickness in [1u32, 2] {
+            let (out, w, h) = refine_icon(framed(thickness), 256, 256, true);
+            assert_eq!((w, h), (48 - 2 * thickness, 48 - 2 * thickness), "frame {thickness}");
+            // Only the mark's own colour is left.
+            assert!(out.chunks_exact(4).all(|p| p[..3] == [40, 160, 220]), "frame {thickness}");
+            // A program's own icon keeps its frame.
+            assert_eq!(refine_icon(framed(thickness), 256, 256, false).1, 48);
+        }
+    }
+
+    #[test]
+    fn a_picture_whose_edge_is_not_one_colour_keeps_its_edge() {
+        let mut px = square_on_clear(64, 64, 40, [10, 10, 10]);
+        // Make the top-left pixel of the square differ from the rest of the edge.
+        let i = ((12 * 64 + 12) * 4) as usize;
+        px[i..i + 4].copy_from_slice(&[200, 200, 200, 255]);
+        assert_eq!(frame_width(&crop_bgra(&px, 64, content_bounds(&px, 64, 64).unwrap()).0, 40, 40), 0);
+        // Nothing drawn: returned unchanged.
+        assert_eq!(refine_icon(vec![0; 16 * 16 * 4], 16, 16, true).1, 16);
+    }
+
     /// Layout with one program button (action `app`, icon `icon`) and one with an SVG icon.
     fn program_layout(icon: &str, svg_icon: &str) -> (LayoutFile, crate::model::ActionsFile) {
         let layout: LayoutFile = serde_json::from_str(&format!(
@@ -789,9 +1020,10 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let old = save_icon(dir.path(), &fake_png(96, 96)).unwrap();
         let sharp = save_icon(dir.path(), &fake_png(256, 256)).unwrap();
+        mark_current(dir.path(), &sharp);
         let svg = icon_from_svg(dir.path(), HEART).unwrap();
         let (layout, actions) = program_layout(&old, &svg);
-        // `p` (96 px, launch) counts; `s` is SVG, `l` is a system action.
+        // `p` (made before this processing version, launch) counts; `s` is SVG, `l` is a system action.
         assert_eq!(count_lowres_icons(dir.path(), &layout, &actions), 1);
         let (sharp_layout, _) = program_layout(&sharp, &svg);
         assert_eq!(count_lowres_icons(dir.path(), &sharp_layout, &actions), 0);

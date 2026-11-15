@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { contrast, hexOfRgb } from "../src/theme/contrast";
-import { faceLayout, isTileCorners, labelShown, LABEL_GRADIENT_ALPHA, resolveFace } from "../src/faceLayout";
+import { faceLayout, isTileCorners, labelShown, LABEL_GRADIENT_ALPHA, LABEL_GRADIENT_CSS, labelGradientAlphaAt, labelTopFromBottom, resolveFace } from "../src/faceLayout";
 
 const PNG = "data:image/png;base64,AA";
 const SVG = "data:image/svg+xml;base64,AA";
@@ -52,9 +52,16 @@ describe("which face and whether the label shows", () => {
 });
 
 describe("the white label over the dark gradient", () => {
-  test("even on a pure white picture the 0.72 layer keeps white text at >= 4.5:1", () => {
-    // The lightest colour under the gradient is white; the layer makes it 255 * (1 - 0.72).
+  test("even on a pure white picture the bottom layer keeps white text at >= 4.5:1", () => {
     const under = Math.round(255 * (1 - LABEL_GRADIENT_ALPHA));
     expect(contrast("#ffffff", hexOfRgb(`${under},${under},${under}`))).toBeGreaterThanOrEqual(4.5);
+  });
+  test.each([80, 120])("at the top edge of the label line (side %i) white on white under the gradient is >= 4.5:1", (side) => {
+    const alpha = labelGradientAlphaAt(labelTopFromBottom(side));
+    const under = Math.round(255 * (1 - alpha));
+    expect(contrast("#ffffff", hexOfRgb(`${under},${under},${under}`))).toBeGreaterThanOrEqual(4.5);
+  });
+  test("the stylesheet gradient matches the stops", () => {
+    expect(LABEL_GRADIENT_CSS).toBe("linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.6) 32%, rgba(0,0,0,0) 62%)");
   });
 });

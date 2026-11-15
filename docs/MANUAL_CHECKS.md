@@ -134,3 +134,8 @@
 - PENDING (owner): A57 is not plugged in: `a57-full-<theme>.png` of T14.5 (use the headless snapshots above meanwhile).
 - PENDING (owner): `Sharpen` on a real layout (the owner's old 96 px icons), the quick check of the grid choice with a widget too big for the new grid, `Forget` of a paired phone, the firewall hint (shows 2 minutes after a pairing without any connection), `Add check` dialog with a real address, `Choose…` for an app in the action form.
 
+
+## T14.6a — leftovers (2026-11-15)
+
+- PENDING (owner): in the real window (not automated — no way to click it from the session): `Choose…` in the action form (a program from the list and a `.lnk` through `Browse…`), `Forget` of a paired phone (on a test device in a copy of the config), `Add check` with `https://example.com` (the status must show on the phone / in `ws-smoke state`).
+- PENDING (owner): `Sharpen` once in `Look` on the real layout: icons made before processing version 2 (trim, 6% margin, Shell frame cut) are redone; 7-Zip in the `Big icon` mode should now fill the key (checked on a stored PNG in `.tmp\icons-check`, not on the phone).
