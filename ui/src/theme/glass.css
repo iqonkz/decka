@@ -13,8 +13,18 @@
   --key-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.45), inset 0 -1px 1px rgba(255, 255, 255, 0.08), 0 6px 18px rgba(0, 0, 0, 0.35);
   --glass-blur: url(#decka-glass) blur(16px) saturate(180%);
 }
-/* `reduced` (slow device or `Reduce effects`): no refraction layer, a lighter blur. */
-[data-theme="glass"][data-reduced="1"] { --glass-blur: blur(10px) saturate(180%); }
+/* `reduced` (slow device or `Reduce effects`, D-2): no backdrop-filter at all - a solid light face over the dimmed
+   wallpaper; the edge, highlight and shadow stay. The wallpaper does not drift. */
+[data-theme="glass"][data-reduced="1"] .key,
+[data-theme="glass"][data-reduced="1"] .tile.panel {
+  background: rgba(255, 255, 255, 0.10);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+[data-theme="glass"][data-reduced="1"] .key.colored {
+  background: linear-gradient(var(--c-a32), var(--c-a32)), rgba(255, 255, 255, 0.10);
+}
+[data-theme="glass"][data-reduced="1"] .wallpaper { animation: none; }
 /* The wallpaper shows through the deck. */
 [data-theme="glass"] .deck { background: transparent; }
 
@@ -83,18 +93,20 @@
   z-index: 0;
   overflow: hidden;
   background-color: #05060a;
-  animation: wall-drift 180s linear infinite;
+  animation: wall-drift 240s linear infinite;
   pointer-events: none;
 }
+/* Stepped drift (D-2): a new point every 30 s, a 2 s move; a cycle is 240 s. */
 @keyframes wall-drift {
-  0%, 100% { transform: translate(3%, 0); }
-  12.5% { transform: translate(2.1%, 2.1%); }
-  25% { transform: translate(0, 3%); }
-  37.5% { transform: translate(-2.1%, 2.1%); }
-  50% { transform: translate(-3%, 0); }
-  62.5% { transform: translate(-2.1%, -2.1%); }
-  75% { transform: translate(0, -3%); }
-  87.5% { transform: translate(2.1%, -2.1%); }
+  0%, 11.667% { transform: translate(3%, 0); }
+  12.5%, 24.167% { transform: translate(2.1%, 2.1%); }
+  25%, 36.667% { transform: translate(0, 3%); }
+  37.5%, 49.167% { transform: translate(-2.1%, 2.1%); }
+  50%, 61.667% { transform: translate(-3%, 0); }
+  62.5%, 74.167% { transform: translate(-2.1%, -2.1%); }
+  75%, 86.667% { transform: translate(0, -3%); }
+  87.5%, 99.167% { transform: translate(2.1%, -2.1%); }
+  100% { transform: translate(3%, 0); }
 }
 /* Dimming (D-1, DESIGN.md 1.5): a solid rgba(0,0,0,0.35) over the gradient, a child of the layer so it drifts with it.
    `album` dims itself with brightness(0.55). */
@@ -117,6 +129,7 @@
 [data-theme="glass"] .wallpaper[data-wallpaper="graphite"] {
   background-image: radial-gradient(70% 90% at 30% 20%, #3f3f46, transparent 60%), radial-gradient(60% 80% at 80% 80%, #27272a, transparent 60%);
 }
-/* `album`: the cover of the current track, blurred and darkened. */
-.wallpaper-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scale(1.3); filter: blur(48px) brightness(0.55) saturate(140%); }
+/* `album` (D-2): the cover of the current track, drawn once into a 24x24 canvas (already darkened) and stretched with
+   smoothing - a blur without `filter: blur()`. */
+.wallpaper-art { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: auto; }
 [data-theme="glass"] .deck-inner, [data-theme="glass"] .toasts { position: absolute; z-index: 1; }
