@@ -66,7 +66,12 @@ pub fn get_layout(app: AppHandle) -> Result<LayoutFile, String> {
 
 #[tauri::command]
 pub fn save_layout(app: AppHandle, layout: LayoutFile) -> Result<SaveResult, String> {
-    Ok(agent(&app)?.save_layout(layout))
+    let result = agent(&app)?.save_layout(layout);
+    // The tray menu follows `display.language`.
+    if matches!(result, SaveResult::Saved) {
+        crate::tray::refresh_language(&app);
+    }
+    Ok(result)
 }
 
 #[tauri::command]

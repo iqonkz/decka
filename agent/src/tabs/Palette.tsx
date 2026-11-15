@@ -1,18 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
-import type { ActionsFile, InstalledApp } from "@decka/shared";
+import { t, type ActionsFile, type InstalledApp } from "@decka/shared";
 import { call } from "../ipc";
 import type { DragPayload } from "./dragMachine";
 import type { Kind } from "./layoutOps";
 
 type Tab = "apps" | "actions" | "widgets";
 
-const WIDGETS: { kind: Kind; name: string }[] = [
-  { kind: "clock", name: "Clock" },
-  { kind: "sys", name: "System" },
-  { kind: "media", name: "Now playing" },
-  { kind: "statuses", name: "Statuses" },
-  { kind: "status", name: "Status tile" },
-  { kind: "notifications", name: "Notifications" },
+const widgets = (): { kind: Kind; name: string }[] => [
+  { kind: "clock", name: t("widget_name.clock") },
+  { kind: "sys", name: t("widget_name.sys") },
+  { kind: "media", name: t("widget_name.media") },
+  { kind: "statuses", name: t("widget_name.statuses") },
+  { kind: "status", name: t("widget_name.status") },
+  { kind: "notifications", name: t("widget_name.notifications") },
 ];
 
 /** The palette is loaded once per window session, like the app picker. */
@@ -46,16 +46,16 @@ export default function Palette({ actions, onBegin }: { actions: ActionsFile; on
   return (
     <aside className="palette">
       <div className="row wrap" role="tablist">
-        {(["apps", "actions", "widgets"] as Tab[]).map((t) => (
-          <button key={t} type="button" role="tab" aria-selected={tab === t} className={tab === t ? "page-tab active" : "page-tab"} onClick={() => setTab(t)}>
-            {t === "apps" ? "Apps" : t === "actions" ? "Actions" : "Widgets"}
+        {(["apps", "actions", "widgets"] as Tab[]).map((id) => (
+          <button key={id} type="button" role="tab" aria-selected={tab === id} className={tab === id ? "page-tab active" : "page-tab"} onClick={() => setTab(id)}>
+            {t(`palette.${id}`)}
           </button>
         ))}
       </div>
-      {tab !== "widgets" && <input aria-label="Search" placeholder="Search" value={query} onChange={(e) => setQuery(e.target.value)} />}
-      <p className="muted palette-hint">Drag onto a cell of the preview.</p>
+      {tab !== "widgets" && <input aria-label={t("wizard.search")} placeholder={t("wizard.search")} value={query} onChange={(e) => setQuery(e.target.value)} />}
+      <p className="muted palette-hint">{t("palette.hint")}</p>
       <div className="palette-list">
-        {tab === "apps" && apps === null && !error && <p className="muted">Loading installed apps…</p>}
+        {tab === "apps" && apps === null && !error && <p className="muted">{t("picker.loading_apps")}</p>}
         {tab === "apps" && error && <p className="warn-text">{error}</p>}
         {tab === "apps" &&
           shownApps.map((app) => (
@@ -72,7 +72,7 @@ export default function Palette({ actions, onBegin }: { actions: ActionsFile; on
             </div>
           ))}
         {tab === "widgets" &&
-          WIDGETS.map((w) => (
+          widgets().map((w) => (
             <div key={w.kind} className="palette-item" onPointerDown={(e) => onBegin({ type: "widget", kind: w.kind }, e)}>
               <span>{w.name}</span>
             </div>

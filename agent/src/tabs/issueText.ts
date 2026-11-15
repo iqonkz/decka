@@ -1,19 +1,19 @@
-import type { LayoutFile, ValidationIssue } from "@decka/shared";
+import { t, type LayoutFile, type ValidationIssue } from "@decka/shared";
 
-/** A readable form of a validation issue: which page and element, then what to fix. */
+/** A readable form of a validation issue: which page and element, then what to fix. (The message itself comes from the PC in English.) */
 export function describeIssue(issue: ValidationIssue, layout: LayoutFile): string {
   const item = /^\/pages\/(\d+)\/items\/(\d+)/.exec(issue.path);
   if (item) {
     const page = layout.pages[Number(item[1])];
     const it = page?.items[Number(item[2])];
-    if (page && it) return `Page "${page.name}", ${it.kind} at column ${it.x + 1}, row ${it.y + 1}: ${issue.message}`;
+    if (page && it) return t("issue.item", { page: page.name, kind: t(`kind.${it.kind}`), col: it.x + 1, row: it.y + 1, message: issue.message });
   }
   const apps = /^\/pages\/(\d+)\/apps/.exec(issue.path);
   if (apps) {
     const page = layout.pages[Number(apps[1])];
-    if (page) return `Page "${page.name}": ${issue.message}`;
+    if (page) return t("issue.page", { page: page.name, message: issue.message });
   }
-  if (issue.path === "/grid" || issue.path.startsWith("/grid/")) return `Grid: ${issue.message}`;
+  if (issue.path === "/grid" || issue.path.startsWith("/grid/")) return t("issue.grid", { message: issue.message });
   return `${issue.path || "/"}: ${issue.message}`;
 }
 

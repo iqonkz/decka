@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { t } from "@decka/shared";
 import { useAppState } from "../store/store";
 import { saverPosition } from "./saverPosition";
 
@@ -59,7 +60,7 @@ export default function Screensaver() {
         style={{ left: pos?.x ?? 16, top: pos?.y ?? 16, opacity: visible && pos ? 1 : 0 }}
       >
         <div className="saver-time">{time}</div>
-        {offline && <div className="saver-line">PC offline</div>}
+        {offline && <div className="saver-line">{t("saver.offline")}</div>}
         {errors > 0 && <div className="saver-line saver-errors">● {errors}</div>}
       </div>
     </div>

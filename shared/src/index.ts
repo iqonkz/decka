@@ -6,3 +6,4 @@ export * from "./templates";
 export * from "./ipc";
 export * from "./validate";
 export * from "./pairUrl";
+export * from "./i18n";

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { t } from "@decka/shared";
 import { useAppState } from "../store/store";
 
 const OFFLINE_GRACE_MS = 3000;
@@ -33,7 +34,7 @@ export default function ConnBadge() {
   }, [conn, via]);
 
   if (conn === "online" && channelShown && via !== null) return <div className="badge channel">{via === "usb" ? "USB" : "Wi-Fi"}</div>;
-  if (conn === "connecting") return <div className="badge connecting">Connecting…</div>;
-  if (conn === "offline" && showOffline) return <div className="badge offline">PC offline — retrying</div>;
+  if (conn === "connecting") return <div className="badge connecting">{t("badge.connecting")}</div>;
+  if (conn === "offline" && showOffline) return <div className="badge offline">{t("badge.offline")}</div>;
   return null;
 }

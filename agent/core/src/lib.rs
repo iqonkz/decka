@@ -20,6 +20,7 @@ pub mod sta;
 pub mod state;
 pub mod statuses;
 pub mod templates;
+pub mod tray_text;
 pub mod usb;
 pub mod validate;
 pub mod watch;

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { MediaItem } from "@decka/shared";
+import { t, type MediaItem } from "@decka/shared";
 import { useDeckEnv } from "../deckEnv";
 import Icon from "../Icon";
 import Key from "../Key";
@@ -47,14 +47,17 @@ export default function Media({ item }: { item: MediaItem }) {
   const progress = media?.durationSec && position !== null ? Math.min(1, position / media.durationSec) : null;
 
   const all = {
-    prev: { action: item.prevAction, icon: "lucide:skip-back", label: "Previous" },
-    play: { action: item.playAction, icon: playing ? "lucide:pause" : "lucide:play", label: playing ? "Pause" : "Play" },
-    next: { action: item.nextAction, icon: "lucide:skip-forward", label: "Next" },
+    prev: { action: item.prevAction, icon: "lucide:skip-back", label: t("media.previous") },
+    play: { action: item.playAction, icon: playing ? "lucide:pause" : "lucide:play", label: playing ? t("media.pause") : t("media.play") },
+    next: { action: item.nextAction, icon: "lucide:skip-forward", label: t("media.next") },
   };
-  const keys = mediaKeySet(item.w, item.h, side, gap).map((name) => all[name]);
+  const names = mediaKeySet(item.w, item.h, side, gap);
   const controls = (
     <div className="media-keys">
-      {keys.map((k) => k.action !== undefined && <Key key={k.label} actionId={k.action} icon={k.icon} side={keySide} />)}
+      {names.map((name) => {
+        const k = all[name];
+        return k.action !== undefined && <Key key={name} actionId={k.action} icon={k.icon} side={keySide} />;
+      })}
     </div>
   );
   const below = item.h >= 2;
@@ -76,7 +79,7 @@ export default function Media({ item }: { item: MediaItem }) {
             {media.artist && <div className="media-artist">{media.artist}</div>}
           </>
         ) : (
-          <div className="media-nothing">Nothing playing</div>
+          <div className="media-nothing">{t("widget.nothing_playing")}</div>
         )}
         {progress !== null && (
           <div
@@ -85,7 +88,7 @@ export default function Media({ item }: { item: MediaItem }) {
             aria-valuemin={0}
             aria-valuemax={media?.durationSec}
             aria-valuenow={position ?? 0}
-            aria-valuetext={`${formatTime(position ?? 0)} of ${formatTime(media?.durationSec ?? 0)}`}
+            aria-valuetext={t("media.progress", { pos: formatTime(position ?? 0), total: formatTime(media?.durationSec ?? 0) })}
           >
             <div className="media-progress-fill" style={{ width: `${progress * 100}%` }} />
           </div>

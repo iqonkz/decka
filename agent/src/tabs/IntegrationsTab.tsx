@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import type { ConfigFile, HttpCheck, ValidationIssue } from "@decka/shared";
+import { t, type ConfigFile, type HttpCheck, type ValidationIssue } from "@decka/shared";
 import { call } from "../ipc";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
@@ -17,7 +17,7 @@ function CopyButton({ text }: { text: string }) {
         });
       }}
     >
-      {done ? "Copied" : "Copy"}
+      {done ? t("common.copied") : t("common.copy")}
     </Button>
   );
 }
@@ -63,7 +63,7 @@ export default function IntegrationsTab() {
   }, [load]);
 
   if (error) return <Banner kind="error">{error}</Banner>;
-  if (!config) return <p>Loading…</p>;
+  if (!config) return <p>{t("common.loading")}</p>;
 
   const token = config.apiToken;
   const base = `http://127.0.0.1:${port}`;
@@ -91,7 +91,7 @@ export default function IntegrationsTab() {
     const result = await call("save_config", { config: { ...config!, collectors: { ...config!.collectors, checks: next } } });
     if (result.ok) {
       setIssues([]);
-      setMessage("Saved");
+      setMessage(t("common.saved"));
       await load();
     } else {
       setIssues(result.issues);
@@ -101,63 +101,63 @@ export default function IntegrationsTab() {
 
   return (
     <div className="stack">
-      <h2>Integrations</h2>
+      <h2>{t("more.integrations")}</h2>
 
       <section className="card">
-        <h3>API token</h3>
+        <h3>{t("integ.api_token")}</h3>
         <div className="row">
-          <input className="mono grow" readOnly type={showToken ? "text" : "password"} value={token} aria-label="API token" />
-          <Button onClick={() => setShowToken(!showToken)}>{showToken ? "Hide" : "Show"}</Button>
+          <input className="mono grow" readOnly type={showToken ? "text" : "password"} value={token} aria-label={t("integ.api_token")} />
+          <Button onClick={() => setShowToken(!showToken)}>{showToken ? t("integ.hide") : t("integ.show")}</Button>
           <CopyButton text={token} />
           <Button variant="danger" onClick={() => setConfirmRegen(true)}>
-            Regenerate
+            {t("integ.regenerate")}
           </Button>
         </div>
         {confirmRegen && (
           <Banner kind="warning">
-            <span>Existing scripts will stop working.</span>
+            <span>{t("integ.regenerate_warning")}</span>
             <span className="row">
               <Button variant="danger" onClick={() => void regenerate()}>
-                Regenerate
+                {t("integ.regenerate")}
               </Button>
-              <Button onClick={() => setConfirmRegen(false)}>Cancel</Button>
+              <Button onClick={() => setConfirmRegen(false)}>{t("common.cancel")}</Button>
             </span>
           </Banner>
         )}
       </section>
 
       <details className="advanced">
-        <summary>Show examples</summary>
+        <summary>{t("integ.show_examples")}</summary>
       <section className="card">
-        <h3>Send a notification</h3>
+        <h3>{t("integ.send_notification")}</h3>
         <div className="stack">
           <CommandBox title="curl.exe (JSON)" command={curlJson} />
-          <CommandBox title="curl.exe (plain text)" command={curlText} />
+          <CommandBox title={t("integ.curl_plain")} command={curlText} />
           <CommandBox title="PowerShell" command={powershell} />
           <div>
-            <Button onClick={() => void call("send_test_notification")}>Send test notification</Button>
+            <Button onClick={() => void call("send_test_notification")}>{t("integ.send_test")}</Button>
           </div>
         </div>
       </section>
 
       <section className="card">
-        <h3>Update a status</h3>
+        <h3>{t("integ.update_status")}</h3>
         <CommandBox title="curl.exe" command={curlStatus} />
       </section>
       </details>
 
       <section className="card">
-        <h3>Website checks</h3>
-        <p className="muted">The PC opens each address now and then and shows the result as a status on the phone.</p>
-        {checks.length === 0 && <p className="muted">No checks yet.</p>}
+        <h3>{t("integ.checks")}</h3>
+        <p className="muted">{t("integ.checks_hint")}</p>
+        {checks.length === 0 && <p className="muted">{t("integ.no_checks")}</p>}
         <ul className="plain-list">
           {checks.map((c, i) => (
             <li key={i} className="check-row">
               <span className="status-dot wait" aria-hidden="true" />
               <strong>{c.label}</strong>
               <span className="muted grow">{c.url}</span>
-              <Button onClick={() => setEditing({ index: i, check: c })}>Edit</Button>
-              <Button onClick={() => void saveChecks(checks.filter((_, n) => n !== i))}>Remove</Button>
+              <Button onClick={() => setEditing({ index: i, check: c })}>{t("integ.edit")}</Button>
+              <Button onClick={() => void saveChecks(checks.filter((_, n) => n !== i))}>{t("integ.remove")}</Button>
             </li>
           ))}
         </ul>
@@ -173,31 +173,31 @@ export default function IntegrationsTab() {
         {message && <Banner kind="success">{message}</Banner>}
         <div className="row">
           <Button variant="primary" disabled={checks.length >= 20} onClick={() => setEditing({ index: -1, check: newCheck(checks.length + 1) })}>
-            Add check
+            {t("integ.add_check")}
           </Button>
         </div>
       </section>
 
       {editing && (
         <div className="dialog-backdrop">
-          <div className="dialog" role="dialog" aria-label="Check">
-            <h2>{editing.index < 0 ? "Add check" : "Edit check"}</h2>
-            <Field label="Name">
+          <div className="dialog" role="dialog" aria-label={t("integ.check")}>
+            <h2>{editing.index < 0 ? t("integ.add_check") : t("integ.edit_check")}</h2>
+            <Field label={t("integ.check_name")}>
               <input autoFocus value={editing.check.label} onChange={(e) => setEditing({ ...editing, check: { ...editing.check, label: e.target.value } })} />
             </Field>
-            <Field label="Address">
+            <Field label={t("integ.check_address")}>
               <input value={editing.check.url} onChange={(e) => setEditing({ ...editing, check: { ...editing.check, url: e.target.value } })} />
             </Field>
             <details className="advanced">
-              <summary>More options</summary>
+              <summary>{t("common.more_options")}</summary>
               <div className="grid-4">
-                <Field label="Check every, s">
+                <Field label={t("integ.check_every")}>
                   <input type="number" value={editing.check.intervalSec} onChange={(e) => setEditing({ ...editing, check: { ...editing.check, intervalSec: Number(e.target.value) } })} />
                 </Field>
-                <Field label="Give up after, s">
+                <Field label={t("integ.give_up")}>
                   <input type="number" value={editing.check.timeoutSec} onChange={(e) => setEditing({ ...editing, check: { ...editing.check, timeoutSec: Number(e.target.value) } })} />
                 </Field>
-                <Field label="Expected answer" hint="Empty = any success">
+                <Field label={t("integ.expected")} hint={t("integ.expected_hint")}>
                   <input
                     type="number"
                     placeholder="200"
@@ -205,7 +205,7 @@ export default function IntegrationsTab() {
                     onChange={(e) => setEditing({ ...editing, check: { ...editing.check, expectStatus: e.target.value === "" ? undefined : Number(e.target.value) } })}
                   />
                 </Field>
-                <Field label="Group">
+                <Field label={t("integ.group")}>
                   <input value={editing.check.group ?? ""} onChange={(e) => setEditing({ ...editing, check: { ...editing.check, group: e.target.value || undefined } })} />
                 </Field>
               </div>
@@ -219,9 +219,9 @@ export default function IntegrationsTab() {
                   void saveChecks(next);
                 }}
               >
-                Save
+                {t("common.save")}
               </Button>
-              <Button onClick={() => setEditing(null)}>Cancel</Button>
+              <Button onClick={() => setEditing(null)}>{t("common.cancel")}</Button>
             </div>
           </div>
         </div>

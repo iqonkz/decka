@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { Page } from "@decka/shared";
+import { t, type Page } from "@decka/shared";
 import { call } from "../ipc";
 import Button from "../ui/Button";
 import { normalizeApp, withApps } from "./layoutOps";
@@ -32,8 +32,8 @@ export default function PageApps({ page, isFirst, onChange }: Props) {
   if (isFirst) {
     return (
       <section className="card">
-        <h3>Show this page automatically when active</h3>
-        <p className="muted">The first page is your home page.</p>
+        <h3>{t("pageapps.title")}</h3>
+        <p className="muted">{t("pageapps.home")}</p>
       </section>
     );
   }
@@ -41,12 +41,12 @@ export default function PageApps({ page, isFirst, onChange }: Props) {
   const listId = `apps-${page.id}`;
   return (
     <section className="card">
-      <h3>Show this page automatically when active</h3>
+      <h3>{t("pageapps.title")}</h3>
       <div className="row wrap">
         {apps.map((app) => (
           <span key={app} className="chip">
             {app}
-            <button type="button" className="chip-x" aria-label={`Remove ${app}`} onClick={() => onChange(withApps(page, apps.filter((a) => a !== app)))}>
+            <button type="button" className="chip-x" aria-label={t("pageapps.remove", { app })} onClick={() => onChange(withApps(page, apps.filter((a) => a !== app)))}>
               ×
             </button>
           </span>
@@ -54,7 +54,7 @@ export default function PageApps({ page, isFirst, onChange }: Props) {
       </div>
       <div className="row">
         <input
-          aria-label="Application"
+          aria-label={t("pageapps.application")}
           list={listId}
           placeholder="code.exe"
           value={text}
@@ -69,10 +69,10 @@ export default function PageApps({ page, isFirst, onChange }: Props) {
         <datalist id={listId}>
           {suggestions.filter((s) => !apps.includes(s)).map((s) => <option key={s} value={s} />)}
         </datalist>
-        <Button onClick={add}>Add</Button>
-        <Button onClick={refresh}>Refresh</Button>
+        <Button onClick={add}>{t("picker.add")}</Button>
+        <Button onClick={refresh}>{t("pageapps.refresh")}</Button>
       </div>
-      <p className="muted">The phone switches to this page while one of these apps is in front on your PC, and switches back when you leave it.</p>
+      <p className="muted">{t("pageapps.hint")}</p>
     </section>
   );
 }

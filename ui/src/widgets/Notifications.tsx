@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { NotificationsItem } from "@decka/shared";
+import { t, type NotificationsItem } from "@decka/shared";
 import { useDeckEnv } from "../deckEnv";
 import { relTime } from "./relTime";
 import { LEVEL_COLOR } from "./statusOrder";
@@ -15,7 +15,7 @@ export default function Notifications(_props: { item: NotificationsItem }) {
     return () => window.clearInterval(timer);
   }, []);
 
-  if (!list || list.length === 0) return <div className="tile-body notif-empty">No notifications</div>;
+  if (!list || list.length === 0) return <div className="tile-body notif-empty">{t("widget.no_notifications")}</div>;
   return (
     // Vertical scrolling stays inside the widget: its pointerdown never reaches the page swipe handler.
     <div className="notifs" onPointerDown={(e) => e.stopPropagation()}>

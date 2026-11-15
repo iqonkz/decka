@@ -53,6 +53,10 @@ A long press (1.2 s) on an empty spot of the phone screen opens the phone menu: 
 
 In **Layout** the preview is the real deck in the chosen look: drag a program, an action or a widget from the left onto a cell, drag keys to move or swap them, drag a corner to resize a widget, and use Ctrl+Z, Ctrl+Y and Ctrl+S. A key can open a popup group (a small panel of related keys) instead of, or after, running its action. For icons, **Phosphor** offers thousands of vector icons in six weights; they take the colour of the key.
 
+## Language
+
+English and Russian, switched in **More → Settings → Language**; **Auto** follows the system language of the window, the phone and Windows.
+
 ## USB mode
 
 1. Install Android platform-tools (`adb`) and put it in `PATH` (or set the path in **Settings**). Decka does not bundle or download adb.

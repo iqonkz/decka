@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
-import type { ActionsFile, InstalledApp, Page } from "@decka/shared";
+import { t, type ActionsFile, type InstalledApp, type Page } from "@decka/shared";
 import { call } from "../ipc";
 import Button from "../ui/Button";
 import PhIcon from "../ui/PhIcon";
@@ -9,18 +9,18 @@ import { actionFromKeys, actionFromUrl, defaultIconFor, formatChord, presetActio
 import { cachedApps, loadApps } from "./apps";
 import { chordFromEvent } from "./keyName";
 
-const WIDGETS: { kind: Kind; name: string }[] = [
-  { kind: "clock", name: "Clock" },
-  { kind: "sys", name: "System" },
-  { kind: "media", name: "Now playing" },
-  { kind: "statuses", name: "Statuses" },
-  { kind: "status", name: "Status tile" },
-  { kind: "notifications", name: "Notifications" },
+const widgets = (): { kind: Kind; name: string }[] => [
+  { kind: "clock", name: t("widget_name.clock") },
+  { kind: "sys", name: t("widget_name.sys") },
+  { kind: "media", name: t("widget_name.media") },
+  { kind: "statuses", name: t("widget_name.statuses") },
+  { kind: "status", name: t("widget_name.status") },
+  { kind: "notifications", name: t("widget_name.notifications") },
 ];
 
 interface Row {
   key: string;
-  group: "Apps" | "Media & system" | "Your actions" | "Widgets";
+  group: "apps" | "media_system" | "yours" | "widgets";
   label: string;
   icon?: string;
   phIcon?: string;
@@ -66,18 +66,18 @@ export default function QuickPicker({ anchor, cell, page, grid, actions, hideWid
     const match = (s: string) => q === "" || s.toLowerCase().includes(q);
     const out: Row[] = [];
     for (const app of apps ?? []) {
-      if (match(app.name)) out.push({ key: `app|${app.program}|${app.args.join(" ")}|${app.name}`, group: "Apps", label: app.name, icon: app.icon, hint: undefined, choice: { type: "app", app } });
+      if (match(app.name)) out.push({ key: `app|${app.program}|${app.args.join(" ")}|${app.name}`, group: "apps", label: app.name, icon: app.icon, hint: undefined, choice: { type: "app", app } });
     }
     for (const p of appsOnly ? [] : presetActions()) {
-      if (match(p.label)) out.push({ key: `preset|${p.id}`, group: "Media & system", label: p.label, phIcon: undefined, choice: { type: "preset", presetId: p.id } });
+      if (match(p.label)) out.push({ key: `preset|${p.id}`, group: "media_system", label: p.label, phIcon: undefined, choice: { type: "preset", presetId: p.id } });
     }
     const yours = Object.entries(appsOnly ? {} : actions.actions)
       .filter(([id, a]) => match(a.name) || match(id))
       .sort(([, a], [, b]) => a.name.localeCompare(b.name));
-    for (const [id, a] of yours) out.push({ key: `action|${id}`, group: "Your actions", label: a.name, hint: defaultIconFor(a).replace("lucide:", ""), choice: { type: "action", actionId: id } });
-    for (const w of hideWidgets || appsOnly ? [] : WIDGETS) {
+    for (const [id, a] of yours) out.push({ key: `action|${id}`, group: "yours", label: a.name, hint: defaultIconFor(a).replace("lucide:", ""), choice: { type: "action", actionId: id } });
+    for (const w of hideWidgets || appsOnly ? [] : widgets()) {
       const size = DEFAULT_SIZE[w.kind];
-      if (match(w.name) && fits(page, grid, { x: cell.x, y: cell.y, w: size.w, h: size.h })) out.push({ key: `widget|${w.kind}`, group: "Widgets", label: w.name, hint: `${size.w}×${size.h}`, choice: { type: "widget", kind: w.kind } });
+      if (match(w.name) && fits(page, grid, { x: cell.x, y: cell.y, w: size.w, h: size.h })) out.push({ key: `widget|${w.kind}`, group: "widgets", label: w.name, hint: `${size.w}×${size.h}`, choice: { type: "widget", kind: w.kind } });
     }
     return out;
   }, [apps, actions, query, page, grid, cell.x, cell.y, hideWidgets, appsOnly]);
@@ -99,7 +99,7 @@ export default function QuickPicker({ anchor, cell, page, grid, actions, hideWid
           return;
         }
         const next = chordFromEvent(e);
-        setHint(next.unsupported ? "This key is not supported" : null);
+        setHint(next.unsupported ? t("picker.key_unsupported") : null);
         if (next.keys.length > 0) setChord(next.keys);
         return;
       }
@@ -127,7 +127,7 @@ export default function QuickPicker({ anchor, cell, page, grid, actions, hideWid
 
   async function browse() {
     try {
-      const picked = await open({ multiple: false, directory: false, filters: [{ name: "Programs", extensions: ["exe", "lnk"] }] });
+      const picked = await open({ multiple: false, directory: false, filters: [{ name: t("picker.programs"), extensions: ["exe", "lnk"] }] });
       if (typeof picked !== "string") return;
       const app = await call("describe_program", { path: picked });
       if ("error" in app) return setError(app.error);
@@ -138,7 +138,7 @@ export default function QuickPicker({ anchor, cell, page, grid, actions, hideWid
   }
 
   function confirmUrl() {
-    if (!actionFromUrl(url)) return setError("Enter a web address such as github.com");
+    if (!actionFromUrl(url)) return setError(t("picker.enter_url"));
     onChoose({ type: "url", url });
   }
 
@@ -150,19 +150,19 @@ export default function QuickPicker({ anchor, cell, page, grid, actions, hideWid
   return (
     <>
       <div className="picker-backdrop" onPointerDown={onClose} />
-      <div className="quick-picker" role="dialog" aria-label="Add a button" style={{ left, top, width }}>
+      <div className="quick-picker" role="dialog" aria-label={t("picker.add_button")} style={{ left, top, width }}>
         {mode === "list" && (
           <>
-            <input autoFocus aria-label="Search apps and actions" placeholder="Search apps and actions…" value={query} onChange={(e) => setQuery(e.target.value)} />
+            <input autoFocus aria-label={t("picker.search")} placeholder={t("picker.search")} value={query} onChange={(e) => setQuery(e.target.value)} />
             <div className="picker-list" ref={listRef}>
-              {apps === null && !error && <p className="muted picker-note">Loading installed apps…</p>}
-              {rows.length === 0 && apps !== null && <p className="muted picker-note">Nothing found.</p>}
+              {apps === null && !error && <p className="muted picker-note">{t("picker.loading_apps")}</p>}
+              {rows.length === 0 && apps !== null && <p className="muted picker-note">{t("picker.nothing_found")}</p>}
               {rows.map((row, i) => {
                 const header = row.group !== lastGroup ? row.group : null;
                 lastGroup = row.group;
                 return (
                   <div key={row.key}>
-                    {header && <div className="picker-group">{header}</div>}
+                    {header && <div className="picker-group">{t(`picker.group_${header}`)}</div>}
                     <button type="button" className={`picker-row${i === active ? " active" : ""}`} data-active={i === active} onMouseEnter={() => setActive(i)} onClick={() => onChoose(row.choice)}>
                       {row.icon ? <img src={row.icon} width={24} height={24} alt="" /> : <span className="app-noicon" style={{ width: 24, height: 24 }} />}
                       <span className="picker-label">{row.label}</span>
@@ -175,42 +175,42 @@ export default function QuickPicker({ anchor, cell, page, grid, actions, hideWid
             <div className="picker-bottom">
               <button type="button" className="picker-row" onClick={() => void browse()}>
                 <PhIcon name="folder-open" size={18} />
-                <span className="picker-label">Browse for a program…</span>
+                <span className="picker-label">{t("picker.browse")}</span>
               </button>
               {!appsOnly && <button type="button" className="picker-row" onClick={() => { setMode("website"); setError(null); }}>
                 <PhIcon name="globe" size={18} />
-                <span className="picker-label">Website…</span>
+                <span className="picker-label">{t("picker.website")}</span>
               </button>}
               {!appsOnly && <button type="button" className="picker-row" onClick={() => { setMode("keys"); setChord([]); setHint(null); setError(null); }}>
                 <PhIcon name="keyboard" size={18} />
-                <span className="picker-label">Keyboard shortcut…</span>
+                <span className="picker-label">{t("picker.shortcut")}</span>
               </button>}
             </div>
           </>
         )}
         {mode === "website" && (
           <div className="picker-form">
-            <strong>Website</strong>
+            <strong>{t("form.type_website")}</strong>
             <input
               autoFocus
-              aria-label="Web address"
+              aria-label={t("picker.web_address")}
               placeholder="github.com"
               value={url}
               onChange={(e) => { setUrl(e.target.value); setError(null); }}
               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); confirmUrl(); } }}
             />
             <div className="row">
-              <Button variant="primary" onClick={confirmUrl}>Add</Button>
-              <Button onClick={() => setMode("list")}>Back</Button>
+              <Button variant="primary" onClick={confirmUrl}>{t("picker.add")}</Button>
+              <Button onClick={() => setMode("list")}>{t("picker.back")}</Button>
             </div>
           </div>
         )}
         {mode === "keys" && (
           <div className="picker-form">
-            <strong>Keyboard shortcut</strong>
-            <div className="chord" aria-live="polite">{chord.length > 0 ? formatChord(chord) : "Press the keys"}</div>
+            <strong>{t("picker.shortcut_title")}</strong>
+            <div className="chord" aria-live="polite">{chord.length > 0 ? formatChord(chord) : t("picker.press_keys")}</div>
             {hint && <small className="warn-text">{hint}</small>}
-            <small className="muted">Enter — done · Esc — cancel</small>
+            <small className="muted">{t("picker.shortcut_help")}</small>
           </div>
         )}
         {error && <p className="warn-text picker-note">{error}</p>}

@@ -1,3 +1,4 @@
+import { t } from "@decka/shared";
 import ActionsTab from "./ActionsTab";
 import IntegrationsTab from "./IntegrationsTab";
 import SettingsTab from "./SettingsTab";
@@ -5,23 +6,22 @@ import Button from "../ui/Button";
 
 export type MoreSection = "actions" | "integrations" | "settings" | "about";
 
-const SECTIONS: { id: MoreSection; label: string }[] = [
-  { id: "actions", label: "Actions" },
-  { id: "integrations", label: "Integrations" },
-  { id: "settings", label: "Settings" },
-  { id: "about", label: "About" },
-];
+const SECTION_IDS: MoreSection[] = ["actions", "integrations", "settings", "about"];
 
-export const isMoreSection = (s: string): s is MoreSection => SECTIONS.some((x) => x.id === s);
+function sectionLabel(id: MoreSection): string {
+  return t(`more.${id}`);
+}
+
+export const isMoreSection = (s: string): s is MoreSection => (SECTION_IDS as string[]).includes(s);
 
 function About() {
   return (
     <div className="stack">
-      <h2>About</h2>
+      <h2>{t("more.about")}</h2>
       <section className="card">
-        <p>Decka turns an old phone into a panel for this PC: buttons, widgets and live information.</p>
-        <p className="muted">MIT licence. The setup guide pairs a phone, picks a look and adds your apps.</p>
-        <Button onClick={() => window.dispatchEvent(new CustomEvent("decka:run-setup", { detail: { step: 0 } }))}>Run setup again</Button>
+        <p>{t("about.text")}</p>
+        <p className="muted">{t("about.licence")}</p>
+        <Button onClick={() => window.dispatchEvent(new CustomEvent("decka:run-setup", { detail: { step: 0 } }))}>{t("about.run_setup")}</Button>
       </section>
     </div>
   );
@@ -31,10 +31,10 @@ function About() {
 export default function MoreTab({ section, onSection }: { section: MoreSection; onSection: (s: MoreSection) => void }) {
   return (
     <div className="more-layout">
-      <nav className="more-nav" aria-label="More">
-        {SECTIONS.map((s) => (
-          <button key={s.id} type="button" className={s.id === section ? "active" : ""} onClick={() => onSection(s.id)}>
-            {s.label}
+      <nav className="more-nav" aria-label={t("tab.more")}>
+        {SECTION_IDS.map((id) => (
+          <button key={id} type="button" className={id === section ? "active" : ""} title={sectionLabel(id)} onClick={() => onSection(id)}>
+            {sectionLabel(id)}
           </button>
         ))}
       </nav>

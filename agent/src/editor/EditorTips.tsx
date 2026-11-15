@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useState } from "react";
+import { t } from "@decka/shared";
 import Button from "../ui/Button";
 
 export const TIPS_KEY = "decka.editor.tips.v1";
@@ -26,10 +27,10 @@ function safe(): Storage | undefined {
   }
 }
 
-const TIPS: { selector: string; text: string }[] = [
-  { selector: ".editor-cell.empty", text: "Click an empty cell to add an app or action" },
-  { selector: ".editor-item", text: "Drag to move · Right-click for more" },
-  { selector: ".editor-canvas", text: "Changes appear on your phone instantly" },
+const TIPS: { selector: string; text: () => string }[] = [
+  { selector: ".editor-cell.empty", text: () => t("tips.empty_cell") },
+  { selector: ".editor-item", text: () => t("tips.item") },
+  { selector: ".editor-canvas", text: () => t("tips.canvas") },
 ];
 
 /** Three tips in turn, each next to its element (DESIGN.md 4.7). `Next` / `Got it`; `Esc` hides them all. */
@@ -66,14 +67,14 @@ export default function EditorTips({ ready }: { ready: boolean }) {
   if (hidden || !ready || !pos || step >= TIPS.length) return null;
   const last = step === TIPS.length - 1;
   return (
-    <div className="editor-tip" role="dialog" aria-label="Tip" style={{ left: pos.left, top: pos.top }}>
-      <p>{TIPS[step]!.text}</p>
+    <div className="editor-tip" role="dialog" aria-label={t("tips.label")} style={{ left: pos.left, top: pos.top }}>
+      <p>{TIPS[step]!.text()}</p>
       <div className="row">
         <small className="muted" style={{ flex: 1 }}>
-          {step + 1} of {TIPS.length}
+          {t("tips.step", { n: step + 1, total: TIPS.length })}
         </small>
         <Button variant="primary" onClick={() => (last ? finish() : setStep(step + 1))}>
-          {last ? "Got it" : "Next"}
+          {last ? t("tips.got_it") : t("tips.next")}
         </Button>
       </div>
     </div>

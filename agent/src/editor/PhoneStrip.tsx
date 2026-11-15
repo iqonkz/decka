@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { t } from "@decka/shared";
 import { call } from "../ipc";
 
 /** `Phone not connected — Pair a phone` over the preview, instead of silence (DESIGN.md 4.7). Disappears when a phone is connected. */
@@ -21,9 +22,9 @@ export default function PhoneStrip() {
   if (connected !== false) return null;
   return (
     <div className="phone-strip" role="status">
-      Phone not connected —{" "}
+      {t("strip.not_connected")} —{" "}
       <button type="button" className="link" onClick={() => window.dispatchEvent(new CustomEvent("decka:go", { detail: { tab: "pairing" } }))}>
-        Pair a phone
+        {t("strip.pair")}
       </button>
     </div>
   );

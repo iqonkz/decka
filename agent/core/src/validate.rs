@@ -387,6 +387,9 @@ pub fn validate_layout(layout: &LayoutFile, actions: &ActionsFile) -> Vec<Valida
     if d.key_face.as_deref().is_some_and(|f| !["standard", "full"].contains(&f)) {
         out.push(issue("/display/keyFace", "keyFace must be standard or full"));
     }
+    if d.language.as_deref().is_some_and(|l| !["auto", "en", "ru"].contains(&l)) {
+        out.push(issue("/display/language", "language must be auto, en or ru"));
+    }
     if d.wallpaper.as_deref().is_some_and(|w| !["aurora", "sunset", "ocean", "graphite", "album"].contains(&w)) {
         out.push(issue("/display/wallpaper", "wallpaper must be aurora, sunset, ocean, graphite or album"));
     }

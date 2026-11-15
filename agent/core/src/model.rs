@@ -182,6 +182,9 @@ pub struct DisplaySettings {
     /// M14: show the labels of keys by default; absent = true.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub key_labels: Option<bool>,
+    /// M14: interface language `auto` | `en` | `ru` (DESIGN.md 6); absent = auto.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub language: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

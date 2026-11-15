@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import type { ConfigFile, ValidationIssue } from "@decka/shared";
+import { t, type ConfigFile, type LanguageSetting, type ValidationIssue } from "@decka/shared";
 import { call } from "../ipc";
+import { saveLanguage } from "../language";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
 import Field from "../ui/Field";
@@ -12,10 +13,12 @@ export default function SettingsTab() {
   const [needsRestart, setNeedsRestart] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [adbMissing, setAdbMissing] = useState(false);
+  const [language, setLanguage] = useState<LanguageSetting>("auto");
 
   const load = useCallback(async () => {
     setConfig(await call("get_config"));
     call("get_status").then((s) => setAdbMissing(!s.usb.adbFound), () => {});
+    call("get_layout").then((l) => setLanguage(l.display.language ?? "auto"), () => {});
   }, []);
 
   useEffect(() => {
@@ -23,7 +26,7 @@ export default function SettingsTab() {
   }, [load]);
 
   if (error) return <Banner kind="error">{error}</Banner>;
-  if (!config) return <p>Loading…</p>;
+  if (!config) return <p>{t("common.loading")}</p>;
 
   const edit = (patch: Partial<ConfigFile>) => {
     setConfig({ ...config, ...patch });
@@ -38,7 +41,7 @@ export default function SettingsTab() {
       return;
     }
     setIssues([]);
-    setMessage("Saved");
+    setMessage(t("common.saved"));
     // Port and bind only apply after a restart: compare with what the server is really doing.
     const status = await call("get_status");
     setNeedsRestart(status.listening === null || status.listening.port !== config!.port || status.listening.bind !== config!.bind);
@@ -51,39 +54,53 @@ export default function SettingsTab() {
 
   return (
     <div className="stack">
-      <h2>Settings</h2>
+      <h2>{t("more.settings")}</h2>
       <section className="card">
-        <Field label="PC name" hint="Shown on the phone.">
+        <Field label={t("settings.language")}>
+          <select
+            value={language}
+            onChange={(e) => {
+              const next = e.target.value as LanguageSetting;
+              setLanguage(next);
+              void saveLanguage(next);
+            }}
+          >
+            <option value="auto">{t("settings.language_auto")}</option>
+            <option value="en">English</option>
+            <option value="ru">Русский</option>
+          </select>
+        </Field>
+        <Field label={t("settings.pc_name")} hint={t("settings.pc_name_hint")}>
           <input value={config.agentName} maxLength={40} onChange={(e) => edit({ agentName: e.target.value })} />
         </Field>
         <label className="check">
-          <input type="checkbox" checked={config.autostart} onChange={(e) => edit({ autostart: e.target.checked })} /> Start with Windows
+          <input type="checkbox" checked={config.autostart} onChange={(e) => edit({ autostart: e.target.checked })} /> {t("settings.autostart")}
         </label>
         <label className="check">
-          <input type="checkbox" checked={config.usb.enabled} onChange={(e) => edit({ usb: { ...config.usb, enabled: e.target.checked } })} /> USB connection
+          <input type="checkbox" checked={config.usb.enabled} onChange={(e) => edit({ usb: { ...config.usb, enabled: e.target.checked } })} /> {t("settings.usb")}
         </label>
-        <p className="muted">Needs USB debugging on the phone. Wi-Fi works without it.</p>
+        <p className="muted">{t("settings.usb_hint")}</p>
         {config.usb.enabled && adbMissing && (
-          <Field label="adb program" hint="Decka could not find adb by itself: choose adb.exe from Android platform-tools.">
+          <Field label={t("settings.adb")} hint={t("settings.adb_missing_hint")}>
             <input value={config.usb.adbPath} onChange={(e) => edit({ usb: { ...config.usb, adbPath: e.target.value } })} />
           </Field>
         )}
       </section>
 
       <details className="advanced">
-        <summary>More options</summary>
+        <summary>{t("common.more_options")}</summary>
         <section className="card">
-          <Field label="Port" hint="1024 to 65535. Applies after a server restart.">
+          <Field label={t("settings.port")} hint={t("settings.port_hint")}>
             <input type="number" value={config.port} onChange={(e) => edit({ port: Number(e.target.value) })} />
           </Field>
 
           <fieldset className="radio-group">
-            <legend>Who can connect</legend>
+            <legend>{t("settings.who_connects")}</legend>
             <label>
-              <input type="radio" name="bind" checked={config.bind === "0.0.0.0"} onChange={() => edit({ bind: "0.0.0.0" })} /> Phones on Wi-Fi and USB
+              <input type="radio" name="bind" checked={config.bind === "0.0.0.0"} onChange={() => edit({ bind: "0.0.0.0" })} /> {t("settings.bind_all")}
             </label>
             <label>
-              <input type="radio" name="bind" checked={config.bind === "127.0.0.1"} onChange={() => edit({ bind: "127.0.0.1" })} /> USB only
+              <input type="radio" name="bind" checked={config.bind === "127.0.0.1"} onChange={() => edit({ bind: "127.0.0.1" })} /> {t("settings.bind_usb")}
             </label>
           </fieldset>
 
@@ -94,9 +111,9 @@ export default function SettingsTab() {
                 checked={config.collectors.sys.enabled}
                 onChange={(e) => edit({ collectors: { ...config.collectors, sys: { ...config.collectors.sys, enabled: e.target.checked } } })}
               />{" "}
-              Show CPU and memory on the phone
+              {t("settings.sys")}
             </label>
-            <Field label="Refresh every, s">
+            <Field label={t("settings.refresh")}>
               <input
                 type="number"
                 value={config.collectors.sys.intervalSec}
@@ -104,7 +121,7 @@ export default function SettingsTab() {
               />
             </Field>
           </div>
-          <Field label="adb program" hint="Only changes where Decka looks for adb.">
+          <Field label={t("settings.adb")} hint={t("settings.adb_hint")}>
             <input value={config.usb.adbPath} onChange={(e) => edit({ usb: { ...config.usb, adbPath: e.target.value } })} />
           </Field>
         </section>
@@ -123,18 +140,18 @@ export default function SettingsTab() {
       {message && <Banner kind="success">{message}</Banner>}
       {needsRestart && (
         <Banner kind="warning">
-          <span>Restart the server to apply</span>
+          <span>{t("settings.restart_needed")}</span>
           <Button variant="primary" onClick={() => void restart()}>
-            Restart now
+            {t("settings.restart_now")}
           </Button>
         </Banner>
       )}
 
       <div className="row">
         <Button variant="primary" onClick={() => void save()}>
-          Save
+          {t("common.save")}
         </Button>
-        <Button onClick={() => void load()}>Revert</Button>
+        <Button onClick={() => void load()}>{t("common.revert")}</Button>
       </div>
     </div>
   );

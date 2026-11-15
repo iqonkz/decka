@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { t } from "@decka/shared";
 import { chordFromEvent } from "./keyName";
 import { formatChord } from "./addButton";
 
@@ -21,11 +22,11 @@ export default function ChordField({ keys, onChange }: { keys: string[]; onChang
           e.stopPropagation();
           if (e.key === "Tab") return;
           const next = chordFromEvent(e.nativeEvent);
-          setHint(next.unsupported ? "This key is not supported" : null);
+          setHint(next.unsupported ? t("picker.key_unsupported") : null);
           if (next.keys.length > 0) onChange(next.keys.slice(0, 5));
         }}
       >
-        {keys.length > 0 ? formatChord(keys) : recording ? "Press the keys…" : "Click and press keys"}
+        {keys.length > 0 ? formatChord(keys) : recording ? t("chord.recording") : t("chord.idle")}
       </button>
       {hint && <small className="warn-text">{hint}</small>}
     </div>

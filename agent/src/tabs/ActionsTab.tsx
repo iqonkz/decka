@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { ActionsFile, LayoutFile, ValidationIssue } from "@decka/shared";
+import { t, tn, type ActionsFile, type LayoutFile, type ValidationIssue } from "@decka/shared";
 import { call } from "../ipc";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
@@ -50,7 +50,7 @@ export default function ActionsTab() {
     if (!file) return;
     setMessage(null);
     setTestResult(null);
-    if (draft.name.trim() === "") return setIssues([{ path: "/name", message: "Give the action a name." }]);
+    if (draft.name.trim() === "") return setIssues([{ path: "/name", message: t("actions.need_name") }]);
     // The ID is never typed: a new action gets one made from its name.
     const id = isNew ? makeActionId(draft.name, file.actions) : selected;
     const built = fromDraft(draft);
@@ -60,7 +60,7 @@ export default function ActionsTab() {
     const result = await call("save_actions", { actions: next });
     if (result.ok) {
       setIssues([]);
-      setMessage("Saved");
+      setMessage(t("common.saved"));
       await reload();
       setSelected(id);
       setDraft(toDraft(id, built.action));
@@ -70,9 +70,9 @@ export default function ActionsTab() {
   }
 
   async function test() {
-    setTestResult("Running…");
+    setTestResult(t("actions.running"));
     const result = await call("test_action", { actionId: selected });
-    setTestResult(result.ok ? "OK" : (result.error ?? "Failed"));
+    setTestResult(result.ok ? t("common.ok") : (result.error ?? t("actions.failed")));
   }
 
   async function remove() {
@@ -90,14 +90,14 @@ export default function ActionsTab() {
   }
 
   if (error) return <Banner kind="error">{error}</Banner>;
-  if (!file) return <p>Loading…</p>;
+  if (!file) return <p>{t("common.loading")}</p>;
 
   const users = isNew ? [] : usedBy(selected);
   return (
     <div className="split">
       <div className="list-pane">
         <Button variant="primary" onClick={() => select(NEW)}>
-          New action
+          {t("actions.new")}
         </Button>
         <ul className="plain-list">
           {list.map(([id, a]) => (
@@ -112,7 +112,7 @@ export default function ActionsTab() {
       </div>
 
       <div className="form-pane">
-        <h2>{isNew ? "New action" : draft.name || "Action"}</h2>
+        <h2>{isNew ? t("actions.new") : draft.name || t("actions.action")}</h2>
         <ActionForm draft={draft} isNew={isNew} onChange={setDraft} />
 
         {issues.length > 0 && (
@@ -128,27 +128,28 @@ export default function ActionsTab() {
 
         <div className="row">
           <Button variant="primary" onClick={() => void save()}>
-            Save
+            {t("common.save")}
           </Button>
           <Button disabled={isNew} onClick={() => void test()}>
-            Test
+            {t("actions.test")}
           </Button>
           <Button variant="danger" disabled={isNew} onClick={() => setConfirmDelete(true)}>
-            Delete
+            {t("common.delete")}
           </Button>
-          {testResult && <span className={testResult === "OK" ? "ok-text" : "warn-text"}>{testResult}</span>}
+          {testResult && <span className={testResult === t("common.ok") ? "ok-text" : "warn-text"}>{testResult}</span>}
         </div>
 
         {confirmDelete && (
           <Banner kind="warning">
             <span>
-              Delete {draft.name || "this action"}?{users.length > 0 ? ` ${users.length} button${users.length === 1 ? " uses" : "s use"} it and will stop working.` : ""}
+              {t("actions.delete_confirm", { name: draft.name || t("actions.this_action") })}
+              {users.length > 0 ? ` ${tn("actions.used_by", users.length)}` : ""}
             </span>
             <span className="row">
               <Button variant="danger" onClick={() => void remove()}>
-                Delete
+                {t("common.delete")}
               </Button>
-              <Button onClick={() => setConfirmDelete(false)}>Cancel</Button>
+              <Button onClick={() => setConfirmDelete(false)}>{t("common.cancel")}</Button>
             </span>
           </Banner>
         )}

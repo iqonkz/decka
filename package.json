@@ -5,7 +5,7 @@
   "engines": { "node": ">=22.12" },
   "scripts": {
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present && node tools/check-i18n.mjs",
     "build:ui": "npm run build -w client && npm run build -w agent",
     "tauri": "npm run tauri -w agent --",
     "release:agent": "npm run build:ui && npm run tauri -- build",

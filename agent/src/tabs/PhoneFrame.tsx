@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import type { DisplaySettings } from "@decka/shared";
+import { t, type DisplaySettings } from "@decka/shared";
 import { applyTheme } from "@decka/ui";
 
 /** The viewport of the preview: the phone in landscape (CSS pixels). */
@@ -61,7 +61,7 @@ export default function PhoneFrame({ availableWidth, display, children, view }: 
     <div className="phone-frame" style={{ width: viewW * scale, height: viewH * scale }}>
       <iframe
         ref={frame}
-        title="Layout preview"
+        title={t("frame.title")}
         srcDoc={SRC_DOC}
         style={{ width: viewW, height: viewH, transform: `scale(${scale})`, transformOrigin: "top left" }}
       />

@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { normalizeCode, parseHostInput, parsePairUrl } from "@decka/shared";
+import { normalizeCode, parseHostInput, parsePairUrl, t } from "@decka/shared";
 import { pairErrorText, pairWith } from "../app/controller";
 import { isNative } from "../platform/native";
 import { scanQr } from "../platform/scan";
@@ -18,9 +18,9 @@ export default function PairScreen() {
   async function submit(e: FormEvent) {
     e.preventDefault();
     const host = parseHostInput(address);
-    if (!host) return setError("Enter a valid address");
+    if (!host) return setError(t("pair.error.address"));
     const normalized = normalizeCode(code);
-    if (!normalized) return setError("Enter the 8-character code");
+    if (!normalized) return setError(t("pair.error.code"));
     setError(null);
     setBusy(true);
     try {
@@ -36,7 +36,7 @@ export default function PairScreen() {
     const text = await scanQr();
     if (text === null) return; // cancelled: stay on the screen
     const parsed = parsePairUrl(text);
-    if (!parsed) return setError("This is not a Decka QR code");
+    if (!parsed) return setError(t("pair.error.not_qr"));
     setBusy(true);
     try {
       await pairWith(parsed.hosts, parsed.port, parsed.code, parsed.agentName);
@@ -48,17 +48,17 @@ export default function PairScreen() {
 
   return (
     <form className="pair" onSubmit={submit}>
-      <h1>Pair with your PC</h1>
-      <p className="hint">Open Decka on your PC → Pairing, then scan the QR code or type the code below.</p>
+      <h1>{t("pair.title")}</h1>
+      <p className="hint">{t("pair.hint")}</p>
       {native && (
         <button className="primary" type="button" disabled={busy} onClick={() => void scan()}>
-          Scan QR code
+          {t("pair.scan")}
         </button>
       )}
       {native && (
         <input
           className="field"
-          aria-label="PC address"
+          aria-label={t("pair.address_label")}
           placeholder="192.168.1.10"
           inputMode="url"
           autoCapitalize="off"
@@ -68,7 +68,7 @@ export default function PairScreen() {
       )}
       <input
         className="field code"
-        aria-label="Code"
+        aria-label={t("pair.code_label")}
         placeholder="XXXX-XXXX"
         autoCapitalize="characters"
         autoComplete="off"
@@ -78,7 +78,7 @@ export default function PairScreen() {
       />
       {error && <p className="error">{error}</p>}
       <button className="primary" type="submit" disabled={busy}>
-        {busy ? "Pairing…" : "Pair"}
+        {busy ? t("pair.busy") : t("pair.submit")}
       </button>
     </form>
   );

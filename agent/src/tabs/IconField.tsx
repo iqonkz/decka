@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { icons as lucideIcons } from "lucide-react";
+import { t } from "@decka/shared";
 import { call } from "../ipc";
 import Button from "../ui/Button";
 import { ICON_NAMES } from "./iconNames";
@@ -112,8 +113,8 @@ function PhosphorPicker({ onPick, busy }: { onPick: (svg: string) => void; busy:
   return (
     <div className="stack">
       <div className="row">
-        <input aria-label="Search icons" placeholder={`Search ${found.length} icons`} value={query} onChange={(e) => { setQuery(e.target.value); setScrollTop(0); }} />
-        <select aria-label="Weight" value={weight} onChange={(e) => setWeight(e.target.value as Weight)}>
+        <input aria-label={t("icon.search")} placeholder={t("icon.search_n", { n: found.length })} value={query} onChange={(e) => { setQuery(e.target.value); setScrollTop(0); }} />
+        <select aria-label={t("icon.weight")} value={weight} onChange={(e) => setWeight(e.target.value as Weight)}>
           {WEIGHTS.map((w) => (
             <option key={w} value={w}>
               {w}
@@ -123,7 +124,7 @@ function PhosphorPicker({ onPick, busy }: { onPick: (svg: string) => void; busy:
       </div>
       <div className="phosphor-scroll" style={{ height: VIEW_H }} onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}>
         <div style={{ position: "relative", height: rows * CELL, width: COLS * CELL }}>{cells}</div>
-        {found.length === 0 && <p className="muted">No icons match.</p>}
+        {found.length === 0 && <p className="muted">{t("icon.none_match")}</p>}
       </div>
       {error && <p className="warn-text">{error}</p>}
     </div>
@@ -161,19 +162,19 @@ export default function IconField({ value, onChange, program }: Props) {
   }
 
   async function fromImage() {
-    const picked = await open({ multiple: false, directory: false, filters: [{ name: "Images", extensions: ["png", "jpg", "jpeg", "ico", "bmp"] }] });
+    const picked = await open({ multiple: false, directory: false, filters: [{ name: t("icon.images"), extensions: ["png", "jpg", "jpeg", "ico", "bmp"] }] });
     if (typeof picked === "string") await fromResult(call("icon_from_image", { path: picked }));
   }
 
-  const tabs: [Tab, string][] = [["phosphor", "Phosphor"], ["quick", "Quick"], ...(program !== undefined ? ([["program", "Program"]] as [Tab, string][]) : []), ["image", "Image"], ["emoji", "Emoji"]];
+  const tabs: [Tab, string][] = [["phosphor", "Phosphor"], ["quick", t("icon.tab_quick")], ...(program !== undefined ? ([["program", t("icon.tab_program")]] as [Tab, string][]) : []), ["image", t("icon.tab_image")], ["emoji", t("icon.tab_emoji")]];
 
   return (
     <div className="icon-field">
       <div className="row">
         <IconPreview icon={value} />
-        <code className="icon-value">{value ?? "no icon"}</code>
+        <code className="icon-value">{value ?? t("icon.no_icon")}</code>
         <Button disabled={value === undefined} onClick={() => { setError(null); onChange(undefined); }}>
-          Clear
+          {t("item.clear")}
         </Button>
       </div>
       <div className="row wrap" role="tablist">
@@ -200,24 +201,24 @@ export default function IconField({ value, onChange, program }: Props) {
       {tab === "program" && (
         <div className="row">
           <Button disabled={busy || !program} onClick={() => void fromResult(call("icon_from_program", { path: program as string }))}>
-            Use the icon of the program
+            {t("icon.use_program")}
           </Button>
-          {!program && <span className="muted">Choose a “Launch a program” action for this button first.</span>}
+          {!program && <span className="muted">{t("icon.need_launch")}</span>}
         </div>
       )}
       {tab === "image" && (
         <div className="row">
           <Button disabled={busy} onClick={() => void fromImage()}>
-            From image…
+            {t("icon.from_image")}
           </Button>
-          <span className="muted">png, jpg, ico or bmp</span>
+          <span className="muted">{t("icon.image_types")}</span>
         </div>
       )}
       {tab === "emoji" && (
         <div className="row">
-          <input aria-label="Emoji" placeholder="🚀" value={emoji} maxLength={8} onChange={(e) => setEmoji(e.target.value)} />
+          <input aria-label={t("icon.tab_emoji")} placeholder="🚀" value={emoji} maxLength={8} onChange={(e) => setEmoji(e.target.value)} />
           <Button disabled={emoji.trim() === ""} onClick={() => onChange(`emoji:${emoji.trim()}`)}>
-            Use emoji
+            {t("icon.use_emoji")}
           </Button>
         </div>
       )}

@@ -38,7 +38,7 @@ th, td { padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--bord
 th { color: var(--muted); font-weight: 600; font-size: 12px; }
 
 .shell { display: flex; height: 100vh; }
-.tabs { display: flex; flex-direction: column; gap: 2px; width: 170px; padding: 12px 8px; background: var(--panel); border-right: 1px solid var(--border); }
+.tabs { display: flex; flex-direction: column; gap: 2px; width: max-content; min-width: 180px; max-width: 260px; flex: none; padding: 12px 8px; background: var(--panel); border-right: 1px solid var(--border); }
 .tab { padding: 9px 12px; border: 0; border-radius: 6px; background: transparent; color: var(--text); text-align: left; font: inherit; cursor: pointer; }
 .tab:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
 .tab.active { background: var(--accent); color: #fff; }
@@ -271,6 +271,12 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="color"]), select, te
 .tile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; margin-bottom: 8px; }
 .tile-grid button { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 8px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); color: inherit; font: inherit; cursor: pointer; }
 .tile-grid button.on { border-color: var(--accent); background: rgba(124, 92, 255, 0.18); }
+/* Russian is 20-30% longer (DESIGN.md 6): fixed-width places keep one line with an ellipsis (the full text is in `title`). */
+.more-nav button { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tile-grid button { min-width: 0; text-align: center; overflow-wrap: anywhere; }
+.seg { flex-wrap: wrap; }
+.tab span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wizard-lang { align-self: flex-end; }
 .program-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
 
 .check-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; }

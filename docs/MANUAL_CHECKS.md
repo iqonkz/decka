@@ -139,3 +139,8 @@
 
 - PENDING (owner): in the real window (not automated — no way to click it from the session): `Choose…` in the action form (a program from the list and a `.lnk` through `Browse…`), `Forget` of a paired phone (on a test device in a copy of the config), `Add check` with `https://example.com` (the status must show on the phone / in `ws-smoke state`).
 - PENDING (owner): `Sharpen` once in `Look` on the real layout: icons made before processing version 2 (trim, 6% margin, Shell frame cut) are redone; 7-Zip in the `Big icon` mode should now fill the key (checked on a stored PNG in `.tmp\icons-check`, not on the phone).
+## T14.7 — Russian (2026-11-15)
+
+- PENDING (owner): the tray menu in Russian (`Открыть настройки`, `Подключить телефон`, `Выход`) and its switch after `More → Settings → Language` (unit-tested, not seen: the tray of a test copy was not inspected).
+- PENDING (owner): the pairing screen of a real unpaired phone in Russian (the shot `phone-ru-pairing.png` is headless Chrome at the S9 size with a Russian `Accept-Language`; the S9 is paired with the owner's agent and was not unpaired).
+- Left in English on purpose: names of the four looks (AMOLED, Studio, Material, Glass), `Phosphor`, key names in shortcuts (`Ctrl`, `Alt`, `Shift`, `Win`), `USB`, `Wi-Fi`, `QR`, `CPU`, `RAM`; text that comes from the PC — validation messages (`ValidationIssue.message`), `press_result.error`, built-in page template names and their buttons (Rust, DATA_MODEL.md 7); the default page `Main` of a new layout; the weights of Phosphor icons in the picker.

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { t } from "@decka/shared";
 import { setPage, unpair } from "../app/controller";
 import ConnBadge from "../deck/ConnBadge";
 import DimOverlay from "../display/DimOverlay";
@@ -123,11 +124,11 @@ export default function DeckScreen() {
       {mode === "sleep" && <Screensaver />}
       {confirmUnpair && (
         <div className="dialog-backdrop">
-          <div className="dialog" role="dialog" aria-label="Unpair this device?">
-            <h2>Unpair this device?</h2>
+          <div className="dialog" role="dialog" aria-label={t("unpair.title")}>
+            <h2>{t("unpair.title")}</h2>
             <div className="dialog-actions">
               <button className="secondary" onClick={() => setConfirmUnpair(false)}>
-                Cancel
+                {t("unpair.cancel")}
               </button>
               <button
                 className="primary danger"
@@ -136,7 +137,7 @@ export default function DeckScreen() {
                   unpair();
                 }}
               >
-                Unpair
+                {t("unpair.confirm")}
               </button>
             </div>
           </div>

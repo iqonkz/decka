@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { StatusesItem } from "@decka/shared";
+import { t, type StatusesItem } from "@decka/shared";
 import { useDeckEnv } from "../deckEnv";
 import { sortStatuses, STATE_COLOR } from "./statusOrder";
 
@@ -37,7 +37,7 @@ export default function Statuses({ item }: { item: StatusesItem }) {
           {item.title}
         </div>
       )}
-      {list.length === 0 && <div className="statuses-empty">No statuses yet</div>}
+      {list.length === 0 && <div className="statuses-empty">{t("widget.no_statuses")}</div>}
       {shown.map((s) => (
         <div className="status-row" key={s.id}>
           <span className={s.state === "running" ? "status-dot pulse" : "status-dot"} style={{ background: STATE_COLOR[s.state] }} />
@@ -45,7 +45,7 @@ export default function Statuses({ item }: { item: StatusesItem }) {
           {s.text && <span className="status-text">{s.text}</span>}
         </div>
       ))}
-      {overflow && <div className="status-more">+{list.length - shown.length} more</div>}
+      {overflow && <div className="status-more">{t("widget.more", { n: list.length - shown.length })}</div>}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import type { Action, ActionsFile, InstalledApp, LayoutFile, LayoutItem } from "@decka/shared";
+import { t, type Action, type ActionsFile, type InstalledApp, type LayoutFile, type LayoutItem } from "@decka/shared";
 import { fits, launchActionOf, makeItem, withMediaDefaults, type Kind } from "../tabs/layoutOps";
 
 /** A ready-made action of the quick picker (DESIGN.md 4.5, table `Media & system`). */
@@ -12,15 +12,26 @@ export interface Preset {
 
 /** `Media & system` (DESIGN.md 4.5). */
 export function presetActions(): Preset[] {
+  // The labels are in the language of the window now; once a button is made they are the user's own text.
+  const label = {
+    "play-pause": t("preset.play_pause"),
+    "next-track": t("preset.next"),
+    "prev-track": t("preset.prev"),
+    "volume-up": t("preset.vol_up"),
+    "volume-down": t("preset.vol_down"),
+    mute: t("preset.mute"),
+    "lock-pc": t("preset.lock"),
+    sleep: t("preset.sleep"),
+  };
   return [
-    { id: "play-pause", label: "Play / Pause", action: { name: "Play / Pause", type: "media", op: "play_pause" }, icon: "lucide:play" },
-    { id: "next-track", label: "Next track", action: { name: "Next track", type: "media", op: "next" }, icon: "lucide:skip-forward" },
-    { id: "prev-track", label: "Previous track", action: { name: "Previous track", type: "media", op: "prev" }, icon: "lucide:skip-back" },
-    { id: "volume-up", label: "Volume up", action: { name: "Volume up", type: "media", op: "vol_up" }, icon: "lucide:volume-2" },
-    { id: "volume-down", label: "Volume down", action: { name: "Volume down", type: "media", op: "vol_down" }, icon: "lucide:volume-1" },
-    { id: "mute", label: "Mute", action: { name: "Mute", type: "media", op: "mute" }, icon: "lucide:volume-x" },
-    { id: "lock-pc", label: "Lock PC", action: { name: "Lock PC", type: "system", op: "lock" }, icon: "lucide:lock", confirm: true },
-    { id: "sleep", label: "Sleep", action: { name: "Sleep", type: "system", op: "sleep" }, icon: "lucide:moon", confirm: true },
+    { id: "play-pause", label: label["play-pause"], action: { name: label["play-pause"], type: "media", op: "play_pause" }, icon: "lucide:play" },
+    { id: "next-track", label: label["next-track"], action: { name: label["next-track"], type: "media", op: "next" }, icon: "lucide:skip-forward" },
+    { id: "prev-track", label: label["prev-track"], action: { name: label["prev-track"], type: "media", op: "prev" }, icon: "lucide:skip-back" },
+    { id: "volume-up", label: label["volume-up"], action: { name: label["volume-up"], type: "media", op: "vol_up" }, icon: "lucide:volume-2" },
+    { id: "volume-down", label: label["volume-down"], action: { name: label["volume-down"], type: "media", op: "vol_down" }, icon: "lucide:volume-1" },
+    { id: "mute", label: label.mute, action: { name: label.mute, type: "media", op: "mute" }, icon: "lucide:volume-x" },
+    { id: "lock-pc", label: label["lock-pc"], action: { name: label["lock-pc"], type: "system", op: "lock" }, icon: "lucide:lock", confirm: true },
+    { id: "sleep", label: label.sleep, action: { name: label.sleep, type: "system", op: "sleep" }, icon: "lucide:moon", confirm: true },
   ];
 }
 
@@ -124,7 +135,7 @@ export type AddResult = { ok: true; layout: LayoutFile; actions: ActionsFile; it
  */
 export function addButtonAt(layout: LayoutFile, actions: ActionsFile, pageIndex: number, cell: { x: number; y: number }, choice: Choice): AddResult {
   const page = layout.pages[pageIndex];
-  if (!page) return { ok: false, error: "No such page" };
+  if (!page) return { ok: false, error: t("add.no_page") };
 
   let item: LayoutItem;
   let action: Action | null | undefined;
@@ -144,7 +155,7 @@ export function addButtonAt(layout: LayoutFile, actions: ActionsFile, pageIndex:
       break;
     case "preset": {
       const preset = presetActions().find((p) => p.id === choice.presetId);
-      if (!preset) return { ok: false, error: "Unknown ready-made action" };
+      if (!preset) return { ok: false, error: t("add.unknown_preset") };
       action = preset.action;
       label = preset.label;
       icon = preset.icon;
@@ -153,7 +164,7 @@ export function addButtonAt(layout: LayoutFile, actions: ActionsFile, pageIndex:
     }
     case "action": {
       const existing = actions.actions[choice.actionId];
-      if (!existing) return { ok: false, error: "Unknown action" };
+      if (!existing) return { ok: false, error: t("add.unknown_action") };
       actionId = choice.actionId;
       label = existing.name;
       icon = defaultIconFor(existing);
@@ -161,14 +172,14 @@ export function addButtonAt(layout: LayoutFile, actions: ActionsFile, pageIndex:
     }
     case "url": {
       action = actionFromUrl(choice.url);
-      if (!action) return { ok: false, error: "This is not a web address (http or https)" };
+      if (!action) return { ok: false, error: t("add.not_url") };
       label = domainOf(choice.url) ?? action.name;
       icon = "lucide:globe";
       break;
     }
     case "keys": {
       action = actionFromKeys(choice.keys);
-      if (!action) return { ok: false, error: "Press at least one key" };
+      if (!action) return { ok: false, error: t("add.need_key") };
       label = formatChord(choice.keys);
       icon = "lucide:zap";
       break;
@@ -191,7 +202,7 @@ export function addButtonAt(layout: LayoutFile, actions: ActionsFile, pageIndex:
     item = item!;
   }
 
-  if (!fits(page, layout.grid, { x: item.x, y: item.y, w: item.w, h: item.h })) return { ok: false, error: "Not enough free space here" };
+  if (!fits(page, layout.grid, { x: item.x, y: item.y, w: item.w, h: item.h })) return { ok: false, error: t("add.no_space") };
   const nextLayout: LayoutFile = { ...layout, pages: layout.pages.map((p, i) => (i === pageIndex ? { ...p, items: [...p.items, item] } : p)) };
   return { ok: true, layout: nextLayout, actions: nextActions, itemId: item.id, actionsChanged };
 }

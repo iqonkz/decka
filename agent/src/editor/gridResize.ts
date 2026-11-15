@@ -1,4 +1,10 @@
-import type { LayoutFile, LayoutItem, Page } from "@decka/shared";
+import { t, type LayoutFile, type LayoutItem, type Page } from "@decka/shared";
+
+/** `Moved`, `Moved 2`... (a user's page name from now on, so it is made in the language of the window). */
+const movedName = (popup: boolean, n: number): string => {
+  const base = popup ? t("page.moved_group") : t("page.moved");
+  return n > 1 ? `${base} ${n}` : base;
+};
 import { findFreeSpot, newPageId } from "../tabs/layoutOps";
 
 export interface Overflow {
@@ -34,7 +40,7 @@ export function resizeGridMoving(layout: LayoutFile, cols: number, rows: number)
     let page = extra.find((p) => (p.popup === true) === popup);
     if (!page) {
       const n = extra.filter((p) => (p.popup === true) === popup).length + 1;
-      page = { id: newPageId(), name: popup ? `Moved group${n > 1 ? ` ${n}` : ""}` : `Moved${n > 1 ? ` ${n}` : ""}`, ...(popup ? { popup: true } : {}), items: [] };
+      page = { id: newPageId(), name: movedName(popup, n), ...(popup ? { popup: true } : {}), items: [] };
       extra.push(page);
     }
     return page;
@@ -46,7 +52,7 @@ export function resizeGridMoving(layout: LayoutFile, cols: number, rows: number)
     if (!spot) {
       // The page is full: another one.
       const n = extra.filter((p) => (p.popup === true) === popup).length + 1;
-      page2 = { id: newPageId(), name: `${popup ? "Moved group" : "Moved"} ${n}`, ...(popup ? { popup: true } : {}), items: [] };
+      page2 = { id: newPageId(), name: movedName(popup, Math.max(2, n)), ...(popup ? { popup: true } : {}), items: [] };
       extra.push(page2);
       spot = findFreeSpot(page2, grid, item.w, item.h);
     }

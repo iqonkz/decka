@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
+import { t, type LanguageSetting } from "@decka/shared";
+import { useApplyLanguage } from "@decka/ui";
 import { call, onNavigate } from "./ipc";
+import { LANGUAGE_EVENT } from "./language";
 import AppearanceTab from "./tabs/AppearanceTab";
 import FirstRun, { wizardDone } from "./tabs/FirstRun";
 import LayoutTab from "./tabs/LayoutTab";
@@ -9,14 +12,19 @@ import Tabs, { type TabDef } from "./ui/Tabs";
 
 type TabId = "deck" | "look" | "phone" | "more";
 
-const TABS: TabDef<TabId>[] = [
-  { id: "deck", label: "Deck", icon: "squares-four" },
-  { id: "look", label: "Look", icon: "palette" },
-  { id: "phone", label: "Phone", icon: "device-mobile" },
-  { id: "more", label: "More", icon: "dots-three-outline" },
-];
+const TAB_IDS: TabId[] = ["deck", "look", "phone", "more"];
 
-const isTab = (s: string): s is TabId => TABS.some((t) => t.id === s);
+/** The side menu in the current language (labels are looked up at render time). */
+function tabs(): TabDef<TabId>[] {
+  return [
+    { id: "deck", label: t("tab.deck"), icon: "squares-four" },
+    { id: "look", label: t("tab.look"), icon: "palette" },
+    { id: "phone", label: t("tab.phone"), icon: "device-mobile" },
+    { id: "more", label: t("tab.more"), icon: "dots-three-outline" },
+  ];
+}
+
+const isTab = (s: string): s is TabId => (TAB_IDS as string[]).includes(s);
 
 /**
  * Where a name goes: the new four tabs, and the old names of the tray, the editor and the first-run guide
@@ -80,9 +88,20 @@ export default function App() {
   }, []);
 
   // The accent of the deck is also the accent of this window.
+  // The language comes from the same layout (`display.language`; `auto` = the system language of this window).
+  const [languageSetting, setLanguageSetting] = useState<LanguageSetting | undefined>(undefined);
+  useApplyLanguage(languageSetting, navigator.language);
+  useEffect(() => {
+    const changed = (e: Event) => setLanguageSetting((e as CustomEvent<{ language: LanguageSetting }>).detail.language);
+    window.addEventListener(LANGUAGE_EVENT, changed);
+    return () => window.removeEventListener(LANGUAGE_EVENT, changed);
+  }, []);
   const refreshAccent = useCallback(() => {
     call("get_layout").then(
-      (l) => document.documentElement.style.setProperty("--accent", l.display.accent ?? "#7c5cff"),
+      (l) => {
+        document.documentElement.style.setProperty("--accent", l.display.accent ?? "#7c5cff");
+        setLanguageSetting(l.display.language);
+      },
       () => {},
     );
   }, []);
@@ -110,7 +129,7 @@ export default function App() {
 
   return (
     <div className="shell">
-      <Tabs tabs={TABS} active={tab} onSelect={setTab} />
+      <Tabs tabs={tabs()} active={tab} onSelect={setTab} />
       <main className="content">
         <TabBody tab={tab} section={section} onSection={setSection} />
       </main>

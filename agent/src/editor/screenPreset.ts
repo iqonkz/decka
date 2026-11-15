@@ -1,4 +1,4 @@
-import type { DisplaySettings } from "@decka/shared";
+import { t, type DisplaySettings } from "@decka/shared";
 
 export type ScreenPreset = "off" | "balanced" | "maximum" | "custom";
 
@@ -9,7 +9,8 @@ export const PRESETS: Record<Exclude<ScreenPreset, "custom">, { dimAfterSec: num
   maximum: { dimAfterSec: 30, dimLevel: 0.15, sleepAfterSec: 180 },
 };
 
-export const PRESET_LABELS: Record<ScreenPreset, string> = { off: "Off", balanced: "Balanced", maximum: "Maximum", custom: "Custom" };
+/** The name of a screen-saving choice in the current language (glossary: Обычная / Максимальная / Своя). */
+export const presetLabel = (p: ScreenPreset): string => t(`screen.${p}`);
 
 const same = (a: number, b: number) => Math.abs(a - b) < 1e-9;
 

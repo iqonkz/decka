@@ -28,9 +28,13 @@ pub fn sync_autostart(app: &AppHandle, wanted: bool) {
 pub fn run() {
     decka_core::logging::init_file_logging(&decka_core::paths::config_dir(None));
 
-    tauri::Builder::default()
-        // Registered first: a second launch just brings the first window forward.
-        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| tray::show_settings(app)))
+    let mut builder = tauri::Builder::default();
+    // Registered first: a second launch just brings the first window forward. A test copy (`DECKA_CONFIG_DIR` set, a separate
+    // configuration folder) does not take part, so that it can run next to the installed agent without taking its place.
+    if std::env::var_os("DECKA_CONFIG_DIR").is_none() {
+        builder = builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| tray::show_settings(app)));
+    }
+    builder
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, Some(vec!["--minimized"])))
         .plugin(tauri_plugin_dialog::init())
         .on_window_event(|window, event| {

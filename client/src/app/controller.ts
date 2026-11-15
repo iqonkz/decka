@@ -1,6 +1,6 @@
 // The single place where Connection, the store and local storage meet (ARCHITECTURE.md 4.4).
 import type { ErrorCode } from "@decka/shared";
-import { parsePairUrl } from "@decka/shared";
+import { parsePairUrl, t } from "@decka/shared";
 import { buildCandidates } from "../net/candidates";
 import { Connection, type ConnFailure, type WebSocketCtor } from "../net/connection";
 import { hapticEvent } from "../platform/haptics";
@@ -46,11 +46,11 @@ function conn(): Connection {
 export function pairErrorText(code: ConnFailure["code"]): string {
   switch (code) {
     case "PAIR_CODE_INVALID":
-      return "Code is wrong or expired. Generate a new one on the PC.";
+      return t("pair.error.wrong_code");
     case "RATE_LIMITED":
-      return "Too many attempts. Wait a minute.";
+      return t("pair.error.rate");
     default:
-      return "Can't reach the PC. Check Wi-Fi or the USB cable.";
+      return t("pair.error.unreachable");
   }
 }
 

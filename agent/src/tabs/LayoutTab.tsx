@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ActionsFile, ButtonItem, LayoutFile, LayoutItem, Page, ValidationIssue } from "@decka/shared";
-import { validateLayout } from "@decka/shared";
+import { t, tn, validateLayout } from "@decka/shared";
 import { call } from "../ipc";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
@@ -153,10 +153,10 @@ export default function LayoutTab() {
   }, [dirty, layout, actions, tick]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (error) return <Banner kind="error">{error}</Banner>;
-  if (!layout || !actions) return <p>Loading…</p>;
+  if (!layout || !actions) return <p>{t("common.loading")}</p>;
 
   const firstPage = layout.pages[pageIdx] ?? layout.pages[0];
-  if (!firstPage) return <Banner kind="error">The layout has no pages.</Banner>;
+  if (!firstPage) return <Banner kind="error">{t("layout.no_pages")}</Banner>;
   const page: Page = firstPage; // a plain `Page` so that the helpers below need no checks
   const selected = page.items.find((i) => i.id === selectedId) ?? null;
   const badItems = new Set(
@@ -188,7 +188,7 @@ export default function LayoutTab() {
     if (!resizing) return;
     const result = resizeGridMoving(layout!, resizing.cols, resizing.rows);
     setResizing(null);
-    if (result.lost > 0) return setNotice(`${result.lost} widget${result.lost === 1 ? "" : "s"} are too big for this grid and were not moved.`);
+    if (result.lost > 0) return setNotice(tn("layout.too_big", result.lost));
     edit(result.layout);
     setSelectedId(null);
   }
@@ -206,7 +206,7 @@ export default function LayoutTab() {
 
   function addPage() {
     const n = layout!.pages.length + 1;
-    edit({ ...layout!, pages: [...layout!.pages, { id: newPageId(), name: `Page ${n}`, items: [] }] });
+    edit({ ...layout!, pages: [...layout!.pages, { id: newPageId(), name: t("page.n", { n }), items: [] }] });
     setPageIdx(layout!.pages.length);
     setSelectedId(null);
   }
@@ -270,7 +270,7 @@ export default function LayoutTab() {
     if (!made.ok) return { error: made.error };
     if (made.actionsChanged) {
       const saved = await call("save_actions", { actions: made.actions });
-      if (!saved.ok) return { error: saved.issues[0]?.message ?? "Cannot save the action" };
+      if (!saved.ok) return { error: saved.issues[0]?.message ?? t("layout.cannot_save_action") };
     }
     return { layout: made.layout, actions: made.actions, itemId: made.itemId };
   }
@@ -317,7 +317,7 @@ export default function LayoutTab() {
       const current = lay.pages[pageIdx] ?? page;
       const spot = nearestFreeCell(current, lay.grid, cell.x, cell.y);
       if (!spot) {
-        setNotice("No free cell on this page");
+        setNotice(t("layout.no_free_cell"));
         break;
       }
       const made = await addChoice(lay, acts, spot, { type: "app", app });
@@ -345,7 +345,7 @@ export default function LayoutTab() {
       if (moved) setPage(moved);
       return;
     }
-    if (payload.type === "app" && itemAt(page!, x, y)) return setNotice("Drop a program on an empty cell.");
+    if (payload.type === "app" && itemAt(page!, x, y)) return setNotice(t("layout.drop_on_empty"));
     const choice: Choice = payload.type === "widget" ? { type: "widget", kind: payload.kind } : payload.type === "action" ? { type: "action", actionId: payload.actionId } : { type: "app", app: payload.app };
     const made = await addChoice(layout!, actions!, { x, y }, choice);
     if ("error" in made) return setNotice(made.error);
@@ -367,7 +367,7 @@ export default function LayoutTab() {
     const item = page.items.find((i) => i.id === id);
     if (!item) return;
     const spot = nearestFreeCell(page, layout!.grid, item.x, item.y, item.w, item.h);
-    if (!spot) return setNotice("No free cell on this page");
+    if (!spot) return setNotice(t("layout.no_free_cell"));
     const copy = { ...item, id: newItemId(item.kind), x: spot.x, y: spot.y } as LayoutItem;
     setPage({ ...page, items: [...page.items, copy] });
     setSelectedId(copy.id);
@@ -375,7 +375,7 @@ export default function LayoutTab() {
   function pasteAt(cell: { x: number; y: number } | null) {
     if (!clipboard) return;
     const spot = nearestFreeCell(page, layout!.grid, cell?.x ?? clipboard.x, cell?.y ?? clipboard.y, clipboard.w, clipboard.h);
-    if (!spot) return setNotice("No free cell on this page");
+    if (!spot) return setNotice(t("layout.no_free_cell"));
     const copy = { ...clipboard, id: newItemId(clipboard.kind), x: spot.x, y: spot.y } as LayoutItem;
     setPage({ ...page, items: [...page.items, copy] });
     setSelectedId(copy.id);
@@ -398,7 +398,7 @@ export default function LayoutTab() {
   async function testItem(item: ButtonItem) {
     if (!item.actionId) return;
     const r = await call("test_action", { actionId: item.actionId }).catch((e) => ({ ok: false, error: String(e) }));
-    setNotice(r.ok ? "Sent to the PC" : `Test failed: ${"error" in r && r.error ? r.error : "unknown error"}`);
+    setNotice(r.ok ? t("layout.sent") : t("layout.test_failed", { error: "error" in r && r.error ? r.error : t("layout.unknown_error") }));
   }
   /** The program a button starts, when its action launches one (the `Refresh app icon` item is only for these). */
   const launchProgramOf = (item: ButtonItem): string | null => {
@@ -408,7 +408,7 @@ export default function LayoutTab() {
   async function refreshIcon(id: string, program: string) {
     const r = await call("icon_from_program", { path: program }).catch(() => ({ error: "" }));
     if ("icon" in r) patchItem(id, { icon: r.icon });
-    else setNotice("Cannot read the icon of this program");
+    else setNotice(t("layout.icon_error"));
   }
   function pickCustomColor(item: ButtonItem) {
     const input = document.createElement("input");
@@ -418,7 +418,8 @@ export default function LayoutTab() {
     input.click();
   }
   const COLORS = ["#7c5cff", "#3b82f6", "#06b6d4", "#16a34a", "#eab308", "#f97316", "#ef4444", "#ec4899"];
-  const WIDGET_NAMES = { clock: "Clock", sys: "System", media: "Now playing", statuses: "Statuses", notifications: "Notifications" } as const;
+  const WIDGET_KINDS = ["clock", "sys", "media", "statuses", "notifications"] as const;
+  const widgetName = (kind: (typeof WIDGET_KINDS)[number]) => t(`widget_name.${kind}`);
 
   /** The context menu of a key or widget (DESIGN.md 4.6). */
   function itemMenu(item: LayoutItem, x: number, y: number) {
@@ -427,29 +428,29 @@ export default function LayoutTab() {
     let items: MenuItem[];
     if (item.kind === "button") {
       items = [
-        { label: "Change action…", icon: "lightning", onClick: () => setCreating({ x: item.x, y: item.y, rect: new DOMRect(x, y, 0, 0), replaceId: item.id }) },
-        { label: "Change icon…", icon: "image", onClick: () => document.querySelector(".item-form")?.scrollIntoView({ block: "start" }) },
-        { label: "Rename", icon: "pencil-simple", hint: "F2", onClick: () => setRenamingId(item.id) },
+        { label: t("menu_item.change_action"), icon: "lightning", onClick: () => setCreating({ x: item.x, y: item.y, rect: new DOMRect(x, y, 0, 0), replaceId: item.id }) },
+        { label: t("menu_item.change_icon"), icon: "image", onClick: () => document.querySelector(".item-form")?.scrollIntoView({ block: "start" }) },
+        { label: t("menu_item.rename"), icon: "pencil-simple", hint: "F2", onClick: () => setRenamingId(item.id) },
         {
-          label: "Color",
+          label: t("menu_item.color"),
           icon: "palette",
           separator: true,
           submenu: [
             ...COLORS.map((c) => ({ label: c, swatch: c, checked: item.color?.toLowerCase() === c, onClick: () => patchItem(item.id, { color: c }) })),
-            { label: "Custom…", onClick: () => pickCustomColor(item) },
-            { label: "Default", onClick: () => patchItem(item.id, { color: undefined }) },
+            { label: t("menu_item.custom"), onClick: () => pickCustomColor(item) },
+            { label: t("menu_item.default"), onClick: () => patchItem(item.id, { color: undefined }) },
           ],
         },
-        { label: "Big icon", icon: "frame-corners", separator: true, checked: (item.face ?? layout!.display.keyFace ?? "standard") === "full", onClick: () => patchItem(item.id, { face: (item.face ?? layout!.display.keyFace ?? "standard") === "full" ? "standard" : "full" }) },
-        { label: "Show name", icon: "text-t", checked: item.showLabel ?? layout!.display.keyLabels ?? true, onClick: () => patchItem(item.id, { showLabel: !(item.showLabel ?? layout!.display.keyLabels ?? true) }) },
-        { label: "Ask before running", icon: "hand-palm", checked: item.confirm === true, onClick: () => patchItem(item.id, { confirm: item.confirm === true ? undefined : true }) },
-        { label: "Test on PC", icon: "play", separator: true, disabled: !item.actionId, onClick: () => void testItem(item) },
-        { label: "Duplicate", icon: "copy", hint: "Ctrl+D", onClick: () => duplicateItem(item.id) },
+        { label: t("menu_item.big_icon"), icon: "frame-corners", separator: true, checked: (item.face ?? layout!.display.keyFace ?? "standard") === "full", onClick: () => patchItem(item.id, { face: (item.face ?? layout!.display.keyFace ?? "standard") === "full" ? "standard" : "full" }) },
+        { label: t("menu_item.show_name"), icon: "text-t", checked: item.showLabel ?? layout!.display.keyLabels ?? true, onClick: () => patchItem(item.id, { showLabel: !(item.showLabel ?? layout!.display.keyLabels ?? true) }) },
+        { label: t("menu_item.ask"), icon: "hand-palm", checked: item.confirm === true, onClick: () => patchItem(item.id, { confirm: item.confirm === true ? undefined : true }) },
+        { label: t("menu_item.test"), icon: "play", separator: true, disabled: !item.actionId, onClick: () => void testItem(item) },
+        { label: t("menu_item.duplicate"), icon: "copy", hint: "Ctrl+D", onClick: () => duplicateItem(item.id) },
         item.popup !== undefined
-          ? { label: "Edit popup group", icon: "squares-four", onClick: () => goToPage(item.popup) }
-          : { label: "Make popup group", icon: "squares-four", disabled: page.popup === true, onClick: () => makePopup(item.id) },
-        ...(launchProgramOf(item) !== null ? [{ label: "Refresh app icon", icon: "arrows-clockwise", onClick: () => void refreshIcon(item.id, launchProgramOf(item)!) }] : []),
-        { label: "Delete", icon: "trash", hint: "Del", danger: true, separator: true, onClick: () => deleteItem(item.id) },
+          ? { label: t("menu_item.edit_group"), icon: "squares-four", onClick: () => goToPage(item.popup) }
+          : { label: t("menu_item.make_group"), icon: "squares-four", disabled: page.popup === true, onClick: () => makePopup(item.id) },
+        ...(launchProgramOf(item) !== null ? [{ label: t("menu_item.refresh_icon"), icon: "arrows-clockwise", onClick: () => void refreshIcon(item.id, launchProgramOf(item)!) }] : []),
+        { label: t("common.delete"), icon: "trash", hint: "Del", danger: true, separator: true, onClick: () => deleteItem(item.id) },
       ];
     } else {
       const [minW, maxW, minH, maxH] = sizeRange(item.kind, layout!.grid);
@@ -462,21 +463,21 @@ export default function LayoutTab() {
             onClick: () => {
               const next = resizeItem(page, layout!.grid, item.id, w, h);
               if (next) setPage(next);
-              else setNotice("Not enough free space for this size");
+              else setNotice(t("layout.no_space_size"));
             },
           });
         }
       items = [
-        { label: "Settings…", icon: "gear", onClick: () => document.querySelector(".item-form")?.scrollIntoView({ block: "start" }) },
-        ...(sizes.length > 1 ? [{ label: "Size", icon: "arrows-out", submenu: sizes }] : []),
-        { label: "Duplicate", icon: "copy", hint: "Ctrl+D", onClick: () => duplicateItem(item.id) },
-        { label: "Delete", icon: "trash", hint: "Del", danger: true, separator: true, onClick: () => deleteItem(item.id) },
+        { label: t("menu_item.settings"), icon: "gear", onClick: () => document.querySelector(".item-form")?.scrollIntoView({ block: "start" }) },
+        ...(sizes.length > 1 ? [{ label: t("menu_item.size"), icon: "arrows-out", submenu: sizes }] : []),
+        { label: t("menu_item.duplicate"), icon: "copy", hint: "Ctrl+D", onClick: () => duplicateItem(item.id) },
+        { label: t("common.delete"), icon: "trash", hint: "Del", danger: true, separator: true, onClick: () => deleteItem(item.id) },
       ];
     }
     setMenu({ x, y, items });
   }
 
-  async function addWidget(kind: keyof typeof WIDGET_NAMES, cell: { x: number; y: number }) {
+  async function addWidget(kind: (typeof WIDGET_KINDS)[number], cell: { x: number; y: number }) {
     const made = await addChoice(layout!, actions!, cell, { type: "widget", kind });
     if ("error" in made) return setNotice(made.error);
     applyActions(made.actions);
@@ -487,14 +488,14 @@ export default function LayoutTab() {
   /** The context menu of an empty cell. */
   function cellMenu(cell: { x: number; y: number }, x: number, y: number, rect: DOMRect) {
     setSelectedId(null);
-    const fitting = (Object.keys(WIDGET_NAMES) as (keyof typeof WIDGET_NAMES)[]).filter((kind) => fits(page, layout!.grid, { x: cell.x, y: cell.y, w: DEFAULT_SIZE[kind].w, h: DEFAULT_SIZE[kind].h }));
+    const fitting = WIDGET_KINDS.filter((kind) => fits(page, layout!.grid, { x: cell.x, y: cell.y, w: DEFAULT_SIZE[kind].w, h: DEFAULT_SIZE[kind].h }));
     setMenu({
       x,
       y,
       items: [
-        { label: "Add button…", icon: "plus", onClick: () => setCreating({ ...cell, rect }) },
-        { label: "Add widget", icon: "squares-four", disabled: fitting.length === 0, submenu: fitting.map((kind) => ({ label: WIDGET_NAMES[kind], onClick: () => void addWidget(kind, cell) })) },
-        { label: "Paste", icon: "clipboard", hint: "Ctrl+V", disabled: clipboard === null, onClick: () => pasteAt(cell) },
+        { label: t("menu_item.add_button"), icon: "plus", onClick: () => setCreating({ ...cell, rect }) },
+        { label: t("menu_item.add_widget"), icon: "squares-four", disabled: fitting.length === 0, submenu: fitting.map((kind) => ({ label: widgetName(kind), onClick: () => void addWidget(kind, cell) })) },
+        { label: t("menu_item.paste"), icon: "clipboard", hint: "Ctrl+V", disabled: clipboard === null, onClick: () => pasteAt(cell) },
       ],
     });
   }
@@ -509,20 +510,20 @@ export default function LayoutTab() {
       x,
       y,
       items: [
-        { label: "Rename", icon: "pencil-simple", onClick: () => setRenaming(target.name) },
-        { label: "Move left", icon: "arrow-left", disabled: index === 0, onClick: () => { edit(movePage(layout!, index, -1)); setPageIdx(index - 1); } },
-        { label: "Move right", icon: "arrow-right", disabled: index === many - 1, onClick: () => { edit(movePage(layout!, index, 1)); setPageIdx(index + 1); } },
+        { label: t("menu_item.rename"), icon: "pencil-simple", onClick: () => setRenaming(target.name) },
+        { label: t("menu_item.move_left"), icon: "arrow-left", disabled: index === 0, onClick: () => { edit(movePage(layout!, index, -1)); setPageIdx(index - 1); } },
+        { label: t("menu_item.move_right"), icon: "arrow-right", disabled: index === many - 1, onClick: () => { edit(movePage(layout!, index, 1)); setPageIdx(index + 1); } },
         {
-          label: "Duplicate",
+          label: t("menu_item.duplicate"),
           icon: "copy",
           disabled: many >= 10,
           onClick: () => {
-            const copy: Page = { ...target, id: newPageId(), name: `${target.name} copy`.slice(0, 30), items: target.items.map((i) => ({ ...i, id: newItemId(i.kind) }) as LayoutItem) };
+            const copy: Page = { ...target, id: newPageId(), name: t("page.copy", { name: target.name }).slice(0, 30), items: target.items.map((i) => ({ ...i, id: newItemId(i.kind) }) as LayoutItem) };
             edit({ ...layout!, pages: [...layout!.pages.slice(0, index + 1), copy, ...layout!.pages.slice(index + 1)] });
             setPageIdx(index + 1);
           },
         },
-        { label: "Delete", icon: "trash", danger: true, separator: true, disabled: many <= 1, onClick: () => { setPageIdx(index); deletePage(); } },
+        { label: t("common.delete"), icon: "trash", danger: true, separator: true, disabled: many <= 1, onClick: () => { setPageIdx(index); deletePage(); } },
       ],
     });
   }
@@ -576,7 +577,7 @@ export default function LayoutTab() {
   const ghostLabel = (payload: DragPayload): string => {
     if (payload.type === "app") return payload.app.name;
     if (payload.type === "action") return payload.label;
-    if (payload.type === "widget") return payload.kind;
+    if (payload.type === "widget") return payload.kind === "button" ? t("item.button") : t(`widget_name.${payload.kind}`);
     const item = page.items.find((i) => i.id === payload.id);
     if (item && "label" in item && item.label) return item.label;
     const action = item && item.kind === "button" && item.actionId ? actions.actions[item.actionId] : undefined;
@@ -585,7 +586,7 @@ export default function LayoutTab() {
 
   return (
     <div className="stack">
-      <h2>Deck</h2>
+      <h2>{t("tab.deck")}</h2>
 
       <div className="row wrap deck-bar">
         <div className="page-tabs">
@@ -594,7 +595,7 @@ export default function LayoutTab() {
               <input
                 key={p.id}
                 className="page-tab-input"
-                aria-label="Page name"
+                aria-label={t("layout.page_name")}
                 autoFocus
                 maxLength={30}
                 value={renaming}
@@ -618,14 +619,14 @@ export default function LayoutTab() {
                 onContextMenu={(e) => pageMenu(i, e.clientX, e.clientY)}
               >
                 {p.name}
-                {p.popup === true && <span className="tag popup-tag">Popup</span>}
+                {p.popup === true && <span className="tag popup-tag">{t("layout.popup_tag")}</span>}
               </button>
             ),
           )}
           <button
             type="button"
             className="page-tab"
-            aria-label="Add a page"
+            aria-label={t("layout.add_page")}
             disabled={layout.pages.length >= 10}
             onClick={(e) => {
               const box = e.currentTarget.getBoundingClientRect();
@@ -633,9 +634,9 @@ export default function LayoutTab() {
                 x: box.left,
                 y: box.bottom + 4,
                 items: [
-                  { label: "New page", icon: "file-plus", onClick: addPage },
-                  { label: "New popup group", icon: "squares-four", onClick: addPopupPage },
-                  { label: "From a template…", icon: "layout", onClick: () => setTemplatesOpen(true) },
+                  { label: t("layout.new_page"), icon: "file-plus", onClick: addPage },
+                  { label: t("layout.new_group"), icon: "squares-four", onClick: addPopupPage },
+                  { label: t("layout.from_template"), icon: "layout", onClick: () => setTemplatesOpen(true) },
                 ],
               });
             }}
@@ -648,8 +649,8 @@ export default function LayoutTab() {
 
       {page.popup === true ? (
         <section className="card">
-          <h3>Popup group</h3>
-          <p className="muted">A group opens over the page when a key with “Open popup group” is tapped. It is not part of the swipe and has no pages of its own to go to.</p>
+          <h3>{t("layout.group_title")}</h3>
+          <p className="muted">{t("layout.group_text")}</p>
           <label className="check">
             <input
               type="checkbox"
@@ -659,13 +660,13 @@ export default function LayoutTab() {
                 setPage(e.target.checked ? { ...rest, stayOpen: true } : rest);
               }}
             />{" "}
-            Keep the group open after a key is pressed
+            {t("layout.group_stay_open")}
           </label>
         </section>
       ) : (
         <PageApps page={page} isFirst={pageIdx === 0} onChange={setPage} />
       )}
-      {badItems.size > 0 && <p className="muted">Keys with problems are listed below.</p>}
+      {badItems.size > 0 && <p className="muted">{t("layout.problems")}</p>}
       <div className="editor">
         <Palette actions={actions} onBegin={session.begin} />
         <div className="editor-main" ref={mainRef} style={{ position: "relative" }}>
@@ -673,11 +674,11 @@ export default function LayoutTab() {
             <div className="grow">
               <PhoneStrip />
             </div>
-            {savedFlash && <span className="saved-flag">Saved</span>}
-            <button type="button" className="icon-btn" aria-label="Undo" title="Undo (Ctrl+Z)" disabled={!canUndo(hist!)} onClick={() => step(undo)}>
+            {savedFlash && <span className="saved-flag">{t("common.saved")}</span>}
+            <button type="button" className="icon-btn" aria-label={t("layout.undo")} title={`${t("layout.undo")} (Ctrl+Z)`} disabled={!canUndo(hist!)} onClick={() => step(undo)}>
               <PhIcon name="arrow-counter-clockwise" size={16} />
             </button>
-            <button type="button" className="icon-btn" aria-label="Redo" title="Redo (Ctrl+Y)" disabled={!canRedo(hist!)} onClick={() => step(redo)}>
+            <button type="button" className="icon-btn" aria-label={t("layout.redo")} title={`${t("layout.redo")} (Ctrl+Y)`} disabled={!canRedo(hist!)} onClick={() => step(redo)}>
               <PhIcon name="arrow-clockwise" size={16} />
             </button>
           </div>          <EditorCanvas
@@ -703,9 +704,9 @@ export default function LayoutTab() {
           />
           {page.items.length === 0 && page.popup !== true && (
             <div className="empty-page">
-              <strong>This page is empty</strong>
+              <strong>{t("layout.empty_title")}</strong>
               <div className="row">
-                <Button onClick={() => window.dispatchEvent(new CustomEvent("decka:run-setup", { detail: { step: 2 } }))}>Add apps</Button>
+                <Button onClick={() => window.dispatchEvent(new CustomEvent("decka:run-setup", { detail: { step: 2 } }))}>{t("layout.add_apps")}</Button>
                 <Button
                   variant="primary"
                   onClick={() => {
@@ -713,7 +714,7 @@ export default function LayoutTab() {
                     if (cell) setCreating({ x: 0, y: 0, rect: cell.getBoundingClientRect() });
                   }}
                 >
-                  Add a button
+                  {t("layout.add_a_button")}
                 </Button>
               </div>
             </div>
@@ -734,7 +735,7 @@ export default function LayoutTab() {
               onChangeAction={() => setCreating({ x: selected.x, y: selected.y, rect: new DOMRect(window.innerWidth / 2 - 180, window.innerHeight / 3, 0, 0), replaceId: selected.id })}
             />
           )}
-          {!selected && <p className="muted">Select a key, or click an empty cell to add one.</p>}
+          {!selected && <p className="muted">{t("layout.select_hint")}</p>}
         </div>
         </div>
       </div>
@@ -769,14 +770,12 @@ export default function LayoutTab() {
       )}
       {resizing && (
         <div className="dialog-backdrop">
-          <div className="dialog" role="dialog" aria-label="Keys do not fit">
-            <h2>
-              {resizing.count} key{resizing.count === 1 ? "" : "s"} {resizing.count === 1 ? "doesn't" : "don't"} fit
-            </h2>
-            <p>Move {resizing.count === 1 ? "it" : "them"} to a new page?</p>
+          <div className="dialog" role="dialog" aria-label={t("resize.label")}>
+            <h2>{tn("resize.title", resizing.count)}</h2>
+            <p>{tn("resize.question", resizing.count)}</p>
             <div className="row">
-              <Button variant="primary" onClick={confirmResize}>Move</Button>
-              <Button onClick={() => setResizing(null)}>Cancel</Button>
+              <Button variant="primary" onClick={confirmResize}>{t("resize.move")}</Button>
+              <Button onClick={() => setResizing(null)}>{t("common.cancel")}</Button>
             </div>
           </div>
         </div>

@@ -1,4 +1,4 @@
-import type { Action, ActionsFile, InstalledApp, LayoutFile, LayoutItem, Page } from "@decka/shared";
+import { t, type Action, type ActionsFile, type InstalledApp, type LayoutFile, type LayoutItem, type Page } from "@decka/shared";
 
 /** Grid size of the layout being edited (DATA_MODEL.md 3.1: cols 3..8, rows 2..5). */
 export interface Grid {
@@ -69,7 +69,7 @@ export type AddResult = { ok: true; page: Page } | { ok: false; error: string };
 export const NO_SPACE = "Not enough free space here";
 
 export function addItem(page: Page, grid: Grid, item: LayoutItem): AddResult {
-  if (!fits(page, grid, item)) return { ok: false, error: NO_SPACE };
+  if (!fits(page, grid, item)) return { ok: false, error: t("add.no_space") };
   return { ok: true, page: { ...page, items: [...page.items, item] } };
 }
 
@@ -107,7 +107,7 @@ export function makeItem(kind: Kind, x: number, y: number, id = newItemId(kind))
   const base = { id, x, y, w, h };
   switch (kind) {
     case "button":
-      return { ...base, kind, label: "New" };
+      return { ...base, kind, label: t("item.new_button") };
     case "clock":
       return { ...base, kind };
     case "sys":
@@ -167,12 +167,12 @@ export function planAppButtons(
 /** What a button does on a tap (DESIGN.md 4.1): the four combinations rule 12 allows. */
 export type TapMode = "action" | "page" | "popup" | "action-popup";
 
-export const TAP_MODE_LABELS: Record<TapMode, string> = {
-  action: "Run action",
-  page: "Open page",
-  popup: "Open popup group",
-  "action-popup": "Run action, then open popup group",
-};
+export const tapModeLabels = (): Record<TapMode, string> => ({
+  action: t("tap.action"),
+  page: t("tap.page"),
+  popup: t("tap.popup"),
+  "action-popup": t("tap.action_popup"),
+});
 
 export function tapModeOf(item: { actionId?: string; navigate?: string; popup?: string }): TapMode {
   if (item.popup !== undefined) return item.actionId !== undefined ? "action-popup" : "popup";
@@ -205,7 +205,7 @@ export const popupPages = (pages: Page[]): Page[] => pages.filter((p) => p.popup
 /** A new popup group page, appended after the others. */
 export function newPopupPage(pages: Page[], random: () => number = Math.random): Page {
   const n = popupPages(pages).length + 1;
-  return { id: newPageId(random), name: `Group ${n}`, popup: true, items: [] };
+  return { id: newPageId(random), name: t("page.group_n", { n }), popup: true, items: [] };
 }
 
 /** What the user typed -> an exe name: trimmed, lower case, `.exe` appended when missing. Empty input -> null. */

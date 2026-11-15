@@ -25,7 +25,9 @@ export interface DisplaySettings {
   wallpaper?: WallpaperId; // M13: Glass theme only; absent = "aurora"
   keyFace?: KeyFace;       // M14: key style by default, DESIGN.md 2.1; absent = "standard"
   keyLabels?: boolean;     // M14: show the labels of keys by default; absent = true
+  language?: LanguageSetting; // M14: interface language, DESIGN.md 6; absent = "auto"
 }
+export type LanguageSetting = "auto" | "en" | "ru";
 export type KeyFace = "standard" | "full";
 export type ThemeId = "amoled" | "studio" | "material" | "glass";
 export type WallpaperId = "aurora" | "sunset" | "ocean" | "graphite" | "album";

@@ -1,9 +1,17 @@
 //! System tray icon and its menu.
 
+use decka_core::tray_text::{agent_language, tray_text, TrayKey};
 use decka_core::Agent;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Emitter, Manager};
+
+/// The items of the tray menu, kept so that their texts can change when the language does.
+struct TrayItems {
+    open: MenuItem<tauri::Wry>,
+    pair: MenuItem<tauri::Wry>,
+    quit: MenuItem<tauri::Wry>,
+}
 
 pub fn show_settings(app: &AppHandle) {
     if let Some(window) = app.get_webview_window("settings") {
@@ -21,12 +29,29 @@ pub fn quit(app: &AppHandle) {
     app.exit(0);
 }
 
+/// The language of the tray now: `display.language` of the layout, `auto` following Windows.
+fn current_language(app: &AppHandle) -> &'static str {
+    let setting = app.try_state::<Agent>().and_then(|agent| agent.layout().display.language);
+    agent_language(setting.as_deref())
+}
+
+/// Puts the texts of the menu in the language of the layout; called after the layout was saved.
+pub fn refresh_language(app: &AppHandle) {
+    let Some(items) = app.try_state::<TrayItems>() else { return };
+    let lang = current_language(app);
+    let _ = items.open.set_text(tray_text(lang, TrayKey::OpenSettings));
+    let _ = items.pair.set_text(tray_text(lang, TrayKey::PairDevice));
+    let _ = items.quit.set_text(tray_text(lang, TrayKey::Quit));
+}
+
 pub fn setup(app: &AppHandle) -> tauri::Result<()> {
-    let open = MenuItem::with_id(app, "open", "Open settings", true, None::<&str>)?;
-    let pair = MenuItem::with_id(app, "pair", "Pair a device", true, None::<&str>)?;
+    let lang = current_language(app);
+    let open = MenuItem::with_id(app, "open", tray_text(lang, TrayKey::OpenSettings), true, None::<&str>)?;
+    let pair = MenuItem::with_id(app, "pair", tray_text(lang, TrayKey::PairDevice), true, None::<&str>)?;
     let separator = PredefinedMenuItem::separator(app)?;
-    let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
+    let quit_item = MenuItem::with_id(app, "quit", tray_text(lang, TrayKey::Quit), true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&open, &pair, &separator, &quit_item])?;
+    app.manage(TrayItems { open, pair, quit: quit_item });
 
     let mut builder = TrayIconBuilder::with_id("main")
         .tooltip("Decka")

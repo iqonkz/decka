@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { InstalledApp, LayoutFile, LayoutItem, Page, SysStats } from "@decka/shared";
+import { t, type InstalledApp, type LayoutFile, type LayoutItem, type Page, type SysStats } from "@decka/shared";
 import { EMPTY_DATA, GlassLayer, Grid, gridMetrics, resolveTheme, type DeckData } from "@decka/ui";
 import { call } from "../ipc";
 import { cellFromPoint, type DragPayload } from "./dragMachine";
@@ -145,7 +145,7 @@ export default function EditorCanvas({ layout, page, selectedId, availableWidth,
                 <input
                   className="rename-input"
                   autoFocus
-                  aria-label="Name"
+                  aria-label={t("form.name")}
                   defaultValue={item.label ?? ""}
                   maxLength={24}
                   style={{ left: 2, right: 2, bottom: 2 }}
@@ -158,7 +158,7 @@ export default function EditorCanvas({ layout, page, selectedId, availableWidth,
                   }}
                 />
               )}
-              {canResize && <span className="editor-handle" aria-label="Resize" onPointerDown={(e) => startResize(e, item)} onPointerUp={(e) => endResize(e, item)} />}
+              {canResize && <span className="editor-handle" aria-label={t("canvas.resize")} onPointerDown={(e) => startResize(e, item)} onPointerUp={(e) => endResize(e, item)} />}
             </div>
           );
         })}

@@ -1,4 +1,4 @@
-import type { Action, MediaOp } from "@decka/shared";
+import { t, type Action, type MediaOp } from "@decka/shared";
 import { useState } from "react";
 import Field from "../ui/Field";
 import { presetActions } from "../editor/addButton";
@@ -11,12 +11,13 @@ import { applyInstalledApp, applyPickedProgram } from "./programPick";
 export type ActionType = Action["type"];
 
 export const MEDIA_OPS: MediaOp[] = ["play_pause", "next", "prev", "vol_up", "vol_down", "mute"];
-export const ACTION_TYPES: { id: ActionType; label: string; icon: string }[] = [
-  { id: "launch", label: "App", icon: "rocket-launch" },
-  { id: "open_url", label: "Website", icon: "globe" },
-  { id: "hotkey", label: "Shortcut", icon: "keyboard" },
-  { id: "media", label: "Media", icon: "play-circle" },
-  { id: "system", label: "System", icon: "power" },
+/** The five kinds of action with their labels in the current language. */
+export const actionTypes = (): { id: ActionType; label: string; icon: string }[] => [
+  { id: "launch", label: t("form.type_app"), icon: "rocket-launch" },
+  { id: "open_url", label: t("form.type_website"), icon: "globe" },
+  { id: "hotkey", label: t("form.type_shortcut"), icon: "keyboard" },
+  { id: "media", label: t("form.type_media"), icon: "play-circle" },
+  { id: "system", label: t("form.type_system"), icon: "power" },
 ];
 
 /** Everything the form edits, as strings and booleans. */
@@ -81,7 +82,7 @@ export function fromDraft(d: Draft): { action: Action } | { error: string } {
   switch (d.type) {
     case "hotkey": {
       const keys = parseKeys(d.keysText);
-      if (!keys) return { error: "Click the field and press the keys you want." };
+      if (!keys) return { error: t("form.keys_error") };
       return { action: { ...base, type: "hotkey", keys } };
     }
     case "media":
@@ -135,15 +136,15 @@ export default function ActionForm({ draft, onChange }: FormProps) {
 
   return (
     <div>
-      <Field label="Name">
-        <input value={draft.name} onChange={(e) => set("name", e.target.value)} placeholder="What is it called?" />
+      <Field label={t("form.name")}>
+        <input value={draft.name} onChange={(e) => set("name", e.target.value)} placeholder={t("form.name_placeholder")} />
       </Field>
 
-      <div className="type-seg" role="group" aria-label="Type">
-        {ACTION_TYPES.map((t) => (
-          <button key={t.id} type="button" className={draft.type === t.id ? "on" : ""} onClick={() => set("type", t.id)}>
-            <PhIcon name={t.icon} size={18} />
-            {t.label}
+      <div className="type-seg" role="group" aria-label={t("form.type")}>
+        {actionTypes().map((kind) => (
+          <button key={kind.id} type="button" className={draft.type === kind.id ? "on" : ""} onClick={() => set("type", kind.id)}>
+            <PhIcon name={kind.icon} size={18} />
+            {kind.label}
           </button>
         ))}
       </div>
@@ -151,9 +152,9 @@ export default function ActionForm({ draft, onChange }: FormProps) {
       {draft.type === "launch" && (
         <>
           <div className="program-row">
-            <strong>{draft.program ? programName(draft.program) : "No program chosen"}</strong>
+            <strong>{draft.program ? programName(draft.program) : t("form.no_program")}</strong>
             <button type="button" onClick={() => setPicking(true)}>
-              Choose…
+              {t("form.choose")}
             </button>
           </div>
           {draft.program && <small className="muted">{draft.program}</small>}
@@ -172,24 +173,24 @@ export default function ActionForm({ draft, onChange }: FormProps) {
               }}
             />
           )}
-          <p className="warn-text">This program will run on your PC whenever the button is pressed on a paired phone.</p>
+          <p className="warn-text">{t("form.launch_warning")}</p>
         </>
       )}
 
       {draft.type === "open_url" && (
-        <Field label="Address" hint="http or https only.">
+        <Field label={t("form.address")} hint={t("form.address_hint")}>
           <input value={draft.url} onChange={(e) => set("url", e.target.value)} placeholder="github.com" />
         </Field>
       )}
 
       {draft.type === "hotkey" && (
-        <Field label="Keys">
+        <Field label={t("form.keys")}>
           <ChordField keys={keys} onChange={(next) => set("keysText", formatKeys(next))} />
         </Field>
       )}
 
       {draft.type === "media" && (
-        <div className="tile-grid" role="group" aria-label="Media">
+        <div className="tile-grid" role="group" aria-label={t("form.type_media")}>
           {mediaTiles.map((p) => (
             <button
               key={p.id}
@@ -205,7 +206,7 @@ export default function ActionForm({ draft, onChange }: FormProps) {
       )}
 
       {draft.type === "system" && (
-        <div className="tile-grid" role="group" aria-label="System">
+        <div className="tile-grid" role="group" aria-label={t("form.type_system")}>
           {systemTiles.map((p) => (
             <button
               key={p.id}
@@ -221,21 +222,21 @@ export default function ActionForm({ draft, onChange }: FormProps) {
       )}
 
       <details className="advanced">
-        <summary>More options</summary>
+        <summary>{t("common.more_options")}</summary>
         {draft.type === "launch" && (
           <>
-            <Field label="Arguments" hint="One per line.">
+            <Field label={t("form.arguments")} hint={t("form.arguments_hint")}>
               <textarea rows={3} value={draft.argsText} onChange={(e) => set("argsText", e.target.value)} />
             </Field>
-            <Field label="Start in folder">
+            <Field label={t("form.cwd")}>
               <input value={draft.cwd} onChange={(e) => set("cwd", e.target.value)} />
             </Field>
             <label className="check">
-              <input type="checkbox" checked={draft.hidden} onChange={(e) => set("hidden", e.target.checked)} /> Start without a window
+              <input type="checkbox" checked={draft.hidden} onChange={(e) => set("hidden", e.target.checked)} /> {t("form.hidden")}
             </label>
           </>
         )}
-        <Field label="Switch a state after running" hint="For buttons that show on/off: this on/off variable flips after a successful run.">
+        <Field label={t("form.toggle")} hint={t("form.toggle_hint")}>
           <input value={draft.toggleVar} onChange={(e) => set("toggleVar", e.target.value)} placeholder="audio.muted" />
         </Field>
       </details>

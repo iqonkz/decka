@@ -1,4 +1,4 @@
-import type { ActionsFile, ButtonItem, ButtonLook, LayoutItem, Page } from "@decka/shared";
+import { t, type ActionsFile, type ButtonItem, type ButtonLook, type LayoutItem, type Page } from "@decka/shared";
 import { call, navigate } from "../ipc";
 import IconField from "./IconField";
 import Button from "../ui/Button";
@@ -6,7 +6,7 @@ import Field from "../ui/Field";
 import type { DisplaySettings } from "@decka/shared";
 import KeyPreview from "./KeyPreview";
 import { describeAction } from "../editor/describeAction";
-import { normalPages, popupPages, sizeRange, TAP_MODE_LABELS, tapModeOf, tapModePatch, type Grid, type TapMode } from "./layoutOps";
+import { normalPages, popupPages, sizeRange, tapModeLabels, tapModeOf, tapModePatch, type Grid, type TapMode } from "./layoutOps";
 
 
 const range = (from: number, to: number): number[] => Array.from({ length: Math.max(0, to - from + 1) }, (_, i) => from + i);
@@ -32,8 +32,8 @@ function ActionSelect({ label, value, actions, onChange }: { label: string; valu
   return (
     <Field label={label}>
       <select value={value ?? ""} onChange={(e) => onChange(e.target.value || undefined)}>
-        <option value="">None</option>
-        {value !== undefined && !actions.actions[value] && <option value={value}>{value} (missing)</option>}
+        <option value="">{t("item.none")}</option>
+        {value !== undefined && !actions.actions[value] && <option value={value}>{t("item.missing", { id: value })}</option>}
         {entries.map(([id, a]) => (
           <option key={id} value={id}>{`${a.name} (${id})`}</option>
         ))}
@@ -51,10 +51,10 @@ function LookFields({ look, onChange }: { look: ButtonLook; onChange: (look: But
   };
   return (
     <div className="look-fields">
-      <input placeholder="Label" value={look.label ?? ""} maxLength={24} onChange={(e) => set("label", e.target.value)} />
+      <input placeholder={t("item.label")} value={look.label ?? ""} maxLength={24} onChange={(e) => set("label", e.target.value)} />
       <IconField value={look.icon} onChange={(icon) => set("icon", icon ?? "")} />
-      <input type="color" value={look.color ?? "#1e1e24"} onChange={(e) => set("color", e.target.value)} aria-label="Color" />
-      <Button onClick={() => set("color", "")}>Clear</Button>
+      <input type="color" value={look.color ?? "#1e1e24"} onChange={(e) => set("color", e.target.value)} aria-label={t("menu_item.color")} />
+      <Button onClick={() => set("color", "")}>{t("item.clear")}</Button>
     </div>
   );
 }
@@ -89,47 +89,47 @@ export default function ItemForm({ item, display, page, pages, grid, actions, on
   return (
     <div className="item-form">
       <h3>
-        {item.kind === "button" ? "Button" : "Widget"}
+        {item.kind === "button" ? t("item.button") : t("item.widget")}
       </h3>
       {item.kind === "button" && <KeyPreview item={item} display={display} />}
       {item.kind === "button" && <ButtonFields display={display} item={item} pages={pages} inPopup={page.popup === true} actions={actions} patch={patch} onChangeAction={onChangeAction} position={position} />}
       {item.kind !== "button" && (
         <details className="advanced">
-          <summary>More options: position and size</summary>
+          <summary>{t("item.position_size")}</summary>
           {position}
         </details>
       )}
 
       {item.kind === "clock" && (
         <label className="check">
-          <input type="checkbox" checked={item.seconds === true} onChange={(e) => patch({ seconds: e.target.checked || undefined })} /> Show seconds
+          <input type="checkbox" checked={item.seconds === true} onChange={(e) => patch({ seconds: e.target.checked || undefined })} /> {t("item.seconds")}
         </label>
       )}
       {item.kind === "statuses" && (
         <>
-          <Field label="Title">
+          <Field label={t("item.title")}>
             <input value={item.title ?? ""} maxLength={30} onChange={(e) => patch({ title: e.target.value || undefined })} />
           </Field>
-          <Field label="Group" hint="Show only statuses of this group. Empty = all.">
+          <Field label={t("integ.group")} hint={t("item.group_hint")}>
             <input value={item.group ?? ""} onChange={(e) => patch({ group: e.target.value || undefined })} />
           </Field>
         </>
       )}
       {item.kind === "media" && (
         <>
-          <ActionSelect label="Previous" value={item.prevAction} actions={actions} onChange={(prevAction) => patch({ prevAction })} />
-          <ActionSelect label="Play / Pause" value={item.playAction} actions={actions} onChange={(playAction) => patch({ playAction })} />
-          <ActionSelect label="Next" value={item.nextAction} actions={actions} onChange={(nextAction) => patch({ nextAction })} />
+          <ActionSelect label={t("item.prev")} value={item.prevAction} actions={actions} onChange={(prevAction) => patch({ prevAction })} />
+          <ActionSelect label={t("preset.play_pause")} value={item.playAction} actions={actions} onChange={(playAction) => patch({ playAction })} />
+          <ActionSelect label={t("item.next")} value={item.nextAction} actions={actions} onChange={(nextAction) => patch({ nextAction })} />
         </>
       )}
       {item.kind === "status" && (
-        <Field label="Status ID">
+        <Field label={t("item.status_id")}>
           <input value={item.statusId} onChange={(e) => patch({ statusId: e.target.value })} />
         </Field>
       )}
 
       <Button variant="danger" onClick={onDelete}>
-        Delete item
+        {t("item.delete")}
       </Button>
     </div>
   );
@@ -157,82 +157,82 @@ function ButtonFields({ display, item, pages, inPopup, actions, patch, onChangeA
 
   return (
     <>
-      <Field label="Name">
+      <Field label={t("form.name")}>
         <input value={item.label ?? ""} maxLength={24} onChange={(e) => patch({ label: e.target.value || undefined })} />
       </Field>
-      <Field label="Icon">
+      <Field label={t("item.icon")}>
         <IconField value={item.icon} onChange={(icon) => patch({ icon })} program={launchProgram} />
       </Field>
-      <div className="seg" role="group" aria-label="Key style">
+      <div className="seg" role="group" aria-label={t("look.key_style")}>
         {(["standard", "full"] as const).map((face) => (
           <button key={face} type="button" className={(item.face ?? display.keyFace ?? "standard") === face ? "on" : ""} onClick={() => patch({ face })}>
-            {face === "standard" ? "Standard" : "Big icon"}
+            {face === "standard" ? t("look.standard") : t("menu_item.big_icon")}
           </button>
         ))}
       </div>
       <div className="does-row">
-        <span className="muted">Does:</span>
+        <span className="muted">{t("item.does")}</span>
         <strong title={describeAction(selectedAction)}>{describeAction(selectedAction)}</strong>
-        <Button onClick={onChangeAction}>Change</Button>
+        <Button onClick={onChangeAction}>{t("item.change")}</Button>
       </div>
-      <Field label="Color">
+      <Field label={t("menu_item.color")}>
         <div className="swatches">
           {SWATCHES.map((c) => (
-            <button key={c} type="button" aria-label={`Color ${c}`} className={`swatch${item.color?.toLowerCase() === c ? " on" : ""}`} style={{ background: c }} onClick={() => patch({ color: c })} />
+            <button key={c} type="button" aria-label={`${t("menu_item.color")} ${c}`} className={`swatch${item.color?.toLowerCase() === c ? " on" : ""}`} style={{ background: c }} onClick={() => patch({ color: c })} />
           ))}
-          <input type="color" aria-label="Custom color" value={item.color ?? "#1e1e24"} onChange={(e) => patch({ color: e.target.value })} />
-          <Button onClick={() => patch({ color: undefined })}>Default</Button>
+          <input type="color" aria-label={t("item.custom_color")} value={item.color ?? "#1e1e24"} onChange={(e) => patch({ color: e.target.value })} />
+          <Button onClick={() => patch({ color: undefined })}>{t("menu_item.default")}</Button>
         </div>
       </Field>
       <label className="check">
-        <input type="checkbox" checked={item.confirm === true} onChange={(e) => patch({ confirm: e.target.checked || undefined })} /> Ask before running
+        <input type="checkbox" checked={item.confirm === true} onChange={(e) => patch({ confirm: e.target.checked || undefined })} /> {t("menu_item.ask")}
       </label>
 
       <details className="advanced">
-        <summary>More options</summary>
+        <summary>{t("common.more_options")}</summary>
         {position}
-      <Field label="On tap" hint={inPopup ? "Keys inside a popup group can only run an action." : undefined}>
+      <Field label={t("item.on_tap")} hint={inPopup ? t("item.on_tap_popup_hint") : undefined}>
         <select
           value={mode}
           onChange={(e) =>
             patch(tapModePatch(item, e.target.value as TapMode, { firstActionId: Object.keys(actions.actions)[0], firstPageId: normal[0]?.id, firstPopupId: popups[0]?.id }))
           }
         >
-          <option value="action">{TAP_MODE_LABELS.action}</option>
-          {!inPopup && <option value="page">{TAP_MODE_LABELS.page}</option>}
+          <option value="action">{tapModeLabels().action}</option>
+          {!inPopup && <option value="page">{tapModeLabels().page}</option>}
           {!inPopup && (
             <option value="popup" disabled={popups.length === 0}>
-              {TAP_MODE_LABELS.popup}
-              {popups.length === 0 ? " (add a popup group first)" : ""}
+              {tapModeLabels().popup}
+              {popups.length === 0 ? ` ${t("item.add_group_first")}` : ""}
             </option>
           )}
           {!inPopup && (
             <option value="action-popup" disabled={popups.length === 0}>
-              {TAP_MODE_LABELS["action-popup"]}
-              {popups.length === 0 ? " (add a popup group first)" : ""}
+              {tapModeLabels()["action-popup"]}
+              {popups.length === 0 ? ` ${t("item.add_group_first")}` : ""}
             </option>
           )}
         </select>
       </Field>
       {(mode === "action" || mode === "action-popup") && (
         <>
-          <Field label="Action" hint="New action… leaves this form: save the layout first.">
+          <Field label={t("actions.action")} hint={t("item.new_action_hint")}>
             <div className="row">
               <select value={item.actionId ?? ""} onChange={(e) => selectAction(e.target.value)}>
-                {item.actionId !== undefined && !actions.actions[item.actionId] && <option value={item.actionId}>(deleted action)</option>}
+                {item.actionId !== undefined && !actions.actions[item.actionId] && <option value={item.actionId}>{t("item.deleted_action")}</option>}
                 {actionEntries.map(([id, a]) => (
                   <option key={id} value={id}>{`${a.name} (${id})`}</option>
                 ))}
               </select>
               <button type="button" onClick={() => void navigate("actions:new")}>
-                New action…
+                {t("item.new_action")}
               </button>
             </div>
           </Field>
         </>
       )}
       {mode === "page" && (
-        <Field label="Page">
+        <Field label={t("item.page")}>
           <select value={item.navigate ?? ""} onChange={(e) => patch({ navigate: e.target.value })}>
             {normal.map((p) => (
               <option key={p.id} value={p.id}>
@@ -243,7 +243,7 @@ function ButtonFields({ display, item, pages, inPopup, actions, patch, onChangeA
         </Field>
       )}
       {(mode === "popup" || mode === "action-popup") && (
-        <Field label="Popup group">
+        <Field label={t("layout.group_title")}>
           <select value={item.popup ?? ""} onChange={(e) => patch({ popup: e.target.value })}>
             {popups.map((p) => (
               <option key={p.id} value={p.id}>
@@ -255,8 +255,8 @@ function ButtonFields({ display, item, pages, inPopup, actions, patch, onChangeA
       )}
 
       <div className="bind-block">
-        <h3>State binding</h3>
-        <Field label="Variable" hint="The look changes with this variable's value, for example audio.muted.">
+        <h3>{t("item.binding")}</h3>
+        <Field label={t("item.variable")} hint={t("item.variable_hint")}>
           <input
             value={item.bind?.var ?? ""}
             onChange={(e) => (e.target.value === "" && states.length === 0 ? patch({ bind: undefined }) : patch({ bind: { var: e.target.value, states: Object.fromEntries(states) } }))}
@@ -266,20 +266,20 @@ function ButtonFields({ display, item, pages, inPopup, actions, patch, onChangeA
           <div className="state-row" key={i}>
             <input
               className="state-key"
-              aria-label="Value"
+              aria-label={t("item.value")}
               placeholder="true"
               value={key}
               onChange={(e) => setStates(states.map(([k, l], n): [string, ButtonLook] => (n === i ? [e.target.value, l] : [k, l])))}
             />
             <LookFields look={look} onChange={(next) => setStates(states.map(([k, l], n): [string, ButtonLook] => (n === i ? [k, next] : [k, l])))} />
-            <Button onClick={() => setStates(states.filter((_, n) => n !== i))}>Remove</Button>
+            <Button onClick={() => setStates(states.filter((_, n) => n !== i))}>{t("integ.remove")}</Button>
           </div>
         ))}
         <Button
           disabled={states.length >= 8}
           onClick={() => setStates([...states, [states.some(([k]) => k === "true") ? "false" : "true", {}]])}
         >
-          Add state
+          {t("item.add_state")}
         </Button>
       </div>
       </details>

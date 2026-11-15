@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { DeviceInfo, PairingInfo } from "@decka/shared";
+import { locale, t, type DeviceInfo, type PairingInfo } from "@decka/shared";
 import { call, onStatus } from "../ipc";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
 
 const fmtCode = (code: string): string => `${code.slice(0, 4)}-${code.slice(4)}`;
-const fmtTime = (ms: number): string => new Date(ms).toLocaleString();
+const fmtTime = (ms: number): string => new Date(ms).toLocaleString(locale());
 
 export default function PairingTab({ embedded = false }: { embedded?: boolean } = {}) {
   const [info, setInfo] = useState<PairingInfo | null>(null);
@@ -98,7 +98,7 @@ export default function PairingTab({ embedded = false }: { embedded?: boolean } 
 
   return (
     <div className="stack">
-      {!embedded && <h2>Pairing</h2>}
+      {!embedded && <h2>{t("pairing.title")}</h2>}
       {error && <Banner kind="error">{error}</Banner>}
 
       <section className="card">
@@ -107,21 +107,21 @@ export default function PairingTab({ embedded = false }: { embedded?: boolean } 
             <div className="qr" dangerouslySetInnerHTML={{ __html: info.qrSvg }} />
             <div className="pair-info">
               <div className="pair-code">{fmtCode(info.code)}</div>
-              <div className="muted">Expires in {Math.ceil(remainingMs / 1000)} s</div>
+              <div className="muted">{t("pairing.expires", { s: Math.ceil(remainingMs / 1000) })}</div>
               <code className="pair-url">{info.url}</code>
               <p className="muted">
-                Scan with the Decka app or the phone camera. Phone and PC must be on the same Wi-Fi, or connected by USB with USB mode enabled.
+                {t("pairing.scan_hint")}
               </p>
-              <Button onClick={() => void cancel()}>Cancel</Button>
+              <Button onClick={() => void cancel()}>{t("common.cancel")}</Button>
             </div>
           </div>
         ) : (
           <div className="stack">
-            {pairedName && <Banner kind="success">Paired: {pairedName}</Banner>}
-            {expired && <p className="muted">Code expired</p>}
+            {pairedName && <Banner kind="success">{t("pairing.paired", { name: pairedName })}</Banner>}
+            {expired && <p className="muted">{t("pairing.expired")}</p>}
             <div>
               <Button variant="primary" onClick={() => void start()}>
-                Pair a new phone
+                {t("pairing.pair_new")}
               </Button>
             </div>
           </div>
@@ -129,17 +129,17 @@ export default function PairingTab({ embedded = false }: { embedded?: boolean } 
       </section>
 
       <section className="card">
-        <h3>Your phones</h3>
+        <h3>{t("pairing.your_phones")}</h3>
         {devices.length === 0 ? (
-          <p className="muted">No phones paired yet.</p>
+          <p className="muted">{t("pairing.none")}</p>
         ) : (
           <table>
             <thead>
               <tr>
                 <th />
-                <th>Name</th>
-                <th>Paired</th>
-                <th>Last seen</th>
+                <th>{t("pairing.col_name")}</th>
+                <th>{t("pairing.col_paired")}</th>
+                <th>{t("pairing.col_last_seen")}</th>
                 <th />
               </tr>
             </thead>
@@ -147,7 +147,7 @@ export default function PairingTab({ embedded = false }: { embedded?: boolean } 
               {devices.map((d) => (
                 <tr key={d.id}>
                   <td>
-                    <span className={d.connected ? "dot online" : "dot"} title={d.connected ? "online" : "offline"} />
+                    <span className={d.connected ? "dot online" : "dot"} title={d.connected ? t("pairing.online") : t("pairing.offline")} />
                   </td>
                   <td>{d.name}</td>
                   <td>{fmtTime(d.createdAt)}</td>
@@ -155,14 +155,14 @@ export default function PairingTab({ embedded = false }: { embedded?: boolean } 
                   <td>
                     {confirmId === d.id ? (
                       <span className="row">
-                        <span>Forget {d.name}? It will need to pair again.</span>
+                        <span>{t("pairing.forget_confirm", { name: d.name })}</span>
                         <Button variant="danger" onClick={() => void revoke(d.id)}>
-                          Forget
+                          {t("pairing.forget")}
                         </Button>
-                        <Button onClick={() => setConfirmId(null)}>Cancel</Button>
+                        <Button onClick={() => setConfirmId(null)}>{t("common.cancel")}</Button>
                       </span>
                     ) : (
-                      <Button onClick={() => setConfirmId(d.id)}>Forget</Button>
+                      <Button onClick={() => setConfirmId(d.id)}>{t("pairing.forget")}</Button>
                     )}
                   </td>
                 </tr>

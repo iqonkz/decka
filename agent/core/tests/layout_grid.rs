@@ -111,3 +111,15 @@ fn key_face_must_be_standard_or_full() {
     l.display.key_labels = Some(false);
     assert!(validate_layout(&l, &default_actions()).is_empty());
 }
+
+#[test]
+fn language_must_be_auto_en_or_ru() {
+    let mut l = layout(5, 3, button(0, 0)).unwrap();
+    for ok in ["auto", "en", "ru"] {
+        l.display.language = Some(ok.into());
+        assert!(validate_layout(&l, &default_actions()).is_empty(), "{ok}");
+    }
+    l.display.language = Some("de".into());
+    let p: Vec<String> = validate_layout(&l, &default_actions()).into_iter().map(|i| i.path).collect();
+    assert_eq!(p, ["/display/language"]);
+}

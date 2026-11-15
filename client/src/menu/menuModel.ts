@@ -1,3 +1,4 @@
+import { t } from "@decka/shared";
 import type { ConnState } from "../store/store";
 
 /** How long a finger must stay on an empty spot to open the menu (DESIGN.md 4.3). */
@@ -7,9 +8,9 @@ export const MENU_HOLD_SLOP_PX = 14;
 
 /** `Connected to DESKTOP · USB`, `Connected to DESKTOP · Wi-Fi` or `Offline`. */
 export function statusLine(conn: ConnState, via: "usb" | "lan" | null, agentName: string | null): string {
-  if (conn !== "online") return "Offline";
+  if (conn !== "online") return t("menu.offline");
   const route = via === "usb" ? " · USB" : via === "lan" ? " · Wi-Fi" : "";
-  return `Connected to ${agentName ?? "your PC"}${route}`;
+  return `${t("menu.connected", { pc: agentName ?? t("menu.your_pc") })}${route}`;
 }
 
 /**

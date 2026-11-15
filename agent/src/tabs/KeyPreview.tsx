@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { ButtonItem, DisplaySettings, Page } from "@decka/shared";
+import { t, type ButtonItem, type DisplaySettings, type Page } from "@decka/shared";
 import { EMPTY_DATA, GlassLayer, Grid, resolveTheme } from "@decka/ui";
 import PhoneFrame from "./PhoneFrame";
 import { useIconPreviews } from "./useIconPreviews";
@@ -17,7 +17,7 @@ export default function KeyPreview({ item, display }: { item: ButtonItem; displa
   const theme = resolveTheme(display);
   const view = Math.round(SIDE * 1.25);
   return (
-    <div className="key-preview" aria-label="Key preview">
+    <div className="key-preview" aria-label={t("preview.key")}>
       <PhoneFrame availableWidth={view} display={display} view={{ w: view, h: view }}>
         {theme.theme === "glass" && <GlassLayer wallpaper={theme.wallpaper} art={undefined} />}
         <div style={{ position: "absolute", inset: 0 }}>

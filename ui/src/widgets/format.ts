@@ -1,7 +1,10 @@
-/** "<n> Kbps" below 1000, otherwise "<n.n> Mbps". */
+import { getLanguage, locale, t } from "@decka/shared";
+
+/** "<n> Kbps" below 1000, otherwise "<n.n> Mbps" (Кбит/с, Мбит/с in Russian, with a decimal comma). */
 export function formatRate(kbps: number): string {
-  if (kbps < 1000) return `${Math.round(kbps)} Kbps`;
-  return `${(kbps / 1000).toFixed(1)} Mbps`;
+  if (kbps < 1000) return t("unit.kbps", { n: Math.round(kbps) });
+  const mbps = (kbps / 1000).toFixed(1);
+  return t("unit.mbps", { n: getLanguage() === "ru" ? mbps.replace(".", ",") : mbps });
 }
 
 /** Integer percentage; 0 when `total` is 0. */
@@ -17,7 +20,7 @@ export function formatClock(d: Date, seconds: boolean): string {
   return seconds ? `${base}:${two(d.getSeconds())}` : base;
 }
 
-/** Short date in the device locale, e.g. "Sat, 14 Nov". */
+/** Short date in the interface language, e.g. "Sat, 14 Nov" or "сб, 14 нояб.". */
 export function formatDate(d: Date): string {
-  return d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
+  return d.toLocaleDateString(locale(), { weekday: "short", day: "numeric", month: "short" });
 }

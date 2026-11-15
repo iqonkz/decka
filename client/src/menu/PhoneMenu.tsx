@@ -1,3 +1,4 @@
+import { t } from "@decka/shared";
 import { useAppState } from "../store/store";
 import { statusLine } from "./menuModel";
 
@@ -18,21 +19,21 @@ export default function PhoneMenu({ reduced, onToggleReduced, haptics, onToggleH
 
   return (
     <div className="menu-backdrop" onPointerDown={onClose}>
-      <div className="menu-sheet" role="dialog" aria-label="Menu" onPointerDown={(e) => e.stopPropagation()}>
+      <div className="menu-sheet" role="dialog" aria-label={t("menu.label")} onPointerDown={(e) => e.stopPropagation()}>
         <div className="menu-status">{statusLine(conn, via, agentName)}</div>
         <label className="menu-row">
-          <span>Reduce effects</span>
+          <span>{t("menu.reduce_effects")}</span>
           <input type="checkbox" checked={reduced} onChange={(e) => onToggleReduced(e.target.checked)} />
         </label>
         <label className="menu-row">
-          <span>Haptics</span>
+          <span>{t("menu.haptics")}</span>
           <input type="checkbox" checked={haptics} onChange={(e) => onToggleHaptics(e.target.checked)} />
         </label>
         <button type="button" className="menu-row menu-button" onClick={() => location.reload()}>
-          Reload
+          {t("menu.reload")}
         </button>
         <button type="button" className="menu-row menu-button danger" onClick={onUnpair}>
-          Unpair
+          {t("menu.unpair")}
         </button>
         <div className="menu-version">Decka {import.meta.env.VITE_APP_VERSION}</div>
       </div>

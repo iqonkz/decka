@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import type { InstalledApp, LayoutFile } from "@decka/shared";
+import { t, tn, type InstalledApp, type LanguageSetting, type LayoutFile } from "@decka/shared";
 import { call } from "../ipc";
+import { saveLanguage } from "../language";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
 import { presetActions } from "../editor/addButton";
@@ -71,7 +72,7 @@ export default function FirstRun({ onClose, startStep = 0 }: { onClose: () => vo
     try {
       const fresh = await call("get_layout");
       const result = await call("save_layout", { layout: { ...fresh, display: { ...fresh.display, ...layout.display } } });
-      if (!result.ok) setError(result.issues[0]?.message ?? "Cannot save the look");
+      if (!result.ok) setError(result.issues[0]?.message ?? t("wizard.cannot_save_look"));
       else setStep(2);
     } catch (e) {
       setError(String(e));
@@ -95,10 +96,10 @@ export default function FirstRun({ onClose, startStep = 0 }: { onClose: () => vo
       );
       const plan = planWizard(currentLayout, currentActions, picks, [...presets]);
       const savedActions = await call("save_actions", { actions: plan.actions });
-      if (!savedActions.ok) throw new Error(savedActions.issues[0]?.message ?? "Cannot save the actions");
+      if (!savedActions.ok) throw new Error(savedActions.issues[0]?.message ?? t("wizard.cannot_save_actions"));
       const savedLayout = await call("save_layout", { layout: plan.layout });
-      if (!savedLayout.ok) throw new Error(savedLayout.issues[0]?.message ?? "Cannot save the layout");
-      setMessage(plan.skipped > 0 ? `Added ${plan.placed}. ${plan.skipped} more did not fit on the first page.` : `Added ${plan.placed}.`);
+      if (!savedLayout.ok) throw new Error(savedLayout.issues[0]?.message ?? t("wizard.cannot_save_layout"));
+      setMessage(plan.skipped > 0 ? t("wizard.added_skipped", { placed: plan.placed, skipped: plan.skipped }) : t("wizard.added", { placed: plan.placed }));
       window.setTimeout(finish, plan.skipped > 0 ? 2500 : 900);
     } catch (e) {
       setError(String(e instanceof Error ? e.message : e));
@@ -107,12 +108,24 @@ export default function FirstRun({ onClose, startStep = 0 }: { onClose: () => vo
     }
   }
 
-  const titles = ["Pair your phone", "Pick a look", "Add your apps"];
+  const titles = [t("wizard.title_pair"), t("wizard.title_look"), t("wizard.title_apps")];
+  // The language switch applies at once; the guide's copy of the display settings follows so that `Next` does not undo it.
+  function chooseLanguage(next: LanguageSetting) {
+    setLayout((l) => (l ? { ...l, display: { ...l.display, language: next } } : l));
+    void saveLanguage(next);
+  }
   return (
-    <div className="wizard" role="dialog" aria-label="Welcome to Decka">
+    <div className="wizard" role="dialog" aria-label={t("wizard.welcome")}>
       <div className="wizard-card">
+        {step === 0 && (
+          <select className="wizard-lang" aria-label={t("settings.language")} value={layout?.display.language ?? "auto"} onChange={(e) => chooseLanguage(e.target.value as LanguageSetting)}>
+            <option value="auto">{t("settings.language_auto")}</option>
+            <option value="en">English</option>
+            <option value="ru">Русский</option>
+          </select>
+        )}
         <p className="muted wizard-step">
-          Step {step + 1} of 3 · {titles[step]}
+          {t("wizard.step", { n: step + 1, title: titles[step] ?? "" })}
         </p>
         {error && <Banner kind="error">{error}</Banner>}
         {message && <Banner kind="success">{message}</Banner>}
@@ -121,17 +134,17 @@ export default function FirstRun({ onClose, startStep = 0 }: { onClose: () => vo
 
         {step === 1 && layout && (
           <>
-            <h2>Pick a look</h2>
-            <p className="muted">You can change it any time in Appearance.</p>
+            <h2>{t("wizard.title_look")}</h2>
+            <p className="muted">{t("wizard.look_hint")}</p>
             <ThemeCards value={layout.display.theme ?? "amoled"} display={layout.display} onPick={(theme) => setLayout({ ...layout, display: { ...layout.display, theme } })} />
           </>
         )}
 
         {step === 2 && (
           <>
-            <h2>Add your apps</h2>
-            <p className="muted">Tick what you want as buttons on the first page. Nothing already there is changed.</p>
-            <h3>Media &amp; system</h3>
+            <h2>{t("wizard.title_apps")}</h2>
+            <p className="muted">{t("wizard.apps_hint")}</p>
+            <h3>{t("picker.group_media_system")}</h3>
             <div className="wizard-presets">
               {presetActions().map((p) => (
                 <label key={p.id} className="check">
@@ -151,9 +164,9 @@ export default function FirstRun({ onClose, startStep = 0 }: { onClose: () => vo
                 </label>
               ))}
             </div>
-            <h3>Programs</h3>
-            <input aria-label="Search" placeholder="Search" value={query} onChange={(e) => setQuery(e.target.value)} />
-            {apps === null && !error && <p className="muted">Loading installed apps…</p>}
+            <h3>{t("picker.programs")}</h3>
+            <input aria-label={t("wizard.search")} placeholder={t("wizard.search")} value={query} onChange={(e) => setQuery(e.target.value)} />
+            {apps === null && !error && <p className="muted">{t("picker.loading_apps")}</p>}
             <div className="app-list">
               {shown.map((a) => (
                 <label key={key(a)} className="app-row">
@@ -178,31 +191,31 @@ export default function FirstRun({ onClose, startStep = 0 }: { onClose: () => vo
                 </label>
               ))}
             </div>
-            <p className="muted">{picked.size} programs and {presets.size} actions selected (up to {MAX_PICKS} programs).</p>
+            <p className="muted">{t("wizard.selected", { programs: tn("wizard.programs", picked.size), actions: tn("wizard.actions", presets.size), max: MAX_PICKS })}</p>
           </>
         )}
 
         <div className="row wizard-actions">
           <Button onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0 || busy}>
-            Back
+            {t("picker.back")}
           </Button>
           <span style={{ flex: 1 }} />
           <Button onClick={() => (step < 2 ? setStep(step + 1) : finish())} disabled={busy}>
-            Skip
+            {t("wizard.skip")}
           </Button>
           {step === 0 && (
             <Button variant="primary" onClick={() => setStep(1)}>
-              Next
+              {t("tips.next")}
             </Button>
           )}
           {step === 1 && (
             <Button variant="primary" disabled={busy} onClick={() => void saveLook()}>
-              Next
+              {t("tips.next")}
             </Button>
           )}
           {step === 2 && (
             <Button variant="primary" disabled={busy} onClick={() => void addApps()}>
-              {picked.size + presets.size > 0 ? "Add and finish" : "Finish"}
+              {picked.size + presets.size > 0 ? t("wizard.add_finish") : t("wizard.finish")}
             </Button>
           )}
         </div>

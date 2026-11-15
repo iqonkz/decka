@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { PageTemplate, ValidationIssue } from "@decka/shared";
+import { t, tn, type PageTemplate, type ValidationIssue } from "@decka/shared";
 import { call } from "../ipc";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
@@ -37,9 +37,9 @@ export default function TemplatesDialog({ onClose, onAdded }: Props) {
 
   return (
     <div className="dialog-backdrop">
-      <div className="dialog" role="dialog" aria-label="Add page from template">
-        <h2>Add page from template</h2>
-        <p className="muted">Adds a page with ready-made buttons and actions. Unsaved layout changes are discarded.</p>
+      <div className="dialog" role="dialog" aria-label={t("templates.title")}>
+        <h2>{t("templates.title")}</h2>
+        <p className="muted">{t("templates.hint")}</p>
         {error && <Banner kind="error">{error}</Banner>}
         {issues.length > 0 && (
           <Banner kind="error">
@@ -50,21 +50,21 @@ export default function TemplatesDialog({ onClose, onAdded }: Props) {
             </ul>
           </Banner>
         )}
-        {!templates && !error && <p>Loading…</p>}
+        {!templates && !error && <p>{t("common.loading")}</p>}
         <div className="template-list">
-          {templates?.map((t) => (
-            <div key={t.id} className="card template-card">
-              <h3>{t.name}</h3>
-              <p className="muted">{t.apps.join(", ")}</p>
-              <p className="muted">{t.items.filter((i) => i.kind === "button").length} buttons</p>
-              <Button variant="primary" disabled={busy} onClick={() => void add(t.id)}>
-                Add
+          {templates?.map((tpl) => (
+            <div key={tpl.id} className="card template-card">
+              <h3>{tpl.name}</h3>
+              <p className="muted">{tpl.apps.join(", ")}</p>
+              <p className="muted">{tn("grid.buttons_count", tpl.items.filter((i) => i.kind === "button").length)}</p>
+              <Button variant="primary" disabled={busy} onClick={() => void add(tpl.id)}>
+                {t("picker.add")}
               </Button>
             </div>
           ))}
         </div>
         <div className="row">
-          <Button onClick={onClose}>Close</Button>
+          <Button onClick={onClose}>{t("common.close")}</Button>
         </div>
       </div>
     </div>
