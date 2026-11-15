@@ -20,6 +20,8 @@ Decka turns an old Android phone into a desk panel for a Windows PC: a 5x3 grid 
 3. **Pair.** In the settings window open **Pairing** and press **Start pairing**; a QR code and an 8-character code appear for 120 seconds. In the app press **Scan QR code**, or type the address and code by hand.
 4. Edit buttons in the **Actions** and **Layout** tabs. Changes appear on the phone within a second.
 
+**Pick an installed app and its icon.** In **Actions**, choose the type `Launch a program` and press **Choose installed app…**: the list comes from your Start menu, with search. Picking a program fills the program, its arguments and the working folder. A button that runs such an action takes the program's own icon automatically; in the button's form you can also pick a Lucide icon, an icon from the action's program, or a picture file (png, jpg, ico, bmp). Icons are made on your PC (scaled to 96 px and stored in `%APPDATA%\Decka\icons`); nothing is downloaded and no icons ship with Decka. Microsoft Store apps without a shortcut to an `.exe` are not listed: use **Browse…** or a hotkey for them.
+
 A browser also works for a quick try: open `http://<PC>:9247/` on the phone and paste the pairing details (no camera, no wake lock there).
 
 ## Context pages and Now Playing
