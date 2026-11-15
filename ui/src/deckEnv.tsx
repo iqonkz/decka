@@ -26,6 +26,8 @@ export interface DeckCallbacks {
   onNavigate: (pageId: string) => void;
   /** A notification row was tapped. */
   onDismiss: (notifId: string) => void;
+  /** Tactile feedback moments inside the deck: a key was touched, a hold-to-confirm completed. */
+  onFeedback?: (moment: "touch" | "confirm") => void;
 }
 
 export type DeckEnv = DeckData & DeckCallbacks;

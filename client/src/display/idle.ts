@@ -45,6 +45,12 @@ export function computeMode(input: ModeInput): DisplayMode {
 }
 
 let currentMode: DisplayMode = "active";
+let wokeByLastTouch = false;
+
+/** True when the latest touch found the screen dimmed or asleep (it only woke it up; no haptic feedback). */
+export function lastTouchWokeScreen(): boolean {
+  return wokeByLastTouch;
+}
 
 /** Latest mode computed by `useDisplayMode` (read by the toast gate). */
 export function getDisplayMode(): DisplayMode {
@@ -90,6 +96,11 @@ export function useDisplayMode(display: DisplaySettings | null): DisplayMode {
       lastActivity.current = Date.now();
       recompute();
     };
+    // Registered first, so it runs before `touch` changes the mode: was the screen dim or asleep for this touch?
+    const noteWake = () => {
+      wokeByLastTouch = currentMode !== "active";
+    };
+    window.addEventListener("pointerdown", noteWake, true);
     window.addEventListener("pointerdown", touch, true);
     const stopAttention = onAttention((level) => {
       if (level === "warning" || level === "error") touch();
@@ -98,6 +109,7 @@ export function useDisplayMode(display: DisplaySettings | null): DisplayMode {
     setToastGate((level) => level === "warning" || level === "error" || currentMode !== "sleep");
     const timer = window.setInterval(recompute, TICK_MS);
     return () => {
+      window.removeEventListener("pointerdown", noteWake, true);
       window.removeEventListener("pointerdown", touch, true);
       stopAttention();
       setToastGate(null);

@@ -2,6 +2,8 @@ import { useCallback, useMemo } from "react";
 import type { Page } from "@decka/shared";
 import { EMPTY_DATA, Grid, pressErrorTitle, type DeckData } from "@decka/ui";
 import { dismiss, press } from "../app/controller";
+import { lastTouchWokeScreen } from "../display/idle";
+import { hapticEvent } from "../platform/haptics";
 import { getState, navigateManually, pushToast, useAppState } from "../store/store";
 
 const ERROR_TOAST_MS = 4000;
@@ -30,11 +32,20 @@ export default function DeckBridge({ page, grid }: { page: Page; grid: { cols: n
     [online, vars, sys, statuses, notifications, media, icons],
   );
 
-  const onPressError = useCallback((e: { code: string; message?: string }) => pushToast({ level: "error", title: pressErrorTitle(e), ms: ERROR_TOAST_MS }), []);
+  const onPressError = useCallback((e: { code: string; message?: string }) => {
+    hapticEvent({ type: "press_result", ok: false });
+    pushToast({ level: "error", title: pressErrorTitle(e), ms: ERROR_TOAST_MS });
+  }, []);
   const onNavigate = useCallback((pageId: string) => {
     const index = getState().state?.layout.pages.findIndex((p) => p.id === pageId) ?? -1;
-    if (index >= 0) navigateManually(index);
+    if (index >= 0) {
+      hapticEvent({ type: "page_change", manual: true });
+      navigateManually(index);
+    }
+  }, []);
+  const onFeedback = useCallback((moment: "touch" | "confirm") => {
+    hapticEvent(moment === "touch" ? { type: "touch", wokeScreen: lastTouchWokeScreen() } : { type: "confirm" });
   }, []);
 
-  return <Grid page={page} grid={grid} data={data} onPress={press} onPressError={onPressError} onNavigate={onNavigate} onDismiss={dismiss} />;
+  return <Grid page={page} grid={grid} data={data} onPress={press} onPressError={onPressError} onNavigate={onNavigate} onDismiss={dismiss} onFeedback={onFeedback} />;
 }

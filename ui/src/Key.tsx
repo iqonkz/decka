@@ -30,7 +30,7 @@ export interface KeyProps {
 
 /** One key with the shared press states: pressed, confirming, pending, ok, error. Used by buttons and widgets. */
 export default function Key({ actionId, onTap, confirm, icon, label, color, side: fixedSide, chevron }: KeyProps) {
-  const { online, onPress, onPressError } = useDeckEnv();
+  const { online, onPress, onPressError, onFeedback } = useDeckEnv();
   const disabled = actionId !== undefined && !online;
 
   const [phase, setPhaseState] = useState<Phase>("idle");
@@ -90,6 +90,7 @@ export default function Key({ actionId, onTap, confirm, icon, label, color, side
     if (disabled || phaseRef.current === "pending") return;
     if (resetTimer.current !== null) window.clearTimeout(resetTimer.current);
     start.current = { x: e.clientX, y: e.clientY };
+    onFeedback?.("touch");
     // Where the finger is on the key, for the light spot of the Glass theme (`--tx`, `--ty`; harmless elsewhere).
     const box = e.currentTarget.getBoundingClientRect();
     if (box.width > 0 && box.height > 0) {
@@ -102,6 +103,7 @@ export default function Key({ actionId, onTap, confirm, icon, label, color, side
       holdTimer.current = window.setTimeout(() => {
         holdTimer.current = null;
         start.current = null; // the release that follows must not press again
+        onFeedback?.("confirm");
         doPress();
       }, CONFIRM_HOLD_MS);
     } else {

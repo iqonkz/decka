@@ -3,6 +3,7 @@ import type { ErrorCode } from "@decka/shared";
 import { parsePairUrl } from "@decka/shared";
 import { buildCandidates } from "../net/candidates";
 import { Connection, type ConnFailure, type WebSocketCtor } from "../net/connection";
+import { hapticEvent } from "../platform/haptics";
 import { clientInfo, isNative } from "../platform/native";
 import { applyPatch, applyWelcome, navigateManually, setState } from "../store/store";
 import { clearConn, loadConn, saveConn } from "../store/storage";
@@ -86,6 +87,7 @@ export function dismiss(notifId: string): void {
 
 /** Manual navigation (swipe, `navigate` button). */
 export function setPage(pageIndex: number): void {
+  hapticEvent({ type: "page_change", manual: true });
   navigateManually(pageIndex);
 }
 
