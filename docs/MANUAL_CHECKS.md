@@ -193,3 +193,12 @@
 - PENDING (owner): the logo in the real window and the tray at 16 px (not clicked or photographed from the session); the set drag shadow and the sequence step drag with a real mouse in the Tauri window (`m15-set-drag.png`).
 - PENDING (owner): the launcher icon on the phone (`phone-launcher.png`), the themed (monochrome) icon on Android 13+, the splash, the pairing screen with the logo on the phone (72 px logo plus the form on a 360 px high screen: check that nothing is pushed off).
 - PENDING (owner): T15.9 was skipped: the S9 (`232512e0080c7ece`) is connected but locked (`mWakefulness=Dozing`, lock screen), no A57. Everything listed above for M15 and T14.5a stays open: the volume slider and `Mic` by finger, `phone-m15-*.png`, the fps table per theme.
+
+## M16 — AI limits and approvals
+- DONE (tests, no real Claude Code): statusline parsing, summaries per tool, permission allow / deny / pc / timeout / no phone / hang-up / second answer, loopback and hook-token checks, Codex fixtures (new and old format), install and remove on a temporary home (foreign keys, hooks and a foreign status line stay, one `.decka-bak`), `burnEta`, the permission sheet in the store.
+- PENDING (owner): `Install` in More → Integrations → AI coding, restart Claude Code: the line `Decka · 5h …` shows in the terminal and the limits appear in the AI limits widget on the phone.
+- PENDING (owner): a `Bash` request in Claude Code: the sheet opens on the phone (also with the screen dimmed); `Allow`, `Deny`, `Answer on PC` and the wait running out (60 s is easiest to try) all behave; `Allow` and `Deny` do not react in the first 0.4 s.
+- PENDING (owner): with no phone connected the question shows in the terminal at once.
+- PENDING (owner): Codex: the limits show in the widget (needs a Codex session with a `rate_limits` line).
+- PENDING (owner): `Remove` brings back `%USERPROFILE%\.claude\settings.json` (compare with `settings.json.decka-bak`); a foreign status line gives the warning line.
+- PENDING (owner): the widget at 2×1, 2×2, 3×2 and 4×2 in the four looks on the phone, and the forecast line after about 10 minutes of use.
