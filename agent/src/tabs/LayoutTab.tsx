@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Action, ActionsFile, Answer, ButtonItem, CatalogItem, CatalogSet, InsertOutcome, LayoutFile, LayoutItem, Page, SequenceStep, ValidationIssue } from "@decka/shared";
-import { SETS, catalogItem, getLanguage, insertItem, insertSet, makeActionId, t, tn, validateLayout } from "@decka/shared";
+import { SETS, catalogItem, getLanguage, insertItem, insertSet, previewSet, makeActionId, t, tn, validateLayout } from "@decka/shared";
 import { call, navigate } from "../ipc";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
@@ -358,7 +358,7 @@ export default function LayoutTab() {
     if (payload.type === "catalog") return void placeCatalog(payload.itemId, { x, y });
     if (payload.type === "set") {
       const set = SETS.find((s) => s.id === payload.setId);
-      return set ? void placeSet(set) : undefined;
+      return set ? void placeSet(set, { x, y }) : undefined;
     }
     if (payload.type === "app" && itemAt(page!, x, y)) return setNotice(t("layout.drop_on_empty"));
     const choice: Choice = payload.type === "widget" ? { type: "widget", kind: payload.kind } : payload.type === "action" ? { type: "action", actionId: payload.actionId } : { type: "app", app: payload.app };
@@ -412,13 +412,13 @@ export default function LayoutTab() {
     const ctx = await insertContext([item], layout!, null);
     await applyInsert(insertItem(layout!, actions!, page!.id, item.id, answer, ctx, cell));
   }
-  async function placeSet(set: CatalogSet) {
+  async function placeSet(set: CatalogSet, at?: { x: number; y: number }) {
     if (!layout || !actions || !page) return;
     setNotice(null);
     if (set.requires && !integrations[set.requires]) return setupIntegration(set.requires);
     const obs = set.requires === "obs" ? await loadObs() : null;
     const ctx = await insertContext(itemsOfSet(set), layout, obs);
-    await applyInsert(insertSet(layout, actions, page.id, set, ctx), t("library.added_set", { name: set.name[getLanguage()] }));
+    await applyInsert(insertSet(layout, actions, page.id, set, at ? { ...ctx, at } : ctx), t("library.added_set", { name: set.name[getLanguage()] }));
   }
   /** The sequence editor's `Add sequence`: a new action and a key that runs it. */
   async function saveSequence(name: string, steps: SequenceStep[]) {
@@ -670,6 +670,9 @@ export default function LayoutTab() {
     dragged?.type === "item" && hoverCell && itemAt(page, hoverCell.x, hoverCell.y) && itemAt(page, hoverCell.x, hoverCell.y)!.id !== dragged.id
       ? moveItem(page, layout.grid, dragged.id, hoverCell.x, hoverCell.y)
       : null;
+  // A set dragged over the canvas: the shadow of its shape where it would land, or the hint about the new page (DESIGN.md 4.8).
+  const draggedSet = dragged?.type === "set" ? SETS.find((s) => s.id === dragged.setId) : undefined;
+  const setShadow = draggedSet && hoverCell ? previewSet(layout, page.id, draggedSet, hoverCell, getLanguage()) : null;
   const ghostLabel = (payload: DragPayload): string => {
     if (payload.type === "app") return payload.app.name;
     if (payload.type === "action") return payload.label;
@@ -797,6 +800,7 @@ export default function LayoutTab() {
             hover={session.hover ?? fileHover}
             draggingId={session.dragging?.payload.type === "item" ? session.dragging.payload.id : null}
             preview={swapPreview}
+            shadow={setShadow}
             cellAtRef={cellAtRef}
             onItemPointerDown={session.begin}
             onItemContextMenu={(item, e) => itemMenu(item, e.clientX, e.clientY)}

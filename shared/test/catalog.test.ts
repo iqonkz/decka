@@ -5,7 +5,7 @@ import Ajv2020 from "ajv/dist/2020";
 import { describe, expect, test } from "vitest";
 import catalogSchema from "../schemas/catalog.schema.json";
 import { CATALOG, LABEL_MAX, SETS, catalogItem, categoryItems, searchCatalog, type CatalogItem } from "../src/catalog";
-import { insertItem, insertSet, type Answer, type InsertContext } from "../src/insertSet";
+import { insertItem, insertSet, previewSet, type Answer, type InsertContext } from "../src/insertSet";
 import { sizeAllowed, validateActions, validateLayout } from "../src/validate";
 import type { Action, ActionsFile } from "../src/actions";
 import type { LayoutFile, LayoutItem } from "../src/layout";
@@ -129,6 +129,51 @@ describe("the shapes of the sets", () => {
       expect(validateLayout(result.layout, result.actions), `${set.id} on ${g.cols}x${g.rows}`).toEqual([]);
       expect(validateActions(result.actions)).toEqual([]);
     }
+  });
+});
+
+describe("previewSet (DESIGN.md 4.8)", () => {
+  const media = SETS.find((s) => s.id === "media-remote")!;
+  const empty: LayoutFile = { ...base, grid: grid(7, 4), pages: [{ id: "main", name: "Main", items: [] }] };
+  const full: LayoutFile = {
+    ...empty,
+    pages: [{ id: "main", name: "Main", items: Array.from({ length: 28 }, (_, i) => ({ id: `k${i}`, kind: "button", x: i % 7, y: Math.floor(i / 7), w: 1, h: 1, actionId: "lock" }) as LayoutItem) }],
+  };
+  const ctx: InsertContext = { language: "en", icons: { "ph:shuffle": "lucide:square", "ph:repeat": "lucide:square" } };
+  const taken = (l: LayoutFile) => l.pages[0]!.items.map((i) => `${i.x},${i.y},${i.w},${i.h}`).sort();
+  const shadow = (cells: { x: number; y: number; w: number; h: number }[]) => cells.map((c) => `${c.x},${c.y},${c.w},${c.h}`).sort();
+
+  test("it shows the cells insertSet takes, and changes nothing", () => {
+    const before = JSON.stringify(empty);
+    const p = previewSet(empty, "main", media)!;
+    expect(p.newPage).toBeNull();
+    const done = insertSet(empty, actionsBase, "main", media, ctx);
+    if (!done.ok) throw new Error(done.error);
+    expect(shadow(p.cells)).toEqual(taken(done.layout));
+    expect(JSON.stringify(empty)).toBe(before);
+  });
+
+  test("dropped on a cell, the shape starts there when it fits, and insertSet agrees", () => {
+    const at = { x: 3, y: 1 };
+    const p = previewSet(empty, "main", media, at)!;
+    expect(Math.min(...p.cells.map((c) => c.x))).toBe(3);
+    expect(Math.min(...p.cells.map((c) => c.y))).toBe(1);
+    const done = insertSet(empty, actionsBase, "main", media, { ...ctx, at });
+    if (!done.ok) throw new Error(done.error);
+    expect(shadow(p.cells)).toEqual(taken(done.layout));
+  });
+
+  test("a full page: the hint is the name of the new page", () => {
+    const p = previewSet(full, "main", media, { x: 0, y: 0 })!;
+    expect(p.newPage).toBe(media.name.en);
+    const done = insertSet(full, actionsBase, "main", media, ctx);
+    if (!done.ok) throw new Error(done.error);
+    expect(done.placedOn).not.toEqual(["main"]);
+    expect(done.layout.pages[1]!.name).toBe(p.newPage);
+  });
+
+  test("an unknown page gives nothing", () => {
+    expect(previewSet(empty, "nope", media)).toBeNull();
   });
 });
 

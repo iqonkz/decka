@@ -110,6 +110,11 @@ th { color: var(--muted); font-weight: 600; font-size: 12px; }
 .sequence-dialog { width: min(560px, 92vw); }
 .seq-steps { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .seq-step { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); }
+.seq-handle { display: inline-flex; align-items: center; cursor: grab; touch-action: none; opacity: 0.7; }
+.seq-handle:hover { opacity: 1; }
+.seq-step.dragging { opacity: 0.5; }
+.seq-step.drop-before { box-shadow: 0 -2px 0 var(--accent); }
+.seq-step.drop-after { box-shadow: 0 2px 0 var(--accent); }
 .seq-step select { flex: 1; min-width: 0; }
 .seq-step input[type="number"] { width: 84px; }
 .field-row { display: flex; align-items: center; gap: 10px; }
@@ -218,6 +223,8 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="color"]), select, te
 .editor-item { touch-action: none; transition: left 150ms ease, top 150ms ease; }
 .editor-item.dragging { opacity: 0.35; }
 .editor-cell.over { background: rgba(96, 165, 250, 0.3); border: 2px solid var(--accent); border-radius: 8px; }
+.set-shadow { position: absolute; box-sizing: border-box; border: 2px dashed var(--accent); border-radius: 8px; background: rgba(124, 92, 255, 0.22); pointer-events: none; z-index: 5; }
+.set-shadow-hint { position: absolute; left: 8px; right: 8px; bottom: 8px; z-index: 6; padding: 6px 10px; border-radius: 8px; background: rgba(0, 0, 0, 0.75); color: #fff; font-size: 12px; text-align: center; pointer-events: none; }
 .editor-cell.over.swap { background: rgba(250, 204, 21, 0.25); border-color: #facc15; }
 .palette-item { touch-action: none; }
 /* Quick picker (DESIGN.md 4.5) and the "+" of an empty cell. */

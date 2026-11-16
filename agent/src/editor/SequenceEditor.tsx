@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { dropIndex, moveStep } from "./seqOps";
 import { SEQUENCE_LIMITS, t, validateActions, type Action, type ActionsFile, type SequenceStep } from "@decka/shared";
 import Button from "../ui/Button";
 import PhIcon from "../ui/PhIcon";
@@ -26,16 +27,29 @@ export default function SequenceEditor({ actions, onSave, onClose }: SequencePro
   const totalMs = steps.reduce((sum, s) => sum + ("delayMs" in s ? s.delayMs : 0), 0);
 
   const set = (i: number, step: SequenceStep) => setSteps((list) => list.map((s, n) => (n === i ? step : s)));
-  const move = (i: number, by: number) =>
-    setSteps((list) => {
-      const to = i + by;
-      if (to < 0 || to >= list.length) return list;
-      const copy = [...list];
-      const [item] = copy.splice(i, 1);
-      copy.splice(to, 0, item!);
-      return copy;
-    });
+  const move = (i: number, by: number) => setSteps((l) => moveStep(l, i, i + by) as SequenceStep[]);
   const full = steps.length >= SEQUENCE_LIMITS.steps;
+
+  // Drag a step by its handle (pointer events: HTML5 drag and drop does not work in the Tauri window, D-38).
+  const list = useRef<HTMLOListElement>(null);
+  const [drag, setDrag] = useState<{ from: number; over: number } | null>(null);
+  const overAt = (y: number): number => {
+    const rows = Array.from(list.current?.children ?? []) as HTMLElement[];
+    return dropIndex(rows.map((r) => r.getBoundingClientRect().top + r.offsetHeight / 2), y);
+  };
+  const startDrag = (e: React.PointerEvent, from: number) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setDrag({ from, over: from });
+  };
+  const dragMove = (e: React.PointerEvent) => drag && setDrag({ ...drag, over: overAt(e.clientY) });
+  const dragEnd = (e: React.PointerEvent) => {
+    if (!drag) return;
+    const to = overAt(e.clientY);
+    setSteps((l) => moveStep(l, drag.from, to) as SequenceStep[]);
+    setDrag(null);
+  };
 
   return (
     <div className="dialog-backdrop" onPointerDown={onClose}>
@@ -47,9 +61,21 @@ export default function SequenceEditor({ actions, onSave, onClose }: SequencePro
         </label>
         <p className="muted">{t("seq.help")}</p>
         {choices.length === 0 && <p className="warn-text">{t("seq.no_actions")}</p>}
-        <ol className="seq-steps">
+        <ol className="seq-steps" ref={list}>
           {steps.map((step, i) => (
-            <li key={i} className="seq-step">
+            <li key={i} className={`seq-step${drag?.from === i ? " dragging" : ""}${drag && drag.over === i && drag.from !== i ? (drag.over > drag.from ? " drop-after" : " drop-before") : ""}`}>
+              <span
+                className="seq-handle"
+                role="button"
+                aria-label={t("seq.drag")}
+                title={t("seq.drag")}
+                onPointerDown={(e) => startDrag(e, i)}
+                onPointerMove={dragMove}
+                onPointerUp={dragEnd}
+                onPointerCancel={() => setDrag(null)}
+              >
+                <PhIcon name="dots-six-vertical" size={16} />
+              </span>
               {"delayMs" in step ? (
                 <>
                   <PhIcon name="timer" size={18} />

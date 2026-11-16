@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { rotateLayout } from "../src/rotate";
+import { fitWidgetSize, rotateLayout } from "../src/rotate";
 import { validateLayout } from "../src/validate";
 import type { ActionsFile } from "../src/actions";
 import type { LayoutFile, LayoutItem, Page } from "../src/layout";
@@ -109,6 +109,31 @@ describe("rotateLayout (DATA_MODEL.md 3.7)", () => {
     const r = rotateLayout(withGroup, "portrait");
     expect(r).toEqual({ ok: false, error: 'Popup group "Tools" doesn\'t fit. Make it smaller first.' });
     expect(JSON.stringify(withGroup)).toBe(before);
+  });
+
+  test("fitWidgetSize brings a clamped size to one the kind allows", () => {
+    expect(fitWidgetSize("weather", 4, 2, 3, 1)).toEqual({ w: 2, h: 1 }); // 3x1 is not a weather size
+    expect(fitWidgetSize("weather", 4, 2, 3, 2)).toEqual({ w: 3, h: 2 });
+    expect(fitWidgetSize("weather", 4, 2, 2, 2)).toEqual({ w: 2, h: 1 });
+    expect(fitWidgetSize("volume", 1, 4, 2, 5)).toEqual({ w: 1, h: 4 });
+    expect(fitWidgetSize("volume", 4, 1, 2, 5)).toEqual({ w: 2, h: 1 });
+    expect(fitWidgetSize("obs", 4, 2, 2, 8)).toEqual({ w: 2, h: 2 });
+    expect(fitWidgetSize("timer", 2, 2, 5, 1)).toEqual({ w: 2, h: 1 });
+    expect(fitWidgetSize("timer", 1, 2, 5, 5)).toEqual({ w: 1, h: 1 });
+    expect(fitWidgetSize("clock", 2, 1, 1, 5)).toEqual({ w: 1, h: 1 });
+  });
+
+  test("every widget size turned into every orientation is valid", () => {
+    const kinds: Array<[string, number, number]> = [["weather", 4, 2], ["weather", 3, 2], ["obs", 4, 2], ["volume", 4, 1], ["timer", 2, 2], ["sys", 2, 2], ["media", 6, 2]];
+    for (const [kind, w, h] of kinds) {
+      const item = { id: "i", kind, x: 0, y: 0, w, h } as unknown as LayoutItem;
+      for (const [from, to] of [["landscape", "portrait"], ["portrait", "landscape"]] as const) {
+        const grid = from === "landscape" ? { cols: 8, rows: 5 } : { cols: 5, rows: 8 };
+        const l: LayoutFile = { ...base, grid, display: { ...base.display, orientation: from }, pages: [{ id: "main", name: "Main", items: [item] }] };
+        const r = ok(rotateLayout(l, to));
+        expect(validateLayout(r.layout, actions)).toEqual([]);
+      }
+    }
   });
 
   test("the page limit is respected", () => {

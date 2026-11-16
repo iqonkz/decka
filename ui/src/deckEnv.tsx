@@ -5,6 +5,8 @@ import type { MediaInfo, Notification, ObsInfo, StatusItem, SysStats, VarValue, 
 export interface DeckData {
   /** The phone is connected: keys that run an action are usable. */
   online: boolean;
+  /** The settings window's preview: keys never dim for missing data (DESIGN.md 2.4). */
+  preview?: boolean;
   vars: Record<string, VarValue>;
   sys: SysStats | null;
   statuses: StatusItem[];

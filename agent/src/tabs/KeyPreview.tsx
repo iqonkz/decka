@@ -13,7 +13,7 @@ export default function KeyPreview({ item, display }: { item: ButtonItem; displa
   const page: Page = useMemo(() => ({ id: "preview", name: "", items: [{ ...item, x: 0, y: 0, w: 1, h: 1 }] }), [item]);
   const icons = useIconPreviews(page);
   const { keyFace, keyLabels } = display;
-  const data = useMemo(() => ({ ...EMPTY_DATA, online: true, icons, ...(keyFace !== undefined ? { keyFace } : {}), ...(keyLabels !== undefined ? { keyLabels } : {}) }), [icons, keyFace, keyLabels]);
+  const data = useMemo(() => ({ ...EMPTY_DATA, online: true, preview: true, icons, ...(keyFace !== undefined ? { keyFace } : {}), ...(keyLabels !== undefined ? { keyLabels } : {}) }), [icons, keyFace, keyLabels]);
   const theme = resolveTheme(display);
   const view = Math.round(SIDE * 1.25);
   return (

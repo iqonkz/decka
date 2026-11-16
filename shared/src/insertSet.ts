@@ -42,6 +42,8 @@ export interface InsertContext {
   icons?: Record<string, string>;
   catalog?: CatalogFile;
   random?: () => number;
+  /** A set dropped on a cell: the shape starts there when the whole of it fits (otherwise the usual first place). */
+  at?: { x: number; y: number };
 }
 
 export interface InsertResult {
@@ -70,7 +72,7 @@ function newItemId(kind: string, random: () => number, taken: Set<string>): stri
   }
 }
 
-interface Cell { x: number; y: number; w: number; h: number; }
+export interface Cell { x: number; y: number; w: number; h: number; }
 
 /** The entries of a shape: where each named item starts (`dx`, `dy`) and how big it is. */
 function shapeOf(rows: (string | null)[][], catalog: CatalogFile): { entries: { item: CatalogItem; dx: number; dy: number; w: number; h: number }[]; unknown: string[] } {
@@ -212,6 +214,50 @@ export function insertSet(layout: LayoutFile, actions: ActionsFile, pageId: stri
   return place(layout, actions, pageId, entries.map((e, i) => ({ ...e, answer: answers[i]! })), unknown, ctx, { newPage: { name: set.name[ctx.language] } });
 }
 
+/** Where a set would go (DESIGN.md 4.8): the cells it takes on the page, or a new page when it does not fit. Changes nothing. */
+export interface SetPreview {
+  cells: Cell[];
+  /** The name of the new page the set would get; `null` = it lands on this page. */
+  newPage: string | null;
+}
+
+/** The same decisions as `insertSet` (whole shape at `cell` or the first place, else cell by cell, else a new page), without touching the layout. */
+export function previewSet(layout: LayoutFile, pageId: string, set: CatalogSet, cell?: { x: number; y: number }, language: "en" | "ru" = "en", catalog: CatalogFile = CATALOG): SetPreview | null {
+  const page = layout.pages.find((p) => p.id === pageId);
+  if (!page) return null;
+  const { entries } = shapeOf(set.rows, catalog);
+  if (entries.length === 0) return null;
+  const grid = layout.grid;
+  const sizeOk = (e: (typeof entries)[number]) => !e.item.widget || sizeAllowed(e.item.widget.kind, e.w, e.h, grid, e.item.widget.options?.graph === true);
+  const shapeW = Math.max(...entries.map((e) => e.dx + e.w));
+  const shapeH = Math.max(...entries.map((e) => e.dy + e.h));
+  const cellsAt = (o: { x: number; y: number }): Cell[] => entries.map((e) => ({ x: o.x + e.dx, y: o.y + e.dy, w: e.w, h: e.h }));
+  const wholeAt = (target: Page): { x: number; y: number } | null => {
+    const okAt = (o: { x: number; y: number }) => {
+      const cells = cellsAt(o);
+      return cells.every((c, i) => fits(target, grid, c, cells.slice(0, i)) && sizeOk(entries[i]!));
+    };
+    if (cell && okAt(cell)) return cell;
+    for (let y = 0; y + shapeH <= grid.rows; y++) for (let x = 0; x + shapeW <= grid.cols; x++) if (okAt({ x, y })) return { x, y };
+    return null;
+  };
+  const oneByOne = (target: Page): Cell[] => {
+    const taken: Cell[] = [];
+    for (const e of entries) {
+      const spot = sizeOk(e) ? firstSpot(target, grid, e.w, e.h, taken) : null;
+      if (spot) taken.push({ ...spot, w: e.w, h: e.h });
+    }
+    return taken;
+  };
+  const origin = wholeAt(page);
+  if (origin) return { cells: cellsAt(origin), newPage: null };
+  const needed = entries.reduce((n, e) => n + e.w * e.h, 0);
+  if (freeCells(page, grid) >= needed) return { cells: oneByOne(page), newPage: null };
+  const fresh: Page = { id: "preview", name: "", items: [] };
+  const spot = wholeAt({ ...fresh });
+  return { cells: spot ? cellsAt(spot) : oneByOne(fresh), newPage: set.name[language].slice(0, MAX_NAME) };
+}
+
 /** One catalog item at the first free cell of a page (a double click in the library), or at `cell`. */
 export function insertItem(layout: LayoutFile, actions: ActionsFile, pageId: string, itemId: string, answer: Answer, ctx: InsertContext, cell?: { x: number; y: number }): InsertOutcome {
   const catalog = ctx.catalog ?? CATALOG;
@@ -278,12 +324,12 @@ function place(
   const shapeH = Math.max(...made.map((m) => m.entry.dy + m.entry.h));
   const cellsFor = (origin: { x: number; y: number }) => made.map((m) => ({ x: origin.x + m.entry.dx, y: origin.y + m.entry.dy, w: m.entry.w, h: m.entry.h }));
   const wholeAt = (target: Page): { x: number; y: number } | null => {
-    for (let y = 0; y + shapeH <= grid.rows; y++) {
-      for (let x = 0; x + shapeW <= grid.cols; x++) {
-        const cells = cellsFor({ x, y });
-        if (cells.every((c, i) => fits(target, grid, c, cells.slice(0, i)) && sizeOk(made[i]!, grid))) return { x, y };
-      }
-    }
+    const okAt = (o: { x: number; y: number }) => {
+      const cells = cellsFor(o);
+      return cells.every((c, i) => fits(target, grid, c, cells.slice(0, i)) && sizeOk(made[i]!, grid));
+    };
+    if (ctx.at && okAt(ctx.at)) return ctx.at; // dropped on a cell: the shape starts there when it fits
+    for (let y = 0; y + shapeH <= grid.rows; y++) for (let x = 0; x + shapeW <= grid.cols; x++) if (okAt({ x, y })) return { x, y };
     return null;
   };
   const origin = wholeAt(page);

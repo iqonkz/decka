@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { t, type InstalledApp, type LayoutFile, type LayoutItem, type Page, type SysStats } from "@decka/shared";
+import { t, type InstalledApp, type LayoutFile, type LayoutItem, type Page, type SetPreview, type SysStats } from "@decka/shared";
 import { EMPTY_DATA, GlassLayer, Grid, gridMetrics, resolveTheme, type DeckData } from "@decka/ui";
 import { call } from "../ipc";
 import { cellFromPoint, type DragPayload } from "./dragMachine";
@@ -27,6 +27,8 @@ interface Props {
   hover: { x: number; y: number } | null;
   /** While a key hovers over a taken cell: the page as it will be after the drop, so the neighbour glides to the free cell. */
   preview?: Page | null;
+  /** A set dragged over the canvas: the cells it would take (a shadow of its shape), and the new page it would get when it does not fit. */
+  shadow?: SetPreview | null;
   /** The item being dragged, dimmed. */
   draggingId: string | null;
   /** Filled with a function that maps a screen point to a cell of this canvas, for the drag session. */
@@ -46,7 +48,7 @@ interface Props {
 }
 
 /** The deck as it looks on the phone, in the chosen theme, with drag and drop on top of it (DESIGN.md 4.4). */
-export default function EditorCanvas({ layout, page, selectedId, availableWidth, onSelect, onChangePage, hover, draggingId, preview, cellAtRef, onItemPointerDown, onItemContextMenu, onCellContextMenu, renamingId, onRename, onEmptyCell }: Props) {
+export default function EditorCanvas({ layout, page, selectedId, availableWidth, onSelect, onChangePage, hover, draggingId, preview, shadow, cellAtRef, onItemPointerDown, onItemContextMenu, onCellContextMenu, renamingId, onRename, onEmptyCell }: Props) {
   const grid: GridSize = layout.grid;
   // A portrait deck is a tall screen: the preview is kept within an editor-sized height (DESIGN.md 2.2).
   const view = phoneView(layout.display.orientation);
@@ -60,7 +62,7 @@ export default function EditorCanvas({ layout, page, selectedId, availableWidth,
 
   const { keyFace, keyLabels } = layout.display;
   const data: DeckData = useMemo(
-    () => ({ ...EMPTY_DATA, online: true, sys: SAMPLE_SYS, icons, ...(keyFace !== undefined ? { keyFace } : {}), ...(keyLabels !== undefined ? { keyLabels } : {}) }),
+    () => ({ ...EMPTY_DATA, online: true, preview: true, sys: SAMPLE_SYS, icons, ...(keyFace !== undefined ? { keyFace } : {}), ...(keyLabels !== undefined ? { keyLabels } : {}) }),
     [icons, keyFace, keyLabels],
   );
   const noop = useMemo(() => ({ onPress: () => Promise.resolve(), onPressError: () => {}, onNavigate: () => {}, onDismiss: () => {} }), []);
@@ -129,6 +131,8 @@ export default function EditorCanvas({ layout, page, selectedId, availableWidth,
       </PhoneFrame>
       <div ref={overlayRef} className="editor-overlay" style={{ width: view.w * scale, height: view.h * scale }}>
         {cells}
+        {shadow?.cells.map((c, i) => <div key={`s${i}`} className="set-shadow" style={rect(c.x, c.y, c.w, c.h)} />)}
+        {shadow?.newPage != null && <div className="set-shadow-hint">{t("layout.set_new_page", { name: shadow.newPage })}</div>}
         {page.items.map((item) => {
           const selected = item.id === selectedId;
           const canResize = selected && (() => {

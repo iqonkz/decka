@@ -21,7 +21,7 @@ const sample = (): Page => ({
     { id: "s6", kind: "button", x: 2, y: 1, w: 1, h: 1, label: t("theme.s_lock"), icon: "lucide:lock", actionId: "a", color: "#b91c1c" },
   ],
 });
-const DATA = { ...EMPTY_DATA, online: true };
+const DATA = { ...EMPTY_DATA, online: true, preview: true };
 const NOOP = { onPress: () => Promise.resolve(), onPressError: () => {}, onNavigate: () => {}, onDismiss: () => {} };
 
 function Preview({ theme, display }: { theme: ThemeId; display: DisplaySettings }) {

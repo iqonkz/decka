@@ -1,5 +1,5 @@
 import type { LayoutFile, LayoutItem, Orientation, Page } from "./layout";
-import { gridLimits, sizeLimits } from "./validate";
+import { gridLimits, sizeAllowed, sizeLimits } from "./validate";
 
 export type RotateResult =
   | { ok: true; layout: LayoutFile; /** Items that had no place in the turned page and went to a new page. */ moved: number }
@@ -9,6 +9,34 @@ const MAX_PAGES = 10;
 const MAX_NAME = 30;
 
 const clamp = (n: number, [min, max]: [number, number]): number => Math.min(max, Math.max(min, n));
+
+/**
+ * A widget size brought to one the kind allows (DATA_MODEL.md 3.2 rules 4 and 13, 3.7 rule 2): the clamped size when allowed,
+ * otherwise the largest allowed size inside it (by area, then wider), otherwise the smallest allowed size of the kind.
+ */
+export function fitWidgetSize(kind: string, w: number, h: number, maxW: number, maxH: number, graph = false): { w: number; h: number } {
+  const grid = { cols: maxW, rows: maxH };
+  const cw = Math.max(1, Math.min(w, maxW));
+  const ch = Math.max(1, Math.min(h, maxH));
+  if (sizeAllowed(kind, cw, ch, grid, graph)) return { w: cw, h: ch };
+  let best: { w: number; h: number } | null = null;
+  for (let bw = 1; bw <= cw; bw++) {
+    for (let bh = 1; bh <= ch; bh++) {
+      if (!sizeAllowed(kind, bw, bh, grid, graph)) continue;
+      if (!best || bw * bh > best.w * best.h || (bw * bh === best.w * best.h && bw > best.w)) best = { w: bw, h: bh };
+    }
+  }
+  if (best) return best;
+  // Nothing allowed inside the clamped size: the smallest allowed size, even if the grid is too small for it.
+  const box = sizeLimits(kind, grid, graph) ?? [1, 1, 1, 1];
+  for (let bw = box[0]; bw <= box[1]; bw++) {
+    for (let bh = box[2]; bh <= box[3]; bh++) {
+      if (!sizeAllowed(kind, bw, bh, { cols: Math.max(maxW, bw), rows: Math.max(maxH, bh) }, graph)) continue;
+      if (!best || bw * bh < best.w * best.h) best = { w: bw, h: bh };
+    }
+  }
+  return best ?? { w: cw, h: ch };
+}
 
 /** Whether a `w` x `h` item at (x, y) lies inside the grid and clear of `taken`. */
 function free(taken: LayoutItem[], grid: { cols: number; rows: number }, x: number, y: number, w: number, h: number): boolean {
@@ -57,9 +85,9 @@ export function rotateLayout(layout: LayoutFile, to: Orientation): RotateResult 
       const [minW, maxW, minH, maxH] = sizeLimits(item.kind, grid, item.kind === "sys" && item.graph === true) ?? [1, 1, 1, 1];
       // A widget keeps its size, cut down to the new grid; a button is always 1x1; a horizontal volume turns vertical.
       const turned = item.kind === "volume" && item.w > item.h ? { w: item.h, h: item.w } : { w: item.w, h: item.h };
-      const w = item.kind === "button" ? 1 : Math.min(turned.w, maxW);
-      const h = item.kind === "button" ? 1 : Math.min(turned.h, maxH);
-      const tooSmall = w < minW || h < minH;
+      const fitted = item.kind === "button" ? { w: 1, h: 1 } : fitWidgetSize(item.kind, turned.w, turned.h, Math.min(maxW, grid.cols), Math.min(maxH, grid.rows), item.kind === "sys" && item.graph === true);
+      const { w, h } = fitted;
+      const tooSmall = w < minW || h < minH || w > maxW || h > maxH;
       const spot = tooSmall ? null : firstFree(placed, grid, w, h);
       if (spot) {
         placed.push({ ...item, x: spot.x, y: spot.y, w, h } as LayoutItem);

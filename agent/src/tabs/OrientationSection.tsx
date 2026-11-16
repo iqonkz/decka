@@ -6,7 +6,7 @@ import Banner from "../ui/Banner";
 import Button from "../ui/Button";
 import PhoneFrame from "./PhoneFrame";
 
-const DATA = { ...EMPTY_DATA, online: true };
+const DATA = { ...EMPTY_DATA, online: true, preview: true };
 const NOOP = { onPress: () => Promise.resolve(), onPressError: () => {}, onNavigate: () => {}, onDismiss: () => {} };
 
 /** A silhouette of a phone, wide or tall (the two cards of `Orientation`). */
