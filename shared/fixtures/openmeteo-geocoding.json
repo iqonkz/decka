@@ -1,0 +1,11 @@
+{
+  "results": [
+    { "id": 1526384, "name": "Almaty", "latitude": 43.25654, "longitude": 76.92848, "country": "Kazakhstan", "admin1": "Almaty", "population": 1977011 },
+    { "id": 1526273, "name": "Almaty Region", "latitude": 44.5, "longitude": 78.0, "country": "Kazakhstan" },
+    { "id": 99, "name": "Almaty", "latitude": 51.0, "longitude": 60.0, "country_code": "KZ" },
+    { "id": 100, "name": "Alma", "latitude": 48.55, "longitude": -84.0, "country": "Canada", "admin1": "Ontario" },
+    { "id": 101, "name": "Alma-Ata", "latitude": 43.2, "longitude": 76.9, "country": "USSR" },
+    { "id": 102, "name": "Sixth", "latitude": 1.0, "longitude": 2.0, "country": "Nowhere" }
+  ],
+  "generationtime_ms": 0.9
+}

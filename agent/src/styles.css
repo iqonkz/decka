@@ -105,6 +105,7 @@ th { color: var(--muted); font-weight: 600; font-size: 12px; }
 .wizard-sets { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; margin-bottom: 8px; }
 .wizard-sets .set-card { cursor: pointer; }
 .wizard-sets .set-card.selected { border-color: var(--accent, #7c5cff); }
+.block { display: block; }
 .ask-dialog { width: min(420px, 92vw); }
 .sequence-dialog { width: min(560px, 92vw); }
 .seq-steps { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }

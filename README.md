@@ -125,6 +125,10 @@ npm run release:apk      # client\android\app\build\outputs\apk\debug\app-debug.
 - **Port 9247 is busy.** Another program uses it. Change the port in **Settings** and press **Restart now**, or press **Retry** on the Status tab after closing the other program.
 - **The phone does not find the PC after the PC slept.** Decka reconnects by itself within about 30 seconds; if the PC hibernates instead of sleeping, network and USB links are down until it wakes. Prefer sleep over hibernation.
 
+## Weather
+
+The weather widget gets its data from [Open-Meteo.com](https://open-meteo.com/) (no key needed). Only the PC asks the internet: the phone never does, and the coordinates are rounded to about 1 km before they are sent. Turn it on in More → Integrations → Weather. Weather data by Open-Meteo.com, licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); the free service is for non-commercial use.
+
 ## Battery and burn-in notes
 
 - A phone that is always charging at 100% ages its battery and, in the worst case, can swell. Power it from a PC USB port (low current) rather than a fast charger, keep it out of direct sun, check the case now and then, and stop using it at once if it bulges. A smart plug on a schedule helps. Decka cannot limit charging without root.

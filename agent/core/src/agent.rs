@@ -212,6 +212,9 @@ struct Inner {
     focus_collector: Mutex<Option<crate::collectors::focus::FocusCollector>>,
     media_collector: Mutex<Option<crate::collectors::media::MediaCollector>>,
     audio_collector: Mutex<Option<crate::audio::AudioCollector>>,
+    /// The weather refresh loop (M15) and the last good answer (older than 3 h it is dropped).
+    weather_task: Mutex<Option<JoinHandle<()>>>,
+    weather_last: Mutex<Option<WeatherInfo>>,
     focus_app: Mutex<Option<String>>,
     /// The answer of the last update check (ARCHITECTURE.md 8a).
     update: Mutex<crate::updates::UpdateStatus>,
@@ -267,6 +270,8 @@ impl Agent {
                 focus_collector: Mutex::new(None),
                 media_collector: Mutex::new(None),
                 audio_collector: Mutex::new(None),
+                weather_task: Mutex::new(None),
+                weather_last: Mutex::new(None),
                 focus_app: Mutex::new(None),
                 update: Mutex::new(crate::updates::UpdateStatus::default()),
                 update_tx: watch::channel(crate::updates::UpdateStatus::default()).0,
@@ -377,6 +382,9 @@ impl Agent {
             self.publish_status();
         }
 
+        // Weather (M15): a loop on the runtime; off = the section is null.
+        self.start_weather();
+
         // HTTP checks: stop the old tasks (dropping aborts them), then start from the new config.
         let old_checks = self.inner.checks_collector.lock().unwrap().take();
         drop(old_checks);
@@ -474,6 +482,67 @@ impl Agent {
     /// Receives the new update status whenever a check finishes (the window and the tray listen).
     pub fn subscribe_updates(&self) -> watch::Receiver<crate::updates::UpdateStatus> {
         self.inner.update_tx.subscribe()
+    }
+
+    /// (Re)starts the weather loop from the config: at once, then every 30 minutes. Safe from any thread (the runtime handle is used).
+    fn start_weather(&self) {
+        if let Some(old) = self.inner.weather_task.lock().unwrap().take() {
+            old.abort();
+        }
+        *self.inner.weather_last.lock().unwrap() = None;
+        let enabled = self.config().weather.as_ref().is_some_and(|w| w.enabled);
+        if !enabled {
+            self.inner.store.set("weather", serde_json::Value::Null);
+            return;
+        }
+        let me = self.clone();
+        let task = self.inner.runtime.spawn(async move {
+            loop {
+                if let Err(e) = me.refresh_weather().await {
+                    tracing::debug!("weather: {e}");
+                    // A failed update keeps the old data, until it is 3 hours old.
+                    let kept = crate::weather::fresh(me.inner.weather_last.lock().unwrap().clone(), crate::auth::now_ms());
+                    if kept.is_none() {
+                        me.inner.store.set("weather", serde_json::Value::Null);
+                    }
+                }
+                tokio::time::sleep(crate::weather::REFRESH_EVERY).await;
+            }
+        });
+        *self.inner.weather_task.lock().unwrap() = Some(task);
+    }
+
+    /// Asks Open-Meteo for the forecast of the place in the settings now (the `Refresh` button and the loop).
+    pub async fn refresh_weather(&self) -> Result<WeatherInfo, String> {
+        if !self.config().weather.is_some_and(|w| w.enabled) {
+            return Err("Weather is off".to_string());
+        }
+        self.refresh_weather_at(crate::weather::FORECAST_URL).await
+    }
+
+    /// `refresh_weather` against another address (the tests use a local server); needs a place in the settings, on or off.
+    pub async fn refresh_weather_at(&self, base: &str) -> Result<WeatherInfo, String> {
+        let Some(cfg) = self.config().weather else { return Err("Weather is not set up".to_string()) };
+        let body = crate::weather::fetch(&crate::weather::forecast_url(base, cfg.lat, cfg.lon, &cfg.units)).await?;
+        let info = crate::weather::parse_forecast(&body, &cfg.place, &cfg.units, crate::auth::now_ms()).ok_or("Unexpected answer from Open-Meteo")?;
+        *self.inner.weather_last.lock().unwrap() = Some(info.clone());
+        self.inner.store.set("weather", serde_json::to_value(&info).expect("weather serializes"));
+        Ok(info)
+    }
+
+    /// The place search of the settings (`search_place`): 2..80 characters, up to 5 results; the answer is in the language of the deck.
+    pub async fn search_place(&self, query: &str) -> Result<Vec<crate::weather::Place>, String> {
+        self.search_place_at(crate::weather::GEOCODING_URL, query).await
+    }
+
+    pub async fn search_place_at(&self, base: &str, query: &str) -> Result<Vec<crate::weather::Place>, String> {
+        let query = query.trim();
+        if !(2..=80).contains(&query.chars().count()) {
+            return Err("Type 2 to 80 characters".to_string());
+        }
+        let language = if self.layout().display.language.as_deref() == Some("ru") { "ru" } else { "en" };
+        let body = crate::weather::fetch(&crate::weather::geocoding_url(base, query, language)).await?;
+        Ok(crate::weather::parse_places(&body))
     }
 
     /// Asks GitHub for the latest release once (on request: `Check now`, opening `About`) and keeps the answer.
@@ -925,6 +994,9 @@ impl Agent {
         drop(media);
         let audio = self.inner.audio_collector.lock().unwrap().take();
         drop(audio);
+        if let Some(task) = self.inner.weather_task.lock().unwrap().take() {
+            task.abort();
+        }
         let watcher = self.inner.watcher.lock().unwrap().take();
         drop(watcher);
         if let Some(usb) = self.inner.usb_task.lock().unwrap().take() {

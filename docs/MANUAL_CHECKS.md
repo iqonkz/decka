@@ -170,3 +170,8 @@
 - DONE (real Tauri window, `npm run tauri dev` with `DECKA_CONFIG_DIR=.tmp\cfg-t154`, WebView2 driven over CDP): Library tab with categories, Sets tab with cards; `Add` on Media remote, Sound and Windows tools put 20 keys on an empty page and saved `actions.json` / `layout.json` of the copy; the sequence editor made a sequence of 2 actions and a pause and a key for it. Snapshots `.tmp\design\m15-library.png`, `m15-sets.png`, `m15-sets-added.png`, `m15-sequence.png`.
 - PENDING (owner): drag a library item / set card onto a cell with a real mouse (only `Add` and double-click were driven); the ask dialogs (website, shortcut, page, group); the first-run guide cards (`Media remote` / `Sound` ticked, `Streaming` only with OBS found); the cell picker categories.
 - PENDING (owner): the OBS items (`Set up OBS` until T15.6) and `Set up weather` (until T15.5) lead to More -> Integrations.
+
+## T15.5 — weather
+
+- DONE (real Tauri window with `DECKA_CONFIG_DIR=.tmp\cfg-t154`, real Open-Meteo): searched "Almaty", picked it, switched weather on, `Refresh now` answered `Updated.`; the weather widget placed from the library showed -5° / 1° and the place on the phone page (web client, 740x360). Snapshots `.tmp\design\m15-weather-settings.png`, `m15-weather.png`.
+- PENDING (owner): `°F` units on the phone, and the widget in 3x2 / 4x2 with three days (not placed here).

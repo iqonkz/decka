@@ -36,6 +36,24 @@ pub async fn check_updates(app: AppHandle) -> Result<decka_core::updates::Update
     Ok(agent(&app)?.check_updates().await)
 }
 
+/// The place search of `More → Integrations → Weather`: a list of places, or `{ error }`.
+#[tauri::command]
+pub async fn search_place(app: AppHandle, query: String) -> Result<serde_json::Value, String> {
+    Ok(match agent(&app)?.search_place(&query).await {
+        Ok(places) => serde_json::to_value(places).map_err(|e| e.to_string())?,
+        Err(error) => serde_json::json!({ "error": error }),
+    })
+}
+
+/// `Refresh`: asks Open-Meteo now; the weather, or `{ error }`.
+#[tauri::command]
+pub async fn refresh_weather(app: AppHandle) -> Result<serde_json::Value, String> {
+    Ok(match agent(&app)?.refresh_weather().await {
+        Ok(info) => serde_json::to_value(info).map_err(|e| e.to_string())?,
+        Err(error) => serde_json::json!({ "error": error }),
+    })
+}
+
 /// `Download`: opens a release page of the project in the browser (other addresses are refused).
 #[tauri::command]
 pub fn open_release(app: AppHandle, url: String) -> Result<(), String> {

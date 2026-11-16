@@ -26,6 +26,7 @@ pub mod updates;
 pub mod usb;
 pub mod validate;
 pub mod watch;
+pub mod weather;
 
 pub use agent::{Agent, AgentOptions, AgentStatus, SaveResult, StartError};
 

@@ -63,6 +63,8 @@ pub fn run() {
             commands::get_update_status,
             commands::check_updates,
             commands::open_release,
+            commands::search_place,
+            commands::refresh_weather,
             commands::open_config_dir,
             commands::open_logs_dir,
             commands::icon_from_program,
