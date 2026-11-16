@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { bump } from "./bump-version.mjs";
-import { nextVersion, readVersions, releaseChangelog, unreleasedBody, versionCode, versionProblems } from "./lib/version-files.mjs";
+import { nextVersion, readVersions, releaseChangelog, unreleasedBody, versionCode, versionProblems, writeVersions } from "./lib/version-files.mjs";
 
 const repo = join(dirname(fileURLToPath(import.meta.url)), "..");
 const FILES = ["package.json", "shared/package.json", "ui/package.json", "client/package.json", "agent/package.json", "agent/src-tauri/tauri.conf.json", "Cargo.toml", "client/android/app/build.gradle"];
@@ -20,6 +20,7 @@ function copy(changelog = CHANGELOG) {
     mkdirSync(dirname(join(root, f)), { recursive: true });
     cpSync(join(repo, f), join(root, f));
   }
+  writeVersions(root, "0.1.0"); // the tests assume a 0.1.0 baseline whatever version the repository is at now
   writeFileSync(join(root, "CHANGELOG.md"), changelog);
   return root;
 }
