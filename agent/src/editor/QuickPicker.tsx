@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
-import { t, type ActionsFile, type InstalledApp, type Page } from "@decka/shared";
+import EntryIcon from "../ui/EntryIcon";
+import { CATALOG, categoryItems, getLanguage, t, type ActionsFile, type InstalledApp, type Page } from "@decka/shared";
 import { call } from "../ipc";
 import Button from "../ui/Button";
 import PhIcon from "../ui/PhIcon";
 import { DEFAULT_SIZE, fits, type Grid, type Kind } from "../tabs/layoutOps";
-import { actionFromKeys, actionFromUrl, defaultIconFor, formatChord, presetActions, type Choice } from "./addButton";
+import { actionFromKeys, actionFromUrl, defaultIconFor, formatChord, type Choice } from "./addButton";
 import { cachedApps, loadApps } from "./apps";
 import { chordFromEvent } from "./keyName";
 
@@ -20,12 +21,16 @@ const widgets = (): { kind: Kind; name: string }[] => [
 
 interface Row {
   key: string;
-  group: "apps" | "media_system" | "yours" | "widgets";
+  group: string;
   label: string;
   icon?: string;
   phIcon?: string;
   hint?: string;
+  /** The header of the group: the name of a catalog category, `Apps` or `Your actions`. */
+  groupLabel: string;
   choice: Choice;
+  /** A library item: the host places it (it may ask for more first). */
+  catalogId?: string;
 }
 
 interface Props {
@@ -40,13 +45,17 @@ interface Props {
   /** Only the `Apps` group and `Browse for a program…` (the action form picks a program). */
   appsOnly?: boolean;
   onChoose: (choice: Choice) => void;
+  /** A library item was picked (DESIGN.md 4.8: the same categories as the library). */
+  onCatalog?: (itemId: string) => void;
   onClose: () => void;
 }
 
 type Mode = "list" | "website" | "keys";
 
 /** The quick picker (DESIGN.md 4.5): one popup next to an empty cell; one click on a row makes the button. */
-export default function QuickPicker({ anchor, cell, page, grid, actions, hideWidgets, appsOnly, onChoose, onClose }: Props) {
+export default function QuickPicker({ anchor, cell, page, grid, actions, hideWidgets, appsOnly, onChoose, onCatalog, onClose }: Props) {
+  const lang = getLanguage();
+  const pick = (row: Row) => (row.catalogId !== undefined && onCatalog ? onCatalog(row.catalogId) : onChoose(row.choice));
   const [query, setQuery] = useState("");
   const [apps, setApps] = useState<InstalledApp[] | null>(cachedApps());
   const [active, setActive] = useState(0);
@@ -66,21 +75,27 @@ export default function QuickPicker({ anchor, cell, page, grid, actions, hideWid
     const match = (s: string) => q === "" || s.toLowerCase().includes(q);
     const out: Row[] = [];
     for (const app of apps ?? []) {
-      if (match(app.name)) out.push({ key: `app|${app.program}|${app.args.join(" ")}|${app.name}`, group: "apps", label: app.name, icon: app.icon, hint: undefined, choice: { type: "app", app } });
+      if (match(app.name)) out.push({ key: `app|${app.program}|${app.args.join(" ")}|${app.name}`, group: "apps", groupLabel: t("picker.group_apps"), label: app.name, icon: app.icon, hint: undefined, choice: { type: "app", app } });
     }
-    for (const p of appsOnly ? [] : presetActions()) {
-      if (match(p.label)) out.push({ key: `preset|${p.id}`, group: "media_system", label: p.label, phIcon: undefined, choice: { type: "preset", presetId: p.id } });
+    // The categories of the library, in its order (DESIGN.md 4.8); a widget only when it fits the cell, and not when a key's action is being changed.
+    for (const category of appsOnly || !onCatalog ? [] : CATALOG.categories) {
+      for (const item of categoryItems(category)) {
+        if (item.widget && (hideWidgets || !fits(page, grid, { x: cell.x, y: cell.y, w: item.widget.w, h: item.widget.h }))) continue;
+        if (!(match(item.name[lang]) || match(item.name.en) || match(item.name.ru) || match(item.label[lang]))) continue;
+        out.push({ key: `catalog|${item.id}`, group: category.id, groupLabel: category.name[lang], label: item.name[lang], phIcon: item.icon, hint: item.widget ? `${item.widget.w}×${item.widget.h}` : undefined, choice: { type: "action", actionId: "" }, catalogId: item.id });
+      }
     }
     const yours = Object.entries(appsOnly ? {} : actions.actions)
       .filter(([id, a]) => match(a.name) || match(id))
       .sort(([, a], [, b]) => a.name.localeCompare(b.name));
-    for (const [id, a] of yours) out.push({ key: `action|${id}`, group: "yours", label: a.name, hint: defaultIconFor(a).replace("lucide:", ""), choice: { type: "action", actionId: id } });
-    for (const w of hideWidgets || appsOnly ? [] : widgets()) {
+    for (const [id, a] of yours) out.push({ key: `action|${id}`, group: "yours", groupLabel: t("picker.group_yours"), label: a.name, hint: defaultIconFor(a).replace("lucide:", ""), choice: { type: "action", actionId: id } });
+    // Widgets that the catalog does not have (the status tile) stay, as before.
+    for (const w of hideWidgets || appsOnly ? [] : widgets().filter((x) => x.kind === "status")) {
       const size = DEFAULT_SIZE[w.kind];
-      if (match(w.name) && fits(page, grid, { x: cell.x, y: cell.y, w: size.w, h: size.h })) out.push({ key: `widget|${w.kind}`, group: "widgets", label: w.name, hint: `${size.w}×${size.h}`, choice: { type: "widget", kind: w.kind } });
+      if (match(w.name) && fits(page, grid, { x: cell.x, y: cell.y, w: size.w, h: size.h })) out.push({ key: `widget|${w.kind}`, group: "widgets", groupLabel: t("picker.group_widgets"), label: w.name, hint: `${size.w}×${size.h}`, choice: { type: "widget", kind: w.kind } });
     }
     return out;
-  }, [apps, actions, query, page, grid, cell.x, cell.y, hideWidgets, appsOnly]);
+  }, [apps, actions, query, page, grid, cell.x, cell.y, hideWidgets, appsOnly, onCatalog, lang]);
 
   useEffect(() => setActive(0), [query]);
   useEffect(() => {
@@ -117,13 +132,13 @@ export default function QuickPicker({ anchor, cell, page, grid, actions, hideWid
         const row = rows[active];
         if (row) {
           e.preventDefault();
-          onChoose(row.choice);
+          pick(row);
         }
       }
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [mode, chord, rows, active, onChoose, onClose]);
+  }, [mode, chord, rows, active, onChoose, onCatalog, onClose]);
 
   async function browse() {
     try {
@@ -162,9 +177,9 @@ export default function QuickPicker({ anchor, cell, page, grid, actions, hideWid
                 lastGroup = row.group;
                 return (
                   <div key={row.key}>
-                    {header && <div className="picker-group">{t(`picker.group_${header}`)}</div>}
-                    <button type="button" className={`picker-row${i === active ? " active" : ""}`} data-active={i === active} onMouseEnter={() => setActive(i)} onClick={() => onChoose(row.choice)}>
-                      {row.icon ? <img src={row.icon} width={24} height={24} alt="" /> : <span className="app-noicon" style={{ width: 24, height: 24 }} />}
+                    {header && <div className="picker-group">{row.groupLabel}</div>}
+                    <button type="button" className={`picker-row${i === active ? " active" : ""}`} data-active={i === active} onMouseEnter={() => setActive(i)} onClick={() => pick(row)}>
+                      {row.icon ? <img src={row.icon} width={24} height={24} alt="" /> : row.phIcon ? <span className="picker-icon"><EntryIcon icon={row.phIcon} /></span> : <span className="app-noicon" style={{ width: 24, height: 24 }} />}
                       <span className="picker-label">{row.label}</span>
                       {row.hint && <small className="muted">{row.hint}</small>}
                     </button>

@@ -6,7 +6,9 @@ export type DragPayload =
   | { type: "item"; id: string }
   | { type: "widget"; kind: Kind }
   | { type: "action"; actionId: string; label: string }
-  | { type: "app"; app: InstalledApp };
+  | { type: "app"; app: InstalledApp }
+  | { type: "catalog"; itemId: string; label: string }
+  | { type: "set"; setId: string; label: string };
 
 /** Pixels the pointer must travel before a press becomes a drag (DESIGN.md 4.6). */
 export const DRAG_THRESHOLD = 4;

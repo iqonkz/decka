@@ -1,4 +1,4 @@
-import { t, type Action, type ActionsFile, type InstalledApp, type LayoutFile, type LayoutItem } from "@decka/shared";
+import { findSameAction, makeActionId, t, type Action, type ActionsFile, type InstalledApp, type LayoutFile, type LayoutItem } from "@decka/shared";
 import { fits, launchActionOf, makeItem, withMediaDefaults, type Kind } from "../tabs/layoutOps";
 
 /** A ready-made action of the quick picker (DESIGN.md 4.5, table `Media & system`). */
@@ -90,25 +90,8 @@ export function actionFromKeys(keys: string[]): Action | null {
   return { name: formatChord(keys), type: "hotkey", keys };
 }
 
-/** The same thing as `action`, ignoring `name`: an existing action with this content is reused instead of added again. */
-export function findSameAction(actions: ActionsFile, action: Action): string | undefined {
-  const content = (a: Action) => {
-    const { name: _name, ...rest } = a;
-    return JSON.stringify(Object.fromEntries(Object.entries(rest).sort(([x], [y]) => x.localeCompare(y))));
-  };
-  const wanted = content(action);
-  return Object.entries(actions.actions).find(([, a]) => content(a) === wanted)?.[0];
-}
-
-/** `Spotify` -> `spotify`; `[a-z0-9-]`, at most 48 characters; `-2`, `-3`... when taken. */
-export function makeActionId(name: string, existing: Record<string, unknown>): string {
-  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 44).replace(/-+$/, "") || "action";
-  if (!(slug in existing)) return slug;
-  for (let n = 2; ; n++) {
-    const id = `${slug}-${n}`;
-    if (!(id in existing)) return id;
-  }
-}
+// The helpers live in `@decka/shared` (insertSet uses them too); the editor keeps importing them from here.
+export { findSameAction, makeActionId };
 
 /** The icon a button for `action` gets when nothing better is known (DESIGN.md 4.5). */
 export function defaultIconFor(action: Action): string {

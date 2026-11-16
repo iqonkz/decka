@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "sets": [
+    { "id": "media-remote", "name": { "en": "Media remote", "ru": "Медиапульт" }, "icon": "lucide:music",
+      "description": { "en": "Prev, play, next, shuffle, repeat and Now playing", "ru": "Назад, пуск, далее, случайно, повтор и «Сейчас играет»" },
+      "rows": [
+        ["media.prev", "media.play", "media.next", "media.shuffle"],
+        ["media.repeat", "media.widget", null, null]
+      ] },
+    { "id": "sound", "name": { "en": "Sound", "ru": "Звук" }, "icon": "lucide:volume-2",
+      "description": { "en": "Microphone, mute, volume keys and a slider", "ru": "Микрофон, звук, кнопки громкости и ползунок" },
+      "rows": [
+        ["sound.mic", "sound.mute", "sound.widget"],
+        ["sound.voldown", "sound.volup", null]
+      ] },
+    { "id": "windows-tools", "name": { "en": "Windows tools", "ru": "Инструменты Windows" }, "icon": "lucide:monitor",
+      "description": { "en": "Lock, screenshot, Task Manager, Explorer and more", "ru": "Блокировка, снимок, диспетчер задач, проводник и другое" },
+      "rows": [
+        ["win.lock", "win.screenshot", "win.taskmgr", "win.desktop"],
+        ["win.explorer", "win.emoji", "win.clipboard", "win.settings"]
+      ] },
+    { "id": "stream", "name": { "en": "Streaming", "ru": "Стрим" }, "icon": "lucide:video", "requires": "obs",
+      "description": { "en": "Record, go live, replay, scenes and OBS status", "ru": "Запись, эфир, повтор, сцены и состояние OBS" },
+      "rows": [
+        ["stream.record", "stream.live", "stream.replay", "stream.mic"],
+        ["stream.scene", "stream.scene", "stream.scene", null],
+        ["stream.widget", null, null, null]
+      ] },
+    { "id": "focus", "name": { "en": "Focus", "ru": "Фокус" }, "icon": "lucide:timer",
+      "description": { "en": "A timer and a clock", "ru": "Таймер и часы" },
+      "rows": [
+        ["widget.timer", null, "widget.clock", null]
+      ] }
+  ]
+}

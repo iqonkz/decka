@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ActionsFile, ButtonItem, LayoutFile, LayoutItem, Page, ValidationIssue } from "@decka/shared";
-import { t, tn, validateLayout } from "@decka/shared";
-import { call } from "../ipc";
+import type { Action, ActionsFile, Answer, ButtonItem, CatalogItem, CatalogSet, InsertOutcome, LayoutFile, LayoutItem, Page, SequenceStep, ValidationIssue } from "@decka/shared";
+import { SETS, catalogItem, getLanguage, insertItem, insertSet, makeActionId, t, tn, validateLayout } from "@decka/shared";
+import { call, navigate } from "../ipc";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
 import Field from "../ui/Field";
@@ -10,7 +10,10 @@ import type { DragPayload } from "./dragMachine";
 import { canRedo, canUndo, itemAt, moveItem, nearestFreeCell, newHistory, pushHistory, redo, undo, type History } from "./editorOps";
 import EditorCanvas from "./EditorCanvas";
 import { useDragSession, type Cell } from "./useDragSession";
-import Palette from "./Palette";
+import Library from "./Library";
+import AskDialog from "../editor/AskDialog";
+import SequenceEditor from "../editor/SequenceEditor";
+import { insertContext, itemsOfSet, loadIntegrations, loadObs, type Integrations } from "../editor/catalogUi";
 import ItemForm from "./itemForm";
 import { describeIssue, itemPath } from "./issueText";
 import { COLS_RANGE, DEFAULT_SIZE, fits, movePage, newItemId, newPageId, newPopupPage, removeItem, ROWS_RANGE, sizeRange, tapModePatch, updateItem } from "./layoutOps";
@@ -58,6 +61,13 @@ export default function LayoutTab() {
   const [menu, setMenu] = useState<{ x: number; y: number; items: MenuItem[] } | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [clipboard, setClipboard] = useState<LayoutItem | null>(null);
+  // The library (DESIGN.md 4.8): which integrations are on, the dialog of an item that asks, the sequence editor (`null` = first free cell).
+  const [integrations, setIntegrations] = useState<Integrations>({ obs: false, weather: false });
+  const [ask, setAsk] = useState<{ item: CatalogItem; cell?: { x: number; y: number }; obs: { scenes: string[]; inputs: string[] } | null } | null>(null);
+  const [sequenceAt, setSequenceAt] = useState<{ x: number; y: number } | null | undefined>(undefined);
+  useEffect(() => {
+    void loadIntegrations().then(setIntegrations);
+  }, []);
   const keysRef = useRef<(e: KeyboardEvent) => void>(() => {});
 
   // Drag and drop on pointer events (D-38) plus files dropped from Explorer (Tauri). The handlers are set below, once the data is loaded.
@@ -345,6 +355,11 @@ export default function LayoutTab() {
       if (moved) setPage(moved);
       return;
     }
+    if (payload.type === "catalog") return void placeCatalog(payload.itemId, { x, y });
+    if (payload.type === "set") {
+      const set = SETS.find((s) => s.id === payload.setId);
+      return set ? void placeSet(set) : undefined;
+    }
     if (payload.type === "app" && itemAt(page!, x, y)) return setNotice(t("layout.drop_on_empty"));
     const choice: Choice = payload.type === "widget" ? { type: "widget", kind: payload.kind } : payload.type === "action" ? { type: "action", actionId: payload.actionId } : { type: "app", app: payload.app };
     const made = await addChoice(layout!, actions!, { x, y }, choice);
@@ -358,6 +373,75 @@ export default function LayoutTab() {
     setActions(a);
     setSavedActions(JSON.stringify(a)); // addChoice saved them already
   };
+
+  // ----- the library (DESIGN.md 4.8) -----
+  const setupIntegration = (what: "obs" | "weather") => void navigate(what === "obs" ? "integrations:obs" : "integrations:weather");
+
+  /** The result of `insertItem` / `insertSet` becomes the new layout: the new actions are saved first, the new keys are selected. */
+  async function applyInsert(r: InsertOutcome, done?: string) {
+    if (!r.ok) return setNotice(r.error === "No free cell on this page" ? t("layout.no_free_cell") : r.error);
+    if (r.actions !== actions) {
+      const saved = await call("save_actions", { actions: r.actions });
+      if (!saved.ok) return setNotice(saved.issues[0]?.message ?? t("layout.cannot_save_action"));
+    }
+    applyActions(r.actions);
+    edit(r.layout);
+    const first = r.added[0];
+    if (first !== undefined) setSelectedId(first);
+    const on = r.placedOn[0];
+    const index = on === undefined ? -1 : r.layout.pages.findIndex((p) => p.id === on);
+    if (index >= 0) setPageIdx(index);
+    setCreating(null);
+    setNotice(r.skipped.length > 0 ? t("library.skipped", { n: r.skipped.length }) : (done ?? null));
+  }
+
+  /** One library item: put as it is, or after the dialog of what it asks (an address, keys, a scene, a page, a sequence). */
+  async function placeCatalog(itemId: string, cell?: { x: number; y: number }) {
+    const item = catalogItem(itemId);
+    if (!item || !layout || !actions || !page) return;
+    setNotice(null);
+    if (item.requires && !integrations[item.requires]) return setupIntegration(item.requires);
+    if (item.ask === "sequence") return setSequenceAt(cell ?? null);
+    if (item.ask) {
+      const obs = item.ask === "obs_scene" || item.ask === "obs_input" ? await loadObs() : null;
+      return setAsk({ item, ...(cell ? { cell } : {}), obs });
+    }
+    await finishCatalog(item, {}, cell);
+  }
+  async function finishCatalog(item: CatalogItem, answer: Answer, cell?: { x: number; y: number }) {
+    const ctx = await insertContext([item], layout!, null);
+    await applyInsert(insertItem(layout!, actions!, page!.id, item.id, answer, ctx, cell));
+  }
+  async function placeSet(set: CatalogSet) {
+    if (!layout || !actions || !page) return;
+    setNotice(null);
+    if (set.requires && !integrations[set.requires]) return setupIntegration(set.requires);
+    const obs = set.requires === "obs" ? await loadObs() : null;
+    const ctx = await insertContext(itemsOfSet(set), layout, obs);
+    await applyInsert(insertSet(layout, actions, page.id, set, ctx), t("library.added_set", { name: set.name[getLanguage()] }));
+  }
+  /** The sequence editor's `Add sequence`: a new action and a key that runs it. */
+  async function saveSequence(name: string, steps: SequenceStep[]) {
+    if (!layout || !actions || !page) return;
+    const at = sequenceAt;
+    const id = makeActionId(/[a-z0-9]/i.test(name) ? name : "sequence", actions.actions); // a name without Latin letters would give `action`
+    const action: Action = { name: name.slice(0, 60), type: "sequence", steps };
+    const next: ActionsFile = { ...actions, actions: { ...actions.actions, [id]: action } };
+    const saved = await call("save_actions", { actions: next });
+    if (!saved.ok) return setNotice(saved.issues[0]?.message ?? t("layout.cannot_save_action"));
+    const spot = at ? { x: at.x, y: at.y } : nearestFreeCell(page, layout.grid, 0, 0);
+    if (!spot || !fits(page, layout.grid, { ...spot, w: 1, h: 1 })) {
+      applyActions(next);
+      setSequenceAt(undefined);
+      return setNotice(t("layout.no_free_cell"));
+    }
+    const key: ButtonItem = { id: newItemId("button"), kind: "button", x: spot.x, y: spot.y, w: 1, h: 1, label: name.slice(0, 24), icon: "lucide:zap", actionId: id };
+    applyActions(next);
+    setPage({ ...page, items: [...page.items, key] });
+    setSelectedId(key.id);
+    setSequenceAt(undefined);
+    setNotice(t("library.sequence_made", { name }));
+  }
   const patchItem = (id: string, patch: Record<string, unknown>) => setPage(updateItem(page, id, patch as Partial<LayoutItem>));
   const deleteItem = (id: string) => {
     setPage(removeItem(page, id));
@@ -590,6 +674,7 @@ export default function LayoutTab() {
     if (payload.type === "app") return payload.app.name;
     if (payload.type === "action") return payload.label;
     if (payload.type === "widget") return payload.kind === "button" ? t("item.button") : t(`widget_name.${payload.kind}`);
+    if (payload.type === "catalog" || payload.type === "set") return payload.label;
     const item = page.items.find((i) => i.id === payload.id);
     if (item && "label" in item && item.label) return item.label;
     const action = item && item.kind === "button" && item.actionId ? actions.actions[item.actionId] : undefined;
@@ -680,7 +765,16 @@ export default function LayoutTab() {
       )}
       {badItems.size > 0 && <p className="muted">{t("layout.problems")}</p>}
       <div className="editor">
-        <Palette actions={actions} onBegin={session.begin} />
+        <Library
+          layout={layout}
+          actions={actions}
+          pageIndex={pageIdx}
+          integrations={integrations}
+          onBegin={session.begin}
+          onAddItem={(id) => void placeCatalog(id)}
+          onAddSet={(set) => void placeSet(set)}
+          onSetup={setupIntegration}
+        />
         <div className="editor-main" ref={mainRef} style={{ position: "relative" }}>
           <div className="preview-bar">
             <div className="grow">
@@ -771,8 +865,20 @@ export default function LayoutTab() {
       )}
 
       {creating && (
-        <QuickPicker anchor={creating.rect} cell={creating} page={page} grid={layout.grid} actions={actions} hideWidgets={creating.replaceId !== undefined} onChoose={(c) => void choose(c)} onClose={() => setCreating(null)} />
+        <QuickPicker anchor={creating.rect} cell={creating} page={page} grid={layout.grid} actions={actions} hideWidgets={creating.replaceId !== undefined} onChoose={(c) => void choose(c)} onCatalog={creating.replaceId === undefined ? (id) => { const cell = { x: creating.x, y: creating.y }; setCreating(null); void placeCatalog(id, cell); } : undefined} onClose={() => setCreating(null)} />
       )}
+      {ask && (
+        <AskDialog
+          item={ask.item}
+          pages={layout.pages}
+          currentPageId={page.id}
+          obs={ask.obs}
+          onClose={() => setAsk(null)}
+          onOpenObs={() => { setAsk(null); setupIntegration("obs"); }}
+          onConfirm={(answer) => { const { item, cell } = ask; setAsk(null); void finishCatalog(item, answer, cell); }}
+        />
+      )}
+      {sequenceAt !== undefined && <SequenceEditor actions={actions} onClose={() => setSequenceAt(undefined)} onSave={(name, steps) => void saveSequence(name, steps)} />}
       <EditorTips ready={page.items.length > 0 || creating === null} />
       {menu && <ContextMenu x={menu.x} y={menu.y} items={menu.items} onClose={() => setMenu(null)} />}
       {session.dragging && (

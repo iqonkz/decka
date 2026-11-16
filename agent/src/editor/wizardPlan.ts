@@ -5,6 +5,9 @@ import { addButtonAt, presetActions, type Choice } from "./addButton";
 /** The ready-made actions ticked by default in step 3 of the guide (DESIGN.md 4.7). */
 export const DEFAULT_PRESETS = ["play-pause", "next-track", "volume-up", "volume-down", "mute"];
 
+/** The sets of the library ticked by default in step 3 of the guide (DESIGN.md 4.8): `Streaming` only when OBS is found, never by default. */
+export const DEFAULT_SETS = ["media-remote", "sound"];
+
 export interface WizardPick {
   app: InstalledApp;
   /** `img:` icon of the program, when one could be made. */
@@ -19,7 +22,7 @@ export function planWizard(
   layout: LayoutFile,
   actions: ActionsFile,
   picks: WizardPick[],
-  presetIds: string[],
+  presetIds: string[] = [],
 ): { layout: LayoutFile; actions: ActionsFile; placed: number; skipped: number } {
   const known = new Set(presetActions().map((p) => p.id));
   const choices: Choice[] = [...picks.map((p): Choice => ({ type: "app", app: p.app, ...(p.icon ? { icon: p.icon } : {}) })), ...presetIds.filter((id) => known.has(id)).map((id): Choice => ({ type: "preset", presetId: id }))];

@@ -163,3 +163,10 @@
 - DONE (headless without `--dry-run`, copy of the config in `.tmp\cfg-t152`): `ws-smoke press mic-toggle` twice gave `mic.muted` true, then false in `ws-smoke watch` (the microphone is back as it was); the first `vars` patch carried `audio.volume`, `audio.muted`, `mic.muted`, `media.playing`.
 - PENDING (owner): `shuffle` / `repeat` on a real player (Spotify, a browser tab): the key changes the player and `media.shuffle` / `media.repeat` follow; with a player that does not support it the key shows the error `The player does not support this`. Not pressed here, to leave the owner's player as it was.
 - PENDING (owner): `out_mute_toggle` (`out-mute`): the sound goes off and `audio.muted` becomes true; `audio.volume` follows the system volume slider within about a second.
+
+
+## T15.4 — library, sets, sequence editor
+
+- DONE (real Tauri window, `npm run tauri dev` with `DECKA_CONFIG_DIR=.tmp\cfg-t154`, WebView2 driven over CDP): Library tab with categories, Sets tab with cards; `Add` on Media remote, Sound and Windows tools put 20 keys on an empty page and saved `actions.json` / `layout.json` of the copy; the sequence editor made a sequence of 2 actions and a pause and a key for it. Snapshots `.tmp\design\m15-library.png`, `m15-sets.png`, `m15-sets-added.png`, `m15-sequence.png`.
+- PENDING (owner): drag a library item / set card onto a cell with a real mouse (only `Add` and double-click were driven); the ask dialogs (website, shortcut, page, group); the first-run guide cards (`Media remote` / `Sound` ticked, `Streaming` only with OBS found); the cell picker categories.
+- PENDING (owner): the OBS items (`Set up OBS` until T15.6) and `Set up weather` (until T15.5) lead to More -> Integrations.

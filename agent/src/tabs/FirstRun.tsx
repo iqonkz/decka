@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { rotateLayout, t, tn, type InstalledApp, type LanguageSetting, type LayoutFile } from "@decka/shared";
+import { SETS, getLanguage, insertSet, rotateLayout, t, tn, type ActionsFile, type InstalledApp, type LanguageSetting, type LayoutFile } from "@decka/shared";
 import { call } from "../ipc";
 import { saveLanguage } from "../language";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
-import { presetActions } from "../editor/addButton";
-import { DEFAULT_PRESETS, planWizard, type WizardPick } from "../editor/wizardPlan";
+import EntryIcon from "../ui/EntryIcon";
+import { insertContext, itemsOfSet } from "../editor/catalogUi";
+import { DEFAULT_SETS, planWizard, type WizardPick } from "../editor/wizardPlan";
 import PairingTab from "./PairingTab";
 import ThemeCards from "./ThemeCards";
 
@@ -41,7 +42,9 @@ const MAX_PICKS = 20;
 /** The first-run guide (DESIGN.md 4.4): pair the phone, pick a look, add programs. Every step can be skipped. */
 export default function FirstRun({ onClose, startStep = 0 }: { onClose: () => void; startStep?: number }) {
   const [step, setStep] = useState(startStep);
-  const [presets, setPresets] = useState<Set<string>>(new Set(DEFAULT_PRESETS));
+  const [sets, setSets] = useState<Set<string>>(new Set(DEFAULT_SETS));
+  // OBS is running, or installed (a Start menu shortcut): the Streaming set is offered only then (DESIGN.md 4.8).
+  const [obsFound, setObsFound] = useState(false);
   const [layout, setLayout] = useState<LayoutFile | null>(null);
   const [apps, setApps] = useState<InstalledApp[] | null>(null);
   const [picked, setPicked] = useState<Set<string>>(new Set());
@@ -57,6 +60,13 @@ export default function FirstRun({ onClose, startStep = 0 }: { onClose: () => vo
     if (step !== 2 || apps !== null) return;
     call("list_installed_apps").then(setApps, (e) => setError(String(e)));
   }, [step, apps]);
+  useEffect(() => {
+    if (step !== 2) return;
+    void call("list_window_apps").then((running) => setObsFound((was) => was || running.includes("obs64.exe")), () => {});
+  }, [step]);
+  useEffect(() => {
+    if (apps?.some((a) => /\bobs studio\b/i.test(a.name))) setObsFound(true);
+  }, [apps]);
 
   const shown = useMemo(() => (apps ?? []).filter((a) => query.trim() === "" || a.name.toLowerCase().includes(query.trim().toLowerCase())), [apps, query]);
   const key = (a: InstalledApp) => `${a.program}|${a.args.join(" ")}`;
@@ -91,7 +101,8 @@ export default function FirstRun({ onClose, startStep = 0 }: { onClose: () => vo
 
   async function addApps() {
     const chosen = (apps ?? []).filter((a) => picked.has(key(a)));
-    if (chosen.length === 0 && presets.size === 0) return finish();
+    const chosenSets = SETS.filter((s) => sets.has(s.id) && (s.requires !== "obs" || obsFound));
+    if (chosen.length === 0 && chosenSets.length === 0) return finish();
     setBusy(true);
     setError(null);
     try {
@@ -102,13 +113,22 @@ export default function FirstRun({ onClose, startStep = 0 }: { onClose: () => vo
           return r && "icon" in r ? { app, icon: r.icon } : { app };
         }),
       );
-      const plan = planWizard(currentLayout, currentActions, picks, [...presets]);
-      const savedActions = await call("save_actions", { actions: plan.actions });
+      // The programs first, then the ticked sets onto the first page (DESIGN.md 4.8); a set that does not fit goes to a page of its own.
+      const plan = planWizard(currentLayout, currentActions, picks);
+      let planned: { layout: LayoutFile; actions: ActionsFile; placed: number; skipped: number } = plan;
+      for (const set of chosenSets) {
+        const first = planned.layout.pages[0];
+        if (!first) break;
+        const ctx = await insertContext(itemsOfSet(set), planned.layout, null);
+        const r = insertSet(planned.layout, planned.actions, first.id, set, ctx);
+        if (r.ok) planned = { layout: r.layout, actions: r.actions, placed: planned.placed + r.added.length, skipped: planned.skipped + r.skipped.length };
+      }
+      const savedActions = await call("save_actions", { actions: planned.actions });
       if (!savedActions.ok) throw new Error(savedActions.issues[0]?.message ?? t("wizard.cannot_save_actions"));
-      const savedLayout = await call("save_layout", { layout: plan.layout });
+      const savedLayout = await call("save_layout", { layout: planned.layout });
       if (!savedLayout.ok) throw new Error(savedLayout.issues[0]?.message ?? t("wizard.cannot_save_layout"));
-      setMessage(plan.skipped > 0 ? t("wizard.added_skipped", { placed: plan.placed, skipped: plan.skipped }) : t("wizard.added", { placed: plan.placed }));
-      window.setTimeout(finish, plan.skipped > 0 ? 2500 : 900);
+      setMessage(planned.skipped > 0 ? t("wizard.added_skipped", { placed: planned.placed, skipped: planned.skipped }) : t("wizard.added", { placed: planned.placed }));
+      window.setTimeout(finish, planned.skipped > 0 ? 2500 : 900);
     } catch (e) {
       setError(String(e instanceof Error ? e.message : e));
     } finally {
@@ -169,23 +189,28 @@ export default function FirstRun({ onClose, startStep = 0 }: { onClose: () => vo
           <>
             <h2>{t("wizard.title_apps")}</h2>
             <p className="muted">{t("wizard.apps_hint")}</p>
-            <h3>{t("picker.group_media_system")}</h3>
-            <div className="wizard-presets">
-              {presetActions().map((p) => (
-                <label key={p.id} className="check">
-                  <input
-                    type="checkbox"
-                    checked={presets.has(p.id)}
-                    onChange={(e) =>
-                      setPresets((prev) => {
-                        const next = new Set(prev);
-                        if (e.target.checked) next.add(p.id);
-                        else next.delete(p.id);
-                        return next;
-                      })
-                    }
-                  />{" "}
-                  {p.label}
+            <h3>{t("wizard.sets")}</h3>
+            <p className="muted">{t("wizard.sets_hint")}</p>
+            <div className="wizard-sets">
+              {SETS.filter((s) => s.requires !== "obs" || obsFound).map((s) => (
+                <label key={s.id} className={sets.has(s.id) ? "set-card selected" : "set-card"}>
+                  <span className="set-head">
+                    <input
+                      type="checkbox"
+                      checked={sets.has(s.id)}
+                      onChange={(e) =>
+                        setSets((prev) => {
+                          const next = new Set(prev);
+                          if (e.target.checked) next.add(s.id);
+                          else next.delete(s.id);
+                          return next;
+                        })
+                      }
+                    />
+                    <EntryIcon icon={s.icon} />
+                    <strong>{s.name[getLanguage()]}</strong>
+                  </span>
+                  <small className="muted">{s.description[getLanguage()]}</small>
                 </label>
               ))}
             </div>
@@ -216,7 +241,7 @@ export default function FirstRun({ onClose, startStep = 0 }: { onClose: () => vo
                 </label>
               ))}
             </div>
-            <p className="muted">{t("wizard.selected", { programs: tn("wizard.programs", picked.size), actions: tn("wizard.actions", presets.size), max: MAX_PICKS })}</p>
+            <p className="muted">{t("wizard.selected", { programs: tn("wizard.programs", picked.size), actions: tn("wizard.actions", sets.size), max: MAX_PICKS })}</p>
           </>
         )}
 
@@ -240,7 +265,7 @@ export default function FirstRun({ onClose, startStep = 0 }: { onClose: () => vo
           )}
           {step === 2 && (
             <Button variant="primary" disabled={busy} onClick={() => void addApps()}>
-              {picked.size + presets.size > 0 ? t("wizard.add_finish") : t("wizard.finish")}
+              {picked.size + sets.size > 0 ? t("wizard.add_finish") : t("wizard.finish")}
             </Button>
           )}
         </div>
