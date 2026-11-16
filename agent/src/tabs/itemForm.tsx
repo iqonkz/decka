@@ -87,6 +87,7 @@ export default function ItemForm({ item, display, page, pages, grid, actions, on
   );
 
   return (
+    <div className="item-form-host">
     <div className="item-form">
       <h3>
         {item.kind === "button" ? t("item.button") : t("item.widget")}
@@ -132,6 +133,7 @@ export default function ItemForm({ item, display, page, pages, grid, actions, on
         {t("item.delete")}
       </Button>
     </div>
+    </div>
   );
 }
 
@@ -157,20 +159,24 @@ function ButtonFields({ display, item, pages, inPopup, actions, patch, onChangeA
 
   return (
     <>
+      <div className="form-cols">
+      <div className="form-icons">
+        <Field label={t("item.icon")}>
+          <IconField value={item.icon} onChange={(icon) => patch({ icon })} program={launchProgram} />
+        </Field>
+        <div className="seg" role="group" aria-label={t("look.key_style")}>
+          {(["standard", "full"] as const).map((face) => (
+            <button key={face} type="button" className={(item.face ?? display.keyFace ?? "standard") === face ? "on" : ""} onClick={() => patch({ face })}>
+              {face === "standard" ? t("look.standard") : t("menu_item.big_icon")}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="form-main">
       <Field label={t("form.name")}>
         <input value={item.label ?? ""} maxLength={24} onChange={(e) => patch({ label: e.target.value || undefined })} />
       </Field>
-      <Field label={t("item.icon")}>
-        <IconField value={item.icon} onChange={(icon) => patch({ icon })} program={launchProgram} />
-      </Field>
-      <div className="seg" role="group" aria-label={t("look.key_style")}>
-        {(["standard", "full"] as const).map((face) => (
-          <button key={face} type="button" className={(item.face ?? display.keyFace ?? "standard") === face ? "on" : ""} onClick={() => patch({ face })}>
-            {face === "standard" ? t("look.standard") : t("menu_item.big_icon")}
-          </button>
-        ))}
-      </div>
-      <div className="does-row">
+      <div className="does-card">
         <span className="muted">{t("item.does")}</span>
         <strong title={describeAction(selectedAction)}>{describeAction(selectedAction)}</strong>
         <Button onClick={onChangeAction}>{t("item.change")}</Button>
@@ -187,6 +193,8 @@ function ButtonFields({ display, item, pages, inPopup, actions, patch, onChangeA
       <label className="check">
         <input type="checkbox" checked={item.confirm === true} onChange={(e) => patch({ confirm: e.target.checked || undefined })} /> {t("menu_item.ask")}
       </label>
+      </div>
+      </div>
 
       <details className="advanced">
         <summary>{t("common.more_options")}</summary>

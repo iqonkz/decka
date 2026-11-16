@@ -296,3 +296,34 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="color"]), select, te
 .preview-bar .saved-flag { position: static; }
 .phone-strip { margin-bottom: 0; }
 
+
+/* T14.12: key form - two columns when wide, a calmer icon picker, tidier controls */
+.item-form-host { container-type: inline-size; }
+.item-form { gap: 14px; }
+.form-cols { display: grid; grid-template-columns: 1fr; gap: 18px; align-items: start; }
+@container (min-width: 760px) {
+  .form-cols { grid-template-columns: minmax(300px, 1fr) minmax(320px, 1.2fr); }
+}
+.form-main, .form-icons { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.form-main .field, .form-icons .field { margin-bottom: 0; }
+.form-main .check { margin: 0; }
+.icon-field { gap: 10px; }
+.icon-field .row { align-items: center; }
+.icon-value { font-size: 14px; font-weight: 600; color: var(--text); }
+.icon-preview { width: 44px; height: 44px; border-radius: 10px; background: var(--panel); }
+.phosphor-scroll { border-radius: 10px; background: var(--panel); }
+.phosphor-cell { border-radius: 10px; transition: background 120ms; }
+.phosphor-cell:hover { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+.quick-grid { grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 6px; padding: 8px; border-radius: 10px; background: var(--panel); }
+.quick-cell { width: 100%; height: 44px; }
+.seg { display: flex; width: 100%; border-radius: 10px; padding: 3px; gap: 3px; background: var(--panel); border-color: var(--border); }
+.seg button { flex: 1; padding: 7px 12px; border-radius: 8px; }
+.does-card { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel); }
+.does-card strong { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.swatches { gap: 8px; }
+.swatch { width: 28px; height: 28px; border-radius: 50%; }
+.swatch.on { border-color: var(--text); box-shadow: 0 0 0 2px var(--bg) inset; }
+.swatches input[type="color"] { width: 28px; height: 28px; padding: 0; border: 2px dashed var(--border); border-radius: 50%; background: transparent; cursor: pointer; overflow: hidden; }
+.swatches input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+.swatches input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 50%; }
+.item-form > .btn-danger, .item-form > button.danger { align-self: flex-start; background: transparent; }

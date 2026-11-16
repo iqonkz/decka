@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { icons as lucideIcons } from "lucide-react";
 import { t } from "@decka/shared";
@@ -64,9 +64,16 @@ export function IconPreview({ icon }: { icon: string | undefined }) {
   return <span className="icon-preview">{content}</span>;
 }
 
-const COLS = 8;
-const CELL = 44;
-const VIEW_H = 264;
+const CELL = 48;
+const VIEW_H = 288;
+
+/** `lucide:volume-2` -> `Volume 2`; the raw id is for the file, not for the person. */
+function iconLabel(icon: string | undefined): string {
+  if (!icon) return t("icon.no_icon");
+  if (icon.startsWith("lucide:")) return icon.slice(7).split("-").map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join(" ");
+  if (icon.startsWith("emoji:")) return icon.slice(6);
+  return t("icon.tab_image");
+}
 
 /** The Phosphor library: search, a weight, and a grid that renders only the rows in view. */
 function PhosphorPicker({ onPick, busy }: { onPick: (svg: string) => void; busy: boolean }) {
@@ -74,6 +81,20 @@ function PhosphorPicker({ onPick, busy }: { onPick: (svg: string) => void; busy:
   const [weight, setWeight] = useState<Weight>("regular");
   const [scrollTop, setScrollTop] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [width, setWidth] = useState(CELL * 8);
+  const box = useRef<HTMLDivElement>(null);
+  // The grid takes as many columns as the box is wide and stays centred (no empty strip on the right).
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const measure = () => setWidth(el.clientWidth);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  const COLS = Math.max(4, Math.floor(width / CELL));
+  const pad = Math.max(0, Math.floor((width - COLS * CELL) / 2));
   const found = useMemo(() => searchIcons(query), [query]);
   const rows = Math.ceil(found.length / COLS);
   const [first, end] = visibleRows(scrollTop, VIEW_H, CELL, rows);
@@ -101,7 +122,7 @@ function PhosphorPicker({ onPick, busy }: { onPick: (svg: string) => void; busy:
           className="phosphor-cell"
           title={entry.name}
           disabled={busy}
-          style={{ top: row * CELL, left: col * CELL, width: CELL, height: CELL }}
+          style={{ top: row * CELL, left: pad + col * CELL, width: CELL, height: CELL }}
           onClick={() => void pick(entry.name)}
         >
           <MaskIcon url={svgUrl(entry.name, weight)} size={26} />
@@ -122,8 +143,8 @@ function PhosphorPicker({ onPick, busy }: { onPick: (svg: string) => void; busy:
           ))}
         </select>
       </div>
-      <div className="phosphor-scroll" style={{ height: VIEW_H }} onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}>
-        <div style={{ position: "relative", height: rows * CELL, width: COLS * CELL }}>{cells}</div>
+      <div ref={box} className="phosphor-scroll" style={{ height: VIEW_H }} onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}>
+        <div style={{ position: "relative", height: rows * CELL, width: "100%" }}>{cells}</div>
         {found.length === 0 && <p className="muted">{t("icon.none_match")}</p>}
       </div>
       {error && <p className="warn-text">{error}</p>}
@@ -142,7 +163,7 @@ interface Props {
 
 /** Icon of a button: Phosphor, the quick Lucide set, the icon of the action's program, a picture file, or an emoji. */
 export default function IconField({ value, onChange, program }: Props) {
-  const [tab, setTab] = useState<Tab>("phosphor");
+  const [tab, setTab] = useState<Tab>("quick"); // the curated set first: an alphabetical list of 1500 icons is a poor start
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [emoji, setEmoji] = useState("");
@@ -166,13 +187,13 @@ export default function IconField({ value, onChange, program }: Props) {
     if (typeof picked === "string") await fromResult(call("icon_from_image", { path: picked }));
   }
 
-  const tabs: [Tab, string][] = [["phosphor", "Phosphor"], ["quick", t("icon.tab_quick")], ...(program !== undefined ? ([["program", t("icon.tab_program")]] as [Tab, string][]) : []), ["image", t("icon.tab_image")], ["emoji", t("icon.tab_emoji")]];
+  const tabs: [Tab, string][] = [["quick", t("icon.tab_quick")], ["phosphor", "Phosphor"], ...(program !== undefined ? ([["program", t("icon.tab_program")]] as [Tab, string][]) : []), ["image", t("icon.tab_image")], ["emoji", t("icon.tab_emoji")]];
 
   return (
     <div className="icon-field">
       <div className="row">
         <IconPreview icon={value} />
-        <code className="icon-value">{value ?? t("icon.no_icon")}</code>
+        <span className="icon-value" title={value}>{iconLabel(value)}</span>
         <Button disabled={value === undefined} onClick={() => { setError(null); onChange(undefined); }}>
           {t("item.clear")}
         </Button>
