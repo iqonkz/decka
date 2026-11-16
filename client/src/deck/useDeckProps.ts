@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { t, BACK_PAGE } from "@decka/shared";
-import { EMPTY_DATA, pressErrorTitle, recordSys, resetSysHistory, type DeckCallbacks, type DeckData } from "@decka/ui";
+import { EMPTY_DATA, pressErrorTitle, recordAi, recordSys, resetAiHistory, resetSysHistory, type DeckCallbacks, type DeckData } from "@decka/ui";
 import { dismiss, press } from "../app/controller";
 import { lastTouchWokeScreen } from "../display/idle";
 import { hapticEvent } from "../platform/haptics";
-import { getState, goBack, navigateManually, openPopup, pushToast, signalAttention, useAppState } from "../store/store";
+import { getState, goBack, navigateManually, openPopup, pushToast, reopenPerm, signalAttention, useAppState } from "../store/store";
 
 const ERROR_TOAST_MS = 4000;
 const NO_ICONS: Record<string, string> = {};
@@ -19,6 +19,7 @@ export function useDeckProps(): { data: DeckData } & Required<DeckCallbacks> {
   const media = useAppState((s) => s.state?.media);
   const weather = useAppState((s) => s.state?.weather);
   const obs = useAppState((s) => s.state?.obs);
+  const ai = useAppState((s) => s.state?.ai);
   const icons = useAppState((s) => s.state?.icons);
   const keyFace = useAppState((s) => s.state?.layout.display.keyFace);
   const keyLabels = useAppState((s) => s.state?.layout.display.keyLabels);
@@ -33,11 +34,12 @@ export function useDeckProps(): { data: DeckData } & Required<DeckCallbacks> {
       media: media ?? null,
       weather: weather ?? null,
       obs: obs ?? null,
+      ai: ai ?? null,
       icons: icons ?? NO_ICONS,
       ...(keyFace !== undefined ? { keyFace } : {}),
       ...(keyLabels !== undefined ? { keyLabels } : {}),
     }),
-    [online, vars, sys, statuses, notifications, media, weather, obs, icons, keyFace, keyLabels],
+    [online, vars, sys, statuses, notifications, media, weather, obs, ai, icons, keyFace, keyLabels],
   );
 
   // The graph of the `sys` widget: the readings are kept here, outside the widgets, and start again with the connection.
@@ -47,6 +49,13 @@ export function useDeckProps(): { data: DeckData } & Required<DeckCallbacks> {
   useEffect(() => {
     recordSys(sys ?? null);
   }, [sys]);
+  // The forecast of the `ai` widget: one reading of every limit window per update, kept outside the widget.
+  useEffect(() => {
+    if (online) resetAiHistory();
+  }, [online]);
+  useEffect(() => {
+    recordAi(ai ?? null);
+  }, [ai]);
 
   const onPressError = useCallback((e: { code: string; message?: string }) => {
     hapticEvent({ type: "press_result", ok: false });
@@ -76,5 +85,5 @@ export function useDeckProps(): { data: DeckData } & Required<DeckCallbacks> {
     openPopup(popupId, anchor);
   }, []);
 
-  return { data, onPress: press, onPressError, onNavigate, onDismiss: dismiss, onOpenPopup, onFeedback, onTimerDone };
+  return { data, onPress: press, onPressError, onNavigate, onDismiss: dismiss, onOpenPopup, onFeedback, onTimerDone, onOpenPerm: reopenPerm };
 }

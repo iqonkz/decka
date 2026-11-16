@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import type { FullState, NotifLevel, Notification, PatchMsg, SectionName, WelcomeMsg } from "@decka/shared";
+import type { AiInfo, FullState, NotifLevel, Notification, PatchMsg, PermRequest, SectionName, WelcomeMsg } from "@decka/shared";
 import { popBack, pushBack } from "../deck/backStack";
 import { decideContextPage } from "../deck/context";
 
@@ -36,9 +36,11 @@ export interface AppState {
   popup: { pageId: string; anchor: { x: number; y: number; width: number; height: number } } | null;
   toasts: Toast[];
   lastError: string | null;
+  /** Ids of the permission questions that were answered here or put away; they stay out of the sheet until they leave `ai.pending`. */
+  permClosed: string[];
 }
 
-const SECTIONS: readonly string[] = ["layout", "sys", "statuses", "notifications", "vars", "focus", "media", "icons", "weather", "obs"];
+const SECTIONS: readonly string[] = ["layout", "sys", "statuses", "notifications", "vars", "focus", "media", "icons", "weather", "obs", "ai"];
 const MAX_TOASTS = 3;
 const DEFAULT_TOAST_MS = 8000;
 
@@ -58,6 +60,7 @@ const initial = (): AppState => ({
   popup: null,
   toasts: [],
   lastError: null,
+  permClosed: [],
 });
 
 let current: AppState = initial();
@@ -120,6 +123,7 @@ export function applyWelcome(msg: WelcomeMsg): void {
     pageIndex: fixPageIndex(s.pageIndex, msg.state),
     homePageIndex: fixPageIndex(s.homePageIndex, msg.state),
     lastError: null,
+    permClosed: [], // a new connection starts the sheet afresh: what is still pending is shown again
   }));
   runContext();
 }
@@ -139,7 +143,39 @@ export function applyPatch(msg: PatchMsg): void {
     ...(layoutChanged && s.popup && !next.layout.pages.some((p) => p.id === s.popup!.pageId && p.popup === true) ? { popup: null } : {}),
   });
   if (msg.section === "notifications") toastNewNotifications(s.state.notifications, msg.value as Notification[]);
+  if (msg.section === "ai") onAiPatch(s.state.ai?.pending ?? [], (msg.value as AiInfo | null)?.pending ?? []);
   if (msg.section === "focus" || layoutChanged) runContext();
+}
+
+/** A question that left `pending` (answered on the PC, timed out) is forgotten here, so the list does not grow. */
+function onAiPatch(before: PermRequest[], after: PermRequest[]): void {
+  const ids = new Set(after.map((p) => p.reqId));
+  if (current.permClosed.some((id) => !ids.has(id))) setState({ permClosed: current.permClosed.filter((id) => ids.has(id)) });
+  // A new question wakes the screen from dimming, like a warning (DATA_MODEL.md 6.8).
+  const known = new Set(before.map((p) => p.reqId));
+  if (after.some((p) => !known.has(p.reqId))) signalAttention("warning");
+}
+
+/** The questions the sheet still shows: those that were not answered or put away, oldest first. */
+export function openPerms(pending: readonly PermRequest[] | undefined, closed: readonly string[]): PermRequest[] {
+  return (pending ?? []).filter((p) => !closed.includes(p.reqId));
+}
+
+/** The question on the sheet (the oldest open one) and how many are open; `null` = no sheet. */
+export function currentPerm(s: AppState): { request: PermRequest; total: number } | null {
+  const open = openPerms(s.state?.ai?.pending, s.permClosed);
+  const request = open[0];
+  return request ? { request, total: open.length } : null;
+}
+
+/** The sheet closes for this question (it was answered, or put away with a tap beside it); the badge brings it back. */
+export function markPermAnswered(reqId: string): void {
+  if (!current.permClosed.includes(reqId)) setState({ permClosed: [...current.permClosed, reqId] });
+}
+
+/** The badge of the `ai` widget: the questions that were put away come back. */
+export function reopenPerm(): void {
+  if (current.permClosed.length > 0) setState({ permClosed: [] });
 }
 
 let hintCounter = 0;

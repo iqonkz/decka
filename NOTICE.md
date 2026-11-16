@@ -16,6 +16,7 @@ ull` when its source is absent |
 | [OpenDeck](https://github.com/nekename/OpenDeck) | GPL-3.0-or-later | Confirmation that Tauri + Rust suits this class of application; toggle actions with a separate look per state |
 | [ODeck](https://github.com/willianrod/ODeck) | MIT | Pairing by a QR code shown on the PC; a minimal action set (launch, hotkeys, media, open URL, pages) |
 | [Xenon](https://github.com/marcimastro98/Xenon) | Custom non-commercial (source-available) | Pairing a phone with a code on the home network without an account; stating privacy boundaries in the README |
+| [PhoneBox](https://github.com/ersinkoc/phonebox) | MIT | Idea of AI usage limits and phone approvals inspired by PhoneBox (github.com/ersinkoc/phonebox, MIT); no code copied |
 | [Bitfocus Companion](https://github.com/bitfocus/companion) | MIT (not verified on the repository page) | "Feedback": a button's look is computed from external state, not from the local press |
 
 ## Main dependencies

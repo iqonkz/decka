@@ -143,6 +143,23 @@ input { user-select: text; touch-action: manipulation; }
 .toast-title { font-size: 2.8vmin; font-weight: 700; }
 .toast-body { margin-top: 0.4vmin; font-size: 2.4vmin; color: #9ca3af; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+/* M16: the permission sheet (DATA_MODEL.md 6.8). It sits over every page, the dimming and the screen saver. */
+.perm-backdrop { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.6); }
+.perm-sheet { width: min(88vw, 120vmin); max-height: 92vh; overflow: auto; box-sizing: border-box; padding: 3vmin; border-radius: 2vmin; background: #1e1e24; color: #f3f4f6; display: flex; flex-direction: column; gap: 1.6vmin; }
+.perm-count { font-size: 2.2vmin; color: #9ca3af; }
+.perm-title { margin: 0; font-size: 3.4vmin; }
+.perm-project { font-size: 2.4vmin; color: #9ca3af; }
+.perm-summary { all: unset; box-sizing: border-box; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; padding: 1.6vmin; border-radius: 1.2vmin; background: rgba(255, 255, 255, 0.07); font: 2.4vmin/1.35 ui-monospace, Consolas, monospace; word-break: break-all; cursor: pointer; }
+.perm-summary.expanded { display: block; -webkit-line-clamp: unset; max-height: 40vh; overflow: auto; }
+.perm-timer { height: 0.8vmin; border-radius: 0.4vmin; background: rgba(127, 127, 127, 0.3); overflow: hidden; }
+.perm-timer span { display: block; height: 100%; background: var(--accent, #3b82f6); }
+.perm-actions { display: flex; gap: 2vmin; }
+.perm-actions button { flex: 1; height: 56px; border: 0; border-radius: 1.4vmin; font: inherit; font-size: 3vmin; font-weight: 700; color: #fff; }
+.perm-actions button:disabled { opacity: 0.45; }
+.perm-allow { background: var(--accent, #3b82f6); }
+.perm-deny { background: #dc2626; }
+.perm-pc { all: unset; align-self: center; padding: 1vmin 2vmin; font-size: 2.6vmin; color: #9ca3af; cursor: pointer; }
+
 .dialog-backdrop {
   position: fixed;
   inset: 0;

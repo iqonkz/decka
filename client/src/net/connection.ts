@@ -117,6 +117,11 @@ export class Connection {
     if (this.ws && this.welcomed) this.ws.send(JSON.stringify({ t: "notif_dismiss", notifId }));
   }
 
+  /** The answer to a permission question of Claude Code (DATA_MODEL.md 6.8). */
+  permAnswer(reqId: string, decision: "allow" | "deny" | "pc"): void {
+    if (this.ws && this.welcomed) this.ws.send(JSON.stringify({ t: "perm_answer", reqId, decision }));
+  }
+
   /** The page became visible: if there is no live socket, retry right now. */
   wake(): void {
     if (!this.running || this.ws || this.pairCode !== null) return;

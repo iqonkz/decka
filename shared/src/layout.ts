@@ -63,9 +63,11 @@ export interface VolumeItem  extends ItemBase { kind: "volume"; upAction?: Id; d
 export interface TimerItem   extends ItemBase { kind: "timer"; presets?: number[]; }   // minutes, 1..180, 1..4 values; default [25, 5]
 export interface WeatherItem extends ItemBase { kind: "weather"; }
 export interface ObsItem     extends ItemBase { kind: "obs"; }
+/** M16 (DATA_MODEL.md 6.8): the limits of Claude Code / Codex; sizes 2x1, 2x2, 3x2, 4x2. */
+export interface AiItem      extends ItemBase { kind: "ai"; show?: "both" | "claude" | "codex"; }   // default "both"
 
 export type LayoutItem = ButtonItem | ClockItem | SysItem | StatusesItem | StatusItemTile | NotificationsItem | MediaItem
-  | VolumeItem | TimerItem | WeatherItem | ObsItem;
+  | VolumeItem | TimerItem | WeatherItem | ObsItem | AiItem;
 
 /** `navigate` value of a button that goes back to the page the user came from (DATA_MODEL.md 3.8). */
 export const BACK_PAGE = "$back";

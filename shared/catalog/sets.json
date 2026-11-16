@@ -26,6 +26,11 @@
         ["stream.scene", "stream.scene", "stream.scene", null],
         ["stream.widget", null, null, null]
       ] },
+    { "id": "ai", "name": { "en": "AI coding", "ru": "ИИ-помощники" }, "icon": "lucide:cpu",
+      "description": { "en": "Claude Code and Codex limits at a glance", "ru": "Лимиты Claude Code и Codex на виду" },
+      "rows": [
+        ["widget.ai"]
+      ] },
     { "id": "focus", "name": { "en": "Focus", "ru": "Фокус" }, "icon": "lucide:timer",
       "description": { "en": "A timer and a clock", "ru": "Таймер и часы" },
       "rows": [

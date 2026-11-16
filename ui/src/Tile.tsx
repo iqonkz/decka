@@ -1,5 +1,6 @@
 import type { LayoutItem } from "@decka/shared";
 import Button from "./Button";
+import Ai from "./widgets/Ai";
 import Clock from "./widgets/Clock";
 import Media from "./widgets/Media";
 import Notifications from "./widgets/Notifications";
@@ -49,6 +50,9 @@ export default function Tile({ item }: { item: LayoutItem }) {
       break;
     case "obs":
       content = <Obs item={item} />;
+      break;
+    case "ai":
+      content = <Ai item={item} />;
       break;
     default:
       content = <div className="tile-body">?</div>;

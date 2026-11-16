@@ -27,3 +27,4 @@ export { currentPosition, formatTime } from "./widgets/mediaPos";
 export { LEVEL_COLOR, STATE_COLOR, sortStatuses } from "./widgets/statusOrder";
 export { relTime } from "./widgets/relTime";
 export { recordSys, resetSysHistory } from "./widgets/sysHistory";
+export { recordAi, resetAiHistory } from "./widgets/aiHistory";

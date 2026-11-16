@@ -5,7 +5,7 @@ import { buildCandidates } from "../net/candidates";
 import { Connection, type ConnFailure, type WebSocketCtor } from "../net/connection";
 import { hapticEvent } from "../platform/haptics";
 import { clientInfo, isNative } from "../platform/native";
-import { applyPatch, applyWelcome, navigateManually, setState } from "../store/store";
+import { applyPatch, applyWelcome, markPermAnswered, navigateManually, setState } from "../store/store";
 import { clearConn, loadConn, saveConn } from "../store/storage";
 
 /** Where the next pairing attempt goes; null when not pairing. */
@@ -83,6 +83,12 @@ export function press(actionId: string): Promise<void> {
 
 export function dismiss(notifId: string): void {
   conn().dismiss(notifId);
+}
+
+/** Answers a permission question; the sheet closes at once, without waiting for the new `ai` section. */
+export function answerPerm(reqId: string, decision: "allow" | "deny" | "pc"): void {
+  markPermAnswered(reqId);
+  conn().permAnswer(reqId, decision);
 }
 
 /** Manual navigation (swipe, `navigate` button). */

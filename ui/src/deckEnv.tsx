@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import type { MediaInfo, Notification, ObsInfo, StatusItem, SysStats, VarValue, WeatherInfo } from "@decka/shared";
+import type { AiInfo, MediaInfo, Notification, ObsInfo, StatusItem, SysStats, VarValue, WeatherInfo } from "@decka/shared";
 
 /** What the deck shows: the live sections of the agent's state. No connection, store or socket in here. */
 export interface DeckData {
@@ -15,6 +15,8 @@ export interface DeckData {
   /** M15: the weather section (null = off or no data yet) and the OBS section (null = the integration is off). */
   weather: WeatherInfo | null;
   obs: ObsInfo | null;
+  /** M16: the limits of Claude Code / Codex and the permission questions (null = both integrations are off). */
+  ai: AiInfo | null;
   /** `img:` pictures by hash (the `icons` section). */
   icons: Record<string, string>;
   /** `display.keyFace` / `display.keyLabels` (DESIGN.md 2.1): the look keys have unless a key says otherwise. */
@@ -22,7 +24,7 @@ export interface DeckData {
   keyLabels?: boolean;
 }
 
-export const EMPTY_DATA: DeckData = { online: false, vars: {}, sys: null, statuses: [], notifications: [], media: null, weather: null, obs: null, icons: {} };
+export const EMPTY_DATA: DeckData = { online: false, vars: {}, sys: null, statuses: [], notifications: [], media: null, weather: null, obs: null, ai: null, icons: {} };
 
 /** What the deck asks its host to do. */
 export interface DeckCallbacks {
@@ -40,6 +42,8 @@ export interface DeckCallbacks {
   onFeedback?: (moment: "touch" | "confirm") => void;
   /** The timer widget ran down: the host shows a toast and wakes the screen (DATA_MODEL.md 6.7). */
   onTimerDone?: () => void;
+  /** The badge of the `ai` widget was tapped: show the permission sheet again (DATA_MODEL.md 6.8). */
+  onOpenPerm?: () => void;
 }
 
 export type DeckEnv = DeckData & DeckCallbacks;

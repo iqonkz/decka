@@ -11,3 +11,4 @@ export * from "./version";
 export * from "./rotate";
 export * from "./catalog";
 export * from "./insertSet";
+export * from "./burn";

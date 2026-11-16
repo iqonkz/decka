@@ -24,7 +24,9 @@ export interface HelloMsg { t: "hello"; v: number; token: string; client: Client
 export interface PressMsg { t: "press"; id: number; actionId: Id; }
 export interface NotifDismissMsg { t: "notif_dismiss"; notifId: string; }
 export interface PingMsg  { t: "ping"; ts: number; }
-export type ClientMsg = PairMsg | HelloMsg | PressMsg | NotifDismissMsg | PingMsg;
+/** M16: the answer to a permission question of Claude Code (DATA_MODEL.md 6.8); `pc` = ask in the terminal instead. */
+export interface PermAnswerMsg { t: "perm_answer"; reqId: string; decision: "allow" | "deny" | "pc"; }   // reqId ^[0-9a-f]{16}$
+export type ClientMsg = PairMsg | HelloMsg | PressMsg | NotifDismissMsg | PingMsg | PermAnswerMsg;
 
 // ===== Server -> Client (WS) =====
 export interface PairedMsg  { t: "paired"; deviceId: Id; token: string; }
@@ -42,7 +44,7 @@ export interface ErrorMsg { t: "error"; code: ErrorCode; message: string; fatal:
 export type ServerMsg = PairedMsg | WelcomeMsg | PatchMsg | PressResultMsg | PongMsg | ErrorMsg;
 
 // ===== State (sections) =====
-export type SectionName = "layout" | "sys" | "statuses" | "notifications" | "vars" | "focus" | "media" | "icons" | "weather" | "obs"; // weather, obs: M15
+export type SectionName = "layout" | "sys" | "statuses" | "notifications" | "vars" | "focus" | "media" | "icons" | "weather" | "obs" | "ai"; // weather, obs: M15; ai: M16
 export interface FullState {
   layout: ClientLayout;
   sys: SysStats | null;            // null = collector disabled
@@ -54,6 +56,40 @@ export interface FullState {
   icons?: Record<string, string>;  // M12: "<hash16>" -> "data:image/png;base64,..." (M13: or "data:image/svg+xml;base64,..."); only the images the layout refers to; absent = {}
   weather?: WeatherInfo | null;    // M15; null = off or no data yet
   obs?: ObsInfo | null;            // M15; null = the integration is off
+  ai?: AiInfo | null;              // M16; null = both integrations are off
+}
+
+// M16: the limits of Claude Code / Codex and the permission questions (DATA_MODEL.md 6.8).
+export interface AiWindow {
+  label: string;                   // "5h" | "7d" | "30d" | "<n>h", from the length of the window
+  pct: number;                     // 0..100, one decimal
+  resetsAt: number;                // ts the window resets (ms)
+}
+export interface AiProvider {
+  windows: AiWindow[];             // 0..2, the short window first
+  plan?: string;                   // Codex plan_type; Claude has none
+  updatedAt: number;
+}
+export interface AiSession {
+  id: string;                      // first 8 characters of session_id
+  project: string;                 // basename(cwd), <= 60
+  model?: string;                  // <= 40
+  ctxPct?: number;                 // whole percent
+  lastSeen: number;
+}
+export interface PermRequest {
+  reqId: string;                   // 16 hex
+  tool: string;                    // <= 60
+  summary: string;                 // what exactly (a command, a file, an address), <= 300
+  project: string;                 // <= 60
+  sessionId: string;
+  expiresAt: number;               // ts after which the agent lets the question go to the terminal
+}
+export interface AiInfo {
+  claude?: AiProvider | null;      // null = no data (not installed, or no session yet)
+  codex?: AiProvider | null;       // null = off, or Codex not found
+  sessions: AiSession[];           // Claude Code sessions seen in the last 10 min, newest first, <= 6
+  pending: PermRequest[];          // waiting for an answer, oldest first, <= 5
 }
 
 // M15: weather (DATA_MODEL.md 6.3). Only the agent asks the internet; the phone never does.
