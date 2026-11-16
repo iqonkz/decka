@@ -4,6 +4,8 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+## 0.2.1 — 2026-11-16
+
 ### Added
 - **Cut** (right-click menu or `Ctrl+X`) on a key or widget: cut it, open another page and paste it there.
 
