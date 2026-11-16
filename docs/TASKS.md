@@ -44,38 +44,67 @@ $api = (Get-Content .tmp\cfg\config.json -Raw | ConvertFrom-Json).apiToken
 
 ---
 
+> **Выполненные задачи M0–M15b перенесены в [archive/TASKS-M0-M13.md](archive/TASKS-M0-M13.md).** Ссылки вида «T11.10», «T15.9» ведут туда. Нужный раздел открывай через поиск, файл целиком не читай.
 
-> **Выполненные задачи M0–M14 и T15.0–T15.7 перенесены в [archive/TASKS-M0-M13.md](archive/TASKS-M0-M13.md)** (2026-11-15, экономия токенов). Ссылки вида «T11.10», «T13.13 п. 4», «T7.4» ведут туда; открывай только нужный раздел через поиск, файл целиком не читай.
+## M16 — ИИ-помощники: лимиты и разрешения (2026-11-17, D-48)
 
+Вся спецификация — DATA_MODEL.md §6.8. Типы — PROTOCOL.md §3 (`AiInfo`, `PermAnswerMsg`), §5, §9 (`CcStatus`). Безопасность — ARCHITECTURE.md S20.
 
-## M15b — Доводка и приёмка на телефоне (2026-11-16)
+**Быстрый режим (решение владельца).**
+- Новых зависимостей нет.
+- Тесты — только перечисленные в задаче.
+- Без снимков, телефона, `tauri dev`-обходов и сборки релиза между задачами.
+- Ручные проверки → `MANUAL_CHECKS.md` (`PENDING (owner)`).
+- Документы, кроме указанных разделов, не читать.
 
-Выполненные T15.0–T15.7 и условия M15 — в архиве (поиск «T15.»). Общие правила M15 действуют.
+**Безопасность.**
+- Настоящий `%USERPROFILE%\.claude\settings.json` NEVER не трогать в тестах: путь к домашней папке передаётся параметром, тесты используют временную папку.
+- `~/.codex` тестами не читать: нужна фикстура.
 
-### T15.8 — Доделки по отчёту M15
-1. `rotateLayout`: размер виджета после зажатия приводится к допустимому для вида (DATA_MODEL.md §3.7 п. 2, уточнение) — функция `fitWidgetSize(kind, w, h, maxW, maxH)` с тестами на каждый вид (`weather` 4×2 → ширина 3 → 2×1; `volume` 4×1 в книжной → 1×4; `obs` 4×2 в ширине 2 → 2×2) и тест «результат поворота любой фикстуры проходит валидацию».
-2. Тусклые кнопки (0.45) — только для зарезервированных переменных и не в превью редактора (DESIGN.md §2.4, уточнение). Тесты.
-3. Карточка набора при перетаскивании показывает тень формы и подсказку `Will go to a new page "<name>"` (DESIGN.md §4.8) — функция `previewSet(layout, page, set, cell)` (та же логика, что `insertSet`, без изменений раскладки) с тестом.
-4. Редактор цепочки: кнопки вверх/вниз остаются (принято), перетаскивание шагов — добавить.
-**Приёмка:** тесты; в настоящем окне — тень набора при перетаскивании (снимок `m15-set-drag.png`).
+### T16.1 — Агент: секция `ai`, эндпоинты `/api/cc/*`, Codex, установка в Claude Code
+1. Конфигурация `ai` и `hookToken`. `get_config` не отдаёт `hookToken`, `save_config` сохраняет прежний.
+2. `POST /api/cc/statusline` и `POST /api/cc/permission`. Проверки: только loopback, свой лимит, тело до 1 МБ, ожидание с guard на Drop.
+3. Сообщение WS `perm_answer`, секция `ai` (рассылка ≤ 1 раз в 2 с, кроме pending), переменные `ai.*` и их резерв.
+4. Сборщик Codex. `cc_install`, `cc_uninstall`, `cc_status` (IPC).
+5. Тесты (Rust, без сети и настоящих файлов):
+   - разбор statusline;
+   - `summary` для каждого вида инструмента и обрезка;
+   - permission: allow, deny, pc, таймаут (`tokio::time::pause`), нет телефона → пустое тело, обрыв соединения → запрос удалён, повторный ответ игнорируется;
+   - не-loopback → 404, apiToken вместо hookToken → 401;
+   - Codex: фикстура со строкой из §6.8 (`resets_at`) и старая (`resets_in_seconds`), метки окон;
+   - install/uninstall на временной папке: чужие ключи и хуки целы, чужой statusLine не тронут (`statusLineConflict`), повтор идемпотентен, `.decka-bak` создаётся один раз.
+```
+npm run typecheck; npm test; cargo test -p decka-core
+```
 
-### T15.9 — Приёмка на телефоне (включает бывшую T14.5a)
-Нужен подключённый и **разблокированный** телефон (A57 `R5GL364260L` или S9 `232512e0080c7ece` / `192.168.10.9:5555`; S9 — Android 10, WebView 130, ≈ 740×360 CSS-px). Все `adb` — с `-s`. Нет ни одного — задача не начинается, отчёт «телефон недоступен».
-1. `npm run release:agent; npm run release:apk`, установить APK; проверки — на копии конфигурации через второй агент (правило: `%APPDATA%\Decka` не трогать); сопряжение кодом — если нужен ввод на телефоне, `PENDING (owner)`.
-2. Снимки с телефона (`screencap` + `adb pull`, не экран `Connecting…`): `phone-m15-<тема>.png` — страница с наборами `media-remote`, `sound` и виджетами `volume`, `timer`, `weather`, `sys graph`, `obs`; `phone-m15-portrait.png`; `phone-m15-ru.png`.
-3. Ползунок громкости пальцем (через `adb shell input swipe`): громкость ПК меняется, ползунок возвращается к `audio.volume`; `Mic` → `mic.muted` и красная кнопка.
-4. к/с (`gfxinfo`) для каждой темы на странице из п. 2 и на странице без новых виджетов — таблица; новые виджеты не хуже −10%.
-5. На S9 дополнительно — пункты бывшей T14.5a: всё, что в `MANUAL_CHECKS.md` помечено `S9 PENDING`, что делается через `adb`.
-**Приёмка:** снимки, таблица к/с, обновлённый `MANUAL_CHECKS.md`.
+### T16.2 — Клиент: виджет `ai`, лист разрешений, набор `ai`
+1. `shared`:
+   - типы `AiInfo`, `AiItem`, `PermAnswerMsg`;
+   - схемы и валидация размеров `ai`, `fitWidgetSize` для `ai`;
+   - `burnEta` с тестами: рост, нет роста, мало точек, eta после сброса → нет прогноза;
+   - набор `ai` в `sets.json`, виджет в библиотеке редактора;
+   - строки en/ru по DESIGN.md §6.
+2. Виджет `ai` по DATA_MODEL §6.8 во всех темах. Стили — существующие токены тем, новых цветов не вводить.
+3. Лист разрешений поверх deck: защита 400 мс, `perm_answer`, закрытие без ожидания `patch`. Тест store: ответ убирает лист; исчезновение из `pending` закрывает лист.
+4. `NOTICE.md`: строка `Idea of AI usage limits and phone approvals inspired by PhoneBox (github.com/ersinkoc/phonebox, MIT); no code copied.`
+```
+npm run typecheck; npm test; cargo test -p decka-core
+```
+
+### T16.3 — Окно настроек и сборка
+1. `More → Integrations → AI coding` по §6.8: кнопки `Install`/`Remove`, статусы, переключатели, таймаут. Строки — через `t()`.
+2. CHANGELOG `Unreleased`: две-три строки для пользователя.
+3. Один прогон `npm run release:agent; npm run release:apk` — проверка, что всё собирается. Версию не поднимать, тег не ставить, релиз не публиковать.
+4. В `MANUAL_CHECKS.md`, раздел `M16`, — `PENDING (owner)`:
+   - `Install` → перезапуск Claude Code → строка `Decka · 5h …` в терминале и лимиты на телефоне;
+   - запрос `Bash` → лист на телефоне → `Allow`/`Deny`/`Answer on PC`/таймаут;
+   - телефон отключён → вопрос сразу в терминале;
+   - Codex — лимиты видны;
+   - `Remove` возвращает `settings.json`.
 ```
 npm run typecheck; npm test; cargo test -p decka-core; npm run release:agent; npm run release:apk
 ```
-### T15.10 — Логотип (DESIGN.md §7)
-Выполняется сразу после T15.8, до T15.9 (чтобы приёмка на телефоне шла уже с логотипом).
-1. `tools/render-logo.mjs` — растеризация `docs/assets/decka-logo.svg` и `decka-glyph.svg` в PNG нужных размеров через установленный Chrome в headless-режиме (как в прошлых снимках; без новых npm-зависимостей). Скрипт идемпотентный, выход — `tools/logo-out/` (в `.gitignore`), затем копирование в места ниже. `tools/make-icon.ps1` и `tools/icon-source.png` (заглушка) — удалить через `git rm`, ссылки на них в README/скриптах заменить.
-2. Windows: `npm run tauri icon tools/logo-out/logo-1024.png` (или как в T9.1) → `agent/src-tauri/icons/*`; проверить снимком трей 16 px и значок окна.
-3. Android: `client/android/app/src/main/res/` — адаптивная иконка (`mipmap-anydpi-v26/ic_launcher.xml` и `ic_launcher_round.xml`: `<background>` — drawable с градиентом `#8F6FFF → #6F4FFF` 135°, `<foreground>` — PNG знака по размерам mdpi…xxxhdpi = 108/162/216/324/432 px со знаком 45/108 ширины, `<monochrome>` — тот же знак), устаревшие `ic_launcher*.png` 48/72/96/144/192 px, `splash` (плитка 96 dp на чёрном). Старые шаблонные иконки Capacitor заменить.
-4. Веб-клиент: `favicon.png` 32, иконки `manifest.webmanifest` 192/512 (`client/public/`).
-5. UI: экран сопряжения (72 px), боковое меню окна (24 px + `Decka`), `About` (64 px), мастер (96 px) — импорт SVG как файла (не инлайн-копия путей).
-6. README: логотип вверху (96 px) из `docs/assets/decka-logo.svg`; `NOTICE.md` — строка «Logo © Madi Seit, part of this repository, MIT».
-**Приёмка:** `npm run typecheck; npm test`; `release:agent`, `release:apk`; снимки `logo-tray.png` (увеличенный трей), `logo-window.png` (меню и About), при подключённом телефоне — `phone-launcher.png` (иконка на домашнем экране) и `phone-pairing-logo.png`; иначе снимки в Chrome и `PENDING (owner)` для лаунчера.
+
+## Что ещё открыто
+- **Ручные проверки владельца:** `docs/MANUAL_CHECKS.md`, пункты `PENDING (owner)`. Приёмка на телефоне T15.9 описана в архиве.
+- **Вопрос Q-9** (Twitch, YouTube, Discord) — `docs/OPEN_QUESTIONS.md`.

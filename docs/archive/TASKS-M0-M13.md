@@ -1585,3 +1585,18 @@ TS-типы, JSON-схемы, Rust (serde + валидация) для: дейс
 ```
 npm run typecheck; npm test; cargo test -p decka-core; npm run release:agent; npm run release:apk; adb install -r client\android\app\build\outputs\apk\debug\app-debug.apk
 ```
+
+## M15b — Доводка, логотип, релиз v0.3.0 (закрыт 2026-11-17)
+
+- **T15.8 — сделано.** `fitWidgetSize`; тусклые кнопки только для зарезервированных переменных; `previewSet` и тень набора; перетаскивание шагов цепочки. Принятые отклонения:
+  - пример задачи «`weather` 4×2 → ширина 3 → 2×1» верен только при maxH=1, потому что 3×2 — допустимый размер;
+  - `previewSet(pageId, at?, lang)`;
+  - `insertSet` ставит набор в клетку сброса (`ctx.at`, DATA_MODEL §9 п. 2).
+- **T15.10 — сделано.** `tools/render-logo.mjs`; иконки Windows и трея, адаптивная иконка и splash для Android, favicon, логотип в UI, README, NOTICE; заглушка удалена через `git rm`. Знак для Android взят из `decka-glyph.svg` (#000, значение имеет только альфа-канал).
+- **T15.9 — не выполнена:** S9 был заблокирован, A57 не подключён. Все пункты остались в `MANUAL_CHECKS.md` как `PENDING (owner)`. Шаги для повтора:
+  1. Нужен разблокированный A57 `R5GL364260L` или S9 `232512e0080c7ece` / `192.168.10.9:5555`. Все команды `adb` — с `-s`. Проверки — на копии конфигурации через второй агент; `%APPDATA%\Decka` не трогать.
+  2. Снимки `phone-m15-<тема>.png`: наборы `media-remote` и `sound`, виджеты `volume`, `timer`, `weather`, `sys graph`, `obs`. Также `phone-m15-portrait.png` и `phone-m15-ru.png`.
+  3. Ползунок громкости через `adb shell input swipe`: громкость ПК меняется, ползунок возвращается к `audio.volume`. Кнопка `Mic` меняет `mic.muted`, кнопка становится красной.
+  4. Таблица к/с (`gfxinfo`) по темам на странице из п. 2 и на странице без новых виджетов. Новые виджеты допускают падение не больше 10%.
+  5. На S9 дополнительно — пункты `S9 PENDING` из `MANUAL_CHECKS.md`. Логотип: иконка на домашнем экране, монохромная иконка, splash, экран сопряжения.
+- **Релиз v0.3.0:** тег стоит на коммите `release: Cargo.lock for v0.3.0`, файлы `Decka-Setup.exe` и `Decka.apk` опубликованы на GitHub Releases.

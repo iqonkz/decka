@@ -55,7 +55,10 @@ export interface HelloMsg { t: "hello"; v: number; token: string; client: Client
 export interface PressMsg { t: "press"; id: number; actionId: Id; }
 export interface NotifDismissMsg { t: "notif_dismiss"; notifId: string; }
 export interface PingMsg  { t: "ping"; ts: number; }
-export type ClientMsg = PairMsg | HelloMsg | PressMsg | NotifDismissMsg | PingMsg;
+// M16: ответ на запрос разрешения Claude Code (DATA_MODEL.md §6.8). Не команда: reqId выдан агентом,
+// одноразовый, ничего не несёт, кроме выбора. Неизвестный/истёкший reqId — молча игнорируется.
+export interface PermAnswerMsg { t: "perm_answer"; reqId: string; decision: "allow" | "deny" | "pc"; } // reqId ^[0-9a-f]{16}$
+export type ClientMsg = PairMsg | HelloMsg | PressMsg | NotifDismissMsg | PingMsg | PermAnswerMsg;
 
 // ===== Сервер -> Клиент (WS) =====
 export interface PairedMsg  { t: "paired"; deviceId: Id; token: string; }
@@ -73,7 +76,7 @@ export interface ErrorMsg { t: "error"; code: ErrorCode; message: string; fatal:
 export type ServerMsg = PairedMsg | WelcomeMsg | PatchMsg | PressResultMsg | PongMsg | ErrorMsg;
 
 // ===== Состояние (секции) =====
-export type SectionName = "layout" | "sys" | "statuses" | "notifications" | "vars" | "focus" | "media" | "weather" | "obs"; // weather, obs — M15
+export type SectionName = "layout" | "sys" | "statuses" | "notifications" | "vars" | "focus" | "media" | "weather" | "obs" | "ai"; // weather, obs — M15; ai — M16
 export interface FullState {
   layout: ClientLayout;            // см. DATA_MODEL.md §3
   sys: SysStats | null;            // null = сборщик выключен
@@ -85,6 +88,40 @@ export interface FullState {
   icons?: Record<string, string>;  // M12: "<hash16>" → "data:image/png;base64,..."; только иконки, на которые ссылается раскладка
   weather?: WeatherInfo | null;    // M15; null = выключено или ещё нет данных
   obs?: ObsInfo | null;            // M15; null = интеграция выключена
+  ai?: AiInfo | null;              // M16; null = обе интеграции выключены
+}
+
+// M16: лимиты Claude Code / Codex и запросы разрешений (DATA_MODEL.md §6.8).
+export interface AiWindow {
+  label: string;                   // "5h" | "7d" | "30d" | "<n>h" — из длины окна
+  pct: number;                     // 0..100, одна цифра после запятой
+  resetsAt: number;                // ts сброса окна (мс)
+}
+export interface AiProvider {
+  windows: AiWindow[];             // 0..2, короткое окно первым; окна с resetsAt в прошлом агент удаляет
+  plan?: string;                   // Codex plan_type ("plus", "pro", "free"); у Claude нет
+  updatedAt: number;               // ts последних данных
+}
+export interface AiSession {
+  id: string;                      // первые 8 символов session_id
+  project: string;                 // basename(cwd), <= 60
+  model?: string;                  // model.display_name, <= 40
+  ctxPct?: number;                 // context_window.used_percentage, целое
+  lastSeen: number;                // ts последнего statusline
+}
+export interface PermRequest {
+  reqId: string;                   // 16 hex, случайный
+  tool: string;                    // tool_name, <= 60
+  summary: string;                 // что именно (команда, файл, URL), <= 300
+  project: string;                 // basename(cwd), <= 60
+  sessionId: string;               // первые 8 символов
+  expiresAt: number;               // ts, после которого агент сам отпустит запрос в терминал
+}
+export interface AiInfo {
+  claude?: AiProvider | null;      // null = нет данных (не установлено или ещё не было сессии)
+  codex?: AiProvider | null;       // null = выключено или Codex не найден
+  sessions: AiSession[];           // Claude Code, виденные за 10 мин, новые первыми, <= 6
+  pending: PermRequest[];          // ожидают ответа, старые первыми, <= 5
 }
 
 // M15: погода (DATA_MODEL.md §6.3). Агент получает её сам; телефон в интернет не ходит.
@@ -291,7 +328,8 @@ export interface HttpError { error: { code: ErrorCode; message: string } }
 - `level` по умолчанию `"info"`. Строки длиннее лимитов (title 120, body 500, source 40, text 80, group 40, label 60) → 400 `BAD_MESSAGE` (не обрезаются; исключение — text/plain выше).
 - `POST /api/status`: upsert по `id`, `source` всегда `"push"`. Если элемента нет и `label` не передан → `label = id`. Если элемент есть и `label`/`group` не переданы → сохраняются прежние; `text` не передан → очищается. `ttlSec` (целое 1..86400): по истечении без нового upsert элемент получает `state: "unknown"` и `text: "stale"`. Элемент с `source: "check"` через API изменить нельзя → 400.
 - `PUT /api/vars/{name}`: строковое значение ≤ 200 символов.
-- M15: переменные сборщиков зарезервированы — имена с префиксами `audio.`, `mic.`, `media.`, `obs.`. `PUT`/`DELETE` для них → 400 `BAD_MESSAGE`, `message: "reserved variable"`. `toggleVar` с таким именем в `actions.json` — ошибка валидации `toggleVar: "<name>" is set by Decka itself — remove it`.
+- M15: переменные сборщиков зарезервированы — имена с префиксами `audio.`, `mic.`, `media.`, `obs.` (M16: и `ai.`). `PUT`/`DELETE` для них → 400 `BAD_MESSAGE`, `message: "reserved variable"`. `toggleVar` с таким именем в `actions.json` — ошибка валидации `toggleVar: "<name>" is set by Decka itself — remove it`.
+- M16, эндпоинты Claude Code (подробно — DATA_MODEL.md §6.8): `POST /api/cc/statusline` (тело — JSON statusline Claude Code, ответ — `text/plain` строка статуса) и `POST /api/cc/permission` (тело — JSON хука `PermissionRequest`, ответ держится до решения, затем JSON решения или пустое тело 200). Только с адреса 127.0.0.1/::1 (иначе 404), только `Authorization: Bearer <ai.hookToken>` (apiToken не подходит, иначе 401). Тело до 1 МБ (не 16 КБ), `Content-Type` не проверяется. В общий лимит 60/мин не входят; свой лимит — 20 запросов в секунду.
 - Лимит: 60 запросов в минуту на IP-адрес отправителя суммарно по всем авторизованным эндпоинтам → 429.
 - Неверный/отсутствующий токен → 401; после 10 ответов 401 за минуту с одного IP → 429 на 60 с.
 
@@ -480,7 +518,17 @@ export interface PairingInfo { code: string; url: string; qrSvg: string; expires
 export interface ValidationIssue { path: string; message: string; }   // path — JSON pointer
 export type SaveResult = { ok: true } | { ok: false; issues: ValidationIssue[] };
 
+export interface CcStatus {                           // M16
+  installed: boolean;              // наши statusLine и хук есть в ~/.claude/settings.json
+  statusLineConflict: boolean;     // statusLine занят чужой командой — ставим только хук, лимитов Claude не будет
+  lastSeenAt?: number;             // последний statusline или хук
+  codexFound: boolean;             // есть %USERPROFILE%\.codex\sessions
+}
+
 export interface IpcCommands {
+  cc_status(): CcStatus;                                       // M16
+  cc_install(): CcStatus;                                      // M16, DATA_MODEL.md §6.8
+  cc_uninstall(): CcStatus;                                    // M16
   get_status(): AgentStatus;
   get_config(): ConfigFile;
   save_config(args: { config: ConfigFile }): SaveResult;       // port/bind применяются после restart_server

@@ -163,9 +163,11 @@ export interface VolumeItem  extends ItemBase { kind: "volume"; upAction?: Id; d
 export interface TimerItem   extends ItemBase { kind: "timer"; presets?: number[]; }   // минуты, 1..180, 1..4 значения; по умолчанию [25, 5]
 export interface WeatherItem extends ItemBase { kind: "weather"; }
 export interface ObsItem     extends ItemBase { kind: "obs"; }
+// M16 (§6.8)
+export interface AiItem      extends ItemBase { kind: "ai"; show?: "both" | "claude" | "codex"; } // по умолчанию "both"; размеры 2×1, 2×2, 3×2, 4×2
 
 export type LayoutItem = ButtonItem | ClockItem | SysItem | StatusesItem | StatusItemTile | NotificationsItem | MediaItem
-  | VolumeItem | TimerItem | WeatherItem | ObsItem;
+  | VolumeItem | TimerItem | WeatherItem | ObsItem | AiItem;
 
 // То, что уходит на телефон в секции "layout": LayoutFile без поля version.
 export type ClientLayout = Omit<LayoutFile, "version">;
@@ -188,7 +190,7 @@ export type ClientLayout = Omit<LayoutFile, "version">;
 9. (M11) `apps`: 0..10 элементов, каждый — regex `^[a-z0-9._ ()-]{1,60}\.exe$`, без повторов внутри страницы; одно приложение может быть указано только на одной странице файла (иначе ошибка на второй странице: `/pages/<i>/apps/<j>`). Первая страница (`pages[0]`) не может иметь `apps` — она домашняя по умолчанию.
 9a. (M13, правило 12) Кнопка: допустимы только сочетания `actionId`, `navigate`, `popup`, `actionId + popup` (иначе ошибка с текстом T11.9). `navigate` указывает на существующую страницу без `popup`; `popup` — на существующую страницу с `popup: true`. Страница с `popup: true` не может быть первой, не может иметь `apps`, её кнопки не могут иметь `popup` и `navigate` (из панели нельзя уйти на другую страницу). `stayOpen` допустим только при `popup: true`. `display.accent` — regex `^#[0-9a-fA-F]{6}$`. Правило 5 (ровно одно из `actionId`/`navigate`) заменяется этим правилом.
 10. (M11) `media`: размер от 2×1 до `cols×2`; `prevAction`/`playAction`/`nextAction`, если заданы, должны существовать в `actions.json` (как `actionId` кнопки).
-13. (M15) Размеры: `volume` — 1×2..1×4 (вертикальный) или 2×1..4×1 (горизонтальный); `timer` — 1×1, 2×1, 2×2; `weather` — 1×1, 2×1, 3×2, 4×2; `obs` — 2×1..4×2; `sys` с `graph: true` — 2×1..4×2. `upAction`/`downAction`/`muteAction` у `volume` — существующие действия. `navigate: "$back"` допустим только у кнопки обычной страницы. `timer.presets` — 1..4 целых 1..180.
+13. (M15) Размеры: `volume` — 1×2..1×4 (вертикальный) или 2×1..4×1 (горизонтальный); `timer` — 1×1, 2×1, 2×2; `weather` — 1×1, 2×1, 3×2, 4×2; `obs` — 2×1..4×2; `sys` с `graph: true` — 2×1..4×2. `upAction`/`downAction`/`muteAction` у `volume` — существующие действия. `navigate: "$back"` допустим только у кнопки обычной страницы. `timer.presets` — 1..4 целых 1..180. (M16) `ai` — 2×1, 2×2, 3×2, 4×2 (`fitWidgetSize` — по тем же правилам).
 11. (M12) см. §8.2.
 
 Проверки 1–4, 6–8 выражены в JSON Schema там, где это возможно (§5); пересечения, уникальность, ссылки (п. 3, 5) проверяются кодом — одинаково в Rust (`decka-core::config::validate_layout`) и в TS (`shared/src/validate.ts`, используется редактором в окне настроек).
@@ -299,6 +301,11 @@ export interface ConfigFile {
   updateCheck?: boolean;             // M14: проверка новых релизов на GitHub, ARCHITECTURE.md §8a; отсутствует = true
   weather?: { enabled: boolean; place: string; lat: number; lon: number; units: "metric" | "imperial" }; // M15 (§6.3); отсутствует = выключено
   obs?: { enabled: boolean; port: number; password?: string };  // M15 (§6.4); port по умолчанию 4455; password — только "dpapi:<base64>", пишет его лишь set_obs_password
+  ai?: {                                                         // M16 (§6.8); отсутствует = всё выключено
+    claude: { enabled: boolean; approvals: boolean; timeoutSec: 60 | 120 | 300 };  // по умолчанию после cc_install: true, true, 120
+    codex: { enabled: boolean };                                  // по умолчанию true, если Codex найден
+    hookToken?: string;                                           // "dk_" + 43 base64url; создаёт cc_install; только для /api/cc/*; get_config его не отдаёт
+  };
 }
 export interface HttpCheck {
   id: Id; label: string;             // label 1..60
@@ -484,6 +491,71 @@ export interface DeviceInfo { id: Id; name: string; createdAt: number; lastSeenA
 
 Целиком на телефоне, ПК не участвует. Тап — старт/пауза; удержание 0,8 с — сброс; кнопки пресетов (`25`, `5`) при `w ≥ 2` выбирают длительность. Окончание — виброотклик `confirm` ×3, тост `Timer done` / `Таймер закончился`, вспышка рамки виджета 3 раза, экран выходит из затемнения. Состояние живёт в памяти приложения (перезапуск сбрасывает).
 
+### 6.8 ИИ-помощники: лимиты Claude Code / Codex и разрешения с телефона (M16, D-48)
+
+Всё локально: агент читает только то, что Claude Code и Codex сами пишут на этом ПК. В интернет ничего не уходит, OAuth-токены и `~/.claude/.credentials.json` NEVER не читаются.
+
+**Установка в Claude Code (`cc_install`)** — правит `%USERPROFILE%\.claude\settings.json` (пользовательский уровень):
+1. Перед первой записью — копия `settings.json.decka-bak` (если копии ещё нет). Нет файла — создать `{}`. Файл не JSON — ничего не менять, ошибка `settings.json is not valid JSON`.
+2. Создать `ai.hookToken`, если нет. Порт — текущий из конфигурации.
+3. `statusLine`: если отсутствует или уже наш (команда содержит `/api/cc/statusline`) → записать
+   `{ "type": "command", "command": "curl.exe -s -m 2 --data-binary @- -H \"Authorization: Bearer <hookToken>\" http://127.0.0.1:<port>/api/cc/statusline" }`.
+   Чужой `statusLine` не трогать → `statusLineConflict: true` (лимиты Claude не будут видны, разрешения работают).
+4. `hooks.PermissionRequest`: удалить наши записи (url содержит `/api/cc/`), добавить
+   `{ "hooks": [ { "type": "http", "url": "http://127.0.0.1:<port>/api/cc/permission", "timeout": <timeoutSec + 15>, "headers": { "Authorization": "Bearer <hookToken>" } } ] }` (без `matcher` — все инструменты). Остальные хуки и ключи сохраняются; порядок ключей может измениться.
+5. Повторный вызов идемпотентен (после смены порта или `timeoutSec` переписывает наши записи). `cc_uninstall` удаляет только наши записи (statusLine — только если наш; пустые `hooks.PermissionRequest`/`hooks` удаляются), `hookToken` очищается.
+6. Смена порта или `timeoutSec` в `save_config` при `installed` → `cc_install` автоматически.
+
+**`POST /api/cc/statusline`** (вызывается Claude Code при каждом обновлении строки статуса, до нескольких раз в секунду):
+- Из тела берутся только: `session_id`, `cwd`, `model.display_name`, `context_window.used_percentage`, `rate_limits.five_hour` и `rate_limits.seven_day` (`used_percentage`, `resets_at` — секунды). Остальное игнорируется; неразобранное тело → ответ пустой строкой.
+- `rate_limits` есть → `ai.claude = { windows: [5h, 7d], updatedAt }`; нет поля → прежнее значение не трогать (у API-ключа и в начале сессии его нет).
+- Сессия → `ai.sessions` (upsert по id, `lastSeen = now`; старше 10 мин удаляются раз в минуту; максимум 6).
+- Рассылка `patch ai` — не чаще 1 раза в 2 с (изменения копятся).
+- Ответ `text/plain; charset=utf-8` — строка статуса для терминала: `Decka · 5h 23% · 7d 41%` (окон нет → `Decka`). Ответ отдаётся сразу, до рассылки.
+
+**`POST /api/cc/permission`** (хук `PermissionRequest`; Claude Code ждёт ответа, терминальный диалог не показывается, пока хук не ответит):
+1. Выключено `claude.approvals`, нет ни одного подключённого телефона или уже 5 запросов в `pending` → сразу 200 с пустым телом. Claude Code покажет обычный вопрос в терминале.
+2. Иначе — `PermRequest`: `reqId` 16 hex (`getrandom`/`rand`, уже в зависимостях), `tool` = `tool_name`, `project` = basename `cwd`, `sessionId`, `expiresAt = now + timeoutSec`, `summary`:
+   - `Bash`/`PowerShell` → `tool_input.command` (одна строка, переводы строк → ` ⏎ `);
+   - `Edit`/`Write`/`MultiEdit`/`NotebookEdit`/`Read` → `tool_input.file_path` (или `notebook_path`) относительно `cwd`, если внутри него;
+   - `WebFetch` → `tool_input.url`; `WebSearch` → `tool_input.query`;
+   - `mcp__<server>__<tool>` → `tool` = `<server>: <tool>`, summary — первое строковое поле `tool_input`;
+   - прочие → первое строковое поле `tool_input`, иначе пусто.
+   Обрезка до 300 символов (`…`). Дальше `PermRequest` идёт только на телефон: в логи агента пишутся `reqId`, `tool`, `project` и итог, без summary.
+3. Добавить в `ai.pending`, сразу разослать `patch ai` (без задержки 2 с), ждать: ответа `perm_answer`, истечения `timeoutSec` или обрыва HTTP-соединения (пользователь ответил в терминале или прервал Claude — запрос удаляется, guard на Drop).
+4. Ответ:
+   - `allow` → `{"hookSpecificOutput":{"hookEventName":"PermissionRequest","decision":{"behavior":"allow"}}}`;
+   - `deny` → `{"hookSpecificOutput":{"hookEventName":"PermissionRequest","decision":{"behavior":"deny","message":"Denied from the Decka phone panel"}}}`;
+   - `pc` или таймаут → 200 с пустым телом (вопрос появится в терминале).
+   Каждый исход удаляет запрос из `pending` и рассылает `patch ai`. Первый ответ побеждает; повторные `perm_answer` с тем же `reqId` игнорируются.
+
+**Codex** (`codex.enabled`): раз в 60 с найти самый новый `rollout-*.jsonl` в `%USERPROFILE%\.codex\sessions\YYYY\MM\DD\` — идти по папкам дат по убыванию, не сканировать всё дерево; смотреть не дальше 14 последних дней. Прочитать последние 256 КБ файла, найти последнюю строку с `"rate_limits"` и взять `payload.rate_limits`:
+```json
+{"limit_id":"codex","primary":{"used_percent":0.0,"window_minutes":43200,"resets_at":1796743008},"secondary":null,"plan_type":"free"}
+```
+`primary`/`secondary` (каждое может быть `null`) → окна; `resets_at` — секунды (старые версии Codex пишут `resets_in_seconds` — тогда `resetsAt = время строки (timestamp) + resets_in_seconds`). Метка окна по `window_minutes`: 300 → `5h`, 10080 → `7d`, 43200 → `30d`, иначе `<round(min/60)>h`. `plan_type` → `plan`. Нет папки или строк → `codex = null`. Файл не меняется — секцию не рассылать.
+
+**Общее для обоих:** окно, у которого `resetsAt` уже прошёл, агент удаляет при проверке раз в минуту. Это значит, что окно сброшено и показывается как `0%`.
+
+**Переменные** (для `bind` кнопок; префикс `ai.` зарезервирован): `ai.claude.5h`, `ai.claude.7d` (числа, целые проценты), `ai.codex.primary`, `ai.codex.secondary`, `ai.pending` (число запросов). Значения нет — переменная удаляется.
+
+**Прогноз расхода (клиент, чистая функция `burnEta(samples, now, resetsAt)` в `shared`):** клиент хранит по каждому окну до 60 точек `(ts, pct)` за последний час (сброс при переподключении и при уменьшении pct). Нужно ≥ 3 точек на отрезке ≥ 10 мин и рост ≥ 1 п.п. Скорость — по первой и последней точке, `eta = now + (100 − pct) / скорость`. `eta < resetsAt` → прогноз `Runs out ~14:20`; иначе прогноза нет.
+
+**Виджет `ai`:**
+- **Строка окна:** имя провайдера (`Claude` / `Codex`, у Codex — с планом мелко), полоса заполнения, `23%`, `resets in 2h 14m` (меньше часа — `14m`; больше суток — `3d 4h`). Цвет полосы — акцент; ≥ 80% — цвет уровня `warning` темы; ≥ 95% — `error`. Прогноз — строкой под полосой, цветом `warning`.
+- **Размеры:** `2×1` — только короткое окно каждого провайдера, без подписей сброса. `2×2` — оба окна. `3×2` — оба окна и прогноз. `4×2` — слева лимиты, справа список сессий: проект, модель, `ctx 34%`; сессия с ожидающим запросом — с точкой цвета `warning`.
+- **Нет данных:** `claude = null` → `Claude: no data yet` (подпись мелко: `Install in Decka → Integrations`); у `codex = null` строка Codex скрыта. `show` ограничивает провайдеров.
+- **Бейдж:** при `pending.length > 0` в углу виджета — число запросов, тап открывает лист разрешений.
+
+**Лист разрешений (телефон):** появляется поверх любой страницы, когда в `pending` есть запрос. Сохраняется при переключении страниц и при затемнении экрана; экран выходит из затемнения. Виброотклик `confirm`.
+- **Состав:** заголовок `Claude wants to use <tool>`; `project`; `summary` моноширинным шрифтом (3 строки, тап — развернуть); полоса обратного отсчёта до `expiresAt`. Кнопки: `Deny` (цвет `error`) и `Allow` (акцент) — обе в половину ширины, высота 56 px; под ними текстовая кнопка `Answer on PC`. Несколько запросов — показывается старейший, сверху `1 of 3`.
+- **Ответ:** нажатие шлёт `perm_answer`, лист закрывается сразу, не дожидаясь `patch`. Запрос исчез из `pending`, потому что ответили на ПК или вышел таймаут, — лист закрывается тихо.
+- **Повторы:** `Allow` и `Deny` не реагируют первые 400 мс после появления листа — защита от случайного касания.
+
+**Окно настроек: `More → Integrations → AI coding`.**
+- **Claude Code:** кнопка `Install` или `Remove`; статус `Connected · 2 min ago` / `Not installed` / `Waiting for a Claude Code session`; при конфликте — `Your status line is used by another tool — limits are not available, approvals work`. Переключатель `Approve on phone`; `Wait for the phone` 60 / 120 / 300 s. Подпись: `Restart running Claude Code sessions after installing`.
+- **Codex:** переключатель `Show Codex limits`; статус `Found` / `Codex not found`. Разрешений для Codex нет (D-48).
+
 ## 7. Шаблоны контекстных страниц (M11)
 
 Файлы `shared/templates/<id>.json`, встраиваются в агент через `include_str!`.
@@ -657,10 +729,11 @@ export interface CatalogSet {
 | `windows-tools` | Windows tools / Инструменты Windows | `[lock, screenshot, taskmgr, desktop]`, `[explorer, emoji, clipboard, settings]` |
 | `stream` | Streaming / Стрим (`requires: obs`) | `[record, live, replay, mic-obs]`, `[scene₁, scene₂, scene₃, null]` (первые три сцены OBS), виджет OBS 3×1 ниже |
 | `focus` | Focus / Фокус | виджет «Таймер» 2×1, часы 2×1 |
+| `ai` | AI coding / ИИ-помощники (M16) | виджет `ai` 4×2 |
 
 **Вставка набора** — чистая функция `insertSet(layout, actions, pageId, set, ctx)` → `{ layout, actions, placedOn: pageId[] }` (`ctx` — язык, сцены/входы OBS):
 1. Действия создаются как в §4.5 DESIGN (`findSameAction` — без дублей, `makeActionId`).
-2. Форма целиком в первую позицию текущей страницы (обход сверху вниз, слева направо), где она помещается без пересечений.
+2. Форма целиком в клетку сброса `ctx.at` (если задана и форма там помещается), иначе — в первую позицию текущей страницы (обход сверху вниз, слева направо), где она помещается без пересечений. Тень при перетаскивании — `previewSet` с той же логикой, без изменения раскладки (принято 2026-11-17, v0.3.0).
 3. Не помещается целиком, но свободных клеток хватает → элементы по одному в порядке формы в первые свободные клетки (виджеты — первая позиция, где помещаются; не поместился виджет — пропускается и указывается в результате).
 4. Свободных клеток не хватает → новая страница с именем набора сразу после текущей, форма с левого верхнего угла.
 5. Пункты с `ask` в наборе берут значение из `ctx` (сцены OBS по порядку); нет значения — пункт пропускается.
