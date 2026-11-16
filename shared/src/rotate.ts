@@ -29,10 +29,11 @@ function overflowName(name: string, n: number): string {
 }
 
 /**
- * The layout turned to `to` (DATA_MODEL.md 3.7). The grid is transposed and clamped to the limits of the new orientation;
- * a button goes from (x, y) to (y, x); a widget keeps its size (a 2x1 clock stays 2x1) and takes the transposed position;
- * whatever does not fit there goes to the first free spot of its page, else to a new page `<name> 2` after it. A popup group
- * that does not fit is an error and nothing changes. Order: items by (y, x), buttons first, then widgets by area, largest first.
+ * The layout turned to `to` (DATA_MODEL.md 3.7, revised 2026-11-16). The grid is transposed and clamped to the limits of the
+ * new orientation; the content flows into it keeping the reading order: widgets first, then buttons, each group by (y, x) of
+ * the old page, every item into the first free spot top to bottom, left to right. A widget keeps its size (clamped to the new
+ * grid); a horizontal `volume` becomes vertical (w and h swap). Whatever does not fit goes to a new page `<name> 2` after the
+ * page. A popup group that does not fit is an error and nothing changes.
  */
 export function rotateLayout(layout: LayoutFile, to: Orientation): RotateResult {
   const from: Orientation = layout.display.orientation === "portrait" ? "portrait" : "landscape";
@@ -46,24 +47,22 @@ export function rotateLayout(layout: LayoutFile, to: Orientation): RotateResult 
 
   for (const page of layout.pages) {
     const order = [...page.items].sort((a, b) => {
-      const buttonsFirst = Number(a.kind !== "button") - Number(b.kind !== "button");
-      if (buttonsFirst !== 0) return buttonsFirst;
-      if (a.kind !== "button") {
-        const area = b.w * b.h - a.w * a.h;
-        if (area !== 0) return area;
-      }
-      return a.y - b.y || a.x - b.x;
+      const widgetsFirst = Number(a.kind === "button") - Number(b.kind === "button");
+      return widgetsFirst || a.y - b.y || a.x - b.x;
     });
 
     const placed: LayoutItem[] = [];
     const extra: LayoutItem[][] = []; // items of the new pages `<name> 2`, `<name> 3`...
     for (const item of order) {
-      const [minW, maxW, minH, maxH] = sizeLimits(item.kind, grid) ?? [1, 1, 1, 1];
-      // A widget keeps its size, cut down to the new grid; a button is always 1x1.
-      const w = item.kind === "button" ? 1 : Math.min(item.w, maxW);
-      const h = item.kind === "button" ? 1 : Math.min(item.h, maxH);
+      // `volume` is not in the size table yet (T15.1): its sizes are 1x2..1x4 vertical or 2x1..4x1 horizontal.
+      const isVolume = (item.kind as string) === "volume";
+      const [minW, maxW, minH, maxH] = isVolume ? [1, Math.min(4, grid.cols), 1, Math.min(4, grid.rows)] : (sizeLimits(item.kind, grid) ?? [1, 1, 1, 1]);
+      // A widget keeps its size, cut down to the new grid; a button is always 1x1; a horizontal volume turns vertical.
+      const turned = isVolume && item.w > item.h ? { w: item.h, h: item.w } : { w: item.w, h: item.h };
+      const w = item.kind === "button" ? 1 : Math.min(turned.w, maxW);
+      const h = item.kind === "button" ? 1 : Math.min(turned.h, maxH);
       const tooSmall = w < minW || h < minH;
-      const spot = tooSmall ? null : free(placed, grid, item.y, item.x, w, h) ? { x: item.y, y: item.x } : firstFree(placed, grid, w, h);
+      const spot = tooSmall ? null : firstFree(placed, grid, w, h);
       if (spot) {
         placed.push({ ...item, x: spot.x, y: spot.y, w, h } as LayoutItem);
         continue;

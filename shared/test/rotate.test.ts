@@ -16,48 +16,57 @@ const countItems = (l: LayoutFile) => l.pages.reduce((n, p) => n + p.items.lengt
 const button = (id: string, x: number, y: number): LayoutItem => ({ id, kind: "button", x, y, w: 1, h: 1, actionId: "lock" });
 
 describe("rotateLayout (DATA_MODEL.md 3.7)", () => {
-  test("the default 7x4 becomes 4x7: buttons on the transposed places, the clock stays 2x1, nothing lost, valid", () => {
+  /** Two 3x5 widgets on an 8x5 page: in 5x8 the second has no room (3 + 3 > 5 columns, 5 + 5 > 8 rows). */
+  const twoTall = (id: string, name: string, extra: Partial<Page> = {}): Page => ({
+    id,
+    name,
+    ...extra,
+    items: [{ id: `${id}-a`, kind: "statuses", x: 0, y: 0, w: 3, h: 5 } as LayoutItem, { id: `${id}-b`, kind: "statuses", x: 3, y: 0, w: 3, h: 5 } as LayoutItem],
+  });
+  const wide: LayoutFile = { ...base, grid: { cols: 8, rows: 5 } };
+
+  test("the default 7x4 becomes 4x7 in reading order: prev, play, next stay in a row, nothing lost, valid", () => {
     expect(base.grid).toEqual({ cols: 7, rows: 4 });
     const r = ok(rotateLayout(base, "portrait"));
     expect(r.layout.grid).toEqual({ cols: 4, rows: 7 });
     expect(r.layout.display.orientation).toBe("portrait");
-    // The seven volume/transport keys fill the whole third column of the turned page, so the 3-wide notifications widget has
-    // no three free columns left: it goes to the new page `Main 2` (rule 4), the only thing that moves.
-    expect(r.moved).toBe(1);
-    expect(r.layout.pages.map((p) => p.name)).toEqual(["Main", "Main 2", "Dev"]);
-    expect(r.layout.pages[1]!.items.map((i) => i.id)).toEqual(["w-notifs"]);
+    expect(r.moved).toBe(0);
+    expect(r.layout.pages.map((p) => p.name)).toEqual(["Main", "Dev"]);
     expect(countItems(r.layout)).toBe(countItems(base));
     expect(validateLayout(r.layout, actions)).toEqual([]);
 
-    // Every button is at (y, x) of where it was, whenever nothing blocked it.
-    const was = new Map(base.pages.flatMap((p) => p.items).map((i) => [i.id, i]));
-    for (const page of r.layout.pages) {
-      for (const item of page.items) {
-        const before = was.get(item.id)!;
-        if (item.kind === "button") expect([item.x, item.y], item.id).toEqual([before.y, before.x]);
-        if (item.kind === "clock") expect([item.w, item.h]).toEqual([before.w, before.h]);
-      }
-    }
-    const clock = r.layout.pages.flatMap((p) => p.items).find((i) => i.kind === "clock");
-    if (clock) expect([clock.w, clock.h]).toEqual([2, 1]);
+    // Reading order of the new page: widgets first as they were (y, x), then the buttons as they were (y, x).
+    const main = r.layout.pages[0]!;
+    const reading = (items: LayoutItem[], kind: "button" | "widget") =>
+      items.filter((i) => (i.kind === "button") === (kind === "button")).sort((a, b) => a.y - b.y || a.x - b.x).map((i) => i.id);
+    expect(reading(main.items, "widget")).toEqual(["w-clock", "w-sys", "w-services", "w-notifs"]);
+    const buttons = reading(main.items, "button");
+    expect(buttons).toEqual(["b-prev", "b-play", "b-next", "b-mute", "b-voldown", "b-volup", "b-lock", "b-m-tasks", "b-m-notepad", "b-m-github", "b-to-dev"]);
+    const at = (id: string) => main.items.find((i) => i.id === id)!;
+    // Widgets keep their sizes (the clock stays 2x1).
+    expect([at("w-clock").w, at("w-clock").h]).toEqual([2, 1]);
+    expect([at("w-notifs").w, at("w-notifs").h]).toEqual([3, 2]);
   });
 
-  test("turning back gives the layout it came from", () => {
-    // A page where everything fits both ways: three keys, a clock and a 2x2 system widget.
-    const simple: LayoutFile = {
+  test("buttons keep their order of reading when a widget is in the way", () => {
+    const l: LayoutFile = {
       ...base,
-      pages: [{ id: "main", name: "Main", items: [{ id: "c", kind: "clock", x: 0, y: 0, w: 2, h: 1 } as LayoutItem, { id: "s", kind: "sys", x: 3, y: 0, w: 2, h: 2 } as LayoutItem, button("a", 0, 2), button("b", 1, 3), button("d", 6, 1)] }],
+      grid: { cols: 4, rows: 3 },
+      pages: [{ id: "main", name: "Main", items: [{ id: "w", kind: "clock", x: 0, y: 0, w: 2, h: 1 } as LayoutItem, button("prev", 0, 1), button("play", 1, 1), button("next", 2, 1)] }],
     };
-    expect(validateLayout(simple, actions)).toEqual([]);
-    const there = ok(rotateLayout(simple, "portrait"));
-    expect(there.moved).toBe(0);
-    const back = ok(rotateLayout(there.layout, "landscape"));
-    expect(back.moved).toBe(0);
-    expect(back.layout.grid).toEqual(simple.grid);
-    // (the order of items inside a page is by kind and place after a turn: compare by id)
-    const byId = (l: LayoutFile) => l.pages.map((p) => p.items.map((i) => [i.id, i.x, i.y, i.w, i.h] as const).sort(([a], [b]) => a.localeCompare(b)));
-    expect(byId(back.layout)).toEqual(byId(simple));
-    expect(back.layout.display.orientation).toBe("landscape");
+    const r = ok(rotateLayout(l, "portrait"));
+    expect(r.layout.grid).toEqual({ cols: 3, rows: 4 });
+    const at = Object.fromEntries(r.layout.pages[0]!.items.map((i) => [i.id, [i.x, i.y]]));
+    // The clock takes (0,0)-(1,0); the buttons follow in reading order: (2,0), (0,1), (1,1).
+    expect(at).toEqual({ w: [0, 0], prev: [2, 0], play: [0, 1], next: [1, 1] });
+    expect(validateLayout(r.layout, actions)).toEqual([]);
+  });
+
+  test("a horizontal volume turns vertical (w and h swap)", () => {
+    const vol = { id: "v", kind: "volume", x: 0, y: 0, w: 3, h: 1 } as unknown as LayoutItem;
+    const r = ok(rotateLayout({ ...base, pages: [{ id: "main", name: "Main", items: [vol] }] }, "portrait"));
+    const got = r.layout.pages[0]!.items[0]!;
+    expect([got.w, got.h]).toEqual([1, 3]);
   });
 
   test("the same orientation changes nothing", () => {
@@ -76,59 +85,26 @@ describe("rotateLayout (DATA_MODEL.md 3.7)", () => {
     expect(r.layout.grid).toEqual({ cols: 5, rows: 8 });
     expect(r.moved).toBe(0);
 
-    // Add a clock: 41 elements cannot fit 40 cells.
-    // A second page (context pages cannot be first) of 38 buttons plus a clock at the origin: 39 cells' worth of items, but the
-    // clock is 2 wide, so after turning only the transposed places are free of it.
-    const crowded: LayoutFile = {
-      ...full,
-      pages: [{ id: "main", name: "Main", items: [button("home", 0, 0)] }, { id: "code", name: "Code", apps: ["code.exe"], items: [{ id: "clk", kind: "clock", x: 0, y: 0, w: 2, h: 1 } as LayoutItem, ...items.filter((i) => !["b-0-0", "b-1-0"].includes(i.id))] }],
-    };
+    expect(new Set(r.layout.pages.map((p) => p.id)).size).toBe(r.layout.pages.length);
+  });
+
+  test("overflow goes to `<name> 2` without `apps`; the context page keeps its `apps`; nothing is lost", () => {
+    const crowded: LayoutFile = { ...wide, pages: [{ id: "main", name: "Main", items: [button("home", 0, 0)] }, twoTall("code", "Code", { apps: ["code.exe"] })] };
     expect(validateLayout(crowded, actions)).toEqual([]);
     const t = ok(rotateLayout(crowded, "portrait"));
     expect(t.layout.grid).toEqual({ cols: 5, rows: 8 });
-    expect(validateLayout(t.layout, actions)).toEqual([]);
+    expect(t.moved).toBe(1);
+    expect(t.layout.pages.map((p) => p.name)).toEqual(["Main", "Code", "Code 2"]);
+    expect(t.layout.pages[1]!.apps).toEqual(["code.exe"]);
+    expect(t.layout.pages[2]!.apps).toBeUndefined();
+    expect(t.layout.pages[2]!.popup).toBeUndefined();
+    expect(t.layout.pages[2]!.items.map((i) => i.id)).toEqual(["code-b"]);
     expect(countItems(t.layout)).toBe(countItems(crowded));
-    const names = t.layout.pages.map((p) => p.name);
-    // Where something did not fit, the new page follows its page and is named `<name> 2`; a context page's `apps` stay on it only.
-    expect(names[0]).toBe("Main");
-    expect(names[1]).toBe("Code");
-    if (t.moved > 0) {
-      expect(names[2]).toBe("Code 2");
-      expect(t.layout.pages[1]!.apps).toEqual(["code.exe"]);
-      expect(t.layout.pages[2]!.apps).toBeUndefined();
-      expect(t.layout.pages[2]!.popup).toBeUndefined();
-      expect(t.layout.pages[2]!.items.length).toBe(t.moved);
-    }
-    expect(new Set(t.layout.pages.map((p) => p.id)).size).toBe(t.layout.pages.length);
-  });
-
-  test("items that cannot keep their place take the first free one on the same page", () => {
-    // 3 wide landscape page -> portrait cols' = 2: a button at x=2 has no column 2 in the turned grid for y' = 2 > ... it moves.
-    const l: LayoutFile = {
-      ...base,
-      grid: { cols: 3, rows: 2 },
-      pages: [{ id: "main", name: "Main", items: [button("a", 2, 0), button("b", 2, 1), button("c", 0, 0)] }],
-    };
-    expect(validateLayout(l, actions)).toEqual([]);
-    const r = ok(rotateLayout(l, "portrait"));
-    expect(r.layout.grid).toEqual({ cols: 2, rows: 3 });
-    expect(r.moved).toBe(0);
-    const at = Object.fromEntries(r.layout.pages[0]!.items.map((i) => [i.id, [i.x, i.y]]));
-    expect(at).toEqual({ a: [0, 2], b: [1, 2], c: [0, 0] });
-    expect(validateLayout(r.layout, actions)).toEqual([]);
+    expect(validateLayout(t.layout, actions)).toEqual([]);
   });
 
   test("a popup group that does not fit is an error with the message of the window, and the layout is not changed", () => {
-    const items: LayoutItem[] = [];
-    for (let y = 0; y < 5; y++) for (let x = 0; x < 8; x++) items.push(button(`p-${x}-${y}`, x, y));
-    const withGroup: LayoutFile = {
-      ...base,
-      grid: { cols: 8, rows: 5 },
-      pages: [
-        { id: "main", name: "Main", items: [button("open", 0, 0)] },
-        { id: "grp", name: "Tools", popup: true, items: [...items, { id: "wide", kind: "notifications", x: 0, y: 0, w: 2, h: 1 } as LayoutItem].filter((i) => i.id !== "p-0-0" && i.id !== "p-1-0") },
-      ],
-    };
+    const withGroup: LayoutFile = { ...wide, pages: [{ id: "main", name: "Main", items: [button("open", 0, 0)] }, twoTall("grp", "Tools", { popup: true })] };
     const before = JSON.stringify(withGroup);
     const r = rotateLayout(withGroup, "portrait");
     expect(r).toEqual({ ok: false, error: 'Popup group "Tools" doesn\'t fit. Make it smaller first.' });
@@ -138,9 +114,8 @@ describe("rotateLayout (DATA_MODEL.md 3.7)", () => {
   test("the page limit is respected", () => {
     const pages: Page[] = Array.from({ length: 10 }, (_, i) => ({ id: `p${i}`, name: `P${i}`, items: [] }));
     pages[0]!.items = [{ id: "n", kind: "notifications", x: 0, y: 0, w: 8, h: 5 } as LayoutItem];
-    const l: LayoutFile = { ...base, grid: { cols: 8, rows: 5 }, pages };
-    const r = rotateLayout(l, "portrait");
-    // A notifications widget 8x5 is cut to 5x5 in the turned grid and fits: no overflow, so it is fine.
-    expect(r.ok).toBe(true);
+    expect(rotateLayout({ ...wide, pages }, "portrait").ok).toBe(true); // 8x5 is cut to 5x5 and fits: no overflow
+    pages[0] = twoTall("p0", "P0");
+    expect(rotateLayout({ ...wide, pages }, "portrait").ok).toBe(false); // the overflow page would be the 11th
   });
 });

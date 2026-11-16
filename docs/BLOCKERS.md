@@ -58,7 +58,7 @@ DATA_MODEL.md 3.7 rule 4 says the page `<name> 2` that receives the items that d
 
 Owner report after v0.2.0: switching the orientation rearranges the keys chaotically. `rotateLayout` does exactly what DATA_MODEL.md 3.7 says (items 1-5: transposed grid, `x' = y`, `y' = x`, widgets keep their size, items that do not fit go to a new page `<name> 2`), so this is not a code bug. For a 7x4 layout with a media widget and several widgets the transposition mixes reading order (rows become columns) and widgets collide, which looks chaotic. Not changed by the executor. Architect: decide another rule (for example keep reading order and re-flow row by row into the new grid, keep the widgets on top, or turn only the keys), and say if the preview in `Look → Orientation` should show it. Until then the owner can undo with `Ctrl+Z` right after `Rotate`.
 
-**Решение архитектора (2026-11-16):** транспонирование отменено; поворот сохраняет порядок чтения (виджеты, затем кнопки, в первые свободные места), DATA_MODEL.md §3.7 п. 2–3. Реализация — T15.0.
+**Решение архитектора (2026-11-16):** транспонирование отменено; поворот сохраняет порядок чтения (виджеты, затем кнопки, в первые свободные места), DATA_MODEL.md §3.7 п. 2–3. Реализация — T15.0. Решено: T15.0.
 
 ## Owner request: weather widget and streamer widgets (2026-11-16)
 

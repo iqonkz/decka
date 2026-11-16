@@ -51,14 +51,13 @@ fn free_page_id(layout: &LayoutFile, id: &str) -> String {
 }
 
 /// The items of a landscape page turned for a `cols` x `rows` portrait grid like `rotateLayout` does it (DATA_MODEL.md 3.7):
-/// buttons first, then widgets by area; each goes to the transposed place (y, x) when free, else the first free spot of its
-/// size. Sizes do not change. `None` when something has no place.
+/// widgets first, then buttons, each group by (y, x); every item goes to the first free spot of its size, top to bottom, left
+/// to right (reading order is kept). Sizes do not change. `None` when something has no place.
 fn turn_items(items: Vec<LayoutItem>, cols: i32, rows: i32) -> Option<Vec<LayoutItem>> {
     let mut order = items;
     order.sort_by_key(|item| {
-        let (_, x, y, w, h) = item.rect();
-        let widget = item.kind_name() != "button";
-        (widget, if widget { -(w * h) } else { 0 }, y, x)
+        let (_, x, y, _, _) = item.rect();
+        (item.kind_name() == "button", y, x)
     });
     let mut placed: Vec<LayoutItem> = Vec::new();
     let free = |placed: &[LayoutItem], x: i32, y: i32, w: i32, h: i32| {
@@ -69,11 +68,7 @@ fn turn_items(items: Vec<LayoutItem>, cols: i32, rows: i32) -> Option<Vec<Layout
     };
     for mut item in order {
         let (_, x, y, w, h) = item.rect();
-        let spot = if free(&placed, y, x, w, h) {
-            Some((y, x))
-        } else {
-            (0..rows).flat_map(|yy| (0..cols).map(move |xx| (xx, yy))).find(|&(xx, yy)| free(&placed, xx, yy, w, h))
-        }?;
+        let spot = (0..rows).flat_map(|yy| (0..cols).map(move |xx| (xx, yy))).find(|&(xx, yy)| free(&placed, xx, yy, w, h))?;
         item.set_pos(spot.0, spot.1);
         placed.push(item);
     }

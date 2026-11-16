@@ -31,7 +31,7 @@ async fn health_and_not_found() {
     assert!(res.headers().get("access-control-allow-origin").is_none());
     assert_eq!(res.headers().get("x-content-type-options").unwrap(), "nosniff");
     let body: Value = serde_json::from_str(&res.text().await.unwrap()).unwrap();
-    assert_eq!(body, json!({ "name": "decka", "version": "0.1.0", "protocol": 1 }));
+    assert_eq!(body, json!({ "name": "decka", "version": decka_core::VERSION, "protocol": 1 }));
 
     let res = reqwest::get(format!("{base}/api/nope")).await.unwrap();
     assert_eq!(res.status(), 404);

@@ -46,7 +46,12 @@ async fn recv(ws: &mut Ws) -> Value {
     loop {
         let msg = timeout(Duration::from_secs(2), ws.next()).await.expect("timed out").expect("closed").unwrap();
         if let Message::Text(t) = msg {
-            return serde_json::from_str(t.as_str()).unwrap();
+            let v: Value = serde_json::from_str(t.as_str()).unwrap();
+            // The collectors publish on their own clock; their patches are not part of what these tests check.
+            if v["t"] == "patch" && matches!(v["section"].as_str(), Some("sys" | "media" | "focus")) {
+                continue;
+            }
+            return v;
         }
     }
 }
