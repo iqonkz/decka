@@ -4,6 +4,8 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+## 0.2.2 — 2026-11-16
+
 ### Changed
 - Smoother page swipe on the phone: the page you swipe to is no longer rebuilt at the end of the swipe.
 - A nicer Windows installer in the Glass style, with a choice of English or Russian.
