@@ -4,6 +4,8 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+## 0.4.0 — 2026-11-16
+
 ### Added
 - AI coding limits: turn it on in More → Integrations → AI coding (**Install** adds a status line and a permission hook to Claude Code, **Remove** takes them back; restart running Claude Code sessions after installing). The new **AI limits** widget on the phone shows the 5-hour and weekly limits of Claude Code and the limits of Codex, when they reset, a forecast of when a limit runs out, and your Claude Code sessions. Everything stays on your PC: nothing goes to the internet and no login token is read.
 - Approve from the phone: when Claude Code asks for permission (a command, a file change, a web address), a sheet with **Allow** / **Deny** / **Answer on PC** opens over any page of the phone. If no phone is connected, or the wait runs out, the question goes to the terminal as usual. The new **AI coding** set adds the widget in one click, and keys can follow the limits (`ai.claude.5h`, `ai.claude.7d`, `ai.codex.primary`, `ai.pending`).
