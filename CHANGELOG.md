@@ -4,6 +4,12 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+### Added
+- **Cut** (right-click menu or `Ctrl+X`) on a key or widget: cut it, open another page and paste it there.
+
+### Fixed
+- The icon picker in the installed app failed with "Failed to fetch phosphor icons".
+
 ## 0.2.0 — 2026-11-16
 
 ### Added
