@@ -214,7 +214,11 @@ fn m15_item_kinds_round_trip_with_their_fields() {
 
 // ----- the agent: HTTP, get_config / save_config, sections -----
 
-async fn start(dir: &std::path::Path, config: ConfigFile) -> Agent {
+async fn start(dir: &std::path::Path, mut config: ConfigFile) -> Agent {
+    // The collectors would put variables and sections of their own into the state these tests look at.
+    for switch in [&mut config.collectors.audio, &mut config.collectors.media, &mut config.collectors.focus] {
+        *switch = Some(SwitchConfig { enabled: false });
+    }
     save_json_atomic(&dir.join("config.json"), &config).unwrap();
     Agent::start(AgentOptions { config_dir: Some(dir.to_path_buf()), client_dist: None, port_override: Some(0), runner: Arc::new(DryRunner), fixed_pair_code: None })
         .await

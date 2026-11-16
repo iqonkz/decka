@@ -31,10 +31,27 @@ pub fn choose_path(outcome: SessionOutcome) -> Path {
     }
 }
 
-/// Only these three go through the session; volume is always a key.
+/// Only these three go through the session with a key as the fallback; volume is always a key.
 pub fn uses_session(op: MediaOp) -> bool {
     matches!(op, MediaOp::PlayPause | MediaOp::Next | MediaOp::Prev)
 }
+
+/// `shuffle` and `repeat` (M15): the session only, no key to fall back on (DATA_MODEL.md 2.3).
+pub fn session_only(op: MediaOp) -> bool {
+    matches!(op, MediaOp::Shuffle | MediaOp::Repeat)
+}
+
+/// The repeat mode after a press: `none -> list -> track -> none`.
+pub fn next_repeat(current: &str) -> &'static str {
+    match current {
+        "none" => "list",
+        "list" => "track",
+        _ => "none",
+    }
+}
+
+/// What a `shuffle` / `repeat` press answers when the session did not do it.
+pub const UNSUPPORTED: &str = "The player does not support this";
 
 pub fn op_name(op: MediaOp) -> &'static str {
     match op {
@@ -69,9 +86,10 @@ mod win {
     use std::time::{Duration, Instant};
 
     use windows::Media::Control::GlobalSystemMediaTransportControlsSessionManager;
+    use windows::Media::MediaPlaybackAutoRepeatMode;
     use windows::Win32::System::WinRT::{RoInitialize, RO_INIT_MULTITHREADED};
 
-    use super::{MediaOp, SessionOutcome};
+    use super::{next_repeat, MediaOp, SessionOutcome};
 
     const TIMEOUT: Duration = Duration::from_secs(2);
     /// The session needs a moment to report the new state before it is read again.
@@ -130,6 +148,28 @@ mod win {
             MediaOp::PlayPause => session.TryTogglePlayPauseAsync(),
             MediaOp::Next => session.TrySkipNextAsync(),
             MediaOp::Prev => session.TrySkipPreviousAsync(),
+            MediaOp::Shuffle => {
+                // A source that reports no shuffle state does not support the command.
+                let Ok(current) = session.GetPlaybackInfo().and_then(|i| i.IsShuffleActive()).and_then(|r| r.Value()) else {
+                    return SessionOutcome::Refused;
+                };
+                session.TryChangeShuffleActiveAsync(!current)
+            }
+            MediaOp::Repeat => {
+                let Ok(current) = session.GetPlaybackInfo().and_then(|i| i.AutoRepeatMode()).and_then(|r| r.Value()) else {
+                    return SessionOutcome::Refused;
+                };
+                let current = match current {
+                    MediaPlaybackAutoRepeatMode::List => "list",
+                    MediaPlaybackAutoRepeatMode::Track => "track",
+                    _ => "none",
+                };
+                session.TryChangeAutoRepeatModeAsync(match next_repeat(current) {
+                    "list" => MediaPlaybackAutoRepeatMode::List,
+                    "track" => MediaPlaybackAutoRepeatMode::Track,
+                    _ => MediaPlaybackAutoRepeatMode::None,
+                })
+            }
             _ => return SessionOutcome::Error,
         };
         // Waits for the operation, but never longer than TIMEOUT (`AsyncStatus::Started` is 0).
@@ -174,6 +214,18 @@ mod tests {
         for outcome in [SessionOutcome::NoSession, SessionOutcome::Refused, SessionOutcome::Error] {
             assert_eq!(choose_path(outcome), Path::Key, "{outcome:?}");
         }
+    }
+
+    #[test]
+    fn repeat_goes_round_none_list_track() {
+        assert_eq!([next_repeat("none"), next_repeat("list"), next_repeat("track"), next_repeat("whatever")], ["list", "track", "none", "none"]);
+    }
+
+    #[test]
+    fn shuffle_and_repeat_have_no_key_to_fall_back_on() {
+        assert!(session_only(MediaOp::Shuffle) && session_only(MediaOp::Repeat));
+        assert!(!uses_session(MediaOp::Shuffle) && !uses_session(MediaOp::Repeat));
+        assert!(!session_only(MediaOp::PlayPause) && !session_only(MediaOp::Mute));
     }
 
     #[test]

@@ -8,7 +8,9 @@ use std::sync::Arc;
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
-use crate::model::MediaInfo;
+use std::collections::BTreeMap;
+
+use crate::model::{MediaInfo, VarValue};
 use crate::state::Store;
 
 const POLL: Duration = Duration::from_secs(1);
@@ -48,6 +50,8 @@ pub fn should_publish(prev: Option<&MediaInfo>, next: &MediaInfo, now_ms: u64) -
         || prev.playing != next.playing
         || prev.duration_sec != next.duration_sec
         || prev.art != next.art
+        || prev.shuffle != next.shuffle
+        || prev.repeat != next.repeat
     {
         return true;
     }
@@ -85,6 +89,27 @@ pub fn art_target_size(width: u32, height: u32) -> (u32, u32) {
     }
     let scale = |side: u32| ((u64::from(side) * u64::from(ART_MAX_SIDE) + u64::from(longest) / 2) / u64::from(longest)).max(1) as u32;
     (scale(width), scale(height))
+}
+
+/// The variables of the session for `bind` (DATA_MODEL.md 6.6): `media.playing`, `media.shuffle`, `media.repeat`.
+/// No session, or a source without shuffle / repeat: the variable is removed, so a key bound to it shows as unavailable.
+pub fn apply_vars(vars: &mut BTreeMap<String, VarValue>, info: Option<&MediaInfo>) {
+    let mut set = |name: &str, value: Option<VarValue>| match value {
+        Some(v) => {
+            vars.insert(name.to_string(), v);
+        }
+        None => {
+            vars.remove(name);
+        }
+    };
+    set("media.playing", info.map(|i| VarValue::Bool(i.playing)));
+    set("media.shuffle", info.and_then(|i| i.shuffle).map(VarValue::Bool));
+    set("media.repeat", info.and_then(|i| i.repeat.clone()).map(VarValue::Str));
+}
+
+/// Removes the variables of this collector (it was switched off).
+pub fn clear_vars(vars: &mut BTreeMap<String, VarValue>) {
+    apply_vars(vars, None);
 }
 
 pub struct MediaCollector {
@@ -162,6 +187,7 @@ fn run(store: Store, stop: Arc<AtomicBool>) {
             None => None,
         };
         let now = now_ms();
+        store.update_vars(|vars| apply_vars(vars, next.as_ref()));
         match (&published, &next) {
             (Some(_), None) => {
                 store.set("media", serde_json::Value::Null);
@@ -199,6 +225,7 @@ mod winrt {
     use crate::model::MediaInfo;
     use crate::imaging::{self, read_all};
     use windows::Graphics::Imaging::BitmapAlphaMode;
+    use windows::Media::MediaPlaybackAutoRepeatMode;
     use windows::Media::Control::{GlobalSystemMediaTransportControlsSession, GlobalSystemMediaTransportControlsSessionManager, GlobalSystemMediaTransportControlsSessionPlaybackStatus};
 
     /// 100 ns ticks between 1601-01-01 (Windows) and 1970-01-01 (unix).
@@ -248,7 +275,18 @@ mod winrt {
                 }
             };
 
-            let playing = session.GetPlaybackInfo()?.PlaybackStatus()? == GlobalSystemMediaTransportControlsSessionPlaybackStatus::Playing;
+            let playback = session.GetPlaybackInfo()?;
+            let playing = playback.PlaybackStatus()? == GlobalSystemMediaTransportControlsSessionPlaybackStatus::Playing;
+            // A source without these states simply reports nothing: the fields stay absent.
+            let shuffle = playback.IsShuffleActive().and_then(|r| r.Value()).ok();
+            let repeat = playback.AutoRepeatMode().and_then(|r| r.Value()).ok().map(|mode| {
+                match mode {
+                    MediaPlaybackAutoRepeatMode::List => "list",
+                    MediaPlaybackAutoRepeatMode::Track => "track",
+                    _ => "none",
+                }
+                .to_string()
+            });
             let (position_sec, duration_sec, position_at) = timeline(&session);
             let non_empty = |s: String| (!s.is_empty()).then(|| truncate_chars(&s, MAX_TEXT));
             Ok(Some(MediaInfo {
@@ -261,8 +299,8 @@ mod winrt {
                 duration_sec,
                 position_at,
                 art,
-                shuffle: None, // T15.2 reads these from PlaybackInfo
-                repeat: None,
+                shuffle,
+                repeat,
             }))
         }
     }
@@ -384,6 +422,37 @@ mod tests {
         with_art.art = Some("data:image/png;base64,AAAA".into());
         assert!(should_publish(Some(&prev), &with_art, 1_001_000));
         assert!(should_publish(None, &prev, 1_001_000));
+    }
+
+    #[test]
+    fn a_changed_shuffle_or_repeat_is_published() {
+        let prev = info(10, 1_000_000, true);
+        let mut shuffled = info(11, 1_001_000, true);
+        shuffled.shuffle = Some(true);
+        assert!(should_publish(Some(&prev), &shuffled, 1_001_000));
+        let mut repeating = info(11, 1_001_000, true);
+        repeating.repeat = Some("track".into());
+        assert!(should_publish(Some(&prev), &repeating, 1_001_000));
+    }
+
+    #[test]
+    fn the_session_variables_follow_the_session() {
+        let mut vars = BTreeMap::new();
+        let mut now = info(10, 1_000_000, true);
+        now.shuffle = Some(false);
+        now.repeat = Some("list".into());
+        apply_vars(&mut vars, Some(&now));
+        assert_eq!(serde_json::to_value(&vars).unwrap(), serde_json::json!({ "media.playing": true, "media.shuffle": false, "media.repeat": "list" }));
+
+        // A source without shuffle / repeat: only `media.playing` stays.
+        apply_vars(&mut vars, Some(&info(10, 1_000_000, false)));
+        assert_eq!(serde_json::to_value(&vars).unwrap(), serde_json::json!({ "media.playing": false }));
+
+        // No session at all, or the collector switched off: nothing is left, and other variables are untouched.
+        vars.insert("my.flag".into(), VarValue::Bool(true));
+        apply_vars(&mut vars, Some(&now));
+        clear_vars(&mut vars);
+        assert_eq!(serde_json::to_value(&vars).unwrap(), serde_json::json!({ "my.flag": true }));
     }
 
     #[test]

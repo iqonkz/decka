@@ -20,6 +20,7 @@ async fn env() -> Env {
     let mut config = decka_core::config::default_config();
     config.collectors.focus = Some(decka_core::model::SwitchConfig { enabled: false });
     config.collectors.media = Some(decka_core::model::SwitchConfig { enabled: false });
+    config.collectors.audio = Some(decka_core::model::SwitchConfig { enabled: false });
     decka_core::config::save_json_atomic(&dir.path().join("config.json"), &config).unwrap();
     let agent = Agent::start(AgentOptions {
         config_dir: Some(dir.path().to_path_buf()),

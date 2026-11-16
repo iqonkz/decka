@@ -1,5 +1,6 @@
 pub mod actions;
 pub mod agent;
+pub mod audio;
 pub mod auth;
 pub mod collectors;
 pub mod config;

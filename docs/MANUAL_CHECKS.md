@@ -157,3 +157,9 @@
 - PENDING (owner): T14.5a items not covered here (pairing by QR, T7.1/T7.2/T7.4/T7.5 on the S9, labels at ~80 px, `Ctrl+Z` after `Rotate`, safe-area padding on a gesture-bar phone).
 - DONE (S9): `release\Decka.apk` 0.2.0 installed, phone menu shows "App 0.2.0 · PC 0.2.0" (agent 0.2.0 on the `cfg-s9` copy). Release https://github.com/iqonkz/decka/releases/tag/v0.2.0 published; both README links answer 200.
 - PENDING (owner): install from release v0.2.0 on a clean PC and phone; More -> About in the installed agent 0.2.0 (the update check against the now public repo was not looked at in the window).
+
+## T15.2 — sound, player, sequences
+
+- DONE (headless without `--dry-run`, copy of the config in `.tmp\cfg-t152`): `ws-smoke press mic-toggle` twice gave `mic.muted` true, then false in `ws-smoke watch` (the microphone is back as it was); the first `vars` patch carried `audio.volume`, `audio.muted`, `mic.muted`, `media.playing`.
+- PENDING (owner): `shuffle` / `repeat` on a real player (Spotify, a browser tab): the key changes the player and `media.shuffle` / `media.repeat` follow; with a player that does not support it the key shows the error `The player does not support this`. Not pressed here, to leave the owner's player as it was.
+- PENDING (owner): `out_mute_toggle` (`out-mute`): the sound goes off and `audio.muted` becomes true; `audio.volume` follows the system volume slider within about a second.

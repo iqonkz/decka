@@ -2,8 +2,8 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use decka_core::actions::testing::RecordingRunner;
-use decka_core::config::{default_actions, save_json_atomic};
-use decka_core::model::Action;
+use decka_core::config::{default_actions, default_config, save_json_atomic};
+use decka_core::model::{Action, SwitchConfig};
 use decka_core::{Agent, AgentOptions};
 use futures_util::{SinkExt, StreamExt};
 use serde_json::{json, Value};
@@ -26,6 +26,11 @@ async fn env(runner: Arc<RecordingRunner>) -> Env {
     let mut actions = default_actions();
     actions.actions.insert("flag".into(), Action::Hotkey { name: "Flag".into(), toggle_var: Some("test.flag".into()), keys: vec!["f13".into()] });
     save_json_atomic(&dir.path().join("actions.json"), &actions).unwrap();
+    // The sound and player collectors would put `audio.*` / `media.*` variables next to the ones the tests look at.
+    let mut config = default_config();
+    config.collectors.audio = Some(SwitchConfig { enabled: false });
+    config.collectors.media = Some(SwitchConfig { enabled: false });
+    save_json_atomic(&dir.path().join("config.json"), &config).unwrap();
     let agent = Agent::start(AgentOptions {
         config_dir: Some(dir.path().to_path_buf()),
         client_dist: None,

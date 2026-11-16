@@ -168,11 +168,25 @@ struct ServerHandle {
     join: JoinHandle<()>,
 }
 
+/// Frees the "running" mark of a sequence however its run ends (also when the press is dropped halfway).
+struct RunningGuard {
+    inner: Arc<Inner>,
+    id: String,
+}
+
+impl Drop for RunningGuard {
+    fn drop(&mut self) {
+        self.inner.running.lock().unwrap().remove(&self.id);
+    }
+}
+
 struct Inner {
     opts: AgentOptions,
     config_dir: PathBuf,
     config: Mutex<ConfigFile>,
     actions: Mutex<ActionsFile>,
+    /// Ids of the sequences that are running now: a second press of the same key answers `Already running`.
+    running: Mutex<std::collections::HashSet<String>>,
     layout: Mutex<LayoutFile>,
     store: Store,
     statuses: crate::statuses::Statuses,
@@ -197,6 +211,7 @@ struct Inner {
     usb_task: Mutex<Option<JoinHandle<()>>>,
     focus_collector: Mutex<Option<crate::collectors::focus::FocusCollector>>,
     media_collector: Mutex<Option<crate::collectors::media::MediaCollector>>,
+    audio_collector: Mutex<Option<crate::audio::AudioCollector>>,
     focus_app: Mutex<Option<String>>,
     /// The answer of the last update check (ARCHITECTURE.md 8a).
     update: Mutex<crate::updates::UpdateStatus>,
@@ -227,6 +242,7 @@ impl Agent {
                 config_dir: config_dir.clone(),
                 config: Mutex::new(config),
                 actions: Mutex::new(actions),
+                running: Mutex::new(Default::default()),
                 layout: Mutex::new(layout),
                 statuses: crate::statuses::Statuses::new(store.clone()),
                 store,
@@ -250,6 +266,7 @@ impl Agent {
                 usb_task: Mutex::new(None),
                 focus_collector: Mutex::new(None),
                 media_collector: Mutex::new(None),
+                audio_collector: Mutex::new(None),
                 focus_app: Mutex::new(None),
                 update: Mutex::new(crate::updates::UpdateStatus::default()),
                 update_tx: watch::channel(crate::updates::UpdateStatus::default()).0,
@@ -329,6 +346,16 @@ impl Agent {
             *self.inner.media_collector.lock().unwrap() = Some(crate::collectors::media::MediaCollector::start(self.inner.store.clone()));
         } else {
             self.inner.store.set("media", serde_json::Value::Null);
+            self.inner.store.update_vars(crate::collectors::media::clear_vars);
+        }
+
+        // Sound collector (M15): volume and the mutes of the default devices as variables; off = the variables are gone.
+        let old_audio = self.inner.audio_collector.lock().unwrap().take();
+        drop(old_audio);
+        if config.collectors.audio_enabled() {
+            *self.inner.audio_collector.lock().unwrap() = Some(crate::audio::AudioCollector::start(self.inner.store.clone()));
+        } else {
+            self.inner.store.update_vars(crate::audio::clear_vars);
         }
 
         // Active-app collector (M11): off = the section is null and the status shows no app.
@@ -617,12 +644,49 @@ impl Agent {
         self.inner.layout.lock().unwrap().clone()
     }
 
-    /// Runs an action by id: runner on the blocking pool, then `toggleVar` on success.
+    /// Runs an action by id: runner on the blocking pool, then `toggleVar` on success. A `sequence` runs its steps one by one
+    /// (DATA_MODEL.md 2.3) and answers `Already running` to a second press while it is still going.
     pub async fn execute(&self, action_id: &str) -> Result<(), (ErrorCode, String)> {
         let action = self.inner.actions.lock().unwrap().actions.get(action_id).cloned();
         let Some(action) = action else {
             return Err((ErrorCode::UnknownAction, format!("action '{action_id}' is not defined")));
         };
+        if let Action::Sequence { steps, .. } = &action {
+            let toggle = action.toggle_var().map(str::to_string);
+            if !self.inner.running.lock().unwrap().insert(action_id.to_string()) {
+                return Err((ErrorCode::ActionFailed, "Already running".to_string()));
+            }
+            let _guard = RunningGuard { inner: self.inner.clone(), id: action_id.to_string() };
+            for (index, step) in steps.iter().enumerate() {
+                self.run_step(step).await.map_err(|(code, message)| (code, format!("Step {}: {message}", index + 1)))?;
+            }
+            self.toggle_var(toggle);
+            return Ok(());
+        }
+        self.run_action(action_id, action).await
+    }
+
+    /// One step of a sequence: wait, or run the action and wait for its result.
+    async fn run_step(&self, step: &SequenceStep) -> Result<(), (ErrorCode, String)> {
+        match step {
+            SequenceStep::Wait { delay_ms } => {
+                tokio::time::sleep(std::time::Duration::from_millis((*delay_ms).max(0) as u64)).await;
+                Ok(())
+            }
+            SequenceStep::Run { action_id } => {
+                let action = self.inner.actions.lock().unwrap().actions.get(action_id).cloned();
+                match action {
+                    None => Err((ErrorCode::UnknownAction, format!("action '{action_id}' is not defined"))),
+                    // The file was edited after it was validated; a sequence never starts another one.
+                    Some(Action::Sequence { .. }) => Err((ErrorCode::ActionFailed, "a sequence cannot contain another sequence".to_string())),
+                    Some(action) => self.run_action(action_id, action).await,
+                }
+            }
+        }
+    }
+
+    /// The runner on the blocking pool, then `toggleVar` on success.
+    async fn run_action(&self, action_id: &str, action: Action) -> Result<(), (ErrorCode, String)> {
         let runner = self.inner.opts.runner.clone();
         let id = action_id.to_string();
         let toggle = action.toggle_var().map(str::to_string);
@@ -630,13 +694,17 @@ impl Agent {
             .await
             .map_err(|e| (ErrorCode::Internal, format!("action task failed: {e}")))?;
         result.map_err(|msg| (ErrorCode::ActionFailed, msg))?;
+        self.toggle_var(toggle);
+        Ok(())
+    }
+
+    fn toggle_var(&self, toggle: Option<String>) {
         if let Some(var) = toggle {
             self.inner.store.update_vars(|vars| {
                 let next = !matches!(vars.get(&var), Some(VarValue::Bool(true)));
                 vars.insert(var, VarValue::Bool(next));
             });
         }
-        Ok(())
     }
 
     /// Same as `execute`, shaped like the `test_action` IPC result.
@@ -855,6 +923,8 @@ impl Agent {
         drop(focus); // joins the thread
         let media = self.inner.media_collector.lock().unwrap().take();
         drop(media);
+        let audio = self.inner.audio_collector.lock().unwrap().take();
+        drop(audio);
         let watcher = self.inner.watcher.lock().unwrap().take();
         drop(watcher);
         if let Some(usb) = self.inner.usb_task.lock().unwrap().take() {
