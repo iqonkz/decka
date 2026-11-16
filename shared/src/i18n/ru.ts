@@ -48,6 +48,18 @@ export const ru: Record<Base | ExtraPlural, string> = {
 
   // ----- Widgets (phone, previews in the window) -----
   "widget.nothing_playing": "Ничего не играет",
+  "nav.back": "Назад",
+  "timer.done": "Таймер закончился",
+  "timer.hold_reset": "Удерживайте для сброса",
+  "obs.rec": "REC",
+  "obs.live": "LIVE",
+  "obs.not_recording": "Не пишется",
+  "obs.offline": "Не в эфире",
+  "obs.not_connected": "OBS не подключён",
+  "obs.off": "OBS выключен",
+  "volume.mute": "Без звука",
+  "volume.louder": "Громче",
+  "volume.quieter": "Тише",
   "widget.no_notifications": "Нет уведомлений",
   "widget.no_statuses": "Статусов пока нет",
   "widget.more": "ещё {n}",

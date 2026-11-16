@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import type { MediaInfo, Notification, StatusItem, SysStats, VarValue } from "@decka/shared";
+import type { MediaInfo, Notification, ObsInfo, StatusItem, SysStats, VarValue, WeatherInfo } from "@decka/shared";
 
 /** What the deck shows: the live sections of the agent's state. No connection, store or socket in here. */
 export interface DeckData {
@@ -10,6 +10,9 @@ export interface DeckData {
   statuses: StatusItem[];
   notifications: Notification[];
   media: MediaInfo | null;
+  /** M15: the weather section (null = off or no data yet) and the OBS section (null = the integration is off). */
+  weather: WeatherInfo | null;
+  obs: ObsInfo | null;
   /** `img:` pictures by hash (the `icons` section). */
   icons: Record<string, string>;
   /** `display.keyFace` / `display.keyLabels` (DESIGN.md 2.1): the look keys have unless a key says otherwise. */
@@ -17,7 +20,7 @@ export interface DeckData {
   keyLabels?: boolean;
 }
 
-export const EMPTY_DATA: DeckData = { online: false, vars: {}, sys: null, statuses: [], notifications: [], media: null, icons: {} };
+export const EMPTY_DATA: DeckData = { online: false, vars: {}, sys: null, statuses: [], notifications: [], media: null, weather: null, obs: null, icons: {} };
 
 /** What the deck asks its host to do. */
 export interface DeckCallbacks {
@@ -25,7 +28,7 @@ export interface DeckCallbacks {
   onPress: (actionId: string) => Promise<void>;
   /** A key that failed (the host shows it, for example as a toast). */
   onPressError: (e: { code: string; message?: string }) => void;
-  /** A `navigate` key: open the page with this id. */
+  /** A `navigate` key: open the page with this id, or `"$back"`: the page the user came from (DATA_MODEL.md 3.8). */
   onNavigate: (pageId: string) => void;
   /** A notification row was tapped. */
   onDismiss: (notifId: string) => void;
@@ -33,6 +36,8 @@ export interface DeckCallbacks {
   onOpenPopup?: (popupId: string, anchor: { x: number; y: number; width: number; height: number }) => void;
   /** Tactile feedback moments inside the deck: a key was touched, a hold-to-confirm completed. */
   onFeedback?: (moment: "touch" | "confirm") => void;
+  /** The timer widget ran down: the host shows a toast and wakes the screen (DATA_MODEL.md 6.7). */
+  onTimerDone?: () => void;
 }
 
 export type DeckEnv = DeckData & DeckCallbacks;

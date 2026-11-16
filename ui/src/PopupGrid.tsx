@@ -28,10 +28,10 @@ export interface PopupGridProps extends DeckCallbacks {
 }
 
 /** The keys of a popup page laid out by their bounding box (DESIGN.md 4.1); the panel around them is the host's. */
-export default function PopupGrid({ page, data, side, gap, onPress, onPressError, onNavigate, onDismiss, onOpenPopup, onFeedback }: PopupGridProps) {
+export default function PopupGrid({ page, data, side, gap, onPress, onPressError, onNavigate, onDismiss, onOpenPopup, onFeedback, onTimerDone }: PopupGridProps) {
   const env = useMemo(
-    () => ({ ...data, onPress, onPressError, onNavigate, onDismiss, ...(onOpenPopup ? { onOpenPopup } : {}), ...(onFeedback ? { onFeedback } : {}) }),
-    [data, onPress, onPressError, onNavigate, onDismiss, onOpenPopup, onFeedback],
+    () => ({ ...data, onPress, onPressError, onNavigate, onDismiss, ...(onOpenPopup ? { onOpenPopup } : {}), ...(onFeedback ? { onFeedback } : {}), ...(onTimerDone ? { onTimerDone } : {}) }),
+    [data, onPress, onPressError, onNavigate, onDismiss, onOpenPopup, onFeedback, onTimerDone],
   );
   const metrics = useMemo(() => ({ side, gap }), [side, gap]);
   const { minX, minY, cols, rows } = popupBounds(page);

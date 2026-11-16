@@ -3,6 +3,10 @@ import Button from "./Button";
 import Clock from "./widgets/Clock";
 import Media from "./widgets/Media";
 import Notifications from "./widgets/Notifications";
+import Obs from "./widgets/Obs";
+import Timer from "./widgets/Timer";
+import Volume from "./widgets/Volume";
+import Weather from "./widgets/Weather";
 import Statuses from "./widgets/Statuses";
 import StatusTile from "./widgets/StatusTile";
 import Sys from "./widgets/Sys";
@@ -33,6 +37,18 @@ export default function Tile({ item }: { item: LayoutItem }) {
       break;
     case "media":
       content = <Media item={item} />;
+      break;
+    case "volume":
+      content = <Volume item={item} />;
+      break;
+    case "timer":
+      content = <Timer item={item} />;
+      break;
+    case "weather":
+      content = <Weather item={item} />;
+      break;
+    case "obs":
+      content = <Obs item={item} />;
       break;
     default:
       content = <div className="tile-body">?</div>;

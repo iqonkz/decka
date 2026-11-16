@@ -10,13 +10,13 @@
         { "id": "w-volume", "kind": "volume", "x": 0, "y": 1, "w": 3, "h": 1, "upAction": "vol-up", "downAction": "vol-down", "muteAction": "vol-mute" },
         { "id": "w-graph", "kind": "sys", "x": 3, "y": 1, "w": 4, "h": 2, "graph": true },
         { "id": "b-mic", "kind": "button", "x": 0, "y": 2, "w": 1, "h": 1, "label": "Mic off", "icon": "lucide:mic", "actionId": "mic-toggle",
-          "bind": { "var": "mic.muted", "states": { "true": { "label": "Mic off", "icon": "lucide:mic-off" }, "false": { "label": "Mic on", "icon": "lucide:mic" } } } },
+          "bind": { "var": "mic.muted", "states": { "true": { "label": "Mic off", "icon": "lucide:mic-off", "color": "#dc2626" }, "false": { "label": "Mic on", "icon": "lucide:mic" } } } },
         { "id": "b-shuffle", "kind": "button", "x": 1, "y": 2, "w": 1, "h": 1, "label": "Shuffle", "icon": "lucide:refresh-cw", "actionId": "shuffle",
-          "bind": { "var": "media.shuffle", "states": { "true": { "label": "Shuffle" } } } },
+          "bind": { "var": "media.shuffle", "states": { "true": { "label": "Shuffle", "color": "#7c5cff" } } } },
         { "id": "b-mute", "kind": "button", "x": 2, "y": 2, "w": 1, "h": 1, "label": "Mute", "icon": "lucide:volume-x", "actionId": "out-mute",
           "bind": { "var": "audio.muted", "states": { "true": { "label": "Muted" } } } },
         { "id": "b-rec", "kind": "button", "x": 0, "y": 3, "w": 1, "h": 1, "label": "Record", "icon": "lucide:video", "actionId": "obs-record",
-          "bind": { "var": "obs.recording", "states": { "true": { "label": "Stop" } } } },
+          "bind": { "var": "obs.recording", "states": { "true": { "label": "REC", "icon": "lucide:square", "color": "#dc2626" } } } },
         { "id": "b-live", "kind": "button", "x": 1, "y": 3, "w": 1, "h": 1, "label": "Go live", "icon": "lucide:rocket", "actionId": "go-live" },
         { "id": "b-dev", "kind": "button", "x": 5, "y": 3, "w": 1, "h": 1, "label": "Dev", "icon": "lucide:code", "navigate": "dev" }
       ] },
@@ -30,11 +30,11 @@
   "notifications": [],
   "vars": {
     "audio.volume": 42, "audio.muted": false, "mic.muted": true,
-    "media.playing": true, "media.shuffle": false, "media.repeat": "none",
+    "media.playing": true, "media.shuffle": true, "media.repeat": "none",
     "obs.connected": true, "obs.recording": true, "obs.streaming": false, "obs.scene": "Gaming"
   },
   "focus": { "app": "obs64.exe" },
-  "media": { "source": "Spotify.exe", "title": "Midnight City", "artist": "M83", "playing": true, "positionSec": 61, "durationSec": 244, "positionAt": 1794650000000, "shuffle": false, "repeat": "none" },
+  "media": { "source": "Spotify.exe", "title": "Midnight City", "artist": "M83", "playing": true, "positionSec": 61, "durationSec": 244, "positionAt": 1794650000000, "shuffle": true, "repeat": "none" },
   "icons": {},
   "weather": {
     "place": "Almaty", "units": "metric", "updatedAt": 1794650000000,

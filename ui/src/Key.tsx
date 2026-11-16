@@ -34,6 +34,10 @@ export interface KeyProps {
   dots?: boolean;
   /** `full`: the icon fills the key like an app icon on a home screen (DESIGN.md 2.1). */
   face?: "standard" | "full";
+  /** The variable the key follows does not exist (no OBS, no microphone): the key is drawn at 0.45, and still works (DESIGN.md 2.4). */
+  noData?: boolean;
+  /** A red dot in the top left corner that blinks once a second: recording or on air (DESIGN.md 2.4). */
+  liveDot?: boolean;
 }
 
 /** The corner mark of a `full` key sits on a dark disc of 0.2 x side (DESIGN.md 2.1). */
@@ -43,7 +47,7 @@ function discStyle(side: number, font: number): CSSProperties {
 }
 
 /** One key with the shared press states: pressed, confirming, pending, ok, error. Used by buttons and widgets. */
-export default function Key({ actionId, onTap, onPressed, confirm, icon, label, color, side: fixedSide, chevron, dots, face }: KeyProps) {
+export default function Key({ actionId, onTap, onPressed, confirm, icon, label, color, side: fixedSide, chevron, dots, face, noData, liveDot }: KeyProps) {
   const element = useRef<HTMLDivElement>(null);
   const { online, onPress, onPressError, onFeedback, icons } = useDeckEnv();
   const disabled = actionId !== undefined && !online;
@@ -169,7 +173,7 @@ export default function Key({ actionId, onTap, onPressed, confirm, icon, label, 
     ...(fixedSide !== undefined ? { "--side": `${fixedSide}px` } : {}),
     ...(coloured ? { ...colorVars(color), ...materialKeyVars(color as string) } : {}),
   } as CSSProperties;
-  const classes = ["key", phase, coloured ? "colored" : "", disabled ? "disabled" : "", full ? "full" : "", full?.mode === "cover" ? "tile-face" : ""].filter(Boolean).join(" ");
+  const classes = ["key", phase, coloured ? "colored" : "", disabled ? "disabled" : "", noData ? "no-data" : "", full ? "full" : "", full?.mode === "cover" ? "tile-face" : ""].filter(Boolean).join(" ");
   const labelPad = 0.07 * side;
   return (
     <div ref={element} className={classes} style={keyStyle} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={cancel}>
@@ -214,6 +218,7 @@ export default function Key({ actionId, onTap, onPressed, confirm, icon, label, 
           •••
         </div>
       )}
+      {liveDot && <span className="rec-dot key-live" style={{ top: 0.06 * side, left: 0.06 * side, width: 0.12 * side, height: 0.12 * side }} aria-hidden="true" />}
       {phase === "confirming" && (
         <svg className="ring" width={side} height={side} viewBox={`0 0 ${side} ${side}`} aria-hidden="true">
           <rect x="1" y="1" width={side - 2} height={side - 2} pathLength="100" />

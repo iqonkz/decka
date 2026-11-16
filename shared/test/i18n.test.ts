@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import { en, ru, resolveLanguage, translate, validateLayout, type ActionsFile, type LayoutFile } from "../src";
 
 /** Strings that may be the same in both languages: product and technology names, units that are written the same. */
-const SAME_IN_BOTH = new Set<string>(["USB", "Wi-Fi", "QR", "Decka", "AMOLED", "Studio", "Material", "Glass", "Phosphor", "OK", "Decka {version}", "OBS"]);
+const SAME_IN_BOTH = new Set<string>(["USB", "Wi-Fi", "QR", "Decka", "AMOLED", "Studio", "Material", "Glass", "Phosphor", "OK", "Decka {version}", "OBS", "REC", "LIVE"]);
 
 describe("translate", () => {
   test("parameters are substituted; unknown ones stay as written", () => {

@@ -1,9 +1,10 @@
-import { useCallback, useMemo } from "react";
-import { EMPTY_DATA, pressErrorTitle, type DeckCallbacks, type DeckData } from "@decka/ui";
+import { useCallback, useEffect, useMemo } from "react";
+import { t, BACK_PAGE } from "@decka/shared";
+import { EMPTY_DATA, pressErrorTitle, recordSys, resetSysHistory, type DeckCallbacks, type DeckData } from "@decka/ui";
 import { dismiss, press } from "../app/controller";
 import { lastTouchWokeScreen } from "../display/idle";
 import { hapticEvent } from "../platform/haptics";
-import { getState, navigateManually, openPopup, pushToast, useAppState } from "../store/store";
+import { getState, goBack, navigateManually, openPopup, pushToast, signalAttention, useAppState } from "../store/store";
 
 const ERROR_TOAST_MS = 4000;
 const NO_ICONS: Record<string, string> = {};
@@ -16,6 +17,8 @@ export function useDeckProps(): { data: DeckData } & Required<DeckCallbacks> {
   const statuses = useAppState((s) => s.state?.statuses);
   const notifications = useAppState((s) => s.state?.notifications);
   const media = useAppState((s) => s.state?.media);
+  const weather = useAppState((s) => s.state?.weather);
+  const obs = useAppState((s) => s.state?.obs);
   const icons = useAppState((s) => s.state?.icons);
   const keyFace = useAppState((s) => s.state?.layout.display.keyFace);
   const keyLabels = useAppState((s) => s.state?.layout.display.keyLabels);
@@ -28,18 +31,37 @@ export function useDeckProps(): { data: DeckData } & Required<DeckCallbacks> {
       statuses: statuses ?? EMPTY_DATA.statuses,
       notifications: notifications ?? EMPTY_DATA.notifications,
       media: media ?? null,
+      weather: weather ?? null,
+      obs: obs ?? null,
       icons: icons ?? NO_ICONS,
       ...(keyFace !== undefined ? { keyFace } : {}),
       ...(keyLabels !== undefined ? { keyLabels } : {}),
     }),
-    [online, vars, sys, statuses, notifications, media, icons, keyFace, keyLabels],
+    [online, vars, sys, statuses, notifications, media, weather, obs, icons, keyFace, keyLabels],
   );
+
+  // The graph of the `sys` widget: the readings are kept here, outside the widgets, and start again with the connection.
+  useEffect(() => {
+    if (online) resetSysHistory();
+  }, [online]);
+  useEffect(() => {
+    recordSys(sys ?? null);
+  }, [sys]);
 
   const onPressError = useCallback((e: { code: string; message?: string }) => {
     hapticEvent({ type: "press_result", ok: false });
     pushToast({ level: "error", title: pressErrorTitle(e), ms: ERROR_TOAST_MS });
   }, []);
+  const onTimerDone = useCallback(() => {
+    pushToast({ level: "warning", title: t("timer.done") });
+    signalAttention("warning"); // a warning wakes the screen from dimming and the screensaver
+  }, []);
   const onNavigate = useCallback((pageId: string) => {
+    if (pageId === BACK_PAGE) {
+      hapticEvent({ type: "page_change", manual: true });
+      goBack();
+      return;
+    }
     const index = getState().state?.layout.pages.findIndex((p) => p.id === pageId) ?? -1;
     if (index >= 0) {
       hapticEvent({ type: "page_change", manual: true });
@@ -54,5 +76,5 @@ export function useDeckProps(): { data: DeckData } & Required<DeckCallbacks> {
     openPopup(popupId, anchor);
   }, []);
 
-  return { data, onPress: press, onPressError, onNavigate, onDismiss: dismiss, onOpenPopup, onFeedback };
+  return { data, onPress: press, onPressError, onNavigate, onDismiss: dismiss, onOpenPopup, onFeedback, onTimerDone };
 }

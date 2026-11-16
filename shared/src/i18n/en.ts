@@ -46,6 +46,18 @@ export const en = {
 
   // ----- Widgets (phone, previews in the window) -----
   "widget.nothing_playing": "Nothing playing",
+  "nav.back": "Back",
+  "timer.done": "Timer done",
+  "timer.hold_reset": "Hold to reset",
+  "obs.rec": "REC",
+  "obs.live": "LIVE",
+  "obs.not_recording": "Not recording",
+  "obs.offline": "Offline",
+  "obs.not_connected": "OBS is not connected",
+  "obs.off": "OBS is off",
+  "volume.mute": "Mute",
+  "volume.louder": "Volume up",
+  "volume.quieter": "Volume down",
   "widget.no_notifications": "No notifications",
   "widget.no_statuses": "No statuses yet",
   "widget.more": "+{n} more",

@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import type { FullState, NotifLevel, Notification, PatchMsg, SectionName, WelcomeMsg } from "@decka/shared";
+import { popBack, pushBack } from "../deck/backStack";
 import { decideContextPage } from "../deck/context";
 
 export type ConnState = "unpaired" | "connecting" | "online" | "offline" | "update_required";
@@ -25,6 +26,8 @@ export interface AppState {
   homePageIndex: number;
   /** Id of the page opened automatically for the active PC application, or null. */
   autoPageId: string | null;
+  /** Ids of the pages the user left by hand, newest last, at most 10: what a `$back` key walks through (DATA_MODEL.md 3.8). */
+  backStack: string[];
   /** Time of the last touch (ms); a recent touch postpones automatic page switches. */
   lastTouch: number;
   /** Name of the page just opened automatically, shown for a moment. */
@@ -35,7 +38,7 @@ export interface AppState {
   lastError: string | null;
 }
 
-const SECTIONS: readonly string[] = ["layout", "sys", "statuses", "notifications", "vars", "focus", "media", "icons"];
+const SECTIONS: readonly string[] = ["layout", "sys", "statuses", "notifications", "vars", "focus", "media", "icons", "weather", "obs"];
 const MAX_TOASTS = 3;
 const DEFAULT_TOAST_MS = 8000;
 
@@ -49,6 +52,7 @@ const initial = (): AppState => ({
   pageIndex: 0,
   homePageIndex: 0,
   autoPageId: null,
+  backStack: [],
   lastTouch: 0,
   hint: null,
   popup: null,
@@ -165,7 +169,25 @@ export function runContext(now: number = Date.now()): void {
 
 /** The user chose a page (swipe, `navigate` button): it becomes home and the automatic page is forgotten. */
 export function navigateManually(pageIndex: number): void {
-  setState({ pageIndex, homePageIndex: pageIndex, autoPageId: null, hint: null, popup: null });
+  const s = current;
+  const from = s.state?.layout.pages[s.pageIndex]?.id;
+  // The page left by hand goes on the back stack; an automatic (context) change never does, and staying put writes nothing.
+  const backStack = from !== undefined && pageIndex !== s.pageIndex ? pushBack(s.backStack, from) : s.backStack;
+  setState({ pageIndex, homePageIndex: pageIndex, autoPageId: null, hint: null, popup: null, backStack });
+}
+
+/** The `$back` key: the page the user came from; with an empty stack (or only pages that are gone) the first page. */
+export function goBack(): void {
+  const s = current;
+  const pages = s.state?.layout.pages ?? [];
+  const { pageId, stack } = popBack(s.backStack, (id) => pages.some((p) => p.id === id && p.popup !== true));
+  const index = pageId === null ? 0 : pages.findIndex((p) => p.id === pageId);
+  setState({ pageIndex: index, homePageIndex: index, autoPageId: null, hint: null, popup: null, backStack: stack });
+}
+
+/** Something wants the phone awake (the timer ran down): same as an attention notification, without a notification. */
+export function signalAttention(level: NotifLevel): void {
+  attentionListeners.forEach((fn) => fn(level));
 }
 
 export function openPopup(pageId: string, anchor: { x: number; y: number; width: number; height: number }): void {
