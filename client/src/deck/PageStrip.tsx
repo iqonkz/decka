@@ -119,20 +119,24 @@ export default function PageStrip({ pages, pageIndex, grid, onCommit }: Props) {
   const neighbour = lead !== null ? pages[lead] : undefined;
   return (
     <div ref={root} className="pages" onPointerDown={onDown} onPointerMove={onMove} onPointerUp={() => finish(true)} onPointerCancel={() => finish(false)}>
-      {current && (
-        <div
-          key={slide ? `${current.id}-${slide.key}` : current.id}
-          className={`page-layer${slide ? (slide.dir > 0 ? " from-right" : " from-left") : ""}`}
-          style={{ transform: `translateX(${offset}px)`, transition }}
-        >
-          <DeckBridge page={current} grid={grid} />
-        </div>
-      )}
-      {neighbour && lead !== null && (
-        <div className="page-layer" style={{ transform: `translateX(${offset + (lead > pageIndex ? width() : -width())}px)`, transition }}>
-          <DeckBridge page={neighbour} grid={grid} />
-        </div>
-      )}
+      {/* One keyed list: when the swipe commits, the neighbour layer becomes the current one with the same key, so React
+          keeps its DOM instead of mounting the page again (that remount was the jerk at the end of a swipe). */}
+      {[
+        current && (
+          <div
+            key={slide ? `${current.id}-${slide.key}` : current.id}
+            className={`page-layer${slide ? (slide.dir > 0 ? " from-right" : " from-left") : ""}`}
+            style={{ transform: `translateX(${offset}px)`, transition }}
+          >
+            <DeckBridge page={current} grid={grid} />
+          </div>
+        ),
+        neighbour && lead !== null && (
+          <div key={neighbour.id} className="page-layer" style={{ transform: `translateX(${offset + (lead > pageIndex ? width() : -width())}px)`, transition }}>
+            <DeckBridge page={neighbour} grid={grid} />
+          </div>
+        ),
+      ]}
     </div>
   );
 }

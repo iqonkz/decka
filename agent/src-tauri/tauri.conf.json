@@ -36,6 +36,15 @@
     ],
     "resources": {
       "../../client/dist": "client"
+    },
+    "windows": {
+      "nsis": {
+        "headerImage": "installer/header.bmp",
+        "sidebarImage": "installer/sidebar.bmp",
+        "installerIcon": "icons/icon.ico",
+        "languages": ["English", "Russian"],
+        "displayLanguageSelector": true
+      }
     }
   }
 }
