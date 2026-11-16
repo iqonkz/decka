@@ -320,6 +320,7 @@ export const en = {
   "menu_item.ask": "Ask before running",
   "menu_item.test": "Test on PC",
   "menu_item.duplicate": "Duplicate",
+  "menu_item.cut": "Cut",
   "menu_item.edit_group": "Edit popup group",
   "menu_item.make_group": "Make popup group",
   "menu_item.refresh_icon": "Refresh app icon",

@@ -372,6 +372,13 @@ export default function LayoutTab() {
     setPage({ ...page, items: [...page.items, copy] });
     setSelectedId(copy.id);
   }
+  /** Cut = remember the item and remove it; Paste (on any page) puts it back as a new item. */
+  function cutItem(id: string) {
+    const item = page.items.find((i) => i.id === id);
+    if (!item) return;
+    setClipboard(item);
+    deleteItem(id);
+  }
   function pasteAt(cell: { x: number; y: number } | null) {
     if (!clipboard) return;
     const spot = nearestFreeCell(page, layout!.grid, cell?.x ?? clipboard.x, cell?.y ?? clipboard.y, clipboard.w, clipboard.h);
@@ -446,6 +453,7 @@ export default function LayoutTab() {
         { label: t("menu_item.ask"), icon: "hand-palm", checked: item.confirm === true, onClick: () => patchItem(item.id, { confirm: item.confirm === true ? undefined : true }) },
         { label: t("menu_item.test"), icon: "play", separator: true, disabled: !item.actionId, onClick: () => void testItem(item) },
         { label: t("menu_item.duplicate"), icon: "copy", hint: "Ctrl+D", onClick: () => duplicateItem(item.id) },
+        { label: t("menu_item.cut"), icon: "scissors", hint: "Ctrl+X", onClick: () => cutItem(item.id) },
         item.popup !== undefined
           ? { label: t("menu_item.edit_group"), icon: "squares-four", onClick: () => goToPage(item.popup) }
           : { label: t("menu_item.make_group"), icon: "squares-four", disabled: page.popup === true, onClick: () => makePopup(item.id) },
@@ -471,6 +479,7 @@ export default function LayoutTab() {
         { label: t("menu_item.settings"), icon: "gear", onClick: () => document.querySelector(".item-form")?.scrollIntoView({ block: "start" }) },
         ...(sizes.length > 1 ? [{ label: t("menu_item.size"), icon: "arrows-out", submenu: sizes }] : []),
         { label: t("menu_item.duplicate"), icon: "copy", hint: "Ctrl+D", onClick: () => duplicateItem(item.id) },
+        { label: t("menu_item.cut"), icon: "scissors", hint: "Ctrl+X", onClick: () => cutItem(item.id) },
         { label: t("common.delete"), icon: "trash", hint: "Del", danger: true, separator: true, onClick: () => deleteItem(item.id) },
       ];
     }
@@ -549,6 +558,9 @@ export default function LayoutTab() {
       duplicateItem(selected.id);
     } else if (ctrl && key === "c" && selected) {
       setClipboard(selected);
+    } else if (ctrl && key === "x" && selected) {
+      e.preventDefault();
+      cutItem(selected.id);
     } else if (ctrl && key === "v" && clipboard) {
       e.preventDefault();
       pasteAt(null);

@@ -332,6 +332,7 @@ export const ru: Record<Base | ExtraPlural, string> = {
   "menu_item.ask": "Спрашивать перед запуском",
   "menu_item.test": "Проверить на ПК",
   "menu_item.duplicate": "Дублировать",
+  "menu_item.cut": "Вырезать",
   "menu_item.edit_group": "Изменить группу",
   "menu_item.make_group": "Сделать группой",
   "menu_item.refresh_icon": "Обновить иконку программы",
