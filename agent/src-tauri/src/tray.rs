@@ -1,6 +1,8 @@
 //! System tray icon and its menu.
 
-use decka_core::tray_text::{agent_language, tray_text, TrayKey};
+use std::sync::Mutex;
+
+use decka_core::tray_text::{agent_language, tray_text, update_available_text, TrayKey};
 use decka_core::Agent;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
@@ -8,9 +10,14 @@ use tauri::{AppHandle, Emitter, Manager};
 
 /// The items of the tray menu, kept so that their texts can change when the language does.
 struct TrayItems {
+    menu: Menu<tauri::Wry>,
     open: MenuItem<tauri::Wry>,
     pair: MenuItem<tauri::Wry>,
     quit: MenuItem<tauri::Wry>,
+    /// `Update available (X.Y.Z)`: in the menu only while a newer release is known.
+    update: MenuItem<tauri::Wry>,
+    /// The version the update item names now, `None` while the item is not in the menu.
+    update_version: Mutex<Option<String>>,
 }
 
 pub fn show_settings(app: &AppHandle) {
@@ -42,6 +49,31 @@ pub fn refresh_language(app: &AppHandle) {
     let _ = items.open.set_text(tray_text(lang, TrayKey::OpenSettings));
     let _ = items.pair.set_text(tray_text(lang, TrayKey::PairDevice));
     let _ = items.quit.set_text(tray_text(lang, TrayKey::Quit));
+    let shown = items.update_version.lock().unwrap().clone();
+    if let Some(version) = shown {
+        let _ = items.update.set_text(update_available_text(lang, &version));
+    }
+}
+
+/// Shows `Update available (X.Y.Z)` in the menu while a newer release is known (`Some`), removes it otherwise.
+pub fn show_update(app: &AppHandle, version: Option<&str>) {
+    let Some(items) = app.try_state::<TrayItems>() else { return };
+    let mut shown = items.update_version.lock().unwrap();
+    match (version, shown.is_some()) {
+        (Some(v), was_shown) => {
+            let _ = items.update.set_text(update_available_text(current_language(app), v));
+            if !was_shown {
+                // After `Open settings` and `Pair a device`, before the separator.
+                let _ = items.menu.insert(&items.update, 2);
+            }
+            *shown = Some(v.to_string());
+        }
+        (None, true) => {
+            let _ = items.menu.remove(&items.update);
+            *shown = None;
+        }
+        (None, false) => {}
+    }
 }
 
 pub fn setup(app: &AppHandle) -> tauri::Result<()> {
@@ -50,8 +82,9 @@ pub fn setup(app: &AppHandle) -> tauri::Result<()> {
     let pair = MenuItem::with_id(app, "pair", tray_text(lang, TrayKey::PairDevice), true, None::<&str>)?;
     let separator = PredefinedMenuItem::separator(app)?;
     let quit_item = MenuItem::with_id(app, "quit", tray_text(lang, TrayKey::Quit), true, None::<&str>)?;
+    let update = MenuItem::with_id(app, "update", update_available_text(lang, ""), true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&open, &pair, &separator, &quit_item])?;
-    app.manage(TrayItems { open, pair, quit: quit_item });
+    app.manage(TrayItems { menu: menu.clone(), open, pair, quit: quit_item, update, update_version: Mutex::new(None) });
 
     let mut builder = TrayIconBuilder::with_id("main")
         .tooltip("Decka")
@@ -62,6 +95,10 @@ pub fn setup(app: &AppHandle) -> tauri::Result<()> {
             "pair" => {
                 show_settings(app);
                 let _ = app.emit("decka://navigate", "pairing");
+            }
+            "update" => {
+                show_settings(app);
+                let _ = app.emit("decka://navigate", "about");
             }
             "quit" => quit(app),
             _ => {}
@@ -75,5 +112,9 @@ pub fn setup(app: &AppHandle) -> tauri::Result<()> {
         builder = builder.icon(icon.clone());
     }
     builder.build(app)?;
+    // A check may have finished before the tray existed.
+    if let Some(agent) = app.try_state::<Agent>() {
+        show_update(app, agent.update_status().available.as_ref().map(|a| a.version.as_str()));
+    }
     Ok(())
 }

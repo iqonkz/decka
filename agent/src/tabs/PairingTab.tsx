@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { locale, t, type DeviceInfo, type PairingInfo } from "@decka/shared";
+import { locale, sameMinor, t, type DeviceInfo, type PairingInfo } from "@decka/shared";
 import { call, onStatus } from "../ipc";
+import { RELEASES_URL } from "../updates";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
 
@@ -15,6 +16,11 @@ export default function PairingTab({ embedded = false }: { embedded?: boolean } 
   const [devices, setDevices] = useState<DeviceInfo[]>([]);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // The version of this agent, to compare with the phones' (ARCHITECTURE.md 8a).
+  const [agentVersion, setAgentVersion] = useState<string | null>(null);
+  useEffect(() => {
+    call("get_status").then((s) => setAgentVersion(s.version), () => {});
+  }, []);
 
   // Devices known when the code was issued; a new id means the pairing succeeded.
   const knownIds = useRef<Set<string>>(new Set());
@@ -140,6 +146,7 @@ export default function PairingTab({ embedded = false }: { embedded?: boolean } 
                 <th>{t("pairing.col_name")}</th>
                 <th>{t("pairing.col_paired")}</th>
                 <th>{t("pairing.col_last_seen")}</th>
+                <th>{t("pairing.col_version")}</th>
                 <th />
               </tr>
             </thead>
@@ -152,6 +159,17 @@ export default function PairingTab({ embedded = false }: { embedded?: boolean } 
                   <td>{d.name}</td>
                   <td>{fmtTime(d.createdAt)}</td>
                   <td>{fmtTime(d.lastSeenAt)}</td>
+                  <td>
+                    {d.appVersion ?? <span className="muted">{t("pairing.version_unknown")}</span>}
+                    {d.appVersion !== undefined && agentVersion !== null && !sameMinor(d.appVersion, agentVersion) && (
+                      <div className="version-warn">
+                        {t("pairing.update_recommended", { version: d.appVersion })}{" "}
+                        <button type="button" className="link" onClick={() => void call("open_release", { url: RELEASES_URL })}>
+                          {t("pairing.releases")}
+                        </button>
+                      </div>
+                    )}
+                  </td>
                   <td>
                     {confirmId === d.id ? (
                       <span className="row">

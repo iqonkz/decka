@@ -24,6 +24,14 @@ pub fn tray_text(lang: &str, key: TrayKey) -> &'static str {
     }
 }
 
+/// The tray item that appears when a newer release exists: `Update available (0.2.0)`.
+pub fn update_available_text(lang: &str, version: &str) -> String {
+    match lang {
+        "ru" => format!("Доступно обновление ({version})"),
+        _ => format!("Update available ({version})"),
+    }
+}
+
 /// `display.language` (`auto` | `en` | `ru`, absent = `auto`) and the primary language id of the system UI -> `"en"` or `"ru"`.
 pub fn resolve_language(setting: Option<&str>, system_lang_id: u16) -> &'static str {
     match setting {
@@ -61,6 +69,12 @@ mod tests {
         assert_eq!(tray_text("ru", TrayKey::Quit), "Выход");
         assert_eq!(tray_text("ru", TrayKey::OpenSettings), "Открыть настройки");
         assert_eq!(tray_text("ru", TrayKey::PairDevice), "Подключить телефон");
+    }
+
+    #[test]
+    fn the_update_item_names_the_version() {
+        assert_eq!(update_available_text("en", "0.2.0"), "Update available (0.2.0)");
+        assert_eq!(update_available_text("ru", "0.2.0"), "Доступно обновление (0.2.0)");
     }
 
     #[test]

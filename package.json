@@ -1,11 +1,13 @@
 {
   "name": "decka",
+  "version": "0.1.0",
   "private": true,
   "workspaces": ["shared", "ui", "client", "agent"],
   "engines": { "node": ">=22.12" },
   "scripts": {
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present && node tools/check-i18n.mjs",
+    "test": "npm run test --workspaces --if-present && node tools/check-i18n.mjs && node tools/check-version.mjs && node --test tools/version.test.mjs",
+    "version:bump": "node tools/bump-version.mjs",
     "build:ui": "npm run build -w client && npm run build -w agent",
     "tauri": "npm run tauri -w agent --",
     "release:agent": "npm run build:ui && npm run tauri -- build",

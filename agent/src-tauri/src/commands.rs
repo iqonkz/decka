@@ -24,6 +24,24 @@ pub fn get_status(app: AppHandle) -> Result<AgentStatus, String> {
     Ok(agent(&app)?.status())
 }
 
+/// The answer of the last update check (ARCHITECTURE.md 8a).
+#[tauri::command]
+pub fn get_update_status(app: AppHandle) -> Result<decka_core::updates::UpdateStatus, String> {
+    Ok(agent(&app)?.update_status())
+}
+
+/// `Check now`: asks GitHub at once and returns the answer.
+#[tauri::command]
+pub async fn check_updates(app: AppHandle) -> Result<decka_core::updates::UpdateStatus, String> {
+    Ok(agent(&app)?.check_updates().await)
+}
+
+/// `Download`: opens a release page of the project in the browser (other addresses are refused).
+#[tauri::command]
+pub fn open_release(app: AppHandle, url: String) -> Result<(), String> {
+    agent(&app)?.open_release(&url)
+}
+
 #[tauri::command]
 pub fn get_config(app: AppHandle) -> Result<ConfigFile, String> {
     Ok(agent(&app)?.config())

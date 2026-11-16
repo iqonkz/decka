@@ -1,6 +1,6 @@
-import { t } from "@decka/shared";
+import { sameMinor, t } from "@decka/shared";
 import { useAppState } from "../store/store";
-import { statusLine } from "./menuModel";
+import { statusLine, versionLine } from "./menuModel";
 
 interface Props {
   reduced: boolean;
@@ -16,6 +16,7 @@ export default function PhoneMenu({ reduced, onToggleReduced, haptics, onToggleH
   const conn = useAppState((s) => s.conn);
   const via = useAppState((s) => s.via);
   const agentName = useAppState((s) => s.agentName);
+  const agentVersion = useAppState((s) => s.agentVersion);
 
   return (
     <div className="menu-backdrop" onPointerDown={onClose}>
@@ -35,7 +36,10 @@ export default function PhoneMenu({ reduced, onToggleReduced, haptics, onToggleH
         <button type="button" className="menu-row menu-button danger" onClick={onUnpair}>
           {t("menu.unpair")}
         </button>
-        <div className="menu-version">Decka {import.meta.env.VITE_APP_VERSION}</div>
+        <div className="menu-version">{versionLine(import.meta.env.VITE_APP_VERSION, agentVersion)}</div>
+        {agentVersion !== null && !sameMinor(import.meta.env.VITE_APP_VERSION, agentVersion) && (
+          <div className="menu-version warn">{t("menu.pc_version", { version: agentVersion })}</div>
+        )}
       </div>
     </div>
   );

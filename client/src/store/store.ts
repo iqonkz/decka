@@ -16,6 +16,8 @@ export interface AppState {
   conn: ConnState;
   via: "usb" | "lan" | null;
   agentName: string | null;
+  /** `welcome.agent.version`: the version of the PC agent (the phone menu compares it with its own). */
+  agentVersion: string | null;
   rev: number;
   state: FullState | null;
   pageIndex: number;
@@ -41,6 +43,7 @@ const initial = (): AppState => ({
   conn: "connecting",
   via: null,
   agentName: null,
+  agentVersion: null,
   rev: 0,
   state: null,
   pageIndex: 0,
@@ -109,6 +112,7 @@ export function applyWelcome(msg: WelcomeMsg): void {
     rev: msg.rev,
     conn: "online",
     agentName: msg.agent.name,
+    agentVersion: msg.agent.version,
     pageIndex: fixPageIndex(s.pageIndex, msg.state),
     homePageIndex: fixPageIndex(s.homePageIndex, msg.state),
     lastError: null,

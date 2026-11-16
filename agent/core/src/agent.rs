@@ -105,6 +105,9 @@ pub struct DeviceInfo {
     pub created_at: u64,
     pub last_seen_at: u64,
     pub connected: bool,
+    /// `client.version` of the last `pair` / `hello` (M14); absent until the phone connects with a version-aware agent.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub app_version: Option<String>,
 }
 
 /// `refresh_program_icons` result (PROTOCOL.md 9).
@@ -195,6 +198,10 @@ struct Inner {
     focus_collector: Mutex<Option<crate::collectors::focus::FocusCollector>>,
     media_collector: Mutex<Option<crate::collectors::media::MediaCollector>>,
     focus_app: Mutex<Option<String>>,
+    /// The answer of the last update check (ARCHITECTURE.md 8a).
+    update: Mutex<crate::updates::UpdateStatus>,
+    /// Sends the new status to the window and the tray when a check finishes.
+    update_tx: watch::Sender<crate::updates::UpdateStatus>,
     /// Runtime of `Agent::start`; lets synchronous callers (UI commands) start background tasks.
     runtime: tokio::runtime::Handle,
 }
@@ -244,6 +251,8 @@ impl Agent {
                 focus_collector: Mutex::new(None),
                 media_collector: Mutex::new(None),
                 focus_app: Mutex::new(None),
+                update: Mutex::new(crate::updates::UpdateStatus::default()),
+                update_tx: watch::channel(crate::updates::UpdateStatus::default()).0,
                 runtime: tokio::runtime::Handle::current(),
                 opts,
             }),
@@ -430,6 +439,64 @@ impl Agent {
         PairingInfo { code, url, qr_svg, expires_at }
     }
 
+    /// The answer of the last update check (ARCHITECTURE.md 8a).
+    pub fn update_status(&self) -> crate::updates::UpdateStatus {
+        self.inner.update.lock().unwrap().clone()
+    }
+
+    /// Receives the new update status whenever a check finishes (the window and the tray listen).
+    pub fn subscribe_updates(&self) -> watch::Receiver<crate::updates::UpdateStatus> {
+        self.inner.update_tx.subscribe()
+    }
+
+    /// Asks GitHub for the latest release once (on request: `Check now`, opening `About`) and keeps the answer.
+    pub async fn check_updates(&self) -> crate::updates::UpdateStatus {
+        self.check_updates_at(crate::updates::LATEST_URL).await
+    }
+
+    /// `check_updates` against another address (the tests use a local server).
+    pub async fn check_updates_at(&self, url: &str) -> crate::updates::UpdateStatus {
+        let result = match crate::updates::fetch_latest(url).await {
+            Ok(body) => crate::updates::newer_release(&body, crate::VERSION).map_err(|_| ()),
+            Err(()) => Err(()),
+        };
+        let status = match result {
+            Ok(available) => crate::updates::UpdateStatus { available, checked_at: Some(crate::auth::now_ms()), failed: false },
+            // A failed check keeps what was known before (a banner does not vanish because the network blinked).
+            Err(()) => {
+                let before = self.update_status();
+                crate::updates::UpdateStatus { available: before.available, checked_at: Some(crate::auth::now_ms()), failed: true }
+            }
+        };
+        *self.inner.update.lock().unwrap() = status.clone();
+        self.inner.update_tx.send_replace(status.clone());
+        status
+    }
+
+    /// The daily check: first one 45 s after the start, then every 24 h, only while `config.updateCheck` is not `false`.
+    /// Runs on the runtime of `Agent::start`, so it is safe to call from a thread without one (a Tauri command or `setup`).
+    pub fn start_update_loop(&self) {
+        let for_task = self.clone();
+        let task = self.inner.runtime.spawn(async move {
+            tokio::time::sleep(Duration::from_secs(45)).await;
+            loop {
+                if for_task.config().update_check != Some(false) {
+                    for_task.check_updates().await;
+                }
+                tokio::time::sleep(crate::updates::CHECK_EVERY).await;
+            }
+        });
+        self.inner.background.lock().unwrap().push(task);
+    }
+
+    /// Opens the page of a release in the browser; only addresses under the project's releases are accepted.
+    pub fn open_release(&self, url: &str) -> Result<(), String> {
+        if !url.starts_with(crate::updates::RELEASES_PREFIX) {
+            return Err("not a release page of Decka".to_string());
+        }
+        crate::actions::process::open_url(url)
+    }
+
     /// Latest status; the receiver updates on connect/disconnect, server restart and config changes.
     pub fn subscribe_status(&self) -> watch::Receiver<AgentStatus> {
         self.inner.status_tx.subscribe()
@@ -501,7 +568,7 @@ impl Agent {
             .into_iter()
             .map(|d| {
                 let is_connected = connected.contains(&d.id);
-                DeviceInfo { id: d.id, name: d.name, created_at: d.created_at, last_seen_at: d.last_seen_at, connected: is_connected }
+                DeviceInfo { id: d.id, name: d.name, created_at: d.created_at, last_seen_at: d.last_seen_at, connected: is_connected, app_version: d.app_version }
             })
             .collect()
     }

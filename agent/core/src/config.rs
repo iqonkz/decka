@@ -47,6 +47,7 @@ pub fn default_config() -> ConfigFile {
         bind: "0.0.0.0".to_string(),
         api_token: generate_api_token(),
         autostart: false,
+        update_check: None,
         usb: UsbConfig { enabled: false, adb_path: "adb".to_string() },
         collectors: Collectors {
             sys: SysCollectorConfig { enabled: true, interval_sec: 2 },

@@ -1,0 +1,13 @@
+{
+  "url": "https://api.github.com/repos/iqonkz/decka/releases/1",
+  "html_url": "https://github.com/iqonkz/decka/releases/tag/v0.2.0",
+  "id": 1,
+  "tag_name": "v0.2.0",
+  "name": "Decka 0.2.0",
+  "draft": false,
+  "prerelease": false,
+  "created_at": "2026-12-01T09:50:00Z",
+  "published_at": "2026-12-01T10:00:00Z",
+  "assets": [],
+  "body": "Fields the agent does not read are ignored."
+}

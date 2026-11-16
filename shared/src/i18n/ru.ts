@@ -511,5 +511,27 @@ export const ru: Record<Base | ExtraPlural, string> = {
   "frame.title": "Предпросмотр раскладки",
   "canvas.resize": "Изменить размер",
   "preview.key": "Предпросмотр кнопки",
+
+  // ----- Versions and updates -----
+  "menu.app_version": "Приложение {app}",
+  "menu.pc_version_short": "ПК {pc}",
+  "menu.pc_version": "На ПК версия {version} — обновите приложение",
+  "pairing.col_version": "Приложение",
+  "pairing.version_unknown": "неизвестна",
+  "pairing.update_recommended": "Приложение на телефоне {version} — рекомендуем обновить",
+  "pairing.releases": "Релизы",
+  "about.version": "Decka {version}",
+  "about.changelog": "Что нового",
+  "about.updates": "Проверка обновлений",
+  "about.updates_toggle": "Проверять обновления раз в сутки",
+  "about.updates_hint": "Decka спрашивает у GitHub номер новейшего выпуска. Ничего не скачивается и не устанавливается.",
+  "about.check_now": "Проверить сейчас",
+  "about.checking": "Проверяем…",
+  "about.last_check": "Последняя проверка: {time}",
+  "about.never_checked": "Ещё не проверялось.",
+  "about.up_to_date": "У вас последняя версия.",
+  "about.check_failed": "Не удалось связаться с GitHub. Попробуйте позже.",
+  "update.available": "Доступна Decka {version}",
+  "update.download": "Скачать",
   // @@END
 };

@@ -102,6 +102,17 @@ fn sha256_hex(input: &str) -> String {
     Sha256::digest(input.as_bytes()).iter().map(|b| format!("{b:02x}")).collect()
 }
 
+/// A version as the apps write it: `MAJOR.MINOR.PATCH` with an optional `-pre` / `+build` tail, at most 32 characters.
+pub fn is_app_version(v: &str) -> bool {
+    let core_end = v.find(['-', '+']).unwrap_or(v.len());
+    let (core, tail) = v.split_at(core_end);
+    let parts: Vec<&str> = core.split('.').collect();
+    v.len() <= 32
+        && parts.len() == 3
+        && parts.iter().all(|p| !p.is_empty() && p.len() <= 6 && p.bytes().all(|b| b.is_ascii_digit()))
+        && tail.bytes().all(|b| b.is_ascii_alphanumeric() || b"-+.".contains(&b))
+}
+
 /// Paired devices. Only SHA-256 hashes of tokens are stored; devices.json is saved on every change.
 pub struct Devices {
     path: PathBuf,
@@ -130,7 +141,7 @@ impl Devices {
             }
         };
         let now = now_ms();
-        let record = DeviceRecord { id, name: name.to_string(), token_hash: sha256_hex(&token), created_at: now, last_seen_at: now };
+        let record = DeviceRecord { id, name: name.to_string(), token_hash: sha256_hex(&token), created_at: now, last_seen_at: now, app_version: None };
         file.devices.push(record.clone());
         self.save(&file);
         (record, token)
@@ -142,9 +153,18 @@ impl Devices {
     }
 
     pub fn touch(&self, id: &str) {
+        self.touch_with_version(id, None);
+    }
+
+    /// Marks the device as seen now and remembers the app version it reported (`MAJOR.MINOR.PATCH`, maybe `-pre`; anything
+    /// else is ignored). `None` leaves the stored version as it is.
+    pub fn touch_with_version(&self, id: &str, version: Option<&str>) {
         let mut file = self.file.lock().unwrap();
         if let Some(d) = file.devices.iter_mut().find(|d| d.id == id) {
             d.last_seen_at = now_ms();
+            if let Some(v) = version.filter(|v| is_app_version(v)) {
+                d.app_version = Some(v.to_string());
+            }
             self.save(&file);
         }
     }
@@ -249,5 +269,31 @@ mod tests {
         assert_eq!(devices.verify(&token), None);
         assert!(!devices.revoke(&record.id));
         assert!(devices.list().is_empty());
+    }
+
+    #[test]
+    fn the_app_version_of_a_phone_is_remembered_and_saved() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("devices.json");
+        let devices = Devices::new(path.clone(), DevicesFile { version: 1, devices: vec![] });
+        let (record, _) = devices.create("Galaxy S9");
+        assert_eq!(devices.list()[0].app_version, None);
+        devices.touch_with_version(&record.id, Some("0.3.1"));
+        assert_eq!(devices.list()[0].app_version.as_deref(), Some("0.3.1"));
+        // A bad or missing version leaves the stored one alone.
+        devices.touch_with_version(&record.id, Some("<script>"));
+        devices.touch_with_version(&record.id, None);
+        assert_eq!(devices.list()[0].app_version.as_deref(), Some("0.3.1"));
+        assert!(std::fs::read_to_string(&path).unwrap().contains("\"appVersion\": \"0.3.1\""));
+    }
+
+    #[test]
+    fn what_counts_as_an_app_version() {
+        for ok in ["0.1.0", "1.2.3", "10.20.30", "1.0.0-beta.1", "1.0.0+7"] {
+            assert!(is_app_version(ok), "{ok}");
+        }
+        for bad in ["", "1.0", "1.0.0.0", "a.b.c", "1.0.x", "1.0.0 ", "1.0.0<", &"1".repeat(40)] {
+            assert!(!is_app_version(bad), "{bad}");
+        }
     }
 }

@@ -74,7 +74,7 @@ export async function pairWith(hosts: string[], port: number, code: string, agen
 export function unpair(): void {
   clearConn();
   conn().stop();
-  setState({ conn: "unpaired", via: null, agentName: null, state: null, rev: 0, pageIndex: 0, homePageIndex: 0, autoPageId: null, hint: null, popup: null, lastError: null });
+  setState({ conn: "unpaired", via: null, agentName: null, agentVersion: null, state: null, rev: 0, pageIndex: 0, homePageIndex: 0, autoPageId: null, hint: null, popup: null, lastError: null });
 }
 
 export function press(actionId: string): Promise<void> {

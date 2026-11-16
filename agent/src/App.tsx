@@ -3,6 +3,8 @@ import { t, type LanguageSetting } from "@decka/shared";
 import { useApplyLanguage } from "@decka/ui";
 import { call, onNavigate } from "./ipc";
 import { LANGUAGE_EVENT } from "./language";
+import UpdateBanner from "./tabs/UpdateBanner";
+import { useUpdates } from "./updates";
 import AppearanceTab from "./tabs/AppearanceTab";
 import FirstRun, { wizardDone } from "./tabs/FirstRun";
 import LayoutTab from "./tabs/LayoutTab";
@@ -15,12 +17,12 @@ type TabId = "deck" | "look" | "phone" | "more";
 const TAB_IDS: TabId[] = ["deck", "look", "phone", "more"];
 
 /** The side menu in the current language (labels are looked up at render time). */
-function tabs(): TabDef<TabId>[] {
+function tabs(updateAvailable: boolean): TabDef<TabId>[] {
   return [
     { id: "deck", label: t("tab.deck"), icon: "squares-four" },
     { id: "look", label: t("tab.look"), icon: "palette" },
     { id: "phone", label: t("tab.phone"), icon: "device-mobile" },
-    { id: "more", label: t("tab.more"), icon: "dots-three-outline" },
+    { id: "more", label: t("tab.more"), icon: "dots-three-outline", dot: updateAvailable },
   ];
 }
 
@@ -46,7 +48,7 @@ export function resolveTarget(target: string): { tab: TabId; section?: MoreSecti
   }
 }
 
-function TabBody({ tab, section, onSection }: { tab: TabId; section: MoreSection; onSection: (s: MoreSection) => void }) {
+function TabBody({ tab, section, onSection, updates }: { tab: TabId; section: MoreSection; onSection: (s: MoreSection) => void; updates: ReturnType<typeof useUpdates> }) {
   switch (tab) {
     case "deck":
       return <LayoutTab />;
@@ -55,11 +57,12 @@ function TabBody({ tab, section, onSection }: { tab: TabId; section: MoreSection
     case "phone":
       return <PhoneTab />;
     case "more":
-      return <MoreTab section={section} onSection={onSection} />;
+      return <MoreTab section={section} onSection={onSection} updates={updates} />;
   }
 }
 export default function App() {
   const [tab, setTab] = useState<TabId>("deck");
+  const updates = useUpdates();
   const [section, setSection] = useState<MoreSection>("actions");
   const open = useCallback((target: string) => {
     const r = resolveTarget(target);
@@ -129,9 +132,10 @@ export default function App() {
 
   return (
     <div className="shell">
-      <Tabs tabs={tabs()} active={tab} onSelect={setTab} />
+      <Tabs tabs={tabs(updates.status?.available != null)} active={tab} onSelect={setTab} />
       <main className="content">
-        <TabBody tab={tab} section={section} onSection={setSection} />
+        <UpdateBanner status={updates.status} />
+        <TabBody tab={tab} section={section} onSection={setSection} updates={updates} />
       </main>
       {firstRun && (
         <FirstRun

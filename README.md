@@ -57,6 +57,10 @@ In **Layout** the preview is the real deck in the chosen look: drag a program, a
 
 English and Russian, switched in **More → Settings → Language**; **Auto** follows the system language of the window, the phone and Windows.
 
+## Versions
+
+One version number covers the PC agent, the phone app and the APK. It is shown in **More → About** and in the phone menu (`App 0.1.0 · PC 0.1.0`); **Phone** lists the app version of every paired phone. `CHANGELOG.md` lists what changed; once a day (switch it off in **About**) the agent only checks GitHub for a newer release and tells you, it never downloads anything.
+
 ## USB mode
 
 1. Install Android platform-tools (`adb`) and put it in `PATH` (or set the path in **Settings**). Decka does not bundle or download adb.

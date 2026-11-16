@@ -363,6 +363,9 @@ pub struct ConfigFile {
     pub bind: String,
     pub api_token: String,
     pub autostart: bool,
+    /// M14: ask GitHub once a day for a newer release (ARCHITECTURE.md 8a); absent = true.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub update_check: Option<bool>,
     pub usb: UsbConfig,
     pub collectors: Collectors,
 }
@@ -462,6 +465,9 @@ pub struct DeviceRecord {
     pub token_hash: String,
     pub created_at: u64,
     pub last_seen_at: u64,
+    /// M14: `client.version` of the last `pair` / `hello` (ARCHITECTURE.md 8a); absent for phones seen before it was kept.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub app_version: Option<String>,
 }
 
 // ===== State sections =====

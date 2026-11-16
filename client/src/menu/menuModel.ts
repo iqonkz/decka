@@ -13,6 +13,11 @@ export function statusLine(conn: ConnState, via: "usb" | "lan" | null, agentName
   return `${t("menu.connected", { pc: agentName ?? t("menu.your_pc") })}${route}`;
 }
 
+/** `App 0.1.0 · PC 0.1.0`; without a connection (the PC version is not known yet) only `App 0.1.0`. */
+export function versionLine(app: string, pc: string | null): string {
+  return pc === null ? t("menu.app_version", { app }) : `${t("menu.app_version", { app })} · ${t("menu.pc_version_short", { pc })}`;
+}
+
 /**
  * A touch opens the menu only on empty space: not on a key, a widget, an open group, a toast or a dialog.
  * `closest` is the element's `closest` function result for the selector of interactive parts.

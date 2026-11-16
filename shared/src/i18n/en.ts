@@ -491,5 +491,27 @@ export const en = {
   "frame.title": "Layout preview",
   "canvas.resize": "Resize",
   "preview.key": "Key preview",
+
+  // ----- Versions and updates -----
+  "menu.app_version": "App {app}",
+  "menu.pc_version_short": "PC {pc}",
+  "menu.pc_version": "PC has version {version} — update the app",
+  "pairing.col_version": "App",
+  "pairing.version_unknown": "unknown",
+  "pairing.update_recommended": "Phone app {version} — update recommended",
+  "pairing.releases": "Releases",
+  "about.version": "Decka {version}",
+  "about.changelog": "What's new",
+  "about.updates": "Check for updates",
+  "about.updates_toggle": "Check for updates once a day",
+  "about.updates_hint": "Decka asks GitHub for the number of the newest release. Nothing is downloaded or installed.",
+  "about.check_now": "Check now",
+  "about.checking": "Checking…",
+  "about.last_check": "Last check: {time}",
+  "about.never_checked": "Not checked yet.",
+  "about.up_to_date": "You have the latest version.",
+  "about.check_failed": "Could not reach GitHub. Try again later.",
+  "update.available": "Decka {version} is available",
+  "update.download": "Download",
   // @@END
 } as const;

@@ -83,6 +83,7 @@ input { user-select: text; touch-action: manipulation; }
 .menu-button { cursor: pointer; }
 .menu-button.danger { color: #f87171; }
 .menu-version { padding: 1.4vmin 1vmin 0; font-size: 2.2vmin; color: #6b7280; }
+.menu-version.warn { padding-top: 0.6vmin; color: #fbbf24; }
 /* Popup group (DESIGN.md 4.1, 3): the backdrop fades in 160 ms, the panel grows from the pressed key. */
 .popup-backdrop { position: fixed; inset: 0; z-index: 8; background: rgba(0, 0, 0, 0.55); animation: popup-fade-in 160ms ease-out; }
 .popup-backdrop.closing { animation: popup-fade-out 140ms ease-in forwards; }

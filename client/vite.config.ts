@@ -1,6 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import pkg from "./package.json";
+import pkg from "../package.json"; // the one version of the agent, the client and the APK (ARCHITECTURE.md 8a)
 
 export default defineConfig({
   plugins: [react()],

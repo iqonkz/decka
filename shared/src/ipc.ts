@@ -22,12 +22,21 @@ export interface InstalledApp {
   cwd?: string;          // working folder of the shortcut
   icon?: string;         // 32 px data URL for the list (may be absent)
 }
+/** M14, ARCHITECTURE.md 8a: the answer of the last check for a newer release. */
+export interface UpdateStatus {
+  available: { version: string; url: string; publishedAt: string } | null;  // a newer release, when the last check found one
+  checkedAt: number | null;                                                   // ms since the epoch; null before the first check
+  failed: boolean;                                                            // the last check could not reach GitHub
+}
 export interface PairingInfo { code: string; url: string; qrSvg: string; expiresAt: number; }
 export interface ValidationIssue { path: string; message: string; }   // path = JSON pointer
 export type SaveResult = { ok: true } | { ok: false; issues: ValidationIssue[] };
 
 export interface IpcCommands {
   get_status(): AgentStatus;
+  get_update_status(): UpdateStatus;                           // M14: the answer of the last check (ARCHITECTURE.md 8a)
+  check_updates(): UpdateStatus;                               // M14: `Check now`: asks GitHub at once
+  open_release(args: { url: string }): void;                   // M14: `Download`; only release pages of the project are opened
   get_config(): ConfigFile;
   save_config(args: { config: ConfigFile }): SaveResult;       // port/bind apply after restart_server
   restart_server(): AgentStatus;

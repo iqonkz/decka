@@ -60,6 +60,9 @@ pub fn run() {
             commands::list_devices,
             commands::revoke_device,
             commands::send_test_notification,
+            commands::get_update_status,
+            commands::check_updates,
+            commands::open_release,
             commands::open_config_dir,
             commands::open_logs_dir,
             commands::icon_from_program,
@@ -102,6 +105,18 @@ pub fn run() {
                             let _ = handle.emit("decka://status-changed", snapshot);
                         }
                     });
+
+                    // The daily check for a newer release; its answer goes to the window and to the tray.
+                    let handle = app.handle().clone();
+                    let mut updates = agent.subscribe_updates();
+                    tauri::async_runtime::spawn(async move {
+                        while updates.changed().await.is_ok() {
+                            let snapshot = updates.borrow_and_update().clone();
+                            let _ = handle.emit("decka://update-changed", snapshot.clone());
+                            tray::show_update(&handle, snapshot.available.as_ref().map(|a| a.version.as_str()));
+                        }
+                    });
+                    agent.start_update_loop();
 
                     app.manage(agent);
                 }

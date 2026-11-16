@@ -112,6 +112,7 @@ async fn connection(agent: Agent, remote: SocketAddr, mut socket: WebSocket) {
                 return fatal(&mut socket, ErrorCode::PairCodeInvalid, "pairing code rejected", CLOSE_UNAUTHORIZED, None).await;
             }
             let (record, token) = agent.devices().create(&client.name);
+            agent.devices().touch_with_version(&record.id, Some(&client.version));
             (record.id, client, Some(token))
         }
         Ok(ClientMsg::Hello { v, token, client }) => {
@@ -121,7 +122,7 @@ async fn connection(agent: Agent, remote: SocketAddr, mut socket: WebSocket) {
             let Some(device_id) = agent.devices().verify(&token) else {
                 return fatal(&mut socket, ErrorCode::Unauthorized, "invalid device token", CLOSE_UNAUTHORIZED, None).await;
             };
-            agent.devices().touch(&device_id);
+            agent.devices().touch_with_version(&device_id, Some(&client.version));
             (device_id, client, None)
         }
         _ => return fatal(&mut socket, ErrorCode::Unauthorized, unauthorized, CLOSE_UNAUTHORIZED, None).await,
