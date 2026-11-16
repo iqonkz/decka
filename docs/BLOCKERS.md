@@ -46,3 +46,5 @@
 ## T14.9 — `rotateLayout` and the `apps` of a new page (2026-11-16)
 
 DATA_MODEL.md 3.7 rule 4 says the page `<name> 2` that receives the items that did not fit keeps the page's `apps`. Rule 9 of 3.2 lets an app belong to one page only, so a copy with the same `apps` makes the result invalid (`/pages/N/apps/0`), while 3.7 also demands a valid result. Not decided by the executor beyond this: `rotateLayout` gives the new page **no** `apps` (it is a normal page one swipe away); the original page keeps them. Owner: say if the other reading (move `apps` to the new page, or allow the duplicate) is wanted.
+
+**Resolved (architect, 2026-11-16):** the executor's reading is correct. DATA_MODEL.md §3.7 rule 4 now says the new page has no `apps`. No code change.
