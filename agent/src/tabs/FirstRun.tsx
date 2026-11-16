@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { SETS, getLanguage, insertSet, rotateLayout, t, tn, type ActionsFile, type InstalledApp, type LanguageSetting, type LayoutFile } from "@decka/shared";
+import logoUrl from "../../../docs/assets/decka-logo.svg";
 import { call } from "../ipc";
 import { saveLanguage } from "../language";
 import Banner from "../ui/Banner";
@@ -152,6 +153,7 @@ export default function FirstRun({ onClose, startStep = 0 }: { onClose: () => vo
             <option value="ru">Русский</option>
           </select>
         )}
+        {step === 0 && <img className="logo-wizard" src={logoUrl} width={96} height={96} alt="Decka" />}
         <p className="muted wizard-step">
           {t("wizard.step", { n: step + 1, title: titles[step] ?? "" })}
         </p>

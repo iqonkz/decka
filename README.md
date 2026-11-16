@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/assets/decka-logo.svg" width="96" height="96" alt="Decka logo"></p>
+
 # Decka
 
 ## Download

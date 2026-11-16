@@ -1,3 +1,4 @@
+import logoUrl from "../../../docs/assets/decka-logo.svg";
 import PhIcon from "./PhIcon";
 
 export interface TabDef<Id extends string> {
@@ -13,6 +14,10 @@ export interface TabDef<Id extends string> {
 export default function Tabs<Id extends string>({ tabs, active, onSelect }: { tabs: TabDef<Id>[]; active: Id; onSelect: (id: Id) => void }) {
   return (
     <nav className="tabs" role="tablist" aria-orientation="vertical">
+      <div className="brand">
+        <img src={logoUrl} width={24} height={24} alt="" />
+        <span>Decka</span>
+      </div>
       {tabs.map((t) => (
         <button key={t.id} role="tab" aria-selected={t.id === active} className={t.id === active ? "tab active" : "tab"} onClick={() => onSelect(t.id)}>
           {t.icon && <PhIcon name={t.icon} />}

@@ -2,6 +2,8 @@
 
 Decka is licensed under the MIT License (see LICENSE).
 
+Logo © Madi Seit, part of this repository, MIT.
+
 ## Acknowledgements
 
 Decka was designed after studying the projects below. Ideas only, no code copied: not one line of code from any of them is used in Decka.

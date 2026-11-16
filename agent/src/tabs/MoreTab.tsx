@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { locale, t } from "@decka/shared";
+import logoUrl from "../../../docs/assets/decka-logo.svg";
 import { call } from "../ipc";
 import { releasePageOf, type useUpdates } from "../updates";
 import ActionsTab from "./ActionsTab";
@@ -53,6 +54,7 @@ function About({ updates }: { updates: Updates }) {
     <div className="stack">
       <h2>{t("more.about")}</h2>
       <section className="card">
+        <img className="logo-about" src={logoUrl} width={64} height={64} alt="Decka" />
         <p>
           <strong>{version ? t("about.version", { version }) : "Decka"}</strong>{" "}
           {version && (

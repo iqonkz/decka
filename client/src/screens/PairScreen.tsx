@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import logoUrl from "../../../docs/assets/decka-logo.svg";
 import { normalizeCode, parseHostInput, parsePairUrl, t } from "@decka/shared";
 import { pairErrorText, pairWith } from "../app/controller";
 import { isNative } from "../platform/native";
@@ -48,6 +49,7 @@ export default function PairScreen() {
 
   return (
     <form className="pair" onSubmit={submit}>
+      <img src={logoUrl} width={72} height={72} alt="" />
       <h1>{t("pair.title")}</h1>
       <p className="hint">{t("pair.hint")}</p>
       {native && (
