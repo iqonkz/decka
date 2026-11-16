@@ -41,7 +41,7 @@ tools/    ws-smoke.mjs, make-icon.ps1
 | apiToken | `dk_` + 43 символа, заголовок `Authorization: Bearer` |
 | Лимиты | press 20/с на сокет; HTTP 60/мин на IP; pair 10/мин на IP |
 | Id | `^[a-z0-9_-]{1,64}$`; VarName `^[a-z0-9_.-]{1,64}$` |
-| Секции | `layout`, `sys`, `statuses`, `notifications` (≤ 20), `vars`; M11: `focus`, `media`; M12: `icons` (необязательные) |
+| Секции | `layout`, `sys`, `statuses`, `notifications` (≤ 20), `vars`; M11: `focus`, `media`; M12: `icons`; M15: `weather`, `obs` (необязательные). Переменные `audio.*`, `mic.*`, `media.*`, `obs.*` — от сборщиков, зарезервированы |
 | Сетка | `layout.grid`: альбомная cols 3..8 × rows 2..5, по умолчанию 7×4; книжная (M14) cols 2..5 × rows 3..8 |
 | Версия | одна для агента, клиента и APK, источник — корневой `package.json`; `npm run version:bump` не запускать (релиз делает владелец) |
 | Каталог конфигурации | `%APPDATA%\Decka` или env `DECKA_CONFIG_DIR` |
@@ -53,7 +53,7 @@ tools/    ws-smoke.mjs, make-icon.ps1
 - HTTP: `GET /api/health`; `POST /api/notify`; `POST /api/status`; `DELETE /api/status/{id}`; `PUT|DELETE /api/vars/{name}`
 
 ## Действия (DATA_MODEL.md §2)
-`hotkey{keys[]}`, `media{op}`, `launch{program,args?,cwd?,hidden?}`, `open_url{url}`, `system{op: lock|sleep}`; общие поля `name`, `toggleVar?`. Запуск — `Command` без shell, дочерние процессы с `CREATE_NO_WINDOW`.
+`hotkey{keys[]}`, `media{op}`, `launch{program,args?,cwd?,hidden?}`, `open_url{url}`, `system{op: lock|sleep}`; M15: `audio{op}`, `obs{op,scene?,input?}`, `sequence{steps}`, `media` `shuffle|repeat`; общие поля `name`, `toggleVar?`. Запуск — `Command` без shell, дочерние процессы с `CREATE_NO_WINDOW`.
 
 ## Элементы раскладки (DATA_MODEL.md §3)
 `button` (1×1; `actionId` | `navigate` | `popup` | `actionId`+`popup`; `confirm?`; `bind?`), `clock`, `sys`, `statuses`, `status`, `notifications`, `media`. Иконки: `lucide:<имя>` (60 штук), `emoji:<символ>`, `img:<hash16>` (хранилище иконок, DATA_MODEL.md §8).

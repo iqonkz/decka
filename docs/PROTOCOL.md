@@ -73,7 +73,7 @@ export interface ErrorMsg { t: "error"; code: ErrorCode; message: string; fatal:
 export type ServerMsg = PairedMsg | WelcomeMsg | PatchMsg | PressResultMsg | PongMsg | ErrorMsg;
 
 // ===== Состояние (секции) =====
-export type SectionName = "layout" | "sys" | "statuses" | "notifications" | "vars" | "focus" | "media";
+export type SectionName = "layout" | "sys" | "statuses" | "notifications" | "vars" | "focus" | "media" | "weather" | "obs"; // weather, obs — M15
 export interface FullState {
   layout: ClientLayout;            // см. DATA_MODEL.md §3
   sys: SysStats | null;            // null = сборщик выключен
@@ -83,6 +83,28 @@ export interface FullState {
   focus?: FocusInfo | null;        // M11; отсутствует у агентов до M11; null = сборщик выключен
   media?: MediaInfo | null;        // M11; null = ничего не играет или сборщик выключен
   icons?: Record<string, string>;  // M12: "<hash16>" → "data:image/png;base64,..."; только иконки, на которые ссылается раскладка
+  weather?: WeatherInfo | null;    // M15; null = выключено или ещё нет данных
+  obs?: ObsInfo | null;            // M15; null = интеграция выключена
+}
+
+// M15: погода (DATA_MODEL.md §6.3). Агент получает её сам; телефон в интернет не ходит.
+export interface WeatherInfo {
+  place: string;                   // <= 80, имя места из настроек
+  units: "metric" | "imperial";
+  updatedAt: number;               // ts получения данных
+  current: { temp: number; code: number; isDay: boolean; wind: number };   // temp — целое °C/°F; code — WMO; wind — целое км/ч или mph
+  daily: { date: string; min: number; max: number; code: number }[];      // ровно 3 дня, date "YYYY-MM-DD", начиная с сегодня
+}
+
+// M15: OBS Studio (DATA_MODEL.md §6.4). Только состояние; пароль OBS никогда не попадает в протокол.
+export interface ObsInfo {
+  connected: boolean;
+  recording: boolean;
+  recordStartedAt?: number;        // ts начала записи (клиент сам считает таймер)
+  streaming: boolean;
+  streamStartedAt?: number;
+  scene?: string;                  // текущая сцена, <= 100
+  replayBuffer: boolean;           // буфер повтора включён (для кнопки Save replay)
 }
 
 // Активное окно ПК: только имя исполняемого файла, НИКОГДА не заголовок окна.
@@ -101,6 +123,8 @@ export interface MediaInfo {
   durationSec?: number;            // целое
   positionAt: number;              // ts момента, к которому относится positionSec
   art?: string;                    // "data:image/png;base64,..." или "data:image/jpeg;base64,...", <= 65536 символов
+  shuffle?: boolean;               // M15: из GSMTC PlaybackInfo.IsShuffleActive; нет у источника — поле отсутствует
+  repeat?: "none" | "list" | "track"; // M15: из PlaybackInfo.AutoRepeatMode
 }
 
 export interface SysStats {
@@ -267,6 +291,7 @@ export interface HttpError { error: { code: ErrorCode; message: string } }
 - `level` по умолчанию `"info"`. Строки длиннее лимитов (title 120, body 500, source 40, text 80, group 40, label 60) → 400 `BAD_MESSAGE` (не обрезаются; исключение — text/plain выше).
 - `POST /api/status`: upsert по `id`, `source` всегда `"push"`. Если элемента нет и `label` не передан → `label = id`. Если элемент есть и `label`/`group` не переданы → сохраняются прежние; `text` не передан → очищается. `ttlSec` (целое 1..86400): по истечении без нового upsert элемент получает `state: "unknown"` и `text: "stale"`. Элемент с `source: "check"` через API изменить нельзя → 400.
 - `PUT /api/vars/{name}`: строковое значение ≤ 200 символов.
+- M15: переменные сборщиков зарезервированы — имена с префиксами `audio.`, `mic.`, `media.`, `obs.`. `PUT`/`DELETE` для них → 400 `BAD_MESSAGE`, `message: "reserved variable"`. `toggleVar` с таким именем в `actions.json` — ошибка валидации `toggleVar: "<name>" is set by Decka itself — remove it`.
 - Лимит: 60 запросов в минуту на IP-адрес отправителя суммарно по всем авторизованным эндпоинтам → 429.
 - Неверный/отсутствующий токен → 401; после 10 ответов 401 за минуту с одного IP → 429 на 60 с.
 
@@ -482,6 +507,10 @@ export interface IpcCommands {
   get_icon_preview(args: { icon: string }): string | null;     // M12: data URL для окна настроек
   icon_from_svg(args: { svg: string }): { icon: string } | { error: string };       // M13: DATA_MODEL.md §8.4
   is_first_run(): boolean;                                     // M13: devices.json пуст и layout.json не менялся с создания (DESIGN.md §4.4)
+  search_place(args: { query: string }): { name: string; country: string; region?: string; lat: number; lon: number }[] | { error: string };  // M15: геокодинг Open-Meteo, ≤ 5 результатов, query 2..80 символов
+  refresh_weather(): WeatherInfo | { error: string };           // M15: немедленное обновление (кнопка в окне)
+  set_obs_password(args: { password: string }): void;           // M15: шифрует DPAPI и сохраняет; "" — удалить пароль
+  obs_status(): { connected: boolean; error?: string; scenes: string[]; inputs: string[] };  // M15: для окна (выбор сцены/источника звука при создании кнопок)
   check_updates(args: { force: boolean }): UpdateInfo;           // M14: ARCHITECTURE.md §8a; force=false → кеш последней проверки (≤ 24 ч), true → новый запрос
   refresh_program_icons(): { updated: number; failed: number };  // M14: DATA_MODEL.md §8.1; сохраняет раскладку, если updated > 0
   count_lowres_icons(): number;                                  // M14: число кнопок с img:-png < 256 px и действием launch (для строки «Sharpen» в Look)

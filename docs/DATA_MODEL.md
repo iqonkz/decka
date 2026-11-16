@@ -37,9 +37,13 @@ export type Action =
   | (ActionBase & { type: "media"; op: MediaOp })
   | (ActionBase & { type: "launch"; program: string; args?: string[]; cwd?: string; hidden?: boolean })
   | (ActionBase & { type: "open_url"; url: string })
-  | (ActionBase & { type: "system"; op: "lock" | "sleep" });
+  | (ActionBase & { type: "system"; op: "lock" | "sleep" })
+  | (ActionBase & { type: "audio"; op: "mic_toggle" | "out_mute_toggle" })                      // M15
+  | (ActionBase & { type: "obs"; op: ObsOp; scene?: string; input?: string })                   // M15
+  | (ActionBase & { type: "sequence"; steps: ({ actionId: Id } | { delayMs: number })[] });     // M15
 
-export type MediaOp = "play_pause" | "next" | "prev" | "vol_up" | "vol_down" | "mute";
+export type MediaOp = "play_pause" | "next" | "prev" | "vol_up" | "vol_down" | "mute" | "shuffle" | "repeat"; // shuffle, repeat — M15
+export type ObsOp = "record_toggle" | "stream_toggle" | "scene" | "input_mute_toggle" | "save_replay";
 export type KeyName = string; // см. 2.2
 ```
 
@@ -51,6 +55,7 @@ export type KeyName = string; // см. 2.2
 - буквы `a`..`z`, цифры `0`..`9`
 - `f1`..`f24`
 - `enter`, `esc`, `space`, `tab`, `backspace`, `delete`, `home`, `end`, `pageup`, `pagedown`, `up`, `down`, `left`, `right`
+- M15: `printscreen`, `insert`, `period`, `comma`, `minus`, `equal`, `slash`, `semicolon` (нужны для `win+period` — панель эмодзи, `win+shift+s` уже покрыт буквами)
 
 Исполнение `hotkey`: клавиши нажимаются в порядке массива (press), затем отпускаются в обратном порядке (release). Пример `["ctrl","shift","esc"]`.
 
@@ -63,6 +68,10 @@ export type KeyName = string; // см. 2.2
 | `launch` | `std::process::Command::new(program).args(args)`, **без shell**; `cwd` → `current_dir`; `hidden: true` → флаг создания `CREATE_NO_WINDOW` (0x08000000); процесс не ожидается (spawn и забыть) | `program` 1..500 символов; `args` ≤ 32 элементов по ≤ 500 символов; `cwd` ≤ 500 |
 | `open_url` | `rundll32.exe url.dll,FileProtocolHandler <url>` через `Command` без shell | `url` ≤ 2000 символов, парсится crate `url`, схема строго `http` или `https` |
 | `system` | `lock` → `rundll32.exe user32.dll,LockWorkStation`; `sleep` → `rundll32.exe powrprof.dll,SetSuspendState 0,1,0` | `op` из списка |
+| `media` `shuffle`/`repeat` (M15) | только через GSMTC: `TryChangeShuffleActiveAsync(!IsShuffleActive)`; `TryChangeAutoRepeatModeAsync` по кругу `none → list → track → none`. Нет сессии или источник не поддерживает (`false`) → `ACTION_FAILED`, `message: "The player does not support this"`. Запасного пути клавишей нет | `op` из списка |
+| `audio` (M15) | Core Audio (`IMMDeviceEnumerator::GetDefaultAudioEndpoint`, роль `eConsole`; `IAudioEndpointVolume::SetMute(!GetMute)`): `mic_toggle` — устройство записи (`eCapture`), `out_mute_toggle` — устройство вывода (`eRender`). Нет устройства → `ACTION_FAILED` `"No microphone"` / `"No audio output"` | `op` из списка |
+| `obs` (M15) | запрос obs-websocket 5 (§6.4): `record_toggle` → `ToggleRecord`; `stream_toggle` → `ToggleStream`; `scene` → `SetCurrentProgramScene {sceneName}`; `input_mute_toggle` → `ToggleInputMute {inputName}`; `save_replay` → `SaveReplayBuffer`. Не подключено → `ACTION_FAILED` `"OBS is not connected"`; ошибка OBS → `ACTION_FAILED` с `comment` из ответа OBS | `scene` 1..100 обязателен при `op: "scene"`, `input` 1..100 — при `input_mute_toggle`, иначе запрещены |
+| `sequence` (M15) | шаги по очереди: `actionId` — выполнить то действие (ждать его результата), `delayMs` — пауза; первая ошибка останавливает цепочку → `ACTION_FAILED`, `message: "Step <n>: <ошибка>"`. `toggleVar` — после всех шагов. Нажатие той же кнопки во время выполнения → `ACTION_FAILED` `"Already running"` | 1..10 шагов; `delayMs` 50..10000; сумма пауз ≤ 15000; `actionId` существует и не ссылается на `sequence` (без вложенности) |
 
 - Ключ действия — `Id`. `name` обязателен.
 - Успех действия = процесс успешно порождён / клавиши отправлены. Код возврата запущенной программы не отслеживается.
@@ -131,7 +140,7 @@ export interface ButtonLook { label?: string; icon?: string; color?: string; }
 export interface ButtonItem extends ItemBase, ButtonLook {
   kind: "button";
   actionId?: Id;          // M13: допустимые сочетания — actionId | navigate | popup | actionId+popup
-  navigate?: Id;          // id обычной (не popup) страницы
+  navigate?: Id | "$back"; // id обычной (не popup) страницы; M15: "$back" — на предыдущую страницу (§3.8)
   popup?: Id;             // M13: id popup-страницы
   confirm?: boolean;      // true → нажатие удержанием 800 мс
   bind?: { var: VarName; states: Record<string, ButtonLook> }; // ключ = String(значение переменной)
@@ -139,7 +148,7 @@ export interface ButtonItem extends ItemBase, ButtonLook {
   showLabel?: boolean;          // M14: переопределяет display.keyLabels; подпись видна, если label непустой и (showLabel ?? display.keyLabels ?? true)
 }
 export interface ClockItem    extends ItemBase { kind: "clock"; seconds?: boolean; }
-export interface SysItem      extends ItemBase { kind: "sys"; }
+export interface SysItem      extends ItemBase { kind: "sys"; graph?: boolean; }   // M15: graph — график последних 2 минут (§6.5)
 export interface StatusesItem extends ItemBase { kind: "statuses"; group?: string; title?: string; }
 export interface StatusItemTile extends ItemBase { kind: "status"; statusId: Id; }
 export interface NotificationsItem extends ItemBase { kind: "notifications"; }
@@ -149,7 +158,14 @@ export interface MediaItem extends ItemBase {   // M11: «Сейчас игра�
   prevAction?: Id; playAction?: Id; nextAction?: Id;  // действия кнопок виджета; отсутствует → кнопка не рисуется
 }
 
-export type LayoutItem = ButtonItem | ClockItem | SysItem | StatusesItem | StatusItemTile | NotificationsItem | MediaItem;
+// M15 (§6.3–§6.7)
+export interface VolumeItem  extends ItemBase { kind: "volume"; upAction?: Id; downAction?: Id; muteAction?: Id; } // по умолчанию vol-up / vol-down / vol-mute, если существуют
+export interface TimerItem   extends ItemBase { kind: "timer"; presets?: number[]; }   // минуты, 1..180, 1..4 значения; по умолчанию [25, 5]
+export interface WeatherItem extends ItemBase { kind: "weather"; }
+export interface ObsItem     extends ItemBase { kind: "obs"; }
+
+export type LayoutItem = ButtonItem | ClockItem | SysItem | StatusesItem | StatusItemTile | NotificationsItem | MediaItem
+  | VolumeItem | TimerItem | WeatherItem | ObsItem;
 
 // То, что уходит на телефон в секции "layout": LayoutFile без поля version.
 export type ClientLayout = Omit<LayoutFile, "version">;
@@ -172,6 +188,7 @@ export type ClientLayout = Omit<LayoutFile, "version">;
 9. (M11) `apps`: 0..10 элементов, каждый — regex `^[a-z0-9._ ()-]{1,60}\.exe$`, без повторов внутри страницы; одно приложение может быть указано только на одной странице файла (иначе ошибка на второй странице: `/pages/<i>/apps/<j>`). Первая страница (`pages[0]`) не может иметь `apps` — она домашняя по умолчанию.
 9a. (M13, правило 12) Кнопка: допустимы только сочетания `actionId`, `navigate`, `popup`, `actionId + popup` (иначе ошибка с текстом T11.9). `navigate` указывает на существующую страницу без `popup`; `popup` — на существующую страницу с `popup: true`. Страница с `popup: true` не может быть первой, не может иметь `apps`, её кнопки не могут иметь `popup` и `navigate` (из панели нельзя уйти на другую страницу). `stayOpen` допустим только при `popup: true`. `display.accent` — regex `^#[0-9a-fA-F]{6}$`. Правило 5 (ровно одно из `actionId`/`navigate`) заменяется этим правилом.
 10. (M11) `media`: размер от 2×1 до `cols×2`; `prevAction`/`playAction`/`nextAction`, если заданы, должны существовать в `actions.json` (как `actionId` кнопки).
+13. (M15) Размеры: `volume` — 1×2..1×4 (вертикальный) или 2×1..4×1 (горизонтальный); `timer` — 1×1, 2×1, 2×2; `weather` — 1×1, 2×1, 3×2, 4×2; `obs` — 2×1..4×2; `sys` с `graph: true` — 2×1..4×2. `upAction`/`downAction`/`muteAction` у `volume` — существующие действия. `navigate: "$back"` допустим только у кнопки обычной страницы. `timer.presets` — 1..4 целых 1..180.
 11. (M12) см. §8.2.
 
 Проверки 1–4, 6–8 выражены в JSON Schema там, где это возможно (§5); пересечения, уникальность, ссылки (п. 3, 5) проверяются кодом — одинаково в Rust (`decka-core::config::validate_layout`) и в TS (`shared/src/validate.ts`, используется редактором в окне настроек).
@@ -249,12 +266,16 @@ export type ClientLayout = Omit<LayoutFile, "version">;
 - `display.orientation` — одна на раскладку (телефон стоит на столе в одном положении; поворот по датчику не поддерживается). Телефон блокирует выбранную ориентацию; все страницы используют одну сетку `grid`.
 - **Смена ориентации в окне** (`Look → Orientation`: `Landscape` / `Portrait`, карточки с силуэтом телефона) всегда идёт через `rotateLayout(layout, to)` — чистая функция в `shared`, результат проходит валидацию:
   1. Новая сетка — транспонированная: `cols' = rows`, `rows' = cols`, затем зажатая в пределы новой ориентации (§3.2 п. 1). Пример: 7×4 → 4×7; 8×5 → 5×8; 3×2 → 2×3.
-  2. Кнопки (`w = h = 1`) — транспонирование позиции: `x' = y`, `y' = x`. Порядок чтения меняется со «строки» на «столбцы» — это ожидаемо: вид на телефоне остаётся «повёрнутым», привычные места кнопок сохраняются относительно корпуса телефона.
-  3. Виджеты: позиция `x' = y`, `y' = x`, размер **не транспонируется** (часы 2×1 остаются 2×1), но ширина зажимается в `cols'`, высота — в `rows'` с учётом минимальных размеров виджета. Если виджет не помещается в своей позиции или пересекается с уже размещёнными — первая свободная позиция при обходе сверху вниз, слева направо.
+  2. **Пересмотрено 2026-11-16 (жалоба владельца: «кнопки перемешиваются хаотично»; транспонирование отменено).** Раскладка перетекает в новую сетку **с сохранением порядка чтения**. Сначала виджеты — в порядке `(y, x)` исходной страницы, размер сохраняется (ширина зажимается в `cols'`, высота — в `rows'`, не меньше минимума вида; горизонтальный `volume` в книжной становится вертикальным: `w ↔ h`), каждый — в первую свободную позицию при обходе сверху вниз, слева направо.
+  3. Затем кнопки — в порядке `(y, x)` исходной страницы, каждая в первую свободную клетку того же обхода. Соседние кнопки (например `prev`, `play`, `next`) остаются соседями и идут в том же порядке. Обратный поворот не обязан вернуть исходную раскладку — для этого `Ctrl+Z`.
   4. Элементы, которым не нашлось места, переносятся на новую страницу `<имя страницы> 2` (без `apps` — правило 9 §3.2 — и без `popup`; `apps` остаются у исходной страницы), сразу после исходной; popup-страница при переполнении получает ошибку «не помещается», и ориентация не меняется — окно показывает `Popup group "<name>" doesn't fit. Make it smaller first.`.
-  5. Порядок обработки — элементы в порядке `(y, x)` исходной страницы: сначала кнопки, затем виджеты по убыванию площади.
+  5. (Отменено 2026-11-16 — порядок теперь задан пунктами 2–3.)
 - Перед применением окно показывает превью результата и число перенесённых элементов: `3 items moved to new pages` с кнопками `Rotate` / `Cancel`. `Ctrl+Z` отменяет поворот целиком.
 - Шаблоны контекстных страниц (§7): `minGrid` сравнивается с сеткой после транспонирования шаблона, если ориентация `portrait` (шаблон добавляется через `rotateLayout` его страницы).
+
+### 3.8 Кнопка «Назад» (M15)
+
+`navigate: "$back"` открывает страницу, с которой пользователь пришёл последним **ручным** переходом (свайп, кнопка `navigate`). Клиент хранит стек из ≤ 10 id страниц; автоматическая (контекстная) смена страницы в стек не пишется; пустой стек → первая страница. Иконка по умолчанию — `lucide:arrow-left`, подпись `Back` / `Назад`.
 
 ## 4. config.json и devices.json
 
@@ -273,8 +294,11 @@ export interface ConfigFile {
     checks: HttpCheck[];                              // по умолчанию []; максимум 20
     focus?: { enabled: boolean };                     // M11; отсутствует = { true }
     media?: { enabled: boolean };                     // M11; отсутствует = { true }
+    audio?: { enabled: boolean };                     // M15 (§6.6); отсутствует = { true }
   };
   updateCheck?: boolean;             // M14: проверка новых релизов на GitHub, ARCHITECTURE.md §8a; отсутствует = true
+  weather?: { enabled: boolean; place: string; lat: number; lon: number; units: "metric" | "imperial" }; // M15 (§6.3); отсутствует = выключено
+  obs?: { enabled: boolean; port: number; password?: string };  // M15 (§6.4); port по умолчанию 4455; password — только "dpapi:<base64>", пишет его лишь set_obs_password
 }
 export interface HttpCheck {
   id: Id; label: string;             // label 1..60
@@ -430,6 +454,36 @@ export interface DeviceInfo { id: Id; name: string; createdAt: number; lastSeenA
 
 Всплывающий тост: каждое новое уведомление (id, которого не было в предыдущем значении секции; уведомления, полученные в `welcome`, тостов не порождают) показывается поверх любой страницы 8 с; уровни `warning` и `error` выводят экран из затемнения/заставки.
 
+### 6.3 Погода (M15)
+
+- **Источник:** Open-Meteo (без ключа). Запросы делает **только агент**, телефон в интернет не ходит. Прогноз: `GET https://api.open-meteo.com/v1/forecast?latitude=<lat>&longitude=<lon>&current=temperature_2m,weather_code,is_day,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=3&timezone=auto` (+ `&temperature_unit=fahrenheit&wind_speed_unit=mph` для `imperial`). Координаты округляются до 2 знаков (≈ 1 км) — точнее не отправляем. Геокодинг (только из окна, `search_place`): `GET https://geocoding-api.open-meteo.com/v1/search?name=<query>&count=5&language=<en|ru>`. Хосты вшиты в код, таймаут 10 с, `User-Agent: decka-agent/<версия>`.
+- **Расписание:** при старте, раз в 30 мин, при сохранении настроек погоды, по `refresh_weather`. Ошибка — секция не меняется; если данным больше 3 ч — `weather = null`.
+- **Настройка:** `More → Integrations → Weather`: переключатель, поле поиска города (результаты списком: `Almaty, Kazakhstan`), единицы `°C` / `°F`. Подпись под блоком: `Weather data by Open-Meteo.com (CC BY 4.0)` — обязательна.
+- **Виджет:** `1×1` — иконка и температура; `2×1` — иконка, температура, `min / max` сегодня, место; `3×2`/`4×2` — сверху «сейчас», снизу 3 дня (день недели по языку интерфейса, иконка, `max / min`). `weather = null` → иконка `cloud` и `—`. Иконки по коду WMO — таблица DESIGN.md §2.3.
+
+### 6.4 OBS Studio (M15)
+
+- **Подключение:** агент — клиент obs-websocket 5 (встроен в OBS 28+), адрес строго `ws://127.0.0.1:<port>` (другие хосты не поддерживаются), `tokio-tungstenite` 0.30.0 (уже в зависимостях). Рукопожатие: `Hello` (op 0) → если есть `authentication {challenge, salt}`: `secret = base64(sha256(password + salt))`, `auth = base64(sha256(secret + challenge))` → `Identify` (op 1) `{ rpcVersion: 1, authentication?, eventSubscriptions: 4 | 64 }` (Scenes | Outputs). После `Identified` — запросы `GetRecordStatus`, `GetStreamStatus`, `GetCurrentProgramScene`, `GetReplayBufferStatus`; события `RecordStateChanged`, `StreamStateChanged`, `CurrentProgramSceneChanged`, `ReplayBufferStateChanged` обновляют секцию `obs`. `recordStartedAt`/`streamStartedAt` = сейчас − `outputDuration` из статуса.
+- **Переподключение:** OBS не запущен — повтор через 5, 10, 20, 40, 60, 60… с, без уведомлений; `connected: false`. Неверный пароль (закрытие с кодом 4009) — повторов нет до смены пароля, уведомление `OBS: wrong password` один раз.
+- **Пароль:** хранится в `config.json` только как `dpapi:<base64>` (`CryptProtectData`, область текущего пользователя Windows). Пишет его только `set_obs_password`; `get_config` возвращает `obs` без поля `password` и с `passwordSet: boolean`; `save_config` поле `password` игнорирует и сохраняет прежнее. В логи, протокол и на телефон пароль не попадает (ARCHITECTURE.md S17).
+- **Переменные** (секция `vars`, для `bind` кнопок): `obs.connected`, `obs.recording`, `obs.streaming` (bool), `obs.scene` (строка).
+- **Настройка:** `More → Integrations → OBS Studio`: переключатель, порт, пароль (`Set password…`), статус `Connected` / `OBS is not running` / `Wrong password`, подсказка `In OBS: Tools → WebSocket Server Settings → Enable`.
+- **Виджет `obs`:** точка подключения; `REC 00:12:34` (красная точка, мигает 1 раз в с; `reduced` — не мигает) или `Not recording`; `LIVE 01:02:03` или `Offline`; текущая сцена. `2×1` — запись и эфир в строку; `≥ 3×1` — плюс сцена; `h = 2` — каждая строка крупнее.
+
+### 6.5 График нагрузки (M15)
+
+`sys` с `graph: true`: клиент хранит последние 60 значений `cpu` и `ram` (≈ 2 мин при опросе 2 с), очищает при переподключении. Линия толщиной 1.5 px, под ней заливка цветом линии с непрозрачностью 0.15; CPU — `#3b82f6`, RAM — `#a855f7` (для Material — акцент и вторичный тон). Текущие значения цифрами справа сверху. Сеть и диск — как раньше, строкой снизу при `h = 2`.
+
+### 6.6 Звук: сборщик и ползунок (M15)
+
+- **Сборщик `audio`** (агент): раз в 500 мс читает Core Audio — громкость устройства вывода по умолчанию (`GetMasterVolumeLevelScalar`, 0..100 целым), mute вывода и mute микрофона по умолчанию. Публикует `vars`: `audio.volume`, `audio.muted`, `mic.muted`; изменения рассылаются, только если значение поменялось. Нет устройства → переменная удаляется.
+- **Сборщик `media`** дополнительно публикует `media.playing`, `media.shuffle`, `media.repeat` (переменные для `bind`).
+- **Ползунок `volume`** — телефон по-прежнему шлёт **только `press` с `actionId`** (правило безопасности): перетаскивание по дорожке переводится в число шагов по 2% (шаг клавиши громкости Windows) и отправляется нажатиями `upAction`/`downAction`, не чаще 15 в секунду; во время перетаскивания ползунок показывает ожидаемое значение, после отпускания через 600 мс — значение `audio.volume`. Тап по значку динамика → `muteAction`. Нет переменной `audio.volume` → ползунок серый, работают только `+` / `−` по тапу на концах.
+
+### 6.7 Таймер (M15)
+
+Целиком на телефоне, ПК не участвует. Тап — старт/пауза; удержание 0,8 с — сброс; кнопки пресетов (`25`, `5`) при `w ≥ 2` выбирают длительность. Окончание — виброотклик `confirm` ×3, тост `Timer done` / `Таймер закончился`, вспышка рамки виджета 3 раза, экран выходит из затемнения. Состояние живёт в памяти приложения (перезапуск сбрасывает).
+
 ## 7. Шаблоны контекстных страниц (M11)
 
 Файлы `shared/templates/<id>.json`, встраиваются в агент через `include_str!`.
@@ -548,3 +602,62 @@ export interface PageTemplate {
 - Перед сохранением: заливки и обводки, отличные от `none`, заменяются на `#000` (маске важна только альфа), атрибуты `width`/`height` корня удаляются.
 - Хранение: `<configDir>\icons\<hash16>.svg` (hash — от итоговой разметки); ссылка `img:<hash16>`; в секции `icons` — `data:image/svg+xml;base64,...` (≤ 16 384 символов).
 - Клиент: data URL с `image/svg+xml` рисуется элементом с `mask-image: url(<dataURL>)`, `mask-size: contain`, `background-color: currentColor`; `image/png` — элементом `<img>`.
+
+## 9. Каталог готовых кнопок и наборы (M15, решение 2026-11-16, D-46)
+
+Каталог — данные, а не код: файлы `shared/catalog/catalog.json` и `shared/catalog/sets.json`, проверяются JSON-схемой и тестом. Окно строит из них библиотеку (DESIGN.md §4.8); быстрый выбор §4.5 берёт пункты оттуда же. Телефон каталог не получает.
+
+```ts
+// /shared/src/catalog.ts
+export interface CatalogItem {
+  id: string;                          // "media.shuffle", "audio.mic"; уникален
+  label: { en: string; ru: string };   // подпись кнопки, ≤ 10 символов на обоих языках
+  name: { en: string; ru: string };    // имя в библиотеке и в actions.json, ≤ 40
+  icon: string;                        // "lucide:<имя>" или "ph:<имя>" (Phosphor; окно превращает в img: через icon_from_svg при создании)
+  color?: string;                      // только сервисы и опасные действия, см. DESIGN.md §2.4
+  action?: Action без поля name;       // кнопка-действие
+  ask?: "url" | "keys" | "obs_scene" | "obs_input" | "page";   // чего не хватает — окно спрашивает при создании
+  bind?: { var: VarName; states: Record<string, { label?: { en: string; ru: string }; icon?: string; color?: string }> };
+  navigate?: "$back";
+  widget?: { kind: LayoutItem["kind"]; w: number; h: number; options?: object };   // пункт-виджет
+  requires?: "obs" | "weather";         // без настроенной интеграции пункт показывается с пометкой `Set up` и ведёт в её настройки
+}
+export interface CatalogCategory { id: string; name: { en: string; ru: string }; icon: string; items: string[] }  // items — id пунктов по порядку
+export interface CatalogSet {
+  id: string; name: { en: string; ru: string }; description: { en: string; ru: string }; icon: string;
+  rows: (string | null)[][];           // форма набора: id пунктов по рядам, null — пустая клетка; виджеты занимают свои w×h, начиная с клетки, где указаны
+  requires?: "obs" | "weather";
+}
+```
+
+**Категории и пункты v1** (точные подписи — в `catalog.json`; ниже en / ru):
+
+| Категория | Пункты |
+|---|---|
+| Windows / Windows | Lock / Блок (`system lock`, confirm); Sleep / Сон (`system sleep`, confirm); Screenshot / Снимок (`win+shift+s`); Task mgr / Задачи (`ctrl+shift+esc`); Desktop / Стол (`win+d`); Explorer / Проводник (`win+e`); Emoji / Эмодзи (`win+period`); Clipboard / Буфер (`win+v`); Settings / Параметры (`win+i`) |
+| Media / Медиа | Play / Пуск (`play_pause`, bind `media.playing`: true → `pause`, «Пауза»); Next / Далее; Prev / Назад; Shuffle / Случайно (bind `media.shuffle`); Repeat / Повтор (bind `media.repeat`: `none`/`list`/`track` — три вида); виджет «Сейчас играет» 2×1 |
+| Sound / Звук | Mic / Микрофон (`audio mic_toggle`, bind `mic.muted`: true → `mic-off`, «Mic off» / «Микр. выкл», красный); Mute / Без звука (`audio out_mute_toggle`, bind `audio.muted`); Vol + / Громче; Vol − / Тише; виджет «Громкость» 1×2 |
+| Stream / Стрим | Record / Запись (`obs record_toggle`, bind `obs.recording`); Go live / Эфир (`obs stream_toggle`, bind `obs.streaming`, confirm); Replay / Повтор (`obs save_replay`); Scene / Сцена (`ask: obs_scene`, bind `obs.scene` = эта сцена → акцент); Mic OBS / Микр. OBS (`ask: obs_input`); виджет OBS 2×1. Все с `requires: "obs"` |
+| Widgets / Виджеты | Часы, Система, Система с графиком, Погода (`requires: "weather"`), Таймер, Громкость, Сервисы, Уведомления, Сейчас играет, OBS |
+| Navigation / Переходы | Back / Назад (`$back`); Open page / Страница (`ask: page`); Popup group / Группа |
+| Web / Сайты | Website / Сайт (`ask: url`) |
+| Keys / Клавиши | Shortcut / Сочетание (`ask: keys`); Sequence / Цепочка (открывает редактор цепочки, DESIGN.md §4.8) |
+| Apps / Программы | установленные программы (M12), как в быстром выборе |
+
+**Наборы v1** (`sets.json`):
+
+| id | Имя | Форма |
+|---|---|---|
+| `media-remote` | Media remote / Медиапульт | `[prev, play, next, shuffle, repeat]` + ряд ниже: виджет «Сейчас играет» 3×1 |
+| `sound` | Sound / Звук | `[mic, mute, vol-, vol+]`, справа виджет «Громкость» 1×2 |
+| `windows-tools` | Windows tools / Инструменты Windows | `[lock, screenshot, taskmgr, desktop]`, `[explorer, emoji, clipboard, settings]` |
+| `stream` | Streaming / Стрим (`requires: obs`) | `[record, live, replay, mic-obs]`, `[scene₁, scene₂, scene₃, null]` (первые три сцены OBS), виджет OBS 3×1 ниже |
+| `focus` | Focus / Фокус | виджет «Таймер» 2×1, часы 2×1 |
+
+**Вставка набора** — чистая функция `insertSet(layout, actions, pageId, set, ctx)` → `{ layout, actions, placedOn: pageId[] }` (`ctx` — язык, сцены/входы OBS):
+1. Действия создаются как в §4.5 DESIGN (`findSameAction` — без дублей, `makeActionId`).
+2. Форма целиком в первую позицию текущей страницы (обход сверху вниз, слева направо), где она помещается без пересечений.
+3. Не помещается целиком, но свободных клеток хватает → элементы по одному в порядке формы в первые свободные клетки (виджеты — первая позиция, где помещаются; не поместился виджет — пропускается и указывается в результате).
+4. Свободных клеток не хватает → новая страница с именем набора сразу после текущей, форма с левого верхнего угла.
+5. Пункты с `ask` в наборе берут значение из `ctx` (сцены OBS по порядку); нет значения — пункт пропускается.
+6. Повторная вставка того же набора на ту же страницу добавляет кнопки снова (без дедупликации кнопок; действия переиспользуются).
