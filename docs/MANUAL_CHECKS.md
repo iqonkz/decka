@@ -180,3 +180,9 @@
 
 - Not checked against a real OBS (not installed on the executor's PC); the protocol is covered by a stand-in server in `agent/core/tests/obs.rs`.
 - PENDING (owner): OBS -> Tools -> WebSocket Server Settings -> Enable; Decka -> More -> Integrations -> OBS Studio -> switch on, `Set password…`; the status line shows `Connected`; Library -> Sets -> Streaming -> `Add`; from the phone: Record starts a recording (the key turns red, `REC` runs in the widget), a scene key switches the scene, with a wrong password the status says `Wrong password` and a notification appears once.
+
+## T15.7 — M15 acceptance
+
+- DONE (web client in headless Chrome 740x360 against a stand-in agent with the M15 state; not the phone): the Streaming set keys, volume, timer, weather, OBS and the graph on one page in 4 themes `.tmp\design\m15-final-<theme>.png`, portrait 4x7 `m15-portrait.png` (the volume slider turns vertical), Russian library `m15-ru-library.png` (the settings window runs in Russian here).
+- PENDING (owner): fps on the A57 for a page with volume + sys graph + obs (not lower than the same theme without them minus 10 %): no A57 was connected, and the S9 stayed locked (PIN), so no `gfxinfo` table was made.
+- PENDING (owner): `release:agent`, `release:apk` and `adb install` were not run; the same check on a real phone (T14.5a items stay open for the same reason: S9 locked).
