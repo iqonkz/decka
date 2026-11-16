@@ -389,6 +389,8 @@ export const en = {
   "icon.none_match": "No icons match.",
   "icon.images": "Images",
   "icon.tab_quick": "Quick",
+  "icon.tab_brands": "Apps & brands",
+  "icon.search_brands": "Search among {n} logos",
   "icon.tab_program": "Program",
   "icon.tab_image": "Image",
   "icon.tab_emoji": "Emoji",

@@ -162,7 +162,7 @@ function ButtonFields({ display, item, pages, inPopup, actions, patch, onChangeA
       <div className="form-cols">
       <div className="form-icons">
         <Field label={t("item.icon")}>
-          <IconField value={item.icon} onChange={(icon) => patch({ icon })} program={launchProgram} />
+          <IconField value={item.icon} onChange={(icon) => patch({ icon })} program={launchProgram} onBrand={(icon, hex) => patch(item.color === undefined ? { icon, color: hex } : { icon })} />
         </Field>
         <div className="seg" role="group" aria-label={t("look.key_style")}>
           {(["standard", "full"] as const).map((face) => (

@@ -5,6 +5,7 @@ import { t } from "@decka/shared";
 import { call } from "../ipc";
 import Button from "../ui/Button";
 import { ICON_NAMES } from "./iconNames";
+import { brandUrl, loadBrands, searchBrands, type Brand } from "./brands";
 import { searchIcons, svgUrl, visibleRows, WEIGHTS, type Weight } from "./phosphor";
 
 /** `volume-2` -> `Volume2`, the key of lucide-react's `icons`. */
@@ -67,6 +68,74 @@ export function IconPreview({ icon }: { icon: string | undefined }) {
 const CELL = 48;
 const VIEW_H = 288;
 
+/** The grid takes as many columns as the box is wide and stays centred (no empty strip on the right). */
+function useGridBox() {
+  const [width, setWidth] = useState(CELL * 8);
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const measure = () => setWidth(el.clientWidth);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  const COLS = Math.max(4, Math.floor(width / CELL));
+  return { box, COLS, pad: Math.max(0, Math.floor((width - COLS * CELL) / 2)) };
+}
+
+/** Logos of programs and services (Simple Icons): search, and a grid that renders only the rows in view. */
+function BrandPicker({ onPick, busy }: { onPick: (svg: string, hex: string) => void; busy: boolean }) {
+  const [query, setQuery] = useState("");
+  const [scrollTop, setScrollTop] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [all, setAll] = useState<Brand[]>([]);
+  const { box, COLS, pad } = useGridBox();
+  useEffect(() => {
+    loadBrands().then(setAll, (e) => setError(String(e)));
+  }, []);
+  const found = useMemo(() => searchBrands(all, query), [all, query]);
+  const rows = Math.ceil(found.length / COLS);
+  const [first, end] = visibleRows(scrollTop, VIEW_H, CELL, rows);
+
+  async function pick(brand: Brand) {
+    setError(null);
+    try {
+      const response = await fetch(brandUrl(brand.slug));
+      if (!response.ok) throw new Error(`cannot load ${brand.title}`);
+      // The logo is a single black path; `currentColor` lets the key's text colour paint it like the other icons.
+      onPick((await response.text()).replace("<svg ", '<svg fill="currentColor" '), brand.hex);
+    } catch (e) {
+      setError(String(e));
+    }
+  }
+
+  const cells = [];
+  for (let row = first; row < end; row++) {
+    for (let col = 0; col < COLS; col++) {
+      const brand = found[row * COLS + col];
+      if (!brand) break;
+      cells.push(
+        <button key={brand.slug} type="button" className="phosphor-cell" title={brand.title} disabled={busy} style={{ top: row * CELL, left: pad + col * CELL, width: CELL, height: CELL }} onClick={() => void pick(brand)}>
+          <MaskIcon url={brandUrl(brand.slug)} size={26} />
+        </button>,
+      );
+    }
+  }
+
+  return (
+    <div className="stack">
+      <input aria-label={t("icon.search")} placeholder={t("icon.search_brands", { n: all.length })} value={query} onChange={(e) => { setQuery(e.target.value); setScrollTop(0); }} />
+      <div ref={box} className="phosphor-scroll" style={{ height: VIEW_H }} onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}>
+        <div style={{ position: "relative", height: rows * CELL, width: "100%" }}>{cells}</div>
+        {all.length > 0 && found.length === 0 && <p className="muted">{t("icon.none_match")}</p>}
+      </div>
+      {error && <p className="warn-text">{error}</p>}
+    </div>
+  );
+}
+
 /** `lucide:volume-2` -> `Volume 2`; the raw id is for the file, not for the person. */
 function iconLabel(icon: string | undefined): string {
   if (!icon) return t("icon.no_icon");
@@ -81,20 +150,7 @@ function PhosphorPicker({ onPick, busy }: { onPick: (svg: string) => void; busy:
   const [weight, setWeight] = useState<Weight>("regular");
   const [scrollTop, setScrollTop] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [width, setWidth] = useState(CELL * 8);
-  const box = useRef<HTMLDivElement>(null);
-  // The grid takes as many columns as the box is wide and stays centred (no empty strip on the right).
-  useEffect(() => {
-    const el = box.current;
-    if (!el) return;
-    const measure = () => setWidth(el.clientWidth);
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-  const COLS = Math.max(4, Math.floor(width / CELL));
-  const pad = Math.max(0, Math.floor((width - COLS * CELL) / 2));
+  const { box, COLS, pad } = useGridBox();
   const found = useMemo(() => searchIcons(query), [query]);
   const rows = Math.ceil(found.length / COLS);
   const [first, end] = visibleRows(scrollTop, VIEW_H, CELL, rows);
@@ -152,28 +208,30 @@ function PhosphorPicker({ onPick, busy }: { onPick: (svg: string) => void; busy:
   );
 }
 
-type Tab = "phosphor" | "quick" | "program" | "image" | "emoji";
+type Tab = "brands" | "phosphor" | "quick" | "program" | "image" | "emoji";
 
 interface Props {
   value: string | undefined;
   onChange: (icon: string | undefined) => void;
   /** Program of the button's `launch` action; enables the `Program` tab. `undefined` hides it (state looks). */
   program?: string | null;
+  /** A brand logo was picked: the icon and its official colour (`#rrggbb`) in one call, so the key can take both. */
+  onBrand?: (icon: string, hex: string) => void;
 }
 
 /** Icon of a button: Phosphor, the quick Lucide set, the icon of the action's program, a picture file, or an emoji. */
-export default function IconField({ value, onChange, program }: Props) {
-  const [tab, setTab] = useState<Tab>("quick"); // the curated set first: an alphabetical list of 1500 icons is a poor start
+export default function IconField({ value, onChange, program, onBrand }: Props) {
+  const [tab, setTab] = useState<Tab>("brands"); // the main set: logos of programs and services
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [emoji, setEmoji] = useState("");
 
-  async function fromResult(promise: Promise<{ icon: string } | { error: string }>) {
+  async function fromResult(promise: Promise<{ icon: string } | { error: string }>, apply: (icon: string) => void = onChange) {
     setBusy(true);
     setError(null);
     try {
       const result = await promise;
-      if ("icon" in result) onChange(result.icon);
+      if ("icon" in result) apply(result.icon);
       else setError(result.error);
     } catch (e) {
       setError(String(e));
@@ -187,7 +245,7 @@ export default function IconField({ value, onChange, program }: Props) {
     if (typeof picked === "string") await fromResult(call("icon_from_image", { path: picked }));
   }
 
-  const tabs: [Tab, string][] = [["quick", t("icon.tab_quick")], ["phosphor", "Phosphor"], ...(program !== undefined ? ([["program", t("icon.tab_program")]] as [Tab, string][]) : []), ["image", t("icon.tab_image")], ["emoji", t("icon.tab_emoji")]];
+  const tabs: [Tab, string][] = [["brands", t("icon.tab_brands")], ["quick", t("icon.tab_quick")], ["phosphor", "Phosphor"], ...(program !== undefined ? ([["program", t("icon.tab_program")]] as [Tab, string][]) : []), ["image", t("icon.tab_image")], ["emoji", t("icon.tab_emoji")]];
 
   return (
     <div className="icon-field">
@@ -206,6 +264,15 @@ export default function IconField({ value, onChange, program }: Props) {
         ))}
       </div>
 
+      {tab === "brands" && (
+        <BrandPicker
+          busy={busy}
+          onPick={(svg, hex) => {
+            // One change with both the icon and the colour: two separate ones would overwrite each other.
+            void fromResult(call("icon_from_svg", { svg }), (icon) => (onBrand ? onBrand(icon, `#${hex.toLowerCase()}`) : onChange(icon)));
+          }}
+        />
+      )}
       {tab === "phosphor" && <PhosphorPicker busy={busy} onPick={(svg) => void fromResult(call("icon_from_svg", { svg }))} />}
       {tab === "quick" && (
         <div className="quick-grid">

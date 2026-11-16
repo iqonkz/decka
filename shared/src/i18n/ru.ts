@@ -401,6 +401,8 @@ export const ru: Record<Base | ExtraPlural, string> = {
   "icon.none_match": "Подходящих иконок нет.",
   "icon.images": "Картинки",
   "icon.tab_quick": "Быстрые",
+  "icon.tab_brands": "Программы и бренды",
+  "icon.search_brands": "Поиск среди {n} логотипов",
   "icon.tab_program": "Программа",
   "icon.tab_image": "Картинка",
   "icon.tab_emoji": "Эмодзи",
