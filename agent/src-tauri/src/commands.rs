@@ -54,6 +54,18 @@ pub async fn refresh_weather(app: AppHandle) -> Result<serde_json::Value, String
     })
 }
 
+/// `More → Integrations → OBS Studio`: connection state, scenes and audio inputs.
+#[tauri::command]
+pub async fn obs_status(app: AppHandle) -> Result<decka_core::agent::ObsStatusInfo, String> {
+    Ok(agent(&app)?.obs_status().await)
+}
+
+/// `Set password…`: DPAPI-encrypted and saved; an empty password removes it.
+#[tauri::command]
+pub fn set_obs_password(app: AppHandle, password: String) -> Result<(), String> {
+    agent(&app)?.set_obs_password(&password)
+}
+
 /// `Download`: opens a release page of the project in the browser (other addresses are refused).
 #[tauri::command]
 pub fn open_release(app: AppHandle, url: String) -> Result<(), String> {

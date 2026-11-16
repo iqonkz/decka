@@ -4,6 +4,7 @@ pub mod audio;
 pub mod auth;
 pub mod collectors;
 pub mod config;
+pub mod dpapi;
 pub mod icons;
 pub mod installed;
 #[cfg(windows)]
@@ -11,6 +12,7 @@ pub mod imaging;
 pub mod logging;
 pub mod media_control;
 pub mod model;
+pub mod obs;
 pub mod paths;
 pub mod proto;
 pub mod qr;

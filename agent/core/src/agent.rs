@@ -117,6 +117,16 @@ pub struct RefreshIcons {
     pub failed: usize,
 }
 
+/// Mirrors `ObsStatus` in shared/src/ipc.ts.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct ObsStatusInfo {
+    pub connected: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+    pub scenes: Vec<String>,
+    pub inputs: Vec<String>,
+}
+
 /// Mirrors the `test_action` result in shared/src/ipc.ts.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct TestActionResult {
@@ -214,6 +224,8 @@ struct Inner {
     audio_collector: Mutex<Option<crate::audio::AudioCollector>>,
     /// The weather refresh loop (M15) and the last good answer (older than 3 h it is dropped).
     weather_task: Mutex<Option<JoinHandle<()>>>,
+    /// The connection to OBS Studio (M15), while the integration is on.
+    obs_client: Mutex<Option<Arc<crate::obs::ObsClient>>>,
     weather_last: Mutex<Option<WeatherInfo>>,
     focus_app: Mutex<Option<String>>,
     /// The answer of the last update check (ARCHITECTURE.md 8a).
@@ -271,6 +283,7 @@ impl Agent {
                 media_collector: Mutex::new(None),
                 audio_collector: Mutex::new(None),
                 weather_task: Mutex::new(None),
+                obs_client: Mutex::new(None),
                 weather_last: Mutex::new(None),
                 focus_app: Mutex::new(None),
                 update: Mutex::new(crate::updates::UpdateStatus::default()),
@@ -384,6 +397,8 @@ impl Agent {
 
         // Weather (M15): a loop on the runtime; off = the section is null.
         self.start_weather();
+        // OBS (M15): the connection to obs-websocket; off = no section, no variables.
+        self.start_obs();
 
         // HTTP checks: stop the old tasks (dropping aborts them), then start from the new config.
         let old_checks = self.inner.checks_collector.lock().unwrap().take();
@@ -482,6 +497,74 @@ impl Agent {
     /// Receives the new update status whenever a check finishes (the window and the tray listen).
     pub fn subscribe_updates(&self) -> watch::Receiver<crate::updates::UpdateStatus> {
         self.inner.update_tx.subscribe()
+    }
+
+    /// (Re)starts the OBS connection from the config; safe from any thread (the runtime handle is used).
+    fn start_obs(&self) {
+        drop(self.inner.obs_client.lock().unwrap().take()); // aborts the old task
+        let Some(cfg) = self.config().obs.filter(|o| o.enabled) else {
+            crate::obs::clear(&self.inner.store);
+            return;
+        };
+        // The password is read from its DPAPI blob here and goes nowhere but into the handshake.
+        let password = cfg.password.as_deref().and_then(|stored| match crate::dpapi::unprotect(stored) {
+            Ok(p) => Some(p),
+            Err(e) => {
+                tracing::warn!("obs: the stored password cannot be read: {e}");
+                None
+            }
+        });
+        let me = self.clone();
+        let on_wrong: Arc<dyn Fn() + Send + Sync> = Arc::new(move || {
+            me.push_notification(NotifyReq { title: "OBS: wrong password".to_string(), body: None, level: Some(NotifLevel::Warning), source: Some("decka".to_string()) });
+        });
+        let client = crate::obs::ObsClient::start(&self.inner.runtime, u16::try_from(cfg.port).unwrap_or(4455), password, self.inner.store.clone(), on_wrong);
+        *self.inner.obs_client.lock().unwrap() = Some(Arc::new(client));
+    }
+
+    /// The `obs` actions (DATA_MODEL.md 2.3): one request to OBS. `OBS is not connected`, or the comment of OBS, as the error.
+    async fn obs_action(&self, op: ObsOp, scene: Option<&str>, input: Option<&str>) -> Result<(), String> {
+        let client = self.inner.obs_client.lock().unwrap().clone().ok_or("OBS is not connected")?;
+        let (kind, data) = crate::obs::request_for(op, scene, input)?;
+        client.request(kind, data).await.map(|_| ())
+    }
+
+    /// For the window (`obs_status`): is OBS connected, why not, and its scenes and audio inputs.
+    pub async fn obs_status(&self) -> ObsStatusInfo {
+        let Some(client) = self.inner.obs_client.lock().unwrap().clone() else {
+            return ObsStatusInfo { connected: false, error: Some("OBS is off".to_string()), scenes: Vec::new(), inputs: Vec::new() };
+        };
+        let state = client.state();
+        if !state.connected {
+            return ObsStatusInfo { connected: false, error: client.error(), scenes: Vec::new(), inputs: Vec::new() };
+        }
+        let names = |data: &serde_json::Value, list: &str, key: &str| -> Vec<String> {
+            data.get(list).and_then(|a| a.as_array()).map(|a| a.iter().filter_map(|x| x.get(key).and_then(|s| s.as_str())).map(str::to_string).collect()).unwrap_or_default()
+        };
+        let scenes = match client.request("GetSceneList", serde_json::Value::Null).await {
+            Ok(d) => names(&d, "scenes", "sceneName"),
+            Err(_) => state.scenes.clone(),
+        };
+        let inputs = match client.request("GetInputList", serde_json::Value::Null).await {
+            Ok(d) => names(&d, "inputs", "inputName"),
+            Err(_) => state.inputs.clone(),
+        };
+        ObsStatusInfo { connected: true, error: None, scenes, inputs }
+    }
+
+    /// `set_obs_password`: encrypts with DPAPI and saves; an empty password removes it. The connection starts again with it.
+    pub fn set_obs_password(&self, password: &str) -> Result<(), String> {
+        let mut config = self.config();
+        let obs = config.obs.get_or_insert(ObsConfig { enabled: false, port: 4455, password: None, password_set: None });
+        obs.password = if password.is_empty() { None } else { Some(crate::dpapi::protect(password)?) };
+        obs.password_set = None;
+        match self.write_config(config) {
+            SaveResult::Saved => {
+                self.start_obs();
+                Ok(())
+            }
+            SaveResult::Rejected(issues) => Err(issues.first().map(|i| i.message.clone()).unwrap_or_default()),
+        }
     }
 
     /// (Re)starts the weather loop from the config: at once, then every 30 minutes. Safe from any thread (the runtime handle is used).
@@ -756,6 +839,12 @@ impl Agent {
 
     /// The runner on the blocking pool, then `toggleVar` on success.
     async fn run_action(&self, action_id: &str, action: Action) -> Result<(), (ErrorCode, String)> {
+        // OBS is spoken to over a connection the agent holds, not by a runner.
+        if let Action::Obs { op, scene, input, toggle_var, .. } = &action {
+            self.obs_action(*op, scene.as_deref(), input.as_deref()).await.map_err(|m| (ErrorCode::ActionFailed, m))?;
+            self.toggle_var(toggle_var.clone());
+            return Ok(());
+        }
         let runner = self.inner.opts.runner.clone();
         let id = action_id.to_string();
         let toggle = action.toggle_var().map(str::to_string);
@@ -997,6 +1086,7 @@ impl Agent {
         if let Some(task) = self.inner.weather_task.lock().unwrap().take() {
             task.abort();
         }
+        drop(self.inner.obs_client.lock().unwrap().take());
         let watcher = self.inner.watcher.lock().unwrap().take();
         drop(watcher);
         if let Some(usb) = self.inner.usb_task.lock().unwrap().take() {

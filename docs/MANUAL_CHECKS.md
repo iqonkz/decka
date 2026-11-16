@@ -175,3 +175,8 @@
 
 - DONE (real Tauri window with `DECKA_CONFIG_DIR=.tmp\cfg-t154`, real Open-Meteo): searched "Almaty", picked it, switched weather on, `Refresh now` answered `Updated.`; the weather widget placed from the library showed -5° / 1° and the place on the phone page (web client, 740x360). Snapshots `.tmp\design\m15-weather-settings.png`, `m15-weather.png`.
 - PENDING (owner): `°F` units on the phone, and the widget in 3x2 / 4x2 with three days (not placed here).
+
+## T15.6 — OBS Studio
+
+- Not checked against a real OBS (not installed on the executor's PC); the protocol is covered by a stand-in server in `agent/core/tests/obs.rs`.
+- PENDING (owner): OBS -> Tools -> WebSocket Server Settings -> Enable; Decka -> More -> Integrations -> OBS Studio -> switch on, `Set password…`; the status line shows `Connected`; Library -> Sets -> Streaming -> `Add`; from the phone: Record starts a recording (the key turns red, `REC` runs in the widget), a scene key switches the scene, with a wrong password the status says `Wrong password` and a notification appears once.

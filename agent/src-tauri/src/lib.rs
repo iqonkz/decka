@@ -64,6 +64,8 @@ pub fn run() {
             commands::check_updates,
             commands::open_release,
             commands::search_place,
+            commands::obs_status,
+            commands::set_obs_password,
             commands::refresh_weather,
             commands::open_config_dir,
             commands::open_logs_dir,

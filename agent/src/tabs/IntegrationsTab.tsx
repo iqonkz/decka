@@ -6,6 +6,7 @@ import Button from "../ui/Button";
 import Field from "../ui/Field";
 import { makeActionId } from "../editor/addButton";
 import WeatherSection from "./WeatherSection";
+import ObsSection from "./ObsSection";
 
 function CopyButton({ text }: { text: string }) {
   const [done, setDone] = useState(false);
@@ -126,6 +127,8 @@ export default function IntegrationsTab() {
           </Banner>
         )}
       </section>
+
+      <ObsSection config={config} onSaved={load} />
 
       <WeatherSection config={config} onSaved={load} />
 
