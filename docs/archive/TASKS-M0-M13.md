@@ -1522,3 +1522,66 @@ npm run typecheck; npm test; cargo test -p decka-core; npm run release:agent; np
 ```
 npm run typecheck; npm test; cargo test -p decka-core; npm run release:agent; npm run release:apk; adb install -r client\android\app\build\outputs\apk\debug\app-debug.apk
 ```
+
+## M14 (T14.5a — перенесена в T15.9) и M15 T15.0–T15.7 — выполненные задачи (перенесено 2026-11-16)
+
+## M14 — Простое создание кнопок и онбординг (отзыв владельца 2026-11-15)
+
+Источник: DESIGN.md §4.5–§4.7, DECISIONS.md D-38 (дополнение), D-41, BLOCKERS.md D-2. Общее правило M14: всё, что касается окна настроек, проверяется в **настоящем окне** (`npm run tauri dev` или установленный агент), не в Chrome с подменой IPC. Снимки окна — `.tmp\design\m14-*.png` (снимок окна через `PrintWindow`/`CopyFromScreen` в PowerShell-скрипте из scratch-папки, не в репозитории).
+
+### T14.5a — Приёмка на Galaxy S9 (целевое устройство подключено 2026-11-15)
+Устройство: `SM-G960F`, серийный `232512e0080c7ece`, Android 10, WebView 130.0.6723.86 (не обновлялся — проверять именно на нём, это реалистичный случай), экран с пользовательским масштабом 1080×2220, плотность 480 → в альбомной ориентации около 740×360 CSS-px (меньше, чем A57). Все команды `adb` — с `-s 232512e0080c7ece`: подключены два телефона.
+1. Установить APK, сопрячь с установленным агентом владельца по USB (`adb reverse`, T7.4) — это не меняет его раскладку; если сопряжение требует кода из окна владельца, остановиться и записать шаг в MANUAL_CHECKS.md как PENDING (owner).
+2. Пройти все пункты `A57 only — S9 PENDING (owner)` в MANUAL_CHECKS.md (T7.1, T7.2, T7.4, T7.5, сетка 7×4), которые можно сделать через `adb`; отметить `DONE (S9)`.
+3. Снимки `s9-<тема>.png` для 4 тем (тему переключать только на копии конфигурации через второй агент, T13.13 п. 4) и `s9-full.png` (режим «Большая иконка»). Проверить: подписи не обрезаются при стороне клавиши ~80 px, виджет media показывает название.
+4. к/с по темам на S9 (`gfxinfo`, как в T13.11); для Glass — какой режим выбрался автоматически.
+5. Всё, что не работает на WebView 130 и работает на A57 (WebView 157), — в BLOCKERS.md с описанием; спецификацию не менять.
+**Приёмка:** таблица «тема → к/с (S9)», снимки, обновлённый MANUAL_CHECKS.md.
+
+
+## M15 — Готовые кнопки, наборы и живые виджеты (решение архитектора 2026-11-16)
+
+Источник: критика «чего не хватает по сравнению с аппаратными деками и Macro Deck» и BLOCKERS (погода, стримеры, поворот). Документы: DATA_MODEL.md §2 (новые действия), §3.1–3.2 (виджеты, размеры), §3.7 (поворот), §3.8 (`$back`), §6.3–6.7 (погода, OBS, график, звук, таймер), §9 (каталог и наборы); PROTOCOL.md (секции `weather`/`obs`, зарезервированные переменные, IPC); DESIGN.md §2.3–2.4, §4.8; ARCHITECTURE.md S17–S19; DECISIONS D-46, D-47. Все новые строки — через `t()` с переводом (DESIGN.md §6), каждая задача с видимым изменением — строка в `CHANGELOG.md` → `## Unreleased`. Окно проверять в настоящем окне Tauri; файлы владельца не трогать.
+
+### T15.0 — Поворот без «хаоса»
+`rotateLayout` по DATA_MODEL.md §3.7, пункты 2–3 (пересмотрено): виджеты, затем кнопки, в порядке `(y, x)` исходной страницы, в первые свободные позиции новой сетки; горизонтальный `volume` в книжной — вертикальный. Тесты: раскладка по умолчанию 7×4 → 4×7: `prev`, `play`, `next` идут подряд в порядке чтения; ничего не потеряно; результат валиден; переполнение → `<имя> 2` без `apps`. Старые тесты транспонирования заменить. В `BLOCKERS.md` у записи «keys move chaotically» дописать «Решено: T15.0».
+
+### T15.1 — Контракт M15
+TS-типы, JSON-схемы, Rust (serde + валидация) для: действий `audio`, `obs`, `sequence`, `media` `shuffle`/`repeat`, новых клавиш §2.2; виджетов `volume`, `timer`, `weather`, `obs`, `sys.graph` и размеров (правило 13 §3.2); `navigate: "$back"`; `config.weather`, `config.obs` (с `passwordSet` в ответе `get_config`), `collectors.audio`; секций `weather`, `obs`; `MediaInfo.shuffle/repeat`; зарезервированных переменных (PROTOCOL.md, HTTP и `toggleVar`). Негативные тесты на каждое ограничение `sequence` (11 шагов, вложенность, сумма пауз, несуществующий `actionId`), `obs` (`scene` без `op: "scene"` и наоборот), размеры виджетов. Фикстуры `shared/fixtures/state.m15.json` (с `weather`, `obs`, переменными `audio.*`, `mic.*`, `media.*`, `obs.*`) для клиента.
+
+### T15.2 — Агент: звук, медиа, цепочки
+1. Сборщик `audio` (DATA_MODEL.md §6.6) — Core Audio через крейт `windows` 0.62.2 (добавить нужные features `Win32_Media_Audio`, `Win32_Media_Audio_Endpoints`, `Win32_System_Com`), опрос 500 мс через сохранённый `Handle`, переменные `audio.volume`, `audio.muted`, `mic.muted`; выключается `collectors.audio.enabled`.
+2. Действия `audio` `mic_toggle` / `out_mute_toggle`; `media` `shuffle` / `repeat` через GSMTC; сборщик `media` публикует `media.playing`, `media.shuffle`, `media.repeat` и поля `MediaInfo`.
+3. `sequence` (§2.3): последовательное выполнение, «Already running», ошибка с номером шага. Тесты на `--dry-run`: порядок шагов и пауз (с подменой часов или допуском ±50 мс), остановка на ошибке.
+4. Действие `vol-mute` по умолчанию: убрать `toggleVar: "audio.muted"` из `actions.default.json` (переменная теперь от сборщика). Миграция: при загрузке `actions.json` с `toggleVar` на зарезервированное имя — не ошибка для этого одного случая (`vol-mute` + `audio.muted`), а тихое удаление поля с записью в лог; все остальные случаи — ошибка по PROTOCOL.md.
+**Приёмка:** `cargo test -p decka-core`; ручная (`decka-headless` без `--dry-run` на копии конфигурации): `ws-smoke press` `mic_toggle` меняет `mic.muted` в `ws-smoke watch`.
+
+### T15.3 — Телефон: новые виджеты и состояния
+1. Виджеты `volume` (DATA_MODEL.md §6.6: шаги по 2%, ≤ 15 press/с, ожидаемое значение во время перетаскивания), `timer` (§6.7), `weather` (§6.3, иконки DESIGN.md §2.3 — `npm install -w client @phosphor-icons/core@2.1.1`, импорт только 9 файлов), `obs` (§6.4, таймеры считает клиент от `*StartedAt`), `sys` с `graph` (§6.5).
+2. Состояния кнопок по DESIGN.md §2.4: красная заливка и мигающая точка для тревожных состояний, акцент для включённых режимов, 0.45 при отсутствии переменной (`bind` на переменную, которой нет в `vars`).
+3. `navigate: "$back"` и стек страниц (§3.8).
+4. Чистые функции с тестами: `volumeSteps(fromPct, toPct)` → `{ action: "up"|"down", count }`; `timerReducer`; `weatherIcon(code, isDay)`; `sparklinePath(values, w, h)`; `obsElapsed(startedAt, now)` → `HH:MM:SS`; `backStack` (push/pop/лимит 10, контекстная смена не пишется).
+**Приёмка:** тесты; снимки телефона (копия конфигурации, второй агент с фикстурой состояния или живыми данными): `m15-widgets-<тема>.png` для 4 тем — страница с `volume`, `timer`, `weather`, `obs`, `sys graph`, кнопками `Mic off` (красная) и `Shuffle` (акцент).
+
+### T15.4 — Каталог, наборы, библиотека в окне
+1. `shared/catalog/catalog.json`, `sets.json` по DATA_MODEL.md §9 + JSON-схема + тест: все id уникальны, подписи ≤ 10 символов на обоих языках, каждое `action` проходит валидацию действий, каждая форма набора помещается в 4×2 и в книжную сетку 4×7.
+2. `insertSet` (§9, правила 1–6) с тестами: целиком в пустую страницу; по одному при фрагментированной странице; новая страница при нехватке; пропуск пунктов без значения `ask`; повторная вставка.
+3. Окно: библиотека слева по DESIGN.md §4.8 (`Library` / `Sets` / `Apps`, поиск, раскрытие категорий, двойной клик и перетаскивание, диалоги `ask`, `Set up …` для `requires`); редактор цепочки; быстрый выбор на категориях каталога; мастер — карточки наборов. Иконки `ph:` при создании кнопки → `icon_from_svg`.
+**Приёмка:** тесты; в настоящем окне — вставить наборы `media-remote`, `sound`, `windows-tools` на пустую страницу (видно на телефоне); снимки `m15-library.png`, `m15-sets.png`, `m15-sequence.png`.
+
+### T15.5 — Погода
+Агент: сборщик по DATA_MODEL.md §6.3 (reqwest 0.13.5 уже есть; хосты вшиты; координаты до 0.01; расписание; `null` при данных старше 3 ч), `search_place`, `refresh_weather`. Окно: `More → Integrations → Weather` (поиск города, единицы, подпись Open-Meteo). Тесты разбора ответа прогноза и геокодинга — на фикстурах JSON (без сети); тест округления координат; тест «данные старше 3 ч → null».
+**Приёмка:** тесты; в настоящем окне — найти город, включить; виджет на телефоне показывает погоду; снимок `m15-weather.png`. README: строка об Open-Meteo и условиях (некоммерческое использование, CC BY 4.0).
+
+### T15.6 — OBS Studio
+1. Агент: клиент obs-websocket 5 по DATA_MODEL.md §6.4 (только `127.0.0.1`, рукопожатие с паролем, подписки, переподключение 5→60 с, 4009 — без повторов), секция `obs`, переменные `obs.*`, действия `obs` (§2.3), `obs_status`, `set_obs_password` с DPAPI (`CryptProtectData`/`CryptUnprotectData`, крейт `windows`, feature `Win32_Security_Cryptography`).
+2. Тесты без OBS: поддельный сервер obs-websocket на `tokio-tungstenite` в тесте — рукопожатие с паролем (проверка `auth` по формуле), `ToggleRecord` → событие `RecordStateChanged` → секция `obs.recording = true`; неверный пароль → закрытие 4009 → `connected: false`, без повторов; DPAPI: зашифровать → расшифровать → то же; `get_config` не содержит пароля.
+3. Окно: `More → Integrations → OBS Studio` (DATA_MODEL.md §6.4), пункты каталога `Stream` с выбором сцены/входа из `obs_status()`.
+**Приёмка:** тесты; если OBS установлен на ПК — ручная проверка записи и смены сцены с телефона; иначе — `PENDING (owner)` в MANUAL_CHECKS.md с шагами: «OBS → Tools → WebSocket Server Settings → Enable; Decka → More → Integrations → OBS → включить, пароль; вставить набор Streaming; Record с телефона».
+
+### T15.7 — Приёмка M15
+Набор `stream` и все виджеты на одной странице в каждой теме на телефоне; книжная ориентация с наборами (поворот по T15.0); русский интерфейс библиотеки; к/с на A57 для страницы с `volume` + `sys graph` + `obs` (не ниже, чем у той же темы без них, минус 10%). CHANGELOG: раздел `Unreleased` содержит строки M15.
+**Приёмка:** снимки `m15-final-<тема>.png`, `m15-portrait.png`, `m15-ru-library.png`; таблица к/с.
+```
+npm run typecheck; npm test; cargo test -p decka-core; npm run release:agent; npm run release:apk; adb install -r client\android\app\build\outputs\apk\debug\app-debug.apk
+```
