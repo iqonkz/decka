@@ -48,3 +48,6 @@
 DATA_MODEL.md 3.7 rule 4 says the page `<name> 2` that receives the items that did not fit keeps the page's `apps`. Rule 9 of 3.2 lets an app belong to one page only, so a copy with the same `apps` makes the result invalid (`/pages/N/apps/0`), while 3.7 also demands a valid result. Not decided by the executor beyond this: `rotateLayout` gives the new page **no** `apps` (it is a normal page one swipe away); the original page keeps them. Owner: say if the other reading (move `apps` to the new page, or allow the duplicate) is wanted.
 
 **Resolved (architect, 2026-11-16):** the executor's reading is correct. DATA_MODEL.md §3.7 rule 4 now says the new page has no `apps`. No code change.
+## T14.10 — no Galaxy S9 for acceptance (2026-11-16)
+
+`adb devices` lists no device. Steps 1–3 (T14.5a, remaining T14.9 checks, 0.2.0 version check on the phone) and therefore the release cannot proceed: v0.2.0 is not published without S9 acceptance. Owner: connect the S9 (USB debugging on, authorize the PC), then restart the task from step 1. Step 0 (architect docs commit 9fc77c4) is done.
