@@ -138,6 +138,8 @@ describe("invalid inputs are rejected", () => {
     expect(valid(layoutRef, withDisplay({ keyLabels: "yes" }))).toBe(false);
     for (const language of ["auto", "en", "ru"]) expect(valid(layoutRef, withDisplay({ language }))).toBe(true);
     expect(valid(layoutRef, withDisplay({ language: "de" }))).toBe(false);
+    expect(valid(layoutRef, withDisplay({ orientation: "portrait" }))).toBe(true);
+    expect(valid(layoutRef, withDisplay({ orientation: "diagonal" }))).toBe(false);
     expect(valid(layoutRef, layoutWith({ ...button, face: "full", showLabel: false }))).toBe(true);
     expect(valid(layoutRef, layoutWith({ ...button, face: "big" }))).toBe(false);
     expect(valid(layoutRef, layoutWith({ ...button, showLabel: 1 }))).toBe(false);

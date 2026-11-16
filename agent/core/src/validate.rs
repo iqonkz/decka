@@ -184,11 +184,17 @@ pub fn validate_layout(layout: &LayoutFile, actions: &ActionsFile) -> Vec<Valida
     if layout.version != 1 {
         out.push(issue("/version", "version must be 1"));
     }
-    if !(3..=8).contains(&layout.grid.cols) {
-        out.push(issue("/grid/cols", "grid columns must be an integer from 3 to 8"));
+    // The limits depend on the orientation (DATA_MODEL.md 3.2 rule 1): landscape 3..8 x 2..5, portrait 2..5 x 3..8.
+    let portrait = layout.display.orientation.as_deref() == Some("portrait");
+    let ((c_min, c_max), (r_min, r_max), name) = if portrait { ((2, 5), (3, 8), "portrait") } else { ((3, 8), (2, 5), "landscape") };
+    if !(c_min..=c_max).contains(&layout.grid.cols) || !(r_min..=r_max).contains(&layout.grid.rows) {
+        out.push(issue(
+            "/grid",
+            format!("Grid {}×{} does not fit {name} ({c_min}–{c_max} columns, {r_min}–{r_max} rows)", layout.grid.cols, layout.grid.rows),
+        ));
     }
-    if !(2..=5).contains(&layout.grid.rows) {
-        out.push(issue("/grid/rows", "grid rows must be an integer from 2 to 5"));
+    if layout.display.orientation.as_deref().is_some_and(|o| o != "landscape" && o != "portrait") {
+        out.push(issue("/display/orientation", "orientation must be landscape or portrait"));
     }
     let (cols, rows) = (i32::from(layout.grid.cols), i32::from(layout.grid.rows));
     if !(1..=10).contains(&layout.pages.len()) {

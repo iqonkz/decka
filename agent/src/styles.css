@@ -277,6 +277,11 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="color"]), select, te
 .seg { flex-wrap: wrap; }
 .tab span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wizard-lang { align-self: flex-end; }
+.orientation-cards { display: flex; gap: 12px; flex-wrap: wrap; }
+.orientation-cards .style-card { min-width: 150px; align-items: center; }
+.phone-silhouette { color: var(--accent); }
+.orientation-cards.small { margin-top: 12px; }
+.orientation-cards.small .style-card { min-width: 110px; padding: 8px 12px; flex-direction: row; gap: 8px; }
 .tab-dot { width: 8px; height: 8px; margin-left: auto; border-radius: 50%; background: #f59e0b; flex: none; }
 .tab.active .tab-dot { background: #fff; }
 .version-warn { color: #d97706; font-size: 12px; }

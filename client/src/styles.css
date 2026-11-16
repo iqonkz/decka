@@ -64,7 +64,8 @@ input { user-select: text; touch-action: manipulation; }
 .saver-errors { color: #7f1d1d; }
 .dim-overlay { position: fixed; inset: 0; z-index: 1000; background: #000; opacity: 0; pointer-events: none; transition: opacity 600ms ease; }
 /* Pages: the current one follows the finger; a page that changes by itself slides in (DESIGN.md 3). */
-.pages { position: absolute; inset: 0; overflow: hidden; }
+/* The gesture bar of Android takes the bottom edge in portrait (DESIGN.md 2.2). */
+.pages { position: absolute; inset: 0 0 env(safe-area-inset-bottom, 0px) 0; overflow: hidden; }
 .page-layer { position: absolute; inset: 0; will-change: transform; }
 .page-layer.from-right { animation: page-from-right 220ms cubic-bezier(0.2, 0.8, 0.2, 1); }
 .page-layer.from-left { animation: page-from-left 220ms cubic-bezier(0.2, 0.8, 0.2, 1); }

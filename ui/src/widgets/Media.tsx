@@ -9,27 +9,41 @@ import { currentPosition, formatTime } from "./mediaPos";
 
 const KEY_RATIO = 0.55;
 
-/** Height in px of the element behind the returned ref; follows resizes. */
-function useHeight(): [React.RefObject<HTMLDivElement | null>, number] {
+/** Width and height in px of the element behind the returned ref; follows resizes. */
+function useSize(): [React.RefObject<HTMLDivElement | null>, { width: number; height: number }] {
   const ref = useRef<HTMLDivElement>(null);
-  const [height, setHeight] = useState(0);
+  const [size, setSize] = useState({ width: 0, height: 0 });
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const measure = () => setHeight(el.clientHeight);
+    const measure = () => setSize({ width: el.clientWidth, height: el.clientHeight });
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
-  return [ref, height];
+  return [ref, size];
+}
+
+/**
+ * Narrow and tall (`w <= 2`, `h >= 2`, as in a portrait deck): the cover on top, the text under it (DESIGN.md 2.2).
+ * The cover is as wide as the widget allows but never takes more than the upper half.
+ */
+export function isStacked(item: { w: number; h: number }): boolean {
+  return item.w <= 2 && item.h >= 2;
+}
+
+/** Side of the cover: the whole height in a row; in a stack the width, at most half the height. */
+export function coverSide(stacked: boolean, size: { width: number; height: number }): number {
+  return Math.max(0, stacked ? Math.min(size.width, Math.round(size.height * 0.5)) : size.height);
 }
 
 /** "Now playing" (DATA_MODEL.md 6.2): cover, title, artist, progress and the three transport keys. */
 export default function Media({ item }: { item: MediaItem }) {
   const { media } = useDeckEnv();
   const { side, gap } = useDeckMetrics();
-  const [ref, height] = useHeight();
+  const [ref, size] = useSize();
+  const stacked = isStacked(item);
   const playing = media?.playing === true;
 
   // The position is calculated here; once a second, and only while playing.
@@ -41,7 +55,7 @@ export default function Media({ item }: { item: MediaItem }) {
     return () => window.clearInterval(timer);
   }, [playing, media]);
 
-  const cover = Math.max(0, height);
+  const cover = coverSide(stacked, size);
   const keySide = Math.round(KEY_RATIO * side);
   const position = media ? currentPosition(media, now) : null;
   const progress = media?.durationSec && position !== null ? Math.min(1, position / media.durationSec) : null;
@@ -61,9 +75,10 @@ export default function Media({ item }: { item: MediaItem }) {
     </div>
   );
   const below = item.h >= 2;
+  // Stacked, the cover stays in the middle of its row on top.
 
   return (
-    <div ref={ref} className="media">
+    <div ref={ref} className={stacked ? "media stacked" : "media"}>
       {cover > 0 &&
         (media?.art ? (
           <img className="media-art" src={media.art} alt="" style={{ width: cover, height: cover }} draggable={false} />

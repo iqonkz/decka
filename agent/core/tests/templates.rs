@@ -145,3 +145,36 @@ async fn a_taken_page_id_gets_a_numeric_suffix() {
     assert_eq!(agent.layout().pages.last().unwrap().id, "spotify-2");
     agent.shutdown().await;
 }
+
+#[tokio::test]
+async fn on_a_portrait_deck_the_template_needs_the_turned_grid_and_is_laid_out_turned() {
+    // 7x4 landscape -> 4x7 portrait: every template fits the turned grid and is valid.
+    for id in ["vscode", "browser", "zoom", "spotify"] {
+        let dir = tempfile::tempdir().unwrap();
+        let agent = start(dir.path(), |layout, _| {
+            layout.grid = decka_core::model::Grid { cols: 4, rows: 7 };
+            layout.display.orientation = Some("portrait".into());
+            layout.pages = vec![Page { id: "main".into(), name: "Main".into(), items: vec![], apps: None, popup: None, stay_open: None }];
+        })
+        .await;
+        assert_eq!(agent.add_template(id), SaveResult::Saved, "{id}");
+        let page = agent.layout().pages.last().cloned().unwrap();
+        assert!(!page.items.is_empty());
+        for item in &page.items {
+            let (_, x, y, w, h) = item.rect();
+            assert!(x >= 0 && y >= 0 && x + w <= 4 && y + h <= 7, "{id}: {x},{y} {w}x{h} outside 4x7");
+        }
+        agent.shutdown().await;
+    }
+
+    // A 3x7 portrait deck is too narrow: the message names the turned size.
+    let dir = tempfile::tempdir().unwrap();
+    let agent = start(dir.path(), |layout, _| {
+        layout.grid = decka_core::model::Grid { cols: 3, rows: 7 };
+        layout.display.orientation = Some("portrait".into());
+        layout.pages = vec![Page { id: "main".into(), name: "Main".into(), items: vec![], apps: None, popup: None, stay_open: None }];
+    })
+    .await;
+    assert_eq!(rejected(agent.add_template("vscode")), [("/grid".to_string(), "Template needs a 4×7 grid or larger".to_string())]);
+    agent.shutdown().await;
+}

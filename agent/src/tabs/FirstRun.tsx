@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { t, tn, type InstalledApp, type LanguageSetting, type LayoutFile } from "@decka/shared";
+import { rotateLayout, t, tn, type InstalledApp, type LanguageSetting, type LayoutFile } from "@decka/shared";
 import { call } from "../ipc";
 import { saveLanguage } from "../language";
 import Banner from "../ui/Banner";
@@ -71,7 +71,15 @@ export default function FirstRun({ onClose, startStep = 0 }: { onClose: () => vo
     setBusy(true);
     try {
       const fresh = await call("get_layout");
-      const result = await call("save_layout", { layout: { ...fresh, display: { ...fresh.display, ...layout.display } } });
+      let next: LayoutFile = { ...fresh, display: { ...fresh.display, ...layout.display } };
+      // A different orientation turns the whole deck (grid and pages), not only the setting (DATA_MODEL.md 3.7).
+      const wanted = layout.display.orientation ?? "landscape";
+      if (wanted !== (fresh.display.orientation ?? "landscape")) {
+        const turned = rotateLayout(fresh, wanted);
+        if (!turned.ok) return setError(turned.error);
+        next = { ...turned.layout, display: { ...turned.layout.display, ...layout.display, orientation: wanted } };
+      }
+      const result = await call("save_layout", { layout: next });
       if (!result.ok) setError(result.issues[0]?.message ?? t("wizard.cannot_save_look"));
       else setStep(2);
     } catch (e) {
@@ -137,6 +145,23 @@ export default function FirstRun({ onClose, startStep = 0 }: { onClose: () => vo
             <h2>{t("wizard.title_look")}</h2>
             <p className="muted">{t("wizard.look_hint")}</p>
             <ThemeCards value={layout.display.theme ?? "amoled"} display={layout.display} onPick={(theme) => setLayout({ ...layout, display: { ...layout.display, theme } })} />
+            <div className="orientation-cards small" role="radiogroup" aria-label={t("orientation.title")}>
+              {(["landscape", "portrait"] as const).map((o) => (
+                <button
+                  key={o}
+                  type="button"
+                  role="radio"
+                  aria-checked={(layout.display.orientation ?? "landscape") === o}
+                  className={(layout.display.orientation ?? "landscape") === o ? "style-card selected" : "style-card"}
+                  onClick={() => setLayout({ ...layout, display: { ...layout.display, orientation: o } })}
+                >
+                  <svg className="phone-silhouette" width={o === "portrait" ? 18 : 30} height={o === "portrait" ? 30 : 18} viewBox={o === "portrait" ? "0 0 28 48" : "0 0 48 28"} aria-hidden="true">
+                    <rect x="1.5" y="1.5" width={o === "portrait" ? 25 : 45} height={o === "portrait" ? 45 : 25} rx="4" fill="none" stroke="currentColor" strokeWidth="3" />
+                  </svg>
+                  <strong>{t(`orientation.${o}`)}</strong>
+                </button>
+              ))}
+            </div>
           </>
         )}
 

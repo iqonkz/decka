@@ -6,6 +6,7 @@ import Button from "../ui/Button";
 import Field from "../ui/Field";
 import KeyPreview from "./KeyPreview";
 import { applyScreenPreset, fracToPercent, minToSec, percentToFrac, presetLabel, screenPreset, secToMin, type ScreenPreset } from "../editor/screenPreset";
+import OrientationSection from "./OrientationSection";
 import ThemeCards from "./ThemeCards";
 
 /** A sample key for the style cards (the label is in the language of the window). */
@@ -71,6 +72,17 @@ export default function AppearanceTab() {
       <section className="card">
         <h3>{t("look.theme")}</h3>
         <ThemeCards value={display.theme ?? "amoled"} display={display} onPick={(theme) => set({ theme })} />
+      </section>
+
+      <section className="card">
+        <h3>{t("orientation.title")}</h3>
+        <OrientationSection
+          orientation={display.orientation ?? "landscape"}
+          onChanged={(layout) => {
+            setDisplay(layout.display);
+            setSaved(JSON.stringify(layout.display));
+          }}
+        />
       </section>
 
       <section className="card">

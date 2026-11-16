@@ -1,20 +1,23 @@
 import { useState } from "react";
 import { t, tn } from "@decka/shared";
-import { COLS_RANGE, ROWS_RANGE } from "../tabs/layoutOps";
+import { gridLimits, type Orientation } from "@decka/shared";
 
 interface Props {
   cols: number;
   rows: number;
+  /** The limits follow the orientation of the deck (DATA_MODEL.md 3.2 rule 1); absent = landscape. */
+  orientation?: Orientation | undefined;
   onPick: (cols: number, rows: number) => void;
 }
 
 /** `Grid 7 × 4`: a button that opens a mini grid 8x5 to choose a size by pointing, like the table size of a text editor. */
-export default function GridPicker({ cols, rows, onPick }: Props) {
+export default function GridPicker({ cols, rows, orientation, onPick }: Props) {
   const [open, setOpen] = useState(false);
   const [hover, setHover] = useState<{ c: number; r: number } | null>(null);
   const shown = hover ?? { c: cols, r: rows };
-  const [minC, maxC] = COLS_RANGE;
-  const [minR, maxR] = ROWS_RANGE;
+  const limits = gridLimits(orientation);
+  const [minC, maxC] = limits.cols;
+  const [minR, maxR] = limits.rows;
 
   return (
     <div className="grid-picker">

@@ -33,10 +33,39 @@ fn the_default_layout_is_7x4_and_valid() {
 #[test]
 fn eight_by_five_is_valid_and_nine_by_four_or_seven_by_one_are_errors() {
     assert!(paths(8, 5, json!([])).is_empty());
-    assert_eq!(paths(9, 4, json!([])), ["/grid/cols"]);
-    assert_eq!(paths(7, 1, json!([])), ["/grid/rows"]);
-    assert_eq!(paths(2, 4, json!([])), ["/grid/cols"]);
-    assert_eq!(paths(7, 6, json!([])), ["/grid/rows"]);
+    for (c, r) in [(9, 4), (7, 1), (2, 4), (7, 6)] {
+        assert_eq!(paths(c, r, json!([])), ["/grid"], "{c}x{r}");
+    }
+}
+
+fn messages_in(orientation: Option<&str>, cols: u64, rows: u64) -> Vec<String> {
+    let mut l = layout(cols, rows, json!([])).unwrap();
+    l.display.orientation = orientation.map(str::to_string);
+    validate_layout(&l, &default_actions()).into_iter().map(|i| i.message).collect()
+}
+
+#[test]
+fn the_limits_follow_the_orientation_and_both_messages_say_which() {
+    // Landscape (also when `orientation` is absent): 3..8 columns, 2..5 rows.
+    assert_eq!(messages_in(None, 9, 4), ["Grid 9×4 does not fit landscape (3–8 columns, 2–5 rows)"]);
+    assert_eq!(messages_in(Some("landscape"), 4, 7), ["Grid 4×7 does not fit landscape (3–8 columns, 2–5 rows)"]);
+    // Portrait: 2..5 columns, 3..8 rows.
+    assert_eq!(messages_in(Some("portrait"), 7, 4), ["Grid 7×4 does not fit portrait (2–5 columns, 3–8 rows)"]);
+    assert_eq!(messages_in(Some("portrait"), 4, 2), ["Grid 4×2 does not fit portrait (2–5 columns, 3–8 rows)"]);
+    for (c, r) in [(2, 3), (4, 7), (5, 8)] {
+        assert!(messages_in(Some("portrait"), c, r).is_empty(), "{c}x{r}");
+    }
+    for (c, r) in [(3, 2), (7, 4), (8, 5)] {
+        assert!(messages_in(None, c, r).is_empty(), "{c}x{r}");
+    }
+}
+
+#[test]
+fn orientation_must_be_landscape_or_portrait() {
+    let mut l = layout(4, 7, json!([])).unwrap();
+    l.display.orientation = Some("diagonal".into());
+    let p: Vec<String> = validate_layout(&l, &default_actions()).into_iter().map(|i| i.path).collect();
+    assert!(p.contains(&"/display/orientation".to_string()), "{p:?}");
 }
 
 #[test]

@@ -10,3 +10,6 @@ project(':capacitor-barcode-scanner').projectDir = new File('../../node_modules/
 
 include ':capacitor-haptics'
 project(':capacitor-haptics').projectDir = new File('../../node_modules/@capacitor/haptics/android')
+
+include ':capacitor-screen-orientation'
+project(':capacitor-screen-orientation').projectDir = new File('../../node_modules/@capacitor/screen-orientation/android')

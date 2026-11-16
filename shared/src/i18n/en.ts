@@ -513,5 +513,20 @@ export const en = {
   "about.check_failed": "Could not reach GitHub. Try again later.",
   "update.available": "Decka {version} is available",
   "update.download": "Download",
+
+  // ----- Orientation -----
+  "orientation.title": "Orientation",
+  "orientation.landscape": "Landscape",
+  "orientation.portrait": "Portrait",
+  "orientation.landscape_hint": "The phone lies or stands wide",
+  "orientation.portrait_hint": "The phone stands upright",
+  "orientation.turn_to_landscape": "Turn the deck to landscape",
+  "orientation.turn_to_portrait": "Turn the deck to portrait",
+  "orientation.moved.one": "{count} item moved to a new page",
+  "orientation.moved.other": "{count} items moved to new pages",
+  "orientation.nothing_moved": "Everything keeps its page.",
+  "orientation.rotate": "Rotate",
+  "orientation.rotated": "Turned. Press Ctrl+Z to undo.",
+  "orientation.undone": "Turned back.",
   // @@END
 } as const;

@@ -27,11 +27,15 @@ const NOOP = { onPress: () => Promise.resolve(), onPressError: () => {}, onNavig
 function Preview({ theme, display }: { theme: ThemeId; display: DisplaySettings }) {
   const shown = useMemo(() => ({ ...display, theme }), [display, theme]);
   const resolved = resolveTheme(shown);
+  // The frame follows the orientation of the deck; the six sample keys turn with it (3x2 -> 2x3).
+  const portrait = display.orientation === "portrait";
+  const page = sample();
+  if (portrait) page.items = page.items.map((i) => ({ ...i, x: i.y, y: i.x }));
   return (
-    <PhoneFrame availableWidth={210} display={shown}>
+    <PhoneFrame availableWidth={210} maxHeight={190} display={shown}>
       {theme === "glass" && <GlassLayer wallpaper={resolved.wallpaper} art={undefined} />}
       <div style={{ position: "absolute", inset: 0 }}>
-        <Grid page={sample()} grid={{ cols: 3, rows: 2 }} data={DATA} {...NOOP} />
+        <Grid page={page} grid={portrait ? { cols: 2, rows: 3 } : { cols: 3, rows: 2 }} data={DATA} {...NOOP} />
       </div>
     </PhoneFrame>
   );

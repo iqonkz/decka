@@ -12,6 +12,7 @@ dependencies {
     implementation project(':capacitor-community-keep-awake')
     implementation project(':capacitor-barcode-scanner')
     implementation project(':capacitor-haptics')
+    implementation project(':capacitor-screen-orientation')
 
 }
 

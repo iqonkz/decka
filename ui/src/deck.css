@@ -81,6 +81,10 @@
 .key-sub { color: var(--muted, #9ca3af); font-weight: 400; }
 /* "Now playing" widget (DATA_MODEL.md 6.2) */
 .media { display: flex; align-items: center; gap: 2vmin; width: 100%; height: 100%; box-sizing: border-box; min-width: 0; }
+/* Narrow and tall (a portrait deck, DESIGN.md 2.2): the cover on top, the text and the keys under it. */
+.media.stacked { flex-direction: column; align-items: center; justify-content: flex-start; gap: 1.2vmin; }
+.media.stacked .media-text { width: 100%; flex: 1 1 auto; justify-content: flex-start; align-items: stretch; text-align: center; }
+.media.stacked .media-keys { justify-content: center; }
 .media-art { flex: none; border-radius: 12%; opacity: 0.85; object-fit: cover; }
 .media-art-empty { display: flex; align-items: center; justify-content: center; box-sizing: border-box; border: 1px solid rgba(255, 255, 255, 0.16); color: #e5e5e5; opacity: 1; }
 .media-text { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 0.8vmin; }

@@ -1,11 +1,22 @@
 import type { ActionsFile } from "./actions";
-import type { LayoutFile, LayoutItem } from "./layout";
+import type { LayoutFile, LayoutItem, Orientation } from "./layout";
 import type { ValidationIssue } from "./ipc";
 
 const ID_RE = /^[a-z0-9_-]{1,64}$/;
 
+/** The grid limits of an orientation (DATA_MODEL.md 3.2 rule 1); `undefined` is landscape. */
+export function gridLimits(orientation: Orientation | undefined): { orientation: Orientation; cols: [number, number]; rows: [number, number] } {
+  return orientation === "portrait" ? { orientation: "portrait", cols: [2, 5], rows: [3, 8] } : { orientation: "landscape", cols: [3, 8], rows: [2, 5] };
+}
+
+/** Whether `cols` x `rows` are whole numbers within the limits of the orientation. */
+export function gridFits(cols: number, rows: number, orientation: Orientation | undefined): boolean {
+  const l = gridLimits(orientation);
+  return Number.isInteger(cols) && Number.isInteger(rows) && cols >= l.cols[0] && cols <= l.cols[1] && rows >= l.rows[0] && rows <= l.rows[1];
+}
+
 // Allowed sizes per kind: [minW, maxW, minH, maxH]; the two list widgets may fill the whole grid.
-function sizeLimits(kind: string, grid: LayoutFile["grid"]): [number, number, number, number] | undefined {
+export function sizeLimits(kind: string, grid: LayoutFile["grid"]): [number, number, number, number] | undefined {
   switch (kind) {
     case "button":
     case "status":
@@ -36,8 +47,14 @@ export function validateLayout(layout: LayoutFile, actions: ActionsFile): Valida
   const add = (path: string, message: string) => issues.push({ path, message });
 
   const { cols, rows } = layout.grid;
-  if (!Number.isInteger(cols) || cols < 3 || cols > 8) add("/grid/cols", "grid columns must be an integer from 3 to 8");
-  if (!Number.isInteger(rows) || rows < 2 || rows > 5) add("/grid/rows", "grid rows must be an integer from 2 to 5");
+  // The limits depend on the orientation (DATA_MODEL.md 3.2 rule 1): landscape 3..8 x 2..5, portrait 2..5 x 3..8.
+  const limits = gridLimits(layout.display?.orientation);
+  if (!gridFits(cols, rows, layout.display?.orientation)) {
+    const [name, [cMin, cMax], [rMin, rMax]] = [limits.orientation, limits.cols, limits.rows];
+    add("/grid", `Grid ${cols}×${rows} does not fit ${name} (${cMin}–${cMax} columns, ${rMin}–${rMax} rows)`);
+  }
+  const orientation: unknown = layout.display?.orientation;
+  if (orientation !== undefined && orientation !== "landscape" && orientation !== "portrait") add("/display/orientation", "orientation must be landscape or portrait");
 
   if (layout.display?.keyFace !== undefined && layout.display.keyFace !== "standard" && layout.display.keyFace !== "full") add("/display/keyFace", "keyFace must be standard or full");
   const language: unknown = layout.display?.language;

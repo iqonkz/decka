@@ -644,7 +644,7 @@ export default function LayoutTab() {
             +
           </button>
         </div>
-        <GridPicker cols={cols} rows={rows} onPick={requestGrid} />
+        <GridPicker cols={cols} rows={rows} orientation={layout.display.orientation} onPick={requestGrid} />
       </div>
 
       {page.popup === true ? (

@@ -185,6 +185,9 @@ pub struct DisplaySettings {
     /// M14: interface language `auto` | `en` | `ru` (DESIGN.md 6); absent = auto.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub language: Option<String>,
+    /// M14: `landscape` | `portrait` (DATA_MODEL.md 3.7); absent = landscape.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub orientation: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -336,6 +339,19 @@ impl LayoutItem {
             LayoutItem::Status(i) => (&i.id, i.x, i.y, i.w, i.h),
             LayoutItem::Notifications(i) => (&i.id, i.x, i.y, i.w, i.h),
             LayoutItem::Media(i) => (&i.id, i.x, i.y, i.w, i.h),
+        }
+    }
+
+    /// Moves any item kind to (x, y).
+    pub fn set_pos(&mut self, x: i32, y: i32) {
+        match self {
+            LayoutItem::Button(i) => (i.x, i.y) = (x, y),
+            LayoutItem::Clock(i) => (i.x, i.y) = (x, y),
+            LayoutItem::Sys(i) => (i.x, i.y) = (x, y),
+            LayoutItem::Statuses(i) => (i.x, i.y) = (x, y),
+            LayoutItem::Status(i) => (i.x, i.y) = (x, y),
+            LayoutItem::Notifications(i) => (i.x, i.y) = (x, y),
+            LayoutItem::Media(i) => (i.x, i.y) = (x, y),
         }
     }
 

@@ -42,3 +42,7 @@
 | (для сравнения до T14.0: обычный 27 мс, `reduced` 26 мс) | | ~37 / ~38 | | |
 
 Обои `aurora` в приложении на раскладке владельца не мерились (правило T13.13 п. 4: конфигурацию владельца не менять). **Обычный режим** (`backdrop-filter` на 15+ клавишах и панелях, включая `url(#decka-glass)`) остаётся ниже 45 к/с; спецификацию не менял. Клиент сам переходит в `reduced` после 3 с замера (< 45), так что на A57 пользователь получает ~83 к/с, но без размытия фона под клавишами.
+
+## T14.9 — `rotateLayout` and the `apps` of a new page (2026-11-16)
+
+DATA_MODEL.md 3.7 rule 4 says the page `<name> 2` that receives the items that did not fit keeps the page's `apps`. Rule 9 of 3.2 lets an app belong to one page only, so a copy with the same `apps` makes the result invalid (`/pages/N/apps/0`), while 3.7 also demands a valid result. Not decided by the executor beyond this: `rotateLayout` gives the new page **no** `apps` (it is a normal page one swipe away); the original page keeps them. Owner: say if the other reading (move `apps` to the new page, or allow the duplicate) is wanted.

@@ -10,6 +10,8 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 - The agent can check GitHub once a day for a newer release and tells you in the window and the tray; it never downloads or installs anything. Switch it off in **More → About**.
 - **Phone** page shows the app version of each paired phone and warns when it differs from the PC version.
 
+- Portrait orientation: **Look → Orientation** turns the whole deck (the grid becomes 4×7 instead of 7×4, buttons keep their places relative to the phone, what does not fit goes to a new page); the phone opens in the chosen orientation at once. The grid picker, page templates and the first-run guide know about it.
+
 ### Changed
 - Glass look: the wallpaper is blurred once in advance, so it looks smooth and runs faster; **Reduce effects** now shows frosted glass instead of a flat tint.
 - Big-icon labels are easier to read on bright icons; icons of programs with small pictures (for example 7-Zip) fill the key.

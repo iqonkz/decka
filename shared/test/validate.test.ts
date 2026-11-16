@@ -113,8 +113,22 @@ describe("validateLayout: configurable grid", () => {
 
   test("8x5 is valid; 9x4 and 7x1 are errors", () => {
     expect(validateLayout(withGrid({ cols: 8, rows: 5 }), actions)).toEqual([]);
-    expect(validateLayout(withGrid({ cols: 9, rows: 4 }), actions).map((i) => i.path)).toEqual(["/grid/cols"]);
-    expect(validateLayout(withGrid({ cols: 7, rows: 1 }), actions).map((i) => i.path)).toEqual(["/grid/rows"]);
+    expect(validateLayout(withGrid({ cols: 9, rows: 4 }), actions).map((i) => i.path)).toEqual(["/grid"]);
+    expect(validateLayout(withGrid({ cols: 7, rows: 1 }), actions).map((i) => i.path)).toEqual(["/grid"]);
+  });
+
+  const inOrientation = (orientation: "landscape" | "portrait" | undefined, cols: number, rows: number) => {
+    const l = withGrid({ cols, rows });
+    return validateLayout({ ...l, display: { ...l.display, ...(orientation ? { orientation } : {}) } }, actions).map((i) => i.message);
+  };
+
+  test("the limits follow the orientation and both messages say which (DATA_MODEL.md 3.2 rule 1)", () => {
+    expect(inOrientation(undefined, 9, 4)).toEqual(["Grid 9×4 does not fit landscape (3–8 columns, 2–5 rows)"]);
+    expect(inOrientation("landscape", 4, 7)).toEqual(["Grid 4×7 does not fit landscape (3–8 columns, 2–5 rows)"]);
+    expect(inOrientation("portrait", 7, 4)).toEqual(["Grid 7×4 does not fit portrait (2–5 columns, 3–8 rows)"]);
+    expect(inOrientation("portrait", 4, 2)).toEqual(["Grid 4×2 does not fit portrait (2–5 columns, 3–8 rows)"]);
+    for (const [c, r] of [[2, 3], [4, 7], [5, 8]] as const) expect(inOrientation("portrait", c, r), `${c}x${r}`).toEqual([]);
+    for (const [c, r] of [[3, 2], [7, 4], [8, 5]] as const) expect(inOrientation(undefined, c, r), `${c}x${r}`).toEqual([]);
   });
 
   test("x: 6 fits cols 7 and is an error on cols 6, with the path of the item", () => {

@@ -6,7 +6,10 @@ import { cellFromPoint, type DragPayload } from "./dragMachine";
 import { dragSize, itemAt, resizeItem } from "./editorOps";
 import { sizeRange, type Grid as GridSize, type Kind } from "./layoutOps";
 import PhIcon from "../ui/PhIcon";
-import PhoneFrame, { PHONE_H, PHONE_W } from "./PhoneFrame";
+import PhoneFrame, { fitScale, phoneView } from "./PhoneFrame";
+
+/** A tall preview never grows beyond this height, so that the editor still fits the window. */
+const PORTRAIT_MAX_HEIGHT = 560;
 import { useIconPreviews } from "./useIconPreviews";
 
 /** Plausible numbers so that widgets in the preview look alive. */
@@ -45,8 +48,10 @@ interface Props {
 /** The deck as it looks on the phone, in the chosen theme, with drag and drop on top of it (DESIGN.md 4.4). */
 export default function EditorCanvas({ layout, page, selectedId, availableWidth, onSelect, onChangePage, hover, draggingId, preview, cellAtRef, onItemPointerDown, onItemContextMenu, onCellContextMenu, renamingId, onRename, onEmptyCell }: Props) {
   const grid: GridSize = layout.grid;
-  const scale = Math.max(0.2, Math.min(1, availableWidth / PHONE_W));
-  const m = useMemo(() => gridMetrics({ w: PHONE_W, h: PHONE_H }, grid.cols, grid.rows), [grid.cols, grid.rows]);
+  // A portrait deck is a tall screen: the preview is kept within an editor-sized height (DESIGN.md 2.2).
+  const view = phoneView(layout.display.orientation);
+  const scale = fitScale(view, availableWidth, PORTRAIT_MAX_HEIGHT);
+  const m = useMemo(() => gridMetrics({ w: view.w, h: view.h }, grid.cols, grid.rows), [view.w, view.h, grid.cols, grid.rows]);
   const overlayRef = useRef<HTMLDivElement>(null);
   const resize = useRef<{ id: string; x0: number; y0: number } | null>(null);
   const theme = resolveTheme(layout.display);
@@ -116,13 +121,13 @@ export default function EditorCanvas({ layout, page, selectedId, availableWidth,
 
   return (
     <div className="editor-canvas">
-      <PhoneFrame availableWidth={availableWidth} display={layout.display}>
+      <PhoneFrame availableWidth={availableWidth} display={layout.display} maxHeight={PORTRAIT_MAX_HEIGHT}>
         {theme.theme === "glass" && <GlassLayer wallpaper={theme.wallpaper} art={undefined} />}
         <div style={{ position: "absolute", inset: 0 }}>
           <Grid page={preview ?? page} grid={grid} data={data} animate {...noop} />
         </div>
       </PhoneFrame>
-      <div ref={overlayRef} className="editor-overlay" style={{ width: PHONE_W * scale, height: PHONE_H * scale }}>
+      <div ref={overlayRef} className="editor-overlay" style={{ width: view.w * scale, height: view.h * scale }}>
         {cells}
         {page.items.map((item) => {
           const selected = item.id === selectedId;

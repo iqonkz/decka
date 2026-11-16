@@ -26,7 +26,9 @@ export interface DisplaySettings {
   keyFace?: KeyFace;       // M14: key style by default, DESIGN.md 2.1; absent = "standard"
   keyLabels?: boolean;     // M14: show the labels of keys by default; absent = true
   language?: LanguageSetting; // M14: interface language, DESIGN.md 6; absent = "auto"
+  orientation?: Orientation;  // M14: the phone's orientation, DATA_MODEL.md 3.7; absent = "landscape"
 }
+export type Orientation = "landscape" | "portrait";
 export type LanguageSetting = "auto" | "en" | "ru";
 export type KeyFace = "standard" | "full";
 export type ThemeId = "amoled" | "studio" | "material" | "glass";

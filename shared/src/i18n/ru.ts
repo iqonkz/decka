@@ -533,5 +533,22 @@ export const ru: Record<Base | ExtraPlural, string> = {
   "about.check_failed": "Не удалось связаться с GitHub. Попробуйте позже.",
   "update.available": "Доступна Decka {version}",
   "update.download": "Скачать",
+
+  // ----- Orientation -----
+  "orientation.title": "Ориентация",
+  "orientation.landscape": "Альбомная",
+  "orientation.portrait": "Книжная",
+  "orientation.landscape_hint": "Телефон лежит или стоит горизонтально",
+  "orientation.portrait_hint": "Телефон стоит вертикально",
+  "orientation.turn_to_landscape": "Повернуть панель в альбомную ориентацию",
+  "orientation.turn_to_portrait": "Повернуть панель в книжную ориентацию",
+  "orientation.moved.one": "{count} элемент перенесён на новую страницу",
+  "orientation.moved.few": "{count} элемента перенесены на новые страницы",
+  "orientation.moved.many": "{count} элементов перенесены на новые страницы",
+  "orientation.moved.other": "{count} элемента перенесены на новые страницы",
+  "orientation.nothing_moved": "Все элементы остаются на своих страницах.",
+  "orientation.rotate": "Повернуть",
+  "orientation.rotated": "Повернуто. Ctrl+Z — отменить.",
+  "orientation.undone": "Возвращено как было.",
   // @@END
 };
