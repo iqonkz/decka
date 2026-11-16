@@ -1,5 +1,14 @@
 # Decka
 
+## Download
+
+- Windows: [Decka-Setup.exe](https://github.com/iqonkz/decka/releases/latest/download/Decka-Setup.exe)
+- Android: [Decka.apk](https://github.com/iqonkz/decka/releases/latest/download/Decka.apk)
+
+1. Windows: run Decka-Setup.exe. SmartScreen may warn because the installer is not code-signed: More info → Run anyway.
+2. Android: open this page on the phone, download Decka.apk, allow installing from this source, open it.
+3. Scan the QR code shown in the Decka window on the PC.
+
 ## What is Decka
 
 Decka turns an old Android phone into a desk panel for a Windows PC: a 5x3 grid of buttons that launch programs, send hotkeys, open URLs and control media, plus live widgets for PC state, service statuses and webhook notifications. A small agent runs in the Windows tray; the phone shows the panel and only ever tells the agent *which button* was pressed.
