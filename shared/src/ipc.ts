@@ -32,7 +32,18 @@ export interface PairingInfo { code: string; url: string; qrSvg: string; expires
 export interface ValidationIssue { path: string; message: string; }   // path = JSON pointer
 export type SaveResult = { ok: true } | { ok: false; issues: ValidationIssue[] };
 
+/** M16: Claude Code and Codex as the settings window sees them (PROTOCOL.md 9). */
+export interface CcStatus {
+  installed: boolean;              // our status line and hook are in ~/.claude/settings.json
+  statusLineConflict: boolean;     // the status line belongs to another tool: only approvals work
+  lastSeenAt?: number;             // the last status line or hook call
+  codexFound: boolean;             // %USERPROFILE%\.codex\sessions exists
+}
+
 export interface IpcCommands {
+  cc_status(): CcStatus;                                       // M16
+  cc_install(): CcStatus;                                      // M16, DATA_MODEL.md 6.8; an error is a string
+  cc_uninstall(): CcStatus;                                    // M16
   get_status(): AgentStatus;
   get_update_status(): UpdateStatus;                           // M14: the answer of the last check (ARCHITECTURE.md 8a)
   check_updates(): UpdateStatus;                               // M14: `Check now`: asks GitHub at once

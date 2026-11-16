@@ -58,6 +58,7 @@ pub fn default_config() -> ConfigFile {
         },
         weather: None,
         obs: None,
+        ai: None,
     }
 }
 

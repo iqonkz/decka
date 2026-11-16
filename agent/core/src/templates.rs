@@ -126,6 +126,7 @@ pub fn build(template_id: &str, layout: &LayoutFile, actions: &ActionsFile) -> R
                 LayoutItem::Volume(i) => i.id = format!("t-{page_id}-{}", i.id),
                 LayoutItem::Timer(i) => i.id = format!("t-{page_id}-{}", i.id),
                 LayoutItem::Weather(i) | LayoutItem::Obs(i) => i.id = format!("t-{page_id}-{}", i.id),
+                LayoutItem::Ai(i) => i.id = format!("t-{page_id}-{}", i.id),
             }
             item
         })

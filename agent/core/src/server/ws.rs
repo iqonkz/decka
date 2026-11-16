@@ -222,6 +222,11 @@ async fn handle_text(
             agent.store().update_notifications(|list: &mut Vec<Notification>| list.retain(|n| n.id != notif_id));
             true
         }
+        Ok(ClientMsg::PermAnswer { req_id, decision }) => {
+            tracing::info!("perm_answer {req_id} {decision:?} device={}", who.device_id);
+            agent.answer_permission(&req_id, decision);
+            true
+        }
         Ok(ClientMsg::Press { id, action_id }) => {
             // Audit trail (ARCHITECTURE.md 6.4, S15): every press is logged, whatever its outcome.
             tracing::info!("press {action_id} device={} remote={} id={id}", who.device_id, who.remote);

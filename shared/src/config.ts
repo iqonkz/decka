@@ -18,6 +18,13 @@ export interface ConfigFile {
   };
   weather?: WeatherConfig;           // M15 (DATA_MODEL.md 6.3); absent = off
   obs?: ObsConfig;                   // M15 (DATA_MODEL.md 6.4); absent = off
+  ai?: AiConfig;                     // M16 (DATA_MODEL.md 6.8); absent = off
+}
+/** `hookToken` is made by `cc_install` and never reaches the window. */
+export interface AiConfig {
+  claude: { enabled: boolean; approvals: boolean; timeoutSec: 60 | 120 | 300 };
+  codex: { enabled: boolean };
+  hookToken?: string;
 }
 export interface WeatherConfig { enabled: boolean; place: string; lat: number; lon: number; units: "metric" | "imperial"; }
 /** `password` is only ever "dpapi:<base64>" on disk and is written only by `set_obs_password`; `get_config` leaves it out and says `passwordSet`. */

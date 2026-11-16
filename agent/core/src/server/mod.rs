@@ -24,6 +24,8 @@ pub fn router(agent: Agent, client_dist: Option<PathBuf>) -> Router {
         .route("/api/status", post(http::status_upsert))
         .route("/api/status/{id}", delete(http::status_delete))
         .route("/api/vars/{name}", put(http::var_put).delete(http::var_delete))
+        .route("/api/cc/statusline", post(http::cc_statusline))
+        .route("/api/cc/permission", post(http::cc_permission))
         .route("/api", any(http::api_not_found))
         .route("/api/{*rest}", any(http::api_not_found));
     static_files::attach(router, client_dist)

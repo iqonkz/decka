@@ -440,6 +440,7 @@ pub enum LayoutItem {
     Timer(TimerItem),
     Weather(PlainItem),
     Obs(PlainItem),
+    Ai(AiItem),
 }
 
 impl LayoutItem {
@@ -456,6 +457,7 @@ impl LayoutItem {
             LayoutItem::Volume(i) => (&i.id, i.x, i.y, i.w, i.h),
             LayoutItem::Timer(i) => (&i.id, i.x, i.y, i.w, i.h),
             LayoutItem::Weather(i) | LayoutItem::Obs(i) => (&i.id, i.x, i.y, i.w, i.h),
+            LayoutItem::Ai(i) => (&i.id, i.x, i.y, i.w, i.h),
         }
     }
 
@@ -472,6 +474,7 @@ impl LayoutItem {
             LayoutItem::Volume(i) => (i.x, i.y) = (x, y),
             LayoutItem::Timer(i) => (i.x, i.y) = (x, y),
             LayoutItem::Weather(i) | LayoutItem::Obs(i) => (i.x, i.y) = (x, y),
+            LayoutItem::Ai(i) => (i.x, i.y) = (x, y),
         }
     }
 
@@ -488,6 +491,7 @@ impl LayoutItem {
             LayoutItem::Timer(_) => "timer",
             LayoutItem::Weather(_) => "weather",
             LayoutItem::Obs(_) => "obs",
+            LayoutItem::Ai(_) => "ai",
         }
     }
 }
@@ -514,6 +518,45 @@ pub struct ConfigFile {
     /// M15 (DATA_MODEL.md 6.4); absent = off.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub obs: Option<ObsConfig>,
+    /// M16 (DATA_MODEL.md 6.8); absent = off.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ai: Option<AiConfig>,
+}
+
+/// M16: AI coding helpers. `hook_token` is created by `cc_install`, guards only `/api/cc/*`, and is never sent to the window.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiConfig {
+    pub claude: AiClaudeConfig,
+    pub codex: AiCodexConfig,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hook_token: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiClaudeConfig {
+    pub enabled: bool,
+    pub approvals: bool,
+    /// 60 | 120 | 300.
+    pub timeout_sec: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct AiCodexConfig {
+    pub enabled: bool,
+}
+
+/// M16: the `ai` widget (DATA_MODEL.md 6.8); `show` is `both` (default) | `claude` | `codex`.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct AiItem {
+    pub id: String,
+    pub x: i32,
+    pub y: i32,
+    pub w: i32,
+    pub h: i32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub show: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

@@ -1,12 +1,14 @@
 use axum::body::to_bytes;
-use axum::extract::{Path, Request, State};
+use std::net::SocketAddr;
+
+use axum::extract::{ConnectInfo, Path, Request, State};
 use axum::http::{header, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::Json;
 
 use super::api_auth::ApiAuth;
 use super::MAX_BODY_BYTES;
-use crate::agent::Agent;
+use crate::agent::{Agent, CcDenied};
 use crate::model::VarValue;
 use crate::proto::{ErrorBody, ErrorCode, HealthRes, HttpError, NotifyReq, NotifyRes, OkRes, StatusReq, VarReq};
 
@@ -146,6 +148,56 @@ pub async fn var_put(State(agent): State<Agent>, _auth: ApiAuth, Path(name): Pat
         vars.insert(name, parsed.value);
     });
     Json(OkRes { ok: true }).into_response()
+}
+
+/// Checks a call of `/api/cc/*`: from this PC only (404 for others, so the endpoints do not show), with the hook token (401).
+fn cc_guard(agent: &Agent, req: &Request) -> Result<(), Response> {
+    let ip = req.extensions().get::<ConnectInfo<SocketAddr>>().map(|c| c.0.ip());
+    let token = req
+        .headers()
+        .get(header::AUTHORIZATION)
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.split_once(' '))
+        .filter(|(scheme, _)| scheme.eq_ignore_ascii_case("bearer"))
+        .map(|(_, t)| t.trim());
+    agent.cc_authorize(ip, token).map_err(|denied| match denied {
+        CcDenied::NotFound => error_response(StatusCode::NOT_FOUND, ErrorCode::NotFound, "no such API endpoint"),
+        CcDenied::Unauthorized => error_response(StatusCode::UNAUTHORIZED, ErrorCode::Unauthorized, "missing or invalid hook token"),
+        CcDenied::RateLimited => error_response(StatusCode::TOO_MANY_REQUESTS, ErrorCode::RateLimited, "too many requests"),
+    })
+}
+
+async fn cc_body(req: Request) -> Result<axum::body::Bytes, Response> {
+    to_bytes(req.into_body(), crate::ai::MAX_HOOK_BODY)
+        .await
+        .map_err(|_| error_response(StatusCode::PAYLOAD_TOO_LARGE, ErrorCode::PayloadTooLarge, "request body is too large"))
+}
+
+/// `POST /api/cc/statusline`: the status line for the terminal of Claude Code, as plain text.
+pub async fn cc_statusline(State(agent): State<Agent>, req: Request) -> Response {
+    if let Err(r) = cc_guard(&agent, &req) {
+        return r;
+    }
+    let body = match cc_body(req).await {
+        Ok(b) => b,
+        Err(r) => return r,
+    };
+    ([(header::CONTENT_TYPE, "text/plain; charset=utf-8")], agent.cc_statusline(&body)).into_response()
+}
+
+/// `POST /api/cc/permission`: held until the phone answers, the wait runs out, or Claude Code hangs up.
+pub async fn cc_permission(State(agent): State<Agent>, req: Request) -> Response {
+    if let Err(r) = cc_guard(&agent, &req) {
+        return r;
+    }
+    let body = match cc_body(req).await {
+        Ok(b) => b,
+        Err(r) => return r,
+    };
+    match agent.cc_permission(&body).await {
+        Some(json) => ([(header::CONTENT_TYPE, "application/json")], json).into_response(),
+        None => StatusCode::OK.into_response(),
+    }
 }
 
 /// `DELETE /api/vars/{name}`

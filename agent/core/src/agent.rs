@@ -151,6 +151,25 @@ impl Serialize for SaveResult {
     }
 }
 
+/// What the window shows about Claude Code and Codex (PROTOCOL.md 9, `CcStatus`).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CcStatus {
+    pub installed: bool,
+    pub status_line_conflict: bool,
+    pub last_seen_at: Option<u64>,
+    pub codex_found: bool,
+}
+
+/// Why `/api/cc/*` refused a call.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CcDenied {
+    /// Not from this PC.
+    NotFound,
+    Unauthorized,
+    RateLimited,
+}
+
 /// A live authorized WebSocket connection.
 struct Conn {
     device_id: String,
@@ -227,6 +246,9 @@ struct Inner {
     /// The connection to OBS Studio (M15), while the integration is on.
     obs_client: Mutex<Option<Arc<crate::obs::ObsClient>>>,
     weather_last: Mutex<Option<WeatherInfo>>,
+    /// AI coding helpers (M16): the limits, the sessions and the permission questions.
+    ai: Arc<crate::ai::AiHub>,
+    ai_task: Mutex<Option<JoinHandle<()>>>,
     focus_app: Mutex<Option<String>>,
     /// The answer of the last update check (ARCHITECTURE.md 8a).
     update: Mutex<crate::updates::UpdateStatus>,
@@ -260,6 +282,8 @@ impl Agent {
                 running: Mutex::new(Default::default()),
                 layout: Mutex::new(layout),
                 statuses: crate::statuses::Statuses::new(store.clone()),
+                ai: crate::ai::AiHub::new(store.clone()),
+                ai_task: Mutex::new(None),
                 store,
                 background: Mutex::new(Vec::new()),
                 sys_collector: Mutex::new(None),
@@ -399,6 +423,8 @@ impl Agent {
         self.start_weather();
         // OBS (M15): the connection to obs-websocket; off = no section, no variables.
         self.start_obs();
+        // AI coding helpers (M16): limits of Claude Code and Codex, permission questions.
+        self.start_ai();
 
         // HTTP checks: stop the old tasks (dropping aborts them), then start from the new config.
         let old_checks = self.inner.checks_collector.lock().unwrap().take();
@@ -567,6 +593,141 @@ impl Agent {
         }
     }
 
+    /// (Re)starts the `ai` loop: once a second it sends what the 2-second rule held back, once a minute it drops old sessions
+    /// and reset windows and looks at the Codex files (when that is on). Both off = no section, no variables, no task.
+    fn start_ai(&self) {
+        if let Some(old) = self.inner.ai_task.lock().unwrap().take() {
+            old.abort();
+        }
+        let ai = self.config().ai;
+        let claude_on = ai.as_ref().is_some_and(|a| a.claude.enabled);
+        let codex_on = ai.as_ref().is_some_and(|a| a.codex.enabled);
+        self.inner.ai.configure(claude_on, codex_on);
+        if !claude_on && !codex_on {
+            return;
+        }
+        let hub = self.inner.ai.clone();
+        let task = self.inner.runtime.spawn(async move {
+            let mut ticks = 0u64;
+            loop {
+                if ticks % 60 == 0 {
+                    hub.prune(crate::auth::now_ms());
+                    if codex_on {
+                        let found = tokio::task::spawn_blocking(|| crate::ai::home_dir().and_then(|h| crate::ai::read_codex(&h))).await.ok().flatten();
+                        hub.set_codex(found);
+                    }
+                }
+                tokio::time::sleep(Duration::from_secs(1)).await;
+                hub.tick();
+                ticks += 1;
+            }
+        });
+        *self.inner.ai_task.lock().unwrap() = Some(task);
+    }
+
+    pub fn ai_hub(&self) -> &Arc<crate::ai::AiHub> {
+        &self.inner.ai
+    }
+
+    /// Who may call `/api/cc/*`: this PC only, with the `hookToken` (never the `apiToken`), 20 calls a second.
+    pub fn cc_authorize(&self, ip: Option<IpAddr>, token: Option<&str>) -> Result<(), CcDenied> {
+        if !ip.is_some_and(|i| i.to_canonical().is_loopback()) {
+            return Err(CcDenied::NotFound);
+        }
+        let stored = self.config().ai.and_then(|a| a.hook_token);
+        let valid = match (stored.as_deref(), token) {
+            (Some(expected), Some(given)) if !expected.is_empty() => crate::auth::ct_eq(expected.as_bytes(), given.as_bytes()),
+            _ => false,
+        };
+        if !valid {
+            return Err(CcDenied::Unauthorized);
+        }
+        if self.inner.ai.allow_request() {
+            Ok(())
+        } else {
+            Err(CcDenied::RateLimited)
+        }
+    }
+
+    /// `POST /api/cc/statusline`: the line for the terminal.
+    pub fn cc_statusline(&self, body: &[u8]) -> String {
+        self.inner.ai.statusline(crate::ai::parse_statusline(body), crate::auth::now_ms())
+    }
+
+    /// `POST /api/cc/permission`: `None` = an empty answer, Claude Code asks in the terminal.
+    pub async fn cc_permission(&self, body: &[u8]) -> Option<String> {
+        let claude = self.config().ai.map(|a| a.claude).filter(|c| c.enabled)?;
+        let opts = crate::ai::PermOpts {
+            approvals: claude.approvals,
+            phones: self.inner.conns.lock().unwrap().len(),
+            timeout: Duration::from_secs(u64::from(claude.timeout_sec)),
+        };
+        self.inner.ai.permission(opts, body).await
+    }
+
+    /// `perm_answer` from a phone.
+    pub fn answer_permission(&self, req_id: &str, decision: crate::proto::PermDecision) {
+        self.inner.ai.answer(req_id, decision);
+    }
+
+    pub fn cc_status(&self) -> CcStatus {
+        self.cc_status_in(crate::ai::home_dir().as_deref())
+    }
+
+    pub fn cc_status_in(&self, home: Option<&std::path::Path>) -> CcStatus {
+        let (installed, conflict) = home.map_or((false, false), crate::ai::state_of);
+        CcStatus {
+            installed,
+            status_line_conflict: conflict,
+            last_seen_at: self.inner.ai.last_seen(),
+            codex_found: home.is_some_and(|h| crate::ai::codex_dir(h).is_dir()),
+        }
+    }
+
+    pub fn cc_install(&self) -> Result<CcStatus, String> {
+        let home = crate::ai::home_dir().ok_or("cannot find the home folder")?;
+        self.cc_install_in(&home)
+    }
+
+    /// Writes our entries into `<home>\.claude\settings.json` (DATA_MODEL.md 6.8) and turns the integration on.
+    pub fn cc_install_in(&self, home: &std::path::Path) -> Result<CcStatus, String> {
+        let mut config = self.config();
+        let codex_found = crate::ai::codex_dir(home).is_dir();
+        let ai = config.ai.get_or_insert_with(|| AiConfig {
+            claude: AiClaudeConfig { enabled: true, approvals: true, timeout_sec: 120 },
+            codex: AiCodexConfig { enabled: codex_found },
+            hook_token: None,
+        });
+        let token = ai.hook_token.get_or_insert_with(config::generate_api_token).clone();
+        ai.claude.enabled = true;
+        let timeout = ai.claude.timeout_sec;
+        crate::ai::install_into(home, &token, config.port, timeout)?;
+        if let SaveResult::Rejected(issues) = self.write_config(config) {
+            return Err(issues.first().map(|i| i.message.clone()).unwrap_or_default());
+        }
+        self.start_ai();
+        Ok(self.cc_status_in(Some(home)))
+    }
+
+    pub fn cc_uninstall(&self) -> Result<CcStatus, String> {
+        let home = crate::ai::home_dir().ok_or("cannot find the home folder")?;
+        self.cc_uninstall_in(&home)
+    }
+
+    pub fn cc_uninstall_in(&self, home: &std::path::Path) -> Result<CcStatus, String> {
+        crate::ai::uninstall_from(home)?;
+        let mut config = self.config();
+        if let Some(ai) = config.ai.as_mut() {
+            ai.hook_token = None;
+            ai.claude.enabled = false;
+        }
+        if let SaveResult::Rejected(issues) = self.write_config(config) {
+            return Err(issues.first().map(|i| i.message.clone()).unwrap_or_default());
+        }
+        self.start_ai();
+        Ok(self.cc_status_in(Some(home)))
+    }
+
     /// (Re)starts the weather loop from the config: at once, then every 30 minutes. Safe from any thread (the runtime handle is used).
     fn start_weather(&self) {
         if let Some(old) = self.inner.weather_task.lock().unwrap().take() {
@@ -716,12 +877,27 @@ impl Agent {
             obs.password = stored;
             obs.password_set = None;
         }
+        // The hook token is created by `cc_install` only; the window never sees it and cannot change it.
+        let before = self.config();
+        if let Some(ai) = config.ai.as_mut() {
+            ai.hook_token = before.ai.as_ref().and_then(|a| a.hook_token.clone());
+        }
         let issues = crate::validate::validate_config(&config);
         if !issues.is_empty() {
             return SaveResult::Rejected(issues);
         }
+        let timeout_of = |c: &ConfigFile| c.ai.as_ref().map(|a| a.claude.timeout_sec);
+        let reinstall = (before.port != config.port || timeout_of(&before) != timeout_of(&config)) && config.ai.as_ref().is_some_and(|a| a.hook_token.is_some());
         let result = self.write_config(config);
         if result == SaveResult::Saved {
+            // A new port or wait time must reach the hook that Claude Code calls (DATA_MODEL.md 6.8, step 6).
+            if reinstall {
+                if let Some(home) = crate::ai::home_dir().filter(|h| crate::ai::state_of(h).0) {
+                    if let Err(e) = self.cc_install_in(&home) {
+                        tracing::warn!("cc_install after a settings change: {e}");
+                    }
+                }
+            }
             self.restart_collectors();
             self.restart_usb();
             self.publish_status();
@@ -784,6 +960,9 @@ impl Agent {
         if let Some(obs) = config.obs.as_mut() {
             obs.password_set = Some(obs.password.is_some());
             obs.password = None;
+        }
+        if let Some(ai) = config.ai.as_mut() {
+            ai.hook_token = None;
         }
         config
     }
@@ -1084,6 +1263,9 @@ impl Agent {
         let audio = self.inner.audio_collector.lock().unwrap().take();
         drop(audio);
         if let Some(task) = self.inner.weather_task.lock().unwrap().take() {
+            task.abort();
+        }
+        if let Some(task) = self.inner.ai_task.lock().unwrap().take() {
             task.abort();
         }
         drop(self.inner.obs_client.lock().unwrap().take());

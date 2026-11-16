@@ -29,7 +29,7 @@ pub fn is_var_name(s: &str) -> bool {
 
 /// M15: variables set by the collectors; nobody else writes them (PROTOCOL.md 4, HTTP rules).
 pub fn is_reserved_var(name: &str) -> bool {
-    ["audio.", "mic.", "media.", "obs."].iter().any(|p| name.starts_with(p))
+    ["audio.", "mic.", "media.", "obs.", "ai."].iter().any(|p| name.starts_with(p))
 }
 
 /// `^[a-z0-9._ ()-]{1,60}\.exe$`
@@ -207,6 +207,7 @@ fn size_limits(kind: &str, cols: i32, rows: i32, graph: bool) -> (i32, i32, i32,
         "timer" => (1, 2, 1, 2),
         "weather" => (1, 4, 1, 2),
         "obs" => (2, 4, 1, 2),
+        "ai" => (2, 4, 1, 2),
         _ => (2, cols, 1, rows), // statuses, notifications
     }
 }
@@ -221,6 +222,8 @@ fn size_allowed(kind: &str, w: i32, h: i32, cols: i32, rows: i32, graph: bool) -
         "volume" => (w == 1 && h >= 2) || (h == 1 && w >= 2),
         "timer" => !(w == 1 && h == 2),
         "weather" => if h == 1 { w <= 2 } else { w >= 3 },
+        // 2x1, 2x2, 3x2, 4x2 (DATA_MODEL.md 3.2 rule 13).
+        "ai" => h == 2 || w == 2,
         _ => true,
     }
 }
@@ -440,6 +443,11 @@ pub fn validate_layout(layout: &LayoutFile, actions: &ActionsFile) -> Vec<Valida
                         }
                     }
                 }
+                LayoutItem::Ai(a) => {
+                    if a.show.as_deref().is_some_and(|s| !["both", "claude", "codex"].contains(&s)) {
+                        out.push(issue(format!("{path}/show"), "show must be both, claude or codex"));
+                    }
+                }
                 LayoutItem::Clock(_) | LayoutItem::Sys(_) | LayoutItem::Notifications(_) | LayoutItem::Weather(_) | LayoutItem::Obs(_) => {}
             }
         }
@@ -531,6 +539,14 @@ pub fn validate_config(c: &ConfigFile) -> Vec<ValidationIssue> {
         // The password is only ever the DPAPI blob written by `set_obs_password` (DATA_MODEL.md 6.4).
         if o.password.as_deref().is_some_and(|p| !p.starts_with("dpapi:") || chars(p) > 4000) {
             out.push(issue("/obs/password", "password must be written by set_obs_password"));
+        }
+    }
+    if let Some(a) = &c.ai {
+        if ![60, 120, 300].contains(&a.claude.timeout_sec) {
+            out.push(issue("/ai/claude/timeoutSec", "timeoutSec must be 60, 120 or 300"));
+        }
+        if a.hook_token.as_deref().is_some_and(|t| chars(t) > 100) {
+            out.push(issue("/ai/hookToken", "hookToken is too long"));
         }
     }
     let mut ids = HashSet::new();

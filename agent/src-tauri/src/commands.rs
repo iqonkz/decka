@@ -66,6 +66,24 @@ pub fn set_obs_password(app: AppHandle, password: String) -> Result<(), String> 
     agent(&app)?.set_obs_password(&password)
 }
 
+/// `More → Integrations → AI coding`: what Claude Code and Codex look like from here.
+#[tauri::command]
+pub fn cc_status(app: AppHandle) -> Result<decka_core::agent::CcStatus, String> {
+    Ok(agent(&app)?.cc_status())
+}
+
+/// `Install`: our status line and permission hook in the Claude Code settings (DATA_MODEL.md 6.8).
+#[tauri::command]
+pub fn cc_install(app: AppHandle) -> Result<decka_core::agent::CcStatus, String> {
+    agent(&app)?.cc_install()
+}
+
+/// `Remove`: takes back only what `Install` wrote.
+#[tauri::command]
+pub fn cc_uninstall(app: AppHandle) -> Result<decka_core::agent::CcStatus, String> {
+    agent(&app)?.cc_uninstall()
+}
+
 /// `Download`: opens a release page of the project in the browser (other addresses are refused).
 #[tauri::command]
 pub fn open_release(app: AppHandle, url: String) -> Result<(), String> {

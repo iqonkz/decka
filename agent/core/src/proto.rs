@@ -41,6 +41,17 @@ pub enum ClientMsg {
     Press { id: u64, action_id: String },
     NotifDismiss { notif_id: String },
     Ping { ts: i64 },
+    /// M16: the answer of the phone to a permission question (DATA_MODEL.md 6.8).
+    PermAnswer { req_id: String, decision: PermDecision },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum PermDecision {
+    Allow,
+    Deny,
+    /// "Answer on PC": Claude Code asks in the terminal.
+    Pc,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
