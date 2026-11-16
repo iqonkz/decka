@@ -5,6 +5,7 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 ## Unreleased
 
 ### Added
+- New kinds of key actions: mute the microphone, mute the sound, shuffle and repeat of the current player, and a sequence of up to 10 steps with pauses (the buttons for them arrive with the new key library). Decka now follows the volume, the mutes and the player state, so keys can change their look with them.
 - Icon picker: a new main tab **Apps & brands** with about 3,400 logos (Discord, Steam, Spotify, OBS, Twitch, Chrome and more); picking one also sets the key to the brand colour if it has none.
 
 ### Changed
