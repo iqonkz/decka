@@ -52,6 +52,15 @@ pub fn map_key(name: &str) -> Option<Key> {
         "down" => Key::DownArrow,
         "left" => Key::LeftArrow,
         "right" => Key::RightArrow,
+        "printscreen" => Key::PrintScr,
+        "insert" => Key::Insert,
+        // Punctuation (M15): typed as the character, so the layout of the PC decides the physical key.
+        "period" => Key::Unicode('.'),
+        "comma" => Key::Unicode(','),
+        "minus" => Key::Unicode('-'),
+        "equal" => Key::Unicode('='),
+        "slash" => Key::Unicode('/'),
+        "semicolon" => Key::Unicode(';'),
         _ => return map_char_or_f(name),
     };
     Some(named)
@@ -71,15 +80,17 @@ fn map_char_or_f(name: &str) -> Option<Key> {
     (1..=24).contains(&n).then(|| F_KEYS[n - 1])
 }
 
-pub fn map_media(op: MediaOp) -> Key {
-    match op {
+/// The media key of an op; `None` for `shuffle` / `repeat`, which have no key (only the media session can do them).
+pub fn map_media(op: MediaOp) -> Option<Key> {
+    Some(match op {
         MediaOp::PlayPause => Key::MediaPlayPause,
         MediaOp::Next => Key::MediaNextTrack,
         MediaOp::Prev => Key::MediaPrevTrack,
         MediaOp::VolUp => Key::VolumeUp,
         MediaOp::VolDown => Key::VolumeDown,
         MediaOp::Mute => Key::VolumeMute,
-    }
+        MediaOp::Shuffle | MediaOp::Repeat => return None,
+    })
 }
 
 #[cfg(test)]
@@ -95,13 +106,14 @@ mod tests {
             ["enter", "esc", "space", "tab", "backspace", "delete", "home", "end", "pageup", "pagedown", "up", "down", "left", "right"]
                 .map(String::from),
         );
+        names.extend(["printscreen", "insert", "period", "comma", "minus", "equal", "slash", "semicolon"].map(String::from)); // M15
         names
     }
 
     #[test]
     fn every_allowed_name_maps() {
         let names = all_names();
-        assert_eq!(names.len(), 78);
+        assert_eq!(names.len(), 86);
         for n in &names {
             assert!(map_key(n).is_some(), "no mapping for {n}");
         }
@@ -116,7 +128,8 @@ mod tests {
 
     #[test]
     fn media_ops_map_to_media_keys() {
-        assert!(matches!(map_media(MediaOp::PlayPause), Key::MediaPlayPause));
-        assert!(matches!(map_media(MediaOp::Mute), Key::VolumeMute));
+        assert!(matches!(map_media(MediaOp::PlayPause), Some(Key::MediaPlayPause)));
+        assert!(matches!(map_media(MediaOp::Mute), Some(Key::VolumeMute)));
+        assert!(map_media(MediaOp::Shuffle).is_none() && map_media(MediaOp::Repeat).is_none());
     }
 }

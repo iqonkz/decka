@@ -42,7 +42,7 @@ export interface ErrorMsg { t: "error"; code: ErrorCode; message: string; fatal:
 export type ServerMsg = PairedMsg | WelcomeMsg | PatchMsg | PressResultMsg | PongMsg | ErrorMsg;
 
 // ===== State (sections) =====
-export type SectionName = "layout" | "sys" | "statuses" | "notifications" | "vars" | "focus" | "media" | "icons";
+export type SectionName = "layout" | "sys" | "statuses" | "notifications" | "vars" | "focus" | "media" | "icons" | "weather" | "obs"; // weather, obs: M15
 export interface FullState {
   layout: ClientLayout;
   sys: SysStats | null;            // null = collector disabled
@@ -52,6 +52,28 @@ export interface FullState {
   focus?: FocusInfo | null;        // M11; absent from agents older than M11; null = collector disabled
   media?: MediaInfo | null;        // M11; null = nothing playing or collector disabled
   icons?: Record<string, string>;  // M12: "<hash16>" -> "data:image/png;base64,..." (M13: or "data:image/svg+xml;base64,..."); only the images the layout refers to; absent = {}
+  weather?: WeatherInfo | null;    // M15; null = off or no data yet
+  obs?: ObsInfo | null;            // M15; null = the integration is off
+}
+
+// M15: weather (DATA_MODEL.md 6.3). Only the agent asks the internet; the phone never does.
+export interface WeatherInfo {
+  place: string;                   // <= 80, the place name from the settings
+  units: "metric" | "imperial";
+  updatedAt: number;               // ts the data was received
+  current: { temp: number; code: number; isDay: boolean; wind: number };   // temp: whole degrees C/F; code: WMO; wind: whole km/h or mph
+  daily: { date: string; min: number; max: number; code: number }[];      // exactly 3 days, date "YYYY-MM-DD", starting today
+}
+
+// M15: OBS Studio (DATA_MODEL.md 6.4). State only; the OBS password never reaches the protocol.
+export interface ObsInfo {
+  connected: boolean;
+  recording: boolean;
+  recordStartedAt?: number;        // ts the recording began (the client counts the timer)
+  streaming: boolean;
+  streamStartedAt?: number;
+  scene?: string;                  // current scene, <= 100
+  replayBuffer: boolean;           // the replay buffer is on (for a Save replay key)
 }
 
 // Active PC window: the executable name only, NEVER the window title.
@@ -70,6 +92,8 @@ export interface MediaInfo {
   durationSec?: number;            // integer
   positionAt: number;              // ts the positionSec refers to
   art?: string;                    // "data:image/png;base64,..." or "data:image/jpeg;base64,...", <= 65536 chars
+  shuffle?: boolean;               // M15: GSMTC IsShuffleActive; absent when the source has none
+  repeat?: "none" | "list" | "track"; // M15: GSMTC AutoRepeatMode
 }
 
 export interface SysStats {

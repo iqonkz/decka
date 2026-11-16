@@ -89,7 +89,7 @@ A button with `bind` changes its look by the value of a variable. Set it from a 
 ```powershell
 $h = @{ Authorization = "Bearer <TOKEN>" }
 $json = @{ value = $true } | ConvertTo-Json
-Invoke-RestMethod -Method Put -Uri http://<PC>:9247/api/vars/mic.muted -Headers $h -ContentType "application/json" -Body $json
+Invoke-RestMethod -Method Put -Uri http://<PC>:9247/api/vars/build.failed -Headers $h -ContentType "application/json" -Body $json
 ```
 
-The value is a boolean, a number or a string of up to 200 characters; the button picks the state whose key equals `String(value)`. Remove a variable with `DELETE /api/vars/mic.muted`.
+The value is a boolean, a number or a string of up to 200 characters; the button picks the state whose key equals `String(value)`. Remove a variable with `DELETE /api/vars/build.failed`. The names starting with `audio.`, `mic.`, `media.` and `obs.` are set by Decka itself (volume, microphone, player, OBS): you can bind a button to them, but writing them gives `400 reserved variable`.

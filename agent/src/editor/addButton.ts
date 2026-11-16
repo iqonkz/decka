@@ -123,6 +123,12 @@ export function defaultIconFor(action: Action): string {
       return action.op === "sleep" ? "lucide:moon" : "lucide:lock";
     case "media":
       return presetActions().find((p) => p.action.type === "media" && p.action.op === action.op)?.icon ?? "lucide:play";
+    case "audio":
+      return action.op === "mic_toggle" ? "lucide:mic-off" : "lucide:volume-x";
+    case "obs":
+      return "lucide:video";
+    case "sequence":
+      return "lucide:zap";
   }
 }
 

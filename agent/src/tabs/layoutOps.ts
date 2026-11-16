@@ -19,6 +19,10 @@ export const DEFAULT_SIZE: Record<Kind, { w: number; h: number }> = {
   statuses: { w: 2, h: 2 },
   notifications: { w: 2, h: 2 },
   media: { w: 3, h: 1 },
+  volume: { w: 3, h: 1 },
+  timer: { w: 2, h: 1 },
+  weather: { w: 2, h: 1 },
+  obs: { w: 2, h: 1 },
 };
 
 /** Allowed sizes per kind (DATA_MODEL.md 3.2 item 4): [minW, maxW, minH, maxH]; list widgets may fill the grid. */
@@ -36,6 +40,14 @@ export function sizeRange(kind: Kind, grid: Grid): [number, number, number, numb
       return [2, grid.cols, 1, grid.rows];
     case "media":
       return [2, grid.cols, 1, 2];
+    case "volume":
+      return [1, 4, 1, 4];
+    case "timer":
+      return [1, 2, 1, 2];
+    case "weather":
+      return [1, 4, 1, 2];
+    case "obs":
+      return [2, 4, 1, 2];
   }
 }
 
@@ -119,6 +131,10 @@ export function makeItem(kind: Kind, x: number, y: number, id = newItemId(kind))
     case "notifications":
       return { ...base, kind };
     case "media":
+    case "volume":
+    case "timer":
+    case "weather":
+    case "obs":
       return { ...base, kind };
   }
 }

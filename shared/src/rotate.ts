@@ -54,11 +54,9 @@ export function rotateLayout(layout: LayoutFile, to: Orientation): RotateResult 
     const placed: LayoutItem[] = [];
     const extra: LayoutItem[][] = []; // items of the new pages `<name> 2`, `<name> 3`...
     for (const item of order) {
-      // `volume` is not in the size table yet (T15.1): its sizes are 1x2..1x4 vertical or 2x1..4x1 horizontal.
-      const isVolume = (item.kind as string) === "volume";
-      const [minW, maxW, minH, maxH] = isVolume ? [1, Math.min(4, grid.cols), 1, Math.min(4, grid.rows)] : (sizeLimits(item.kind, grid) ?? [1, 1, 1, 1]);
+      const [minW, maxW, minH, maxH] = sizeLimits(item.kind, grid, item.kind === "sys" && item.graph === true) ?? [1, 1, 1, 1];
       // A widget keeps its size, cut down to the new grid; a button is always 1x1; a horizontal volume turns vertical.
-      const turned = isVolume && item.w > item.h ? { w: item.h, h: item.w } : { w: item.w, h: item.h };
+      const turned = item.kind === "volume" && item.w > item.h ? { w: item.h, h: item.w } : { w: item.w, h: item.h };
       const w = item.kind === "button" ? 1 : Math.min(turned.w, maxW);
       const h = item.kind === "button" ? 1 : Math.min(turned.h, maxH);
       const tooSmall = w < minW || h < minH;

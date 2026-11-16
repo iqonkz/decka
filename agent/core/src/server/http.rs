@@ -132,6 +132,9 @@ pub async fn var_put(State(agent): State<Agent>, _auth: ApiAuth, Path(name): Pat
     if !crate::validate::is_var_name(&name) {
         return bad_request("invalid variable name");
     }
+    if crate::validate::is_reserved_var(&name) {
+        return bad_request("reserved variable");
+    }
     let parsed: VarReq = match serde_json::from_slice(&body) {
         Ok(r) => r,
         Err(e) => return bad_request(&format!("invalid JSON: {e}")),
@@ -147,6 +150,9 @@ pub async fn var_put(State(agent): State<Agent>, _auth: ApiAuth, Path(name): Pat
 
 /// `DELETE /api/vars/{name}`
 pub async fn var_delete(State(agent): State<Agent>, _auth: ApiAuth, Path(name): Path<String>) -> Response {
+    if crate::validate::is_reserved_var(&name) {
+        return bad_request("reserved variable");
+    }
     let mut existed = false;
     agent.store().update_vars(|vars| existed = vars.remove(&name).is_some());
     if existed {

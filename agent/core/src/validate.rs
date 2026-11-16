@@ -27,6 +27,11 @@ pub fn is_var_name(s: &str) -> bool {
         && s.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_' || b == b'.' || b == b'-')
 }
 
+/// M15: variables set by the collectors; nobody else writes them (PROTOCOL.md 4, HTTP rules).
+pub fn is_reserved_var(name: &str) -> bool {
+    ["audio.", "mic.", "media.", "obs."].iter().any(|p| name.starts_with(p))
+}
+
 /// `^[a-z0-9._ ()-]{1,60}\.exe$`
 pub fn is_app_name(s: &str) -> bool {
     let Some(stem) = s.strip_suffix(".exe") else { return false };
@@ -54,6 +59,8 @@ pub fn is_key_name(k: &str) -> bool {
             k,
             "enter" | "esc" | "space" | "tab" | "backspace" | "delete" | "home" | "end" | "pageup" | "pagedown" | "up" | "down" | "left" | "right"
         )
+        // M15
+        || matches!(k, "printscreen" | "insert" | "period" | "comma" | "minus" | "equal" | "slash" | "semicolon")
     {
         return true;
     }
@@ -105,6 +112,8 @@ pub fn validate_actions(file: &ActionsFile) -> Vec<ValidationIssue> {
         if let Some(v) = action.toggle_var() {
             if !is_var_name(v) {
                 out.push(issue(format!("{base}/toggleVar"), "invalid variable name"));
+            } else if is_reserved_var(v) {
+                out.push(issue(format!("{base}/toggleVar"), format!("toggleVar: \"{v}\" is set by Decka itself — remove it")));
             }
         }
         match action {
@@ -121,7 +130,41 @@ pub fn validate_actions(file: &ActionsFile) -> Vec<ValidationIssue> {
                     }
                 }
             }
-            Action::Media { .. } | Action::System { .. } => {}
+            Action::Media { .. } | Action::System { .. } | Action::Audio { .. } => {}
+            Action::Obs { op, scene, input, .. } => {
+                // `scene` goes with op `scene` and `input` with `input_mute_toggle`, and with nothing else (DATA_MODEL.md 2.3).
+                for (field, value, needed) in [("scene", scene, *op == ObsOp::Scene), ("input", input, *op == ObsOp::InputMuteToggle)] {
+                    match (value, needed) {
+                        (Some(v), true) if !(1..=100).contains(&chars(v)) => {
+                            out.push(issue(format!("{base}/{field}"), format!("{field} must be 1..100 characters")))
+                        }
+                        (None, true) => out.push(issue(format!("{base}/{field}"), format!("{field} is required for this operation"))),
+                        (Some(_), false) => out.push(issue(format!("{base}/{field}"), format!("{field} is not allowed for this operation"))),
+                        _ => {}
+                    }
+                }
+            }
+            Action::Sequence { steps, .. } => {
+                if !(1..=10).contains(&steps.len()) {
+                    out.push(issue(format!("{base}/steps"), "a sequence has 1..10 steps"));
+                }
+                let mut pauses = 0;
+                for (si, step) in steps.iter().enumerate() {
+                    let at = format!("{base}/steps/{si}");
+                    match step {
+                        SequenceStep::Wait { delay_ms } if !(50..=10000).contains(delay_ms) => out.push(issue(at, "a pause is 50..10000 ms")),
+                        SequenceStep::Wait { delay_ms } => pauses += delay_ms,
+                        SequenceStep::Run { action_id } => match file.actions.get(action_id) {
+                            None => out.push(issue(at, format!("action \"{action_id}\" does not exist"))),
+                            Some(Action::Sequence { .. }) => out.push(issue(at, "a sequence cannot contain another sequence")),
+                            Some(_) => {}
+                        },
+                    }
+                }
+                if pauses > 15000 {
+                    out.push(issue(format!("{base}/steps"), "the pauses add up to more than 15000 ms"));
+                }
+            }
             Action::Launch { program, args, cwd, .. } => {
                 if !(1..=500).contains(&chars(program)) {
                     out.push(issue(format!("{base}/program"), "program must be 1..500 characters"));
@@ -152,14 +195,33 @@ pub fn validate_actions(file: &ActionsFile) -> Vec<ValidationIssue> {
 
 // ===== layout =====
 
-/// Allowed size per kind: (min_w, max_w, min_h, max_h). The list widgets may fill the whole grid.
-fn size_limits(kind: &str, cols: i32, rows: i32) -> (i32, i32, i32, i32) {
+/// Allowed size per kind as a box: (min_w, max_w, min_h, max_h). The list widgets may fill the whole grid.
+fn size_limits(kind: &str, cols: i32, rows: i32, graph: bool) -> (i32, i32, i32, i32) {
     match kind {
         "button" | "status" => (1, 1, 1, 1),
         "clock" => (1, 2, 1, 1),
+        "sys" if graph => (2, 4, 1, 2),
         "sys" => (2, 2, 1, 2),
         "media" => (2, cols, 1, 2),
+        "volume" => (1, 4, 1, 4),
+        "timer" => (1, 2, 1, 2),
+        "weather" => (1, 4, 1, 2),
+        "obs" => (2, 4, 1, 2),
         _ => (2, cols, 1, rows), // statuses, notifications
+    }
+}
+
+/// The exact size rule (DATA_MODEL.md 3.2 rule 13): the box of `size_limits` plus the kinds whose sizes are a list.
+fn size_allowed(kind: &str, w: i32, h: i32, cols: i32, rows: i32, graph: bool) -> bool {
+    let (min_w, max_w, min_h, max_h) = size_limits(kind, cols, rows, graph);
+    if w < min_w || w > max_w || h < min_h || h > max_h {
+        return false;
+    }
+    match kind {
+        "volume" => (w == 1 && h >= 2) || (h == 1 && w >= 2),
+        "timer" => !(w == 1 && h == 2),
+        "weather" => if h == 1 { w <= 2 } else { w >= 3 },
+        _ => true,
     }
 }
 
@@ -278,8 +340,8 @@ pub fn validate_layout(layout: &LayoutFile, actions: &ActionsFile) -> Vec<Valida
                     break;
                 }
             }
-            let (min_w, max_w, min_h, max_h) = size_limits(item.kind_name(), cols, rows);
-            if w < min_w || w > max_w || h < min_h || h > max_h {
+            let graph = matches!(item, LayoutItem::Sys(s) if s.graph == Some(true));
+            if !size_allowed(item.kind_name(), w, h, cols, rows, graph) {
                 out.push(issue(path.clone(), format!("size {w}x{h} is not allowed for kind '{}'", item.kind_name())));
             }
 
@@ -303,7 +365,8 @@ pub fn validate_layout(layout: &LayoutFile, actions: &ActionsFile) -> Vec<Valida
                             out.push(issue(path.clone(), format!("action \"{a}\" no longer exists — choose another")));
                         }
                     }
-                    if let Some(n) = &b.navigate {
+                    // "$back" (DATA_MODEL.md 3.8) names no page; inside a popup group it is refused below like any `navigate`.
+                    if let Some(n) = b.navigate.as_ref().filter(|n| n.as_str() != "$back") {
                         if !page_ids.contains(n.as_str()) {
                             out.push(issue(path.clone(), format!("page \"{n}\" no longer exists — choose another")));
                         } else if popup_ids.contains(n.as_str()) {
@@ -361,7 +424,23 @@ pub fn validate_layout(layout: &LayoutFile, actions: &ActionsFile) -> Vec<Valida
                         }
                     }
                 }
-                LayoutItem::Clock(_) | LayoutItem::Sys(_) | LayoutItem::Notifications(_) => {}
+                LayoutItem::Volume(v) => {
+                    for (field, id) in [("upAction", &v.up_action), ("downAction", &v.down_action), ("muteAction", &v.mute_action)] {
+                        if let Some(id) = id {
+                            if !actions.actions.contains_key(id) {
+                                out.push(issue(path.clone(), format!("unknown {field} '{id}'")));
+                            }
+                        }
+                    }
+                }
+                LayoutItem::Timer(t) => {
+                    if let Some(p) = &t.presets {
+                        if !(1..=4).contains(&p.len()) || p.iter().any(|m| !(1..=180).contains(m)) {
+                            out.push(issue(format!("{path}/presets"), "presets must be 1..4 whole numbers of minutes, 1..180"));
+                        }
+                    }
+                }
+                LayoutItem::Clock(_) | LayoutItem::Sys(_) | LayoutItem::Notifications(_) | LayoutItem::Weather(_) | LayoutItem::Obs(_) => {}
             }
         }
     }
@@ -430,6 +509,29 @@ pub fn validate_config(c: &ConfigFile) -> Vec<ValidationIssue> {
     }
     if c.collectors.checks.len() > 20 {
         out.push(issue("/collectors/checks", "at most 20 checks"));
+    }
+    if let Some(w) = &c.weather {
+        if !(1..=80).contains(&chars(&w.place)) {
+            out.push(issue("/weather/place", "place must be 1..80 characters"));
+        }
+        if !(-90.0..=90.0).contains(&w.lat) {
+            out.push(issue("/weather/lat", "lat must be -90..90"));
+        }
+        if !(-180.0..=180.0).contains(&w.lon) {
+            out.push(issue("/weather/lon", "lon must be -180..180"));
+        }
+        if w.units != "metric" && w.units != "imperial" {
+            out.push(issue("/weather/units", "units must be metric or imperial"));
+        }
+    }
+    if let Some(o) = &c.obs {
+        if !(1024..=65535).contains(&o.port) {
+            out.push(issue("/obs/port", "port must be 1024..65535"));
+        }
+        // The password is only ever the DPAPI blob written by `set_obs_password` (DATA_MODEL.md 6.4).
+        if o.password.as_deref().is_some_and(|p| !p.starts_with("dpapi:") || chars(p) > 4000) {
+            out.push(issue("/obs/password", "password must be written by set_obs_password"));
+        }
     }
     let mut ids = HashSet::new();
     for (i, ch) in c.collectors.checks.iter().enumerate() {

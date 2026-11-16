@@ -1,5 +1,5 @@
-import type { ActionsFile } from "./actions";
-import type { LayoutFile, LayoutItem, Orientation } from "./layout";
+import { isReservedVar, SEQUENCE_LIMITS, type ActionsFile } from "./actions";
+import { BACK_PAGE, type LayoutFile, type LayoutItem, type Orientation } from "./layout";
 import type { ValidationIssue } from "./ipc";
 
 const ID_RE = /^[a-z0-9_-]{1,64}$/;
@@ -15,8 +15,9 @@ export function gridFits(cols: number, rows: number, orientation: Orientation | 
   return Number.isInteger(cols) && Number.isInteger(rows) && cols >= l.cols[0] && cols <= l.cols[1] && rows >= l.rows[0] && rows <= l.rows[1];
 }
 
-// Allowed sizes per kind: [minW, maxW, minH, maxH]; the two list widgets may fill the whole grid.
-export function sizeLimits(kind: string, grid: LayoutFile["grid"]): [number, number, number, number] | undefined {
+// Allowed sizes per kind as a box: [minW, maxW, minH, maxH]; the two list widgets may fill the whole grid. For the kinds whose
+// sizes are a list (volume, timer, weather) this is the bounding box: `sizeAllowed` is the exact rule (DATA_MODEL.md 3.2 rule 13).
+export function sizeLimits(kind: string, grid: LayoutFile["grid"], graph = false): [number, number, number, number] | undefined {
   switch (kind) {
     case "button":
     case "status":
@@ -24,14 +25,39 @@ export function sizeLimits(kind: string, grid: LayoutFile["grid"]): [number, num
     case "clock":
       return [1, 2, 1, 1];
     case "sys":
-      return [2, 2, 1, 2];
+      return graph ? [2, 4, 1, 2] : [2, 2, 1, 2];
     case "statuses":
     case "notifications":
       return [2, grid.cols, 1, grid.rows];
     case "media":
       return [2, grid.cols, 1, 2];
+    case "volume":
+      return [1, 4, 1, 4];
+    case "timer":
+      return [1, 2, 1, 2];
+    case "weather":
+      return [1, 4, 1, 2];
+    case "obs":
+      return [2, 4, 1, 2];
     default:
       return undefined;
+  }
+}
+
+/** Whether `w` x `h` is an allowed size of the kind (the box of `sizeLimits` plus the M15 lists). */
+export function sizeAllowed(kind: string, w: number, h: number, grid: LayoutFile["grid"], graph = false): boolean {
+  const box = sizeLimits(kind, grid, graph);
+  if (!box) return true;
+  if (w < box[0] || w > box[1] || h < box[2] || h > box[3]) return false;
+  switch (kind) {
+    case "volume":
+      return (w === 1 && h >= 2) || (h === 1 && w >= 2); // 1x2..1x4 vertical or 2x1..4x1 horizontal (1x1 is neither)
+    case "timer":
+      return !(w === 1 && h === 2); // 1x1, 2x1, 2x2
+    case "weather":
+      return h === 1 ? w <= 2 : w >= 3; // 1x1, 2x1, 3x2, 4x2
+    default:
+      return true;
   }
 }
 
@@ -105,14 +131,24 @@ export function validateLayout(layout: LayoutFile, actions: ActionsFile): Valida
         }
       }
 
-      const size = sizeLimits(item.kind, layout.grid);
-      if (size && (item.w < size[0] || item.w > size[1] || item.h < size[2] || item.h > size[3])) {
+      if (!sizeAllowed(item.kind, item.w, item.h, layout.grid, item.kind === "sys" && item.graph === true)) {
         add(path, `size ${item.w}x${item.h} is not allowed for kind '${item.kind}'`);
       }
 
       if (item.kind === "media") {
         for (const [field, id] of [["prevAction", item.prevAction], ["playAction", item.playAction], ["nextAction", item.nextAction]] as const) {
           if (id !== undefined && !Object.hasOwn(actions.actions, id)) add(path, `unknown ${field} '${id}'`);
+        }
+      }
+      if (item.kind === "volume") {
+        for (const [field, id] of [["upAction", item.upAction], ["downAction", item.downAction], ["muteAction", item.muteAction]] as const) {
+          if (id !== undefined && !Object.hasOwn(actions.actions, id)) add(path, `unknown ${field} '${id}'`);
+        }
+      }
+      if (item.kind === "timer" && item.presets !== undefined) {
+        const p = item.presets;
+        if (!Array.isArray(p) || p.length < 1 || p.length > 4 || p.some((m) => !Number.isInteger(m) || m < 1 || m > 180)) {
+          add(`${path}/presets`, "presets must be 1..4 whole numbers of minutes, 1..180");
         }
       }
 
@@ -132,7 +168,8 @@ export function validateLayout(layout: LayoutFile, actions: ActionsFile): Valida
         if (item.actionId !== undefined && !Object.hasOwn(actions.actions, item.actionId)) {
           add(path, `action "${item.actionId}" no longer exists — choose another`);
         }
-        if (item.navigate !== undefined) {
+        // "$back" (DATA_MODEL.md 3.8) names no page; inside a popup group it is refused below like any `navigate`.
+        if (item.navigate !== undefined && item.navigate !== BACK_PAGE) {
           if (!pageIds.has(item.navigate)) add(path, `page "${item.navigate}" no longer exists — choose another`);
           else if (popupIds.has(item.navigate)) add(path, `page "${item.navigate}" is a popup group — choose a normal page`);
         }
@@ -157,12 +194,48 @@ export function validateActions(actions: ActionsFile): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   for (const [id, action] of Object.entries(actions.actions)) {
     if (!ID_RE.test(id)) issues.push({ path: `/actions/${esc(id)}`, message: `invalid action id '${id}'` });
+    const base = `/actions/${esc(id)}`;
+    if (action.toggleVar !== undefined && isReservedVar(action.toggleVar)) {
+      issues.push({ path: `${base}/toggleVar`, message: `toggleVar: "${action.toggleVar}" is set by Decka itself — remove it` });
+    }
     if (action.type === "hotkey") {
       const seen = new Set<string>();
       action.keys.forEach((key, ki) => {
-        if (seen.has(key)) issues.push({ path: `/actions/${esc(id)}/keys/${ki}`, message: `duplicate key '${key}'` });
+        if (seen.has(key)) issues.push({ path: `${base}/keys/${ki}`, message: `duplicate key '${key}'` });
         seen.add(key);
       });
+    }
+    if (action.type === "obs") {
+      // DATA_MODEL.md 2.3: `scene` goes with op "scene" and `input` with "input_mute_toggle", and with nothing else.
+      const need = (field: "scene" | "input", op: string) => {
+        const value = action[field];
+        if (action.op === op) {
+          if (typeof value !== "string" || value.length < 1 || value.length > 100) issues.push({ path: `${base}/${field}`, message: `${field} is required (1..100 characters) for ${op}` });
+        } else if (value !== undefined) {
+          issues.push({ path: `${base}/${field}`, message: `${field} is only allowed with ${op}` });
+        }
+      };
+      need("scene", "scene");
+      need("input", "input_mute_toggle");
+    }
+    if (action.type === "sequence") {
+      if (action.steps.length < 1 || action.steps.length > SEQUENCE_LIMITS.steps) issues.push({ path: `${base}/steps`, message: `a sequence has 1..${SEQUENCE_LIMITS.steps} steps` });
+      let delays = 0;
+      action.steps.forEach((step, si) => {
+        const at = `${base}/steps/${si}`;
+        if ("delayMs" in step) {
+          if (!Number.isInteger(step.delayMs) || step.delayMs < SEQUENCE_LIMITS.delayMin || step.delayMs > SEQUENCE_LIMITS.delayMax) {
+            issues.push({ path: at, message: `a pause is ${SEQUENCE_LIMITS.delayMin}..${SEQUENCE_LIMITS.delayMax} ms` });
+          } else {
+            delays += step.delayMs;
+          }
+        } else if (!Object.hasOwn(actions.actions, step.actionId)) {
+          issues.push({ path: at, message: `action "${step.actionId}" does not exist` });
+        } else if (actions.actions[step.actionId]!.type === "sequence") {
+          issues.push({ path: at, message: "a sequence cannot contain another sequence" });
+        }
+      });
+      if (delays > SEQUENCE_LIMITS.delaySum) issues.push({ path: `${base}/steps`, message: `the pauses add up to more than ${SEQUENCE_LIMITS.delaySum} ms` });
     }
   }
   return issues;

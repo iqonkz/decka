@@ -44,7 +44,7 @@ pub fn open_release(app: AppHandle, url: String) -> Result<(), String> {
 
 #[tauri::command]
 pub fn get_config(app: AppHandle) -> Result<ConfigFile, String> {
-    Ok(agent(&app)?.config())
+    Ok(agent(&app)?.config_for_window())
 }
 
 #[tauri::command]

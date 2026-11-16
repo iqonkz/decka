@@ -1,4 +1,4 @@
-import type { Id } from "./protocol";
+import type { Id, WeatherInfo } from "./protocol";
 import type { ActionsFile } from "./actions";
 import type { LayoutFile } from "./layout";
 import type { ConfigFile, DeviceInfo } from "./config";
@@ -65,4 +65,10 @@ export interface IpcCommands {
   icon_from_svg(args: { svg: string }): { icon: string } | { error: string };         // M13: an SVG from the icon library -> "img:<hash16>" (DATA_MODEL.md 8.4)
   is_first_run(): boolean;                                     // M13: nothing paired and the layout is untouched (DESIGN.md 4.4)
   get_icon_preview(args: { icon: string }): string | null;     // M12: data URL for the settings window
+  search_place(args: { query: string }): PlaceResult[] | { error: string };   // M15: Open-Meteo geocoding, up to 5 results, query 2..80 chars
+  refresh_weather(): WeatherInfo | { error: string };           // M15: update now (button in the window)
+  set_obs_password(args: { password: string }): void;           // M15: encrypts with DPAPI and saves; "" removes the password
+  obs_status(): ObsStatus;                                      // M15: for the window (pick a scene / audio input when making keys)
 }
+export interface PlaceResult { name: string; country: string; region?: string; lat: number; lon: number; }
+export interface ObsStatus { connected: boolean; error?: string; scenes: string[]; inputs: string[]; }

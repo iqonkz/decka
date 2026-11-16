@@ -14,8 +14,14 @@ export interface ConfigFile {
     checks: HttpCheck[];                              // default []; max 20
     focus?: { enabled: boolean };                     // M11; absent = { true }
     media?: { enabled: boolean };                     // M11; absent = { true }
+    audio?: { enabled: boolean };                     // M15 (DATA_MODEL.md 6.6); absent = { true }
   };
+  weather?: WeatherConfig;           // M15 (DATA_MODEL.md 6.3); absent = off
+  obs?: ObsConfig;                   // M15 (DATA_MODEL.md 6.4); absent = off
 }
+export interface WeatherConfig { enabled: boolean; place: string; lat: number; lon: number; units: "metric" | "imperial"; }
+/** `password` is only ever "dpapi:<base64>" on disk and is written only by `set_obs_password`; `get_config` leaves it out and says `passwordSet`. */
+export interface ObsConfig { enabled: boolean; port: number; password?: string; passwordSet?: boolean; }
 export interface HttpCheck {
   id: Id; label: string;             // label 1..60
   url: string;                       // http/https, <= 2000

@@ -261,6 +261,8 @@ mod winrt {
                 duration_sec,
                 position_at,
                 art,
+                shuffle: None, // T15.2 reads these from PlaybackInfo
+                repeat: None,
             }))
         }
     }
@@ -338,6 +340,8 @@ mod tests {
             duration_sec: Some(244),
             position_at: at,
             art: None,
+            shuffle: None,
+            repeat: None,
         }
     }
 

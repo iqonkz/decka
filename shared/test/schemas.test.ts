@@ -26,6 +26,8 @@ import s2c_patch_media from "../fixtures/s2c-patch-media.json";
 import layout_context from "../fixtures/layout.context.json";
 import s2c_patch_icons from "../fixtures/s2c-patch-icons.json";
 import layout_popup from "../fixtures/layout.popup.json";
+import actions_m15 from "../fixtures/actions.m15.json";
+import state_m15 from "../fixtures/state.m15.json";
 
 const fixtures: [string, unknown][] = [
   ["c2s-pair", c2s_pair],
@@ -51,6 +53,8 @@ const fixtures: [string, unknown][] = [
   ["layout.context", layout_context],
   ["s2c-patch-icons", s2c_patch_icons],
   ["layout.popup", layout_popup],
+  ["actions.m15", actions_m15],
+  ["state.m15", state_m15],
 ];
 
 const ajv = new Ajv2020({ allErrors: true, strict: false });
@@ -68,6 +72,8 @@ const refFor = (name: string): string | null => {
     "layout.default": `${ID}/layout.schema.json#/$defs/LayoutFile`,
     "layout.context": `${ID}/layout.schema.json#/$defs/LayoutFile`,
     "layout.popup": `${ID}/layout.schema.json#/$defs/LayoutFile`,
+    "actions.m15": `${ID}/actions.schema.json#/$defs/ActionsFile`,
+    "state.m15": `${ID}/protocol.schema.json#/$defs/FullState`,
   };
   return map[name] ?? null; // config.example has no schema
 };
@@ -79,7 +85,7 @@ const valid = (ref: string, data: unknown): boolean => {
 };
 
 describe("fixtures are valid", () => {
-  test("23 validated fixtures", () => expect(fixtures.length).toBe(23));
+  test("25 validated fixtures", () => expect(fixtures.length).toBe(25));
 
   test.each(fixtures)("%s", (name, data) => {
     const ref = refFor(name) as string;
@@ -177,9 +183,34 @@ describe("invalid inputs are rejected", () => {
     ["page with a non-exe app", layoutRef, { ...layoutWith(button), pages: [{ id: "main", name: "Main", items: [], apps: ["notepad"] }] }],
     ["grid 9x4", layoutRef, layoutWith(button, { cols: 9, rows: 4 })],
     ["grid 7x1", layoutRef, layoutWith(button, { cols: 7, rows: 1 })],
+    // M15
+    ["audio with an unknown op", actionsRef, { version: 1, actions: { a: { name: "A", type: "audio", op: "volume_up" } } }],
+    ["obs with an unknown op", actionsRef, { version: 1, actions: { o: { name: "O", type: "obs", op: "restart" } } }],
+    ["sequence with 11 steps", actionsRef, { version: 1, actions: { s: { name: "S", type: "sequence", steps: Array.from({ length: 11 }, () => ({ actionId: "lock" })) } } }],
+    ["sequence with a 20 ms pause", actionsRef, { version: 1, actions: { s: { name: "S", type: "sequence", steps: [{ delayMs: 20 }] } } }],
+    ["sequence step with both an action and a pause", actionsRef, { version: 1, actions: { s: { name: "S", type: "sequence", steps: [{ actionId: "lock", delayMs: 100 }] } } }],
+    ["hotkey with a key outside the set (capslock)", actionsRef, { version: 1, actions: { k: { name: "K", type: "hotkey", keys: ["capslock"] } } }],
+    ["volume sized 1x1", layoutRef, layoutWith({ id: "v", kind: "volume", x: 0, y: 0, w: 1, h: 1 })],
+    ["timer sized 1x2", layoutRef, layoutWith({ id: "t", kind: "timer", x: 0, y: 0, w: 1, h: 2 })],
+    ["weather sized 3x1", layoutRef, layoutWith({ id: "w", kind: "weather", x: 0, y: 0, w: 3, h: 1 })],
+    ["obs sized 1x1", layoutRef, layoutWith({ id: "o", kind: "obs", x: 0, y: 0, w: 1, h: 1 })],
+    ["timer with 5 presets", layoutRef, layoutWith({ id: "t", kind: "timer", x: 0, y: 0, w: 2, h: 1, presets: [1, 2, 3, 4, 5] })],
+    ["sys without a graph sized 3x1", layoutRef, layoutWith({ id: "s", kind: "sys", x: 0, y: 0, w: 3, h: 1 })],
+    ["WeatherInfo with 2 days", `${ID}/protocol.schema.json#/$defs/WeatherInfo`, { place: "x", units: "metric", updatedAt: 1, current: { temp: 1, code: 0, isDay: true, wind: 1 }, daily: [{ date: "2026-11-16", min: 0, max: 1, code: 0 }, { date: "2026-11-17", min: 0, max: 1, code: 0 }] }],
+    ["ObsInfo without replayBuffer", `${ID}/protocol.schema.json#/$defs/ObsInfo`, { connected: true, recording: false, streaming: false }],
+    ["MediaInfo with repeat 'all'", `${ID}/protocol.schema.json#/$defs/MediaInfo`, { source: "x", title: "t", playing: true, positionAt: 1, repeat: "all" }],
   ];
 
-  test("14 negative cases", () => expect(cases.length).toBe(14));
+  test("negative cases", () => expect(cases.length).toBe(29));
+
+  test("positive M15 shapes", () => {
+    expect(valid(layoutRef, layoutWith({ id: "v", kind: "volume", x: 0, y: 0, w: 3, h: 1 }))).toBe(true);
+    expect(valid(layoutRef, layoutWith({ id: "v", kind: "volume", x: 0, y: 0, w: 1, h: 4 }))).toBe(true);
+    expect(valid(layoutRef, layoutWith({ id: "w", kind: "weather", x: 0, y: 0, w: 4, h: 2 }))).toBe(true);
+    expect(valid(layoutRef, layoutWith({ id: "s", kind: "sys", x: 0, y: 0, w: 4, h: 2, graph: true }))).toBe(true);
+    expect(valid(layoutRef, layoutWith({ ...button, actionId: undefined, navigate: "$back" }))).toBe(true);
+    expect(valid(`${ID}/actions.schema.json#/$defs/ActionsFile`, { version: 1, actions: { k: { name: "K", type: "hotkey", keys: ["win", "period"] } } })).toBe(true);
+  });
 
   test("grids from 3x2 to 8x5 are valid", () => {
     for (const grid of [{ cols: 3, rows: 2 }, { cols: 7, rows: 4 }, { cols: 8, rows: 5 }]) {

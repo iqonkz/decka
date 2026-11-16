@@ -21,6 +21,9 @@ pub enum MediaOp {
     VolUp,
     VolDown,
     Mute,
+    /// M15: through the media session only.
+    Shuffle,
+    Repeat,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -28,6 +31,39 @@ pub enum MediaOp {
 pub enum SystemOp {
     Lock,
     Sleep,
+}
+
+/// M15: Core Audio toggles (DATA_MODEL.md 2.3).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AudioOp {
+    MicToggle,
+    OutMuteToggle,
+}
+
+/// M15: obs-websocket requests (DATA_MODEL.md 2.3).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ObsOp {
+    RecordToggle,
+    StreamToggle,
+    Scene,
+    InputMuteToggle,
+    SaveReplay,
+}
+
+/// One step of a `sequence`: run an action, or wait.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum SequenceStep {
+    Run {
+        #[serde(rename = "actionId")]
+        action_id: String,
+    },
+    Wait {
+        #[serde(rename = "delayMs")]
+        delay_ms: i64,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -69,6 +105,28 @@ pub enum Action {
         toggle_var: Option<String>,
         op: SystemOp,
     },
+    Audio {
+        name: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        toggle_var: Option<String>,
+        op: AudioOp,
+    },
+    Obs {
+        name: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        toggle_var: Option<String>,
+        op: ObsOp,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        scene: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        input: Option<String>,
+    },
+    Sequence {
+        name: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        toggle_var: Option<String>,
+        steps: Vec<SequenceStep>,
+    },
 }
 
 impl Action {
@@ -78,7 +136,10 @@ impl Action {
             | Action::Media { name, .. }
             | Action::Launch { name, .. }
             | Action::OpenUrl { name, .. }
-            | Action::System { name, .. } => name,
+            | Action::System { name, .. }
+            | Action::Audio { name, .. }
+            | Action::Obs { name, .. }
+            | Action::Sequence { name, .. } => name,
         }
     }
 
@@ -88,7 +149,10 @@ impl Action {
             | Action::Media { toggle_var, .. }
             | Action::Launch { toggle_var, .. }
             | Action::OpenUrl { toggle_var, .. }
-            | Action::System { toggle_var, .. } => toggle_var.as_deref(),
+            | Action::System { toggle_var, .. }
+            | Action::Audio { toggle_var, .. }
+            | Action::Obs { toggle_var, .. }
+            | Action::Sequence { toggle_var, .. } => toggle_var.as_deref(),
         }
     }
 
@@ -100,6 +164,9 @@ impl Action {
             Action::Launch { .. } => "launch",
             Action::OpenUrl { .. } => "open_url",
             Action::System { .. } => "system",
+            Action::Audio { .. } => "audio",
+            Action::Obs { .. } => "obs",
+            Action::Sequence { .. } => "sequence",
         }
     }
 }
@@ -264,6 +331,9 @@ pub struct SysItem {
     pub y: i32,
     pub w: i32,
     pub h: i32,
+    /// M15: a graph of the last 2 minutes (DATA_MODEL.md 6.5).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub graph: Option<bool>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -316,6 +386,46 @@ pub struct MediaItem {
     pub next_action: Option<String>,
 }
 
+/// M15: volume slider (DATA_MODEL.md 6.6); a missing action falls back to `vol-up` / `vol-down` / `vol-mute` when they exist.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VolumeItem {
+    pub id: String,
+    pub x: i32,
+    pub y: i32,
+    pub w: i32,
+    pub h: i32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub up_action: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub down_action: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mute_action: Option<String>,
+}
+
+/// M15: timer (DATA_MODEL.md 6.7); lives on the phone only.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TimerItem {
+    pub id: String,
+    pub x: i32,
+    pub y: i32,
+    pub w: i32,
+    pub h: i32,
+    /// Minutes, 1..4 values of 1..180; absent = [25, 5].
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub presets: Option<Vec<i64>>,
+}
+
+/// M15: weather (DATA_MODEL.md 6.3) and OBS (6.4) widgets carry no settings of their own.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PlainItem {
+    pub id: String,
+    pub x: i32,
+    pub y: i32,
+    pub w: i32,
+    pub h: i32,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum LayoutItem {
@@ -326,6 +436,10 @@ pub enum LayoutItem {
     Status(StatusTileItem),
     Notifications(NotificationsItem),
     Media(MediaItem),
+    Volume(VolumeItem),
+    Timer(TimerItem),
+    Weather(PlainItem),
+    Obs(PlainItem),
 }
 
 impl LayoutItem {
@@ -339,6 +453,9 @@ impl LayoutItem {
             LayoutItem::Status(i) => (&i.id, i.x, i.y, i.w, i.h),
             LayoutItem::Notifications(i) => (&i.id, i.x, i.y, i.w, i.h),
             LayoutItem::Media(i) => (&i.id, i.x, i.y, i.w, i.h),
+            LayoutItem::Volume(i) => (&i.id, i.x, i.y, i.w, i.h),
+            LayoutItem::Timer(i) => (&i.id, i.x, i.y, i.w, i.h),
+            LayoutItem::Weather(i) | LayoutItem::Obs(i) => (&i.id, i.x, i.y, i.w, i.h),
         }
     }
 
@@ -352,6 +469,9 @@ impl LayoutItem {
             LayoutItem::Status(i) => (i.x, i.y) = (x, y),
             LayoutItem::Notifications(i) => (i.x, i.y) = (x, y),
             LayoutItem::Media(i) => (i.x, i.y) = (x, y),
+            LayoutItem::Volume(i) => (i.x, i.y) = (x, y),
+            LayoutItem::Timer(i) => (i.x, i.y) = (x, y),
+            LayoutItem::Weather(i) | LayoutItem::Obs(i) => (i.x, i.y) = (x, y),
         }
     }
 
@@ -364,6 +484,10 @@ impl LayoutItem {
             LayoutItem::Status(_) => "status",
             LayoutItem::Notifications(_) => "notifications",
             LayoutItem::Media(_) => "media",
+            LayoutItem::Volume(_) => "volume",
+            LayoutItem::Timer(_) => "timer",
+            LayoutItem::Weather(_) => "weather",
+            LayoutItem::Obs(_) => "obs",
         }
     }
 }
@@ -384,6 +508,35 @@ pub struct ConfigFile {
     pub update_check: Option<bool>,
     pub usb: UsbConfig,
     pub collectors: Collectors,
+    /// M15 (DATA_MODEL.md 6.3); absent = off.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub weather: Option<WeatherConfig>,
+    /// M15 (DATA_MODEL.md 6.4); absent = off.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub obs: Option<ObsConfig>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct WeatherConfig {
+    pub enabled: bool,
+    pub place: String,
+    pub lat: f64,
+    pub lon: f64,
+    /// `metric` | `imperial`.
+    pub units: String,
+}
+
+/// `password` is only ever `dpapi:<base64>` on disk; the IPC answer leaves it out and sets `passwordSet` instead.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ObsConfig {
+    pub enabled: bool,
+    pub port: u32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub password: Option<String>,
+    /// Only in `get_config` answers; never stored.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub password_set: Option<bool>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -403,6 +556,9 @@ pub struct Collectors {
     /// M11; absent = enabled.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub media: Option<SwitchConfig>,
+    /// M15 (DATA_MODEL.md 6.6); absent = enabled.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audio: Option<SwitchConfig>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -411,6 +567,10 @@ pub struct SwitchConfig {
 }
 
 impl Collectors {
+    pub fn audio_enabled(&self) -> bool {
+        self.audio.as_ref().map_or(true, |c| c.enabled)
+    }
+
     pub fn focus_enabled(&self) -> bool {
         self.focus.as_ref().map_or(true, |c| c.enabled)
     }
@@ -444,6 +604,56 @@ pub struct MediaInfo {
     pub position_at: u64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub art: Option<String>,
+    /// M15: GSMTC `IsShuffleActive`; absent when the source has none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub shuffle: Option<bool>,
+    /// M15: `none` | `list` | `track`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub repeat: Option<String>,
+}
+
+/// M15: weather section (DATA_MODEL.md 6.3).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WeatherInfo {
+    pub place: String,
+    pub units: String,
+    pub updated_at: u64,
+    pub current: WeatherNow,
+    pub daily: Vec<WeatherDay>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WeatherNow {
+    pub temp: i64,
+    pub code: u32,
+    pub is_day: bool,
+    pub wind: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct WeatherDay {
+    pub date: String,
+    pub min: i64,
+    pub max: i64,
+    pub code: u32,
+}
+
+/// M15: OBS section (DATA_MODEL.md 6.4); the password never appears here.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ObsInfo {
+    pub connected: bool,
+    pub recording: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub record_started_at: Option<u64>,
+    pub streaming: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stream_started_at: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scene: Option<String>,
+    pub replay_buffer: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

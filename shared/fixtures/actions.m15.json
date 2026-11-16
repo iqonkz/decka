@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "actions": {
+    "media-play":  { "name": "Play / Pause", "type": "media", "op": "play_pause" },
+    "media-next":  { "name": "Next track", "type": "media", "op": "next" },
+    "media-prev":  { "name": "Previous track", "type": "media", "op": "prev" },
+    "vol-up":      { "name": "Volume up", "type": "media", "op": "vol_up" },
+    "vol-down":    { "name": "Volume down", "type": "media", "op": "vol_down" },
+    "vol-mute":    { "name": "Mute", "type": "media", "op": "mute" },
+    "shuffle":     { "name": "Shuffle", "type": "media", "op": "shuffle" },
+    "repeat":      { "name": "Repeat", "type": "media", "op": "repeat" },
+    "mic-toggle":  { "name": "Mute microphone", "type": "audio", "op": "mic_toggle" },
+    "out-mute":    { "name": "Mute sound", "type": "audio", "op": "out_mute_toggle" },
+    "emoji-panel": { "name": "Emoji panel", "type": "hotkey", "keys": ["win", "period"] },
+    "screenshot":  { "name": "Screenshot", "type": "hotkey", "keys": ["win", "shift", "s"] },
+    "obs-record":  { "name": "OBS: record", "type": "obs", "op": "record_toggle" },
+    "obs-stream":  { "name": "OBS: stream", "type": "obs", "op": "stream_toggle" },
+    "obs-scene-gaming": { "name": "OBS: Gaming", "type": "obs", "op": "scene", "scene": "Gaming" },
+    "obs-mic":     { "name": "OBS: mute mic", "type": "obs", "op": "input_mute_toggle", "input": "Mic/Aux" },
+    "obs-replay":  { "name": "OBS: save replay", "type": "obs", "op": "save_replay" },
+    "go-live":     { "name": "Go live", "type": "sequence", "steps": [ { "actionId": "obs-scene-gaming" }, { "delayMs": 500 }, { "actionId": "obs-stream" } ] }
+  }
+}

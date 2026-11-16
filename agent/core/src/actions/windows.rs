@@ -97,6 +97,11 @@ impl ActionRunner for WindowsRunner {
                 let mapped: Option<Vec<_>> = names.iter().map(|n| keys::map_key(n)).collect();
                 self.send_keys(keyboard::Keys::Hotkey(mapped.ok_or("unknown key name")?))
             }
+            // M15 actions are implemented by T15.2 (audio, shuffle/repeat, sequence) and T15.6 (obs).
+            Action::Audio { .. } | Action::Obs { .. } | Action::Sequence { .. } => Err("not implemented yet".to_string()),
+            Action::Media { op, .. } if matches!(op, crate::model::MediaOp::Shuffle | crate::model::MediaOp::Repeat) => {
+                Err("The player does not support this".to_string())
+            }
             Action::Media { op, .. } => {
                 use crate::media_control::{choose_path, op_name, try_session, uses_session, Path};
                 if uses_session(*op) && choose_path(try_session(*op)) == Path::Session {
@@ -104,7 +109,7 @@ impl ActionRunner for WindowsRunner {
                     return Ok(());
                 }
                 tracing::info!("media {} via key", op_name(*op));
-                self.send_keys(keyboard::Keys::Click(keys::map_media(*op)))
+                self.send_keys(keyboard::Keys::Click(keys::map_media(*op).ok_or("no key for this media operation")?))
             }
         }
     }

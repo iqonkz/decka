@@ -530,7 +530,13 @@ impl Agent {
 
     /// Validates and writes config.json, then restarts the collectors. `port` and `bind` take effect
     /// only after `restart_server`.
-    pub fn save_config(&self, config: ConfigFile) -> SaveResult {
+    pub fn save_config(&self, mut config: ConfigFile) -> SaveResult {
+        // The OBS password is written only by `set_obs_password`: whatever the caller sends is ignored, the stored one stays.
+        let stored = self.config().obs.and_then(|o| o.password);
+        if let Some(obs) = config.obs.as_mut() {
+            obs.password = stored;
+            obs.password_set = None;
+        }
         let issues = crate::validate::validate_config(&config);
         if !issues.is_empty() {
             return SaveResult::Rejected(issues);
@@ -591,6 +597,16 @@ impl Agent {
 
     pub fn config(&self) -> ConfigFile {
         self.inner.config.lock().unwrap().clone()
+    }
+
+    /// The config as the settings window sees it: the OBS password is left out and `passwordSet` says whether there is one.
+    pub fn config_for_window(&self) -> ConfigFile {
+        let mut config = self.config();
+        if let Some(obs) = config.obs.as_mut() {
+            obs.password_set = Some(obs.password.is_some());
+            obs.password = None;
+        }
+        config
     }
 
     pub fn actions(&self) -> ActionsFile {
@@ -699,11 +715,14 @@ impl Agent {
         match name {
             "actions.json" => match serde_json::from_str::<ActionsFile>(&text) {
                 Err(e) => self.invalid_file_notification(name, &format!("invalid JSON: {e}")),
-                Ok(actions) => match crate::validate::validate_actions(&actions).first() {
-                    Some(issue) => self.invalid_file_notification(name, &issue.message),
-                    // A dangling button reference is allowed: the press answers UNKNOWN_ACTION.
-                    None => *self.inner.actions.lock().unwrap() = actions,
-                },
+                Ok(mut actions) => {
+                    config::migrate_actions(&mut actions);
+                    match crate::validate::validate_actions(&actions).first() {
+                        Some(issue) => self.invalid_file_notification(name, &issue.message),
+                        // A dangling button reference is allowed: the press answers UNKNOWN_ACTION.
+                        None => *self.inner.actions.lock().unwrap() = actions,
+                    }
+                }
             },
             "layout.json" => match serde_json::from_str::<LayoutFile>(&text) {
                 Err(e) => self.invalid_file_notification(name, &format!("invalid JSON: {e}")),

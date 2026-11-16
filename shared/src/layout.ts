@@ -40,7 +40,7 @@ export interface ButtonLook { label?: string; icon?: string; color?: string; }
 export interface ButtonItem extends ItemBase, ButtonLook {
   kind: "button";
   actionId?: Id;          // M13: allowed combinations: actionId | navigate | popup | actionId + popup
-  navigate?: Id;          // id of a normal (not popup) page
+  navigate?: Id | typeof BACK_PAGE; // id of a normal (not popup) page; M15: "$back" = the page visited before (DATA_MODEL.md 3.8)
   popup?: Id;             // M13: id of a popup page (`popup: true`)
   confirm?: boolean;      // true = press by holding 800 ms
   bind?: { var: VarName; states: Record<string, ButtonLook> }; // key = String(variable value)
@@ -48,7 +48,7 @@ export interface ButtonItem extends ItemBase, ButtonLook {
   showLabel?: boolean;    // M14: overrides display.keyLabels; the label shows when it is not empty and (showLabel ?? display.keyLabels ?? true)
 }
 export interface ClockItem    extends ItemBase { kind: "clock"; seconds?: boolean; }
-export interface SysItem      extends ItemBase { kind: "sys"; }
+export interface SysItem      extends ItemBase { kind: "sys"; graph?: boolean; }   // M15: graph = the last 2 minutes (DATA_MODEL.md 6.5)
 export interface StatusesItem extends ItemBase { kind: "statuses"; group?: string; title?: string; }
 export interface StatusItemTile extends ItemBase { kind: "status"; statusId: Id; }
 export interface NotificationsItem extends ItemBase { kind: "notifications"; }
@@ -58,7 +58,17 @@ export interface MediaItem extends ItemBase {   // M11: "Now playing"
   prevAction?: Id; playAction?: Id; nextAction?: Id;  // actions of the widget's keys; absent = no key
 }
 
-export type LayoutItem = ButtonItem | ClockItem | SysItem | StatusesItem | StatusItemTile | NotificationsItem | MediaItem;
+// M15 (DATA_MODEL.md 6.3-6.7)
+export interface VolumeItem  extends ItemBase { kind: "volume"; upAction?: Id; downAction?: Id; muteAction?: Id; } // default vol-up / vol-down / vol-mute when they exist
+export interface TimerItem   extends ItemBase { kind: "timer"; presets?: number[]; }   // minutes, 1..180, 1..4 values; default [25, 5]
+export interface WeatherItem extends ItemBase { kind: "weather"; }
+export interface ObsItem     extends ItemBase { kind: "obs"; }
+
+export type LayoutItem = ButtonItem | ClockItem | SysItem | StatusesItem | StatusItemTile | NotificationsItem | MediaItem
+  | VolumeItem | TimerItem | WeatherItem | ObsItem;
+
+/** `navigate` value of a button that goes back to the page the user came from (DATA_MODEL.md 3.8). */
+export const BACK_PAGE = "$back";
 
 // What is sent to the phone in the "layout" section: LayoutFile without "version".
 export type ClientLayout = Omit<LayoutFile, "version">;

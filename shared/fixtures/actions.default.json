@@ -6,7 +6,7 @@
     "media-prev":  { "name": "Previous track", "type": "media", "op": "prev" },
     "vol-up":      { "name": "Volume up", "type": "media", "op": "vol_up" },
     "vol-down":    { "name": "Volume down", "type": "media", "op": "vol_down" },
-    "vol-mute":    { "name": "Mute", "type": "media", "op": "mute", "toggleVar": "audio.muted" },
+    "vol-mute":    { "name": "Mute", "type": "media", "op": "mute" },
     "lock":        { "name": "Lock PC", "type": "system", "op": "lock" },
     "task-manager":{ "name": "Task Manager", "type": "hotkey", "keys": ["ctrl", "shift", "esc"] },
     "notepad":     { "name": "Notepad", "type": "launch", "program": "notepad.exe" },

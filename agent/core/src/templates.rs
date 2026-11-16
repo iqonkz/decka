@@ -67,7 +67,7 @@ fn turn_items(items: Vec<LayoutItem>, cols: i32, rows: i32) -> Option<Vec<Layout
         })
     };
     for mut item in order {
-        let (_, x, y, w, h) = item.rect();
+        let (_, _, _, w, h) = item.rect();
         let spot = (0..rows).flat_map(|yy| (0..cols).map(move |xx| (xx, yy))).find(|&(xx, yy)| free(&placed, xx, yy, w, h))?;
         item.set_pos(spot.0, spot.1);
         placed.push(item);
@@ -123,6 +123,9 @@ pub fn build(template_id: &str, layout: &LayoutFile, actions: &ActionsFile) -> R
                 LayoutItem::Status(i) => i.id = format!("t-{page_id}-{}", i.id),
                 LayoutItem::Notifications(i) => i.id = format!("t-{page_id}-{}", i.id),
                 LayoutItem::Media(i) => i.id = format!("t-{page_id}-{}", i.id),
+                LayoutItem::Volume(i) => i.id = format!("t-{page_id}-{}", i.id),
+                LayoutItem::Timer(i) => i.id = format!("t-{page_id}-{}", i.id),
+                LayoutItem::Weather(i) | LayoutItem::Obs(i) => i.id = format!("t-{page_id}-{}", i.id),
             }
             item
         })

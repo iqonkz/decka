@@ -272,12 +272,12 @@ async fn invalid_status_requests_are_400() {
 #[tokio::test]
 async fn vars_put_get_delete() {
     let e = env().await;
-    let res = json_req(e.put("/api/vars/mic.muted"), fixture("http-var-req")).send().await.unwrap();
+    let res = json_req(e.put("/api/vars/build.failed"), fixture("http-var-req")).send().await.unwrap();
     assert_eq!(res.status(), 200);
-    assert_eq!(e.section("vars"), json!({ "mic.muted": true }));
-    assert_eq!(e.delete("/api/vars/mic.muted").send().await.unwrap().status(), 200);
+    assert_eq!(e.section("vars"), json!({ "build.failed": true }));
+    assert_eq!(e.delete("/api/vars/build.failed").send().await.unwrap().status(), 200);
     assert_eq!(e.section("vars"), json!({}));
-    assert_eq!(e.delete("/api/vars/mic.muted").send().await.unwrap().status(), 404);
+    assert_eq!(e.delete("/api/vars/build.failed").send().await.unwrap().status(), 404);
     e.agent.shutdown().await;
 }
 

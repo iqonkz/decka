@@ -44,6 +44,8 @@ pub fn op_name(op: MediaOp) -> &'static str {
         MediaOp::VolUp => "vol_up",
         MediaOp::VolDown => "vol_down",
         MediaOp::Mute => "mute",
+        MediaOp::Shuffle => "shuffle",
+        MediaOp::Repeat => "repeat",
     }
 }
 

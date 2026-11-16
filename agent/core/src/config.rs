@@ -54,7 +54,10 @@ pub fn default_config() -> ConfigFile {
             checks: Vec::new(),
             focus: None,
             media: None,
+            audio: None,
         },
+        weather: None,
+        obs: None,
     }
 }
 
@@ -123,12 +126,27 @@ fn read_json<T: DeserializeOwned>(path: &Path) -> Result<Option<T>, String> {
     }
 }
 
+/// M15 migration (T15.2 step 4): the default `vol-mute` used to carry `toggleVar: "audio.muted"`, and the audio collector now
+/// sets that variable itself. This one case is dropped silently (logged); any other `toggleVar` on a reserved name stays an
+/// error. Returns whether something changed.
+pub fn migrate_actions(actions: &mut ActionsFile) -> bool {
+    let Some(Action::Media { op: MediaOp::Mute, toggle_var, .. }) = actions.actions.get_mut("vol-mute") else { return false };
+    if toggle_var.as_deref() != Some("audio.muted") {
+        return false;
+    }
+    *toggle_var = None;
+    tracing::info!("actions.json: dropped toggleVar \"audio.muted\" from vol-mute (the audio collector sets it now)");
+    true
+}
+
 /// Generic per-file loading: missing -> create from defaults; invalid -> fallback, file untouched.
+/// `migrate` may rewrite a value that was read (it is not written back to the file until the next save).
 fn load_file<T: Serialize + DeserializeOwned>(
     dir: &Path,
     name: &str,
     default: impl FnOnce() -> T,
     fallback: impl FnOnce() -> T,
+    migrate: impl FnOnce(&mut T),
     validate: impl FnOnce(&T) -> Vec<ValidationIssue>,
     issues: &mut Vec<(String, ValidationIssue)>,
 ) -> T {
@@ -141,7 +159,8 @@ fn load_file<T: Serialize + DeserializeOwned>(
             }
             value
         }
-        Ok(Some(value)) => {
+        Ok(Some(mut value)) => {
+            migrate(&mut value);
             let found = validate(&value);
             if found.is_empty() {
                 value
@@ -163,10 +182,10 @@ pub fn load_or_init(dir: &Path) -> Loaded {
         issues.push(("config.json".to_string(), ValidationIssue { path: String::new(), message: format!("cannot create config dir: {e}") }));
     }
 
-    let config = load_file(dir, "config.json", default_config, default_config, validate_config, &mut issues);
-    let actions = load_file(dir, "actions.json", default_actions, empty_actions, validate_actions, &mut issues);
-    let layout = load_file(dir, "layout.json", default_layout, empty_layout, |l: &LayoutFile| validate_layout(l, &actions), &mut issues);
-    let devices = load_file(dir, "devices.json", default_devices, default_devices, |d: &DevicesFile| {
+    let config = load_file(dir, "config.json", default_config, default_config, |_| {}, validate_config, &mut issues);
+    let actions = load_file(dir, "actions.json", default_actions, empty_actions, |a| { migrate_actions(a); }, validate_actions, &mut issues);
+    let layout = load_file(dir, "layout.json", default_layout, empty_layout, |_| {}, |l: &LayoutFile| validate_layout(l, &actions), &mut issues);
+    let devices = load_file(dir, "devices.json", default_devices, default_devices, |_| {}, |d: &DevicesFile| {
         if d.version == 1 {
             Vec::new()
         } else {

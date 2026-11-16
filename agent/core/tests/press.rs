@@ -2,6 +2,8 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use decka_core::actions::testing::RecordingRunner;
+use decka_core::config::{default_actions, save_json_atomic};
+use decka_core::model::Action;
 use decka_core::{Agent, AgentOptions};
 use futures_util::{SinkExt, StreamExt};
 use serde_json::{json, Value};
@@ -20,6 +22,10 @@ struct Env {
 
 async fn env(runner: Arc<RecordingRunner>) -> Env {
     let dir = tempfile::tempdir().unwrap();
+    // The default actions plus one that toggles a user variable (`vol-mute` no longer toggles `audio.muted`: Decka sets it).
+    let mut actions = default_actions();
+    actions.actions.insert("flag".into(), Action::Hotkey { name: "Flag".into(), toggle_var: Some("test.flag".into()), keys: vec!["f13".into()] });
+    save_json_atomic(&dir.path().join("actions.json"), &actions).unwrap();
     let agent = Agent::start(AgentOptions {
         config_dir: Some(dir.path().to_path_buf()),
         client_dist: None,
@@ -124,15 +130,15 @@ async fn toggle_var_flips_and_broadcasts_each_time() {
     let mut e = env(runner).await;
 
     for (id, expected) in [(1, true), (2, false)] {
-        send(&mut e.ws, json!({ "t": "press", "id": id, "actionId": "vol-mute" })).await;
+        send(&mut e.ws, json!({ "t": "press", "id": id, "actionId": "flag" })).await;
         let msgs = recv_n(&mut e.ws, 2).await;
         let patch = msgs.iter().find(|m| m["t"] == "patch").expect("vars patch");
         let result = msgs.iter().find(|m| m["t"] == "press_result").expect("press_result");
         assert_eq!(patch["section"], "vars");
-        assert_eq!(patch["value"], json!({ "audio.muted": expected }));
+        assert_eq!(patch["value"], json!({ "test.flag": expected }));
         assert_eq!(result["ok"], true);
     }
-    assert_eq!(e.agent.store().get("vars"), json!({ "audio.muted": false }));
+    assert_eq!(e.agent.store().get("vars"), json!({ "test.flag": false }));
     e.agent.shutdown().await;
 }
 

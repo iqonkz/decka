@@ -1,0 +1,49 @@
+{
+  "layout": {
+    "grid": { "cols": 7, "rows": 4 },
+    "display": { "dimAfterSec": 60, "dimLevel": 0.3, "sleepAfterSec": 600, "pixelShift": true, "night": { "enabled": false, "from": "23:00", "to": "07:00" }, "theme": "studio" },
+    "pages": [
+      { "id": "main", "name": "Main", "items": [
+        { "id": "w-weather", "kind": "weather", "x": 0, "y": 0, "w": 2, "h": 1 },
+        { "id": "w-obs", "kind": "obs", "x": 2, "y": 0, "w": 3, "h": 1 },
+        { "id": "w-timer", "kind": "timer", "x": 5, "y": 0, "w": 2, "h": 1, "presets": [25, 5] },
+        { "id": "w-volume", "kind": "volume", "x": 0, "y": 1, "w": 3, "h": 1, "upAction": "vol-up", "downAction": "vol-down", "muteAction": "vol-mute" },
+        { "id": "w-graph", "kind": "sys", "x": 3, "y": 1, "w": 4, "h": 2, "graph": true },
+        { "id": "b-mic", "kind": "button", "x": 0, "y": 2, "w": 1, "h": 1, "label": "Mic off", "icon": "lucide:mic", "actionId": "mic-toggle",
+          "bind": { "var": "mic.muted", "states": { "true": { "label": "Mic off", "icon": "lucide:mic-off" }, "false": { "label": "Mic on", "icon": "lucide:mic" } } } },
+        { "id": "b-shuffle", "kind": "button", "x": 1, "y": 2, "w": 1, "h": 1, "label": "Shuffle", "icon": "lucide:refresh-cw", "actionId": "shuffle",
+          "bind": { "var": "media.shuffle", "states": { "true": { "label": "Shuffle" } } } },
+        { "id": "b-mute", "kind": "button", "x": 2, "y": 2, "w": 1, "h": 1, "label": "Mute", "icon": "lucide:volume-x", "actionId": "out-mute",
+          "bind": { "var": "audio.muted", "states": { "true": { "label": "Muted" } } } },
+        { "id": "b-rec", "kind": "button", "x": 0, "y": 3, "w": 1, "h": 1, "label": "Record", "icon": "lucide:video", "actionId": "obs-record",
+          "bind": { "var": "obs.recording", "states": { "true": { "label": "Stop" } } } },
+        { "id": "b-live", "kind": "button", "x": 1, "y": 3, "w": 1, "h": 1, "label": "Go live", "icon": "lucide:rocket", "actionId": "go-live" },
+        { "id": "b-dev", "kind": "button", "x": 5, "y": 3, "w": 1, "h": 1, "label": "Dev", "icon": "lucide:code", "navigate": "dev" }
+      ] },
+      { "id": "dev", "name": "Dev", "items": [
+        { "id": "b-back", "kind": "button", "x": 0, "y": 0, "w": 1, "h": 1, "label": "Back", "icon": "lucide:arrow-left", "navigate": "$back" }
+      ] }
+    ]
+  },
+  "sys": { "cpu": 34, "mem": { "usedMb": 18400, "totalMb": 32000 }, "disks": [ { "mount": "C:", "usedGb": 210, "totalGb": 476 } ], "net": { "rxKbps": 1800, "txKbps": 220 }, "uptimeSec": 86400 },
+  "statuses": [],
+  "notifications": [],
+  "vars": {
+    "audio.volume": 42, "audio.muted": false, "mic.muted": true,
+    "media.playing": true, "media.shuffle": false, "media.repeat": "none",
+    "obs.connected": true, "obs.recording": true, "obs.streaming": false, "obs.scene": "Gaming"
+  },
+  "focus": { "app": "obs64.exe" },
+  "media": { "source": "Spotify.exe", "title": "Midnight City", "artist": "M83", "playing": true, "positionSec": 61, "durationSec": 244, "positionAt": 1794650000000, "shuffle": false, "repeat": "none" },
+  "icons": {},
+  "weather": {
+    "place": "Almaty", "units": "metric", "updatedAt": 1794650000000,
+    "current": { "temp": 7, "code": 3, "isDay": true, "wind": 11 },
+    "daily": [
+      { "date": "2026-11-16", "min": 2, "max": 9, "code": 3 },
+      { "date": "2026-11-17", "min": 1, "max": 6, "code": 61 },
+      { "date": "2026-11-18", "min": -1, "max": 4, "code": 71 }
+    ]
+  },
+  "obs": { "connected": true, "recording": true, "recordStartedAt": 1794649000000, "streaming": false, "scene": "Gaming", "replayBuffer": false }
+}

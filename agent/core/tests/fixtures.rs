@@ -63,6 +63,16 @@ fn m11_sections_have_typed_shapes() {
 }
 
 #[test]
+fn m15_state_fixture_has_typed_sections() {
+    let state = load("state.m15");
+    roundtrip_value::<ClientLayout>("state.m15 layout", state["layout"].clone());
+    roundtrip_value::<MediaInfo>("state.m15 media", state["media"].clone());
+    roundtrip_value::<WeatherInfo>("state.m15 weather", state["weather"].clone());
+    roundtrip_value::<ObsInfo>("state.m15 obs", state["obs"].clone());
+    roundtrip::<ActionsFile>("actions.m15");
+}
+
+#[test]
 fn m12_icons_section_is_a_map_of_data_urls() {
     roundtrip_value::<std::collections::BTreeMap<String, String>>("icons", load("s2c-patch-icons")["value"].clone());
 }

@@ -1,4 +1,4 @@
-//! State store: eight JSON sections (five from the start, `focus` and `media` from M11, `icons` from M12), a global `rev`, broadcast of changes only (ARCHITECTURE.md 5.2).
+//! State store: ten JSON sections (five from the start, `focus` and `media` from M11, `icons` from M12, `weather` and `obs` from M15), a global `rev`, broadcast of changes only (ARCHITECTURE.md 5.2).
 
 use std::collections::{BTreeMap, HashMap};
 use std::sync::{Arc, Mutex};
@@ -8,7 +8,7 @@ use tokio::sync::broadcast;
 
 use crate::model::{Notification, StatusItem, VarValue};
 
-pub const SECTIONS: [&str; 8] = ["layout", "sys", "statuses", "notifications", "vars", "focus", "media", "icons"];
+pub const SECTIONS: [&str; 10] = ["layout", "sys", "statuses", "notifications", "vars", "focus", "media", "icons", "weather", "obs"];
 pub const MAX_NOTIFICATIONS: usize = 20;
 
 /// A change to one section; `value` is always the complete new value of the section.
@@ -59,6 +59,8 @@ impl Store {
         sections.insert("focus", Value::Null);
         sections.insert("media", Value::Null);
         sections.insert("icons", Value::Object(Default::default()));
+        sections.insert("weather", Value::Null);
+        sections.insert("obs", Value::Null);
         let (tx, _) = broadcast::channel(64);
         Store { inner: Arc::new(Mutex::new(Inner { sections, rev: 0 })), tx }
     }
