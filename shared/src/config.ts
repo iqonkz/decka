@@ -23,7 +23,7 @@ export interface ConfigFile {
 /** `hookToken` is made by `cc_install` and never reaches the window. */
 export interface AiConfig {
   claude: { enabled: boolean; approvals: boolean; timeoutSec: 60 | 120 | 300 };
-  codex: { enabled: boolean };
+  codex: { enabled: boolean; approvals?: boolean };   // approvals: phone approvals for Codex, absent = on
   hookToken?: string;
 }
 export interface WeatherConfig { enabled: boolean; place: string; lat: number; lon: number; units: "metric" | "imperial"; }

@@ -545,6 +545,9 @@ pub struct AiClaudeConfig {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AiCodexConfig {
     pub enabled: bool,
+    /// Phone approvals for Codex (its `PermissionRequest` hook); absent = on.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub approvals: Option<bool>,
 }
 
 /// M16: the `ai` widget (DATA_MODEL.md 6.8); `show` is `both` (default) | `claude` | `codex`.

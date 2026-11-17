@@ -38,6 +38,7 @@ export interface CcStatus {
   statusLineConflict: boolean;     // the status line belongs to another tool: only approvals work
   lastSeenAt?: number;             // the last status line or hook call
   codexFound: boolean;             // %USERPROFILE%\.codex\sessions exists
+  codexHook: boolean;              // our hook is in %USERPROFILE%\.codex\hooks.json (Codex asks to trust it with /hooks)
 }
 
 export interface IpcCommands {

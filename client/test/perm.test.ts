@@ -5,7 +5,7 @@ import { applyPatch, applyWelcome, currentPerm, getState, markPermAnswered, onAt
 
 const welcome = welcomeFixture as unknown as WelcomeMsg;
 const patch = (rev: number, value: unknown) => ({ t: "patch", rev, section: "ai", value }) as unknown as PatchMsg;
-const request = (reqId: string): PermRequest => ({ reqId, tool: "Bash", summary: "ls", project: "decka", sessionId: "abcdef12", expiresAt: 9_999_999_999_999 });
+const request = (reqId: string): PermRequest => ({ reqId, provider: "codex", tool: "Bash", summary: "ls", project: "decka", sessionId: "abcdef12", expiresAt: 9_999_999_999_999 });
 const ai = (...ids: string[]) => ({ claude: null, codex: null, sessions: [], pending: ids.map(request) });
 
 beforeEach(() => {

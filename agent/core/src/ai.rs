@@ -63,6 +63,8 @@ pub struct AiSession {
 #[serde(rename_all = "camelCase")]
 pub struct PermRequest {
     pub req_id: String,
+    /// `claude` | `codex`: who asks.
+    pub provider: String,
     pub tool: String,
     pub summary: String,
     pub project: String,
@@ -128,7 +130,8 @@ pub fn summarize(hook: &Value) -> (String, String) {
     let input = hook.get("tool_input").unwrap_or(&Value::Null);
     let cwd = str_field(hook, "cwd").unwrap_or("");
     let (tool, raw) = match name {
-        "Bash" | "PowerShell" => (name.to_string(), str_field(input, "command").unwrap_or("").to_string()),
+        // `apply_patch` is the edit tool of Codex: its `command` is the patch text.
+        "Bash" | "PowerShell" | "apply_patch" => (name.to_string(), str_field(input, "command").unwrap_or("").to_string()),
         "Edit" | "Write" | "MultiEdit" | "NotebookEdit" | "Read" => {
             let path = str_field(input, "file_path").or_else(|| str_field(input, "notebook_path")).unwrap_or("");
             (name.to_string(), relative_to(path, cwd))
@@ -255,6 +258,8 @@ pub struct AiHub {
 
 /// What the permission endpoint needs to know from the agent.
 pub struct PermOpts {
+    /// `claude` | `codex`.
+    pub provider: &'static str,
     pub approvals: bool,
     pub phones: usize,
     pub timeout: Duration,
@@ -409,6 +414,7 @@ impl AiHub {
         let req_id = hex(&crate::config::random_bytes(8));
         let req = PermRequest {
             req_id: req_id.clone(),
+            provider: opts.provider.to_string(),
             tool: tool.clone(),
             summary,
             project: basename(str_field(&hook, "cwd").unwrap_or("")),
@@ -587,11 +593,66 @@ fn is_our_status_line(v: &Value) -> bool {
     str_field(v, "command").is_some_and(|c| c.contains("/api/cc/statusline"))
 }
 
+/// Our entry: an `http` hook of Claude Code (`url`) or a `command` hook of Codex that calls `/api/cc/`.
 fn is_our_hook(entry: &Value) -> bool {
-    entry
-        .get("hooks")
-        .and_then(Value::as_array)
-        .is_some_and(|hooks| hooks.iter().any(|h| str_field(h, "url").is_some_and(|u| u.contains("/api/cc/"))))
+    entry.get("hooks").and_then(Value::as_array).is_some_and(|hooks| {
+        hooks.iter().any(|h| ["url", "command"].iter().any(|k| str_field(h, k).is_some_and(|u| u.contains("/api/cc/"))))
+    })
+}
+
+/// Codex reads hooks from `%USERPROFILE%\.codex\hooks.json`; the command is the same call as the hook of Claude Code,
+/// `curl.exe` passes the JSON of Codex on stdin and prints the answer (the decision, or nothing) on stdout.
+pub fn codex_hooks_path(home: &Path) -> PathBuf {
+    home.join(".codex").join("hooks.json")
+}
+
+pub fn apply_install_codex(settings: &mut Value, token: &str, port: u32, timeout_sec: u32) -> Result<(), String> {
+    let root = settings.as_object_mut().ok_or("hooks.json is not an object")?;
+    let hooks = root.entry("hooks").or_insert_with(|| json!({}));
+    let hooks = hooks.as_object_mut().ok_or("hooks.json: hooks is not an object")?;
+    let list = hooks.entry("PermissionRequest").or_insert_with(|| json!([]));
+    let list = list.as_array_mut().ok_or("hooks.json: hooks.PermissionRequest is not a list")?;
+    list.retain(|e| !is_our_hook(e));
+    let command = format!(
+        "curl.exe -s -m {} --data-binary @- -H \"Authorization: Bearer {token}\" \"http://127.0.0.1:{port}/api/cc/permission?agent=codex\"",
+        timeout_sec + 10
+    );
+    list.push(json!({ "hooks": [ { "type": "command", "command": command, "timeout": timeout_sec + 15, "statusMessage": "Asking the Decka phone panel" } ] }));
+    Ok(())
+}
+
+fn backup_path(path: &Path) -> PathBuf {
+    let mut name = path.file_name().map(|n| n.to_os_string()).unwrap_or_default();
+    name.push(".decka-bak");
+    path.with_file_name(name)
+}
+
+/// Writes our Codex hook into `hooks.json` (a copy `hooks.json.decka-bak` once, other hooks stay).
+pub fn install_codex_into(home: &Path, token: &str, port: u32, timeout_sec: u32) -> Result<(), String> {
+    let path = codex_hooks_path(home);
+    let existing = read_settings(&path)?;
+    if existing.is_some() && !backup_path(&path).exists() {
+        std::fs::copy(&path, backup_path(&path)).map_err(|e| format!("cannot back up hooks.json: {e}"))?;
+    }
+    let mut hooks = existing.unwrap_or_else(|| json!({}));
+    apply_install_codex(&mut hooks, token, port, timeout_sec)?;
+    write_settings(&path, &hooks)
+}
+
+pub fn uninstall_codex_from(home: &Path) -> Result<(), String> {
+    let path = codex_hooks_path(home);
+    let Some(mut hooks) = read_settings(&path)? else { return Ok(()) };
+    apply_uninstall(&mut hooks);
+    // A file that only held our hook is removed; otherwise the rest stays as it was.
+    if hooks.as_object().is_some_and(|o| o.is_empty()) && backup_path(&path).exists() == false {
+        std::fs::remove_file(&path).map_err(|e| format!("cannot write hooks.json: {e}"))
+    } else {
+        write_settings(&path, &hooks)
+    }
+}
+
+pub fn codex_hook_installed(home: &Path) -> bool {
+    matches!(read_settings(&codex_hooks_path(home)), Ok(Some(s)) if read_install_state(&s).0)
 }
 
 /// Writes our `statusLine` (unless another tool owns it) and our `PermissionRequest` hook. Returns `statusLineConflict`.
@@ -668,7 +729,7 @@ pub fn install_into(home: &Path, token: &str, port: u32, timeout_sec: u32) -> Re
     let path = settings_path(home);
     let existing = read_settings(&path)?;
     if existing.is_some() {
-        let backup = path.with_file_name("settings.json.decka-bak");
+        let backup = backup_path(&path);
         if !backup.exists() {
             std::fs::copy(&path, &backup).map_err(|e| format!("cannot back up settings.json: {e}"))?;
         }
@@ -705,7 +766,7 @@ mod tests {
     }
 
     fn opts(ms: u64) -> PermOpts {
-        PermOpts { approvals: true, phones: 1, timeout: Duration::from_millis(ms) }
+        PermOpts { provider: "claude", approvals: true, phones: 1, timeout: Duration::from_millis(ms) }
     }
 
     fn hook(tool: &str, input: Value) -> Vec<u8> {
@@ -801,8 +862,8 @@ mod tests {
         assert_eq!(hub.permission(opts(30), &hook("Bash", json!({ "command": "ls" }))).await, None);
         assert!(wait_pending(&hub, 0).await.is_empty());
         // No phone, or approvals off: an empty body at once and nothing pending.
-        assert_eq!(hub.permission(PermOpts { approvals: true, phones: 0, timeout: Duration::from_secs(60) }, &hook("Bash", json!({}))).await, None);
-        assert_eq!(hub.permission(PermOpts { approvals: false, phones: 1, timeout: Duration::from_secs(60) }, &hook("Bash", json!({}))).await, None);
+        assert_eq!(hub.permission(PermOpts { provider: "claude", approvals: true, phones: 0, timeout: Duration::from_secs(60) }, &hook("Bash", json!({}))).await, None);
+        assert_eq!(hub.permission(PermOpts { provider: "claude", approvals: false, phones: 1, timeout: Duration::from_secs(60) }, &hook("Bash", json!({}))).await, None);
         assert_eq!(hub.permission(opts(60_000), b"not json").await, None);
         assert!(wait_pending(&hub, 0).await.is_empty());
         // Claude Code hangs up (the future is dropped): the request is removed.

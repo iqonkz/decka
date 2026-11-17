@@ -202,3 +202,6 @@
 - PENDING (owner): Codex: the limits show in the widget (needs a Codex session with a `rate_limits` line).
 - PENDING (owner): `Remove` brings back `%USERPROFILE%\.claude\settings.json` (compare with `settings.json.decka-bak`); a foreign status line gives the warning line.
 - PENDING (owner): the widget at 2×1, 2×2, 3×2 and 4×2 in the four looks on the phone, and the forecast line after about 10 minutes of use.
+- DONE (tests): the Codex hook in `.codex\hooks.json` (foreign hooks stay, one `.decka-bak`, a file made only for Decka goes away with it); the format of the hook is from the official Codex docs (command hook, `timeout` in seconds, same decision JSON as Claude Code).
+- PENDING (owner): Codex approvals: after `Install` open Codex, trust the hook with `/hooks`, ask for a command that needs approval: the sheet shows `Codex wants to use …` on the phone; `Allow`/`Deny` reach Codex; `Approve Codex on phone` off removes the hook.
+- PENDING (owner): `curl.exe` as the hook command under Codex on Windows (quotes, stdin) — not run against a real Codex.

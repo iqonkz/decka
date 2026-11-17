@@ -123,6 +123,15 @@ export default function ItemForm({ item, display, page, pages, grid, actions, on
           <ActionSelect label={t("item.next")} value={item.nextAction} actions={actions} onChange={(nextAction) => patch({ nextAction })} />
         </>
       )}
+      {item.kind === "ai" && (
+        <Field label={t("item.ai_show")}>
+          <select value={item.show ?? "both"} onChange={(e) => patch({ show: e.target.value === "both" ? undefined : e.target.value })}>
+            <option value="both">{t("item.ai_both")}</option>
+            <option value="claude">{t("ai.claude")}</option>
+            <option value="codex">{t("ai.codex")}</option>
+          </select>
+        </Field>
+      )}
       {item.kind === "status" && (
         <Field label={t("item.status_id")}>
           <input value={item.statusId} onChange={(e) => patch({ statusId: e.target.value })} />

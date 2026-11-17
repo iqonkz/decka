@@ -79,6 +79,7 @@ export interface AiSession {
 }
 export interface PermRequest {
   reqId: string;                   // 16 hex
+  provider: "claude" | "codex";    // who asks
   tool: string;                    // <= 60
   summary: string;                 // what exactly (a command, a file, an address), <= 300
   project: string;                 // <= 60

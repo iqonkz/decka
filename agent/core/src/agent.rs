@@ -159,6 +159,8 @@ pub struct CcStatus {
     pub status_line_conflict: bool,
     pub last_seen_at: Option<u64>,
     pub codex_found: bool,
+    /// Our hook is in `%USERPROFILE%\.codex\hooks.json` (Codex asks for a trust review of it with `/hooks`).
+    pub codex_hook: bool,
 }
 
 /// Why `/api/cc/*` refused a call.
@@ -654,13 +656,16 @@ impl Agent {
         self.inner.ai.statusline(crate::ai::parse_statusline(body), crate::auth::now_ms())
     }
 
-    /// `POST /api/cc/permission`: `None` = an empty answer, Claude Code asks in the terminal.
-    pub async fn cc_permission(&self, body: &[u8]) -> Option<String> {
-        let claude = self.config().ai.map(|a| a.claude).filter(|c| c.enabled)?;
+    /// `POST /api/cc/permission`: `None` = an empty answer, the tool asks in its terminal. `codex` = the call came from the
+    /// hook of Codex (`?agent=codex`), otherwise from Claude Code. Both wait the time set for Claude.
+    pub async fn cc_permission(&self, body: &[u8], codex: bool) -> Option<String> {
+        let ai = self.config().ai?;
+        let approvals = if codex { ai.codex.enabled && ai.codex.approvals != Some(false) } else { ai.claude.enabled && ai.claude.approvals };
         let opts = crate::ai::PermOpts {
-            approvals: claude.approvals,
+            provider: if codex { "codex" } else { "claude" },
+            approvals,
             phones: self.inner.conns.lock().unwrap().len(),
-            timeout: Duration::from_secs(u64::from(claude.timeout_sec)),
+            timeout: Duration::from_secs(u64::from(ai.claude.timeout_sec)),
         };
         self.inner.ai.permission(opts, body).await
     }
@@ -681,6 +686,7 @@ impl Agent {
             status_line_conflict: conflict,
             last_seen_at: self.inner.ai.last_seen(),
             codex_found: home.is_some_and(|h| crate::ai::codex_dir(h).is_dir()),
+            codex_hook: home.is_some_and(crate::ai::codex_hook_installed),
         }
     }
 
@@ -695,13 +701,19 @@ impl Agent {
         let codex_found = crate::ai::codex_dir(home).is_dir();
         let ai = config.ai.get_or_insert_with(|| AiConfig {
             claude: AiClaudeConfig { enabled: true, approvals: true, timeout_sec: 120 },
-            codex: AiCodexConfig { enabled: codex_found },
+            codex: AiCodexConfig { enabled: codex_found, approvals: None },
             hook_token: None,
         });
         let token = ai.hook_token.get_or_insert_with(config::generate_api_token).clone();
         ai.claude.enabled = true;
         let timeout = ai.claude.timeout_sec;
+        let codex_hook = codex_found && ai.codex.enabled && ai.codex.approvals != Some(false);
         crate::ai::install_into(home, &token, config.port, timeout)?;
+        if codex_hook {
+            crate::ai::install_codex_into(home, &token, config.port, timeout)?;
+        } else {
+            crate::ai::uninstall_codex_from(home)?;
+        }
         if let SaveResult::Rejected(issues) = self.write_config(config) {
             return Err(issues.first().map(|i| i.message.clone()).unwrap_or_default());
         }
@@ -716,6 +728,7 @@ impl Agent {
 
     pub fn cc_uninstall_in(&self, home: &std::path::Path) -> Result<CcStatus, String> {
         crate::ai::uninstall_from(home)?;
+        crate::ai::uninstall_codex_from(home)?;
         let mut config = self.config();
         if let Some(ai) = config.ai.as_mut() {
             ai.hook_token = None;
@@ -886,8 +899,9 @@ impl Agent {
         if !issues.is_empty() {
             return SaveResult::Rejected(issues);
         }
-        let timeout_of = |c: &ConfigFile| c.ai.as_ref().map(|a| a.claude.timeout_sec);
-        let reinstall = (before.port != config.port || timeout_of(&before) != timeout_of(&config)) && config.ai.as_ref().is_some_and(|a| a.hook_token.is_some());
+        // What the hooks in the files depend on: the port, the wait time and whether Codex asks the phone.
+        let hooks_of = |c: &ConfigFile| c.ai.as_ref().map(|a| (a.claude.timeout_sec, a.codex.enabled, a.codex.approvals != Some(false)));
+        let reinstall = (before.port != config.port || hooks_of(&before) != hooks_of(&config)) && config.ai.as_ref().is_some_and(|a| a.hook_token.is_some());
         let result = self.write_config(config);
         if result == SaveResult::Saved {
             // A new port or wait time must reach the hook that Claude Code calls (DATA_MODEL.md 6.8, step 6).

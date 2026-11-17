@@ -89,9 +89,19 @@ export default function AiSection({ config, onSaved }: { config: ConfigFile; onS
         <span className={status?.codexFound ? "ok-text" : "muted"}>{status?.codexFound ? t("aiset.codex_found") : t("aiset.codex_missing")}</span>
       </div>
       <label className="check">
-        <input type="checkbox" checked={ai.codex.enabled} onChange={(e) => void save({ ...ai, codex: { enabled: e.target.checked } })} /> {t("aiset.codex_show")}
+        <input type="checkbox" checked={ai.codex.enabled} onChange={(e) => void save({ ...ai, codex: { ...ai.codex, enabled: e.target.checked } })} /> {t("aiset.codex_show")}
       </label>
-      <small className="muted block">{t("aiset.codex_note")}</small>
+      <label className="check">
+        <input
+          type="checkbox"
+          checked={ai.codex.approvals !== false}
+          disabled={!ai.codex.enabled}
+          onChange={(e) => void save({ ...ai, codex: { ...ai.codex, approvals: e.target.checked } })}
+        />{" "}
+        {t("aiset.codex_approve")}
+      </label>
+      {installed && status?.codexHook && <small className="muted block">{t("aiset.codex_hook")}</small>}
+      {!status?.codexHook && status?.codexFound && ai.codex.approvals !== false && <small className="muted block">{t("aiset.codex_install_hint")}</small>}
       {error && <Banner kind="error">{error}</Banner>}
     </section>
   );

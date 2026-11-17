@@ -190,11 +190,13 @@ pub async fn cc_permission(State(agent): State<Agent>, req: Request) -> Response
     if let Err(r) = cc_guard(&agent, &req) {
         return r;
     }
+    // The hook of Codex calls the same address with `?agent=codex`.
+    let codex = req.uri().query().is_some_and(|q| q.split('&').any(|p| p == "agent=codex"));
     let body = match cc_body(req).await {
         Ok(b) => b,
         Err(r) => return r,
     };
-    match agent.cc_permission(&body).await {
+    match agent.cc_permission(&body, codex).await {
         Some(json) => ([(header::CONTENT_TYPE, "application/json")], json).into_response(),
         None => StatusCode::OK.into_response(),
     }

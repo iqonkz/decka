@@ -75,6 +75,49 @@ async fn a_statusline_call_fills_the_section() {
     assert_eq!(ai["claude"]["windows"][0]["label"], "5h");
     assert_eq!(ai["sessions"][0]["project"], "decka");
     // No phone is connected: the permission question goes to the terminal at once.
-    assert_eq!(agent.cc_permission(br#"{"tool_name":"Bash","tool_input":{"command":"ls"}}"#).await, None);
+    assert_eq!(agent.cc_permission(br#"{"tool_name":"Bash","tool_input":{"command":"ls"}}"#, false).await, None);
+    assert_eq!(agent.cc_permission(br#"{"tool_name":"Bash","tool_input":{"command":"ls"}}"#, true).await, None);
+    agent.shutdown().await;
+}
+
+#[tokio::test]
+async fn codex_gets_its_own_hook_next_to_foreign_ones_and_it_goes_away_again() {
+    let cfg = tempfile::tempdir().unwrap();
+    let home = tempfile::tempdir().unwrap();
+    // Codex is "found" when its sessions folder exists; it already has a hook of its own.
+    std::fs::create_dir_all(home.path().join(".codex").join("sessions")).unwrap();
+    let hooks_path = home.path().join(".codex").join("hooks.json");
+    let foreign = serde_json::json!({ "hooks": { "PermissionRequest": [ { "matcher": "Bash", "hooks": [ { "type": "command", "command": "mine.exe" } ] } ] } });
+    std::fs::write(&hooks_path, serde_json::to_string(&foreign).unwrap()).unwrap();
+    let agent = start(cfg.path()).await;
+
+    let status = agent.cc_install_in(home.path()).unwrap();
+    assert!(status.codex_found && status.codex_hook);
+    let after: Value = serde_json::from_str(&std::fs::read_to_string(&hooks_path).unwrap()).unwrap();
+    let list = after["hooks"]["PermissionRequest"].as_array().unwrap();
+    assert_eq!(list.len(), 2);
+    assert_eq!(list[0], foreign["hooks"]["PermissionRequest"][0]);
+    let command = list[1]["hooks"][0]["command"].as_str().unwrap();
+    assert!(command.contains("/api/cc/permission?agent=codex") && command.contains("curl.exe") && command.contains("Bearer dk_"), "{command}");
+    assert_eq!(list[1]["hooks"][0]["type"], "command");
+    assert!(hooks_path.with_file_name("hooks.json.decka-bak").exists());
+
+    let status = agent.cc_uninstall_in(home.path()).unwrap();
+    assert!(!status.codex_hook);
+    let removed: Value = serde_json::from_str(&std::fs::read_to_string(&hooks_path).unwrap()).unwrap();
+    assert_eq!(removed, foreign);
+    agent.shutdown().await;
+}
+
+#[tokio::test]
+async fn a_hooks_file_made_only_for_decka_is_removed_with_it() {
+    let cfg = tempfile::tempdir().unwrap();
+    let home = tempfile::tempdir().unwrap();
+    std::fs::create_dir_all(home.path().join(".codex").join("sessions")).unwrap();
+    let agent = start(cfg.path()).await;
+    agent.cc_install_in(home.path()).unwrap();
+    assert!(home.path().join(".codex").join("hooks.json").exists());
+    agent.cc_uninstall_in(home.path()).unwrap();
+    assert!(!home.path().join(".codex").join("hooks.json").exists());
     agent.shutdown().await;
 }

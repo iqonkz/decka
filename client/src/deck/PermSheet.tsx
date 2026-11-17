@@ -27,6 +27,7 @@ export default function PermSheet() {
     setExpanded(false);
     setShownAt(Date.now());
     if (!reqId) return;
+    hapticEvent({ type: "confirm" }); // a short buzz: a question is waiting
     const guard = window.setTimeout(() => setArmed(true), PERM_GUARD_MS);
     const tick = window.setInterval(() => setNow(Date.now()), 250);
     return () => {
@@ -38,6 +39,7 @@ export default function PermSheet() {
   if (!request) return null;
   const total = Math.max(1, request.expiresAt - shownAt);
   const left = Math.min(1, Math.max(0, (request.expiresAt - now) / total));
+  const title = t("perm.title", { name: t(`ai.${request.provider === "codex" ? "codex" : "claude"}`), tool: request.tool });
   const answer = (decision: "allow" | "deny" | "pc") => {
     hapticEvent({ type: "confirm" });
     answerPerm(request.reqId, decision);
@@ -45,9 +47,9 @@ export default function PermSheet() {
 
   return (
     <div className="perm-backdrop">
-      <div className="perm-sheet" role="dialog" aria-label={t("perm.title", { tool: request.tool })}>
+      <div className="perm-sheet" role="dialog" aria-label={title}>
         {open.length > 1 && <div className="perm-count">{t("perm.count", { n: 1, total: open.length })}</div>}
-        <h2 className="perm-title">{t("perm.title", { tool: request.tool })}</h2>
+        <h2 className="perm-title">{title}</h2>
         {request.project !== "" && <div className="perm-project">{request.project}</div>}
         {request.summary !== "" && (
           <button type="button" className={expanded ? "perm-summary expanded" : "perm-summary"} aria-label={t("perm.expand")} onClick={() => setExpanded((e) => !e)}>
