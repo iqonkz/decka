@@ -85,7 +85,7 @@ export default function AiSection({ config, onSaved }: { config: ConfigFile; onS
       <small className="muted block">{t("aiset.restart")}</small>
 
       <div className="row">
-        <strong>Codex</strong>
+        <strong>{t("ai.codex")}</strong>
         <span className={status?.codexFound ? "ok-text" : "muted"}>{status?.codexFound ? t("aiset.codex_found") : t("aiset.codex_missing")}</span>
       </div>
       <label className="check">
