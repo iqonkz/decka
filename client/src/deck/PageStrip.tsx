@@ -116,12 +116,25 @@ export default function PageStrip({ pages, pageIndex, grid, onCommit }: Props) {
 
   const transition = settling ? `transform ${SETTLE_MS}ms cubic-bezier(0.2, 0.8, 0.2, 1)` : "none";
   const current = pages[pageIndex] ?? pages[0];
-  const neighbour = lead !== null ? pages[lead] : undefined;
+  // The two neighbours are mounted all the time (hidden while at rest): building a page at the start of a swipe was the
+  // micro-freeze, and measuring it after it appeared was the small jerk.
+  const beforeIndex = nav[position - 1];
+  const afterIndex = nav[position + 1];
+  const before = beforeIndex !== undefined ? pages[beforeIndex] : undefined;
+  const after = afterIndex !== undefined ? pages[afterIndex] : undefined;
+  const w = width();
+  // A neighbour shows only while the finger (or the settling) is moving towards it.
+  const layer = (page: Page, index: number, shift: number) => (
+    <div key={page.id} className="page-layer" style={{ transform: `translateX(${offset + shift}px)`, transition, visibility: lead === index ? "visible" : "hidden" }}>
+      <DeckBridge page={page} grid={grid} />
+    </div>
+  );
   return (
     <div ref={root} className="pages" onPointerDown={onDown} onPointerMove={onMove} onPointerUp={() => finish(true)} onPointerCancel={() => finish(false)}>
       {/* One keyed list: when the swipe commits, the neighbour layer becomes the current one with the same key, so React
-          keeps its DOM instead of mounting the page again (that remount was the jerk at the end of a swipe). */}
+          keeps its DOM instead of mounting the page again. */}
       {[
+        before && beforeIndex !== undefined && layer(before, beforeIndex, -w),
         current && (
           <div
             key={slide ? `${current.id}-${slide.key}` : current.id}
@@ -131,11 +144,7 @@ export default function PageStrip({ pages, pageIndex, grid, onCommit }: Props) {
             <DeckBridge page={current} grid={grid} />
           </div>
         ),
-        neighbour && lead !== null && (
-          <div key={neighbour.id} className="page-layer" style={{ transform: `translateX(${offset + (lead > pageIndex ? width() : -width())}px)`, transition }}>
-            <DeckBridge page={neighbour} grid={grid} />
-          </div>
-        ),
+        after && afterIndex !== undefined && layer(after, afterIndex, w),
       ]}
     </div>
   );
