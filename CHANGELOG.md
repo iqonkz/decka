@@ -4,6 +4,9 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+### Added
+- Twitch: turn it on in More → Integrations → Twitch. Register a free application on dev.twitch.tv/console (Client Type: Public), paste its Client ID, press **Sign in** and type the shown code on twitch.tv/activate (no password and no secret are asked; the sign-in is stored encrypted for your Windows user). The new **Twitch** widget on the phone shows whether you are live, the viewers, the followers, the title, the game and the time on air. New keys: **Clip** (a clip of the last seconds of your stream) and **Chat post** (an announcement with the text you choose). The numbers are also available to keys as `twitch.live`, `twitch.viewers` and `twitch.followers`. A **Twitch** set adds the clip key and the widget in one click.
+
 ## 0.4.3 — 2026-11-17
 
 ### Changed

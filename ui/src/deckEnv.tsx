@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import type { AiInfo, MediaInfo, Notification, ObsInfo, StatusItem, SysStats, VarValue, WeatherInfo } from "@decka/shared";
+import type { AiInfo, MediaInfo, Notification, ObsInfo, StatusItem, SysStats, TwitchInfo, VarValue, WeatherInfo } from "@decka/shared";
 
 /** What the deck shows: the live sections of the agent's state. No connection, store or socket in here. */
 export interface DeckData {
@@ -17,6 +17,8 @@ export interface DeckData {
   obs: ObsInfo | null;
   /** M16: the limits of Claude Code / Codex and the permission questions (null = both integrations are off). */
   ai: AiInfo | null;
+  /** The numbers of the signed-in Twitch channel (null = Twitch is off). */
+  twitch: TwitchInfo | null;
   /** `img:` pictures by hash (the `icons` section). */
   icons: Record<string, string>;
   /** `display.keyFace` / `display.keyLabels` (DESIGN.md 2.1): the look keys have unless a key says otherwise. */
@@ -24,7 +26,7 @@ export interface DeckData {
   keyLabels?: boolean;
 }
 
-export const EMPTY_DATA: DeckData = { online: false, vars: {}, sys: null, statuses: [], notifications: [], media: null, weather: null, obs: null, ai: null, icons: {} };
+export const EMPTY_DATA: DeckData = { online: false, vars: {}, sys: null, statuses: [], notifications: [], media: null, weather: null, obs: null, ai: null, twitch: null, icons: {} };
 
 /** What the deck asks its host to do. */
 export interface DeckCallbacks {

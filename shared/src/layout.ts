@@ -65,9 +65,11 @@ export interface WeatherItem extends ItemBase { kind: "weather"; }
 export interface ObsItem     extends ItemBase { kind: "obs"; }
 /** M16 (DATA_MODEL.md 6.8): the limits of Claude Code / Codex; sizes 2x1, 2x2, 3x2, 4x2. */
 export interface AiItem      extends ItemBase { kind: "ai"; show?: "both" | "claude" | "codex"; }   // default "both"
+/** The Twitch numbers (live, viewers, followers); sizes 2x1..4x2. */
+export interface TwitchItem  extends ItemBase { kind: "twitch"; }
 
 export type LayoutItem = ButtonItem | ClockItem | SysItem | StatusesItem | StatusItemTile | NotificationsItem | MediaItem
-  | VolumeItem | TimerItem | WeatherItem | ObsItem | AiItem;
+  | VolumeItem | TimerItem | WeatherItem | ObsItem | AiItem | TwitchItem;
 
 /** `navigate` value of a button that goes back to the page the user came from (DATA_MODEL.md 3.8). */
 export const BACK_PAGE = "$back";

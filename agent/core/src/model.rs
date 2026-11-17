@@ -52,6 +52,14 @@ pub enum ObsOp {
     SaveReplay,
 }
 
+/// Twitch actions (the stream of the signed-in channel): a clip of the last seconds, or an announcement in the chat.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TwitchOp {
+    Clip,
+    Announce,
+}
+
 /// One step of a `sequence`: run an action, or wait.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -121,6 +129,15 @@ pub enum Action {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         input: Option<String>,
     },
+    Twitch {
+        name: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        toggle_var: Option<String>,
+        op: TwitchOp,
+        /// The text of an `announce`, and only there.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        message: Option<String>,
+    },
     Sequence {
         name: String,
         #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -139,6 +156,7 @@ impl Action {
             | Action::System { name, .. }
             | Action::Audio { name, .. }
             | Action::Obs { name, .. }
+            | Action::Twitch { name, .. }
             | Action::Sequence { name, .. } => name,
         }
     }
@@ -152,6 +170,7 @@ impl Action {
             | Action::System { toggle_var, .. }
             | Action::Audio { toggle_var, .. }
             | Action::Obs { toggle_var, .. }
+            | Action::Twitch { toggle_var, .. }
             | Action::Sequence { toggle_var, .. } => toggle_var.as_deref(),
         }
     }
@@ -166,6 +185,7 @@ impl Action {
             Action::System { .. } => "system",
             Action::Audio { .. } => "audio",
             Action::Obs { .. } => "obs",
+            Action::Twitch { .. } => "twitch",
             Action::Sequence { .. } => "sequence",
         }
     }
@@ -441,6 +461,7 @@ pub enum LayoutItem {
     Weather(PlainItem),
     Obs(PlainItem),
     Ai(AiItem),
+    Twitch(PlainItem),
 }
 
 impl LayoutItem {
@@ -456,7 +477,7 @@ impl LayoutItem {
             LayoutItem::Media(i) => (&i.id, i.x, i.y, i.w, i.h),
             LayoutItem::Volume(i) => (&i.id, i.x, i.y, i.w, i.h),
             LayoutItem::Timer(i) => (&i.id, i.x, i.y, i.w, i.h),
-            LayoutItem::Weather(i) | LayoutItem::Obs(i) => (&i.id, i.x, i.y, i.w, i.h),
+            LayoutItem::Weather(i) | LayoutItem::Obs(i) | LayoutItem::Twitch(i) => (&i.id, i.x, i.y, i.w, i.h),
             LayoutItem::Ai(i) => (&i.id, i.x, i.y, i.w, i.h),
         }
     }
@@ -473,7 +494,7 @@ impl LayoutItem {
             LayoutItem::Media(i) => (i.x, i.y) = (x, y),
             LayoutItem::Volume(i) => (i.x, i.y) = (x, y),
             LayoutItem::Timer(i) => (i.x, i.y) = (x, y),
-            LayoutItem::Weather(i) | LayoutItem::Obs(i) => (i.x, i.y) = (x, y),
+            LayoutItem::Weather(i) | LayoutItem::Obs(i) | LayoutItem::Twitch(i) => (i.x, i.y) = (x, y),
             LayoutItem::Ai(i) => (i.x, i.y) = (x, y),
         }
     }
@@ -492,6 +513,7 @@ impl LayoutItem {
             LayoutItem::Weather(_) => "weather",
             LayoutItem::Obs(_) => "obs",
             LayoutItem::Ai(_) => "ai",
+            LayoutItem::Twitch(_) => "twitch",
         }
     }
 }
@@ -521,6 +543,46 @@ pub struct ConfigFile {
     /// M16 (DATA_MODEL.md 6.8); absent = off.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ai: Option<AiConfig>,
+    /// Twitch (stream numbers and keys of the signed-in channel); absent = off.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub twitch: Option<TwitchConfig>,
+}
+
+/// `tokens` is only ever `dpapi:<base64>` on disk (the access and the refresh token together); the IPC answer leaves it out
+/// and sets `tokensSet`. `client_id` is the id of a Twitch application of the owner (a public client: no secret exists).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TwitchConfig {
+    pub enabled: bool,
+    #[serde(default)]
+    pub client_id: String,
+    /// The channel that signed in (`login`, `id`); written by the sign-in only.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub login: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub user_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tokens: Option<String>,
+    /// Only in `get_config` answers; never stored.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tokens_set: Option<bool>,
+}
+
+/// The `twitch` section: what the phone shows. No token ever appears here.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TwitchInfo {
+    pub connected: bool,
+    pub login: String,
+    pub live: bool,
+    pub viewers: u64,
+    pub followers: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub game: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub started_at: Option<u64>,
 }
 
 /// M16: AI coding helpers. `hook_token` is created by `cc_install`, guards only `/api/cc/*`, and is never sent to the window.

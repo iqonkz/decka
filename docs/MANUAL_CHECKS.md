@@ -194,6 +194,12 @@
 - PENDING (owner): the launcher icon on the phone (`phone-launcher.png`), the themed (monochrome) icon on Android 13+, the splash, the pairing screen with the logo on the phone (72 px logo plus the form on a 360 px high screen: check that nothing is pushed off).
 - PENDING (owner): T15.9 was skipped: the S9 (`232512e0080c7ece`) is connected but locked (`mWakefulness=Dozing`, lock screen), no A57. Everything listed above for M15 and T14.5a stays open: the volume slider and `Mic` by finger, `phone-m15-*.png`, the fps table per theme.
 
+## Twitch (owner request, 2026-11-17)
+- DONE (tests against a local stand-in of Twitch, no account): sign-in by code, polling, refresh of an expired token, clip, announcement, sign-out; no token in the section, the window or `config.json` in plain text; action and widget rules; the library item that asks for the text.
+- PENDING (owner): register an application on dev.twitch.tv/console (Client Type: Public), paste the Client ID in More → Integrations → Twitch, `Sign in`, type the code on twitch.tv/activate: the channel name shows as signed in. Needs the real Twitch (not run from the session).
+- PENDING (owner): the Twitch widget on the phone while live and offline (viewers, followers, title, game, time on air), `Clip` while live (and the message when offline), `Chat post` with a text, the red dot, the four themes.
+- PENDING (owner): that Twitch accepts `scopes` in the device flow for a public client as built (`moderator:read:followers clips:edit moderator:manage:announcements`).
+
 ## M16 — AI limits and approvals
 - DONE (tests, no real Claude Code): statusline parsing, summaries per tool, permission allow / deny / pc / timeout / no phone / hang-up / second answer, loopback and hook-token checks, Codex fixtures (new and old format), install and remove on a temporary home (foreign keys, hooks and a foreign status line stay, one `.decka-bak`), `burnEta`, the permission sheet in the store.
 - PENDING (owner): `Install` in More → Integrations → AI coding, restart Claude Code: the line `Decka · 5h …` shows in the terminal and the limits appear in the AI limits widget on the phone.

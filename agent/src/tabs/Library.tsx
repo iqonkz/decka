@@ -38,7 +38,7 @@ export interface LibraryProps {
   onBegin: (payload: DragPayload, e: React.PointerEvent) => void;
   onAddItem: (itemId: string) => void;
   onAddSet: (set: CatalogSet) => void;
-  onSetup: (what: "obs" | "weather") => void;
+  onSetup: (what: "obs" | "weather" | "twitch") => void;
 }
 
 /** The left panel of the editor (DESIGN.md 4.8): the library of ready-made keys, the sets, and the installed programs. */
@@ -63,7 +63,7 @@ export default function Library({ layout, actions, pageIndex, integrations, onBe
   const toggle = (id: string) => setOpen((list) => (list.includes(id) ? list.filter((x) => x !== id) : [...list, id]));
   const q = query.trim().toLowerCase();
   const found = useMemo(() => (q === "" ? null : searchCatalog(q)), [q]);
-  const ready = (item: { requires?: "obs" | "weather" }) => item.requires === undefined || integrations[item.requires];
+  const ready = (item: { requires?: "obs" | "weather" | "twitch" }) => item.requires === undefined || integrations[item.requires];
   const page = layout.pages[pageIndex];
 
   const itemRow = (item: CatalogItem) => {
@@ -75,7 +75,7 @@ export default function Library({ layout, actions, pageIndex, integrations, onBe
         data-item={item.id}
         onPointerDown={(e) => !waiting && onBegin({ type: "catalog", itemId: item.id, label: item.name[lang] }, e)}
         onDoubleClick={() => (waiting ? onSetup(item.requires!) : onAddItem(item.id))}
-        title={waiting ? t(item.requires === "obs" ? "library.setup_obs" : "library.setup_weather") : t("library.hint")}
+        title={waiting && item.requires ? t(`library.setup_${item.requires}`) : t("library.hint")}
       >
         <EntryIcon icon={item.icon} />
         <span>{item.name[lang]}</span>
@@ -134,7 +134,7 @@ export default function Library({ layout, actions, pageIndex, integrations, onBe
                 <div className="set-foot">
                   <SetPreview set={set} />
                   <button type="button" className={waiting ? "set-add waiting" : "set-add"} onPointerDown={(e) => e.stopPropagation()} onClick={() => (waiting ? onSetup(set.requires!) : onAddSet(set))}>
-                    {waiting ? t(set.requires === "obs" ? "library.setup_obs" : "library.setup_weather") : t("library.add")}
+                    {waiting && set.requires ? t(`library.setup_${set.requires}`) : t("library.add")}
                   </button>
                 </div>
                 {goesTo && <small className="muted">{t("library.new_page", { name: goesTo })}</small>}

@@ -110,6 +110,8 @@ export function defaultIconFor(action: Action): string {
       return action.op === "mic_toggle" ? "lucide:mic-off" : "lucide:volume-x";
     case "obs":
       return "lucide:video";
+    case "twitch":
+      return action.op === "clip" ? "lucide:star" : "lucide:message-square";
     case "sequence":
       return "lucide:zap";
   }

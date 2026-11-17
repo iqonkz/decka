@@ -29,7 +29,7 @@ pub fn is_var_name(s: &str) -> bool {
 
 /// M15: variables set by the collectors; nobody else writes them (PROTOCOL.md 4, HTTP rules).
 pub fn is_reserved_var(name: &str) -> bool {
-    ["audio.", "mic.", "media.", "obs.", "ai."].iter().any(|p| name.starts_with(p))
+    ["audio.", "mic.", "media.", "obs.", "ai.", "twitch."].iter().any(|p| name.starts_with(p))
 }
 
 /// `^[a-z0-9._ ()-]{1,60}\.exe$`
@@ -144,6 +144,12 @@ pub fn validate_actions(file: &ActionsFile) -> Vec<ValidationIssue> {
                     }
                 }
             }
+            Action::Twitch { op, message, .. } => match (message, *op == TwitchOp::Announce) {
+                (Some(m), true) if !(1..=500).contains(&chars(m)) => out.push(issue(format!("{base}/message"), "message must be 1..500 characters")),
+                (None, true) => out.push(issue(format!("{base}/message"), "message is required for an announcement")),
+                (Some(_), false) => out.push(issue(format!("{base}/message"), "message is only allowed for an announcement")),
+                _ => {}
+            },
             Action::Sequence { steps, .. } => {
                 if !(1..=10).contains(&steps.len()) {
                     out.push(issue(format!("{base}/steps"), "a sequence has 1..10 steps"));
@@ -207,7 +213,7 @@ fn size_limits(kind: &str, cols: i32, rows: i32, graph: bool) -> (i32, i32, i32,
         "timer" => (1, 2, 1, 2),
         "weather" => (1, 4, 1, 2),
         "obs" => (2, 4, 1, 2),
-        "ai" => (2, 4, 1, 2),
+        "ai" | "twitch" => (2, 4, 1, 2),
         _ => (2, cols, 1, rows), // statuses, notifications
     }
 }
@@ -448,7 +454,7 @@ pub fn validate_layout(layout: &LayoutFile, actions: &ActionsFile) -> Vec<Valida
                         out.push(issue(format!("{path}/show"), "show must be both, claude or codex"));
                     }
                 }
-                LayoutItem::Clock(_) | LayoutItem::Sys(_) | LayoutItem::Notifications(_) | LayoutItem::Weather(_) | LayoutItem::Obs(_) => {}
+                LayoutItem::Clock(_) | LayoutItem::Sys(_) | LayoutItem::Notifications(_) | LayoutItem::Weather(_) | LayoutItem::Obs(_) | LayoutItem::Twitch(_) => {}
             }
         }
     }
@@ -539,6 +545,15 @@ pub fn validate_config(c: &ConfigFile) -> Vec<ValidationIssue> {
         // The password is only ever the DPAPI blob written by `set_obs_password` (DATA_MODEL.md 6.4).
         if o.password.as_deref().is_some_and(|p| !p.starts_with("dpapi:") || chars(p) > 4000) {
             out.push(issue("/obs/password", "password must be written by set_obs_password"));
+        }
+    }
+    if let Some(tw) = &c.twitch {
+        // A Twitch client id is 30 letters and digits; a loose limit keeps the field free of anything else.
+        if tw.client_id.len() > 64 || !tw.client_id.chars().all(|ch| ch.is_ascii_alphanumeric()) {
+            out.push(issue("/twitch/clientId", "clientId must be letters and digits, at most 64"));
+        }
+        if tw.tokens.as_deref().is_some_and(|t| !t.starts_with("dpapi:") || chars(t) > 8000) {
+            out.push(issue("/twitch/tokens", "tokens are written by the sign-in only"));
         }
     }
     if let Some(a) = &c.ai {

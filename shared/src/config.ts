@@ -19,7 +19,11 @@ export interface ConfigFile {
   weather?: WeatherConfig;           // M15 (DATA_MODEL.md 6.3); absent = off
   obs?: ObsConfig;                   // M15 (DATA_MODEL.md 6.4); absent = off
   ai?: AiConfig;                     // M16 (DATA_MODEL.md 6.8); absent = off
+  twitch?: TwitchConfig;             // absent = off
 }
+/** The client id is the id of the owner's own Twitch application (a public client: there is no secret). The sign-in
+ * (`login`, `userId`, the tokens) is written by the sign-in only; `get_config` leaves the tokens out and says `tokensSet`. */
+export interface TwitchConfig { enabled: boolean; clientId: string; login?: string; userId?: string; tokens?: string; tokensSet?: boolean; }
 /** `hookToken` is made by `cc_install` and never reaches the window. */
 export interface AiConfig {
   claude: { enabled: boolean; approvals: boolean; timeoutSec: 60 | 120 | 300 };

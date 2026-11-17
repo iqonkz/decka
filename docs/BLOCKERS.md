@@ -72,3 +72,15 @@ Owner wants a weather widget and widgets for streamers, taking the best from Str
 DATA_MODEL.md 9 draws `media-remote` as 5 keys in a row and `sound` with a 1x2 widget on the right (5 wide), and TASKS T15.4 asks for a test that every shape fits 4x2 and the portrait 4x7. Both cannot hold: `stream` needs 3 rows, the two sets above need 5 columns. Executor's choice (not an architect decision, please confirm or change): the shapes are 4 columns wide (media-remote: 4 keys, then Repeat and the 3x1 Now playing; sound: Mic, Mute, the 1x2 slider over Vol-/Vol+), and the test checks "at most 4 wide and 7 high, whole onto an empty 7x4 and 4x7 page". Also added to `CatalogItem`: `confirm`, `popup`, and `ask: "sequence"`; colour `$accent` and bind key `$scene` are resolved by `insertSet` (DATA_MODEL.md 9 has no field for the confirm hold, the popup group, the sequence editor or the accent).
 
 **Решение архитектора (2026-11-16):** оба выбора исполнителя приняты. Формы наборов — не шире 4 колонок и не выше 7 рядов (влезают и в 7×4, и в 4×7); поля `confirm`, `popup`, `ask: "sequence"`, цвет `$accent` и ключ `$scene` внесены в DATA_MODEL.md §9. Решено.
+
+## Twitch сделан по прямому указанию владельца, документов под него нет (2026-11-17)
+
+Q-9 (D-47) был открыт: Twitch/YouTube/Discord отложены до решения архитектора. Владелец 2026-11-17 прямо велел делать Twitch первым, поэтому он реализован, но **без записи в /docs** (исполнитель их не правит). Что сделано, чтобы архитектор внёс это в документы и подтвердил или изменил:
+- **Вход:** device code grant публичного клиента Twitch (секрета нет). Владелец сам регистрирует приложение на dev.twitch.tv и вводит Client ID в окне; агент показывает код для twitch.tv/activate. Права: `moderator:read:followers`, `clips:edit`, `moderator:manage:announcements`, и только они.
+- **Токены:** access и refresh вместе одним блобом DPAPI в `config.json` (`twitch.tokens`, `dpapi:…`), как пароль OBS (S17); `get_config` отдаёт `tokensSet`, `save_config` их сохраняет, смена Client ID сбрасывает вход. В протокол и в логи токены не попадают.
+- **Данные:** раз в 30 с агент спрашивает Helix (`/users` один раз при входе, `/streams`, `/channels/followers`); секция `twitch` (`TwitchInfo`: connected, login, live, viewers, followers, title?, game?, startedAt?), переменные `twitch.live`, `twitch.viewers`, `twitch.followers` (префикс `twitch.` зарезервирован). Хосты зашиты в код.
+- **Действия:** `type: "twitch"`, `op: clip | announce`, `message` только у `announce` (1..500). Телефон шлёт только `actionId`, текст объявления лежит в `actions.json`.
+- **Виджет:** `twitch`, размеры 2×1..4×2; каталог: `twitch.clip`, `twitch.announce` (новый вид вопроса `ask: "text"`), `widget.twitch`, набор `twitch`; интеграция `requires: "twitch"`.
+- **IPC:** `twitch_status`, `twitch_login_start`, `twitch_logout`.
+- Не сделано: события (новые фолловеры, рейды) через EventSub, чат, YouTube, Discord.
+Нужно от архитектора: D-49, DATA_MODEL (§2.3 действие, §3 виджет, §6 раздел), PROTOCOL (`TwitchInfo`, IPC), ответ на Q-9 по остальным сервисам.

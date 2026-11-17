@@ -39,6 +39,7 @@ export function sizeLimits(kind: string, grid: LayoutFile["grid"], graph = false
       return [1, 4, 1, 2];
     case "obs":
     case "ai":
+    case "twitch":
       return [2, 4, 1, 2];
     default:
       return undefined;
@@ -220,6 +221,15 @@ export function validateActions(actions: ActionsFile): ValidationIssue[] {
       };
       need("scene", "scene");
       need("input", "input_mute_toggle");
+    }
+    if (action.type === "twitch") {
+      // The text goes with `announce` and with nothing else.
+      const message = action.message;
+      if (action.op === "announce") {
+        if (typeof message !== "string" || message.length < 1 || message.length > 500) issues.push({ path: `${base}/message`, message: "message is required (1..500 characters) for an announcement" });
+      } else if (message !== undefined) {
+        issues.push({ path: `${base}/message`, message: "message is only allowed for an announcement" });
+      }
     }
     if (action.type === "sequence") {
       if (action.steps.length < 1 || action.steps.length > SEQUENCE_LIMITS.steps) issues.push({ path: `${base}/steps`, message: `a sequence has 1..${SEQUENCE_LIMITS.steps} steps` });

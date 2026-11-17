@@ -29,7 +29,7 @@ export function makeActionId(name: string, existing: Record<string, unknown>): s
 }
 
 /** What the person answered for an item with `ask`. */
-export interface Answer { url?: string; keys?: string[]; scene?: string; input?: string; page?: string; }
+export interface Answer { url?: string; keys?: string[]; scene?: string; input?: string; page?: string; text?: string; }
 
 export interface InsertContext {
   language: "en" | "ru";
@@ -136,6 +136,7 @@ function materialize(
     if (source.ask === "keys") body = { ...body, keys: a.keys };
     if (source.ask === "obs_scene") body = { ...body, scene: a.scene };
     if (source.ask === "obs_input") body = { ...body, input: a.input };
+    if (source.ask === "text") body = { ...body, message: a.text };
     const action = { name: source.name[lang].slice(0, 60), ...body } as Action;
     const all: ActionsFile = { ...actions, actions: { ...actions.actions, ...newActions } };
     const same = findSameAction(all, action);
@@ -151,6 +152,7 @@ function materialize(
   if (item.ask === "obs_scene" && !given(answer.scene)) return null;
   if (item.ask === "obs_input" && !given(answer.input)) return null;
   if (item.ask === "page" && !given(answer.page)) return null;
+  if (item.ask === "text" && !given(answer.text)) return null;
   if (item.ask === "sequence") return null; // made by the sequence editor, not here
 
   if (item.widget) {

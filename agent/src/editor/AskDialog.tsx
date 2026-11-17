@@ -22,6 +22,7 @@ export default function AskDialog({ item, pages, currentPageId, obs, onConfirm, 
   const lang = getLanguage();
   const [url, setUrl] = useState("");
   const [keys, setKeys] = useState<string[]>([]);
+  const [text, setText] = useState("");
   const [choice, setChoice] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -30,7 +31,7 @@ export default function AskDialog({ item, pages, currentPageId, obs, onConfirm, 
     : item.ask === "obs_input" ? (obs?.inputs ?? []).map((s) => ({ id: s, label: s }))
     : pages.filter((p) => (item.popup === true ? p.popup === true : p.popup !== true && p.id !== currentPageId)).map((p) => ({ id: p.id, label: p.name }));
 
-  const title = item.ask === "url" ? t("ask.website") : item.ask === "keys" ? t("picker.shortcut_title") : item.ask === "obs_scene" ? t("ask.scene") : item.ask === "obs_input" ? t("ask.input") : item.popup ? t("ask.group") : t("ask.page");
+  const title = item.ask === "text" ? t("ask.text") : item.ask === "url" ? t("ask.website") : item.ask === "keys" ? t("picker.shortcut_title") : item.ask === "obs_scene" ? t("ask.scene") : item.ask === "obs_input" ? t("ask.input") : item.popup ? t("ask.group") : t("ask.page");
 
   function confirm() {
     if (item.ask === "url") {
@@ -38,6 +39,7 @@ export default function AskDialog({ item, pages, currentPageId, obs, onConfirm, 
       return action && action.type === "open_url" ? onConfirm({ url: action.url }) : setError(t("picker.enter_url"));
     }
     if (item.ask === "keys") return keys.length > 0 ? onConfirm({ keys }) : setError(t("picker.press_keys"));
+    if (item.ask === "text") return text.trim() !== "" ? onConfirm({ text: text.trim() }) : setError(t("ask.enter_text"));
     if (choice === "") return setError(t("ask.choose"));
     if (item.ask === "obs_scene") return onConfirm({ scene: choice });
     if (item.ask === "obs_input") return onConfirm({ input: choice });
@@ -54,6 +56,9 @@ export default function AskDialog({ item, pages, currentPageId, obs, onConfirm, 
         {item.ask === "url" && (
           <input autoFocus placeholder="github.com" aria-label={title} value={url} onChange={(e) => { setUrl(e.target.value); setError(null); }} onKeyDown={(e) => e.key === "Enter" && confirm()} />
         )}
+        {item.ask === "text" && (
+          <input autoFocus maxLength={500} aria-label={title} value={text} onChange={(e) => { setText(e.target.value); setError(null); }} onKeyDown={(e) => e.key === "Enter" && confirm()} />
+        )}
         {item.ask === "keys" && <ChordField keys={keys} onChange={(k) => { setKeys(k); setError(null); }} />}
         {needsObs && (
           <>
@@ -61,7 +66,7 @@ export default function AskDialog({ item, pages, currentPageId, obs, onConfirm, 
             <div className="row"><Button onClick={onOpenObs}>{t("ask.open_obs")}</Button></div>
           </>
         )}
-        {!needsObs && item.ask !== "url" && item.ask !== "keys" && (
+        {!needsObs && item.ask !== "url" && item.ask !== "keys" && item.ask !== "text" && (
           empty ? (
             <p className="muted">{item.ask === "page" ? t("ask.no_pages") : t("ask.connect_obs")}</p>
           ) : (

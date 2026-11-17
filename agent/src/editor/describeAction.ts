@@ -28,6 +28,7 @@ export function describeAction(action: Action | undefined): string {
       return action.op === "sleep" ? t("preset.sleep") : t("preset.lock");
     case "audio":
     case "obs":
+    case "twitch":
     case "sequence":
       return action.name;
   }

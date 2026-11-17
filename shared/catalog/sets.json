@@ -26,6 +26,11 @@
         ["stream.scene", "stream.scene", "stream.scene", null],
         ["stream.widget", null, null, null]
       ] },
+    { "id": "twitch", "name": { "en": "Twitch", "ru": "Twitch" }, "icon": "lucide:heart", "requires": "twitch",
+      "description": { "en": "Viewers, followers and a clip key", "ru": "Зрители, подписчики и кнопка клипа" },
+      "rows": [
+        ["twitch.clip", "widget.twitch"]
+      ] },
     { "id": "ai", "name": { "en": "AI coding", "ru": "ИИ-помощники" }, "icon": "lucide:cpu",
       "description": { "en": "Claude Code and Codex limits at a glance", "ru": "Лимиты Claude Code и Codex на виду" },
       "rows": [

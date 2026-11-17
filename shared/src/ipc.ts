@@ -41,8 +41,20 @@ export interface CcStatus {
   codexHook: boolean;              // our hook is in %USERPROFILE%\.codex\hooks.json (Codex asks to trust it with /hooks)
 }
 
+/** Twitch as the settings window sees it. */
+export interface TwitchStatus {
+  enabled: boolean;
+  signedIn: boolean;
+  login?: string;
+  error?: string;                  // of the sign-in, or of the last look at the channel
+  pending?: { userCode: string; verificationUri: string; expiresAt: number };   // a sign-in in progress: type the code on twitch.tv/activate
+}
+
 export interface IpcCommands {
-  cc_status(): CcStatus;                                       // M16
+  twitch_status(): TwitchStatus;
+  twitch_login_start(): { userCode: string; verificationUri: string; expiresAt: number };   // needs the client id in the config; an error is a string
+  twitch_logout(): void;
+  cc_status(): CcStatus;                                     // M16
   cc_install(): CcStatus;                                      // M16, DATA_MODEL.md 6.8; an error is a string
   cc_uninstall(): CcStatus;                                    // M16
   get_status(): AgentStatus;

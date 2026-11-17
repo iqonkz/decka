@@ -40,7 +40,7 @@ export interface AppState {
   permClosed: string[];
 }
 
-const SECTIONS: readonly string[] = ["layout", "sys", "statuses", "notifications", "vars", "focus", "media", "icons", "weather", "obs", "ai"];
+const SECTIONS: readonly string[] = ["layout", "sys", "statuses", "notifications", "vars", "focus", "media", "icons", "weather", "obs", "ai", "twitch"];
 const MAX_TOASTS = 3;
 const DEFAULT_TOAST_MS = 8000;
 

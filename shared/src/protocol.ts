@@ -44,7 +44,7 @@ export interface ErrorMsg { t: "error"; code: ErrorCode; message: string; fatal:
 export type ServerMsg = PairedMsg | WelcomeMsg | PatchMsg | PressResultMsg | PongMsg | ErrorMsg;
 
 // ===== State (sections) =====
-export type SectionName = "layout" | "sys" | "statuses" | "notifications" | "vars" | "focus" | "media" | "icons" | "weather" | "obs" | "ai"; // weather, obs: M15; ai: M16
+export type SectionName = "layout" | "sys" | "statuses" | "notifications" | "vars" | "focus" | "media" | "icons" | "weather" | "obs" | "ai" | "twitch"; // weather, obs: M15; ai: M16
 export interface FullState {
   layout: ClientLayout;
   sys: SysStats | null;            // null = collector disabled
@@ -57,6 +57,19 @@ export interface FullState {
   weather?: WeatherInfo | null;    // M15; null = off or no data yet
   obs?: ObsInfo | null;            // M15; null = the integration is off
   ai?: AiInfo | null;              // M16; null = both integrations are off
+  twitch?: TwitchInfo | null;      // null = Twitch is off or nobody has signed in
+}
+
+/** The numbers of the signed-in Twitch channel. No token ever appears here. */
+export interface TwitchInfo {
+  connected: boolean;              // false = the last look at the channel failed (the numbers are the last good ones)
+  login: string;                   // the channel name
+  live: boolean;
+  viewers: number;                 // 0 when not live
+  followers: number;
+  title?: string;                  // <= 140, while live
+  game?: string;                   // <= 80, while live
+  startedAt?: number;              // ts the stream began (the client counts the time on air)
 }
 
 // M16: the limits of Claude Code / Codex and the permission questions (DATA_MODEL.md 6.8).

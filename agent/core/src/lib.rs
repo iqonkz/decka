@@ -25,6 +25,7 @@ pub mod state;
 pub mod statuses;
 pub mod templates;
 pub mod tray_text;
+pub mod twitch;
 pub mod updates;
 pub mod usb;
 pub mod validate;

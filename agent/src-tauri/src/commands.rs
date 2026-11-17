@@ -84,6 +84,24 @@ pub fn cc_uninstall(app: AppHandle) -> Result<decka_core::agent::CcStatus, Strin
     agent(&app)?.cc_uninstall()
 }
 
+/// `More → Integrations → Twitch`: the sign-in and what the agent sees.
+#[tauri::command]
+pub fn twitch_status(app: AppHandle) -> Result<decka_core::agent::TwitchStatus, String> {
+    Ok(agent(&app)?.twitch_status())
+}
+
+/// `Sign in`: the code to type on twitch.tv/activate.
+#[tauri::command]
+pub async fn twitch_login_start(app: AppHandle) -> Result<decka_core::twitch::TwitchLogin, String> {
+    agent(&app)?.twitch_login_start().await
+}
+
+/// `Sign out`: the tokens are deleted.
+#[tauri::command]
+pub fn twitch_logout(app: AppHandle) -> Result<(), String> {
+    agent(&app)?.twitch_logout()
+}
+
 /// `Download`: opens a release page of the project in the browser (other addresses are refused).
 #[tauri::command]
 pub fn open_release(app: AppHandle, url: String) -> Result<(), String> {

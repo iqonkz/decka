@@ -151,6 +151,19 @@ impl Serialize for SaveResult {
     }
 }
 
+/// What the window shows about Twitch.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TwitchStatus {
+    pub enabled: bool,
+    pub signed_in: bool,
+    pub login: Option<String>,
+    /// The error of the sign-in, or of the last look at the channel.
+    pub error: Option<String>,
+    /// A sign-in in progress: the code to type on twitch.tv/activate.
+    pub pending: Option<crate::twitch::TwitchLogin>,
+}
+
 /// What the window shows about Claude Code and Codex (PROTOCOL.md 9, `CcStatus`).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -251,6 +264,13 @@ struct Inner {
     /// AI coding helpers (M16): the limits, the sessions and the permission questions.
     ai: Arc<crate::ai::AiHub>,
     ai_task: Mutex<Option<JoinHandle<()>>>,
+    /// Twitch: the polling loop, the sign-in in progress (and its error), the last error and the last good numbers.
+    twitch_task: Mutex<Option<JoinHandle<()>>>,
+    twitch_login_task: Mutex<Option<JoinHandle<()>>>,
+    twitch_login: Mutex<Option<(crate::twitch::TwitchLogin, Option<String>)>>,
+    twitch_error: Mutex<Option<String>>,
+    twitch_last: Mutex<Option<TwitchInfo>>,
+    twitch_api: Mutex<crate::twitch::Api>,
     focus_app: Mutex<Option<String>>,
     /// The answer of the last update check (ARCHITECTURE.md 8a).
     update: Mutex<crate::updates::UpdateStatus>,
@@ -286,6 +306,12 @@ impl Agent {
                 statuses: crate::statuses::Statuses::new(store.clone()),
                 ai: crate::ai::AiHub::new(store.clone()),
                 ai_task: Mutex::new(None),
+                twitch_task: Mutex::new(None),
+                twitch_login_task: Mutex::new(None),
+                twitch_login: Mutex::new(None),
+                twitch_error: Mutex::new(None),
+                twitch_last: Mutex::new(None),
+                twitch_api: Mutex::new(crate::twitch::Api::real()),
                 store,
                 background: Mutex::new(Vec::new()),
                 sys_collector: Mutex::new(None),
@@ -427,6 +453,8 @@ impl Agent {
         self.start_obs();
         // AI coding helpers (M16): limits of Claude Code and Codex, permission questions.
         self.start_ai();
+        // Twitch: the numbers of the signed-in channel.
+        self.start_twitch();
 
         // HTTP checks: stop the old tasks (dropping aborts them), then start from the new config.
         let old_checks = self.inner.checks_collector.lock().unwrap().take();
@@ -625,6 +653,228 @@ impl Agent {
             }
         });
         *self.inner.ai_task.lock().unwrap() = Some(task);
+    }
+
+    // ===== Twitch =====
+
+    /// Tests only: the two hosts of Twitch are replaced by a local server.
+    pub fn set_twitch_hosts(&self, id: &str, api: &str) {
+        *self.inner.twitch_api.lock().unwrap() = crate::twitch::Api { id: id.to_string(), api: api.to_string() };
+    }
+
+    fn twitch_api(&self) -> crate::twitch::Api {
+        self.inner.twitch_api.lock().unwrap().clone()
+    }
+
+    /// The `twitch.*` variables follow the section; no section, no variables.
+    fn apply_twitch(&self, info: Option<&TwitchInfo>) {
+        self.inner.store.set("twitch", info.map_or(serde_json::Value::Null, |i| serde_json::to_value(i).expect("twitch serializes")));
+        self.inner.store.update_vars(|vars| {
+            vars.retain(|k, _| !k.starts_with("twitch."));
+            if let Some(i) = info {
+                vars.insert("twitch.live".to_string(), VarValue::Bool(i.live));
+                vars.insert("twitch.viewers".to_string(), VarValue::Num(serde_json::Number::from(i.viewers)));
+                vars.insert("twitch.followers".to_string(), VarValue::Num(serde_json::Number::from(i.followers)));
+            }
+        });
+    }
+
+    fn twitch_tokens(&self) -> Result<crate::twitch::Tokens, String> {
+        let stored = self.config().twitch.and_then(|t| t.tokens).ok_or("Sign in to Twitch first")?;
+        let json = crate::dpapi::unprotect(&stored).map_err(|e| format!("the Twitch sign-in cannot be read: {e}"))?;
+        serde_json::from_str(&json).map_err(|_| "the Twitch sign-in cannot be read".to_string())
+    }
+
+    fn save_twitch_tokens(&self, tokens: &crate::twitch::Tokens) -> Result<(), String> {
+        let blob = crate::dpapi::protect(&serde_json::to_string(tokens).map_err(|e| e.to_string())?)?;
+        let mut config = self.config();
+        let twitch = config.twitch.as_mut().ok_or("Twitch is not set up")?;
+        twitch.tokens = Some(blob);
+        twitch.tokens_set = None;
+        match self.write_config(config) {
+            SaveResult::Saved => Ok(()),
+            SaveResult::Rejected(issues) => Err(issues.first().map(|i| i.message.clone()).unwrap_or_default()),
+        }
+    }
+
+    /// One call to Twitch with the stored tokens; an expired access token is refreshed once and the call repeated.
+    async fn twitch_call<T, F, Fut>(&self, f: F) -> Result<T, String>
+    where
+        F: Fn(crate::twitch::Api, String, String, String) -> Fut,
+        Fut: std::future::Future<Output = Result<T, crate::twitch::ApiError>>,
+    {
+        use crate::twitch::ApiError;
+        let cfg = self.config().twitch.filter(|t| t.enabled).ok_or("Twitch is off")?;
+        let user_id = cfg.user_id.clone().ok_or("Sign in to Twitch first")?;
+        let mut tokens = self.twitch_tokens()?;
+        let api = self.twitch_api();
+        for attempt in 0..2 {
+            match f(api.clone(), cfg.client_id.clone(), tokens.access.clone(), user_id.clone()).await {
+                Ok(v) => return Ok(v),
+                Err(ApiError::Failed(m)) => return Err(m),
+                Err(ApiError::Unauthorized) if attempt == 0 => {
+                    tokens = api.refresh(&cfg.client_id, &tokens.refresh).await.map_err(|_| "Twitch asks to sign in again".to_string())?;
+                    self.save_twitch_tokens(&tokens)?;
+                }
+                Err(ApiError::Unauthorized) => return Err("Twitch asks to sign in again".to_string()),
+            }
+        }
+        Err("Twitch asks to sign in again".to_string())
+    }
+
+    /// One look at the channel: live, viewers, followers.
+    async fn twitch_poll_once(&self) -> Result<TwitchInfo, String> {
+        let login = self.config().twitch.and_then(|t| t.login).unwrap_or_default();
+        let (stream, followers) = self
+            .twitch_call(|api, cid, token, uid| async move {
+                let stream = api.stream(&cid, &token, &uid).await?;
+                let followers = api.followers(&cid, &token, &uid).await?;
+                Ok((stream, followers))
+            })
+            .await?;
+        Ok(crate::twitch::build_info(&login, stream, followers))
+    }
+
+    /// (Re)starts the loop from the config: off or signed out = no section and no variables.
+    fn start_twitch(&self) {
+        if let Some(old) = self.inner.twitch_task.lock().unwrap().take() {
+            old.abort();
+        }
+        *self.inner.twitch_last.lock().unwrap() = None;
+        let on = self.config().twitch.is_some_and(|t| t.enabled && t.tokens.is_some() && t.user_id.is_some());
+        if !on {
+            self.apply_twitch(None);
+            return;
+        }
+        let me = self.clone();
+        let task = self.inner.runtime.spawn(async move {
+            loop {
+                match me.twitch_poll_once().await {
+                    Ok(info) => {
+                        *me.inner.twitch_error.lock().unwrap() = None;
+                        *me.inner.twitch_last.lock().unwrap() = Some(info.clone());
+                        me.apply_twitch(Some(&info));
+                    }
+                    Err(e) => {
+                        tracing::debug!("twitch: {e}");
+                        *me.inner.twitch_error.lock().unwrap() = Some(e);
+                        // The last numbers stay on the phone, marked as not connected.
+                        let last = me.inner.twitch_last.lock().unwrap().clone();
+                        if let Some(mut info) = last {
+                            info.connected = false;
+                            me.apply_twitch(Some(&info));
+                        }
+                    }
+                }
+                tokio::time::sleep(crate::twitch::POLL_EVERY).await;
+            }
+        });
+        *self.inner.twitch_task.lock().unwrap() = Some(task);
+    }
+
+    /// Step 1 of the sign-in: needs the client id of the owner's Twitch application. The window shows `user_code`; the agent
+    /// asks Twitch every few seconds until the code has been typed, then stores the tokens and starts the loop.
+    pub async fn twitch_login_start(&self) -> Result<crate::twitch::TwitchLogin, String> {
+        let cfg = self.config().twitch.filter(|t| !t.client_id.is_empty()).ok_or("Enter the client id of your Twitch application first")?;
+        let api = self.twitch_api();
+        let code = api.device_start(&cfg.client_id).await?;
+        let login = crate::twitch::TwitchLogin { user_code: code.user_code.clone(), verification_uri: code.verification_uri.clone(), expires_at: crate::auth::now_ms() + code.expires_in * 1000 };
+        *self.inner.twitch_login.lock().unwrap() = Some((login.clone(), None));
+        if let Some(old) = self.inner.twitch_login_task.lock().unwrap().take() {
+            old.abort();
+        }
+        let me = self.clone();
+        let client_id = cfg.client_id.clone();
+        let expires_at = login.expires_at;
+        let task = self.inner.runtime.spawn(async move {
+            let mut interval = code.interval;
+            let failed = |me: &Agent, e: String| {
+                if let Some((_, error)) = me.inner.twitch_login.lock().unwrap().as_mut() {
+                    *error = Some(e);
+                }
+            };
+            loop {
+                tokio::time::sleep(Duration::from_secs(interval)).await;
+                if crate::auth::now_ms() > expires_at {
+                    return failed(&me, "The code has expired".to_string());
+                }
+                match api.device_poll(&client_id, &code.device_code).await {
+                    Ok(crate::twitch::Poll::Pending) => {}
+                    Ok(crate::twitch::Poll::SlowDown) => interval += 5,
+                    Ok(crate::twitch::Poll::Done(tokens)) => {
+                        return match me.finish_twitch_login(&api, &client_id, tokens).await {
+                            Ok(()) => *me.inner.twitch_login.lock().unwrap() = None,
+                            Err(e) => failed(&me, e),
+                        };
+                    }
+                    Err(e) => return failed(&me, e),
+                }
+            }
+        });
+        *self.inner.twitch_login_task.lock().unwrap() = Some(task);
+        Ok(login)
+    }
+
+    async fn finish_twitch_login(&self, api: &crate::twitch::Api, client_id: &str, tokens: crate::twitch::Tokens) -> Result<(), String> {
+        let (user_id, login) = api.user(client_id, &tokens.access).await.map_err(|e| match e {
+            crate::twitch::ApiError::Unauthorized => "Twitch refused the sign-in".to_string(),
+            crate::twitch::ApiError::Failed(m) => m,
+        })?;
+        let blob = crate::dpapi::protect(&serde_json::to_string(&tokens).map_err(|e| e.to_string())?)?;
+        let mut config = self.config();
+        let twitch = config.twitch.as_mut().ok_or("Twitch is not set up")?;
+        (twitch.tokens, twitch.login, twitch.user_id, twitch.enabled) = (Some(blob), Some(login), Some(user_id), true);
+        if let SaveResult::Rejected(issues) = self.write_config(config) {
+            return Err(issues.first().map(|i| i.message.clone()).unwrap_or_default());
+        }
+        self.start_twitch();
+        Ok(())
+    }
+
+    /// Forgets the channel: the tokens are deleted, the loop stops, the section is `null`.
+    pub fn twitch_logout(&self) -> Result<(), String> {
+        if let Some(old) = self.inner.twitch_login_task.lock().unwrap().take() {
+            old.abort();
+        }
+        *self.inner.twitch_login.lock().unwrap() = None;
+        *self.inner.twitch_error.lock().unwrap() = None;
+        let mut config = self.config();
+        if let Some(t) = config.twitch.as_mut() {
+            (t.tokens, t.login, t.user_id, t.tokens_set) = (None, None, None, None);
+        }
+        if let SaveResult::Rejected(issues) = self.write_config(config) {
+            return Err(issues.first().map(|i| i.message.clone()).unwrap_or_default());
+        }
+        self.start_twitch();
+        Ok(())
+    }
+
+    /// For the window.
+    pub fn twitch_status(&self) -> TwitchStatus {
+        let cfg = self.config().twitch;
+        let pending = self.inner.twitch_login.lock().unwrap().clone();
+        TwitchStatus {
+            enabled: cfg.as_ref().is_some_and(|t| t.enabled),
+            signed_in: cfg.as_ref().is_some_and(|t| t.tokens.is_some()),
+            login: cfg.and_then(|t| t.login),
+            error: pending.as_ref().and_then(|(_, e)| e.clone()).or_else(|| self.inner.twitch_error.lock().unwrap().clone()),
+            pending: pending.map(|(p, _)| p),
+        }
+    }
+
+    /// The `twitch` actions: a clip of the live stream, or an announcement in the chat.
+    async fn twitch_action(&self, op: TwitchOp, message: Option<&str>) -> Result<(), String> {
+        match op {
+            TwitchOp::Clip => self.twitch_call(|api, cid, token, uid| async move { api.clip(&cid, &token, &uid).await }).await.map(|_| ()),
+            TwitchOp::Announce => {
+                let text = message.ok_or("The announcement has no text")?.to_string();
+                self.twitch_call(|api, cid, token, uid| {
+                    let text = text.clone();
+                    async move { api.announce(&cid, &token, &uid, &text).await }
+                })
+                .await
+            }
+        }
     }
 
     pub fn ai_hub(&self) -> &Arc<crate::ai::AiHub> {
@@ -895,6 +1145,11 @@ impl Agent {
         if let Some(ai) = config.ai.as_mut() {
             ai.hook_token = before.ai.as_ref().and_then(|a| a.hook_token.clone());
         }
+        // The Twitch sign-in is written by the sign-in only; a new client id is another application, so the old sign-in goes.
+        if let Some(tw) = config.twitch.as_mut() {
+            let kept = before.twitch.as_ref().filter(|b| b.client_id == tw.client_id);
+            (tw.tokens, tw.login, tw.user_id, tw.tokens_set) = (kept.and_then(|b| b.tokens.clone()), kept.and_then(|b| b.login.clone()), kept.and_then(|b| b.user_id.clone()), None);
+        }
         let issues = crate::validate::validate_config(&config);
         if !issues.is_empty() {
             return SaveResult::Rejected(issues);
@@ -978,6 +1233,10 @@ impl Agent {
         if let Some(ai) = config.ai.as_mut() {
             ai.hook_token = None;
         }
+        if let Some(tw) = config.twitch.as_mut() {
+            tw.tokens_set = Some(tw.tokens.is_some());
+            tw.tokens = None;
+        }
         config
     }
 
@@ -1032,6 +1291,12 @@ impl Agent {
 
     /// The runner on the blocking pool, then `toggleVar` on success.
     async fn run_action(&self, action_id: &str, action: Action) -> Result<(), (ErrorCode, String)> {
+        // Twitch is spoken to by the agent itself (its tokens never reach a runner).
+        if let Action::Twitch { op, message, toggle_var, .. } = &action {
+            self.twitch_action(*op, message.as_deref()).await.map_err(|m| (ErrorCode::ActionFailed, m))?;
+            self.toggle_var(toggle_var.clone());
+            return Ok(());
+        }
         // OBS is spoken to over a connection the agent holds, not by a runner.
         if let Action::Obs { op, scene, input, toggle_var, .. } = &action {
             self.obs_action(*op, scene.as_deref(), input.as_deref()).await.map_err(|m| (ErrorCode::ActionFailed, m))?;
@@ -1281,6 +1546,11 @@ impl Agent {
         }
         if let Some(task) = self.inner.ai_task.lock().unwrap().take() {
             task.abort();
+        }
+        for task in [&self.inner.twitch_task, &self.inner.twitch_login_task] {
+            if let Some(task) = task.lock().unwrap().take() {
+                task.abort();
+            }
         }
         drop(self.inner.obs_client.lock().unwrap().take());
         let watcher = self.inner.watcher.lock().unwrap().take();

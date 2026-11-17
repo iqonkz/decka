@@ -17,8 +17,8 @@ export interface CatalogBindState {
   color?: string;
 }
 
-export type CatalogAsk = "url" | "keys" | "obs_scene" | "obs_input" | "page" | "sequence";
-export type Integration = "obs" | "weather";
+export type CatalogAsk = "url" | "keys" | "obs_scene" | "obs_input" | "page" | "sequence" | "text";
+export type Integration = "obs" | "weather" | "twitch";
 
 export interface CatalogItem {
   /** `media.shuffle`, `sound.mic`: unique. */

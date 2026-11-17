@@ -99,7 +99,7 @@ impl ActionRunner for WindowsRunner {
             }
             Action::Audio { op, .. } => crate::audio::toggle(*op),
             // `obs` (T15.6) and `sequence` (run by the agent, it needs the other actions) never reach a runner yet.
-            Action::Obs { .. } | Action::Sequence { .. } => Err("not implemented yet".to_string()),
+            Action::Obs { .. } | Action::Twitch { .. } | Action::Sequence { .. } => Err("not implemented yet".to_string()),
             Action::Media { op, .. } if crate::media_control::session_only(*op) => {
                 use crate::media_control::{try_session, SessionOutcome, UNSUPPORTED};
                 match try_session(*op) {
