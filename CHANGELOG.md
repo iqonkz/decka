@@ -4,6 +4,8 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+## 0.4.1 — 2026-11-17
+
 ### Fixed
 - Smoother page swipe on the phone: no micro-freeze when you start a swipe and no small jerk when the page settles (the neighbour pages are now prepared in advance).
 - The number badge on the AI limits widget now opens the permission sheet again.
