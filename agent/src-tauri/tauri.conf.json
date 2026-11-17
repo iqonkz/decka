@@ -42,6 +42,7 @@
         "headerImage": "installer/header.bmp",
         "sidebarImage": "installer/sidebar.bmp",
         "installerIcon": "icons/icon.ico",
+        "installerHooks": "installer/hooks.nsh",
         "languages": ["English", "Russian"],
         "displayLanguageSelector": true
       }

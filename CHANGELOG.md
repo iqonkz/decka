@@ -4,6 +4,10 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+### Fixed
+- The phone could not connect on some PCs and networks (a hotspot of the PC or of another phone counts as a public network for Windows, and Windows Firewall blocked the agent there). The installer now adds a Windows Firewall rule for Decka for private and public networks (Windows asks for administrator rights once; refuse it and the installation goes on). The hint with the firewall command in the Phone tab also appears when the first pairing fails, and its command covers both kinds of network.
+- File names of a release carry the version (`Decka-Setup-<version>.exe`, `Decka-<version>.apk`).
+
 ### Added
 - Codex asks the phone too: **Install** also adds a Codex hook (`%USERPROFILE%\.codex\hooks.json`), so a permission question of Codex opens the same sheet as the one of Claude Code, with the name of the tool that asks. Open Codex once and trust the hook with `/hooks`. Switch it off with **Approve Codex on phone**. The phone gives a short buzz when a question arrives.
 - The AI limits widget can show only Claude or only Codex (the widget settings in the editor).
