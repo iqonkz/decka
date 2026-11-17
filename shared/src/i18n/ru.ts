@@ -146,7 +146,7 @@ export const ru: Record<Base | ExtraPlural, string> = {
   "phone.connected": "Подключено",
   "phone.restart": "Перезапустить",
   "phone.firewall_title": "Телефон не подключается по Wi-Fi?",
-  "phone.firewall_text": "Разрешите Decka в брандмауэре Windows (частные сети) или выполните эту команду от имени администратора:",
+  "phone.firewall_text": "Разрешите Decka в брандмауэре Windows (частные и общедоступные сети: раздача Wi-Fi считается общедоступной сетью) или выполните эту команду от имени администратора:",
   "phone.addresses": "Адреса",
   "phone.listening": "Слушает на {where}",
   "phone.no_address": "Адрес в локальной сети не найден.",

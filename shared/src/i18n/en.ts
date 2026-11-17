@@ -144,7 +144,7 @@ export const en = {
   "phone.connected": "Connected",
   "phone.restart": "Restart",
   "phone.firewall_title": "The phone cannot connect over Wi-Fi?",
-  "phone.firewall_text": "Allow Decka in Windows Firewall (private networks) or run this command as administrator:",
+  "phone.firewall_text": "Allow Decka in Windows Firewall (private and public networks: a Wi-Fi hotspot counts as public) or run this command as administrator:",
   "phone.addresses": "Addresses",
   "phone.listening": "Listening on {where}",
   "phone.no_address": "No local network address found.",

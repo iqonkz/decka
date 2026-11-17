@@ -5,8 +5,8 @@ import Banner from "../ui/Banner";
 import Button from "../ui/Button";
 import PairingTab from "./PairingTab";
 
-/** The firewall hint appears only when a phone has been paired and, two minutes later, none has connected. */
-export const FIREWALL_WAIT_MS = 120_000;
+/** The firewall hint appears when, a minute after this page was opened, no phone has connected (also when the first pairing fails). */
+export const FIREWALL_WAIT_MS = 60_000;
 
 /** `Connected · Galaxy A57 · USB`, `Waiting for your phone` or `Server stopped` (DESIGN.md 4.6a). */
 export function phoneSummary(status: AgentStatus): { dot: "on" | "wait" | "off"; text: string } {
@@ -49,8 +49,9 @@ export default function PhoneTab() {
 
   const port = status.listening?.port ?? 9247;
   const summary = phoneSummary(status);
-  const firewallCommand = `netsh advfirewall firewall add rule name="Decka" dir=in action=allow protocol=TCP localport=${port} profile=private`;
-  const firewallProblem = status.listening?.bind === "0.0.0.0" && paired > 0 && waited && !everConnected.current;
+  const firewallCommand = `netsh advfirewall firewall add rule name="Decka" dir=in action=allow protocol=TCP localport=${port} profile=private,public`;
+  // A hotspot (of the PC or of a phone) is a "public" network for Windows, so the rule covers both kinds of network.
+  const firewallProblem = status.listening?.bind === "0.0.0.0" && waited && !everConnected.current;
 
   return (
     <div className="stack">

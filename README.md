@@ -121,7 +121,7 @@ npm run release:apk      # client\android\app\build\outputs\apk\debug\app-debug.
 
 ## Troubleshooting
 
-- **The phone cannot reach the PC.** Windows Firewall must allow `decka-agent.exe` on private networks; the phone and PC must be on the same network (guest Wi-Fi often isolates clients). Try USB mode to rule the network out.
+- **The phone cannot reach the PC.** Windows Firewall must allow `decka-agent.exe` on private **and public** networks (a Wi-Fi hotspot, of the PC or of another phone, counts as public: run `netsh advfirewall firewall add rule name="Decka" dir=in action=allow protocol=TCP localport=9247 profile=private,public` as administrator); the phone and PC must be on the same network (guest Wi-Fi and some phone hotspots isolate clients). Try USB mode to rule the network out.
 - **`adb unauthorized`.** Unlock the phone and accept the USB debugging prompt; if it does not appear, replug the cable or revoke USB debugging authorizations in Developer options.
 - **Port 9247 is busy.** Another program uses it. Change the port in **Settings** and press **Restart now**, or press **Retry** on the Status tab after closing the other program.
 - **The phone does not find the PC after the PC slept.** Decka reconnects by itself within about 30 seconds; if the PC hibernates instead of sleeping, network and USB links are down until it wakes. Prefer sleep over hibernation.
