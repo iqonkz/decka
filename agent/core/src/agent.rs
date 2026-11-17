@@ -151,6 +151,20 @@ impl Serialize for SaveResult {
     }
 }
 
+/// What the window shows about YouTube.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct YoutubeStatus {
+    pub enabled: bool,
+    pub signed_in: bool,
+    /// The client secret is stored (its value never leaves the agent).
+    pub secret_set: bool,
+    pub channel: Option<String>,
+    pub error: Option<String>,
+    /// A sign-in in progress: the code to type on google.com/device.
+    pub pending: Option<crate::youtube::YoutubeLogin>,
+}
+
 /// What the window shows about Twitch.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -271,6 +285,13 @@ struct Inner {
     twitch_error: Mutex<Option<String>>,
     twitch_last: Mutex<Option<TwitchInfo>>,
     twitch_api: Mutex<crate::twitch::Api>,
+    /// YouTube: the same pieces as for Twitch.
+    youtube_task: Mutex<Option<JoinHandle<()>>>,
+    youtube_login_task: Mutex<Option<JoinHandle<()>>>,
+    youtube_login: Mutex<Option<(crate::youtube::YoutubeLogin, Option<String>)>>,
+    youtube_error: Mutex<Option<String>>,
+    youtube_last: Mutex<Option<YoutubeInfo>>,
+    youtube_api: Mutex<crate::youtube::Api>,
     focus_app: Mutex<Option<String>>,
     /// The answer of the last update check (ARCHITECTURE.md 8a).
     update: Mutex<crate::updates::UpdateStatus>,
@@ -312,6 +333,12 @@ impl Agent {
                 twitch_error: Mutex::new(None),
                 twitch_last: Mutex::new(None),
                 twitch_api: Mutex::new(crate::twitch::Api::real()),
+                youtube_task: Mutex::new(None),
+                youtube_login_task: Mutex::new(None),
+                youtube_login: Mutex::new(None),
+                youtube_error: Mutex::new(None),
+                youtube_last: Mutex::new(None),
+                youtube_api: Mutex::new(crate::youtube::Api::real()),
                 store,
                 background: Mutex::new(Vec::new()),
                 sys_collector: Mutex::new(None),
@@ -453,8 +480,9 @@ impl Agent {
         self.start_obs();
         // AI coding helpers (M16): limits of Claude Code and Codex, permission questions.
         self.start_ai();
-        // Twitch: the numbers of the signed-in channel.
+        // Twitch and YouTube: the numbers of the signed-in channel.
         self.start_twitch();
+        self.start_youtube();
 
         // HTTP checks: stop the old tasks (dropping aborts them), then start from the new config.
         let old_checks = self.inner.checks_collector.lock().unwrap().take();
@@ -877,6 +905,247 @@ impl Agent {
         }
     }
 
+    // ===== YouTube =====
+
+    /// Tests only: the two hosts of Google are replaced by a local server.
+    pub fn set_youtube_hosts(&self, auth: &str, api: &str) {
+        *self.inner.youtube_api.lock().unwrap() = crate::youtube::Api { auth: auth.to_string(), api: api.to_string() };
+    }
+
+    fn youtube_api(&self) -> crate::youtube::Api {
+        self.inner.youtube_api.lock().unwrap().clone()
+    }
+
+    fn apply_youtube(&self, info: Option<&YoutubeInfo>) {
+        self.inner.store.set("youtube", info.map_or(serde_json::Value::Null, |i| serde_json::to_value(i).expect("youtube serializes")));
+        self.inner.store.update_vars(|vars| {
+            vars.retain(|k, _| !k.starts_with("youtube."));
+            if let Some(i) = info {
+                vars.insert("youtube.live".to_string(), VarValue::Bool(i.live));
+                vars.insert("youtube.viewers".to_string(), VarValue::Num(serde_json::Number::from(i.viewers)));
+                if let Some(s) = i.subscribers {
+                    vars.insert("youtube.subscribers".to_string(), VarValue::Num(serde_json::Number::from(s)));
+                }
+            }
+        });
+    }
+
+    fn write_youtube(&self, edit: impl FnOnce(&mut YoutubeConfig)) -> Result<(), String> {
+        let mut config = self.config();
+        edit(config.youtube.get_or_insert_with(|| YoutubeConfig { enabled: false, client_id: String::new(), secret: None, channel: None, tokens: None, secret_set: None, tokens_set: None }));
+        match self.write_config(config) {
+            SaveResult::Saved => Ok(()),
+            SaveResult::Rejected(issues) => Err(issues.first().map(|i| i.message.clone()).unwrap_or_default()),
+        }
+    }
+
+    /// `set_youtube_secret`: the client secret of the owner's Google application, encrypted with DPAPI; empty removes it.
+    pub fn set_youtube_secret(&self, secret: &str) -> Result<(), String> {
+        let blob = if secret.trim().is_empty() { None } else { Some(crate::dpapi::protect(secret.trim())?) };
+        self.write_youtube(|y| {
+            y.secret = blob;
+            y.secret_set = None;
+        })
+    }
+
+    fn youtube_secret(&self) -> Result<String, String> {
+        let stored = self.config().youtube.and_then(|y| y.secret).ok_or("Enter the client secret of your Google application first")?;
+        crate::dpapi::unprotect(&stored).map_err(|e| format!("the client secret cannot be read: {e}"))
+    }
+
+    fn youtube_tokens(&self) -> Result<crate::youtube::Tokens, String> {
+        let stored = self.config().youtube.and_then(|y| y.tokens).ok_or("Sign in to YouTube first")?;
+        let json = crate::dpapi::unprotect(&stored).map_err(|e| format!("the YouTube sign-in cannot be read: {e}"))?;
+        serde_json::from_str(&json).map_err(|_| "the YouTube sign-in cannot be read".to_string())
+    }
+
+    fn save_youtube_tokens(&self, tokens: &crate::youtube::Tokens) -> Result<(), String> {
+        let blob = crate::dpapi::protect(&serde_json::to_string(tokens).map_err(|e| e.to_string())?)?;
+        self.write_youtube(|y| {
+            y.tokens = Some(blob);
+            y.tokens_set = None;
+        })
+    }
+
+    /// One call to YouTube with the stored tokens; an expired access token is refreshed once and the call repeated.
+    async fn youtube_call<T, F, Fut>(&self, f: F) -> Result<T, String>
+    where
+        F: Fn(crate::youtube::Api, String) -> Fut,
+        Fut: std::future::Future<Output = Result<T, crate::youtube::ApiError>>,
+    {
+        use crate::youtube::ApiError;
+        let cfg = self.config().youtube.filter(|y| y.enabled).ok_or("YouTube is off")?;
+        let mut tokens = self.youtube_tokens()?;
+        let api = self.youtube_api();
+        for attempt in 0..2 {
+            match f(api.clone(), tokens.access.clone()).await {
+                Ok(v) => return Ok(v),
+                Err(ApiError::Failed(m)) => return Err(m),
+                Err(ApiError::Unauthorized) if attempt == 0 => {
+                    let secret = self.youtube_secret()?;
+                    tokens = api.refresh(&cfg.client_id, &secret, &tokens.refresh).await.map_err(|_| "YouTube asks to sign in again".to_string())?;
+                    self.save_youtube_tokens(&tokens)?;
+                }
+                Err(ApiError::Unauthorized) => return Err("YouTube asks to sign in again".to_string()),
+            }
+        }
+        Err("YouTube asks to sign in again".to_string())
+    }
+
+    /// One look at the channel: live, viewers, subscribers.
+    async fn youtube_poll_once(&self) -> Result<YoutubeInfo, String> {
+        let (channel, subscribers, live) = self
+            .youtube_call(|api, token| async move {
+                let (channel, subscribers) = api.channel(&token).await?;
+                let live = match api.broadcast(&token).await? {
+                    Some(b) => {
+                        let viewers = api.viewers(&token, &b.video_id).await?;
+                        Some((b, viewers))
+                    }
+                    None => None,
+                };
+                Ok((channel, subscribers, live))
+            })
+            .await?;
+        Ok(crate::youtube::build_info(&channel, subscribers, live))
+    }
+
+    /// (Re)starts the loop from the config: off or signed out = no section and no variables.
+    fn start_youtube(&self) {
+        if let Some(old) = self.inner.youtube_task.lock().unwrap().take() {
+            old.abort();
+        }
+        *self.inner.youtube_last.lock().unwrap() = None;
+        let on = self.config().youtube.is_some_and(|y| y.enabled && y.tokens.is_some() && y.secret.is_some());
+        if !on {
+            self.apply_youtube(None);
+            return;
+        }
+        let me = self.clone();
+        let task = self.inner.runtime.spawn(async move {
+            loop {
+                match me.youtube_poll_once().await {
+                    Ok(info) => {
+                        *me.inner.youtube_error.lock().unwrap() = None;
+                        *me.inner.youtube_last.lock().unwrap() = Some(info.clone());
+                        me.apply_youtube(Some(&info));
+                    }
+                    Err(e) => {
+                        tracing::debug!("youtube: {e}");
+                        *me.inner.youtube_error.lock().unwrap() = Some(e);
+                        let last = me.inner.youtube_last.lock().unwrap().clone();
+                        if let Some(mut info) = last {
+                            info.connected = false;
+                            me.apply_youtube(Some(&info));
+                        }
+                    }
+                }
+                tokio::time::sleep(crate::youtube::POLL_EVERY).await;
+            }
+        });
+        *self.inner.youtube_task.lock().unwrap() = Some(task);
+    }
+
+    /// Step 1 of the sign-in: needs the client id and the secret of the owner's Google application.
+    pub async fn youtube_login_start(&self) -> Result<crate::youtube::YoutubeLogin, String> {
+        let cfg = self.config().youtube.filter(|y| !y.client_id.is_empty()).ok_or("Enter the client id of your Google application first")?;
+        let secret = self.youtube_secret()?;
+        let api = self.youtube_api();
+        let code = api.device_start(&cfg.client_id).await?;
+        let login = crate::youtube::YoutubeLogin { user_code: code.user_code.clone(), verification_uri: code.verification_uri.clone(), expires_at: crate::auth::now_ms() + code.expires_in * 1000 };
+        *self.inner.youtube_login.lock().unwrap() = Some((login.clone(), None));
+        if let Some(old) = self.inner.youtube_login_task.lock().unwrap().take() {
+            old.abort();
+        }
+        let me = self.clone();
+        let client_id = cfg.client_id.clone();
+        let expires_at = login.expires_at;
+        let task = self.inner.runtime.spawn(async move {
+            let mut interval = code.interval;
+            let failed = |me: &Agent, e: String| {
+                if let Some((_, error)) = me.inner.youtube_login.lock().unwrap().as_mut() {
+                    *error = Some(e);
+                }
+            };
+            loop {
+                tokio::time::sleep(Duration::from_secs(interval)).await;
+                if crate::auth::now_ms() > expires_at {
+                    return failed(&me, "The code has expired".to_string());
+                }
+                match api.device_poll(&client_id, &secret, &code.device_code).await {
+                    Ok(crate::youtube::Poll::Pending) => {}
+                    Ok(crate::youtube::Poll::SlowDown) => interval += 5,
+                    Ok(crate::youtube::Poll::Done(tokens)) => {
+                        return match me.finish_youtube_login(&api, tokens).await {
+                            Ok(()) => *me.inner.youtube_login.lock().unwrap() = None,
+                            Err(e) => failed(&me, e),
+                        };
+                    }
+                    Err(e) => return failed(&me, e),
+                }
+            }
+        });
+        *self.inner.youtube_login_task.lock().unwrap() = Some(task);
+        Ok(login)
+    }
+
+    async fn finish_youtube_login(&self, api: &crate::youtube::Api, tokens: crate::youtube::Tokens) -> Result<(), String> {
+        let (channel, _) = api.channel(&tokens.access).await.map_err(|e| match e {
+            crate::youtube::ApiError::Unauthorized => "YouTube refused the sign-in".to_string(),
+            crate::youtube::ApiError::Failed(m) => m,
+        })?;
+        let blob = crate::dpapi::protect(&serde_json::to_string(&tokens).map_err(|e| e.to_string())?)?;
+        self.write_youtube(|y| {
+            (y.tokens, y.channel, y.enabled) = (Some(blob), Some(channel), true);
+        })?;
+        self.start_youtube();
+        Ok(())
+    }
+
+    /// Forgets the channel: the tokens are deleted, the loop stops, the section is `null`.
+    pub fn youtube_logout(&self) -> Result<(), String> {
+        if let Some(old) = self.inner.youtube_login_task.lock().unwrap().take() {
+            old.abort();
+        }
+        *self.inner.youtube_login.lock().unwrap() = None;
+        *self.inner.youtube_error.lock().unwrap() = None;
+        self.write_youtube(|y| (y.tokens, y.channel, y.tokens_set) = (None, None, None))?;
+        self.start_youtube();
+        Ok(())
+    }
+
+    /// For the window.
+    pub fn youtube_status(&self) -> YoutubeStatus {
+        let cfg = self.config().youtube;
+        let pending = self.inner.youtube_login.lock().unwrap().clone();
+        YoutubeStatus {
+            enabled: cfg.as_ref().is_some_and(|y| y.enabled),
+            signed_in: cfg.as_ref().is_some_and(|y| y.tokens.is_some()),
+            secret_set: cfg.as_ref().is_some_and(|y| y.secret.is_some()),
+            channel: cfg.and_then(|y| y.channel),
+            error: pending.as_ref().and_then(|(_, e)| e.clone()).or_else(|| self.inner.youtube_error.lock().unwrap().clone()),
+            pending: pending.map(|(p, _)| p),
+        }
+    }
+
+    /// The `youtube` actions: a message in the chat of the live stream.
+    async fn youtube_action(&self, op: YoutubeOp, message: Option<&str>) -> Result<(), String> {
+        match op {
+            YoutubeOp::Chat => {
+                let text = message.ok_or("The message has no text")?.to_string();
+                self.youtube_call(|api, token| {
+                    let text = text.clone();
+                    async move {
+                        let Some(broadcast) = api.broadcast(&token).await? else { return Err(crate::youtube::ApiError::Failed("YouTube: you are not live".to_string())) };
+                        let Some(chat) = broadcast.live_chat_id else { return Err(crate::youtube::ApiError::Failed("YouTube: the stream has no chat".to_string())) };
+                        api.chat(&token, &chat, &text).await
+                    }
+                })
+                .await
+            }
+        }
+    }
+
     pub fn ai_hub(&self) -> &Arc<crate::ai::AiHub> {
         &self.inner.ai
     }
@@ -1145,6 +1414,11 @@ impl Agent {
         if let Some(ai) = config.ai.as_mut() {
             ai.hook_token = before.ai.as_ref().and_then(|a| a.hook_token.clone());
         }
+        // The YouTube secret and sign-in are written by Decka only; a new client id is another application, so they go.
+        if let Some(yt) = config.youtube.as_mut() {
+            let kept = before.youtube.as_ref().filter(|b| b.client_id == yt.client_id);
+            (yt.secret, yt.tokens, yt.channel, yt.secret_set, yt.tokens_set) = (kept.and_then(|b| b.secret.clone()), kept.and_then(|b| b.tokens.clone()), kept.and_then(|b| b.channel.clone()), None, None);
+        }
         // The Twitch sign-in is written by the sign-in only; a new client id is another application, so the old sign-in goes.
         if let Some(tw) = config.twitch.as_mut() {
             let kept = before.twitch.as_ref().filter(|b| b.client_id == tw.client_id);
@@ -1237,6 +1511,10 @@ impl Agent {
             tw.tokens_set = Some(tw.tokens.is_some());
             tw.tokens = None;
         }
+        if let Some(yt) = config.youtube.as_mut() {
+            (yt.secret_set, yt.tokens_set) = (Some(yt.secret.is_some()), Some(yt.tokens.is_some()));
+            (yt.secret, yt.tokens) = (None, None);
+        }
         config
     }
 
@@ -1291,7 +1569,12 @@ impl Agent {
 
     /// The runner on the blocking pool, then `toggleVar` on success.
     async fn run_action(&self, action_id: &str, action: Action) -> Result<(), (ErrorCode, String)> {
-        // Twitch is spoken to by the agent itself (its tokens never reach a runner).
+        // YouTube and Twitch are spoken to by the agent itself (their tokens never reach a runner).
+        if let Action::Youtube { op, message, toggle_var, .. } = &action {
+            self.youtube_action(*op, message.as_deref()).await.map_err(|m| (ErrorCode::ActionFailed, m))?;
+            self.toggle_var(toggle_var.clone());
+            return Ok(());
+        }
         if let Action::Twitch { op, message, toggle_var, .. } = &action {
             self.twitch_action(*op, message.as_deref()).await.map_err(|m| (ErrorCode::ActionFailed, m))?;
             self.toggle_var(toggle_var.clone());
@@ -1547,7 +1830,7 @@ impl Agent {
         if let Some(task) = self.inner.ai_task.lock().unwrap().take() {
             task.abort();
         }
-        for task in [&self.inner.twitch_task, &self.inner.twitch_login_task] {
+        for task in [&self.inner.twitch_task, &self.inner.twitch_login_task, &self.inner.youtube_task, &self.inner.youtube_login_task] {
             if let Some(task) = task.lock().unwrap().take() {
                 task.abort();
             }

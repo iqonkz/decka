@@ -15,11 +15,13 @@
       "scene": { "type": "string", "minLength": 1, "maxLength": 100 }, "input": { "type": "string", "minLength": 1, "maxLength": 100 } } } ] },
     "Twitch": { "allOf": [ { "$ref": "#/$defs/Base" }, { "required": ["op"], "properties": { "type": { "const": "twitch" }, "op": { "enum": ["clip","announce"] },
       "message": { "type": "string", "minLength": 1, "maxLength": 500 } } } ] },
+    "Youtube": { "allOf": [ { "$ref": "#/$defs/Base" }, { "required": ["op","message"], "properties": { "type": { "const": "youtube" }, "op": { "enum": ["chat"] },
+      "message": { "type": "string", "minLength": 1, "maxLength": 200 } } } ] },
     "Sequence": { "allOf": [ { "$ref": "#/$defs/Base" }, { "required": ["steps"], "properties": { "type": { "const": "sequence" }, "steps": { "type": "array", "minItems": 1, "maxItems": 10,
       "items": { "oneOf": [
         { "type": "object", "required": ["actionId"], "additionalProperties": false, "properties": { "actionId": { "type": "string", "pattern": "^[a-z0-9_-]{1,64}$" } } },
         { "type": "object", "required": ["delayMs"], "additionalProperties": false, "properties": { "delayMs": { "type": "integer", "minimum": 50, "maximum": 10000 } } } ] } } } } ] },
-    "Action": { "oneOf": [ { "$ref": "#/$defs/Hotkey" }, { "$ref": "#/$defs/Media" }, { "$ref": "#/$defs/Launch" }, { "$ref": "#/$defs/OpenUrl" }, { "$ref": "#/$defs/System" }, { "$ref": "#/$defs/Audio" }, { "$ref": "#/$defs/Obs" }, { "$ref": "#/$defs/Twitch" }, { "$ref": "#/$defs/Sequence" } ] },
+    "Action": { "oneOf": [ { "$ref": "#/$defs/Hotkey" }, { "$ref": "#/$defs/Media" }, { "$ref": "#/$defs/Launch" }, { "$ref": "#/$defs/OpenUrl" }, { "$ref": "#/$defs/System" }, { "$ref": "#/$defs/Audio" }, { "$ref": "#/$defs/Obs" }, { "$ref": "#/$defs/Twitch" }, { "$ref": "#/$defs/Youtube" }, { "$ref": "#/$defs/Sequence" } ] },
     "ActionsFile": { "type": "object", "required": ["version","actions"],
       "properties": { "version": { "const": 1 }, "actions": { "type": "object", "maxProperties": 200, "propertyNames": { "pattern": "^[a-z0-9_-]{1,64}$" }, "additionalProperties": { "$ref": "#/$defs/Action" } } } }
   }

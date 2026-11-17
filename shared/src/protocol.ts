@@ -44,7 +44,7 @@ export interface ErrorMsg { t: "error"; code: ErrorCode; message: string; fatal:
 export type ServerMsg = PairedMsg | WelcomeMsg | PatchMsg | PressResultMsg | PongMsg | ErrorMsg;
 
 // ===== State (sections) =====
-export type SectionName = "layout" | "sys" | "statuses" | "notifications" | "vars" | "focus" | "media" | "icons" | "weather" | "obs" | "ai" | "twitch"; // weather, obs: M15; ai: M16
+export type SectionName = "layout" | "sys" | "statuses" | "notifications" | "vars" | "focus" | "media" | "icons" | "weather" | "obs" | "ai" | "twitch" | "youtube"; // weather, obs: M15; ai: M16
 export interface FullState {
   layout: ClientLayout;
   sys: SysStats | null;            // null = collector disabled
@@ -58,6 +58,18 @@ export interface FullState {
   obs?: ObsInfo | null;            // M15; null = the integration is off
   ai?: AiInfo | null;              // M16; null = both integrations are off
   twitch?: TwitchInfo | null;      // null = Twitch is off or nobody has signed in
+  youtube?: YoutubeInfo | null;    // null = YouTube is off or nobody has signed in
+}
+
+/** The live numbers of the signed-in YouTube channel. No token and no secret ever appear here. */
+export interface YoutubeInfo {
+  connected: boolean;              // false = the last look at the channel failed (the numbers are the last good ones)
+  channel: string;                 // the channel title
+  live: boolean;
+  viewers: number;                 // 0 when not live
+  subscribers?: number;            // absent when the channel hides its count
+  title?: string;                  // <= 140, while live
+  startedAt?: number;              // ts the stream began
 }
 
 /** The numbers of the signed-in Twitch channel. No token ever appears here. */

@@ -67,9 +67,11 @@ export interface ObsItem     extends ItemBase { kind: "obs"; }
 export interface AiItem      extends ItemBase { kind: "ai"; show?: "both" | "claude" | "codex"; }   // default "both"
 /** The Twitch numbers (live, viewers, followers); sizes 2x1..4x2. */
 export interface TwitchItem  extends ItemBase { kind: "twitch"; }
+/** The YouTube numbers (live, viewers, subscribers); sizes 2x1..4x2. */
+export interface YoutubeItem extends ItemBase { kind: "youtube"; }
 
 export type LayoutItem = ButtonItem | ClockItem | SysItem | StatusesItem | StatusItemTile | NotificationsItem | MediaItem
-  | VolumeItem | TimerItem | WeatherItem | ObsItem | AiItem | TwitchItem;
+  | VolumeItem | TimerItem | WeatherItem | ObsItem | AiItem | TwitchItem | YoutubeItem;
 
 /** `navigate` value of a button that goes back to the page the user came from (DATA_MODEL.md 3.8). */
 export const BACK_PAGE = "$back";

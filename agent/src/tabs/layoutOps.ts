@@ -25,6 +25,7 @@ export const DEFAULT_SIZE: Record<Kind, { w: number; h: number }> = {
   obs: { w: 2, h: 1 },
   ai: { w: 3, h: 2 },
   twitch: { w: 3, h: 1 },
+  youtube: { w: 3, h: 1 },
 };
 
 /** Allowed sizes per kind (DATA_MODEL.md 3.2 item 4): [minW, maxW, minH, maxH]; list widgets may fill the grid. */
@@ -51,6 +52,7 @@ export function sizeRange(kind: Kind, grid: Grid): [number, number, number, numb
     case "obs":
     case "ai":
     case "twitch":
+    case "youtube":
       return [2, 4, 1, 2];
   }
 }
@@ -141,6 +143,7 @@ export function makeItem(kind: Kind, x: number, y: number, id = newItemId(kind))
     case "obs":
     case "ai":
     case "twitch":
+    case "youtube":
       return { ...base, kind };
   }
 }

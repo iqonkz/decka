@@ -60,6 +60,7 @@ pub fn default_config() -> ConfigFile {
         obs: None,
         ai: None,
         twitch: None,
+        youtube: None,
     }
 }
 

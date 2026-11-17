@@ -75,6 +75,7 @@ export function toDraft(id: string, action: Action): Draft {
     case "audio":
     case "obs":
     case "twitch":
+    case "youtube":
     case "sequence":
       break; // edited by the library and the sequence editor (T15.4), not by this form
   }
@@ -112,6 +113,7 @@ export function fromDraft(d: Draft): { action: Action } | { error: string } {
     case "audio":
     case "obs":
     case "twitch":
+    case "youtube":
     case "sequence":
       return { error: t("form.type_unsupported") };
   }

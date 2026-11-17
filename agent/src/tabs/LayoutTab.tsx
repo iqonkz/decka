@@ -62,7 +62,7 @@ export default function LayoutTab() {
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [clipboard, setClipboard] = useState<LayoutItem | null>(null);
   // The library (DESIGN.md 4.8): which integrations are on, the dialog of an item that asks, the sequence editor (`null` = first free cell).
-  const [integrations, setIntegrations] = useState<Integrations>({ obs: false, weather: false, twitch: false });
+  const [integrations, setIntegrations] = useState<Integrations>({ obs: false, weather: false, twitch: false, youtube: false });
   const [ask, setAsk] = useState<{ item: CatalogItem; cell?: { x: number; y: number }; obs: { scenes: string[]; inputs: string[] } | null } | null>(null);
   const [sequenceAt, setSequenceAt] = useState<{ x: number; y: number } | null | undefined>(undefined);
   useEffect(() => {
@@ -375,7 +375,7 @@ export default function LayoutTab() {
   };
 
   // ----- the library (DESIGN.md 4.8) -----
-  const setupIntegration = (what: "obs" | "weather" | "twitch") => void navigate(`integrations:${what}`);
+  const setupIntegration = (what: "obs" | "weather" | "twitch" | "youtube") => void navigate(`integrations:${what}`);
 
   /** The result of `insertItem` / `insertSet` becomes the new layout: the new actions are saved first, the new keys are selected. */
   async function applyInsert(r: InsertOutcome, done?: string) {

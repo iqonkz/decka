@@ -3,11 +3,11 @@ import { call } from "../ipc";
 import { svgUrl } from "../tabs/phosphor";
 
 /** What the library knows about the integrations: the ones that are on get no `Set up` mark. */
-export interface Integrations { obs: boolean; weather: boolean; twitch: boolean; }
+export interface Integrations { obs: boolean; weather: boolean; twitch: boolean; youtube: boolean; }
 
 export async function loadIntegrations(): Promise<Integrations> {
   const config = await call("get_config").catch(() => null);
-  return { obs: config?.obs?.enabled === true, weather: config?.weather?.enabled === true, twitch: config?.twitch?.enabled === true && config.twitch.tokensSet === true };
+  return { obs: config?.obs?.enabled === true, weather: config?.weather?.enabled === true, twitch: config?.twitch?.enabled === true && config.twitch.tokensSet === true, youtube: config?.youtube?.enabled === true && config.youtube.tokensSet === true };
 }
 
 /** The OBS scenes and audio inputs, or `null` when OBS is not connected (or this agent has no OBS yet). */

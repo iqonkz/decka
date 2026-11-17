@@ -31,6 +31,7 @@ pub mod usb;
 pub mod validate;
 pub mod watch;
 pub mod weather;
+pub mod youtube;
 
 pub use agent::{Agent, AgentOptions, AgentStatus, SaveResult, StartError};
 

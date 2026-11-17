@@ -40,6 +40,7 @@ export function sizeLimits(kind: string, grid: LayoutFile["grid"], graph = false
     case "obs":
     case "ai":
     case "twitch":
+    case "youtube":
       return [2, 4, 1, 2];
     default:
       return undefined;
@@ -230,6 +231,10 @@ export function validateActions(actions: ActionsFile): ValidationIssue[] {
       } else if (message !== undefined) {
         issues.push({ path: `${base}/message`, message: "message is only allowed for an announcement" });
       }
+    }
+    if (action.type === "youtube") {
+      const message = action.message;
+      if (typeof message !== "string" || message.length < 1 || message.length > 200) issues.push({ path: `${base}/message`, message: "message is required (1..200 characters) for a chat message" });
     }
     if (action.type === "sequence") {
       if (action.steps.length < 1 || action.steps.length > SEQUENCE_LIMITS.steps) issues.push({ path: `${base}/steps`, message: `a sequence has 1..${SEQUENCE_LIMITS.steps} steps` });

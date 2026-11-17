@@ -102,6 +102,30 @@ pub fn twitch_logout(app: AppHandle) -> Result<(), String> {
     agent(&app)?.twitch_logout()
 }
 
+/// `More → Integrations → YouTube`: the sign-in and what the agent sees.
+#[tauri::command]
+pub fn youtube_status(app: AppHandle) -> Result<decka_core::agent::YoutubeStatus, String> {
+    Ok(agent(&app)?.youtube_status())
+}
+
+/// `Sign in`: the code to type on google.com/device.
+#[tauri::command]
+pub async fn youtube_login_start(app: AppHandle) -> Result<decka_core::youtube::YoutubeLogin, String> {
+    agent(&app)?.youtube_login_start().await
+}
+
+/// `Sign out`: the tokens are deleted.
+#[tauri::command]
+pub fn youtube_logout(app: AppHandle) -> Result<(), String> {
+    agent(&app)?.youtube_logout()
+}
+
+/// `Set secret…`: the client secret of the Google application, encrypted with DPAPI; empty removes it.
+#[tauri::command]
+pub fn set_youtube_secret(app: AppHandle, secret: String) -> Result<(), String> {
+    agent(&app)?.set_youtube_secret(&secret)
+}
+
 /// `Download`: opens a release page of the project in the browser (other addresses are refused).
 #[tauri::command]
 pub fn open_release(app: AppHandle, url: String) -> Result<(), String> {

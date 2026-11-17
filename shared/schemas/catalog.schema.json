@@ -20,8 +20,8 @@
           "properties": { "var": { "type": "string", "pattern": "^[a-z0-9_.-]{1,64}$" }, "states": { "type": "object", "minProperties": 1, "maxProperties": 8, "additionalProperties": { "$ref": "#/$defs/State" } } } },
         "navigate": { "const": "$back" },
         "widget": { "type": "object", "required": ["kind","w","h"], "additionalProperties": false,
-          "properties": { "kind": { "enum": ["clock","sys","statuses","notifications","media","volume","timer","weather","obs","ai","twitch"] }, "w": { "type": "integer", "minimum": 1, "maximum": 8 }, "h": { "type": "integer", "minimum": 1, "maximum": 8 }, "options": { "type": "object" } } },
-        "requires": { "enum": ["obs","weather","twitch"] }
+          "properties": { "kind": { "enum": ["clock","sys","statuses","notifications","media","volume","timer","weather","obs","ai","twitch","youtube"] }, "w": { "type": "integer", "minimum": 1, "maximum": 8 }, "h": { "type": "integer", "minimum": 1, "maximum": 8 }, "options": { "type": "object" } } },
+        "requires": { "enum": ["obs","weather","twitch","youtube"] }
       } },
     "Category": { "type": "object", "required": ["id","name","icon","items"], "additionalProperties": false,
       "properties": { "id": { "type": "string", "pattern": "^[a-z]+$" }, "name": { "$ref": "#/$defs/Bilingual" }, "icon": { "$ref": "#/$defs/Icon" }, "items": { "type": "array", "items": { "$ref": "#/$defs/CatalogId" } } } },
@@ -30,7 +30,7 @@
     "Set": { "type": "object", "required": ["id","name","description","icon","rows"], "additionalProperties": false,
       "properties": { "id": { "type": "string", "pattern": "^[a-z0-9-]{1,40}$" }, "name": { "$ref": "#/$defs/Bilingual" }, "description": { "$ref": "#/$defs/Bilingual" }, "icon": { "$ref": "#/$defs/Icon" },
         "rows": { "type": "array", "minItems": 1, "maxItems": 8, "items": { "type": "array", "minItems": 1, "maxItems": 8, "items": { "oneOf": [ { "$ref": "#/$defs/CatalogId" }, { "type": "null" } ] } } },
-        "requires": { "enum": ["obs","weather","twitch"] } } },
+        "requires": { "enum": ["obs","weather","twitch","youtube"] } } },
     "SetsFile": { "type": "object", "required": ["version","sets"], "additionalProperties": false,
       "properties": { "version": { "const": 1 }, "sets": { "type": "array", "items": { "$ref": "#/$defs/Set" } } } }
   }

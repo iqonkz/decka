@@ -31,6 +31,11 @@
       "rows": [
         ["twitch.clip", "widget.twitch"]
       ] },
+    { "id": "youtube", "name": { "en": "YouTube", "ru": "YouTube" }, "icon": "lucide:video", "requires": "youtube",
+      "description": { "en": "Live viewers and subscribers of your channel", "ru": "Зрители в эфире и подписчики вашего канала" },
+      "rows": [
+        ["widget.youtube"]
+      ] },
     { "id": "ai", "name": { "en": "AI coding", "ru": "ИИ-помощники" }, "icon": "lucide:cpu",
       "description": { "en": "Claude Code and Codex limits at a glance", "ru": "Лимиты Claude Code и Codex на виду" },
       "rows": [

@@ -2,6 +2,7 @@ import type { LayoutItem } from "@decka/shared";
 import Button from "./Button";
 import Ai from "./widgets/Ai";
 import Twitch from "./widgets/Twitch";
+import Youtube from "./widgets/Youtube";
 import Clock from "./widgets/Clock";
 import Media from "./widgets/Media";
 import Notifications from "./widgets/Notifications";
@@ -57,6 +58,9 @@ export default function Tile({ item }: { item: LayoutItem }) {
       break;
     case "twitch":
       content = <Twitch item={item} />;
+      break;
+    case "youtube":
+      content = <Youtube item={item} />;
       break;
     default:
       content = <div className="tile-body">?</div>;

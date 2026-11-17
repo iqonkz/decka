@@ -60,6 +60,13 @@ pub enum TwitchOp {
     Announce,
 }
 
+/// YouTube actions (the live stream of the signed-in channel): a message in the chat of the stream.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum YoutubeOp {
+    Chat,
+}
+
 /// One step of a `sequence`: run an action, or wait.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -138,6 +145,15 @@ pub enum Action {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         message: Option<String>,
     },
+    Youtube {
+        name: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        toggle_var: Option<String>,
+        op: YoutubeOp,
+        /// The text of the chat message (1..200).
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        message: Option<String>,
+    },
     Sequence {
         name: String,
         #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -157,6 +173,7 @@ impl Action {
             | Action::Audio { name, .. }
             | Action::Obs { name, .. }
             | Action::Twitch { name, .. }
+            | Action::Youtube { name, .. }
             | Action::Sequence { name, .. } => name,
         }
     }
@@ -171,6 +188,7 @@ impl Action {
             | Action::Audio { toggle_var, .. }
             | Action::Obs { toggle_var, .. }
             | Action::Twitch { toggle_var, .. }
+            | Action::Youtube { toggle_var, .. }
             | Action::Sequence { toggle_var, .. } => toggle_var.as_deref(),
         }
     }
@@ -186,6 +204,7 @@ impl Action {
             Action::Audio { .. } => "audio",
             Action::Obs { .. } => "obs",
             Action::Twitch { .. } => "twitch",
+            Action::Youtube { .. } => "youtube",
             Action::Sequence { .. } => "sequence",
         }
     }
@@ -462,6 +481,7 @@ pub enum LayoutItem {
     Obs(PlainItem),
     Ai(AiItem),
     Twitch(PlainItem),
+    Youtube(PlainItem),
 }
 
 impl LayoutItem {
@@ -477,7 +497,7 @@ impl LayoutItem {
             LayoutItem::Media(i) => (&i.id, i.x, i.y, i.w, i.h),
             LayoutItem::Volume(i) => (&i.id, i.x, i.y, i.w, i.h),
             LayoutItem::Timer(i) => (&i.id, i.x, i.y, i.w, i.h),
-            LayoutItem::Weather(i) | LayoutItem::Obs(i) | LayoutItem::Twitch(i) => (&i.id, i.x, i.y, i.w, i.h),
+            LayoutItem::Weather(i) | LayoutItem::Obs(i) | LayoutItem::Twitch(i) | LayoutItem::Youtube(i) => (&i.id, i.x, i.y, i.w, i.h),
             LayoutItem::Ai(i) => (&i.id, i.x, i.y, i.w, i.h),
         }
     }
@@ -494,7 +514,7 @@ impl LayoutItem {
             LayoutItem::Media(i) => (i.x, i.y) = (x, y),
             LayoutItem::Volume(i) => (i.x, i.y) = (x, y),
             LayoutItem::Timer(i) => (i.x, i.y) = (x, y),
-            LayoutItem::Weather(i) | LayoutItem::Obs(i) | LayoutItem::Twitch(i) => (i.x, i.y) = (x, y),
+            LayoutItem::Weather(i) | LayoutItem::Obs(i) | LayoutItem::Twitch(i) | LayoutItem::Youtube(i) => (i.x, i.y) = (x, y),
             LayoutItem::Ai(i) => (i.x, i.y) = (x, y),
         }
     }
@@ -514,6 +534,7 @@ impl LayoutItem {
             LayoutItem::Obs(_) => "obs",
             LayoutItem::Ai(_) => "ai",
             LayoutItem::Twitch(_) => "twitch",
+            LayoutItem::Youtube(_) => "youtube",
         }
     }
 }
@@ -546,6 +567,48 @@ pub struct ConfigFile {
     /// Twitch (stream numbers and keys of the signed-in channel); absent = off.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub twitch: Option<TwitchConfig>,
+    /// YouTube (live numbers and a chat key of the signed-in channel); absent = off.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub youtube: Option<YoutubeConfig>,
+}
+
+/// `secret` (the client secret of the owner's Google application, which Google's device flow requires and which is not
+/// confidential for this kind of client) and `tokens` are only ever `dpapi:<base64>` on disk; the IPC answer leaves them out
+/// and sets `secretSet` / `tokensSet`. The secret is written by `set_youtube_secret`, the tokens by the sign-in.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct YoutubeConfig {
+    pub enabled: bool,
+    #[serde(default)]
+    pub client_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub secret: Option<String>,
+    /// The channel that signed in (its title); written by the sign-in only.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub channel: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tokens: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub secret_set: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tokens_set: Option<bool>,
+}
+
+/// The `youtube` section: what the phone shows. No token ever appears here.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct YoutubeInfo {
+    pub connected: bool,
+    pub channel: String,
+    pub live: bool,
+    pub viewers: u64,
+    /// Absent when the channel hides its subscriber count.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subscribers: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub started_at: Option<u64>,
 }
 
 /// `tokens` is only ever `dpapi:<base64>` on disk (the access and the refresh token together); the IPC answer leaves it out

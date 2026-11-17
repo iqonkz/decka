@@ -21,6 +21,7 @@ export function useDeckProps(): { data: DeckData } & Required<DeckCallbacks> {
   const obs = useAppState((s) => s.state?.obs);
   const ai = useAppState((s) => s.state?.ai);
   const twitch = useAppState((s) => s.state?.twitch);
+  const youtube = useAppState((s) => s.state?.youtube);
   const icons = useAppState((s) => s.state?.icons);
   const keyFace = useAppState((s) => s.state?.layout.display.keyFace);
   const keyLabels = useAppState((s) => s.state?.layout.display.keyLabels);
@@ -37,11 +38,12 @@ export function useDeckProps(): { data: DeckData } & Required<DeckCallbacks> {
       obs: obs ?? null,
       ai: ai ?? null,
       twitch: twitch ?? null,
+      youtube: youtube ?? null,
       icons: icons ?? NO_ICONS,
       ...(keyFace !== undefined ? { keyFace } : {}),
       ...(keyLabels !== undefined ? { keyLabels } : {}),
     }),
-    [online, vars, sys, statuses, notifications, media, weather, obs, ai, twitch, icons, keyFace, keyLabels],
+    [online, vars, sys, statuses, notifications, media, weather, obs, ai, twitch, youtube, icons, keyFace, keyLabels],
   );
 
   // The graph of the `sys` widget: the readings are kept here, outside the widgets, and start again with the connection.

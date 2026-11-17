@@ -57,7 +57,7 @@ export default function AskDialog({ item, pages, currentPageId, obs, onConfirm, 
           <input autoFocus placeholder="github.com" aria-label={title} value={url} onChange={(e) => { setUrl(e.target.value); setError(null); }} onKeyDown={(e) => e.key === "Enter" && confirm()} />
         )}
         {item.ask === "text" && (
-          <input autoFocus maxLength={500} aria-label={title} value={text} onChange={(e) => { setText(e.target.value); setError(null); }} onKeyDown={(e) => e.key === "Enter" && confirm()} />
+          <input autoFocus maxLength={item.action?.type === "youtube" ? 200 : 500} aria-label={title} value={text} onChange={(e) => { setText(e.target.value); setError(null); }} onKeyDown={(e) => e.key === "Enter" && confirm()} />
         )}
         {item.ask === "keys" && <ChordField keys={keys} onChange={(k) => { setKeys(k); setError(null); }} />}
         {needsObs && (

@@ -29,6 +29,7 @@ export function describeAction(action: Action | undefined): string {
     case "audio":
     case "obs":
     case "twitch":
+    case "youtube":
     case "sequence":
       return action.name;
   }

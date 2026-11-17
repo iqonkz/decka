@@ -9,6 +9,7 @@ import WeatherSection from "./WeatherSection";
 import ObsSection from "./ObsSection";
 import AiSection from "./AiSection";
 import TwitchSection from "./TwitchSection";
+import YoutubeSection from "./YoutubeSection";
 
 function CopyButton({ text }: { text: string }) {
   const [done, setDone] = useState(false);
@@ -135,6 +136,8 @@ export default function IntegrationsTab() {
       <WeatherSection config={config} onSaved={load} />
 
       <TwitchSection config={config} onSaved={load} />
+
+      <YoutubeSection config={config} onSaved={load} />
 
       <AiSection config={config} onSaved={load} />
 

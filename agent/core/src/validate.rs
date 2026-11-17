@@ -29,7 +29,7 @@ pub fn is_var_name(s: &str) -> bool {
 
 /// M15: variables set by the collectors; nobody else writes them (PROTOCOL.md 4, HTTP rules).
 pub fn is_reserved_var(name: &str) -> bool {
-    ["audio.", "mic.", "media.", "obs.", "ai.", "twitch."].iter().any(|p| name.starts_with(p))
+    ["audio.", "mic.", "media.", "obs.", "ai.", "twitch.", "youtube."].iter().any(|p| name.starts_with(p))
 }
 
 /// `^[a-z0-9._ ()-]{1,60}\.exe$`
@@ -150,6 +150,11 @@ pub fn validate_actions(file: &ActionsFile) -> Vec<ValidationIssue> {
                 (Some(_), false) => out.push(issue(format!("{base}/message"), "message is only allowed for an announcement")),
                 _ => {}
             },
+            Action::Youtube { message, .. } => match message {
+                Some(m) if !(1..=200).contains(&chars(m)) => out.push(issue(format!("{base}/message"), "message must be 1..200 characters")),
+                None => out.push(issue(format!("{base}/message"), "message is required for a chat message")),
+                _ => {}
+            },
             Action::Sequence { steps, .. } => {
                 if !(1..=10).contains(&steps.len()) {
                     out.push(issue(format!("{base}/steps"), "a sequence has 1..10 steps"));
@@ -213,7 +218,7 @@ fn size_limits(kind: &str, cols: i32, rows: i32, graph: bool) -> (i32, i32, i32,
         "timer" => (1, 2, 1, 2),
         "weather" => (1, 4, 1, 2),
         "obs" => (2, 4, 1, 2),
-        "ai" | "twitch" => (2, 4, 1, 2),
+        "ai" | "twitch" | "youtube" => (2, 4, 1, 2),
         _ => (2, cols, 1, rows), // statuses, notifications
     }
 }
@@ -454,7 +459,7 @@ pub fn validate_layout(layout: &LayoutFile, actions: &ActionsFile) -> Vec<Valida
                         out.push(issue(format!("{path}/show"), "show must be both, claude or codex"));
                     }
                 }
-                LayoutItem::Clock(_) | LayoutItem::Sys(_) | LayoutItem::Notifications(_) | LayoutItem::Weather(_) | LayoutItem::Obs(_) | LayoutItem::Twitch(_) => {}
+                LayoutItem::Clock(_) | LayoutItem::Sys(_) | LayoutItem::Notifications(_) | LayoutItem::Weather(_) | LayoutItem::Obs(_) | LayoutItem::Twitch(_) | LayoutItem::Youtube(_) => {}
             }
         }
     }
@@ -554,6 +559,15 @@ pub fn validate_config(c: &ConfigFile) -> Vec<ValidationIssue> {
         }
         if tw.tokens.as_deref().is_some_and(|t| !t.starts_with("dpapi:") || chars(t) > 8000) {
             out.push(issue("/twitch/tokens", "tokens are written by the sign-in only"));
+        }
+    }
+    if let Some(yt) = &c.youtube {
+        // A Google client id looks like `123-abc.apps.googleusercontent.com`.
+        if yt.client_id.len() > 200 || !yt.client_id.chars().all(|ch| ch.is_ascii_alphanumeric() || ch == '-' || ch == '.' || ch == '_') {
+            out.push(issue("/youtube/clientId", "clientId has characters that a client id does not have"));
+        }
+        if [&yt.secret, &yt.tokens].iter().any(|s| s.as_deref().is_some_and(|v| !v.starts_with("dpapi:") || chars(v) > 8000)) {
+            out.push(issue("/youtube/tokens", "the secret and the tokens are written by Decka only"));
         }
     }
     if let Some(a) = &c.ai {

@@ -38,7 +38,7 @@ export interface LibraryProps {
   onBegin: (payload: DragPayload, e: React.PointerEvent) => void;
   onAddItem: (itemId: string) => void;
   onAddSet: (set: CatalogSet) => void;
-  onSetup: (what: "obs" | "weather" | "twitch") => void;
+  onSetup: (what: "obs" | "weather" | "twitch" | "youtube") => void;
 }
 
 /** The left panel of the editor (DESIGN.md 4.8): the library of ready-made keys, the sets, and the installed programs. */
@@ -63,7 +63,7 @@ export default function Library({ layout, actions, pageIndex, integrations, onBe
   const toggle = (id: string) => setOpen((list) => (list.includes(id) ? list.filter((x) => x !== id) : [...list, id]));
   const q = query.trim().toLowerCase();
   const found = useMemo(() => (q === "" ? null : searchCatalog(q)), [q]);
-  const ready = (item: { requires?: "obs" | "weather" | "twitch" }) => item.requires === undefined || integrations[item.requires];
+  const ready = (item: { requires?: "obs" | "weather" | "twitch" | "youtube" }) => item.requires === undefined || integrations[item.requires];
   const page = layout.pages[pageIndex];
 
   const itemRow = (item: CatalogItem) => {

@@ -112,6 +112,8 @@ export function defaultIconFor(action: Action): string {
       return "lucide:video";
     case "twitch":
       return action.op === "clip" ? "lucide:star" : "lucide:message-square";
+    case "youtube":
+      return "lucide:message-square";
     case "sequence":
       return "lucide:zap";
   }

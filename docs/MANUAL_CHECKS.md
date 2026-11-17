@@ -200,6 +200,11 @@
 - PENDING (owner): the Twitch widget on the phone while live and offline (viewers, followers, title, game, time on air), `Clip` while live (and the message when offline), `Chat post` with a text, the red dot, the four themes.
 - PENDING (owner): that Twitch accepts `scopes` in the device flow for a public client as built (`moderator:read:followers clips:edit moderator:manage:announcements`).
 
+## YouTube (owner request, 2026-11-17)
+- DONE (tests against a local stand-in of Google and YouTube, no account): the client secret (DPAPI), sign-in by code, polling (channel, live broadcast, viewers), refresh of an expired token, a chat message, sign-out; neither the secret nor a token in the section, the window or `config.json` in plain text; action and widget rules; the library item that asks for the text.
+- PENDING (owner): make the Google project and the OAuth client of the type "TVs and Limited Input devices", paste the Client ID, `Set client secret…`, `Sign in`, type the code on google.com/device: the channel title shows as signed in. Needs the real Google (not run from the session). Google may show the application as unverified; add yourself as a test user in the consent screen.
+- PENDING (owner): the YouTube widget on the phone live and offline, `YT chat` while live (and the message when not live), the quota (one look a minute is about 4 300 units in a day of continuous live stream).
+
 ## M16 — AI limits and approvals
 - DONE (tests, no real Claude Code): statusline parsing, summaries per tool, permission allow / deny / pc / timeout / no phone / hang-up / second answer, loopback and hook-token checks, Codex fixtures (new and old format), install and remove on a temporary home (foreign keys, hooks and a foreign status line stay, one `.decka-bak`), `burnEta`, the permission sheet in the store.
 - PENDING (owner): `Install` in More → Integrations → AI coding, restart Claude Code: the line `Decka · 5h …` shows in the terminal and the limits appear in the AI limits widget on the phone.

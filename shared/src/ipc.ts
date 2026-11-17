@@ -50,7 +50,21 @@ export interface TwitchStatus {
   pending?: { userCode: string; verificationUri: string; expiresAt: number };   // a sign-in in progress: type the code on twitch.tv/activate
 }
 
+/** YouTube as the settings window sees it. */
+export interface YoutubeStatus {
+  enabled: boolean;
+  signedIn: boolean;
+  secretSet: boolean;              // the client secret is stored (its value never leaves the agent)
+  channel?: string;
+  error?: string;                  // of the sign-in, or of the last look at the channel
+  pending?: { userCode: string; verificationUri: string; expiresAt: number };   // a sign-in in progress: type the code on google.com/device
+}
+
 export interface IpcCommands {
+  youtube_status(): YoutubeStatus;
+  youtube_login_start(): { userCode: string; verificationUri: string; expiresAt: number };   // needs the client id and the secret; an error is a string
+  youtube_logout(): void;
+  set_youtube_secret(args: { secret: string }): void;           // encrypts with DPAPI and saves; "" removes the secret
   twitch_status(): TwitchStatus;
   twitch_login_start(): { userCode: string; verificationUri: string; expiresAt: number };   // needs the client id in the config; an error is a string
   twitch_logout(): void;
