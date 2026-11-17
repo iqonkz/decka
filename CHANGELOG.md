@@ -4,6 +4,8 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+## 0.4.3 — 2026-11-17
+
 ### Changed
 - A new Decka logo everywhere: the Windows installer (its side picture and the installer file icon), the app and tray icon, the phone icon and launch screen, the pairing screen, the settings window and the README.
 
