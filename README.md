@@ -4,11 +4,10 @@
 
 ## Download
 
-- Windows: [Decka-Setup.exe](https://github.com/iqonkz/decka/releases/latest/download/Decka-Setup.exe)
-- Android: [Decka.apk](https://github.com/iqonkz/decka/releases/latest/download/Decka.apk)
+Get both files from the [latest release](https://github.com/iqonkz/decka/releases/latest). Their names carry the version: `Decka-Setup-<version>.exe` for Windows and `Decka-<version>.apk` for Android.
 
-1. Windows: run Decka-Setup.exe. SmartScreen may warn because the installer is not code-signed: More info → Run anyway.
-2. Android: open this page on the phone, download Decka.apk, allow installing from this source, open it.
+1. Windows: run `Decka-Setup-<version>.exe`. SmartScreen may warn because the installer is not code-signed: More info → Run anyway.
+2. Android: open the release page on the phone, download `Decka-<version>.apk`, allow installing from this source, open it.
 3. Scan the QR code shown in the Decka window on the PC.
 
 ## What is Decka
