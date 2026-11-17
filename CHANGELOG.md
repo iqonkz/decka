@@ -4,6 +4,8 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+## 0.6.0 — 2026-11-17
+
 ### Added
 - YouTube: turn it on in More → Integrations → YouTube. In the Google Cloud console make a project, turn on YouTube Data API v3 and create an OAuth client of the type "TVs and Limited Input devices"; paste its Client ID, set its client secret (stored encrypted for your Windows user), press **Sign in** and type the shown code on google.com/device. The new **YouTube** widget on the phone shows whether you are live, the viewers, the subscribers, the title and the time on air. A new key **YT chat** posts a message of your choice in the chat of your live stream. The numbers are also available to keys as `youtube.live`, `youtube.viewers` and `youtube.subscribers`. Decka looks at the channel once a minute, which fits the free daily quota of YouTube.
 
