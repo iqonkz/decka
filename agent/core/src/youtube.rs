@@ -190,9 +190,21 @@ impl Api {
         parse_channel(&text).ok_or_else(|| ApiError::Failed("YouTube: this account has no channel".to_string()))
     }
 
+    /// The live broadcast (`active`).
     pub async fn broadcast(&self, access: &str) -> Result<Option<Broadcast>, ApiError> {
-        let text = self.call(reqwest::Method::GET, &format!("/liveBroadcasts?{}", form(&[("part", "snippet"), ("broadcastStatus", "active")])), access, None).await?;
+        self.broadcast_in(access, "active").await
+    }
+
+    /// The first broadcast of the channel in `status`: `active` (live now) or `upcoming` (scheduled in YouTube Studio).
+    pub async fn broadcast_in(&self, access: &str, status: &str) -> Result<Option<Broadcast>, ApiError> {
+        let text = self.call(reqwest::Method::GET, &format!("/liveBroadcasts?{}", form(&[("part", "snippet"), ("broadcastStatus", status)])), access, None).await?;
         parse_broadcast(&text).ok_or_else(|| ApiError::Failed("YouTube: unexpected answer".to_string()))
+    }
+
+    /// Moves a broadcast to `live` or `complete`.
+    pub async fn transition(&self, access: &str, broadcast_id: &str, status: &str) -> Result<(), ApiError> {
+        let path = format!("/liveBroadcasts/transition?{}", form(&[("part", "status"), ("broadcastStatus", status), ("id", broadcast_id)]));
+        self.call(reqwest::Method::POST, &path, access, None).await.map(|_| ())
     }
 
     pub async fn viewers(&self, access: &str, video_id: &str) -> Result<u64, ApiError> {

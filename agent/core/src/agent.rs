@@ -284,6 +284,8 @@ struct Inner {
     twitch_login: Mutex<Option<(crate::twitch::TwitchLogin, Option<String>)>>,
     twitch_error: Mutex<Option<String>>,
     twitch_last: Mutex<Option<TwitchInfo>>,
+    /// The time of the newest follower seen so far (ms); `None` until the first look.
+    twitch_seen: Mutex<Option<u64>>,
     twitch_api: Mutex<crate::twitch::Api>,
     /// YouTube: the same pieces as for Twitch.
     youtube_task: Mutex<Option<JoinHandle<()>>>,
@@ -332,6 +334,7 @@ impl Agent {
                 twitch_login: Mutex::new(None),
                 twitch_error: Mutex::new(None),
                 twitch_last: Mutex::new(None),
+                twitch_seen: Mutex::new(None),
                 twitch_api: Mutex::new(crate::twitch::Api::real()),
                 youtube_task: Mutex::new(None),
                 youtube_login_task: Mutex::new(None),
@@ -751,17 +754,36 @@ impl Agent {
         Err("Twitch asks to sign in again".to_string())
     }
 
+    /// A notification for every follower that came since the last look (at most 3; more become one line).
+    fn twitch_follower_alerts(&self, latest: &[(String, u64)]) {
+        let names = {
+            let mut seen = self.inner.twitch_seen.lock().unwrap();
+            let result = crate::twitch::new_followers(latest, *seen);
+            *seen = result.1;
+            result.0
+        };
+        let source = Some("twitch".to_string());
+        if names.len() > 3 {
+            self.push_notification(NotifyReq { title: format!("★ +{}", names.len()), body: Some("Twitch".to_string()), level: Some(NotifLevel::Info), source });
+            return;
+        }
+        for name in names {
+            self.push_notification(NotifyReq { title: format!("★ {name}"), body: Some("Twitch".to_string()), level: Some(NotifLevel::Info), source: source.clone() });
+        }
+    }
+
     /// One look at the channel: live, viewers, followers.
     async fn twitch_poll_once(&self) -> Result<TwitchInfo, String> {
         let login = self.config().twitch.and_then(|t| t.login).unwrap_or_default();
-        let (stream, followers) = self
+        let (stream, page) = self
             .twitch_call(|api, cid, token, uid| async move {
                 let stream = api.stream(&cid, &token, &uid).await?;
-                let followers = api.followers(&cid, &token, &uid).await?;
-                Ok((stream, followers))
+                let page = api.followers(&cid, &token, &uid).await?;
+                Ok((stream, page))
             })
             .await?;
-        Ok(crate::twitch::build_info(&login, stream, followers))
+        self.twitch_follower_alerts(&page.latest);
+        Ok(crate::twitch::build_info(&login, stream, page.total))
     }
 
     /// (Re)starts the loop from the config: off or signed out = no section and no variables.
@@ -770,6 +792,7 @@ impl Agent {
             old.abort();
         }
         *self.inner.twitch_last.lock().unwrap() = None;
+        *self.inner.twitch_seen.lock().unwrap() = None;
         let on = self.config().twitch.is_some_and(|t| t.enabled && t.tokens.is_some() && t.user_id.is_some());
         if !on {
             self.apply_twitch(None);
@@ -1132,6 +1155,22 @@ impl Agent {
     /// The `youtube` actions: a message in the chat of the live stream.
     async fn youtube_action(&self, op: YoutubeOp, message: Option<&str>) -> Result<(), String> {
         match op {
+            YoutubeOp::Start => {
+                self.youtube_call(|api, token| async move {
+                    let Some(next) = api.broadcast_in(&token, "upcoming").await? else {
+                        return Err(crate::youtube::ApiError::Failed("YouTube: no stream is scheduled (create one in YouTube Studio)".to_string()));
+                    };
+                    api.transition(&token, &next.video_id, "live").await
+                })
+                .await
+            }
+            YoutubeOp::End => {
+                self.youtube_call(|api, token| async move {
+                    let Some(now) = api.broadcast(&token).await? else { return Err(crate::youtube::ApiError::Failed("YouTube: you are not live".to_string())) };
+                    api.transition(&token, &now.video_id, "complete").await
+                })
+                .await
+            }
             YoutubeOp::Chat => {
                 let text = message.ok_or("The message has no text")?.to_string();
                 self.youtube_call(|api, token| {

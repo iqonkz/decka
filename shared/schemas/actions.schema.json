@@ -15,8 +15,9 @@
       "scene": { "type": "string", "minLength": 1, "maxLength": 100 }, "input": { "type": "string", "minLength": 1, "maxLength": 100 } } } ] },
     "Twitch": { "allOf": [ { "$ref": "#/$defs/Base" }, { "required": ["op"], "properties": { "type": { "const": "twitch" }, "op": { "enum": ["clip","announce"] },
       "message": { "type": "string", "minLength": 1, "maxLength": 500 } } } ] },
-    "Youtube": { "allOf": [ { "$ref": "#/$defs/Base" }, { "required": ["op","message"], "properties": { "type": { "const": "youtube" }, "op": { "enum": ["chat"] },
-      "message": { "type": "string", "minLength": 1, "maxLength": 200 } } } ] },
+    "Youtube": { "allOf": [ { "$ref": "#/$defs/Base" }, { "required": ["op"], "properties": { "type": { "const": "youtube" }, "op": { "enum": ["chat","start","end"] },
+      "message": { "type": "string", "minLength": 1, "maxLength": 200 } },
+      "if": { "properties": { "op": { "const": "chat" } } }, "then": { "required": ["message"] }, "else": { "not": { "required": ["message"] } } } ] },
     "Sequence": { "allOf": [ { "$ref": "#/$defs/Base" }, { "required": ["steps"], "properties": { "type": { "const": "sequence" }, "steps": { "type": "array", "minItems": 1, "maxItems": 10,
       "items": { "oneOf": [
         { "type": "object", "required": ["actionId"], "additionalProperties": false, "properties": { "actionId": { "type": "string", "pattern": "^[a-z0-9_-]{1,64}$" } } },

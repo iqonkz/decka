@@ -94,9 +94,43 @@ pub fn parse_stream(body: &str) -> Option<Option<StreamNow>> {
     }))
 }
 
-/// `GET /channels/followers`: the total.
+/// `GET /channels/followers`: the total and the newest followers as (name, time they followed in ms), newest first.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FollowerPage {
+    pub total: u64,
+    pub latest: Vec<(String, u64)>,
+}
+
+pub fn parse_follower_page(body: &str) -> Option<FollowerPage> {
+    let v: Value = serde_json::from_str(body).ok()?;
+    let total = v.get("total")?.as_u64()?;
+    let latest = v
+        .get("data")
+        .and_then(Value::as_array)
+        .map(|list| {
+            list.iter()
+                .filter_map(|f| {
+                    let at = f.get("followed_at").and_then(Value::as_str).and_then(crate::ai::parse_timestamp_ms)?;
+                    Some((text(f, "user_name", 60), at))
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    Some(FollowerPage { total, latest })
+}
+
 pub fn parse_followers(body: &str) -> Option<u64> {
-    serde_json::from_str::<Value>(body).ok()?.get("total")?.as_u64()
+    parse_follower_page(body).map(|p| p.total)
+}
+
+/// The followers that came after `seen` (oldest first) and the new mark. The first look (`seen` is `None`) only sets the mark,
+/// so the followers a channel already has do not all ring at once.
+pub fn new_followers(latest: &[(String, u64)], seen: Option<u64>) -> (Vec<String>, Option<u64>) {
+    let newest = latest.iter().map(|(_, at)| *at).max();
+    let Some(seen) = seen else { return (Vec::new(), newest.or(Some(0))) };
+    let mut fresh: Vec<&(String, u64)> = latest.iter().filter(|(_, at)| *at > seen).collect();
+    fresh.sort_by_key(|(_, at)| *at);
+    (fresh.into_iter().map(|(n, _)| n.clone()).collect(), Some(newest.unwrap_or(0).max(seen)))
 }
 
 /// `POST /clips`: the address where the clip is edited (shown nowhere; its presence is the proof the clip exists).
@@ -238,10 +272,10 @@ impl Api {
         parse_stream(&text).ok_or_else(|| ApiError::Failed("Twitch: unexpected answer".to_string()))
     }
 
-    pub async fn followers(&self, client_id: &str, access: &str, user_id: &str) -> Result<u64, ApiError> {
-        let path = format!("/channels/followers?{}", form(&[("broadcaster_id", user_id), ("first", "1")]));
+    pub async fn followers(&self, client_id: &str, access: &str, user_id: &str) -> Result<FollowerPage, ApiError> {
+        let path = format!("/channels/followers?{}", form(&[("broadcaster_id", user_id), ("first", "5")]));
         let text = self.helix(reqwest::Method::GET, &path, client_id, access, None).await?;
-        parse_followers(&text).ok_or_else(|| ApiError::Failed("Twitch: unexpected answer".to_string()))
+        parse_follower_page(&text).ok_or_else(|| ApiError::Failed("Twitch: unexpected answer".to_string()))
     }
 
     /// A clip of the last seconds of the live stream (Twitch refuses when the channel is not live).
@@ -269,6 +303,21 @@ mod tests {
         assert_eq!(parse_user(r#"{"data":[]}"#), None);
         assert_eq!(parse_followers(r#"{"total":68,"data":[],"pagination":{}}"#), Some(68));
         assert_eq!(parse_followers(r#"{"data":[]}"#), None);
+        let page = parse_follower_page(r#"{"total":3,"data":[{"user_name":"Bo","followed_at":"2026-11-17T10:00:10Z"},{"user_name":"Al","followed_at":"2026-11-17T10:00:00Z"}]}"#).unwrap();
+        assert_eq!(page.total, 3);
+        assert_eq!(page.latest.iter().map(|(n, _)| n.as_str()).collect::<Vec<_>>(), ["Bo", "Al"]);
+    }
+
+    #[test]
+    fn only_followers_after_the_mark_are_new() {
+        let latest = vec![("C".to_string(), 30), ("B".to_string(), 20), ("A".to_string(), 10)];
+        // The first look sets the mark and tells nothing.
+        assert_eq!(new_followers(&latest, None), (Vec::new(), Some(30)));
+        assert_eq!(new_followers(&latest, Some(30)), (Vec::new(), Some(30)));
+        assert_eq!(new_followers(&latest, Some(10)), (vec!["B".to_string(), "C".to_string()], Some(30)));
+        // A channel with no followers yet: the mark is 0 and the first follower rings.
+        assert_eq!(new_followers(&[], None), (Vec::new(), Some(0)));
+        assert_eq!(new_followers(&[("D".to_string(), 5)], Some(0)), (vec!["D".to_string()], Some(5)));
         assert_eq!(parse_clip(r#"{"data":[{"id":"Ab","edit_url":"https://clips.twitch.tv/Ab/edit"}]}"#).as_deref(), Some("https://clips.twitch.tv/Ab/edit"));
         assert_eq!(parse_clip(r#"{"data":[]}"#), None);
 

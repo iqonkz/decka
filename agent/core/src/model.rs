@@ -60,11 +60,14 @@ pub enum TwitchOp {
     Announce,
 }
 
-/// YouTube actions (the live stream of the signed-in channel): a message in the chat of the stream.
+/// YouTube actions (the live stream of the signed-in channel): a message in the chat of the stream, go live with the stream that
+/// was scheduled in YouTube Studio, end the stream that is live.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum YoutubeOp {
     Chat,
+    Start,
+    End,
 }
 
 /// One step of a `sequence`: run an action, or wait.

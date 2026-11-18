@@ -4,6 +4,17 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+### Added
+- **App keys** widget: the keys of the program that is in front on the PC appear in a part of the phone screen (no need to swipe to its page). It uses the pages that follow a program (Look → context pages); add it from the library (Widgets) at any size from 2x1.
+- New page templates: Outlook, Word, Excel, PowerPoint, Canva, Telegram, WhatsApp and Discord (More → Pages).
+- The AI limits can be added for Claude and for Codex separately (library → Widgets), also at 2x1.
+- **Check the connection** in the Phone tab: shows what blocks a phone (server, addresses, Windows Firewall) and repairs the firewall rule with one click.
+- Recent questions of Claude Code and Codex: tap the AI limits widget on the phone to see what was allowed or denied and when.
+- **Always allow** on the permission sheet for a plain command, edits inside one project, one website or one MCP tool. The rules are listed (and removed) in More → Integrations → AI coding.
+- Twitch: a notification on the phone for every new follower. YouTube: keys **YT go live** and **YT end** for the stream scheduled in YouTube Studio.
+
+### Changed
+- A sharper picture in the Windows installer on high-resolution screens.
 ## 0.6.0 — 2026-11-17
 
 ### Added

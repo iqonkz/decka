@@ -144,6 +144,20 @@ async fn secret_sign_in_by_code_numbers_chat_refresh_and_sign_out() {
         assert!(requests.iter().any(|r| r.contains("grant_type=refresh_token") && r.contains("refresh_token=the-refresh") && r.contains("client_secret=super-secret-value")));
     }
 
+    // Go live / end the stream: the scheduled broadcast is moved to `live`, the live one to `complete`.
+    let mut actions = ActionsFile { version: 1, actions: Default::default() };
+    actions.actions.insert("golive".into(), Action::Youtube { name: "Go live".into(), toggle_var: None, op: YoutubeOp::Start, message: None });
+    actions.actions.insert("endlive".into(), Action::Youtube { name: "End".into(), toggle_var: None, op: YoutubeOp::End, message: None });
+    assert_eq!(agent.save_actions(actions), SaveResult::Saved);
+    assert_eq!(agent.execute("golive").await.map_err(|e| e.1), Ok(()));
+    assert_eq!(agent.execute("endlive").await.map_err(|e| e.1), Ok(()));
+    {
+        let requests = seen.lock().unwrap();
+        assert!(requests.iter().any(|r| r.starts_with("GET ") && r.contains("broadcastStatus=upcoming")), "the scheduled stream was looked up");
+        assert!(requests.iter().any(|r| r.starts_with("POST ") && r.contains("/liveBroadcasts/transition") && r.contains("broadcastStatus=live") && r.contains("id=vid1")));
+        assert!(requests.iter().any(|r| r.starts_with("POST ") && r.contains("/liveBroadcasts/transition") && r.contains("broadcastStatus=complete") && r.contains("id=vid1")));
+    }
+
     // Sign out: the tokens are gone (the secret stays for the next sign-in), the section and the variables too.
     agent.youtube_logout().unwrap();
     assert_eq!(agent.store().get("youtube"), Value::Null);
@@ -168,6 +182,10 @@ async fn plain_errors_and_checked_actions() {
         assert!(matches!(agent.save_actions(chat(message)), SaveResult::Rejected(_)), "{message:?}");
     }
     assert_eq!(agent.save_actions(chat(Some("Hi"))), SaveResult::Saved);
+    // Go live and end take no text.
+    let mut live = ActionsFile { version: 1, actions: Default::default() };
+    live.actions.insert("g".into(), Action::Youtube { name: "G".into(), toggle_var: None, op: YoutubeOp::Start, message: Some("x".into()) });
+    assert!(matches!(agent.save_actions(live), SaveResult::Rejected(_)));
     assert!(decka_core::validate::is_reserved_var("youtube.viewers"));
     agent.shutdown().await;
 

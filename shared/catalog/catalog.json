@@ -8,7 +8,7 @@
     { "id": "sound", "name": { "en": "Sound", "ru": "Звук" }, "icon": "lucide:volume-2",
       "items": ["sound.mic", "sound.mute", "sound.volup", "sound.voldown", "sound.widget"] },
     { "id": "stream", "name": { "en": "Stream", "ru": "Стрим" }, "icon": "lucide:video",
-      "items": ["stream.record", "stream.live", "stream.replay", "stream.scene", "stream.mic", "stream.widget", "twitch.clip", "twitch.announce", "youtube.chat"] },
+      "items": ["stream.record", "stream.live", "stream.replay", "stream.scene", "stream.mic", "stream.widget", "twitch.clip", "twitch.announce", "youtube.chat", "youtube.live", "youtube.end"] },
     { "id": "widgets", "name": { "en": "Widgets", "ru": "Виджеты" }, "icon": "lucide:activity",
       "items": ["widget.clock", "widget.sys", "widget.sysgraph", "widget.weather", "widget.timer", "widget.volume", "widget.statuses", "widget.notifications", "widget.media", "widget.obs", "widget.twitch", "widget.youtube", "widget.ai", "widget.ai.claude", "widget.ai.codex", "widget.context"] },
     { "id": "navigation", "name": { "en": "Navigation", "ru": "Переходы" }, "icon": "lucide:arrow-right",
@@ -77,6 +77,8 @@
     { "id": "widget.ai.codex", "label": { "en": "Codex", "ru": "Codex" }, "name": { "en": "Codex limits (2x1)", "ru": "Лимиты Codex (2x1)" }, "icon": "lucide:cpu", "widget": { "kind": "ai", "w": 2, "h": 1, "options": { "show": "codex" } } },
     { "id": "twitch.clip", "label": { "en": "Clip", "ru": "Клип" }, "name": { "en": "Twitch: clip", "ru": "Twitch: клип" }, "icon": "lucide:star", "requires": "twitch", "action": { "type": "twitch", "op": "clip" } },
     { "id": "twitch.announce", "label": { "en": "Chat post", "ru": "В чат" }, "name": { "en": "Twitch: announce in chat", "ru": "Twitch: объявление в чат" }, "icon": "lucide:message-square", "requires": "twitch", "ask": "text", "action": { "type": "twitch", "op": "announce", "message": "Hello chat" } },
+    { "id": "youtube.live", "label": { "en": "YT go live", "ru": "YT эфир" }, "name": { "en": "YouTube: go live (scheduled stream)", "ru": "YouTube: начать эфир (запланированный)" }, "icon": "lucide:video", "color": "#dc2626", "requires": "youtube", "confirm": true, "action": { "type": "youtube", "op": "start" } },
+    { "id": "youtube.end", "label": { "en": "YT end", "ru": "YT конец" }, "name": { "en": "YouTube: end the stream", "ru": "YouTube: закончить эфир" }, "icon": "lucide:video-off", "requires": "youtube", "confirm": true, "action": { "type": "youtube", "op": "end" } },
     { "id": "youtube.chat", "label": { "en": "YT chat", "ru": "В чат YT" }, "name": { "en": "YouTube: message in chat", "ru": "YouTube: сообщение в чат" }, "icon": "lucide:message-square", "requires": "youtube", "ask": "text", "action": { "type": "youtube", "op": "chat", "message": "Hello chat" } },
     { "id": "widget.obs", "label": { "en": "OBS", "ru": "OBS" }, "name": { "en": "OBS status", "ru": "Состояние OBS" }, "icon": "lucide:video", "requires": "obs", "widget": { "kind": "obs", "w": 3, "h": 1 } },
 

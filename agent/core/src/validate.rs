@@ -150,9 +150,10 @@ pub fn validate_actions(file: &ActionsFile) -> Vec<ValidationIssue> {
                 (Some(_), false) => out.push(issue(format!("{base}/message"), "message is only allowed for an announcement")),
                 _ => {}
             },
-            Action::Youtube { message, .. } => match message {
-                Some(m) if !(1..=200).contains(&chars(m)) => out.push(issue(format!("{base}/message"), "message must be 1..200 characters")),
-                None => out.push(issue(format!("{base}/message"), "message is required for a chat message")),
+            Action::Youtube { op, message, .. } => match (message, *op == YoutubeOp::Chat) {
+                (Some(m), true) if !(1..=200).contains(&chars(m)) => out.push(issue(format!("{base}/message"), "message must be 1..200 characters")),
+                (None, true) => out.push(issue(format!("{base}/message"), "message is required for a chat message")),
+                (Some(_), false) => out.push(issue(format!("{base}/message"), "message is only allowed for a chat message")),
                 _ => {}
             },
             Action::Sequence { steps, .. } => {

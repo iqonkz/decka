@@ -234,8 +234,13 @@ export function validateActions(actions: ActionsFile): ValidationIssue[] {
       }
     }
     if (action.type === "youtube") {
+      // The text goes with `chat` and with nothing else.
       const message = action.message;
-      if (typeof message !== "string" || message.length < 1 || message.length > 200) issues.push({ path: `${base}/message`, message: "message is required (1..200 characters) for a chat message" });
+      if (action.op === "chat") {
+        if (typeof message !== "string" || message.length < 1 || message.length > 200) issues.push({ path: `${base}/message`, message: "message is required (1..200 characters) for a chat message" });
+      } else if (message !== undefined) {
+        issues.push({ path: `${base}/message`, message: "message is only allowed for a chat message" });
+      }
     }
     if (action.type === "sequence") {
       if (action.steps.length < 1 || action.steps.length > SEQUENCE_LIMITS.steps) issues.push({ path: `${base}/steps`, message: `a sequence has 1..${SEQUENCE_LIMITS.steps} steps` });
