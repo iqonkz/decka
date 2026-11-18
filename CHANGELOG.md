@@ -4,6 +4,8 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+## 0.7.0 — 2026-11-18
+
 ### Added
 - **App keys** widget: the keys of the program that is in front on the PC appear in a part of the phone screen (no need to swipe to its page). It uses the pages that follow a program (Look → context pages); add it from the library (Widgets) at any size from 2x1.
 - New page templates: Outlook, Word, Excel, PowerPoint, Canva, Telegram, WhatsApp and Discord (More → Pages); their shortcuts were checked against the programs' help pages and well-known guides.
@@ -21,6 +23,7 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ### Changed
 - A sharper picture in the Windows installer on high-resolution screens.
+
 ## 0.6.0 — 2026-11-17
 
 ### Added
