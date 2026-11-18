@@ -1,0 +1,213 @@
+{
+  "id": "canva",
+  "name": "Canva",
+  "apps": [
+    "canva.exe"
+  ],
+  "minGrid": {
+    "cols": 7,
+    "rows": 4
+  },
+  "actions": {
+    "tpl-canva-text": {
+      "name": "Text box",
+      "type": "hotkey",
+      "keys": [
+        "t"
+      ]
+    },
+    "tpl-canva-rect": {
+      "name": "Rectangle",
+      "type": "hotkey",
+      "keys": [
+        "r"
+      ]
+    },
+    "tpl-canva-circle": {
+      "name": "Circle",
+      "type": "hotkey",
+      "keys": [
+        "c"
+      ]
+    },
+    "tpl-canva-line": {
+      "name": "Line",
+      "type": "hotkey",
+      "keys": [
+        "l"
+      ]
+    },
+    "tpl-canva-dup": {
+      "name": "Duplicate",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "d"
+      ]
+    },
+    "tpl-canva-group": {
+      "name": "Group",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "g"
+      ]
+    },
+    "tpl-canva-ungroup": {
+      "name": "Ungroup",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "shift",
+        "g"
+      ]
+    },
+    "tpl-canva-undo": {
+      "name": "Undo",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "z"
+      ]
+    },
+    "tpl-canva-redo": {
+      "name": "Redo",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "shift",
+        "z"
+      ]
+    },
+    "tpl-canva-delete": {
+      "name": "Delete",
+      "type": "hotkey",
+      "keys": [
+        "delete"
+      ]
+    }
+  },
+  "items": [
+    {
+      "id": "text",
+      "kind": "button",
+      "x": 0,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "Text",
+      "icon": "emoji:T",
+      "actionId": "tpl-canva-text"
+    },
+    {
+      "id": "rect",
+      "kind": "button",
+      "x": 1,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "Rectangle",
+      "icon": "lucide:square",
+      "actionId": "tpl-canva-rect"
+    },
+    {
+      "id": "circle",
+      "kind": "button",
+      "x": 2,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "Circle",
+      "icon": "lucide:circle",
+      "actionId": "tpl-canva-circle"
+    },
+    {
+      "id": "line",
+      "kind": "button",
+      "x": 3,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "Line",
+      "icon": "lucide:minus",
+      "actionId": "tpl-canva-line"
+    },
+    {
+      "id": "dup",
+      "kind": "button",
+      "x": 4,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "Duplicate",
+      "icon": "lucide:copy",
+      "actionId": "tpl-canva-dup"
+    },
+    {
+      "id": "group",
+      "kind": "button",
+      "x": 0,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "label": "Group",
+      "icon": "emoji:◫",
+      "actionId": "tpl-canva-group"
+    },
+    {
+      "id": "ungroup",
+      "kind": "button",
+      "x": 1,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "label": "Ungroup",
+      "icon": "emoji:◫",
+      "actionId": "tpl-canva-ungroup"
+    },
+    {
+      "id": "undo",
+      "kind": "button",
+      "x": 2,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "label": "Undo",
+      "icon": "emoji:↶",
+      "actionId": "tpl-canva-undo"
+    },
+    {
+      "id": "redo",
+      "kind": "button",
+      "x": 3,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "label": "Redo",
+      "icon": "emoji:↷",
+      "actionId": "tpl-canva-redo"
+    },
+    {
+      "id": "delete",
+      "kind": "button",
+      "x": 4,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "label": "Delete",
+      "icon": "lucide:trash-2",
+      "actionId": "tpl-canva-delete"
+    },
+    {
+      "id": "home",
+      "kind": "button",
+      "x": 6,
+      "y": 3,
+      "w": 1,
+      "h": 1,
+      "label": "Home",
+      "icon": "lucide:home",
+      "navigate": "$home"
+    }
+  ]
+}

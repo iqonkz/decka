@@ -1,0 +1,216 @@
+{
+  "id": "word",
+  "name": "Word",
+  "apps": [
+    "winword.exe"
+  ],
+  "minGrid": {
+    "cols": 7,
+    "rows": 4
+  },
+  "actions": {
+    "tpl-word-bold": {
+      "name": "Bold",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "b"
+      ]
+    },
+    "tpl-word-italic": {
+      "name": "Italic",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "i"
+      ]
+    },
+    "tpl-word-underline": {
+      "name": "Underline",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "u"
+      ]
+    },
+    "tpl-word-left": {
+      "name": "Align left",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "l"
+      ]
+    },
+    "tpl-word-center": {
+      "name": "Center",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "e"
+      ]
+    },
+    "tpl-word-save": {
+      "name": "Save",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "s"
+      ]
+    },
+    "tpl-word-undo": {
+      "name": "Undo",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "z"
+      ]
+    },
+    "tpl-word-redo": {
+      "name": "Redo",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "y"
+      ]
+    },
+    "tpl-word-find": {
+      "name": "Find",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "f"
+      ]
+    },
+    "tpl-word-print": {
+      "name": "Print",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "p"
+      ]
+    }
+  },
+  "items": [
+    {
+      "id": "bold",
+      "kind": "button",
+      "x": 0,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "Bold",
+      "icon": "emoji:𝐁",
+      "actionId": "tpl-word-bold"
+    },
+    {
+      "id": "italic",
+      "kind": "button",
+      "x": 1,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "Italic",
+      "icon": "emoji:𝐼",
+      "actionId": "tpl-word-italic"
+    },
+    {
+      "id": "underline",
+      "kind": "button",
+      "x": 2,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "Underline",
+      "icon": "emoji:U̲",
+      "actionId": "tpl-word-underline"
+    },
+    {
+      "id": "left",
+      "kind": "button",
+      "x": 3,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "Left",
+      "icon": "emoji:☰",
+      "actionId": "tpl-word-left"
+    },
+    {
+      "id": "center",
+      "kind": "button",
+      "x": 4,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "Center",
+      "icon": "emoji:≡",
+      "actionId": "tpl-word-center"
+    },
+    {
+      "id": "save",
+      "kind": "button",
+      "x": 0,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "label": "Save",
+      "icon": "emoji:💾",
+      "actionId": "tpl-word-save"
+    },
+    {
+      "id": "undo",
+      "kind": "button",
+      "x": 1,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "label": "Undo",
+      "icon": "emoji:↶",
+      "actionId": "tpl-word-undo"
+    },
+    {
+      "id": "redo",
+      "kind": "button",
+      "x": 2,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "label": "Redo",
+      "icon": "emoji:↷",
+      "actionId": "tpl-word-redo"
+    },
+    {
+      "id": "find",
+      "kind": "button",
+      "x": 3,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "label": "Find",
+      "icon": "lucide:search",
+      "actionId": "tpl-word-find"
+    },
+    {
+      "id": "print",
+      "kind": "button",
+      "x": 4,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "label": "Print",
+      "icon": "emoji:🖨",
+      "actionId": "tpl-word-print"
+    },
+    {
+      "id": "home",
+      "kind": "button",
+      "x": 6,
+      "y": 3,
+      "w": 1,
+      "h": 1,
+      "label": "Home",
+      "icon": "lucide:home",
+      "navigate": "$home"
+    }
+  ]
+}

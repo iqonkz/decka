@@ -7,7 +7,15 @@ use serde::{Deserialize, Serialize};
 use crate::model::{Action, ActionsFile, Grid, LayoutFile, LayoutItem, Page, ValidationIssue};
 use crate::validate::{validate_actions, validate_layout};
 
-const SOURCES: [&str; 4] = [
+const SOURCES: [&str; 12] = [
+    include_str!("../../../shared/templates/outlook.json"),
+    include_str!("../../../shared/templates/word.json"),
+    include_str!("../../../shared/templates/excel.json"),
+    include_str!("../../../shared/templates/powerpoint.json"),
+    include_str!("../../../shared/templates/canva.json"),
+    include_str!("../../../shared/templates/telegram.json"),
+    include_str!("../../../shared/templates/whatsapp.json"),
+    include_str!("../../../shared/templates/discord.json"),
     include_str!("../../../shared/templates/vscode.json"),
     include_str!("../../../shared/templates/browser.json"),
     include_str!("../../../shared/templates/zoom.json"),
@@ -32,7 +40,7 @@ pub struct PageTemplate {
     pub items: Vec<LayoutItem>,
 }
 
-/// The four built-in templates.
+/// The built-in templates.
 pub fn all() -> Vec<PageTemplate> {
     SOURCES.iter().map(|text| serde_json::from_str(text).expect("embedded template is valid")).collect()
 }
@@ -125,7 +133,7 @@ pub fn build(template_id: &str, layout: &LayoutFile, actions: &ActionsFile) -> R
                 LayoutItem::Media(i) => i.id = format!("t-{page_id}-{}", i.id),
                 LayoutItem::Volume(i) => i.id = format!("t-{page_id}-{}", i.id),
                 LayoutItem::Timer(i) => i.id = format!("t-{page_id}-{}", i.id),
-                LayoutItem::Weather(i) | LayoutItem::Obs(i) | LayoutItem::Twitch(i) | LayoutItem::Youtube(i) => i.id = format!("t-{page_id}-{}", i.id),
+                LayoutItem::Weather(i) | LayoutItem::Obs(i) | LayoutItem::Twitch(i) | LayoutItem::Youtube(i) | LayoutItem::Context(i) => i.id = format!("t-{page_id}-{}", i.id),
                 LayoutItem::Ai(i) => i.id = format!("t-{page_id}-{}", i.id),
             }
             item

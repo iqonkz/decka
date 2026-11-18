@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import type { AiInfo, MediaInfo, Notification, ObsInfo, StatusItem, SysStats, TwitchInfo, VarValue, WeatherInfo, YoutubeInfo } from "@decka/shared";
+import type { AiInfo, MediaInfo, Notification, Page, ObsInfo, StatusItem, SysStats, TwitchInfo, VarValue, WeatherInfo, YoutubeInfo } from "@decka/shared";
 
 /** What the deck shows: the live sections of the agent's state. No connection, store or socket in here. */
 export interface DeckData {
@@ -21,6 +21,9 @@ export interface DeckData {
   twitch: TwitchInfo | null;
   /** The numbers of the signed-in YouTube channel (null = YouTube is off). */
   youtube: YoutubeInfo | null;
+  /** The pages that follow an app (`apps` set) and the app in front on the PC: what the `context` widget shows. */
+  pages?: Page[];
+  focusApp?: string | null;
   /** `img:` pictures by hash (the `icons` section). */
   icons: Record<string, string>;
   /** `display.keyFace` / `display.keyLabels` (DESIGN.md 2.1): the look keys have unless a key says otherwise. */

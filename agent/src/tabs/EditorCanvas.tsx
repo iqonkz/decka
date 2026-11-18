@@ -61,9 +61,12 @@ export default function EditorCanvas({ layout, page, selectedId, availableWidth,
   const icons = useIconPreviews(page);
 
   const { keyFace, keyLabels } = layout.display;
+  // The app-keys widget previews the first page that follows an app.
+  const appPages = useMemo(() => layout.pages.filter((p) => p.apps !== undefined && p.apps.length > 0), [layout.pages]);
+  const previewApp = appPages[0]?.apps?.[0] ?? null;
   const data: DeckData = useMemo(
-    () => ({ ...EMPTY_DATA, online: true, preview: true, sys: SAMPLE_SYS, icons, ...(keyFace !== undefined ? { keyFace } : {}), ...(keyLabels !== undefined ? { keyLabels } : {}) }),
-    [icons, keyFace, keyLabels],
+    () => ({ ...EMPTY_DATA, online: true, preview: true, sys: SAMPLE_SYS, icons, pages: appPages, focusApp: previewApp, ...(keyFace !== undefined ? { keyFace } : {}), ...(keyLabels !== undefined ? { keyLabels } : {}) }),
+    [icons, appPages, previewApp, keyFace, keyLabels],
   );
   const noop = useMemo(() => ({ onPress: () => Promise.resolve(), onPressError: () => {}, onNavigate: () => {}, onDismiss: () => {} }), []);
 

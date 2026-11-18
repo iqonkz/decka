@@ -1,0 +1,139 @@
+{
+  "id": "telegram",
+  "name": "Telegram",
+  "apps": [
+    "telegram.exe"
+  ],
+  "minGrid": {
+    "cols": 7,
+    "rows": 4
+  },
+  "actions": {
+    "tpl-telegram-search": {
+      "name": "Search",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "f"
+      ]
+    },
+    "tpl-telegram-next": {
+      "name": "Next chat",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "tab"
+      ]
+    },
+    "tpl-telegram-prev": {
+      "name": "Previous chat",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "shift",
+        "tab"
+      ]
+    },
+    "tpl-telegram-close": {
+      "name": "Close the chat",
+      "type": "hotkey",
+      "keys": [
+        "esc"
+      ]
+    },
+    "tpl-telegram-edit": {
+      "name": "Edit last message",
+      "type": "hotkey",
+      "keys": [
+        "up"
+      ]
+    },
+    "tpl-telegram-lock": {
+      "name": "Lock the app",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "l"
+      ]
+    }
+  },
+  "items": [
+    {
+      "id": "search",
+      "kind": "button",
+      "x": 0,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "Search",
+      "icon": "lucide:search",
+      "actionId": "tpl-telegram-search"
+    },
+    {
+      "id": "next",
+      "kind": "button",
+      "x": 1,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "Next chat",
+      "icon": "emoji:⬇",
+      "actionId": "tpl-telegram-next"
+    },
+    {
+      "id": "prev",
+      "kind": "button",
+      "x": 2,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "Prev chat",
+      "icon": "emoji:⬆",
+      "actionId": "tpl-telegram-prev"
+    },
+    {
+      "id": "close",
+      "kind": "button",
+      "x": 3,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "Close",
+      "icon": "lucide:x",
+      "actionId": "tpl-telegram-close"
+    },
+    {
+      "id": "edit",
+      "kind": "button",
+      "x": 4,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "Edit last",
+      "icon": "emoji:✏",
+      "actionId": "tpl-telegram-edit"
+    },
+    {
+      "id": "lock",
+      "kind": "button",
+      "x": 0,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "label": "Lock",
+      "icon": "lucide:lock",
+      "actionId": "tpl-telegram-lock"
+    },
+    {
+      "id": "home",
+      "kind": "button",
+      "x": 6,
+      "y": 3,
+      "w": 1,
+      "h": 1,
+      "label": "Home",
+      "icon": "lucide:home",
+      "navigate": "$home"
+    }
+  ]
+}

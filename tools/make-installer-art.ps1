@@ -1,9 +1,9 @@
-﻿# Creates agent/src-tauri/installer/sidebar.bmp (164x314) and header.bmp (150x57) for the NSIS installer:
+# Creates agent/src-tauri/installer/sidebar.bmp (164x314 drawn at 3x) and header.bmp (150x57 at 3x; the installer stretches them, so high DPI stays sharp) for the NSIS installer:
 # a dark base with the "aurora" glow of the Glass look, the app icon on a frosted tile and the name.
 Add-Type -AssemblyName System.Drawing
 $root = Split-Path -Parent $PSScriptRoot
 $out = Join-Path $root "agent\src-tauri\installer"
-$icon = [System.Drawing.Image]::FromFile((Join-Path $root "agent\src-tauri\icons\128x128.png"))
+$icon = [System.Drawing.Image]::FromFile((Join-Path $root "agent\src-tauri\icons\icon.png"))
 
 function Glow($g, $cx, $cy, $r, $html, $alpha) {
   $path = New-Object System.Drawing.Drawing2D.GraphicsPath
@@ -23,10 +23,11 @@ function Tile($g, $x, $y, $s) {
   $g.DrawPath((New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(90, 255, 255, 255), 1)), $p)
   $g.DrawImage($icon, $x + $s * 0.12, $y + $s * 0.12, $s * 0.76, $s * 0.76)
 }
+$S = 3
 function Canvas($w, $h) {
-  $bmp = New-Object System.Drawing.Bitmap($w, $h, [System.Drawing.Imaging.PixelFormat]::Format24bppRgb)
+  $bmp = New-Object System.Drawing.Bitmap(($w * $S), ($h * $S), [System.Drawing.Imaging.PixelFormat]::Format24bppRgb)
   $g = [System.Drawing.Graphics]::FromImage($bmp)
-  $g.SmoothingMode = "AntiAlias"; $g.InterpolationMode = "HighQualityBicubic"; $g.TextRenderingHint = "AntiAliasGridFit"
+  $g.ScaleTransform($S, $S); $g.SmoothingMode = "AntiAlias"; $g.InterpolationMode = "HighQualityBicubic"; $g.TextRenderingHint = "AntiAliasGridFit"
   $g.Clear([System.Drawing.ColorTranslator]::FromHtml("#0b0b0f"))
   return @($bmp, $g)
 }

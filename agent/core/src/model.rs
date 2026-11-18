@@ -482,6 +482,8 @@ pub enum LayoutItem {
     Ai(AiItem),
     Twitch(PlainItem),
     Youtube(PlainItem),
+    /// The keys of the page of the app in front, shown inside a widget.
+    Context(PlainItem),
 }
 
 impl LayoutItem {
@@ -497,7 +499,7 @@ impl LayoutItem {
             LayoutItem::Media(i) => (&i.id, i.x, i.y, i.w, i.h),
             LayoutItem::Volume(i) => (&i.id, i.x, i.y, i.w, i.h),
             LayoutItem::Timer(i) => (&i.id, i.x, i.y, i.w, i.h),
-            LayoutItem::Weather(i) | LayoutItem::Obs(i) | LayoutItem::Twitch(i) | LayoutItem::Youtube(i) => (&i.id, i.x, i.y, i.w, i.h),
+            LayoutItem::Weather(i) | LayoutItem::Obs(i) | LayoutItem::Twitch(i) | LayoutItem::Youtube(i) | LayoutItem::Context(i) => (&i.id, i.x, i.y, i.w, i.h),
             LayoutItem::Ai(i) => (&i.id, i.x, i.y, i.w, i.h),
         }
     }
@@ -514,7 +516,7 @@ impl LayoutItem {
             LayoutItem::Media(i) => (i.x, i.y) = (x, y),
             LayoutItem::Volume(i) => (i.x, i.y) = (x, y),
             LayoutItem::Timer(i) => (i.x, i.y) = (x, y),
-            LayoutItem::Weather(i) | LayoutItem::Obs(i) | LayoutItem::Twitch(i) | LayoutItem::Youtube(i) => (i.x, i.y) = (x, y),
+            LayoutItem::Weather(i) | LayoutItem::Obs(i) | LayoutItem::Twitch(i) | LayoutItem::Youtube(i) | LayoutItem::Context(i) => (i.x, i.y) = (x, y),
             LayoutItem::Ai(i) => (i.x, i.y) = (x, y),
         }
     }
@@ -535,6 +537,7 @@ impl LayoutItem {
             LayoutItem::Ai(_) => "ai",
             LayoutItem::Twitch(_) => "twitch",
             LayoutItem::Youtube(_) => "youtube",
+            LayoutItem::Context(_) => "context",
         }
     }
 }

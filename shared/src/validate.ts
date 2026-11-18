@@ -28,6 +28,7 @@ export function sizeLimits(kind: string, grid: LayoutFile["grid"], graph = false
       return graph ? [2, 4, 1, 2] : [2, 2, 1, 2];
     case "statuses":
     case "notifications":
+    case "context":
       return [2, grid.cols, 1, grid.rows];
     case "media":
       return [2, grid.cols, 1, 2];

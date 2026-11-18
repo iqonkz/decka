@@ -1,0 +1,213 @@
+{
+  "id": "powerpoint",
+  "name": "PowerPoint",
+  "apps": [
+    "powerpnt.exe"
+  ],
+  "minGrid": {
+    "cols": 7,
+    "rows": 4
+  },
+  "actions": {
+    "tpl-powerpoint-start": {
+      "name": "Start slide show",
+      "type": "hotkey",
+      "keys": [
+        "f5"
+      ]
+    },
+    "tpl-powerpoint-current": {
+      "name": "Start from this slide",
+      "type": "hotkey",
+      "keys": [
+        "shift",
+        "f5"
+      ]
+    },
+    "tpl-powerpoint-prev": {
+      "name": "Previous slide",
+      "type": "hotkey",
+      "keys": [
+        "pageup"
+      ]
+    },
+    "tpl-powerpoint-next": {
+      "name": "Next slide",
+      "type": "hotkey",
+      "keys": [
+        "pagedown"
+      ]
+    },
+    "tpl-powerpoint-end": {
+      "name": "End slide show",
+      "type": "hotkey",
+      "keys": [
+        "esc"
+      ]
+    },
+    "tpl-powerpoint-newslide": {
+      "name": "New slide",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "m"
+      ]
+    },
+    "tpl-powerpoint-dup": {
+      "name": "Duplicate slide",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "shift",
+        "d"
+      ]
+    },
+    "tpl-powerpoint-save": {
+      "name": "Save",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "s"
+      ]
+    },
+    "tpl-powerpoint-undo": {
+      "name": "Undo",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "z"
+      ]
+    },
+    "tpl-powerpoint-bold": {
+      "name": "Bold",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "b"
+      ]
+    }
+  },
+  "items": [
+    {
+      "id": "start",
+      "kind": "button",
+      "x": 0,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "Present",
+      "icon": "lucide:play",
+      "actionId": "tpl-powerpoint-start"
+    },
+    {
+      "id": "current",
+      "kind": "button",
+      "x": 1,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "From here",
+      "icon": "lucide:play",
+      "actionId": "tpl-powerpoint-current"
+    },
+    {
+      "id": "prev",
+      "kind": "button",
+      "x": 2,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "Prev",
+      "icon": "lucide:arrow-left",
+      "actionId": "tpl-powerpoint-prev"
+    },
+    {
+      "id": "next",
+      "kind": "button",
+      "x": 3,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "Next",
+      "icon": "lucide:arrow-right",
+      "actionId": "tpl-powerpoint-next"
+    },
+    {
+      "id": "end",
+      "kind": "button",
+      "x": 4,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "End",
+      "icon": "lucide:x",
+      "actionId": "tpl-powerpoint-end"
+    },
+    {
+      "id": "newslide",
+      "kind": "button",
+      "x": 0,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "label": "New slide",
+      "icon": "lucide:plus",
+      "actionId": "tpl-powerpoint-newslide"
+    },
+    {
+      "id": "dup",
+      "kind": "button",
+      "x": 1,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "label": "Duplicate",
+      "icon": "lucide:copy",
+      "actionId": "tpl-powerpoint-dup"
+    },
+    {
+      "id": "save",
+      "kind": "button",
+      "x": 2,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "label": "Save",
+      "icon": "emoji:💾",
+      "actionId": "tpl-powerpoint-save"
+    },
+    {
+      "id": "undo",
+      "kind": "button",
+      "x": 3,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "label": "Undo",
+      "icon": "emoji:↶",
+      "actionId": "tpl-powerpoint-undo"
+    },
+    {
+      "id": "bold",
+      "kind": "button",
+      "x": 4,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "label": "Bold",
+      "icon": "emoji:𝐁",
+      "actionId": "tpl-powerpoint-bold"
+    },
+    {
+      "id": "home",
+      "kind": "button",
+      "x": 6,
+      "y": 3,
+      "w": 1,
+      "h": 1,
+      "label": "Home",
+      "icon": "lucide:home",
+      "navigate": "$home"
+    }
+  ]
+}

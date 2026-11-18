@@ -70,8 +70,14 @@ export interface TwitchItem  extends ItemBase { kind: "twitch"; }
 /** The YouTube numbers (live, viewers, subscribers); sizes 2x1..4x2. */
 export interface YoutubeItem extends ItemBase { kind: "youtube"; }
 
+/**
+ * The keys of the page of the PC app in front (the page whose `apps` has it), laid out in the widget's cells in reading order.
+ * Sizes 2x1 up to the whole grid; shows a hint when the app has no page.
+ */
+export interface ContextItem extends ItemBase { kind: "context"; }
+
 export type LayoutItem = ButtonItem | ClockItem | SysItem | StatusesItem | StatusItemTile | NotificationsItem | MediaItem
-  | VolumeItem | TimerItem | WeatherItem | ObsItem | AiItem | TwitchItem | YoutubeItem;
+  | VolumeItem | TimerItem | WeatherItem | ObsItem | AiItem | TwitchItem | YoutubeItem | ContextItem;
 
 /** `navigate` value of a button that goes back to the page the user came from (DATA_MODEL.md 3.8). */
 export const BACK_PAGE = "$back";

@@ -4,6 +4,7 @@ import Ai from "./widgets/Ai";
 import Twitch from "./widgets/Twitch";
 import Youtube from "./widgets/Youtube";
 import Clock from "./widgets/Clock";
+import Context from "./widgets/Context";
 import Media from "./widgets/Media";
 import Notifications from "./widgets/Notifications";
 import Obs from "./widgets/Obs";
@@ -62,11 +63,15 @@ export default function Tile({ item }: { item: LayoutItem }) {
     case "youtube":
       content = <Youtube item={item} />;
       break;
+    case "context":
+      content = <Context item={item} />;
+      break;
     default:
       content = <div className="tile-body">?</div>;
   }
   // Keys draw their own face; every widget is a panel whose face the theme defines.
-  const panel = item.kind !== "button";
+  // The context widget is a bare grid of keys (its empty hint draws its own frame).
+  const panel = item.kind !== "button" && item.kind !== "context";
   return (
     <div className={panel ? "tile panel" : "tile"} data-tile-id={item.id} style={{ gridColumn: `${item.x + 1} / span ${item.w}`, gridRow: `${item.y + 1} / span ${item.h}` }}>
       {content}

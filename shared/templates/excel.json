@@ -1,0 +1,216 @@
+{
+  "id": "excel",
+  "name": "Excel",
+  "apps": [
+    "excel.exe"
+  ],
+  "minGrid": {
+    "cols": 7,
+    "rows": 4
+  },
+  "actions": {
+    "tpl-excel-save": {
+      "name": "Save",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "s"
+      ]
+    },
+    "tpl-excel-undo": {
+      "name": "Undo",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "z"
+      ]
+    },
+    "tpl-excel-redo": {
+      "name": "Redo",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "y"
+      ]
+    },
+    "tpl-excel-find": {
+      "name": "Find",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "f"
+      ]
+    },
+    "tpl-excel-bold": {
+      "name": "Bold",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "b"
+      ]
+    },
+    "tpl-excel-filter": {
+      "name": "Filter on / off",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "shift",
+        "l"
+      ]
+    },
+    "tpl-excel-edit": {
+      "name": "Edit cell",
+      "type": "hotkey",
+      "keys": [
+        "f2"
+      ]
+    },
+    "tpl-excel-fill": {
+      "name": "Fill down",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "d"
+      ]
+    },
+    "tpl-excel-format": {
+      "name": "Format cells",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "1"
+      ]
+    },
+    "tpl-excel-sheet": {
+      "name": "New sheet",
+      "type": "hotkey",
+      "keys": [
+        "shift",
+        "f11"
+      ]
+    }
+  },
+  "items": [
+    {
+      "id": "save",
+      "kind": "button",
+      "x": 0,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "Save",
+      "icon": "emoji:💾",
+      "actionId": "tpl-excel-save"
+    },
+    {
+      "id": "undo",
+      "kind": "button",
+      "x": 1,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "Undo",
+      "icon": "emoji:↶",
+      "actionId": "tpl-excel-undo"
+    },
+    {
+      "id": "redo",
+      "kind": "button",
+      "x": 2,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "Redo",
+      "icon": "emoji:↷",
+      "actionId": "tpl-excel-redo"
+    },
+    {
+      "id": "find",
+      "kind": "button",
+      "x": 3,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "Find",
+      "icon": "lucide:search",
+      "actionId": "tpl-excel-find"
+    },
+    {
+      "id": "bold",
+      "kind": "button",
+      "x": 4,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "Bold",
+      "icon": "emoji:𝐁",
+      "actionId": "tpl-excel-bold"
+    },
+    {
+      "id": "filter",
+      "kind": "button",
+      "x": 0,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "label": "Filter",
+      "icon": "emoji:⏬",
+      "actionId": "tpl-excel-filter"
+    },
+    {
+      "id": "edit",
+      "kind": "button",
+      "x": 1,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "label": "Edit",
+      "icon": "emoji:✏",
+      "actionId": "tpl-excel-edit"
+    },
+    {
+      "id": "fill",
+      "kind": "button",
+      "x": 2,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "label": "Fill down",
+      "icon": "emoji:⬇",
+      "actionId": "tpl-excel-fill"
+    },
+    {
+      "id": "format",
+      "kind": "button",
+      "x": 3,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "label": "Format",
+      "icon": "emoji:▦",
+      "actionId": "tpl-excel-format"
+    },
+    {
+      "id": "sheet",
+      "kind": "button",
+      "x": 4,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "label": "Sheet",
+      "icon": "lucide:plus",
+      "actionId": "tpl-excel-sheet"
+    },
+    {
+      "id": "home",
+      "kind": "button",
+      "x": 6,
+      "y": 3,
+      "w": 1,
+      "h": 1,
+      "label": "Home",
+      "icon": "lucide:home",
+      "navigate": "$home"
+    }
+  ]
+}

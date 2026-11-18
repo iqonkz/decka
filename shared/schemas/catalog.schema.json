@@ -20,7 +20,7 @@
           "properties": { "var": { "type": "string", "pattern": "^[a-z0-9_.-]{1,64}$" }, "states": { "type": "object", "minProperties": 1, "maxProperties": 8, "additionalProperties": { "$ref": "#/$defs/State" } } } },
         "navigate": { "const": "$back" },
         "widget": { "type": "object", "required": ["kind","w","h"], "additionalProperties": false,
-          "properties": { "kind": { "enum": ["clock","sys","statuses","notifications","media","volume","timer","weather","obs","ai","twitch","youtube"] }, "w": { "type": "integer", "minimum": 1, "maximum": 8 }, "h": { "type": "integer", "minimum": 1, "maximum": 8 }, "options": { "type": "object" } } },
+          "properties": { "kind": { "enum": ["clock","sys","statuses","notifications","media","volume","timer","weather","obs","ai","twitch","youtube","context"] }, "w": { "type": "integer", "minimum": 1, "maximum": 8 }, "h": { "type": "integer", "minimum": 1, "maximum": 8 }, "options": { "type": "object" } } },
         "requires": { "enum": ["obs","weather","twitch","youtube"] }
       } },
     "Category": { "type": "object", "required": ["id","name","icon","items"], "additionalProperties": false,

@@ -63,7 +63,8 @@ export default function Ai({ item }: { item: AiItem }) {
   const pending = ai?.pending.length ?? 0;
   const sessions = item.w >= 4 && item.h >= 2 ? (ai?.sessions ?? []) : [];
   const waiting = new Set((ai?.pending ?? []).map((p) => p.sessionId));
-  const windowsOf = (p: AiProvider): AiWindow[] => (compact ? p.windows.slice(0, 1) : p.windows);
+  // A widget of one provider has the room for both of its windows even at 2x1.
+  const windowsOf = (p: AiProvider): AiWindow[] => (compact && show === "both" ? p.windows.slice(0, 1) : p.windows);
 
   return (
     <div className={compact ? "ai ai-compact" : "ai"}>

@@ -1,0 +1,218 @@
+{
+  "id": "outlook",
+  "name": "Outlook",
+  "apps": [
+    "outlook.exe",
+    "olk.exe"
+  ],
+  "minGrid": {
+    "cols": 7,
+    "rows": 4
+  },
+  "actions": {
+    "tpl-outlook-new": {
+      "name": "New mail",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "n"
+      ]
+    },
+    "tpl-outlook-reply": {
+      "name": "Reply",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "r"
+      ]
+    },
+    "tpl-outlook-replyall": {
+      "name": "Reply all",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "shift",
+        "r"
+      ]
+    },
+    "tpl-outlook-forward": {
+      "name": "Forward",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "f"
+      ]
+    },
+    "tpl-outlook-send": {
+      "name": "Send",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "enter"
+      ]
+    },
+    "tpl-outlook-mail": {
+      "name": "Mail view",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "1"
+      ]
+    },
+    "tpl-outlook-calendar": {
+      "name": "Calendar view",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "2"
+      ]
+    },
+    "tpl-outlook-search": {
+      "name": "Search",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "e"
+      ]
+    },
+    "tpl-outlook-meeting": {
+      "name": "New meeting",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "shift",
+        "q"
+      ]
+    },
+    "tpl-outlook-delete": {
+      "name": "Delete",
+      "type": "hotkey",
+      "keys": [
+        "delete"
+      ]
+    }
+  },
+  "items": [
+    {
+      "id": "new",
+      "kind": "button",
+      "x": 0,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "New",
+      "icon": "lucide:plus",
+      "actionId": "tpl-outlook-new"
+    },
+    {
+      "id": "reply",
+      "kind": "button",
+      "x": 1,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "Reply",
+      "icon": "emoji:↩",
+      "actionId": "tpl-outlook-reply"
+    },
+    {
+      "id": "replyall",
+      "kind": "button",
+      "x": 2,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "Reply all",
+      "icon": "emoji:↩↩",
+      "actionId": "tpl-outlook-replyall"
+    },
+    {
+      "id": "forward",
+      "kind": "button",
+      "x": 3,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "Forward",
+      "icon": "emoji:↪",
+      "actionId": "tpl-outlook-forward"
+    },
+    {
+      "id": "send",
+      "kind": "button",
+      "x": 4,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "Send",
+      "icon": "emoji:➤",
+      "actionId": "tpl-outlook-send"
+    },
+    {
+      "id": "mail",
+      "kind": "button",
+      "x": 0,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "label": "Mail",
+      "icon": "lucide:mail",
+      "actionId": "tpl-outlook-mail"
+    },
+    {
+      "id": "calendar",
+      "kind": "button",
+      "x": 1,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "label": "Calendar",
+      "icon": "lucide:calendar",
+      "actionId": "tpl-outlook-calendar"
+    },
+    {
+      "id": "search",
+      "kind": "button",
+      "x": 2,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "label": "Search",
+      "icon": "lucide:search",
+      "actionId": "tpl-outlook-search"
+    },
+    {
+      "id": "meeting",
+      "kind": "button",
+      "x": 3,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "label": "Meeting",
+      "icon": "emoji:👥",
+      "actionId": "tpl-outlook-meeting"
+    },
+    {
+      "id": "delete",
+      "kind": "button",
+      "x": 4,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "label": "Delete",
+      "icon": "lucide:trash-2",
+      "actionId": "tpl-outlook-delete"
+    },
+    {
+      "id": "home",
+      "kind": "button",
+      "x": 6,
+      "y": 3,
+      "w": 1,
+      "h": 1,
+      "label": "Home",
+      "icon": "lucide:home",
+      "navigate": "$home"
+    }
+  ]
+}

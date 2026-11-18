@@ -1,0 +1,145 @@
+{
+  "id": "whatsapp",
+  "name": "WhatsApp",
+  "apps": [
+    "whatsapp.exe",
+    "whatsapp.root.exe"
+  ],
+  "minGrid": {
+    "cols": 7,
+    "rows": 4
+  },
+  "actions": {
+    "tpl-whatsapp-new": {
+      "name": "New chat",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "n"
+      ]
+    },
+    "tpl-whatsapp-search": {
+      "name": "Search",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "f"
+      ]
+    },
+    "tpl-whatsapp-next": {
+      "name": "Next chat",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "tab"
+      ]
+    },
+    "tpl-whatsapp-prev": {
+      "name": "Previous chat",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "shift",
+        "tab"
+      ]
+    },
+    "tpl-whatsapp-mute": {
+      "name": "Mute chat",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "alt",
+        "shift",
+        "m"
+      ]
+    },
+    "tpl-whatsapp-archive": {
+      "name": "Archive chat",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "alt",
+        "e"
+      ]
+    }
+  },
+  "items": [
+    {
+      "id": "new",
+      "kind": "button",
+      "x": 0,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "New chat",
+      "icon": "lucide:plus",
+      "actionId": "tpl-whatsapp-new"
+    },
+    {
+      "id": "search",
+      "kind": "button",
+      "x": 1,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "Search",
+      "icon": "lucide:search",
+      "actionId": "tpl-whatsapp-search"
+    },
+    {
+      "id": "next",
+      "kind": "button",
+      "x": 2,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "Next chat",
+      "icon": "emoji:⬇",
+      "actionId": "tpl-whatsapp-next"
+    },
+    {
+      "id": "prev",
+      "kind": "button",
+      "x": 3,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "Prev chat",
+      "icon": "emoji:⬆",
+      "actionId": "tpl-whatsapp-prev"
+    },
+    {
+      "id": "mute",
+      "kind": "button",
+      "x": 4,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "Mute",
+      "icon": "lucide:volume-x",
+      "actionId": "tpl-whatsapp-mute"
+    },
+    {
+      "id": "archive",
+      "kind": "button",
+      "x": 0,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "label": "Archive",
+      "icon": "lucide:folder",
+      "actionId": "tpl-whatsapp-archive"
+    },
+    {
+      "id": "home",
+      "kind": "button",
+      "x": 6,
+      "y": 3,
+      "w": 1,
+      "h": 1,
+      "label": "Home",
+      "icon": "lucide:home",
+      "navigate": "$home"
+    }
+  ]
+}

@@ -1,0 +1,144 @@
+{
+  "id": "discord",
+  "name": "Discord",
+  "apps": [
+    "discord.exe"
+  ],
+  "minGrid": {
+    "cols": 7,
+    "rows": 4
+  },
+  "actions": {
+    "tpl-discord-mute": {
+      "name": "Mute microphone",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "shift",
+        "m"
+      ]
+    },
+    "tpl-discord-deafen": {
+      "name": "Deafen",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "shift",
+        "d"
+      ]
+    },
+    "tpl-discord-switcher": {
+      "name": "Quick switcher",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "k"
+      ]
+    },
+    "tpl-discord-inbox": {
+      "name": "Inbox",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "i"
+      ]
+    },
+    "tpl-discord-nextsrv": {
+      "name": "Next server",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "alt",
+        "down"
+      ]
+    },
+    "tpl-discord-prevsrv": {
+      "name": "Previous server",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "alt",
+        "up"
+      ]
+    }
+  },
+  "items": [
+    {
+      "id": "mute",
+      "kind": "button",
+      "x": 0,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "Mic",
+      "icon": "lucide:mic-off",
+      "actionId": "tpl-discord-mute"
+    },
+    {
+      "id": "deafen",
+      "kind": "button",
+      "x": 1,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "Deafen",
+      "icon": "lucide:headphones",
+      "actionId": "tpl-discord-deafen"
+    },
+    {
+      "id": "switcher",
+      "kind": "button",
+      "x": 2,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "Switch",
+      "icon": "lucide:search",
+      "actionId": "tpl-discord-switcher"
+    },
+    {
+      "id": "inbox",
+      "kind": "button",
+      "x": 3,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "Inbox",
+      "icon": "lucide:mail",
+      "actionId": "tpl-discord-inbox"
+    },
+    {
+      "id": "nextsrv",
+      "kind": "button",
+      "x": 4,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "Next srv",
+      "icon": "emoji:⬇",
+      "actionId": "tpl-discord-nextsrv"
+    },
+    {
+      "id": "prevsrv",
+      "kind": "button",
+      "x": 0,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "label": "Prev srv",
+      "icon": "emoji:⬆",
+      "actionId": "tpl-discord-prevsrv"
+    },
+    {
+      "id": "home",
+      "kind": "button",
+      "x": 6,
+      "y": 3,
+      "w": 1,
+      "h": 1,
+      "label": "Home",
+      "icon": "lucide:home",
+      "navigate": "$home"
+    }
+  ]
+}

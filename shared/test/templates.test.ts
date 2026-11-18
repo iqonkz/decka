@@ -7,11 +7,19 @@ import vscode from "../templates/vscode.json";
 import browser from "../templates/browser.json";
 import zoom from "../templates/zoom.json";
 import spotify from "../templates/spotify.json";
+import outlook from "../templates/outlook.json";
+import word from "../templates/word.json";
+import excel from "../templates/excel.json";
+import powerpoint from "../templates/powerpoint.json";
+import canva from "../templates/canva.json";
+import telegram from "../templates/telegram.json";
+import whatsapp from "../templates/whatsapp.json";
+import discord from "../templates/discord.json";
 import type { LayoutFile, LayoutItem } from "../src/layout";
 import type { PageTemplate } from "../src/templates";
 import { validateLayout } from "../src/validate";
 
-const templates = [vscode, browser, zoom, spotify] as unknown as PageTemplate[];
+const templates = [vscode, browser, zoom, spotify, outlook, word, excel, powerpoint, canva, telegram, whatsapp, discord] as unknown as PageTemplate[];
 
 const ajv = new Ajv2020({ allErrors: true, strict: false });
 ajv.addSchema(actionsSchema);

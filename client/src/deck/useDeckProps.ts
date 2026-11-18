@@ -23,6 +23,10 @@ export function useDeckProps(): { data: DeckData } & Required<DeckCallbacks> {
   const twitch = useAppState((s) => s.state?.twitch);
   const youtube = useAppState((s) => s.state?.youtube);
   const icons = useAppState((s) => s.state?.icons);
+  const allPages = useAppState((s) => s.state?.layout.pages);
+  const focusApp = useAppState((s) => s.state?.focus?.app);
+  // Only the pages that follow an app matter to the context widget; the list is stable until one of them changes.
+  const appPages = useMemo(() => allPages?.filter((p) => p.apps !== undefined && p.apps.length > 0), [allPages]);
   const keyFace = useAppState((s) => s.state?.layout.display.keyFace);
   const keyLabels = useAppState((s) => s.state?.layout.display.keyLabels);
 
@@ -40,10 +44,12 @@ export function useDeckProps(): { data: DeckData } & Required<DeckCallbacks> {
       twitch: twitch ?? null,
       youtube: youtube ?? null,
       icons: icons ?? NO_ICONS,
+      ...(appPages !== undefined ? { pages: appPages } : {}),
+      ...(focusApp !== undefined ? { focusApp } : {}),
       ...(keyFace !== undefined ? { keyFace } : {}),
       ...(keyLabels !== undefined ? { keyLabels } : {}),
     }),
-    [online, vars, sys, statuses, notifications, media, weather, obs, ai, twitch, youtube, icons, keyFace, keyLabels],
+    [online, vars, sys, statuses, notifications, media, weather, obs, ai, twitch, youtube, icons, appPages, focusApp, keyFace, keyLabels],
   );
 
   // The graph of the `sys` widget: the readings are kept here, outside the widgets, and start again with the connection.
