@@ -75,12 +75,11 @@
         "e"
       ]
     },
-    "tpl-outlook-meeting": {
-      "name": "New meeting",
+    "tpl-outlook-read": {
+      "name": "Mark as read",
       "type": "hotkey",
       "keys": [
         "ctrl",
-        "shift",
         "q"
       ]
     },
@@ -182,15 +181,15 @@
       "actionId": "tpl-outlook-search"
     },
     {
-      "id": "meeting",
+      "id": "read",
       "kind": "button",
       "x": 3,
       "y": 1,
       "w": 1,
       "h": 1,
-      "label": "Meeting",
-      "icon": "emoji:👥",
-      "actionId": "tpl-outlook-meeting"
+      "label": "Read",
+      "icon": "lucide:check",
+      "actionId": "tpl-outlook-read"
     },
     {
       "id": "delete",

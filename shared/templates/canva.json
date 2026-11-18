@@ -75,8 +75,7 @@
       "type": "hotkey",
       "keys": [
         "ctrl",
-        "shift",
-        "z"
+        "y"
       ]
     },
     "tpl-canva-delete": {
@@ -84,6 +83,24 @@
       "type": "hotkey",
       "keys": [
         "delete"
+      ]
+    },
+    "tpl-canva-lock": {
+      "name": "Lock / unlock",
+      "type": "hotkey",
+      "keys": [
+        "alt",
+        "shift",
+        "l"
+      ]
+    },
+    "tpl-canva-present": {
+      "name": "Present",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "alt",
+        "p"
       ]
     }
   },
@@ -197,6 +214,28 @@
       "label": "Delete",
       "icon": "lucide:trash-2",
       "actionId": "tpl-canva-delete"
+    },
+    {
+      "id": "lock",
+      "kind": "button",
+      "x": 0,
+      "y": 2,
+      "w": 1,
+      "h": 1,
+      "label": "Lock",
+      "icon": "lucide:lock",
+      "actionId": "tpl-canva-lock"
+    },
+    {
+      "id": "present",
+      "kind": "button",
+      "x": 1,
+      "y": 2,
+      "w": 1,
+      "h": 1,
+      "label": "Present",
+      "icon": "lucide:play",
+      "actionId": "tpl-canva-present"
     },
     {
       "id": "home",

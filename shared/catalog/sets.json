@@ -41,6 +41,13 @@
       "rows": [
         ["widget.ai"]
       ] },
+    { "id": "workspace", "name": { "en": "Work desk", "ru": "Рабочий стол" }, "icon": "lucide:monitor",
+      "description": { "en": "Keys of the program in front, plus lock, Task Manager, media and mute always in reach", "ru": "Кнопки активной программы, а рядом всегда блокировка, диспетчер задач, медиа и звук" },
+      "rows": [
+        ["widget.context", null, null, "win.lock"],
+        [null, null, null, "win.taskmgr"],
+        ["media.prev", "media.play", "media.next", "sound.mute"]
+      ] },
     { "id": "focus", "name": { "en": "Focus", "ru": "Фокус" }, "icon": "lucide:timer",
       "description": { "en": "A timer and a clock", "ru": "Таймер и часы" },
       "rows": [

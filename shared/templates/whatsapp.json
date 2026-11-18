@@ -48,7 +48,6 @@
       "type": "hotkey",
       "keys": [
         "ctrl",
-        "alt",
         "shift",
         "m"
       ]
@@ -58,8 +57,24 @@
       "type": "hotkey",
       "keys": [
         "ctrl",
-        "alt",
+        "shift",
         "e"
+      ]
+    },
+    "tpl-whatsapp-group": {
+      "name": "New group",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "shift",
+        "n"
+      ]
+    },
+    "tpl-whatsapp-close": {
+      "name": "Close the chat",
+      "type": "hotkey",
+      "keys": [
+        "esc"
       ]
     }
   },
@@ -129,6 +144,28 @@
       "label": "Archive",
       "icon": "lucide:folder",
       "actionId": "tpl-whatsapp-archive"
+    },
+    {
+      "id": "group",
+      "kind": "button",
+      "x": 1,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "label": "New group",
+      "icon": "lucide:plus",
+      "actionId": "tpl-whatsapp-group"
+    },
+    {
+      "id": "close",
+      "kind": "button",
+      "x": 2,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "label": "Close",
+      "icon": "lucide:x",
+      "actionId": "tpl-whatsapp-close"
     },
     {
       "id": "home",
