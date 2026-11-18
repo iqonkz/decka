@@ -194,3 +194,8 @@ input { user-select: text; touch-action: manipulation; }
 .hist-sum { font: 2.1vmin ui-monospace, Consolas, monospace; color: #9ca3af; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hist-time { flex: none; font-size: 2vmin; color: #9ca3af; }
 .hist-close { all: unset; align-self: center; padding: 1.4vmin 3vmin; border-radius: 1.4vmin; background: rgba(255, 255, 255, 0.1); font-size: 2.6vmin; cursor: pointer; }
+.connecting { flex-direction: column; gap: 3vmin; text-align: center; }
+.connecting-hints { margin: 0; padding: 0 4vmin; list-style: none; display: flex; flex-direction: column; gap: 1.4vmin; font-size: 2.6vmin; color: #9ca3af; max-width: 90vw; }
+.connecting-error { color: #f87171; }
+.perm-reply { all: unset; box-sizing: border-box; padding: 1.2vmin 2vmin; border-radius: 1.4vmin; border: 1px solid rgba(248, 113, 113, 0.5); color: #fca5a5; font-size: 2.3vmin; text-align: center; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.perm-reply:disabled { opacity: 0.45; }

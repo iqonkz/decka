@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use crate::model::{Action, ActionsFile, Grid, LayoutFile, LayoutItem, Page, ValidationIssue};
 use crate::validate::{validate_actions, validate_layout};
 
-const SOURCES: [&str; 12] = [
+const SOURCES: [&str; 13] = [
     include_str!("../../../shared/templates/outlook.json"),
     include_str!("../../../shared/templates/word.json"),
     include_str!("../../../shared/templates/excel.json"),
@@ -16,6 +16,7 @@ const SOURCES: [&str; 12] = [
     include_str!("../../../shared/templates/telegram.json"),
     include_str!("../../../shared/templates/whatsapp.json"),
     include_str!("../../../shared/templates/discord.json"),
+    include_str!("../../../shared/templates/teams.json"),
     include_str!("../../../shared/templates/vscode.json"),
     include_str!("../../../shared/templates/browser.json"),
     include_str!("../../../shared/templates/zoom.json"),
@@ -150,7 +151,7 @@ pub fn build(template_id: &str, layout: &LayoutFile, actions: &ActionsFile) -> R
     };
 
     let mut new_layout = layout.clone();
-    new_layout.pages.push(Page { id: page_id, name: template.name.clone(), items, apps: Some(template.apps.clone()), popup: None, stay_open: None });
+    new_layout.pages.push(Page { id: page_id, name: template.name.clone(), items, apps: Some(template.apps.clone()), popup: None, stay_open: None, time: None });
 
     let mut issues = validate_actions(&new_actions);
     issues.extend(validate_layout(&new_layout, &new_actions));

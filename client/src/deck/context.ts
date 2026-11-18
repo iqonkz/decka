@@ -21,6 +21,15 @@ export interface ContextDecision {
   hint: string | null;
 }
 
+/** Whether the time of day of `now` (the phone's clock) is inside `from`..`to`; `from` later than `to` crosses midnight. */
+export function inTimeRange(time: { from: string; to: string }, now: number): boolean {
+  const minutes = (s: string) => Number(s.slice(0, 2)) * 60 + Number(s.slice(3, 5));
+  const d = new Date(now);
+  const at = d.getHours() * 60 + d.getMinutes();
+  const [from, to] = [minutes(time.from), minutes(time.to)];
+  return from < to ? at >= from && at < to : at >= from || at < to;
+}
+
 /** DATA_MODEL.md 6.1: which page to show for the active PC application. */
 export function decideContextPage(input: ContextInput): ContextDecision {
   const { pages, display, focusApp, pageIndex, homePageIndex, autoPageId, now, lastTouch } = input;
@@ -29,7 +38,9 @@ export function decideContextPage(input: ContextInput): ContextDecision {
   if (now - lastTouch < TOUCH_QUIET_MS) return unchanged; // 2
 
   const app = focusApp?.app ?? null;
-  const found = app === null ? -1 : pages.findIndex((p) => p.apps?.includes(app) === true);
+  const byApp = app === null ? -1 : pages.findIndex((p) => p.apps?.includes(app) === true);
+  // A page with hours of the day follows the clock when no program page applies.
+  const found = byApp >= 0 ? byApp : pages.findIndex((p, i) => i > 0 && p.popup !== true && p.time !== undefined && inTimeRange(p.time, now));
   const target = found >= 0 ? found : null; // 3
 
   if (target !== null && target !== pageIndex) {

@@ -1222,6 +1222,7 @@ impl Agent {
         let approvals = if codex { ai.codex.enabled && ai.codex.approvals != Some(false) } else { ai.claude.enabled && ai.claude.approvals };
         let opts = crate::ai::PermOpts {
             provider: if codex { "codex" } else { "claude" },
+            replies: ai.replies.clone().unwrap_or_else(crate::ai::default_replies),
             approvals,
             phones: self.inner.conns.lock().unwrap().len(),
             timeout: Duration::from_secs(u64::from(ai.claude.timeout_sec)),
@@ -1230,8 +1231,8 @@ impl Agent {
     }
 
     /// `perm_answer` from a phone.
-    pub fn answer_permission(&self, req_id: &str, decision: crate::proto::PermDecision) {
-        self.inner.ai.answer(req_id, decision);
+    pub fn answer_permission(&self, req_id: &str, decision: crate::proto::PermDecision, reply: Option<usize>) {
+        self.inner.ai.answer_with(req_id, decision, reply);
         self.save_ai_rules();
     }
 
@@ -1283,6 +1284,7 @@ impl Agent {
             codex: AiCodexConfig { enabled: codex_found, approvals: None },
             hook_token: None,
             rules: Vec::new(),
+            replies: None,
         });
         let token = ai.hook_token.get_or_insert_with(config::generate_api_token).clone();
         ai.claude.enabled = true;

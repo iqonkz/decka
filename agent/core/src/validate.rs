@@ -304,6 +304,14 @@ pub fn validate_layout(layout: &LayoutFile, actions: &ActionsFile) -> Vec<Valida
         if page.stay_open.is_some() && !is_popup {
             out.push(issue(format!("{path}/stayOpen"), "stayOpen only makes sense for a popup group"));
         }
+        if let Some(time) = &page.time {
+            if !is_hhmm(&time.from) || !is_hhmm(&time.to) || time.from == time.to {
+                out.push(issue(format!("{path}/time"), "time needs two different times of day, HH:MM"));
+            }
+            if is_popup || pi == 0 {
+                out.push(issue(format!("{path}/time"), "the home page and popup groups cannot be shown by time"));
+            }
+        }
     }
     let popup_ids: HashSet<&str> = layout.pages.iter().filter(|p| p.popup == Some(true)).map(|p| p.id.as_str()).collect();
 
@@ -577,6 +585,11 @@ pub fn validate_config(c: &ConfigFile) -> Vec<ValidationIssue> {
         }
         if a.hook_token.as_deref().is_some_and(|t| chars(t) > 100) {
             out.push(issue("/ai/hookToken", "hookToken is too long"));
+        }
+        if let Some(r) = &a.replies {
+            if r.len() > 4 || r.iter().any(|t| !(1..=120).contains(&chars(t))) {
+                out.push(issue("/ai/replies", "replies are at most 4 texts of 1..120 characters"));
+            }
         }
     }
     let mut ids = HashSet::new();

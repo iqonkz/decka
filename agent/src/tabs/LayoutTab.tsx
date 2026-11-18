@@ -28,6 +28,7 @@ import PageApps from "./PageApps";
 import GridPicker from "../editor/GridPicker";
 import { overflowItems, resizeGridMoving } from "../editor/gridResize";
 import PhIcon from "../ui/PhIcon";
+import TemplateHint from "./TemplateHint";
 import TemplatesDialog from "./TemplatesDialog";
 
 const sameLayout = (a: LayoutFile, b: LayoutFile) => JSON.stringify(a) === JSON.stringify(b);
@@ -766,6 +767,12 @@ export default function LayoutTab() {
       ) : (
         <PageApps page={page} isFirst={pageIdx === 0} onChange={setPage} />
       )}
+      <TemplateHint
+        layout={layout}
+        onAdded={() => {
+          load().then((fresh) => setPageIdx(fresh.pages.length - 1), (e) => setError(String(e)));
+        }}
+      />
       {badItems.size > 0 && <p className="muted">{t("layout.problems")}</p>}
       <div className="editor">
         <Library

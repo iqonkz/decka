@@ -10,6 +10,7 @@ export interface Page {
   id: Id; name: string; items: LayoutItem[];
   apps?: string[];        // M11: context page - shown automatically while one of these apps is active on the PC (lower-case exe names)
   popup?: boolean;        // M13: a popup group - opens over the current page from a button with `popup`; not part of the swipe (DESIGN.md 4.1)
+  time?: { from: string; to: string };  // shown automatically between these times of day ("HH:MM", the phone's clock; from > to crosses midnight) when no app page applies
   stayOpen?: boolean;     // M13: popup pages only: keep the panel open after a key inside it was pressed
 }
 

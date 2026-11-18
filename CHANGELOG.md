@@ -12,6 +12,11 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 - **Check the connection** in the Phone tab: shows what blocks a phone (server, addresses, Windows Firewall) and repairs the firewall rule with one click.
 - Recent questions of Claude Code and Codex: tap the AI limits widget on the phone to see what was allowed or denied and when.
 - **Always allow** on the permission sheet for a plain command, edits inside one project, one website or one MCP tool. The rules are listed (and removed) in More → Integrations → AI coding.
+- **Deny and say**: under a permission question the phone offers ready answers (editable in More → Integrations → AI coding); the chosen text is told to Claude Code or Codex as the reason of the denial.
+- A page can open **at certain hours** of the day (the phone's clock); a page of the program in front still wins.
+- In the Pages editor a hint offers the template of the program that is in front when no page follows it yet.
+- A **Teams** template; more keys in the **browser** template (bookmark, address bar, find, downloads, history, next tab).
+- The phone shows what to check (same Wi-Fi, Decka running, Check the connection) when it cannot reach the PC.
 - Twitch: a notification on the phone for every new follower. YouTube: keys **YT go live** and **YT end** for the stream scheduled in YouTube Studio.
 
 ### Changed

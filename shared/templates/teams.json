@@ -1,0 +1,188 @@
+{
+  "id": "teams",
+  "name": "Teams",
+  "apps": [
+    "ms-teams.exe",
+    "teams.exe"
+  ],
+  "minGrid": {
+    "cols": 7,
+    "rows": 4
+  },
+  "actions": {
+    "tpl-teams-mute": {
+      "name": "Mute / unmute",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "shift",
+        "m"
+      ]
+    },
+    "tpl-teams-video": {
+      "name": "Camera on / off",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "shift",
+        "o"
+      ]
+    },
+    "tpl-teams-share": {
+      "name": "Share screen",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "shift",
+        "e"
+      ]
+    },
+    "tpl-teams-hand": {
+      "name": "Raise / lower hand",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "shift",
+        "k"
+      ]
+    },
+    "tpl-teams-leave": {
+      "name": "Leave the meeting",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "shift",
+        "h"
+      ]
+    },
+    "tpl-teams-accept": {
+      "name": "Accept video call",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "shift",
+        "a"
+      ]
+    },
+    "tpl-teams-decline": {
+      "name": "Decline call",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "shift",
+        "d"
+      ]
+    },
+    "tpl-teams-search": {
+      "name": "Search",
+      "type": "hotkey",
+      "keys": [
+        "ctrl",
+        "e"
+      ]
+    }
+  },
+  "items": [
+    {
+      "id": "mute",
+      "kind": "button",
+      "x": 0,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "Mic",
+      "icon": "lucide:mic-off",
+      "actionId": "tpl-teams-mute"
+    },
+    {
+      "id": "video",
+      "kind": "button",
+      "x": 1,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "Camera",
+      "icon": "emoji:•",
+      "actionId": "tpl-teams-video"
+    },
+    {
+      "id": "share",
+      "kind": "button",
+      "x": 2,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "Share",
+      "icon": "emoji:•",
+      "actionId": "tpl-teams-share"
+    },
+    {
+      "id": "hand",
+      "kind": "button",
+      "x": 3,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "Hand",
+      "icon": "emoji:✋",
+      "actionId": "tpl-teams-hand"
+    },
+    {
+      "id": "leave",
+      "kind": "button",
+      "x": 4,
+      "y": 0,
+      "w": 1,
+      "h": 1,
+      "label": "Leave",
+      "icon": "emoji:•",
+      "color": "#b91c1c",
+      "confirm": true,
+      "actionId": "tpl-teams-leave"
+    },
+    {
+      "id": "accept",
+      "kind": "button",
+      "x": 0,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "label": "Accept",
+      "icon": "lucide:check",
+      "actionId": "tpl-teams-accept"
+    },
+    {
+      "id": "decline",
+      "kind": "button",
+      "x": 1,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "label": "Decline",
+      "icon": "lucide:x",
+      "actionId": "tpl-teams-decline"
+    },
+    {
+      "id": "search",
+      "kind": "button",
+      "x": 2,
+      "y": 1,
+      "w": 1,
+      "h": 1,
+      "label": "Search",
+      "icon": "lucide:search",
+      "actionId": "tpl-teams-search"
+    },
+    {
+      "id": "home",
+      "kind": "button",
+      "x": 6,
+      "y": 3,
+      "w": 1,
+      "h": 1,
+      "label": "Home",
+      "icon": "lucide:home",
+      "navigate": "$home"
+    }
+  ]
+}

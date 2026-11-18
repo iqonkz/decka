@@ -40,9 +40,9 @@ export default function PermSheet() {
   const total = Math.max(1, request.expiresAt - shownAt);
   const left = Math.min(1, Math.max(0, (request.expiresAt - now) / total));
   const title = t("perm.title", { name: t(`ai.${request.provider === "codex" ? "codex" : "claude"}`), tool: request.tool });
-  const answer = (decision: "allow" | "allow_always" | "deny" | "pc") => {
+  const answer = (decision: "allow" | "allow_always" | "deny" | "pc" | "reply", reply?: number) => {
     hapticEvent({ type: "confirm" });
-    answerPerm(request.reqId, decision);
+    answerPerm(request.reqId, decision, reply);
   };
 
   return (
@@ -72,6 +72,11 @@ export default function PermSheet() {
             {t("perm.always", { what: request.always.value })}
           </button>
         )}
+        {(request.replies ?? []).map((text, i) => (
+          <button key={i} type="button" className="perm-reply" disabled={!armed} onClick={() => answer("reply", i)}>
+            {t("perm.reply", { text })}
+          </button>
+        ))}
         <button type="button" className="perm-pc" onClick={() => answer("pc")}>
           {t("perm.pc")}
         </button>

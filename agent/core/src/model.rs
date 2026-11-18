@@ -263,6 +263,16 @@ pub struct Page {
     /// M13: popup pages only: keep the panel open after a key inside it was pressed.
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "stayOpen")]
     pub stay_open: Option<bool>,
+    /// Shown automatically between these two times of day on the phone (when no app page applies).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub time: Option<PageTime>,
+}
+
+/// `from` and `to` are `HH:MM` on the phone's clock; `from` later than `to` crosses midnight.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PageTime {
+    pub from: String,
+    pub to: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -665,6 +675,9 @@ pub struct AiConfig {
     /// What the user chose to allow always (the phone's "Always allow"); changed only by the agent and the rules list of the window.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub rules: Vec<crate::ai::AiRule>,
+    /// The ready answers of "Deny and say" (0..4 texts); absent = the built-in three.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub replies: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

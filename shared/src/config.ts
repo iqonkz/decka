@@ -34,6 +34,7 @@ export interface AiConfig {
   claude: { enabled: boolean; approvals: boolean; timeoutSec: 60 | 120 | 300 };
   codex: { enabled: boolean; approvals?: boolean };   // approvals: phone approvals for Codex, absent = on
   hookToken?: string;
+  replies?: string[];                                 // ready answers of "Deny and say", at most 4 of 1..120 characters; absent = three built-in ones
   rules?: AiRule[];                                   // what the phone's "Always allow" remembered; removed in the window
 }
 /** `kind`: `command` (value = the first words), `project` (value = the folder), `host` (value = the site), `tool` (value empty). */

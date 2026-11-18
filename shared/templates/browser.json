@@ -11,7 +11,13 @@
     "tpl-browser-forward": { "name": "Forward", "type": "hotkey", "keys": ["alt", "right"] },
     "tpl-browser-reload": { "name": "Reload", "type": "hotkey", "keys": ["f5"] },
     "tpl-browser-devtools": { "name": "DevTools", "type": "hotkey", "keys": ["f12"] },
-    "tpl-browser-private": { "name": "Private window", "type": "hotkey", "keys": ["ctrl", "shift", "n"] }
+    "tpl-browser-private": { "name": "Private window", "type": "hotkey", "keys": ["ctrl", "shift", "n"] },
+    "tpl-browser-bookmark": { "name": "Bookmark this page", "type": "hotkey", "keys": ["ctrl", "d"] },
+    "tpl-browser-address": { "name": "Address bar", "type": "hotkey", "keys": ["ctrl", "l"] },
+    "tpl-browser-find": { "name": "Find on page", "type": "hotkey", "keys": ["ctrl", "f"] },
+    "tpl-browser-downloads": { "name": "Downloads", "type": "hotkey", "keys": ["ctrl", "j"] },
+    "tpl-browser-history": { "name": "History", "type": "hotkey", "keys": ["ctrl", "h"] },
+    "tpl-browser-nexttab": { "name": "Next tab", "type": "hotkey", "keys": ["ctrl", "tab"] }
   },
   "items": [
     { "id": "newtab", "kind": "button", "x": 0, "y": 0, "w": 1, "h": 1, "label": "New tab", "icon": "lucide:plus", "actionId": "tpl-browser-newtab" },
@@ -22,6 +28,12 @@
     { "id": "reload", "kind": "button", "x": 2, "y": 1, "w": 1, "h": 1, "label": "Reload", "icon": "lucide:refresh-cw", "actionId": "tpl-browser-reload" },
     { "id": "devtools", "kind": "button", "x": 4, "y": 0, "w": 1, "h": 1, "label": "DevTools", "icon": "lucide:bug", "actionId": "tpl-browser-devtools" },
     { "id": "private", "kind": "button", "x": 5, "y": 0, "w": 1, "h": 1, "label": "Private", "icon": "lucide:moon", "actionId": "tpl-browser-private" },
+    { "id": "bookmark", "kind": "button", "x": 3, "y": 1, "w": 1, "h": 1, "label": "Bookmark", "icon": "lucide:star", "actionId": "tpl-browser-bookmark" },
+    { "id": "address", "kind": "button", "x": 0, "y": 2, "w": 1, "h": 1, "label": "Address", "icon": "lucide:globe", "actionId": "tpl-browser-address" },
+    { "id": "find", "kind": "button", "x": 1, "y": 2, "w": 1, "h": 1, "label": "Find", "icon": "lucide:search", "actionId": "tpl-browser-find" },
+    { "id": "downloads", "kind": "button", "x": 2, "y": 2, "w": 1, "h": 1, "label": "Downloads", "icon": "lucide:download", "actionId": "tpl-browser-downloads" },
+    { "id": "history", "kind": "button", "x": 3, "y": 2, "w": 1, "h": 1, "label": "History", "icon": "lucide:clock", "actionId": "tpl-browser-history" },
+    { "id": "nexttab", "kind": "button", "x": 4, "y": 1, "w": 1, "h": 1, "label": "Next tab", "icon": "lucide:arrow-right", "actionId": "tpl-browser-nexttab" },
     { "id": "home", "kind": "button", "x": 6, "y": 3, "w": 1, "h": 1, "label": "Home", "icon": "lucide:home", "navigate": "$home" }
   ]
 }

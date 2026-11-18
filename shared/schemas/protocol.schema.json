@@ -20,7 +20,7 @@
       "properties": { "t": { "const": "notif_dismiss" }, "notifId": { "type": "string", "pattern": "^[0-9]{1,20}$" } } },
     "PingMsg": { "type": "object", "required": ["t","ts"], "properties": { "t": { "const": "ping" }, "ts": { "type": "number" } } },
     "PermAnswerMsg": { "type": "object", "required": ["t","reqId","decision"],
-      "properties": { "t": { "const": "perm_answer" }, "reqId": { "type": "string", "pattern": "^[0-9a-f]{16}$" }, "decision": { "enum": ["allow","allow_always","deny","pc"] } } },
+      "properties": { "t": { "const": "perm_answer" }, "reqId": { "type": "string", "pattern": "^[0-9a-f]{16}$" }, "decision": { "enum": ["allow","allow_always","deny","pc","reply"] }, "reply": { "type": "integer", "minimum": 0, "maximum": 3 } } },
     "ClientMsg": { "oneOf": [ { "$ref": "#/$defs/PairMsg" }, { "$ref": "#/$defs/HelloMsg" }, { "$ref": "#/$defs/PressMsg" }, { "$ref": "#/$defs/NotifDismissMsg" }, { "$ref": "#/$defs/PingMsg" }, { "$ref": "#/$defs/PermAnswerMsg" } ] },
 
     "SysStats": { "type": "object", "required": ["cpu","mem","disks","net","uptimeSec"],
@@ -73,6 +73,7 @@
     "PermRequest": { "type": "object", "required": ["reqId","provider","tool","summary","project","sessionId","expiresAt"],
       "properties": { "reqId": { "type": "string", "pattern": "^[0-9a-f]{16}$" }, "provider": { "enum": ["claude","codex"] }, "tool": { "type": "string", "maxLength": 60 }, "summary": { "type": "string", "maxLength": 300 },
         "project": { "type": "string", "maxLength": 60 }, "sessionId": { "type": "string", "maxLength": 8 }, "expiresAt": { "type": "number" },
+        "replies": { "type": "array", "maxItems": 4, "items": { "type": "string", "maxLength": 120 } },
         "always": { "type": "object", "required": ["kind","value"], "properties": { "kind": { "enum": ["command","project","host","tool"] }, "value": { "type": "string", "maxLength": 400 } } } } },
     "AiInfo": { "type": "object", "required": ["sessions","pending"],
       "properties": { "claude": { "oneOf": [ { "$ref": "#/$defs/AiProvider" }, { "type": "null" } ] }, "codex": { "oneOf": [ { "$ref": "#/$defs/AiProvider" }, { "type": "null" } ] },

@@ -73,6 +73,14 @@ pub struct PermRequest {
     /// What "Always allow" would remember for this question; absent when nothing safe can be remembered.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub always: Option<AlwaysOffer>,
+    /// Ready answers for "Deny and say": the phone shows them as buttons and sends the number; the text is told to the tool.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub replies: Vec<String>,
+}
+
+/// The answers offered with "Deny and say" when the user has not made their own.
+pub fn default_replies() -> Vec<String> {
+    ["Not this way: please try another approach.", "Show me your plan first and wait for my answer.", "Ask me before you change more files."].iter().map(|s| s.to_string()).collect()
 }
 
 /// `kind` is `command` (the first words of a plain shell command), `project` (the same tool inside one project folder), `host`
@@ -357,7 +365,7 @@ pub fn status_text(claude: Option<&AiProvider>) -> String {
 
 struct Pending {
     req: PermRequest,
-    tx: Option<oneshot::Sender<PermDecision>>,
+    tx: Option<oneshot::Sender<(PermDecision, Option<String>)>>,
     /// What "Always allow" would remember: (tool name, kind, value).
     draft: Option<(String, &'static str, String)>,
 }
@@ -425,6 +433,8 @@ pub struct AiHub {
 pub struct PermOpts {
     /// `claude` | `codex`.
     pub provider: &'static str,
+    /// The ready answers of "Deny and say" (at most 4).
+    pub replies: Vec<String>,
     pub approvals: bool,
     pub phones: usize,
     pub timeout: Duration,
@@ -558,10 +568,21 @@ impl AiHub {
     /// An answer from the phone. The first answer wins; an unknown or already answered request is ignored.
     /// `AllowAlways` allows this question and remembers the rule that was offered with it.
     pub fn answer(&self, req_id: &str, decision: PermDecision) -> bool {
+        self.answer_with(req_id, decision, None)
+    }
+
+    /// `reply` is the number of one of the request's ready answers (with `PermDecision::Reply`).
+    pub fn answer_with(&self, req_id: &str, decision: PermDecision, reply: Option<usize>) -> bool {
         let mut d = self.data.lock().unwrap();
         let Some(i) = d.pending.iter().position(|p| p.req.req_id == req_id) else { return false };
         let mut pending = d.pending.remove(i);
         let mut decision = decision;
+        let mut note = None;
+        if decision == PermDecision::Reply {
+            // A number that is not on the list is a plain denial.
+            note = reply.and_then(|i| pending.req.replies.get(i).cloned());
+            decision = PermDecision::Deny;
+        }
         if decision == PermDecision::AllowAlways {
             decision = PermDecision::Allow;
             if let Some((tool, kind, value)) = pending.draft.take() {
@@ -574,7 +595,7 @@ impl AiHub {
             }
         }
         if let Some(tx) = pending.tx.take() {
-            let _ = tx.send(decision);
+            let _ = tx.send((decision, note));
         }
         self.flush(&mut d, true);
         true
@@ -645,6 +666,7 @@ impl AiHub {
             provider: opts.provider.to_string(),
             tool: tool.clone(),
             summary: summary.clone(),
+            replies: opts.replies.clone(),
             project: project.clone(),
             session_id: str_field(&hook, "session_id").unwrap_or("").chars().take(8).collect(),
             expires_at: now + opts.timeout.as_millis() as u64,
@@ -670,16 +692,17 @@ impl AiHub {
         }
         let _guard = PendingGuard { hub: self.clone(), req_id: req_id.clone() };
         let decision = tokio::select! {
-            answer = rx => answer.unwrap_or(PermDecision::Pc),
-            _ = tokio::time::sleep(opts.timeout) => PermDecision::Pc,
+            answer = rx => answer.unwrap_or((PermDecision::Pc, None)),
+            _ = tokio::time::sleep(opts.timeout) => (PermDecision::Pc, None),
         };
+        let (decision, note) = decision;
         // Never the summary: it can hold a command or a path.
         tracing::info!("permission {req_id} tool={tool} project={project} -> {decision:?}");
         {
             let mut d = self.data.lock().unwrap();
             let word = match decision {
                 PermDecision::Allow | PermDecision::AllowAlways => "allow",
-                PermDecision::Deny => "deny",
+                PermDecision::Deny | PermDecision::Reply => "deny",
                 PermDecision::Pc => "pc",
             };
             self.log(&mut d, PermLog { ts: now, provider: opts.provider.to_string(), tool, summary, project, decision: word.to_string() });
@@ -687,7 +710,10 @@ impl AiHub {
         }
         match decision {
             PermDecision::Allow | PermDecision::AllowAlways => Some(ALLOW_BODY.to_string()),
-            PermDecision::Deny => Some(DENY_BODY.to_string()),
+            PermDecision::Deny | PermDecision::Reply => Some(match note {
+                Some(text) => json!({ "hookSpecificOutput": { "hookEventName": "PermissionRequest", "decision": { "behavior": "deny", "message": text } } }).to_string(),
+                None => DENY_BODY.to_string(),
+            }),
             PermDecision::Pc => None,
         }
     }
@@ -1012,7 +1038,7 @@ mod tests {
     }
 
     fn opts(ms: u64) -> PermOpts {
-        PermOpts { provider: "claude", approvals: true, phones: 1, timeout: Duration::from_millis(ms) }
+        PermOpts { provider: "claude", replies: vec!["Plan first".to_string(), "Other way".to_string()], approvals: true, phones: 1, timeout: Duration::from_millis(ms) }
     }
 
     fn hook(tool: &str, input: Value) -> Vec<u8> {
@@ -1129,8 +1155,32 @@ mod tests {
         assert_eq!(hub.snapshot()["history"].as_array().unwrap().len(), MAX_HISTORY);
     }
 
-    async fn wait_pending(hub: &Arc<AiHub>, n: usize) -> Vec<Value> {
-        for _ in 0..200 {
+    #[tokio::test]
+    async fn deny_and_say_tells_the_tool_the_ready_answer() {
+        let hub = hub();
+        let body = hook("Bash", json!({ "command": "echo hi" }));
+        let task = tokio::spawn({
+            let (hub, body) = (hub.clone(), body.clone());
+            async move { hub.permission(opts(5000), &body).await }
+        });
+        let pending = wait_pending(&hub, 1).await;
+        assert_eq!(pending[0]["replies"], json!(["Plan first", "Other way"]));
+        assert!(hub.answer_with(pending[0]["reqId"].as_str().unwrap(), PermDecision::Reply, Some(1)));
+        let answer: Value = serde_json::from_str(&task.await.unwrap().unwrap()).unwrap();
+        assert_eq!(answer["hookSpecificOutput"]["decision"]["behavior"], "deny");
+        assert_eq!(answer["hookSpecificOutput"]["decision"]["message"], "Other way");
+
+        // A number that is not on the list is a plain denial.
+        let task = tokio::spawn({
+            let hub = hub.clone();
+            async move { hub.permission(opts(5000), &body).await }
+        });
+        let pending = wait_pending(&hub, 1).await;
+        hub.answer_with(pending[0]["reqId"].as_str().unwrap(), PermDecision::Reply, Some(9));
+        assert_eq!(task.await.unwrap().as_deref(), Some(DENY_BODY));
+    }
+
+    async fn wait_pending(hub: &Arc<AiHub>, n: usize) -> Vec<Value> {        for _ in 0..200 {
             let pending = hub.snapshot()["pending"].as_array().cloned().unwrap_or_default();
             if pending.len() == n {
                 return pending;
@@ -1218,8 +1268,8 @@ mod tests {
         assert_eq!(hub.permission(opts(30), &hook("Bash", json!({ "command": "ls" }))).await, None);
         assert!(wait_pending(&hub, 0).await.is_empty());
         // No phone, or approvals off: an empty body at once and nothing pending.
-        assert_eq!(hub.permission(PermOpts { provider: "claude", approvals: true, phones: 0, timeout: Duration::from_secs(60) }, &hook("Bash", json!({}))).await, None);
-        assert_eq!(hub.permission(PermOpts { provider: "claude", approvals: false, phones: 1, timeout: Duration::from_secs(60) }, &hook("Bash", json!({}))).await, None);
+        assert_eq!(hub.permission(PermOpts { provider: "claude", replies: Vec::new(), approvals: true, phones: 0, timeout: Duration::from_secs(60) }, &hook("Bash", json!({}))).await, None);
+        assert_eq!(hub.permission(PermOpts { provider: "claude", replies: Vec::new(), approvals: false, phones: 1, timeout: Duration::from_secs(60) }, &hook("Bash", json!({}))).await, None);
         assert_eq!(hub.permission(opts(60_000), b"not json").await, None);
         assert!(wait_pending(&hub, 0).await.is_empty());
         // Claude Code hangs up (the future is dropped): the request is removed.

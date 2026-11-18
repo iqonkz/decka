@@ -128,3 +128,19 @@ describe("context pages in the store", () => {
     expect(getState().hint).toBeNull();
   });
 });
+
+describe("pages shown by the time of day", () => {
+  const timed: Page[] = [...pages, { id: "evening", name: "Stream", time: { from: "20:00", to: "23:30" }, items: [] }, { id: "night", name: "Night", time: { from: "23:30", to: "06:00" }, items: [] }];
+  const at = (h: number, m = 0) => new Date(2026, 10, 18, h, m).getTime();
+
+  test("the page opens inside its hours and a program page wins over it", () => {
+    expect(decide({ pages: timed, focusApp: { app: null }, now: at(21) }).pageIndex).toBe(3);
+    expect(decide({ pages: timed, focusApp: { app: "code.exe" }, now: at(21) }).pageIndex).toBe(1);
+  });
+
+  test("hours that cross midnight, and outside every range the home page returns", () => {
+    expect(decide({ pages: timed, focusApp: { app: null }, now: at(2) }).pageIndex).toBe(4);
+    const inside = decide({ pages: timed, focusApp: { app: null }, now: at(21) });
+    expect(decide({ pages: timed, focusApp: { app: null }, pageIndex: 3, autoPageId: inside.autoPageId, now: at(10) })).toMatchObject({ pageIndex: 0, autoPageId: null });
+  });
+});

@@ -7,6 +7,8 @@ import Button from "../ui/Button";
 
 const DEFAULTS: AiConfig = { claude: { enabled: false, approvals: true, timeoutSec: 120 }, codex: { enabled: true } };
 const WAITS = [60, 120, 300] as const;
+/** The same three texts as `default_replies` in agent/core/src/ai.rs. */
+const DEFAULT_REPLIES = ["Not this way: please try another approach.", "Show me your plan first and wait for my answer.", "Ask me before you change more files."];
 
 /** The words of a rule of "Always allow" in the list. */
 export function ruleText(r: AiRule): string {
@@ -126,6 +128,19 @@ export default function AiSection({ config, onSaved }: { config: ConfigFile; onS
       </label>
       {installed && status?.codexHook && <small className="muted block">{t("aiset.codex_hook")}</small>}
       {!status?.codexHook && status?.codexFound && ai.codex.approvals !== false && <small className="muted block">{t("aiset.codex_install_hint")}</small>}
+
+      <h4>{t("ai.replies_title")}</h4>
+      <small className="muted block">{t("ai.replies_intro")}</small>
+      <textarea
+        key={(ai.replies ?? DEFAULT_REPLIES).join("\n")}
+        rows={4}
+        maxLength={500}
+        defaultValue={(ai.replies ?? DEFAULT_REPLIES).join("\n")}
+        onBlur={(e) => {
+          const lines = e.target.value.split("\n").map((l) => l.trim().slice(0, 120)).filter((l) => l !== "").slice(0, 4);
+          if (lines.join("\n") !== (ai.replies ?? DEFAULT_REPLIES).join("\n")) void save({ ...ai, replies: lines });
+        }}
+      />
 
       <h4>{t("ai.rules_title")}</h4>
       <small className="muted block">{t("ai.rules_intro")}</small>

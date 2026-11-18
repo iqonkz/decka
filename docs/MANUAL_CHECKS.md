@@ -225,4 +225,8 @@
 - DONE (tests): the app keys widget helpers, the eight new page templates are valid layouts, follower alerts (first look only sets the mark), YouTube go live / end against the local fake.
 - PENDING (owner): the shortcuts of the new templates (Outlook, Word, Excel, PowerPoint, Canva, Telegram, WhatsApp, Discord) were written from memory of each program's documentation and not tried in the programs; the exe names (`olk.exe`, `whatsapp.root.exe`, `canva.exe`) depend on how the program was installed.
 - PENDING (owner): the App keys widget on the phone: bring a program that has a page to the front and the keys of that page fill the widget; a program without a page shows the hint and its exe name.
-- PENDING (owner): the installer pictures at 125% / 150% scaling look sharp; a new follower on Twitch rings on the phone (needs a live channel); YT go live / YT end with a stream scheduled in YouTube Studio.
+- PENDING (owner): the installer pictures at 125% / 150% scaling look sharp; a new follower on Twitch rings on the phone (needs a live channel); YT go live / YT end with a stream scheduled in YouTube Studio.- PENDING (owner): `Deny and say` buttons under a permission question (three built-in texts, editable in AI coding): the chosen text appears as Claude Code's reason for the denial; Codex likewise.
+- PENDING (owner): a page with hours of the day (Pages → the page's card → Show at certain hours): the phone opens it inside the hours when no program page applies, and goes home after; hours across midnight.
+- PENDING (owner): the banner in Pages (`X is in front and has no page`) appears for a program with a template and adds the page in one click.
+- PENDING (owner): the phone's `Cannot reach the PC` screen with the three hints after about 8 seconds (stop the agent to see it).
+- PENDING (owner): Teams and Chrome/Edge keys (Teams `ms-teams.exe`; shortcuts from Microsoft's own table).

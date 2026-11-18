@@ -102,6 +102,11 @@ export function validateLayout(layout: LayoutFile, actions: ActionsFile): Valida
     if (page.popup === true && pi === 0) add("/pages/0/popup", "the first page cannot be a popup group");
     if (page.popup === true && page.apps !== undefined && page.apps.length > 0) add(`/pages/${pi}/apps`, "a popup group cannot show itself for apps: remove them");
     if (page.stayOpen !== undefined && page.popup !== true) add(`/pages/${pi}/stayOpen`, "stayOpen only makes sense for a popup group");
+    if (page.time !== undefined) {
+      const hhmm = /^([01]\d|2[0-3]):[0-5]\d$/;
+      if (!hhmm.test(page.time.from) || !hhmm.test(page.time.to) || page.time.from === page.time.to) add(`/pages/${pi}/time`, "time needs two different times of day, HH:MM");
+      if (page.popup === true || pi === 0) add(`/pages/${pi}/time`, "the home page and popup groups cannot be shown by time");
+    }
   });
 
   // Context pages (DATA_MODEL.md 3.2 item 9): the first page is home; an app belongs to one page only.

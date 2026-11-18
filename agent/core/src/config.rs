@@ -83,7 +83,7 @@ pub fn empty_actions() -> ActionsFile {
 
 pub fn empty_layout() -> LayoutFile {
     let mut layout = default_layout();
-    layout.pages = vec![Page { id: "main".to_string(), name: "Main".to_string(), items: Vec::new(), apps: None, popup: None, stay_open: None }];
+    layout.pages = vec![Page { id: "main".to_string(), name: "Main".to_string(), items: Vec::new(), apps: None, popup: None, stay_open: None, time: None }];
     layout
 }
 

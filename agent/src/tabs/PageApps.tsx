@@ -73,6 +73,28 @@ export default function PageApps({ page, isFirst, onChange }: Props) {
         <Button onClick={refresh}>{t("pageapps.refresh")}</Button>
       </div>
       <p className="muted">{t("pageapps.hint")}</p>
+      <h4>{t("pageapps.time_title")}</h4>
+      <div className="row">
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={page.time !== undefined}
+            onChange={(e) => {
+              const { time: _old, ...rest } = page;
+              onChange(e.target.checked ? { ...rest, time: { from: "20:00", to: "23:00" } } : rest);
+            }}
+          />{" "}
+          {t("pageapps.time_on")}
+        </label>
+        {page.time && (
+          <>
+            <input type="time" aria-label={t("pageapps.time_from")} value={page.time.from} onChange={(e) => e.target.value && onChange({ ...page, time: { from: e.target.value, to: page.time!.to } })} />
+            <span>–</span>
+            <input type="time" aria-label={t("pageapps.time_to")} value={page.time.to} onChange={(e) => e.target.value && onChange({ ...page, time: { from: page.time!.from, to: e.target.value } })} />
+          </>
+        )}
+      </div>
+      <p className="muted">{t("pageapps.time_hint")}</p>
     </section>
   );
 }

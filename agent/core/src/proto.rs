@@ -42,7 +42,12 @@ pub enum ClientMsg {
     NotifDismiss { notif_id: String },
     Ping { ts: i64 },
     /// M16: the answer of the phone to a permission question (DATA_MODEL.md 6.8).
-    PermAnswer { req_id: String, decision: PermDecision },
+    PermAnswer {
+        req_id: String,
+        decision: PermDecision,
+        #[serde(default)]
+        reply: Option<u8>,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -53,6 +58,8 @@ pub enum PermDecision {
     #[serde(rename = "allow_always")]
     AllowAlways,
     Deny,
+    /// "Deny and say": the number of the ready answer comes with it (`reply`).
+    Reply,
     /// "Answer on PC": Claude Code asks in the terminal.
     Pc,
 }

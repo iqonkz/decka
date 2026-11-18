@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { t } from "@decka/shared";
 import { useApplyLanguage } from "@decka/ui";
+import ConnectingScreen from "./screens/ConnectingScreen";
 import DeckScreen from "./screens/DeckScreen";
 import PairScreen from "./screens/PairScreen";
 import { applyOrientation } from "./platform/orientation";
@@ -20,6 +21,6 @@ export default function App() {
 
   if (conn === "unpaired") return <PairScreen />;
   if (conn === "update_required") return <div className="center">{t("phone.update_required")}</div>;
-  if (!hasState) return <div className="center">{t("phone.connecting")}</div>;
+  if (!hasState) return <ConnectingScreen />;
   return <DeckScreen />;
 }

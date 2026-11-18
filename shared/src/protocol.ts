@@ -25,7 +25,7 @@ export interface PressMsg { t: "press"; id: number; actionId: Id; }
 export interface NotifDismissMsg { t: "notif_dismiss"; notifId: string; }
 export interface PingMsg  { t: "ping"; ts: number; }
 /** M16: the answer to a permission question of Claude Code (DATA_MODEL.md 6.8); `pc` = ask in the terminal instead. */
-export interface PermAnswerMsg { t: "perm_answer"; reqId: string; decision: "allow" | "allow_always" | "deny" | "pc"; }   // reqId ^[0-9a-f]{16}$
+export interface PermAnswerMsg { t: "perm_answer"; reqId: string; decision: "allow" | "allow_always" | "deny" | "pc" | "reply"; reply?: number; }   // reply: the number of a ready answer (with decision "reply")   // reqId ^[0-9a-f]{16}$
 export type ClientMsg = PairMsg | HelloMsg | PressMsg | NotifDismissMsg | PingMsg | PermAnswerMsg;
 
 // ===== Server -> Client (WS) =====
@@ -110,6 +110,7 @@ export interface PermRequest {
   project: string;                 // <= 60
   sessionId: string;
   expiresAt: number;               // ts after which the agent lets the question go to the terminal
+  replies?: string[];              // ready answers of "Deny and say", at most 4
   always?: { kind: "command" | "project" | "host" | "tool"; value: string };   // what "Always allow" would remember; absent = nothing safe to remember
 }
 /** One answered question (kept in the agent's memory only). `auto` = a rule of "Always allow" answered it. */

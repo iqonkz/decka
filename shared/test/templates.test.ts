@@ -15,11 +15,12 @@ import canva from "../templates/canva.json";
 import telegram from "../templates/telegram.json";
 import whatsapp from "../templates/whatsapp.json";
 import discord from "../templates/discord.json";
+import teams from "../templates/teams.json";
 import type { LayoutFile, LayoutItem } from "../src/layout";
 import type { PageTemplate } from "../src/templates";
 import { validateLayout } from "../src/validate";
 
-const templates = [vscode, browser, zoom, spotify, outlook, word, excel, powerpoint, canva, telegram, whatsapp, discord] as unknown as PageTemplate[];
+const templates = [vscode, browser, zoom, spotify, outlook, word, excel, powerpoint, canva, telegram, whatsapp, discord, teams] as unknown as PageTemplate[];
 
 const ajv = new Ajv2020({ allErrors: true, strict: false });
 ajv.addSchema(actionsSchema);
