@@ -4,7 +4,7 @@ import { EMPTY_DATA, pressErrorTitle, recordAi, recordSys, resetAiHistory, reset
 import { dismiss, press } from "../app/controller";
 import { lastTouchWokeScreen } from "../display/idle";
 import { hapticEvent } from "../platform/haptics";
-import { getState, goBack, navigateManually, openPopup, pushToast, reopenPerm, signalAttention, useAppState } from "../store/store";
+import { getState, goBack, navigateManually, openPopup, pushToast, openPermHistory, reopenPerm, signalAttention, useAppState } from "../store/store";
 
 const ERROR_TOAST_MS = 4000;
 const NO_ICONS: Record<string, string> = {};
@@ -95,5 +95,5 @@ export function useDeckProps(): { data: DeckData } & Required<DeckCallbacks> {
     openPopup(popupId, anchor);
   }, []);
 
-  return { data, onPress: press, onPressError, onNavigate, onDismiss: dismiss, onOpenPopup, onFeedback, onTimerDone, onOpenPerm: reopenPerm };
+  return { data, onPress: press, onPressError, onNavigate, onDismiss: dismiss, onOpenPopup, onFeedback, onTimerDone, onOpenPerm: reopenPerm, onOpenPermHistory: openPermHistory };
 }

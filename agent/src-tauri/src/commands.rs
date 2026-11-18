@@ -147,6 +147,25 @@ pub fn save_config(app: AppHandle, config: ConfigFile) -> Result<SaveResult, Str
     Ok(result)
 }
 
+/// Forgets one rule of "Always allow" (`id` given) or all of them.
+#[tauri::command]
+pub fn ai_remove_rule(app: AppHandle, id: Option<String>) -> Result<(), String> {
+    agent(&app)?.ai_remove_rules(id.as_deref());
+    Ok(())
+}
+
+/// The connection checks of the Phone tab.
+#[tauri::command]
+pub async fn diagnose_connection(app: AppHandle) -> Result<Vec<decka_core::diag::DiagCheck>, String> {
+    Ok(agent(&app)?.diagnose().await)
+}
+
+/// Adds the Windows Firewall rule for Decka (Windows asks for administrator rights).
+#[tauri::command]
+pub async fn fix_firewall() -> Result<(), String> {
+    decka_core::diag::fix_firewall().await
+}
+
 #[tauri::command]
 pub async fn restart_server(app: AppHandle) -> Result<AgentStatus, String> {
     Ok(agent(&app)?.restart_server().await)

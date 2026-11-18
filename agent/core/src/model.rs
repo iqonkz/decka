@@ -659,6 +659,9 @@ pub struct AiConfig {
     pub codex: AiCodexConfig,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub hook_token: Option<String>,
+    /// What the user chose to allow always (the phone's "Always allow"); changed only by the agent and the rules list of the window.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub rules: Vec<crate::ai::AiRule>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

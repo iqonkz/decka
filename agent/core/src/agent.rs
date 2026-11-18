@@ -661,6 +661,7 @@ impl Agent {
         let claude_on = ai.as_ref().is_some_and(|a| a.claude.enabled);
         let codex_on = ai.as_ref().is_some_and(|a| a.codex.enabled);
         self.inner.ai.configure(claude_on, codex_on);
+        self.inner.ai.set_rules(ai.as_ref().map(|a| a.rules.clone()).unwrap_or_default());
         if !claude_on && !codex_on {
             return;
         }
@@ -1192,6 +1193,26 @@ impl Agent {
     /// `perm_answer` from a phone.
     pub fn answer_permission(&self, req_id: &str, decision: crate::proto::PermDecision) {
         self.inner.ai.answer(req_id, decision);
+        self.save_ai_rules();
+    }
+
+    /// Writes the rules of "Always allow" to config.json when they changed since the last save.
+    fn save_ai_rules(&self) {
+        if !self.inner.ai.take_rules_dirty() {
+            return;
+        }
+        let mut config = self.config();
+        let Some(ai) = config.ai.as_mut() else { return };
+        ai.rules = self.inner.ai.rules();
+        if let SaveResult::Rejected(issues) = self.write_config(config) {
+            tracing::warn!("cannot save the rules of Always allow: {}", issues.first().map(|i| i.message.as_str()).unwrap_or(""));
+        }
+    }
+
+    /// The rules list of the window: forget one rule (`Some(id)`) or all of them (`None`).
+    pub fn ai_remove_rules(&self, id: Option<&str>) {
+        self.inner.ai.remove_rules(id);
+        self.save_ai_rules();
     }
 
     pub fn cc_status(&self) -> CcStatus {
@@ -1222,6 +1243,7 @@ impl Agent {
             claude: AiClaudeConfig { enabled: true, approvals: true, timeout_sec: 120 },
             codex: AiCodexConfig { enabled: codex_found, approvals: None },
             hook_token: None,
+            rules: Vec::new(),
         });
         let token = ai.hook_token.get_or_insert_with(config::generate_api_token).clone();
         ai.claude.enabled = true;
@@ -1413,6 +1435,8 @@ impl Agent {
         let before = self.config();
         if let Some(ai) = config.ai.as_mut() {
             ai.hook_token = before.ai.as_ref().and_then(|a| a.hook_token.clone());
+            // The rules of "Always allow" change only through the phone and the rules list, never through a saved form.
+            ai.rules = before.ai.as_ref().map(|a| a.rules.clone()).unwrap_or_default();
         }
         // The YouTube secret and sign-in are written by Decka only; a new client id is another application, so they go.
         if let Some(yt) = config.youtube.as_mut() {
@@ -1792,6 +1816,11 @@ impl Agent {
             list.truncate(MAX_NOTIFICATIONS);
         });
         id
+    }
+
+    /// The connection checks of the Phone tab (`diag.rs`).
+    pub async fn diagnose(&self) -> Vec<crate::diag::DiagCheck> {
+        crate::diag::run(&self.status()).await
     }
 
     pub fn status(&self) -> AgentStatus {

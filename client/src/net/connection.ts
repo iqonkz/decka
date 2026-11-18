@@ -118,7 +118,7 @@ export class Connection {
   }
 
   /** The answer to a permission question of Claude Code (DATA_MODEL.md 6.8). */
-  permAnswer(reqId: string, decision: "allow" | "deny" | "pc"): void {
+  permAnswer(reqId: string, decision: "allow" | "allow_always" | "deny" | "pc"): void {
     if (this.ws && this.welcomed) this.ws.send(JSON.stringify({ t: "perm_answer", reqId, decision }));
   }
 

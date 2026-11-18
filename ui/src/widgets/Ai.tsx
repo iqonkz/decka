@@ -53,7 +53,7 @@ function ProviderBlock({ provider, data, windows, now, item, history }: { provid
  * times and the forecast; 4x2: the limits on the left and the Claude Code sessions on the right.
  */
 export default function Ai({ item }: { item: AiItem }) {
-  const { ai, onOpenPerm } = useDeckEnv();
+  const { ai, onOpenPerm, onOpenPermHistory } = useDeckEnv();
   const history = useAiHistory();
   const show = item.show ?? "both";
   const now = Date.now();
@@ -67,7 +67,7 @@ export default function Ai({ item }: { item: AiItem }) {
   const windowsOf = (p: AiProvider): AiWindow[] => (compact && show === "both" ? p.windows.slice(0, 1) : p.windows);
 
   return (
-    <div className={compact ? "ai ai-compact" : "ai"}>
+    <div className={compact ? "ai ai-compact" : "ai"} onClick={() => (ai?.history?.length ?? 0) > 0 && onOpenPermHistory?.()}>
       <div className="ai-limits">
         {(show === "both" || show === "claude") &&
           (claude ? (
@@ -95,7 +95,7 @@ export default function Ai({ item }: { item: AiItem }) {
         </div>
       )}
       {pending > 0 && (
-        <button type="button" className="ai-badge" aria-label={t("ai.waiting", { n: pending })} onClick={() => onOpenPerm?.()}>
+        <button type="button" className="ai-badge" aria-label={t("ai.waiting", { n: pending })} onClick={(e) => { e.stopPropagation(); onOpenPerm?.(); }}>
           {pending}
         </button>
       )}

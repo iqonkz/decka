@@ -4,6 +4,13 @@ import type { LayoutFile } from "./layout";
 import type { ConfigFile, DeviceInfo } from "./config";
 import type { PageTemplate } from "./templates";
 
+/** One line of the connection check (`diag.rs`); `id` and `status` pick the sentence, `detail` fills it. */
+export interface DiagCheck {
+  id: "server" | "bind" | "address" | "reach" | "firewall" | "clients";
+  status: "ok" | "warn" | "fail" | "unknown";
+  detail: string;
+}
+
 export interface AgentStatus {
   version: string;
   focusApp: string | null;                            // M11: the active app on the PC (Status tab)
@@ -78,6 +85,9 @@ export interface IpcCommands {
   get_config(): ConfigFile;
   save_config(args: { config: ConfigFile }): SaveResult;       // port/bind apply after restart_server
   restart_server(): AgentStatus;
+  ai_remove_rule(args: { id?: string }): void;                // forgets one rule of "Always allow", or all of them without `id`
+  diagnose_connection(): DiagCheck[];                          // the Phone tab's `Check connection`
+  fix_firewall(): void;                                        // adds the Windows Firewall rule (UAC)
   regenerate_api_token(): { apiToken: string };
   get_actions(): ActionsFile;
   save_actions(args: { actions: ActionsFile }): SaveResult;

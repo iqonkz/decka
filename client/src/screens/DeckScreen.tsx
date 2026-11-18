@@ -16,6 +16,7 @@ import PopupPanel from "../deck/PopupPanel";
 import { navigableIndices, navigablePosition } from "../deck/popup";
 import Toasts from "../deck/Toasts";
 import PageHint from "../deck/PageHint";
+import PermHistory from "../deck/PermHistory";
 import PermSheet from "../deck/PermSheet";
 import { noteTouch, runContext, useAppState } from "../store/store";
 
@@ -124,6 +125,7 @@ export default function DeckScreen() {
       <DimOverlay mode={mode} dimLevel={layout.display.dimLevel} />
       {mode === "sleep" && <Screensaver />}
       <PermSheet />
+      <PermHistory />
       {confirmUnpair && (
         <div className="dialog-backdrop">
           <div className="dialog" role="dialog" aria-label={t("unpair.title")}>

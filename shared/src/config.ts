@@ -34,7 +34,10 @@ export interface AiConfig {
   claude: { enabled: boolean; approvals: boolean; timeoutSec: 60 | 120 | 300 };
   codex: { enabled: boolean; approvals?: boolean };   // approvals: phone approvals for Codex, absent = on
   hookToken?: string;
+  rules?: AiRule[];                                   // what the phone's "Always allow" remembered; removed in the window
 }
+/** `kind`: `command` (value = the first words), `project` (value = the folder), `host` (value = the site), `tool` (value empty). */
+export interface AiRule { id: string; provider: "claude" | "codex"; tool: string; kind: "command" | "project" | "host" | "tool"; value: string; createdAt: number; }
 export interface WeatherConfig { enabled: boolean; place: string; lat: number; lon: number; units: "metric" | "imperial"; }
 /** `password` is only ever "dpapi:<base64>" on disk and is written only by `set_obs_password`; `get_config` leaves it out and says `passwordSet`. */
 export interface ObsConfig { enabled: boolean; port: number; password?: string; passwordSet?: boolean; }

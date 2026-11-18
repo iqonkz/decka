@@ -51,6 +51,8 @@ export interface DeckCallbacks {
   onTimerDone?: () => void;
   /** The badge of the `ai` widget was tapped: show the permission sheet again (DATA_MODEL.md 6.8). */
   onOpenPerm?: () => void;
+  /** The `ai` widget was tapped: show the list of answered questions. */
+  onOpenPermHistory?: () => void;
 }
 
 export type DeckEnv = DeckData & DeckCallbacks;

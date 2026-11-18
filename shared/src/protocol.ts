@@ -25,7 +25,7 @@ export interface PressMsg { t: "press"; id: number; actionId: Id; }
 export interface NotifDismissMsg { t: "notif_dismiss"; notifId: string; }
 export interface PingMsg  { t: "ping"; ts: number; }
 /** M16: the answer to a permission question of Claude Code (DATA_MODEL.md 6.8); `pc` = ask in the terminal instead. */
-export interface PermAnswerMsg { t: "perm_answer"; reqId: string; decision: "allow" | "deny" | "pc"; }   // reqId ^[0-9a-f]{16}$
+export interface PermAnswerMsg { t: "perm_answer"; reqId: string; decision: "allow" | "allow_always" | "deny" | "pc"; }   // reqId ^[0-9a-f]{16}$
 export type ClientMsg = PairMsg | HelloMsg | PressMsg | NotifDismissMsg | PingMsg | PermAnswerMsg;
 
 // ===== Server -> Client (WS) =====
@@ -110,12 +110,23 @@ export interface PermRequest {
   project: string;                 // <= 60
   sessionId: string;
   expiresAt: number;               // ts after which the agent lets the question go to the terminal
+  always?: { kind: "command" | "project" | "host" | "tool"; value: string };   // what "Always allow" would remember; absent = nothing safe to remember
+}
+/** One answered question (kept in the agent's memory only). `auto` = a rule of "Always allow" answered it. */
+export interface PermLog {
+  ts: number;
+  provider: "claude" | "codex";
+  tool: string;
+  summary: string;
+  project: string;
+  decision: "allow" | "deny" | "pc" | "auto";
 }
 export interface AiInfo {
   claude?: AiProvider | null;      // null = no data (not installed, or no session yet)
   codex?: AiProvider | null;       // null = off, or Codex not found
   sessions: AiSession[];           // Claude Code sessions seen in the last 10 min, newest first, <= 6
   pending: PermRequest[];          // waiting for an answer, oldest first, <= 5
+  history: PermLog[];              // the last answered questions, newest first, <= 30
 }
 
 // M15: weather (DATA_MODEL.md 6.3). Only the agent asks the internet; the phone never does.

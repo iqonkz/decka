@@ -49,6 +49,9 @@ pub enum ClientMsg {
 #[serde(rename_all = "lowercase")]
 pub enum PermDecision {
     Allow,
+    /// Allow, and remember the rule that came with the question ("Always allow").
+    #[serde(rename = "allow_always")]
+    AllowAlways,
     Deny,
     /// "Answer on PC": Claude Code asks in the terminal.
     Pc,

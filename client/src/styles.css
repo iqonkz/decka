@@ -181,3 +181,16 @@ input { user-select: text; touch-action: manipulation; }
   font-size: 3.2vmin;
 }
 .primary.danger { background: #b91c1c; }
+.perm-always { all: unset; box-sizing: border-box; padding: 1.4vmin 2vmin; border-radius: 1.4vmin; border: 1px solid rgba(255, 255, 255, 0.25); font-size: 2.4vmin; text-align: center; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.perm-always:disabled { opacity: 0.45; }
+.hist-list { display: flex; flex-direction: column; gap: 1vmin; overflow: auto; }
+.hist-row { display: flex; align-items: baseline; gap: 1.6vmin; padding: 1vmin 0; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+.hist-mark { flex: none; width: 3vmin; font-weight: 700; text-align: center; }
+.hist-allow .hist-mark, .hist-auto .hist-mark { color: #4ade80; }
+.hist-deny .hist-mark { color: #f87171; }
+.hist-pc .hist-mark { color: #9ca3af; }
+.hist-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.hist-tool { font-size: 2.4vmin; font-weight: 600; }
+.hist-sum { font: 2.1vmin ui-monospace, Consolas, monospace; color: #9ca3af; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hist-time { flex: none; font-size: 2vmin; color: #9ca3af; }
+.hist-close { all: unset; align-self: center; padding: 1.4vmin 3vmin; border-radius: 1.4vmin; background: rgba(255, 255, 255, 0.1); font-size: 2.6vmin; cursor: pointer; }

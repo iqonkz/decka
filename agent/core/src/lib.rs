@@ -5,6 +5,7 @@ pub mod audio;
 pub mod auth;
 pub mod collectors;
 pub mod config;
+pub mod diag;
 pub mod dpapi;
 pub mod icons;
 pub mod installed;

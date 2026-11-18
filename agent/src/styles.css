@@ -370,3 +370,9 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="color"]), select, te
 .swatches input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
 .swatches input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 50%; }
 .item-form > .btn-danger, .item-form > button.danger { align-self: flex-start; background: transparent; }
+
+.diag-list { list-style: none; margin: 8px 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.diag-mark { display: inline-block; width: 1.2em; font-weight: 700; }
+.diag-ok .diag-mark { color: var(--ok); }
+.diag-warn .diag-mark, .diag-unknown .diag-mark { color: var(--warn); }
+.diag-fail .diag-mark { color: var(--danger); }

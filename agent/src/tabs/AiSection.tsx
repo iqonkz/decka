@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { t, type AiConfig, type CcStatus, type ConfigFile } from "@decka/shared";
+import { t, type AiConfig, type AiRule, type CcStatus, type ConfigFile } from "@decka/shared";
 import { relTime } from "@decka/ui";
 import { call } from "../ipc";
 import Banner from "../ui/Banner";
@@ -7,6 +7,20 @@ import Button from "../ui/Button";
 
 const DEFAULTS: AiConfig = { claude: { enabled: false, approvals: true, timeoutSec: 120 }, codex: { enabled: true } };
 const WAITS = [60, 120, 300] as const;
+
+/** The words of a rule of "Always allow" in the list. */
+export function ruleText(r: AiRule): string {
+  switch (r.kind) {
+    case "command":
+      return t("ai.rule_command", { value: r.value });
+    case "project":
+      return t("ai.rule_project", { value: r.value });
+    case "host":
+      return t("ai.rule_host", { value: r.value });
+    default:
+      return t("ai.rule_tool");
+  }
+}
 
 /** `More → Integrations → AI coding` (DATA_MODEL.md 6.8): Claude Code is installed into its own settings and removed again; Codex is only read. */
 export default function AiSection({ config, onSaved }: { config: ConfigFile; onSaved: () => Promise<void> }) {
@@ -37,6 +51,16 @@ export default function AiSection({ config, onSaved }: { config: ConfigFile; onS
       setError(String(e));
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function removeRule(id: string | undefined) {
+    setError(null);
+    try {
+      await call("ai_remove_rule", id === undefined ? {} : { id });
+      await onSaved();
+    } catch (e) {
+      setError(String(e));
     }
   }
 
@@ -102,6 +126,27 @@ export default function AiSection({ config, onSaved }: { config: ConfigFile; onS
       </label>
       {installed && status?.codexHook && <small className="muted block">{t("aiset.codex_hook")}</small>}
       {!status?.codexHook && status?.codexFound && ai.codex.approvals !== false && <small className="muted block">{t("aiset.codex_install_hint")}</small>}
+
+      <h4>{t("ai.rules_title")}</h4>
+      <small className="muted block">{t("ai.rules_intro")}</small>
+      {(ai.rules ?? []).length === 0 ? (
+        <small className="muted block">{t("ai.rules_none")}</small>
+      ) : (
+        <ul className="rules-list">
+          {(ai.rules ?? []).map((r) => (
+            <li key={r.id} className="row">
+              <span>
+                <strong>{t(r.provider === "codex" ? "ai.codex" : "ai.claude")}</strong> · {r.tool}
+                {" · "}
+                {ruleText(r)}
+              </span>
+              <span className="grow" />
+              <Button onClick={() => void removeRule(r.id)}>{t("ai.rule_remove")}</Button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {(ai.rules ?? []).length > 1 && <Button onClick={() => void removeRule(undefined)}>{t("ai.rules_clear")}</Button>}
       {error && <Banner kind="error">{error}</Banner>}
     </section>
   );

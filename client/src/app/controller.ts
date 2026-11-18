@@ -86,7 +86,7 @@ export function dismiss(notifId: string): void {
 }
 
 /** Answers a permission question; the sheet closes at once, without waiting for the new `ai` section. */
-export function answerPerm(reqId: string, decision: "allow" | "deny" | "pc"): void {
+export function answerPerm(reqId: string, decision: "allow" | "allow_always" | "deny" | "pc"): void {
   markPermAnswered(reqId);
   conn().permAnswer(reqId, decision);
 }

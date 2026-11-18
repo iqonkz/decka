@@ -1,13 +1,13 @@
 //! AI coding helpers (DATA_MODEL.md 6.8): the limits Claude Code and Codex write on this PC, and the permission questions of
 //! Claude Code answered from the phone. Everything is local: nothing here talks to the internet and no OAuth token is read.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, VecDeque};
 use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use tokio::sync::oneshot;
 use tokio::time::Instant;
@@ -70,6 +70,30 @@ pub struct PermRequest {
     pub project: String,
     pub session_id: String,
     pub expires_at: u64,
+    /// What "Always allow" would remember for this question; absent when nothing safe can be remembered.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub always: Option<AlwaysOffer>,
+}
+
+/// `kind` is `command` (the first words of a plain shell command), `project` (the same tool inside one project folder), `host`
+/// (WebFetch to one site) or `tool` (one MCP tool); `value` is the command words, the project name, the host or the tool.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct AlwaysOffer {
+    pub kind: String,
+    pub value: String,
+}
+
+/// One answered question, newest first in `AiInfo.history` (kept in memory only; it holds commands and paths).
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PermLog {
+    pub ts: u64,
+    pub provider: String,
+    pub tool: String,
+    pub summary: String,
+    pub project: String,
+    /// `allow` | `deny` | `pc` (the terminal decided, or nobody answered in time) | `auto` (a rule of "Always allow").
+    pub decision: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -78,6 +102,140 @@ pub struct AiInfo {
     pub codex: Option<AiProvider>,
     pub sessions: Vec<AiSession>,
     pub pending: Vec<PermRequest>,
+    pub history: Vec<PermLog>,
+}
+
+pub const MAX_HISTORY: usize = 30;
+pub const MAX_RULES: usize = 50;
+
+// ===== "Always allow" rules =====
+
+/// A rule made by "Always allow" (kept in config.json, shown and removable in the window).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiRule {
+    pub id: String,
+    /// `claude` | `codex`.
+    pub provider: String,
+    /// The tool name as the hook sends it (`Bash`, `Edit`, `WebFetch`, `mcp__server__tool`).
+    pub tool: String,
+    pub kind: String,
+    /// `command`: the first words; `project`: the full folder; `host`: the host; `tool`: empty.
+    pub value: String,
+    pub created_at: u64,
+}
+
+/// Programs that run anything or delete things: no rule is offered for them.
+const NEVER_REMEMBER: &[&str] = &[
+    "rm", "del", "erase", "rmdir", "rd", "remove-item", "ri", "format", "diskpart", "shutdown", "restart-computer", "stop-computer", "sudo", "su", "runas", "curl", "curl.exe", "wget", "iwr", "irm",
+    "invoke-webrequest", "invoke-restmethod", "iex", "invoke-expression", "powershell", "powershell.exe", "pwsh", "cmd", "cmd.exe", "bash", "sh", "zsh", "wsl", "eval", "exec", "start-process", "start",
+    "npx", "pnpx", "bunx", "reg", "regedit", "netsh", "sc", "schtasks", "taskkill", "kill", "stop-process", "chmod", "chown", "icacls", "takeown", "mklink", "ssh", "scp", "ftp", "nc", "ncat",
+];
+
+const SHELL_META: &[char] = &['\n', '\r', ';', '&', '|', '>', '<', '`', '$', '(', ')', '{', '}'];
+
+fn command_of(hook: &Value) -> &str {
+    hook.get("tool_input").and_then(|i| str_field(i, "command")).unwrap_or("").trim()
+}
+
+/// The words of a command that a rule may remember: a plain command (no chaining, redirection or substitution) of one or two words.
+fn rule_words(command: &str) -> Option<Vec<String>> {
+    if command.is_empty() || command.contains(SHELL_META) {
+        return None;
+    }
+    let words: Vec<&str> = command.split_whitespace().collect();
+    let first = words.first()?.to_lowercase();
+    if NEVER_REMEMBER.contains(&first.as_str()) || first.contains(['/', '\\']) {
+        return None;
+    }
+    let plain = |w: &str| !w.starts_with('-') && !w.contains(['/', '\\', ':', '.']);
+    match words.as_slice() {
+        [_] => Some(vec![first]),
+        // `npm run build`: the script is part of the rule, because `run` alone would allow every script of the project.
+        [_, second, third, ..] if second.eq_ignore_ascii_case("run") && plain(third) => Some(vec![first, "run".to_string(), third.to_lowercase()]),
+        [_, second, ..] if plain(second) && !second.eq_ignore_ascii_case("run") => Some(vec![first, second.to_lowercase()]),
+        _ => None,
+    }
+}
+
+/// `path` inside the folder `cwd` (no `..`), as the text after the folder; `None` when it is outside.
+fn inside_folder(path: &str, cwd: &str) -> Option<String> {
+    if cwd.is_empty() || path.is_empty() || path.starts_with('~') {
+        return None;
+    }
+    let p = path.replace('\\', "/");
+    let absolute = p.starts_with('/') || p.as_bytes().get(1) == Some(&b':');
+    let rel = if absolute {
+        let r = relative_to(path, cwd);
+        if r == path {
+            return None;
+        }
+        r
+    } else {
+        path.to_string()
+    };
+    if rel.replace('\\', "/").split('/').any(|seg| seg == "..") {
+        return None;
+    }
+    Some(rel)
+}
+
+fn url_host(url: &str) -> Option<String> {
+    let rest = url.strip_prefix("https://").or_else(|| url.strip_prefix("http://"))?;
+    let authority = rest.split(['/', '?', '#']).next()?;
+    if authority.is_empty() || authority.contains('@') {
+        return None;
+    }
+    let host = authority.split(':').next()?.to_lowercase();
+    if host.is_empty() || !host.chars().all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-') {
+        return None;
+    }
+    Some(host)
+}
+
+/// What "Always allow" would remember for this hook call: (tool name, kind, value); `None` = nothing safe.
+pub fn draft_rule(hook: &Value) -> Option<(String, &'static str, String)> {
+    let name = str_field(hook, "tool_name")?;
+    let input = hook.get("tool_input").unwrap_or(&Value::Null);
+    let cwd = str_field(hook, "cwd").unwrap_or("");
+    match name {
+        "Bash" | "PowerShell" => Some((name.to_string(), "command", rule_words(command_of(hook))?.join(" "))),
+        "Edit" | "Write" | "MultiEdit" | "NotebookEdit" | "Read" => {
+            let path = str_field(input, "file_path").or_else(|| str_field(input, "notebook_path"))?;
+            inside_folder(path, cwd)?;
+            Some((name.to_string(), "project", cwd.to_string()))
+        }
+        "WebFetch" => Some((name.to_string(), "host", url_host(str_field(input, "url")?)?)),
+        n if n.starts_with("mcp__") => Some((n.to_string(), "tool", String::new())),
+        _ => None,
+    }
+}
+
+/// Whether a stored rule covers this hook call of `provider`.
+pub fn rule_matches(rule: &AiRule, provider: &str, hook: &Value) -> bool {
+    if rule.provider != provider || str_field(hook, "tool_name") != Some(rule.tool.as_str()) {
+        return false;
+    }
+    let input = hook.get("tool_input").unwrap_or(&Value::Null);
+    let cwd = str_field(hook, "cwd").unwrap_or("");
+    match rule.kind.as_str() {
+        "command" => {
+            // Only a plain command can match, and it may be longer than the rule (`git status -s`): the words of the rule are its first words.
+            if rule_words(command_of(hook)).is_none() {
+                return false;
+            }
+            let actual: Vec<String> = command_of(hook).split_whitespace().map(str::to_lowercase).collect();
+            let wanted: Vec<&str> = rule.value.split_whitespace().collect();
+            !wanted.is_empty() && actual.len() >= wanted.len() && actual.iter().zip(&wanted).all(|(a, w)| a == w)
+        }
+        "project" => {
+            let path = str_field(input, "file_path").or_else(|| str_field(input, "notebook_path")).unwrap_or("");
+            cwd.replace('\\', "/").eq_ignore_ascii_case(&rule.value.replace('\\', "/")) && inside_folder(path, cwd).is_some()
+        }
+        "host" => str_field(input, "url").and_then(url_host).is_some_and(|h| h == rule.value),
+        "tool" => true,
+        _ => false,
+    }
 }
 
 // ===== text helpers =====
@@ -200,10 +358,16 @@ pub fn status_text(claude: Option<&AiProvider>) -> String {
 struct Pending {
     req: PermRequest,
     tx: Option<oneshot::Sender<PermDecision>>,
+    /// What "Always allow" would remember: (tool name, kind, value).
+    draft: Option<(String, &'static str, String)>,
 }
 
 #[derive(Default)]
 struct Data {
+    history: VecDeque<PermLog>,
+    rules: Vec<AiRule>,
+    /// A rule was added or removed since the agent last saved them.
+    rules_dirty: bool,
     active: bool,
     claude: Option<AiProvider>,
     codex: Option<AiProvider>,
@@ -228,6 +392,7 @@ impl Data {
             codex: self.codex.clone(),
             sessions: self.sessions.clone(),
             pending: self.pending.iter().map(|p| p.req.clone()).collect(),
+            history: self.history.iter().cloned().collect(),
         };
         serde_json::to_value(info).expect("ai section serializes")
     }
@@ -391,10 +556,23 @@ impl AiHub {
     }
 
     /// An answer from the phone. The first answer wins; an unknown or already answered request is ignored.
+    /// `AllowAlways` allows this question and remembers the rule that was offered with it.
     pub fn answer(&self, req_id: &str, decision: PermDecision) -> bool {
         let mut d = self.data.lock().unwrap();
         let Some(i) = d.pending.iter().position(|p| p.req.req_id == req_id) else { return false };
         let mut pending = d.pending.remove(i);
+        let mut decision = decision;
+        if decision == PermDecision::AllowAlways {
+            decision = PermDecision::Allow;
+            if let Some((tool, kind, value)) = pending.draft.take() {
+                let exists = d.rules.iter().any(|r| r.provider == pending.req.provider && r.tool == tool && r.kind == kind && r.value == value);
+                if !exists && d.rules.len() < MAX_RULES {
+                    let id = hex(&crate::config::random_bytes(6));
+                    d.rules.push(AiRule { id, provider: pending.req.provider.clone(), tool, kind: kind.to_string(), value, created_at: crate::auth::now_ms() });
+                    d.rules_dirty = true;
+                }
+            }
+        }
         if let Some(tx) = pending.tx.take() {
             let _ = tx.send(decision);
         }
@@ -402,34 +580,92 @@ impl AiHub {
         true
     }
 
+    /// The rules from config.json (at start and after a restart of the loops).
+    pub fn set_rules(&self, rules: Vec<AiRule>) {
+        let mut d = self.data.lock().unwrap();
+        d.rules = rules;
+        d.rules_dirty = false;
+    }
+
+    /// The rules to save when `take_rules_dirty` says they changed.
+    pub fn rules(&self) -> Vec<AiRule> {
+        self.data.lock().unwrap().rules.clone()
+    }
+
+    pub fn take_rules_dirty(&self) -> bool {
+        std::mem::take(&mut self.data.lock().unwrap().rules_dirty)
+    }
+
+    /// Forgets one rule (`None` = all); true when something was removed.
+    pub fn remove_rules(&self, id: Option<&str>) -> bool {
+        let mut d = self.data.lock().unwrap();
+        let before = d.rules.len();
+        match id {
+            Some(id) => d.rules.retain(|r| r.id != id),
+            None => d.rules.clear(),
+        }
+        let changed = d.rules.len() != before;
+        d.rules_dirty |= changed;
+        changed
+    }
+
+    fn log(&self, d: &mut Data, entry: PermLog) {
+        d.history.push_front(entry);
+        d.history.truncate(MAX_HISTORY);
+    }
+
     /// The `PermissionRequest` hook: `None` = answer with an empty body (Claude Code asks in the terminal),
     /// `Some(json)` = the decision. The call waits for the phone, the timeout, or the hang-up of the HTTP connection.
     pub async fn permission(self: &Arc<Self>, opts: PermOpts, body: &[u8]) -> Option<String> {
-        if !opts.approvals || opts.phones == 0 {
+        if !opts.approvals {
             return None;
         }
         let hook: Value = serde_json::from_slice(body).ok()?;
         let now = crate::auth::now_ms();
         let (tool, summary) = summarize(&hook);
+        let project = basename(str_field(&hook, "cwd").unwrap_or(""));
+        // A rule of "Always allow" answers at once, with or without a phone.
+        {
+            let mut d = self.data.lock().unwrap();
+            d.last_seen = Some(now);
+            if d.rules.iter().any(|r| rule_matches(r, opts.provider, &hook)) {
+                self.log(&mut d, PermLog { ts: now, provider: opts.provider.to_string(), tool: tool.clone(), summary, project: project.clone(), decision: "auto".to_string() });
+                self.flush(&mut d, false);
+                tracing::info!("permission auto tool={tool} project={project} -> rule");
+                return Some(ALLOW_BODY.to_string());
+            }
+        }
+        if opts.phones == 0 {
+            return None;
+        }
         let req_id = hex(&crate::config::random_bytes(8));
+        let draft = draft_rule(&hook);
         let req = PermRequest {
             req_id: req_id.clone(),
             provider: opts.provider.to_string(),
             tool: tool.clone(),
-            summary,
-            project: basename(str_field(&hook, "cwd").unwrap_or("")),
+            summary: summary.clone(),
+            project: project.clone(),
             session_id: str_field(&hook, "session_id").unwrap_or("").chars().take(8).collect(),
             expires_at: now + opts.timeout.as_millis() as u64,
+            always: draft.as_ref().map(|(t, kind, value)| AlwaysOffer {
+                kind: (*kind).to_string(),
+                // A project rule shows the folder's name; the rule itself keeps the whole path.
+                value: match *kind {
+                    "project" => format!("{t}: {project}"),
+                    "command" => format!("{t}: {value}"),
+                    "host" => format!("{t}: {value}"),
+                    _ => t.clone(),
+                },
+            }),
         };
-        let project = req.project.clone();
         let (tx, rx) = oneshot::channel();
         {
             let mut d = self.data.lock().unwrap();
-            d.last_seen = Some(now);
             if d.pending.len() >= MAX_PENDING {
                 return None;
             }
-            d.pending.push(Pending { req, tx: Some(tx) });
+            d.pending.push(Pending { req, tx: Some(tx), draft });
             self.flush(&mut d, true);
         }
         let _guard = PendingGuard { hub: self.clone(), req_id: req_id.clone() };
@@ -439,8 +675,18 @@ impl AiHub {
         };
         // Never the summary: it can hold a command or a path.
         tracing::info!("permission {req_id} tool={tool} project={project} -> {decision:?}");
+        {
+            let mut d = self.data.lock().unwrap();
+            let word = match decision {
+                PermDecision::Allow | PermDecision::AllowAlways => "allow",
+                PermDecision::Deny => "deny",
+                PermDecision::Pc => "pc",
+            };
+            self.log(&mut d, PermLog { ts: now, provider: opts.provider.to_string(), tool, summary, project, decision: word.to_string() });
+            self.flush(&mut d, false);
+        }
         match decision {
-            PermDecision::Allow => Some(ALLOW_BODY.to_string()),
+            PermDecision::Allow | PermDecision::AllowAlways => Some(ALLOW_BODY.to_string()),
             PermDecision::Deny => Some(DENY_BODY.to_string()),
             PermDecision::Pc => None,
         }
@@ -771,6 +1017,116 @@ mod tests {
 
     fn hook(tool: &str, input: Value) -> Vec<u8> {
         serde_json::to_vec(&json!({ "tool_name": tool, "tool_input": input, "cwd": "C:\\work\\proj", "session_id": "abcdef123456" })).unwrap()
+    }
+
+    fn call(tool: &str, input: Value) -> Value {
+        json!({ "tool_name": tool, "tool_input": input, "cwd": "C:\\work\\proj" })
+    }
+
+    fn rule(tool: &str, kind: &str, value: &str) -> AiRule {
+        AiRule { id: "r1".into(), provider: "claude".into(), tool: tool.into(), kind: kind.into(), value: value.into(), created_at: 0 }
+    }
+
+    #[test]
+    fn rules_are_offered_only_for_safe_forms() {
+        let bash = |c: &str| draft_rule(&call("Bash", json!({ "command": c }))).map(|(_, k, v)| format!("{k}:{v}"));
+        assert_eq!(bash("git status").as_deref(), Some("command:git status"));
+        assert_eq!(bash("git status -s").as_deref(), Some("command:git status"));
+        assert_eq!(bash("npm run build").as_deref(), Some("command:npm run build"));
+        assert_eq!(bash("dir").as_deref(), Some("command:dir"));
+        // Chaining, redirection, substitution, dangerous programs, flags and paths first: nothing is offered.
+        for c in ["git status; rm -rf x", "git status && curl x", "echo a > b", "echo $(whoami)", "rm -rf build", "curl https://x", "npx foo", "ls -la", "git -C x status", "python script.py", "C:\\tools\\a.exe go", "npm run", ""] {
+            assert_eq!(bash(c), None, "{c}");
+        }
+        let edit = |p: &str| draft_rule(&call("Edit", json!({ "file_path": p }))).map(|(_, k, v)| format!("{k}:{v}"));
+        assert_eq!(edit("C:\\work\\proj\\src\\a.rs").as_deref(), Some("project:C:\\work\\proj"));
+        assert_eq!(edit("C:\\other\\a.rs"), None);
+        assert_eq!(edit("C:\\work\\proj\\..\\secret.txt"), None);
+        assert_eq!(edit("~/.ssh/config"), None);
+        let fetch = |u: &str| draft_rule(&call("WebFetch", json!({ "url": u }))).map(|(_, k, v)| format!("{k}:{v}"));
+        assert_eq!(fetch("https://Docs.rs/serde?x=1").as_deref(), Some("host:docs.rs"));
+        assert_eq!(fetch("https://user@evil.com/"), None);
+        assert_eq!(fetch("ftp://x"), None);
+        assert_eq!(draft_rule(&call("mcp__git__status", json!({}))).map(|d| d.1), Some("tool"));
+        assert_eq!(draft_rule(&call("WebSearch", json!({ "query": "x" }))), None);
+    }
+
+    #[test]
+    fn a_rule_covers_only_what_it_was_made_for() {
+        let cmd = |c: &str| call("Bash", json!({ "command": c }));
+        let git = rule("Bash", "command", "git status");
+        assert!(rule_matches(&git, "claude", &cmd("git status")));
+        assert!(rule_matches(&git, "claude", &cmd("GIT status -s")));
+        assert!(!rule_matches(&git, "claude", &cmd("git push")));
+        assert!(!rule_matches(&git, "claude", &cmd("git status; rm -rf /")));
+        assert!(!rule_matches(&git, "codex", &cmd("git status")));
+        assert!(!rule_matches(&git, "claude", &call("PowerShell", json!({ "command": "git status" }))));
+
+        let project = rule("Edit", "project", "C:\\work\\proj");
+        assert!(rule_matches(&project, "claude", &call("Edit", json!({ "file_path": "C:\\work\\proj\\a.rs" }))));
+        assert!(!rule_matches(&project, "claude", &call("Edit", json!({ "file_path": "C:\\work\\other\\a.rs" }))));
+        assert!(!rule_matches(&project, "claude", &call("Write", json!({ "file_path": "C:\\work\\proj\\a.rs" }))));
+        let mut elsewhere = call("Edit", json!({ "file_path": "C:\\work\\proj\\a.rs" }));
+        elsewhere["cwd"] = json!("C:\\work\\second");
+        assert!(!rule_matches(&project, "claude", &elsewhere));
+
+        let host = rule("WebFetch", "host", "docs.rs");
+        assert!(rule_matches(&host, "claude", &call("WebFetch", json!({ "url": "https://docs.rs/x" }))));
+        assert!(!rule_matches(&host, "claude", &call("WebFetch", json!({ "url": "https://docs.rs.evil.com/x" }))));
+    }
+
+    #[tokio::test]
+    async fn always_allow_remembers_the_rule_and_the_next_call_is_answered_at_once() {
+        let hub = hub();
+        let body = hook("Bash", json!({ "command": "git status" }));
+        let call = tokio::spawn({
+            let (hub, body) = (hub.clone(), body.clone());
+            async move { hub.permission(opts(5000), &body).await }
+        });
+        let pending = wait_pending(&hub, 1).await;
+        assert_eq!(pending[0]["always"]["kind"], "command");
+        assert!(hub.answer(pending[0]["reqId"].as_str().unwrap(), PermDecision::AllowAlways));
+        assert_eq!(call.await.unwrap().as_deref(), Some(ALLOW_BODY));
+        assert!(hub.take_rules_dirty());
+        assert_eq!(hub.rules().len(), 1);
+
+        // The same command again is allowed without a question (even with no phone), and shows in the history as `auto`.
+        let no_phone = PermOpts { phones: 0, ..opts(50) };
+        assert_eq!(hub.permission(no_phone, &body).await.as_deref(), Some(ALLOW_BODY));
+        let history = hub.snapshot()["history"].as_array().cloned().unwrap();
+        assert_eq!(history[0]["decision"], "auto");
+        assert_eq!(history[1]["decision"], "allow");
+        // Another command still asks.
+        let other = hook("Bash", json!({ "command": "git push" }));
+        assert_eq!(hub.permission(opts(30), &other).await, None);
+
+        // Removing the rule brings the question back.
+        let id = hub.rules()[0].id.clone();
+        assert!(hub.remove_rules(Some(&id)));
+        assert_eq!(hub.permission(PermOpts { phones: 0, ..opts(30) }, &body).await, None);
+    }
+
+    #[tokio::test]
+    async fn the_history_keeps_the_last_answers_newest_first() {
+        let hub = hub();
+        for (i, decision) in [PermDecision::Deny, PermDecision::Allow].into_iter().enumerate() {
+            let body = hook("Bash", json!({ "command": format!("echo {i}") }));
+            let task = tokio::spawn({
+                let hub = hub.clone();
+                async move { hub.permission(opts(5000), &body).await }
+            });
+            let pending = wait_pending(&hub, 1).await;
+            hub.answer(pending[0]["reqId"].as_str().unwrap(), decision);
+            task.await.unwrap();
+        }
+        let history = hub.snapshot()["history"].as_array().cloned().unwrap();
+        assert_eq!(history.iter().map(|h| h["decision"].as_str().unwrap()).collect::<Vec<_>>(), ["allow", "deny"]);
+        assert_eq!(history[0]["tool"], "Bash");
+        for n in 0..40 {
+            let b = hook("Bash", json!({ "command": format!("echo {n}") }));
+            let _ = hub.permission(opts(1), &b).await;
+        }
+        assert_eq!(hub.snapshot()["history"].as_array().unwrap().len(), MAX_HISTORY);
     }
 
     async fn wait_pending(hub: &Arc<AiHub>, n: usize) -> Vec<Value> {

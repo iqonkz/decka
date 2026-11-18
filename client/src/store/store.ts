@@ -38,6 +38,8 @@ export interface AppState {
   lastError: string | null;
   /** Ids of the permission questions that were answered here or put away; they stay out of the sheet until they leave `ai.pending`. */
   permClosed: string[];
+  /** The list of answered questions is open (a tap on the `ai` widget). */
+  permHistoryOpen: boolean;
 }
 
 const SECTIONS: readonly string[] = ["layout", "sys", "statuses", "notifications", "vars", "focus", "media", "icons", "weather", "obs", "ai", "twitch", "youtube"];
@@ -61,6 +63,7 @@ const initial = (): AppState => ({
   toasts: [],
   lastError: null,
   permClosed: [],
+  permHistoryOpen: false,
 });
 
 let current: AppState = initial();
@@ -174,6 +177,14 @@ export function markPermAnswered(reqId: string): void {
 }
 
 /** The badge of the `ai` widget: the questions that were put away come back. */
+export function openPermHistory(): void {
+  if (!current.permHistoryOpen) setState({ permHistoryOpen: true });
+}
+
+export function closePermHistory(): void {
+  if (current.permHistoryOpen) setState({ permHistoryOpen: false });
+}
+
 export function reopenPerm(): void {
   if (current.permClosed.length > 0) setState({ permClosed: [] });
 }
