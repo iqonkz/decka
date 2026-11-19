@@ -4,6 +4,8 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+## 0.8.0 — 2026-11-19
+
 ### Added
 - **Windows notifications** on the phone (More → Integrations → Windows notifications): new toasts of Windows appear on the phone, with a list of apps that are not shown. A tap opens the program the notification came from.
 - **App strip**: when a program without a page of its own is in front, a strip with the keys of its built-in template slides out at the edge of the phone (it replaces the "Add keys for it?" hint on the phone). Per program: open automatically, only the tab, or never; the phone menu lists the ones turned off.
