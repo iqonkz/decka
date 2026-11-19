@@ -43,6 +43,10 @@ export function sizeLimits(kind: string, grid: LayoutFile["grid"], graph = false
     case "twitch":
     case "youtube":
       return [2, 4, 1, 2];
+    case "battery":
+      return [1, 3, 1, 2];
+    case "mail":
+      return [1, 2, 1, 2];
     default:
       return undefined;
   }
@@ -62,6 +66,10 @@ export function sizeAllowed(kind: string, w: number, h: number, grid: LayoutFile
       return h === 1 ? w <= 2 : w >= 3; // 1x1, 2x1, 3x2, 4x2
     case "ai":
       return h === 2 || w === 2; // 2x1, 2x2, 3x2, 4x2
+    case "battery":
+      return !((w === 1 && h === 2) || (w === 3 && h === 2)); // 1x1, 2x1, 2x2, 3x1
+    case "mail":
+      return !(w === 1 && h === 2); // 1x1, 2x1, 2x2
     default:
       return true;
   }

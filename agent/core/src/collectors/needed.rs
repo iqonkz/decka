@@ -43,6 +43,8 @@ pub fn needed_collectors(layout: &LayoutFile, actions: &ActionsFile) -> Needed {
                 LayoutItem::Volume(_) => n.audio = true,
                 LayoutItem::Weather(_) => n.weather = true,
                 LayoutItem::Obs(_) => n.obs = true,
+                LayoutItem::Battery(_) => n.battery = true,
+                LayoutItem::Mail(_) => n.mail = true,
                 LayoutItem::Button(b) => {
                     if let Some(bind) = &b.bind {
                         n.mark_var(&bind.var);

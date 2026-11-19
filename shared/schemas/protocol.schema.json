@@ -67,7 +67,7 @@
         "properties": { "name": { "type": "string" }, "pct": { "type": "number", "minimum": 0, "maximum": 100 }, "kind": { "enum": ["pc","bt"] }, "charging": { "type": "boolean" } } } } } },
     "MailInfo": { "type": "object", "required": ["accounts","updatedAt"],
       "properties": { "updatedAt": { "type": "number" }, "accounts": { "type": "array", "maxItems": 3, "items": { "type": "object", "required": ["id","name","unread"],
-        "properties": { "id": { "type": "string" }, "name": { "type": "string" }, "unread": { "type": ["number","null"] }, "error": { "enum": ["auth","network"] } } } } } },
+        "properties": { "id": { "type": "string" }, "name": { "type": "string" }, "unread": { "type": ["number","null"] }, "error": { "enum": ["auth","network"] }, "openActionId": { "type": "string", "pattern": "^[a-z0-9_-]{1,64}$" } } } } } },
     "YoutubeInfo": { "type": "object", "required": ["connected","channel","live","viewers"],
       "properties": { "connected": { "type": "boolean" }, "channel": { "type": "string", "maxLength": 80 }, "live": { "type": "boolean" },
         "viewers": { "type": "integer", "minimum": 0 }, "subscribers": { "type": "integer", "minimum": 0 },

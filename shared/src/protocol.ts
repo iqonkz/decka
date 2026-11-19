@@ -67,7 +67,8 @@ export interface FullState {
 /** The keys of the built-in template of the app in front (DATA_MODEL.md 10.5), at most 16. */
 export interface StripInfo { app: string; template: string; name: string; keys: { actionId: Id; label: string; icon?: string }[]; }
 export interface BatteryInfo { devices: { name: string; pct: number; kind: "pc" | "bt"; charging?: boolean }[]; updatedAt: number; } // at most 8
-export interface MailInfo { accounts: { id: Id; name: string; unread: number | null; error?: "auth" | "network" }[]; updatedAt: number; } // at most 3
+/** `openActionId` (an id of an existing action, never a command) is the key a tap on the mailbox presses; absent = a tap does nothing. */
+export interface MailInfo { accounts: { id: Id; name: string; unread: number | null; error?: "auth" | "network"; openActionId?: Id }[]; updatedAt: number; } // at most 3
 
 /** The live numbers of the signed-in YouTube channel. No token and no secret ever appear here. */
 export interface YoutubeInfo {

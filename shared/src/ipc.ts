@@ -116,6 +116,8 @@ export interface IpcCommands {
   search_place(args: { query: string }): PlaceResult[] | { error: string };   // M15: Open-Meteo geocoding, up to 5 results, query 2..80 chars
   refresh_weather(): WeatherInfo | { error: string };           // M15: update now (button in the window)
   set_obs_password(args: { password: string }): void;           // M15: encrypts with DPAPI and saves; "" removes the password
+  set_mail_password(args: { accountId: Id; password: string }): void; // M17: encrypts with DPAPI and saves for that mailbox; "" removes it
+  mail_check_now(): void;                                       // M17: looks at the mailboxes at once
   obs_status(): ObsStatus;                                      // M15: for the window (pick a scene / audio input when making keys)
 }
 export interface PlaceResult { name: string; country: string; region?: string; lat: number; lon: number; }

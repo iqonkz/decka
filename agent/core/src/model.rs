@@ -505,6 +505,10 @@ pub enum LayoutItem {
     Ai(AiItem),
     Twitch(PlainItem),
     Youtube(PlainItem),
+    /// M17: charge of the PC and of Bluetooth devices (DATA_MODEL.md 10.6).
+    Battery(PlainItem),
+    /// M17: unread mail (DATA_MODEL.md 10.7).
+    Mail(PlainItem),
     /// The keys of the page of the app in front, shown inside a widget.
     Context(PlainItem),
 }
@@ -522,7 +526,7 @@ impl LayoutItem {
             LayoutItem::Media(i) => (&i.id, i.x, i.y, i.w, i.h),
             LayoutItem::Volume(i) => (&i.id, i.x, i.y, i.w, i.h),
             LayoutItem::Timer(i) => (&i.id, i.x, i.y, i.w, i.h),
-            LayoutItem::Weather(i) | LayoutItem::Obs(i) | LayoutItem::Twitch(i) | LayoutItem::Youtube(i) | LayoutItem::Context(i) => (&i.id, i.x, i.y, i.w, i.h),
+            LayoutItem::Weather(i) | LayoutItem::Obs(i) | LayoutItem::Twitch(i) | LayoutItem::Youtube(i) | LayoutItem::Context(i) | LayoutItem::Battery(i) | LayoutItem::Mail(i) => (&i.id, i.x, i.y, i.w, i.h),
             LayoutItem::Ai(i) => (&i.id, i.x, i.y, i.w, i.h),
         }
     }
@@ -539,7 +543,7 @@ impl LayoutItem {
             LayoutItem::Media(i) => (i.x, i.y) = (x, y),
             LayoutItem::Volume(i) => (i.x, i.y) = (x, y),
             LayoutItem::Timer(i) => (i.x, i.y) = (x, y),
-            LayoutItem::Weather(i) | LayoutItem::Obs(i) | LayoutItem::Twitch(i) | LayoutItem::Youtube(i) | LayoutItem::Context(i) => (i.x, i.y) = (x, y),
+            LayoutItem::Weather(i) | LayoutItem::Obs(i) | LayoutItem::Twitch(i) | LayoutItem::Youtube(i) | LayoutItem::Context(i) | LayoutItem::Battery(i) | LayoutItem::Mail(i) => (i.x, i.y) = (x, y),
             LayoutItem::Ai(i) => (i.x, i.y) = (x, y),
         }
     }
@@ -560,6 +564,8 @@ impl LayoutItem {
             LayoutItem::Ai(_) => "ai",
             LayoutItem::Twitch(_) => "twitch",
             LayoutItem::Youtube(_) => "youtube",
+            LayoutItem::Battery(_) => "battery",
+            LayoutItem::Mail(_) => "mail",
             LayoutItem::Context(_) => "context",
         }
     }
@@ -596,6 +602,73 @@ pub struct ConfigFile {
     /// YouTube (live numbers and a chat key of the signed-in channel); absent = off.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub youtube: Option<YoutubeConfig>,
+    /// M17 (DATA_MODEL.md 10.7): the mailboxes whose unread count is shown; absent = none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mail: Option<MailConfig>,
+}
+
+/// Up to three mailboxes. Only the host given here is ever connected to for mail (ARCHITECTURE.md S21).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct MailConfig {
+    pub accounts: Vec<MailAccount>,
+}
+
+/// `password` is only ever `dpapi:<base64>` on disk, written by `set_mail_password`; the IPC answer leaves it out and sets `passwordSet`.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MailAccount {
+    pub id: String,
+    pub name: String,
+    pub host: String,
+    pub port: u32,
+    pub user: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub password: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub password_set: Option<bool>,
+    /// A plain action (for example `open_url`) pressed by a tap on the mailbox in the widget.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub open_action_id: Option<String>,
+}
+
+/// The `mail` section (PROTOCOL.md 3).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MailInfo {
+    pub accounts: Vec<MailAccountInfo>,
+    pub updated_at: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MailAccountInfo {
+    pub id: String,
+    pub name: String,
+    pub unread: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+    /// The action a tap on the mailbox presses (an id only).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub open_action_id: Option<String>,
+}
+
+/// One device in the `battery` section.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct BatteryDevice {
+    pub name: String,
+    pub pct: u32,
+    /// `pc` or `bt`.
+    pub kind: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub charging: Option<bool>,
+}
+
+/// The `battery` section: the PC first, then the devices by name, at most 8.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BatteryInfo {
+    pub devices: Vec<BatteryDevice>,
+    pub updated_at: u64,
 }
 
 /// `secret` (the client secret of the owner's Google application, which Google's device flow requires and which is not

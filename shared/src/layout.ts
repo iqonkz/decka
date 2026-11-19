@@ -70,6 +70,10 @@ export interface AiItem      extends ItemBase { kind: "ai"; show?: "both" | "cla
 export interface TwitchItem  extends ItemBase { kind: "twitch"; }
 /** The YouTube numbers (live, viewers, subscribers); sizes 2x1..4x2. */
 export interface YoutubeItem extends ItemBase { kind: "youtube"; }
+/** M17 (DATA_MODEL.md 10.6): the charge of the PC and of Bluetooth devices; sizes 1x1, 2x1, 2x2, 3x1. */
+export interface BatteryItem extends ItemBase { kind: "battery"; }
+/** M17 (DATA_MODEL.md 10.7): unread mail; sizes 1x1, 2x1, 2x2. */
+export interface MailItem    extends ItemBase { kind: "mail"; }
 
 /**
  * The keys of the page of the PC app in front (the page whose `apps` has it), laid out in the widget's cells in reading order.
@@ -78,7 +82,7 @@ export interface YoutubeItem extends ItemBase { kind: "youtube"; }
 export interface ContextItem extends ItemBase { kind: "context"; }
 
 export type LayoutItem = ButtonItem | ClockItem | SysItem | StatusesItem | StatusItemTile | NotificationsItem | MediaItem
-  | VolumeItem | TimerItem | WeatherItem | ObsItem | AiItem | TwitchItem | YoutubeItem | ContextItem;
+  | VolumeItem | TimerItem | WeatherItem | ObsItem | AiItem | TwitchItem | YoutubeItem | BatteryItem | MailItem | ContextItem;
 
 /** `navigate` value of a button that goes back to the page the user came from (DATA_MODEL.md 3.8). */
 export const BACK_PAGE = "$back";

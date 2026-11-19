@@ -27,9 +27,16 @@ pub fn is_var_name(s: &str) -> bool {
         && s.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_' || b == b'.' || b == b'-')
 }
 
+/// A DNS name for a mail server: letters, digits, dots and hyphens, 1..253 characters, no empty label (never an address with
+/// a path, a port or a scheme).
+pub fn is_mail_host(s: &str) -> bool {
+    (1..=253).contains(&s.len())
+        && s.split('.').all(|label| (1..=63).contains(&label.len()) && !label.starts_with('-') && !label.ends_with('-') && label.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-'))
+}
+
 /// M15: variables set by the collectors; nobody else writes them (PROTOCOL.md 4, HTTP rules).
 pub fn is_reserved_var(name: &str) -> bool {
-    ["audio.", "mic.", "media.", "obs.", "ai.", "twitch.", "youtube."].iter().any(|p| name.starts_with(p))
+    ["audio.", "mic.", "media.", "obs.", "ai.", "twitch.", "youtube.", "battery.", "mail."].iter().any(|p| name.starts_with(p))
 }
 
 /// `^[a-z0-9._ ()-]{1,60}\.exe$`
@@ -220,6 +227,8 @@ fn size_limits(kind: &str, cols: i32, rows: i32, graph: bool) -> (i32, i32, i32,
         "weather" => (1, 4, 1, 2),
         "obs" => (2, 4, 1, 2),
         "ai" | "twitch" | "youtube" => (2, 4, 1, 2),
+        "battery" => (1, 3, 1, 2),
+        "mail" => (1, 2, 1, 2),
         _ => (2, cols, 1, rows), // statuses, notifications
     }
 }
@@ -236,6 +245,9 @@ fn size_allowed(kind: &str, w: i32, h: i32, cols: i32, rows: i32, graph: bool) -
         "weather" => if h == 1 { w <= 2 } else { w >= 3 },
         // 2x1, 2x2, 3x2, 4x2 (DATA_MODEL.md 3.2 rule 13).
         "ai" => h == 2 || w == 2,
+        // 1x1, 2x1, 2x2, 3x1 (DATA_MODEL.md 10.6) and 1x1, 2x1, 2x2 (10.7).
+        "battery" => (w, h) != (1, 2) && (w, h) != (3, 2),
+        "mail" => (w, h) != (1, 2),
         _ => true,
     }
 }
@@ -468,7 +480,7 @@ pub fn validate_layout(layout: &LayoutFile, actions: &ActionsFile) -> Vec<Valida
                         out.push(issue(format!("{path}/show"), "show must be both, claude or codex"));
                     }
                 }
-                LayoutItem::Clock(_) | LayoutItem::Sys(_) | LayoutItem::Notifications(_) | LayoutItem::Weather(_) | LayoutItem::Obs(_) | LayoutItem::Twitch(_) | LayoutItem::Youtube(_) | LayoutItem::Context(_) => {}
+                LayoutItem::Clock(_) | LayoutItem::Sys(_) | LayoutItem::Notifications(_) | LayoutItem::Weather(_) | LayoutItem::Obs(_) | LayoutItem::Twitch(_) | LayoutItem::Youtube(_) | LayoutItem::Context(_) | LayoutItem::Battery(_) | LayoutItem::Mail(_) => {}
             }
         }
     }
@@ -577,6 +589,36 @@ pub fn validate_config(c: &ConfigFile) -> Vec<ValidationIssue> {
         }
         if [&yt.secret, &yt.tokens].iter().any(|s| s.as_deref().is_some_and(|v| !v.starts_with("dpapi:") || chars(v) > 8000)) {
             out.push(issue("/youtube/tokens", "the secret and the tokens are written by Decka only"));
+        }
+    }
+    if let Some(m) = &c.mail {
+        if m.accounts.len() > 3 {
+            out.push(issue("/mail/accounts", "at most 3 mailboxes"));
+        }
+        for (i, a) in m.accounts.iter().enumerate() {
+            let at = format!("/mail/accounts/{i}");
+            if !is_id(&a.id) || m.accounts.iter().take(i).any(|o| o.id == a.id) {
+                out.push(issue(format!("{at}/id"), "id must be a unique Id"));
+            }
+            if !(1..=40).contains(&chars(&a.name)) {
+                out.push(issue(format!("{at}/name"), "name must be 1..40 characters"));
+            }
+            if !is_mail_host(&a.host) {
+                out.push(issue(format!("{at}/host"), "host must be a host name"));
+            }
+            if !(1..=65535).contains(&a.port) {
+                out.push(issue(format!("{at}/port"), "port must be 1..65535"));
+            }
+            if !(1..=254).contains(&chars(&a.user)) || a.user.chars().any(|ch| ch.is_control()) {
+                out.push(issue(format!("{at}/user"), "user must be 1..254 characters"));
+            }
+            // The password is only ever the DPAPI blob written by `set_mail_password`.
+            if a.password.as_deref().is_some_and(|p| !p.starts_with("dpapi:") || chars(p) > 4000) {
+                out.push(issue(format!("{at}/password"), "password must be written by set_mail_password"));
+            }
+            if a.open_action_id.as_deref().is_some_and(|id| !is_id(id)) {
+                out.push(issue(format!("{at}/openActionId"), "openActionId must be an Id"));
+            }
         }
     }
     if let Some(a) = &c.ai {

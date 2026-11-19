@@ -69,6 +69,8 @@ pub fn run() {
             commands::search_place,
             commands::obs_status,
             commands::set_obs_password,
+            commands::set_mail_password,
+            commands::mail_check_now,
             commands::cc_status,
             commands::cc_install,
             commands::cc_uninstall,

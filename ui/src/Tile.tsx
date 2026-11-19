@@ -1,6 +1,8 @@
 import type { LayoutItem } from "@decka/shared";
 import Button from "./Button";
 import Ai from "./widgets/Ai";
+import Battery from "./widgets/Battery";
+import Mail from "./widgets/Mail";
 import Twitch from "./widgets/Twitch";
 import Youtube from "./widgets/Youtube";
 import Clock from "./widgets/Clock";
@@ -62,6 +64,12 @@ export default function Tile({ item }: { item: LayoutItem }) {
       break;
     case "youtube":
       content = <Youtube item={item} />;
+      break;
+    case "battery":
+      content = <Battery item={item} />;
+      break;
+    case "mail":
+      content = <Mail item={item} />;
       break;
     case "context":
       content = <Context item={item} />;

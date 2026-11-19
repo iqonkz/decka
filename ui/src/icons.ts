@@ -5,6 +5,7 @@ import {
   ArrowRight,
   Bell,
   BellOff,
+  Bluetooth,
   Bug,
   Calendar,
   Camera,
@@ -17,6 +18,7 @@ import {
   Download,
   FileText,
   Folder,
+  Gamepad2,
   GitBranch,
   Globe,
   HardDrive,
@@ -24,6 +26,8 @@ import {
   Heart,
   House,
   Image as ImageIcon,
+  Keyboard,
+  Laptop,
   Link as LinkIcon,
   Lock,
   LogOut,
@@ -35,6 +39,7 @@ import {
   Monitor,
   MonitorOff,
   Moon,
+  Mouse as MouseIcon,
   Music,
   Pause,
   Play,
@@ -131,6 +136,12 @@ export const ICONS: Record<string, LucideIcon> = {
   "rotate-ccw": RotateCcw,
   "log-out": LogOut,
   "monitor-off": MonitorOff,
+  // M17: the device icons of the battery widget (DATA_MODEL.md 10.6).
+  laptop: Laptop,
+  mouse: MouseIcon,
+  keyboard: Keyboard,
+  "gamepad-2": Gamepad2,
+  bluetooth: Bluetooth,
 };
 
 export const FALLBACK_ICON: LucideIcon = Square;

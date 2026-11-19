@@ -10,6 +10,7 @@ import ObsSection from "./ObsSection";
 import AiSection from "./AiSection";
 import TwitchSection from "./TwitchSection";
 import YoutubeSection from "./YoutubeSection";
+import MailSection from "./MailSection";
 
 function CopyButton({ text }: { text: string }) {
   const [done, setDone] = useState(false);
@@ -138,6 +139,8 @@ export default function IntegrationsTab() {
       <TwitchSection config={config} onSaved={load} />
 
       <YoutubeSection config={config} onSaved={load} />
+
+      <MailSection config={config} onSaved={load} />
 
       <AiSection config={config} onSaved={load} />
 

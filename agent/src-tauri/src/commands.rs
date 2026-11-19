@@ -66,6 +66,19 @@ pub fn set_obs_password(app: AppHandle, password: String) -> Result<(), String> 
     agent(&app)?.set_obs_password(&password)
 }
 
+/// `More → Integrations → Mail`: the password of one mailbox, DPAPI-encrypted and saved; an empty password removes it.
+#[tauri::command]
+pub fn set_mail_password(app: AppHandle, account_id: String, password: String) -> Result<(), String> {
+    agent(&app)?.set_mail_password(&account_id, &password)
+}
+
+/// `Check now`: looks at the mailboxes at once.
+#[tauri::command]
+pub fn mail_check_now(app: AppHandle) -> Result<(), String> {
+    agent(&app)?.mail_check_now();
+    Ok(())
+}
+
 /// `More → Integrations → AI coding`: what Claude Code and Codex look like from here.
 #[tauri::command]
 pub fn cc_status(app: AppHandle) -> Result<decka_core::agent::CcStatus, String> {

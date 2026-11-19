@@ -24,6 +24,8 @@ pub mod server;
 pub mod sta;
 pub mod state;
 pub mod strip;
+pub mod battery;
+pub mod mail;
 pub mod statuses;
 pub mod templates;
 pub mod tray_text;

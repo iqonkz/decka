@@ -243,6 +243,18 @@
 /* ===== Twitch: the numbers of the channel ===== */
 .twitch { display: flex; flex-direction: column; justify-content: center; gap: 0.6vmin; width: 100%; height: 100%; padding: 0 2vmin; box-sizing: border-box; min-width: 0; overflow: hidden; font-size: 2.4vmin; }
 .twitch.big { gap: 1vmin; font-size: 2.8vmin; }
+/* M17: battery and mail widgets (DATA_MODEL.md 10.6, 10.7) */
+.battery, .mail { display: flex; width: 100%; height: 100%; box-sizing: border-box; padding: 1.6vmin; min-width: 0; }
+.battery-one, .mail-one, .battery-empty, .mail-empty { flex-direction: column; align-items: center; justify-content: center; gap: 0.8vmin; font-size: 3.4vmin; }
+.battery-none, .mail-none { font-size: 2.4vmin; opacity: 0.7; text-align: center; }
+.mail-one.dim { opacity: 0.55; }
+.battery-list, .mail-list { flex-direction: column; justify-content: center; gap: 1.2vmin; }
+.battery-row, .mail-row { display: flex; align-items: center; gap: 1.2vmin; min-width: 0; font-size: 2.6vmin; font-variant-numeric: tabular-nums; }
+.battery-name, .mail-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.battery-bar { flex: 0 0 28%; height: 0.9vmin; border-radius: 1vmin; background: rgba(255, 255, 255, 0.16); overflow: hidden; }
+.battery-fill { display: block; height: 100%; background: currentColor; }
+.battery-pct, .mail-count { min-width: 6vmin; text-align: right; }
+.mail-count.warn { color: var(--warning, #f59e0b); font-size: 2.2vmin; }
 .twitch-head { display: flex; align-items: center; gap: 1.2vmin; min-width: 0; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .twitch-dot { flex: none; width: 1.6vmin; height: 1.6vmin; border-radius: 50%; }
 .twitch-dot.live { background: #dc2626; animation: twitch-pulse 1.6s ease-in-out infinite; }

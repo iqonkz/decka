@@ -61,6 +61,7 @@ pub fn default_config() -> ConfigFile {
         ai: None,
         twitch: None,
         youtube: None,
+        mail: None,
     }
 }
 

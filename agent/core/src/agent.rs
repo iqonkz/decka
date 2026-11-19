@@ -256,6 +256,10 @@ struct Inner {
     /// The app strip now (DATA_MODEL.md 10.5) and the counter that lets a newer focus change cancel a pending recount.
     strip: Mutex<Option<crate::model::StripInfo>>,
     strip_gen: std::sync::atomic::AtomicU64,
+    battery_collector: Mutex<Option<crate::battery::BatteryCollector>>,
+    mail_task: Mutex<Option<JoinHandle<()>>>,
+    /// `Check now` in the window wakes the mail loop.
+    mail_check: Arc<tokio::sync::Notify>,
     pairing: Pairing,
     devices: Devices,
     notif_counter: AtomicU64,
@@ -354,6 +358,9 @@ impl Agent {
                 needed: Mutex::new(None),
                 strip: Mutex::new(None),
                 strip_gen: std::sync::atomic::AtomicU64::new(0),
+                battery_collector: Mutex::new(None),
+                mail_task: Mutex::new(None),
+                mail_check: Arc::new(tokio::sync::Notify::new()),
                 pairing: Pairing::new(opts.fixed_pair_code.clone()),
                 devices: Devices::new(config_dir.join("devices.json"), devices),
                 notif_counter: AtomicU64::new(1),
@@ -490,6 +497,18 @@ impl Agent {
             self.schedule_strip();
         }
 
+        // Charge of the PC and of Bluetooth devices (M17): only while a widget or a variable needs it.
+        let old_battery = self.inner.battery_collector.lock().unwrap().take();
+        drop(old_battery);
+        if needed.battery {
+            *self.inner.battery_collector.lock().unwrap() = Some(crate::battery::BatteryCollector::start(self.inner.store.clone()));
+        } else {
+            self.inner.store.set("battery", serde_json::Value::Null);
+            self.inner.store.update_vars(crate::battery::clear_vars);
+        }
+        // Unread mail (M17): IMAP once in two minutes while the widget or a variable needs it.
+        self.start_mail(needed.mail);
+
         // Weather (M15): a loop on the runtime; off = the section is null.
         self.start_weather();
         // OBS (M15): the connection to obs-websocket; off = no section, no variables.
@@ -519,6 +538,80 @@ impl Agent {
                 me.recount_strip();
             }
         });
+    }
+
+    /// (Re)starts the mail loop: every two minutes, and at once on `Check now`, the unseen count of every mailbox of `config.mail`.
+    /// An account whose login was refused is not tried again until its password changes. `on` false = no section, no variables.
+    fn start_mail(&self, on: bool) {
+        if let Some(old) = self.inner.mail_task.lock().unwrap().take() {
+            old.abort();
+        }
+        let has_accounts = self.config().mail.is_some_and(|m| !m.accounts.is_empty());
+        if !on || !has_accounts {
+            self.inner.store.set("mail", serde_json::Value::Null);
+            self.inner.store.update_vars(crate::mail::clear_vars);
+            return;
+        }
+        let me = self.clone();
+        let wake = self.inner.mail_check.clone();
+        let task = self.inner.runtime.spawn(async move {
+            // Account id -> the password blob that was refused.
+            let mut refused: std::collections::HashMap<String, Option<String>> = std::collections::HashMap::new();
+            loop {
+                let accounts = me.config().mail.map(|m| m.accounts).unwrap_or_default();
+                let mut results = Vec::new();
+                for account in accounts {
+                    let result = if refused.get(&account.id).is_some_and(|blob| *blob == account.password) {
+                        Err(crate::mail::MailError::Auth)
+                    } else {
+                        let outcome = match account.password.as_deref().map(crate::dpapi::unprotect) {
+                            Some(Ok(password)) => match u16::try_from(account.port) {
+                                Ok(port) => crate::mail::unseen_count(&account.host, port, &account.user, &password).await,
+                                Err(_) => Err(crate::mail::MailError::Network),
+                            },
+                            // No password yet, or one that this Windows user cannot read: the box needs its password set again.
+                            _ => Err(crate::mail::MailError::Auth),
+                        };
+                        if outcome == Err(crate::mail::MailError::Auth) {
+                            refused.insert(account.id.clone(), account.password.clone());
+                        } else {
+                            refused.remove(&account.id);
+                        }
+                        outcome
+                    };
+                    results.push((account, result));
+                }
+                let info = crate::mail::build_info(&results, crate::auth::now_ms());
+                me.inner.store.update_vars(|v| crate::mail::apply_vars(v, Some(&info)));
+                me.inner.store.set("mail", serde_json::to_value(&info).expect("mail info serializes"));
+                tokio::select! {
+                    () = tokio::time::sleep(crate::mail::INTERVAL) => {}
+                    () = wake.notified() => {}
+                }
+            }
+        });
+        *self.inner.mail_task.lock().unwrap() = Some(task);
+    }
+
+    /// `Check now` in the window: looks at the mailboxes at once.
+    pub fn mail_check_now(&self) {
+        self.inner.mail_check.notify_one();
+    }
+
+    /// `set_mail_password`: encrypts with DPAPI and saves it for the mailbox `account_id`; an empty password removes it. The
+    /// refusal of an earlier login is forgotten with the old password.
+    pub fn set_mail_password(&self, account_id: &str, password: &str) -> Result<(), String> {
+        let mut config = self.config();
+        let account = config.mail.as_mut().and_then(|m| m.accounts.iter_mut().find(|a| a.id == account_id)).ok_or("no such mailbox")?;
+        account.password = if password.is_empty() { None } else { Some(crate::dpapi::protect(password)?) };
+        account.password_set = None;
+        match self.write_config(config) {
+            SaveResult::Saved => {
+                self.start_mail(self.needed_now().mail);
+                Ok(())
+            }
+            SaveResult::Rejected(issues) => Err(issues.first().map(|i| i.message.clone()).unwrap_or_default()),
+        }
     }
 
     /// For tests: pretends `app` is in front and recounts the strip at once (no collector, no 700 ms wait).
@@ -1552,6 +1645,15 @@ impl Agent {
             let kept = before.youtube.as_ref().filter(|b| b.client_id == yt.client_id);
             (yt.secret, yt.tokens, yt.channel, yt.secret_set, yt.tokens_set) = (kept.and_then(|b| b.secret.clone()), kept.and_then(|b| b.tokens.clone()), kept.and_then(|b| b.channel.clone()), None, None);
         }
+        // Mail passwords are written by `set_mail_password` only; a mailbox keeps its password while host and user stay the same,
+        // so that a changed host can never receive the old password.
+        if let Some(mail) = config.mail.as_mut() {
+            for account in &mut mail.accounts {
+                let kept = before.mail.as_ref().and_then(|m| m.accounts.iter().find(|b| b.id == account.id && b.host == account.host && b.user == account.user));
+                account.password = kept.and_then(|b| b.password.clone());
+                account.password_set = None;
+            }
+        }
         // The Twitch sign-in is written by the sign-in only; a new client id is another application, so the old sign-in goes.
         if let Some(tw) = config.twitch.as_mut() {
             let kept = before.twitch.as_ref().filter(|b| b.client_id == tw.client_id);
@@ -1647,6 +1749,12 @@ impl Agent {
         if let Some(yt) = config.youtube.as_mut() {
             (yt.secret_set, yt.tokens_set) = (Some(yt.secret.is_some()), Some(yt.tokens.is_some()));
             (yt.secret, yt.tokens) = (None, None);
+        }
+        if let Some(mail) = config.mail.as_mut() {
+            for account in &mut mail.accounts {
+                account.password_set = Some(account.password.is_some());
+                account.password = None;
+            }
         }
         config
     }
@@ -1969,6 +2077,11 @@ impl Agent {
         drop(media);
         let audio = self.inner.audio_collector.lock().unwrap().take();
         drop(audio);
+        let battery = self.inner.battery_collector.lock().unwrap().take();
+        drop(battery);
+        if let Some(task) = self.inner.mail_task.lock().unwrap().take() {
+            task.abort();
+        }
         if let Some(task) = self.inner.weather_task.lock().unwrap().take() {
             task.abort();
         }

@@ -20,12 +20,14 @@ notify = "8.2.2"
 qrcode = { version = "0.14.1", default-features = false, features = ["svg"] }
 rand = "0.10.3"
 reqwest = "0.13.5"
+rustls-platform-verifier = "0.7.1"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
 sha2 = "0.11.1"
 sysinfo = "0.40.3"
 thiserror = "2.0.21"
 tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros", "sync", "time", "net", "process", "signal", "fs"] }
+tokio-rustls = "0.26.6"
 tokio-tungstenite = "0.30.0"
 tower-http = { version = "0.7.1", features = ["fs", "set-header"] }
 tracing = "0.1.44"
@@ -37,4 +39,4 @@ tempfile = "3.27.0"
 
 [target."cfg(windows)".dependencies]
 enigo = "0.6.1"
-windows = { version = "0.62.2", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging", "Win32_System_Threading", "Win32_System_WinRT", "Media_Control", "Storage_Streams", "Graphics_Imaging", "Win32_UI_Shell", "Win32_Globalization", "Win32_System_Com", "Win32_Media_Audio", "Win32_Media_Audio_Endpoints", "Win32_Security_Cryptography", "Win32_System_Com_StructuredStorage", "Win32_System_Variant", "Win32_UI_Shell_PropertiesSystem", "Win32_Graphics_Gdi", "Win32_Storage_FileSystem", "Foundation", "Foundation_Collections"] }
+windows = { version = "0.62.2", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging", "Win32_System_Threading", "Win32_System_WinRT", "Media_Control", "Storage_Streams", "Graphics_Imaging", "Win32_UI_Shell", "Win32_Globalization", "Win32_System_Com", "Win32_Media_Audio", "Win32_Media_Audio_Endpoints", "Win32_Security_Cryptography", "Win32_System_Com_StructuredStorage", "Win32_System_Variant", "Win32_UI_Shell_PropertiesSystem", "Win32_Graphics_Gdi", "Win32_Storage_FileSystem", "Foundation", "Foundation_Collections", "Win32_Devices_DeviceAndDriverInstallation", "Win32_Devices_Properties", "Win32_System_Power"] }
