@@ -251,6 +251,8 @@ struct Inner {
     background: Mutex<Vec<JoinHandle<()>>>,
     sys_collector: Mutex<Option<crate::collectors::sys::SysCollector>>,
     checks_collector: Mutex<Option<crate::collectors::checks::ChecksCollector>>,
+    /// The collectors the layout needed when the collectors were last (re)started; `None` before the first start.
+    needed: Mutex<Option<crate::collectors::needed::Needed>>,
     pairing: Pairing,
     devices: Devices,
     notif_counter: AtomicU64,
@@ -346,6 +348,7 @@ impl Agent {
                 background: Mutex::new(Vec::new()),
                 sys_collector: Mutex::new(None),
                 checks_collector: Mutex::new(None),
+                needed: Mutex::new(None),
                 pairing: Pairing::new(opts.fixed_pair_code.clone()),
                 devices: Devices::new(config_dir.join("devices.json"), devices),
                 notif_counter: AtomicU64::new(1),
@@ -426,9 +429,11 @@ impl Agent {
     /// Stops the running collectors and starts them again from the current config.
     pub fn restart_collectors(&self) {
         let config = self.config();
+        let needed = self.needed_now();
+        *self.inner.needed.lock().unwrap() = Some(needed);
         let old = self.inner.sys_collector.lock().unwrap().take();
         drop(old); // joins the old thread before a new one starts
-        let new = if config.collectors.sys.enabled {
+        let new = if config.collectors.sys.enabled && needed.sys {
             Some(crate::collectors::sys::SysCollector::start(
                 self.inner.store.clone(),
                 config.collectors.sys.interval_sec.max(1) as u64,
@@ -442,7 +447,7 @@ impl Agent {
         // "Now playing" collector (M11): off = the section is null.
         let old_media = self.inner.media_collector.lock().unwrap().take();
         drop(old_media);
-        if config.collectors.media_enabled() {
+        if config.collectors.media_enabled() && needed.media {
             *self.inner.media_collector.lock().unwrap() = Some(crate::collectors::media::MediaCollector::start(self.inner.store.clone()));
         } else {
             self.inner.store.set("media", serde_json::Value::Null);
@@ -452,7 +457,7 @@ impl Agent {
         // Sound collector (M15): volume and the mutes of the default devices as variables; off = the variables are gone.
         let old_audio = self.inner.audio_collector.lock().unwrap().take();
         drop(old_audio);
-        if config.collectors.audio_enabled() {
+        if config.collectors.audio_enabled() && needed.audio {
             *self.inner.audio_collector.lock().unwrap() = Some(crate::audio::AudioCollector::start(self.inner.store.clone()));
         } else {
             self.inner.store.update_vars(crate::audio::clear_vars);
@@ -492,6 +497,19 @@ impl Agent {
         drop(old_checks);
         let checks = crate::collectors::checks::ChecksCollector::start(&self.inner.runtime, self.inner.statuses.clone(), config.collectors.checks);
         *self.inner.checks_collector.lock().unwrap() = Some(checks);
+    }
+
+    /// The collectors the current layout and actions need (DATA_MODEL.md 10.1).
+    fn needed_now(&self) -> crate::collectors::needed::Needed {
+        crate::collectors::needed::needed_collectors(&self.layout(), &self.actions())
+    }
+
+    /// After the layout or the actions changed: restarts the collectors only when the set they need is not the same.
+    fn restart_if_needed_changed(&self) {
+        let before = *self.inner.needed.lock().unwrap();
+        if before.is_some() && before != Some(self.needed_now()) {
+            self.restart_collectors();
+        }
     }
 
     /// Stops the USB loop (forgetting every forwarded device) and, when `usb.enabled`, starts it again.
@@ -589,7 +607,7 @@ impl Agent {
     /// (Re)starts the OBS connection from the config; safe from any thread (the runtime handle is used).
     fn start_obs(&self) {
         drop(self.inner.obs_client.lock().unwrap().take()); // aborts the old task
-        let Some(cfg) = self.config().obs.filter(|o| o.enabled) else {
+        let Some(cfg) = self.config().obs.filter(|o| o.enabled && self.needed_now().obs) else {
             crate::obs::clear(&self.inner.store);
             return;
         };
@@ -1329,7 +1347,7 @@ impl Agent {
             old.abort();
         }
         *self.inner.weather_last.lock().unwrap() = None;
-        let enabled = self.config().weather.as_ref().is_some_and(|w| w.enabled);
+        let enabled = self.config().weather.as_ref().is_some_and(|w| w.enabled) && self.needed_now().weather;
         if !enabled {
             self.inner.store.set("weather", serde_json::Value::Null);
             return;
@@ -1694,6 +1712,7 @@ impl Agent {
         *self.inner.layout.lock().unwrap() = layout;
         self.inner.store.set("layout", value);
         self.inner.store.set("icons", icons);
+        self.restart_if_needed_changed();
     }
 
     /// Layout issues of the first kind that need the disk: `img:` icons must have their files (DATA_MODEL.md 8.2).
@@ -1794,6 +1813,7 @@ impl Agent {
             return rejected;
         }
         *self.inner.actions.lock().unwrap() = actions;
+        self.restart_if_needed_changed();
         SaveResult::Saved
     }
 

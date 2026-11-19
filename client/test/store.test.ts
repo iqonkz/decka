@@ -40,6 +40,19 @@ describe("applyPatch", () => {
     expect(getState().rev).toBe(43);
   });
 
+  test("a sys patch keeps the references of the data the keys read", () => {
+    applyWelcome(welcome);
+    const before = getState().state!;
+    applyPatch(patch(43, "sys", { cpu: 5 }));
+    const after = getState().state!;
+    expect(after.sys).toEqual({ cpu: 5 });
+    expect(after.vars).toBe(before.vars);
+    expect(after.statuses).toBe(before.statuses);
+    expect(after.icons).toBe(before.icons);
+    expect(after.layout).toBe(before.layout);
+    expect(after.layout.pages).toBe(before.layout.pages);
+  });
+
   test("an old rev changes nothing", () => {
     applyWelcome(welcome);
     const before = getState();

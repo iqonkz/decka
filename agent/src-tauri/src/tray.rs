@@ -20,12 +20,25 @@ struct TrayItems {
     update_version: Mutex<Option<String>>,
 }
 
+/// Shows the settings window. It is destroyed when closed (DATA_MODEL.md 10.1: no WebView2 processes while it is shut),
+/// so it is created again here from the same config entry.
 pub fn show_settings(app: &AppHandle) {
-    if let Some(window) = app.get_webview_window("settings") {
-        let _ = window.show();
-        let _ = window.unminimize();
-        let _ = window.set_focus();
-    }
+    let window = match app.get_webview_window("settings") {
+        Some(w) => w,
+        None => {
+            let Some(cfg) = app.config().app.windows.iter().find(|w| w.label == "settings").cloned() else { return };
+            match tauri::WebviewWindowBuilder::from_config(app, &cfg).and_then(|b| b.build()) {
+                Ok(w) => w,
+                Err(e) => {
+                    tracing::error!("cannot create the settings window: {e}");
+                    return;
+                }
+            }
+        }
+    };
+    let _ = window.show();
+    let _ = window.unminimize();
+    let _ = window.set_focus();
 }
 
 /// The only way to leave the app: stop the agent cleanly, then exit.

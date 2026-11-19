@@ -38,10 +38,10 @@ pub fn run() {
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, Some(vec!["--minimized"])))
         .plugin(tauri_plugin_dialog::init())
         .on_window_event(|window, event| {
-            // Closing the window only hides it; the app lives in the tray until "Quit".
+            // Closing the window destroys it (its WebView2 processes go with it); the app lives in the tray until "Quit".
             if let WindowEvent::CloseRequested { api, .. } = event {
                 api.prevent_close();
-                let _ = window.hide();
+                let _ = window.destroy();
             }
         })
         .invoke_handler(tauri::generate_handler![
@@ -148,6 +148,14 @@ pub fn run() {
             }
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running Decka");
+        .build(tauri::generate_context!())
+        .expect("error while building Decka")
+        .run(|_app, event| {
+            // The last window going away must not end the app: it lives in the tray (`code` is set only by `exit`).
+            if let tauri::RunEvent::ExitRequested { api, code, .. } = event {
+                if code.is_none() {
+                    api.prevent_exit();
+                }
+            }
+        });
 }

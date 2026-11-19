@@ -13,6 +13,7 @@ use crate::state::Store;
 
 const BYTES_PER_MB: f64 = 1_048_576.0;
 const BYTES_PER_GB: f64 = 1_073_741_824.0;
+const DISKS_EVERY: Duration = Duration::from_secs(30);
 const SLICE: Duration = Duration::from_millis(200);
 
 /// Unrounded measurements.
@@ -104,6 +105,7 @@ fn run(store: Store, interval: Duration, stop: Arc<AtomicBool>) {
     };
     system.refresh_cpu_usage(); // the first CPU reading needs a baseline
     let mut last_net = Instant::now();
+    let mut last_disks = Instant::now();
 
     while sleep_unless_stopped(interval, &stop) {
         if store.receiver_count() == 0 {
@@ -111,7 +113,11 @@ fn run(store: Store, interval: Duration, stop: Arc<AtomicBool>) {
         }
         system.refresh_cpu_usage();
         system.refresh_memory();
-        disks.refresh(true);
+        // Disks change slowly: the list is read again only every 30 s (DATA_MODEL.md 10.1).
+        if last_disks.elapsed() >= DISKS_EVERY {
+            disks.refresh(true);
+            last_disks = Instant::now();
+        }
         networks.refresh(true);
 
         let elapsed = last_net.elapsed().as_secs_f64().max(0.001);
