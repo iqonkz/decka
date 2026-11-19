@@ -11,6 +11,7 @@ import AiSection from "./AiSection";
 import TwitchSection from "./TwitchSection";
 import YoutubeSection from "./YoutubeSection";
 import MailSection from "./MailSection";
+import WinNotifSection from "./WinNotifSection";
 
 function CopyButton({ text }: { text: string }) {
   const [done, setDone] = useState(false);
@@ -141,6 +142,8 @@ export default function IntegrationsTab() {
       <YoutubeSection config={config} onSaved={load} />
 
       <MailSection config={config} onSaved={load} />
+
+      <WinNotifSection config={config} onSaved={load} />
 
       <AiSection config={config} onSaved={load} />
 

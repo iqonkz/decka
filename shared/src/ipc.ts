@@ -58,6 +58,9 @@ export interface TwitchStatus {
 }
 
 /** YouTube as the settings window sees it. */
+/** `access`: `allowed`, `denied` (blocked in Windows Settings → Privacy → Notifications) or `unknown`. */
+export interface WindowsNotificationsStatus { enabled: boolean; access: "allowed" | "denied" | "unknown"; apps: string[]; }
+
 export interface YoutubeStatus {
   enabled: boolean;
   signedIn: boolean;
@@ -118,6 +121,7 @@ export interface IpcCommands {
   set_obs_password(args: { password: string }): void;           // M15: encrypts with DPAPI and saves; "" removes the password
   set_mail_password(args: { accountId: Id; password: string }): void; // M17: encrypts with DPAPI and saves for that mailbox; "" removes it
   mail_check_now(): void;                                       // M17: looks at the mailboxes at once
+  windows_notifications_status(): WindowsNotificationsStatus;   // M17: the switch, what Windows says about the access, the apps seen so far
   obs_status(): ObsStatus;                                      // M15: for the window (pick a scene / audio input when making keys)
 }
 export interface PlaceResult { name: string; country: string; region?: string; lat: number; lon: number; }

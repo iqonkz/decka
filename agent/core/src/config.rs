@@ -62,6 +62,7 @@ pub fn default_config() -> ConfigFile {
         twitch: None,
         youtube: None,
         mail: None,
+        windows_notifications: None,
     }
 }
 

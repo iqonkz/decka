@@ -72,6 +72,14 @@ pub fn set_mail_password(app: AppHandle, account_id: String, password: String) -
     agent(&app)?.set_mail_password(&account_id, &password)
 }
 
+/// `More → Integrations → Windows notifications`: the switch, the access Windows gives and the apps seen so far.
+#[tauri::command]
+pub async fn windows_notifications_status(app: AppHandle) -> Result<decka_core::agent::WinNotifStatus, String> {
+    let agent = agent(&app)?;
+    // The question to Windows is a WinRT call: it is asked off the UI thread.
+    tauri::async_runtime::spawn_blocking(move || agent.windows_notifications_status()).await.map_err(|e| e.to_string())
+}
+
 /// `Check now`: looks at the mailboxes at once.
 #[tauri::command]
 pub fn mail_check_now(app: AppHandle) -> Result<(), String> {

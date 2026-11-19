@@ -605,6 +605,17 @@ pub struct ConfigFile {
     /// M17 (DATA_MODEL.md 10.7): the mailboxes whose unread count is shown; absent = none.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mail: Option<MailConfig>,
+    /// M17 (DATA_MODEL.md 10.4): Windows notifications on the phone; absent = off.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub windows_notifications: Option<WindowsNotificationsConfig>,
+}
+
+/// The switch of the Windows notifications and the apps (display names) that are not shown.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct WindowsNotificationsConfig {
+    pub enabled: bool,
+    #[serde(default)]
+    pub exclude: Vec<String>,
 }
 
 /// Up to three mailboxes. Only the host given here is ever connected to for mail (ARCHITECTURE.md S21).
@@ -1075,6 +1086,12 @@ pub struct Notification {
     pub level: NotifLevel,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source: Option<String>,
+    /// M17: the display name of the Windows app a `source: "windows"` notification came from.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub app: Option<String>,
+    /// M17: a tap on the phone sends `notif_open` (the program is known).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub openable: Option<bool>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

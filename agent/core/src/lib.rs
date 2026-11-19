@@ -26,6 +26,7 @@ pub mod state;
 pub mod strip;
 pub mod battery;
 pub mod mail;
+pub mod winnotif;
 pub mod statuses;
 pub mod templates;
 pub mod tray_text;

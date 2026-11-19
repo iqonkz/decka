@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { t, BACK_PAGE } from "@decka/shared";
 import { EMPTY_DATA, pressErrorTitle, recordAi, recordSys, resetAiHistory, resetSysHistory, type DeckCallbacks, type DeckData } from "@decka/ui";
-import { dismiss, press } from "../app/controller";
+import { dismiss, openNotification, press } from "../app/controller";
 import { lastTouchWokeScreen } from "../display/idle";
 import { hapticEvent } from "../platform/haptics";
 import { getState, goBack, navigateManually, openPopup, pushToast, openPermHistory, reopenPerm, signalAttention, useAppState } from "../store/store";
@@ -99,5 +99,5 @@ export function useDeckProps(): { data: DeckData } & Required<DeckCallbacks> {
     openPopup(popupId, anchor);
   }, []);
 
-  return { data, onPress: press, onPressError, onNavigate, onDismiss: dismiss, onOpenPopup, onFeedback, onTimerDone, onOpenPerm: reopenPerm, onOpenPermHistory: openPermHistory };
+  return { data, onPress: press, onPressError, onNavigate, onDismiss: dismiss, onOpenNotification: openNotification, onOpenPopup, onFeedback, onTimerDone, onOpenPerm: reopenPerm, onOpenPermHistory: openPermHistory };
 }

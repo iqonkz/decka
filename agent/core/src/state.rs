@@ -210,7 +210,7 @@ mod tests {
         let store = Store::new(json!({}));
         store.update_notifications(|v| {
             for i in 0..25 {
-                v.push(Notification { id: i.to_string(), ts: 0, title: "t".into(), body: None, level: NotifLevel::Info, source: None });
+                v.push(Notification { id: i.to_string(), ts: 0, title: "t".into(), body: None, level: NotifLevel::Info, source: None, app: None, openable: None });
             }
         });
         let list: Vec<Notification> = serde_json::from_value(store.get("notifications")).unwrap();

@@ -4,6 +4,19 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+### Added
+- **Windows notifications** on the phone (More → Integrations → Windows notifications): new toasts of Windows appear on the phone, with a list of apps that are not shown. A tap opens the program the notification came from.
+- **App strip**: when a program without a page of its own is in front, a strip with the keys of its built-in template slides out at the edge of the phone (it replaces the "Add keys for it?" hint on the phone). Per program: open automatically, only the tab, or never; the phone menu lists the ones turned off.
+- **Turn** in the phone menu: Auto, Normal or Upside down, so the phone can stand with the charging port up or down.
+- **Battery** widget: the charge of the PC (a laptop) and of Bluetooth devices that report it; variables `battery.pc` and `battery.low`.
+- **Mail** widget: unread messages of up to three mailboxes (IMAP over TLS, an app password kept encrypted for this Windows user); variables `mail.unread` and `mail.<id>.unread`. A tap opens the mailbox through an action you choose.
+- System actions: shut down, restart, sign out, hibernate, turn the display off, empty the recycle bin; Task Manager, Settings and Explorer now start the program itself instead of a shortcut.
+- Shortcut field: switches for Ctrl, Alt, Shift and Win and a searchable key list, for the shortcuts Windows takes before Decka sees them (Win+D, Alt+Tab, Print Screen).
+
+### Changed
+- **Memory:** closing the settings window now destroys it (the agent with a closed window is about 14 MB instead of about 230 MB); the window opens again from the tray. Collectors that no page or variable needs are not started, and the disk list is read every 30 seconds instead of every tick.
+- Swiping between pages follows the finger without redrawing the pages on every move; the neighbours are prepared in an idle moment after the page settles.
+
 ## 0.7.0 — 2026-11-18
 
 ### Added

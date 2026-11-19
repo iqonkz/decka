@@ -85,6 +85,11 @@ export function dismiss(notifId: string): void {
   conn().dismiss(notifId);
 }
 
+/** A tap on a notification of Windows: the PC opens its program (DATA_MODEL.md 10.4). */
+export function openNotification(notifId: string): void {
+  conn().openNotification(notifId);
+}
+
 /** Answers a permission question; the sheet closes at once, without waiting for the new `ai` section. */
 export function answerPerm(reqId: string, decision: "allow" | "allow_always" | "deny" | "pc" | "reply", reply?: number): void {
   markPermAnswered(reqId);

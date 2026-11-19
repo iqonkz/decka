@@ -22,7 +22,10 @@ export interface ConfigFile {
   twitch?: TwitchConfig;             // absent = off
   youtube?: YoutubeConfig;           // absent = off
   mail?: MailConfig;                 // M17 (DATA_MODEL.md 10.7); absent = no mailboxes
+  windowsNotifications?: WindowsNotificationsConfig; // M17 (DATA_MODEL.md 10.4); absent = off
 }
+/** `exclude`: display names of the Windows apps whose notifications are not sent to the phone; at most 50 of 1..80 characters. */
+export interface WindowsNotificationsConfig { enabled: boolean; exclude: string[]; }
 /** Up to three mailboxes. IMAP over TLS; the host is set only in the window (ARCHITECTURE.md S21). */
 export interface MailConfig { accounts: MailAccount[]; }
 /** `password` is only ever "dpapi:<base64>" on disk and is written only by `set_mail_password`; `get_config` leaves it out and says `passwordSet`. */

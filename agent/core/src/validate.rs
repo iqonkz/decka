@@ -591,6 +591,11 @@ pub fn validate_config(c: &ConfigFile) -> Vec<ValidationIssue> {
             out.push(issue("/youtube/tokens", "the secret and the tokens are written by Decka only"));
         }
     }
+    if let Some(w) = &c.windows_notifications {
+        if w.exclude.len() > 50 || w.exclude.iter().any(|a| !(1..=80).contains(&chars(a))) {
+            out.push(issue("/windowsNotifications/exclude", "at most 50 apps of 1..80 characters"));
+        }
+    }
     if let Some(m) = &c.mail {
         if m.accounts.len() > 3 {
             out.push(issue("/mail/accounts", "at most 3 mailboxes"));

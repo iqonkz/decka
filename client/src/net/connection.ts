@@ -117,6 +117,11 @@ export class Connection {
     if (this.ws && this.welcomed) this.ws.send(JSON.stringify({ t: "notif_dismiss", notifId }));
   }
 
+  /** Asks the PC to open the program a Windows notification came from (DATA_MODEL.md 10.4); only the id is sent. */
+  openNotification(notifId: string): void {
+    if (this.ws && this.welcomed) this.ws.send(JSON.stringify({ t: "notif_open", notifId }));
+  }
+
   /** The answer to a permission question of Claude Code (DATA_MODEL.md 6.8). */
   permAnswer(reqId: string, decision: "allow" | "allow_always" | "deny" | "pc" | "reply", reply?: number): void {
     if (this.ws && this.welcomed) this.ws.send(JSON.stringify({ t: "perm_answer", reqId, decision, ...(reply !== undefined ? { reply } : {}) }));

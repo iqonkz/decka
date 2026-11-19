@@ -46,6 +46,8 @@ export interface DeckCallbacks {
   onNavigate: (pageId: string) => void;
   /** A notification row was tapped. */
   onDismiss: (notifId: string) => void;
+  /** A notification of Windows that can be opened was tapped: the PC opens its program (DATA_MODEL.md 10.4). */
+  onOpenNotification?: (notifId: string) => void;
   /** A key with `popup` wants its group opened; `anchor` is the key's box on screen. */
   onOpenPopup?: (popupId: string, anchor: { x: number; y: number; width: number; height: number }) => void;
   /** Tactile feedback moments inside the deck: a key was touched, a hold-to-confirm completed. */

@@ -117,6 +117,18 @@ pub struct RefreshIcons {
     pub failed: usize,
 }
 
+/// How many phone notifications can still be opened by `notif_open`.
+const WIN_TARGETS: usize = 100;
+
+/// Mirrors `WindowsNotificationsStatus` in shared/src/ipc.ts.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct WinNotifStatus {
+    pub enabled: bool,
+    /// `allowed`, `denied` (blocked in Windows settings) or `unknown`.
+    pub access: String,
+    pub apps: Vec<String>,
+}
+
 /// Mirrors `ObsStatus` in shared/src/ipc.ts.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ObsStatusInfo {
@@ -260,6 +272,11 @@ struct Inner {
     mail_task: Mutex<Option<JoinHandle<()>>>,
     /// `Check now` in the window wakes the mail loop.
     mail_check: Arc<tokio::sync::Notify>,
+    winnotif_collector: Mutex<Option<crate::winnotif::WinNotifCollector>>,
+    /// Phone notification id -> (id Windows gave the toast, AUMID of the program); at most `WIN_TARGETS` entries.
+    win_targets: Mutex<std::collections::VecDeque<(String, u32, String)>>,
+    /// The apps that sent toasts since the start: the list of exceptions in the window offers them.
+    win_apps: Mutex<std::collections::BTreeSet<String>>,
     pairing: Pairing,
     devices: Devices,
     notif_counter: AtomicU64,
@@ -361,6 +378,9 @@ impl Agent {
                 battery_collector: Mutex::new(None),
                 mail_task: Mutex::new(None),
                 mail_check: Arc::new(tokio::sync::Notify::new()),
+                winnotif_collector: Mutex::new(None),
+                win_targets: Mutex::new(std::collections::VecDeque::new()),
+                win_apps: Mutex::new(std::collections::BTreeSet::new()),
                 pairing: Pairing::new(opts.fixed_pair_code.clone()),
                 devices: Devices::new(config_dir.join("devices.json"), devices),
                 notif_counter: AtomicU64::new(1),
@@ -508,6 +528,8 @@ impl Agent {
         }
         // Unread mail (M17): IMAP once in two minutes while the widget or a variable needs it.
         self.start_mail(needed.mail);
+        // Windows notifications (M17): only while the switch in the window is on.
+        self.start_winnotif();
 
         // Weather (M15): a loop on the runtime; off = the section is null.
         self.start_weather();
@@ -538,6 +560,107 @@ impl Agent {
                 me.recount_strip();
             }
         });
+    }
+
+    /// (Re)starts the reader of Windows notifications when `windowsNotifications.enabled`.
+    fn start_winnotif(&self) {
+        let old = self.inner.winnotif_collector.lock().unwrap().take();
+        drop(old); // joins the thread
+        if !self.config().windows_notifications.is_some_and(|w| w.enabled) {
+            return;
+        }
+        let (added_inner, removed_inner, seen_inner) = (Arc::downgrade(&self.inner), Arc::downgrade(&self.inner), Arc::downgrade(&self.inner));
+        let handlers = crate::winnotif::Handlers {
+            added: Box::new(move |toast| {
+                if let Some(inner) = added_inner.upgrade() {
+                    Agent { inner }.on_windows_toast(toast);
+                }
+            }),
+            removed: Box::new(move |win_id| {
+                if let Some(inner) = removed_inner.upgrade() {
+                    Agent { inner }.on_windows_toast_removed(win_id);
+                }
+            }),
+            seen_app: Box::new(move |app| {
+                if let Some(inner) = seen_inner.upgrade() {
+                    crate::winnotif::remember_app(&mut inner.win_apps.lock().unwrap(), app);
+                }
+            }),
+        };
+        *self.inner.winnotif_collector.lock().unwrap() = Some(crate::winnotif::WinNotifCollector::start(handlers));
+    }
+
+    /// A new toast in Windows: it goes to the phone as a notification, unless its app is in the list of exceptions.
+    fn on_windows_toast(&self, toast: crate::winnotif::WinToast) {
+        crate::winnotif::remember_app(&mut self.inner.win_apps.lock().unwrap(), &toast.app);
+        let exclude = self.config().windows_notifications.map(|w| w.exclude).unwrap_or_default();
+        if crate::winnotif::is_excluded(&toast.app, &exclude) {
+            return;
+        }
+        let Some((title, body)) = crate::winnotif::title_and_body(&toast.texts) else { return };
+        let openable = crate::winnotif::valid_aumid(&toast.aumid);
+        let id = self.push_notification_with(
+            NotifyReq { title, body, level: Some(NotifLevel::Info), source: Some("windows".to_string()) },
+            Some(toast.app.clone()).filter(|a| !a.is_empty()),
+            openable.then_some(true),
+        );
+        if openable {
+            let mut targets = self.inner.win_targets.lock().unwrap();
+            targets.push_back((id, toast.id, toast.aumid));
+            while targets.len() > WIN_TARGETS {
+                targets.pop_front();
+            }
+        }
+    }
+
+    /// The toast went away in Windows (read, dismissed): it goes from the phone as well.
+    fn on_windows_toast_removed(&self, win_id: u32) {
+        let gone: Vec<String> = {
+            let mut targets = self.inner.win_targets.lock().unwrap();
+            let gone = targets.iter().filter(|(_, w, _)| *w == win_id).map(|(id, _, _)| id.clone()).collect();
+            targets.retain(|(_, w, _)| *w != win_id);
+            gone
+        };
+        if !gone.is_empty() {
+            self.inner.store.update_notifications(|list| list.retain(|n| !gone.contains(&n.id)));
+        }
+    }
+
+    /// `notif_open` from the phone: opens the program the notification came from. Only the id of the notification is taken from the
+    /// phone; the program comes from what Windows told us. An unknown id (or one without a program) launches nothing.
+    pub async fn notif_open(&self, notif_id: &str) -> bool {
+        let aumid = self.inner.win_targets.lock().unwrap().iter().find(|(id, _, _)| id == notif_id).map(|(_, _, a)| a.clone());
+        let Some(action) = aumid.as_deref().and_then(crate::winnotif::open_action) else {
+            tracing::warn!("notif_open: no program for notification {notif_id}");
+            return false;
+        };
+        let runner = self.inner.opts.runner.clone();
+        match tokio::task::spawn_blocking(move || runner.run("notif-open", &action)).await {
+            Ok(Ok(())) => true,
+            Ok(Err(e)) => {
+                tracing::warn!("notif_open: {e}");
+                false
+            }
+            Err(e) => {
+                tracing::warn!("notif_open: {e}");
+                false
+            }
+        }
+    }
+
+    /// For the window: is the switch on, what Windows says about the access, and the apps seen so far.
+    pub fn windows_notifications_status(&self) -> WinNotifStatus {
+        WinNotifStatus {
+            enabled: self.config().windows_notifications.is_some_and(|w| w.enabled),
+            access: crate::winnotif::access_status().to_string(),
+            apps: self.inner.win_apps.lock().unwrap().iter().cloned().collect(),
+        }
+    }
+
+    /// For tests: a toast as if Windows had shown it.
+    #[doc(hidden)]
+    pub fn windows_toast_for_test(&self, toast: crate::winnotif::WinToast) {
+        self.on_windows_toast(toast);
     }
 
     /// (Re)starts the mail loop: every two minutes, and at once on `Check now`, the unseen count of every mailbox of `config.mail`.
@@ -2022,6 +2145,11 @@ impl Agent {
 
     /// Adds a notification at the front (newest first, max 20) and returns its id.
     pub fn push_notification(&self, req: NotifyReq) -> String {
+        self.push_notification_with(req, None, None)
+    }
+
+    /// `push_notification` with the M17 fields: the display name of the Windows app and whether a tap can open it.
+    fn push_notification_with(&self, req: NotifyReq, app: Option<String>, openable: Option<bool>) -> String {
         let id = self.inner.notif_counter.fetch_add(1, Ordering::Relaxed).to_string();
         let ts = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -2034,6 +2162,8 @@ impl Agent {
             body: req.body,
             level: req.level.unwrap_or(NotifLevel::Info),
             source: req.source,
+            app,
+            openable,
         };
         self.inner.store.update_notifications(|list| {
             list.insert(0, notification);
@@ -2079,6 +2209,8 @@ impl Agent {
         drop(audio);
         let battery = self.inner.battery_collector.lock().unwrap().take();
         drop(battery);
+        let winnotif = self.inner.winnotif_collector.lock().unwrap().take();
+        drop(winnotif);
         if let Some(task) = self.inner.mail_task.lock().unwrap().take() {
             task.abort();
         }

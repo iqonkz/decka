@@ -40,6 +40,8 @@ pub enum ClientMsg {
     Hello { v: u32, token: String, client: ClientInfo },
     Press { id: u64, action_id: String },
     NotifDismiss { notif_id: String },
+    /// M17: the phone asks to open the program a Windows notification came from; only the id of the notification is sent.
+    NotifOpen { notif_id: String },
     Ping { ts: i64 },
     /// M16: the answer of the phone to a permission question (DATA_MODEL.md 6.8).
     PermAnswer {

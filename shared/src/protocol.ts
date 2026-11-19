@@ -26,7 +26,9 @@ export interface NotifDismissMsg { t: "notif_dismiss"; notifId: string; }
 export interface PingMsg  { t: "ping"; ts: number; }
 /** M16: the answer to a permission question of Claude Code (DATA_MODEL.md 6.8); `pc` = ask in the terminal instead. */
 export interface PermAnswerMsg { t: "perm_answer"; reqId: string; decision: "allow" | "allow_always" | "deny" | "pc" | "reply"; reply?: number; }   // reply: the number of a ready answer (with decision "reply")   // reqId ^[0-9a-f]{16}$
-export type ClientMsg = PairMsg | HelloMsg | PressMsg | NotifDismissMsg | PingMsg | PermAnswerMsg;
+/** M17 (DATA_MODEL.md 10.4): open the program a Windows notification came from. Only the id of the notification travels. */
+export interface NotifOpenMsg { t: "notif_open"; notifId: string; }
+export type ClientMsg = PairMsg | HelloMsg | PressMsg | NotifDismissMsg | PingMsg | PermAnswerMsg | NotifOpenMsg;
 
 // ===== Server -> Client (WS) =====
 export interface PairedMsg  { t: "paired"; deviceId: Id; token: string; }
@@ -202,7 +204,9 @@ export interface Notification {
   ts: number; title: string;     // title <= 120
   body?: string;                 // <= 500
   level: NotifLevel;
-  source?: string;               // <= 40
+  source?: string;               // <= 40; M17: "windows" = a notification of Windows (DATA_MODEL.md 10.4)
+  app?: string;                  // M17: the display name of the Windows app, <= 80
+  openable?: boolean;            // M17: a tap sends `notif_open`
 }
 
 // ===== HTTP =====

@@ -222,6 +222,12 @@ async fn handle_text(
             agent.store().update_notifications(|list: &mut Vec<Notification>| list.retain(|n| n.id != notif_id));
             true
         }
+        Ok(ClientMsg::NotifOpen { notif_id }) => {
+            // Only the id of the notification comes from the phone (ARCHITECTURE.md S21); the program is the agent's own record.
+            tracing::info!("notif_open {notif_id} device={}", who.device_id);
+            agent.notif_open(&notif_id).await;
+            true
+        }
         Ok(ClientMsg::PermAnswer { req_id, decision, reply }) => {
             tracing::info!("perm_answer {req_id} {decision:?} device={}", who.device_id);
             agent.answer_permission(&req_id, decision, reply.map(usize::from));

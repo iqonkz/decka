@@ -18,10 +18,12 @@
       "properties": { "t": { "const": "press" }, "id": { "type": "integer", "minimum": 1 }, "actionId": { "$ref": "#/$defs/Id" } } },
     "NotifDismissMsg": { "type": "object", "required": ["t","notifId"],
       "properties": { "t": { "const": "notif_dismiss" }, "notifId": { "type": "string", "pattern": "^[0-9]{1,20}$" } } },
+    "NotifOpenMsg": { "type": "object", "required": ["t","notifId"], "additionalProperties": false,
+      "properties": { "t": { "const": "notif_open" }, "notifId": { "type": "string", "pattern": "^[0-9]{1,20}$" } } },
     "PingMsg": { "type": "object", "required": ["t","ts"], "properties": { "t": { "const": "ping" }, "ts": { "type": "number" } } },
     "PermAnswerMsg": { "type": "object", "required": ["t","reqId","decision"],
       "properties": { "t": { "const": "perm_answer" }, "reqId": { "type": "string", "pattern": "^[0-9a-f]{16}$" }, "decision": { "enum": ["allow","allow_always","deny","pc","reply"] }, "reply": { "type": "integer", "minimum": 0, "maximum": 3 } } },
-    "ClientMsg": { "oneOf": [ { "$ref": "#/$defs/PairMsg" }, { "$ref": "#/$defs/HelloMsg" }, { "$ref": "#/$defs/PressMsg" }, { "$ref": "#/$defs/NotifDismissMsg" }, { "$ref": "#/$defs/PingMsg" }, { "$ref": "#/$defs/PermAnswerMsg" } ] },
+    "ClientMsg": { "oneOf": [ { "$ref": "#/$defs/PairMsg" }, { "$ref": "#/$defs/HelloMsg" }, { "$ref": "#/$defs/PressMsg" }, { "$ref": "#/$defs/NotifDismissMsg" }, { "$ref": "#/$defs/PingMsg" }, { "$ref": "#/$defs/PermAnswerMsg" }, { "$ref": "#/$defs/NotifOpenMsg" } ] },
 
     "SysStats": { "type": "object", "required": ["cpu","mem","disks","net","uptimeSec"],
       "properties": {
@@ -37,7 +39,8 @@
     "NotifLevel": { "enum": ["info","success","warning","error"] },
     "Notification": { "type": "object", "required": ["id","ts","title","level"],
       "properties": { "id": { "type": "string", "pattern": "^[0-9]{1,20}$" }, "ts": { "type": "number" }, "title": { "type": "string", "minLength": 1, "maxLength": 120 },
-        "body": { "type": "string", "maxLength": 500 }, "level": { "$ref": "#/$defs/NotifLevel" }, "source": { "type": "string", "maxLength": 40 } } },
+        "body": { "type": "string", "maxLength": 500 }, "level": { "$ref": "#/$defs/NotifLevel" }, "source": { "type": "string", "maxLength": 40 },
+        "app": { "type": "string", "maxLength": 80 }, "openable": { "type": "boolean" } } },
     "ClientLayout": { "$ref": "layout.schema.json#/$defs/ClientLayout" },
     "FullState": { "type": "object", "required": ["layout","sys","statuses","notifications","vars"],
       "properties": {

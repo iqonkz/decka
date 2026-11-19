@@ -11,6 +11,8 @@ export interface Toast {
   title: string;
   body?: string;
   until: number;
+  /** A notification of Windows that a tap can open (DATA_MODEL.md 10.4). */
+  notifId?: string;
 }
 
 export interface AppState {
@@ -259,17 +261,31 @@ function toastNewNotifications(before: Notification[], after: Notification[]): v
   for (const n of [...after].reverse()) {
     if (known.has(n.id)) continue;
     if (toastGate && !toastGate(n.level)) continue;
-    const toast: NewToast = { level: n.level, title: n.title };
+    const windows = n.source === "windows";
+    // A notification of Windows is shown for 4 s, and only when the page has no notifications widget to show it (10.4).
+    if (windows && pageHasNotificationsWidget()) continue;
+    const toast: NewToast = { level: n.level, title: n.app && windows ? `${n.app}: ${n.title}` : n.title };
     if (n.body !== undefined) toast.body = n.body;
+    if (windows) toast.ms = WINDOWS_TOAST_MS;
+    if (windows && n.openable === true) toast.notifId = n.id;
     pushToast(toast);
     attentionListeners.forEach((fn) => fn(n.level));
   }
+}
+
+const WINDOWS_TOAST_MS = 4000;
+
+/** Does the page in front have a notifications widget? */
+function pageHasNotificationsWidget(): boolean {
+  const page = current.state?.layout.pages[current.pageIndex];
+  return page?.items.some((i) => i.kind === "notifications") === true;
 }
 
 export interface NewToast {
   level: NotifLevel;
   title: string;
   body?: string;
+  notifId?: string;
   /** Lifetime in ms (default 8000). */
   ms?: number;
 }
@@ -277,6 +293,7 @@ export interface NewToast {
 export function pushToast(t: NewToast, now: number = Date.now()): void {
   const toast: Toast = { id: ++toastCounter, level: t.level, title: t.title, until: now + (t.ms ?? DEFAULT_TOAST_MS) };
   if (t.body !== undefined) toast.body = t.body;
+  if (t.notifId !== undefined) toast.notifId = t.notifId;
   setState((s) => ({ toasts: [...s.toasts, toast].slice(-MAX_TOASTS) }));
 }
 
