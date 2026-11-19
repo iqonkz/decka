@@ -81,6 +81,24 @@ input { user-select: text; touch-action: manipulation; }
 .menu-status { padding: 1.4vmin 1vmin; font-size: 2.8vmin; color: #9ca3af; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
 .menu-row { display: flex; align-items: center; justify-content: space-between; width: 100%; box-sizing: border-box; padding: 2vmin 1vmin; border: 0; background: transparent; color: inherit; font-size: 3.2vmin; text-align: left; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
 .menu-row input[type="checkbox"] { width: 4.4vmin; height: 4.4vmin; }
+.menu-seg { display: inline-flex; gap: 1vmin; }
+.menu-seg button { padding: 1vmin 2vmin; border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 2vmin; background: transparent; color: inherit; font-size: 2.8vmin; }
+.menu-seg button.on { background: var(--accent, #7c5cff); border-color: transparent; }
+.menu-sub { padding: 1.5vmin 1vmin 0; font-size: 2.6vmin; opacity: 0.6; }
+.menu-link { border: 0; background: transparent; color: var(--accent, #7c5cff); font-size: 3vmin; }
+/* M17: the app strip (DESIGN.md 4.10) */
+.app-strip { position: fixed; z-index: 7; display: flex; flex-direction: column; box-sizing: border-box; background: #1b1b21; color: #f2f2f2; box-shadow: 0 0 3vmin rgba(0, 0, 0, 0.5); transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+.app-strip.strip-right { top: 0; bottom: 0; right: 0; transform: translateX(105%); }
+.app-strip.strip-bottom { bottom: 0; transform: translateY(105%); }
+.app-strip.open { transform: none; }
+.strip-head { display: flex; align-items: center; gap: 6px; padding: 0 8px; flex: none; }
+.strip-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.strip-more { border: 0; background: transparent; color: inherit; font-size: 20px; line-height: 1; }
+.strip-keys { flex: 1; overflow: auto; box-sizing: border-box; }
+.strip-tab { position: fixed; z-index: 7; display: flex; align-items: center; justify-content: center; border: 0; background: #1b1b21; color: #f2f2f2; padding: 0; }
+.strip-tab.strip-right { right: 0; top: calc(50% - 28px); width: 20px; height: 56px; border-radius: 10px 0 0 10px; }
+.strip-tab.strip-bottom { bottom: 0; left: calc(50% - 28px); width: 56px; height: 20px; border-radius: 10px 10px 0 0; }
+@media (prefers-reduced-motion: reduce) { .app-strip { transition-duration: 100ms; box-shadow: none; } }
 .menu-button { cursor: pointer; }
 .menu-button.danger { color: #f87171; }
 .menu-version { padding: 1.4vmin 1vmin 0; font-size: 2.2vmin; color: #6b7280; }

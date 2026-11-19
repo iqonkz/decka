@@ -253,6 +253,9 @@ struct Inner {
     checks_collector: Mutex<Option<crate::collectors::checks::ChecksCollector>>,
     /// The collectors the layout needed when the collectors were last (re)started; `None` before the first start.
     needed: Mutex<Option<crate::collectors::needed::Needed>>,
+    /// The app strip now (DATA_MODEL.md 10.5) and the counter that lets a newer focus change cancel a pending recount.
+    strip: Mutex<Option<crate::model::StripInfo>>,
+    strip_gen: std::sync::atomic::AtomicU64,
     pairing: Pairing,
     devices: Devices,
     notif_counter: AtomicU64,
@@ -349,6 +352,8 @@ impl Agent {
                 sys_collector: Mutex::new(None),
                 checks_collector: Mutex::new(None),
                 needed: Mutex::new(None),
+                strip: Mutex::new(None),
+                strip_gen: std::sync::atomic::AtomicU64::new(0),
                 pairing: Pairing::new(opts.fixed_pair_code.clone()),
                 devices: Devices::new(config_dir.join("devices.json"), devices),
                 notif_counter: AtomicU64::new(1),
@@ -471,7 +476,9 @@ impl Agent {
             let on_change: crate::collectors::focus::OnChange = Arc::new(move |app| {
                 if let Some(inner) = weak.upgrade() {
                     *inner.focus_app.lock().unwrap() = app;
-                    Agent { inner }.publish_status();
+                    let agent = Agent { inner };
+                    agent.publish_status();
+                    agent.schedule_strip();
                 }
             });
             let collector = crate::collectors::focus::FocusCollector::start(self.inner.store.clone(), on_change);
@@ -480,6 +487,7 @@ impl Agent {
             self.inner.store.set("focus", serde_json::Value::Null);
             *self.inner.focus_app.lock().unwrap() = None;
             self.publish_status();
+            self.schedule_strip();
         }
 
         // Weather (M15): a loop on the runtime; off = the section is null.
@@ -497,6 +505,48 @@ impl Agent {
         drop(old_checks);
         let checks = crate::collectors::checks::ChecksCollector::start(&self.inner.runtime, self.inner.statuses.clone(), config.collectors.checks);
         *self.inner.checks_collector.lock().unwrap() = Some(checks);
+    }
+
+    /// Recounts the `strip` section 700 ms from now; a newer call cancels this one, so a quick Alt+Tab settles first.
+    /// Safe from any thread: the task runs on the stored runtime handle.
+    fn schedule_strip(&self) {
+        use std::sync::atomic::Ordering;
+        let generation = self.inner.strip_gen.fetch_add(1, Ordering::SeqCst) + 1;
+        let me = self.clone();
+        self.inner.runtime.spawn(async move {
+            tokio::time::sleep(std::time::Duration::from_millis(700)).await;
+            if me.inner.strip_gen.load(Ordering::SeqCst) == generation {
+                me.recount_strip();
+            }
+        });
+    }
+
+    /// For tests: pretends `app` is in front and recounts the strip at once (no collector, no 700 ms wait).
+    #[doc(hidden)]
+    pub fn set_focus_for_test(&self, app: Option<&str>) {
+        *self.inner.focus_app.lock().unwrap() = app.map(str::to_string);
+        self.recount_strip();
+    }
+
+    fn recount_strip(&self) {
+        let layout = self.layout();
+        let lang = crate::tray_text::agent_language(layout.display.language.as_deref());
+        let focus = self.inner.focus_app.lock().unwrap().clone();
+        let strip = crate::strip::strip_for(focus.as_deref(), &layout, &crate::templates::all(), lang);
+        let value = strip.as_ref().map_or(serde_json::Value::Null, |s| serde_json::to_value(s).expect("strip serializes"));
+        *self.inner.strip.lock().unwrap() = strip;
+        self.inner.store.set("strip", value);
+    }
+
+    /// The template action of a `tpl-*` id, only while it is a key of the strip shown now and `actions.json` has no action
+    /// with that id (DATA_MODEL.md 10.5). Nothing is written to `actions.json`.
+    fn strip_action(&self, action_id: &str) -> Option<Action> {
+        let strip = self.inner.strip.lock().unwrap().clone()?;
+        if !strip.keys.iter().any(|k| k.action_id == action_id) {
+            return None;
+        }
+        let template = crate::templates::all().into_iter().find(|t| t.id == strip.template)?;
+        template.actions.get(action_id).filter(|a| !matches!(a, Action::Sequence { .. })).cloned()
     }
 
     /// The collectors the current layout and actions need (DATA_MODEL.md 10.1).
@@ -1614,7 +1664,11 @@ impl Agent {
     pub async fn execute(&self, action_id: &str) -> Result<(), (ErrorCode, String)> {
         let action = self.inner.actions.lock().unwrap().actions.get(action_id).cloned();
         let Some(action) = action else {
-            return Err((ErrorCode::UnknownAction, format!("action '{action_id}' is not defined")));
+            // Not in actions.json: a key of the app strip shown now still runs (it comes from the built-in template).
+            return match action_id.starts_with("tpl-").then(|| self.strip_action(action_id)).flatten() {
+                Some(from_template) => self.run_action(action_id, from_template).await,
+                None => Err((ErrorCode::UnknownAction, format!("action '{action_id}' is not defined"))),
+            };
         };
         if let Action::Sequence { steps, .. } = &action {
             let toggle = action.toggle_var().map(str::to_string);
@@ -1713,6 +1767,7 @@ impl Agent {
         self.inner.store.set("layout", value);
         self.inner.store.set("icons", icons);
         self.restart_if_needed_changed();
+        self.schedule_strip(); // a page for the app may have appeared or gone
     }
 
     /// Layout issues of the first kind that need the disk: `img:` icons must have their files (DATA_MODEL.md 8.2).

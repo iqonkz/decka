@@ -23,6 +23,7 @@ pub mod server;
 #[cfg(windows)]
 pub mod sta;
 pub mod state;
+pub mod strip;
 pub mod statuses;
 pub mod templates;
 pub mod tray_text;

@@ -8,7 +8,7 @@ use tokio::sync::broadcast;
 
 use crate::model::{Notification, StatusItem, VarValue};
 
-pub const SECTIONS: [&str; 13] = ["layout", "sys", "statuses", "notifications", "vars", "focus", "media", "icons", "weather", "obs", "ai", "twitch", "youtube"];
+pub const SECTIONS: [&str; 16] = ["layout", "sys", "statuses", "notifications", "vars", "focus", "media", "icons", "weather", "obs", "ai", "twitch", "youtube", "strip", "battery", "mail"];
 pub const MAX_NOTIFICATIONS: usize = 20;
 
 /// A change to one section; `value` is always the complete new value of the section.
@@ -64,6 +64,9 @@ impl Store {
         sections.insert("ai", Value::Null);
         sections.insert("twitch", Value::Null);
         sections.insert("youtube", Value::Null);
+        sections.insert("strip", Value::Null);
+        sections.insert("battery", Value::Null);
+        sections.insert("mail", Value::Null);
         let (tx, _) = broadcast::channel(64);
         Store { inner: Arc::new(Mutex::new(Inner { sections, rev: 0 })), tx }
     }

@@ -42,7 +42,7 @@ export interface AppState {
   permHistoryOpen: boolean;
 }
 
-const SECTIONS: readonly string[] = ["layout", "sys", "statuses", "notifications", "vars", "focus", "media", "icons", "weather", "obs", "ai", "twitch", "youtube"];
+const SECTIONS: readonly string[] = ["layout", "sys", "statuses", "notifications", "vars", "focus", "media", "icons", "weather", "obs", "ai", "twitch", "youtube", "strip", "battery", "mail"];
 const MAX_TOASTS = 3;
 const DEFAULT_TOAST_MS = 8000;
 

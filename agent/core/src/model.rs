@@ -783,6 +783,25 @@ impl Collectors {
     }
 }
 
+/// One key of the app strip (DATA_MODEL.md 10.5).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StripKey {
+    pub action_id: String,
+    pub label: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon: Option<String>,
+}
+
+/// The `strip` section: the keys of the built-in template of the app in front, at most 16.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct StripInfo {
+    pub app: String,
+    pub template: String,
+    pub name: String,
+    pub keys: Vec<StripKey>,
+}
+
 /// Active PC window: the executable name only, NEVER the window title (S16).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct FocusInfo {

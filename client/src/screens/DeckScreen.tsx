@@ -11,6 +11,7 @@ import { loadReduced, measureFps, saveReduced, shouldReduce } from "../platform/
 import { hapticEvent, isHapticsEnabled, setHapticsEnabled } from "../platform/haptics";
 import PhoneMenu from "../menu/PhoneMenu";
 import { useMenuGesture } from "../menu/useMenuGesture";
+import AppStrip from "../deck/AppStrip";
 import PageStrip from "../deck/PageStrip";
 import PopupPanel from "../deck/PopupPanel";
 import { navigableIndices, navigablePosition } from "../deck/popup";
@@ -94,6 +95,7 @@ export default function DeckScreen() {
           <PageDots count={count} active={active} />
           <PageHint />
           <ConnBadge />
+          <AppStrip />
         </div>
         {popup && popupPage && <PopupPanel page={popupPage} anchor={popup.anchor} grid={layout.grid} />}
         <Toasts />

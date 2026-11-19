@@ -1,6 +1,7 @@
 import { ScreenOrientation } from "@capacitor/screen-orientation";
 import type { Orientation } from "@decka/shared";
 import { isNative } from "./native";
+import { loadTurn, orientationLock, saveTurn, type Turn } from "./turn";
 
 /** The orientation of the last layout, so that the next start opens in it at once (before any layout arrives). */
 export const ORIENTATION_KEY = "decka.orientation.v1";
@@ -30,11 +31,11 @@ export function saveOrientation(orientation: Orientation, storage: Pick<Storage,
   }
 }
 
-/** Locks the screen in the app (the phone stands in one position; DATA_MODEL.md 3.7). In a browser nothing is locked. */
-export async function lockOrientation(orientation: Orientation): Promise<void> {
+/** Locks the screen in the app (DATA_MODEL.md 3.7, 10.9: the side comes from the turn). In a browser nothing is locked. */
+export async function lockOrientation(orientation: Orientation, turn: Turn = loadTurn()): Promise<void> {
   if (!isNative()) return;
   try {
-    await ScreenOrientation.lock({ orientation });
+    await ScreenOrientation.lock({ orientation: orientationLock(orientation, turn) });
   } catch {
     // an old WebView or a device that refuses: the screen keeps what it has
   }
@@ -45,4 +46,10 @@ export function applyOrientation(orientation: Orientation | undefined): void {
   const o = orientation ?? "landscape";
   saveOrientation(o);
   void lockOrientation(o);
+}
+
+/** The menu item `Turn`: remembers the choice and applies it at once, without a restart. */
+export function applyTurn(turn: Turn): void {
+  saveTurn(turn);
+  void lockOrientation(savedOrientation(), turn);
 }

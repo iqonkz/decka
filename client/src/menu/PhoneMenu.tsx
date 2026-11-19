@@ -1,4 +1,9 @@
+import { useState } from "react";
 import { sameMinor, t } from "@decka/shared";
+import { hiddenStripApps, setStripMode, useStripModes } from "../deck/stripMode";
+import { applyTurn } from "../platform/orientation";
+import { isNative } from "../platform/native";
+import { loadTurn, type Turn } from "../platform/turn";
 import { useAppState } from "../store/store";
 import { statusLine, versionLine } from "./menuModel";
 
@@ -17,6 +22,8 @@ export default function PhoneMenu({ reduced, onToggleReduced, haptics, onToggleH
   const via = useAppState((s) => s.via);
   const agentName = useAppState((s) => s.agentName);
   const agentVersion = useAppState((s) => s.agentVersion);
+  const [turn, setTurn] = useState<Turn>(() => loadTurn());
+  const hidden = hiddenStripApps(useStripModes());
 
   return (
     <div className="menu-backdrop" onPointerDown={onClose}>
@@ -30,6 +37,39 @@ export default function PhoneMenu({ reduced, onToggleReduced, haptics, onToggleH
           <span>{t("menu.haptics")}</span>
           <input type="checkbox" checked={haptics} onChange={(e) => onToggleHaptics(e.target.checked)} />
         </label>
+        {isNative() && (
+          <div className="menu-row menu-turn">
+            <span>{t("menu.turn")}</span>
+            <span className="menu-seg">
+              {(["auto", "normal", "flipped"] as const).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={turn === value ? "on" : ""}
+                  onClick={() => {
+                    setTurn(value);
+                    applyTurn(value);
+                  }}
+                >
+                  {t(`turn.${value}`)}
+                </button>
+              ))}
+            </span>
+          </div>
+        )}
+        {hidden.length > 0 && (
+          <div className="menu-strips">
+            <div className="menu-sub">{t("menu.app_strips")}</div>
+            {hidden.map((app) => (
+              <div key={app} className="menu-row">
+                <span>{app}</span>
+                <button type="button" className="menu-link" onClick={() => setStripMode(app, "auto")}>
+                  {t("strip.show_again")}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
         <button type="button" className="menu-row menu-button" onClick={() => location.reload()}>
           {t("menu.reload")}
         </button>

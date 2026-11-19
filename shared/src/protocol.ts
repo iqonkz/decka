@@ -44,7 +44,7 @@ export interface ErrorMsg { t: "error"; code: ErrorCode; message: string; fatal:
 export type ServerMsg = PairedMsg | WelcomeMsg | PatchMsg | PressResultMsg | PongMsg | ErrorMsg;
 
 // ===== State (sections) =====
-export type SectionName = "layout" | "sys" | "statuses" | "notifications" | "vars" | "focus" | "media" | "icons" | "weather" | "obs" | "ai" | "twitch" | "youtube"; // weather, obs: M15; ai: M16
+export type SectionName = "layout" | "sys" | "statuses" | "notifications" | "vars" | "focus" | "media" | "icons" | "weather" | "obs" | "ai" | "twitch" | "youtube" | "strip" | "battery" | "mail"; // weather, obs: M15; ai: M16; strip, battery, mail: M17
 export interface FullState {
   layout: ClientLayout;
   sys: SysStats | null;            // null = collector disabled
@@ -59,7 +59,15 @@ export interface FullState {
   ai?: AiInfo | null;              // M16; null = both integrations are off
   twitch?: TwitchInfo | null;      // null = Twitch is off or nobody has signed in
   youtube?: YoutubeInfo | null;    // null = YouTube is off or nobody has signed in
+  strip?: StripInfo | null;        // M17 (DATA_MODEL.md 10.5); null = no app strip
+  battery?: BatteryInfo | null;    // M17 (10.6); null = the collector is not needed or has no data
+  mail?: MailInfo | null;          // M17 (10.7); null = no mailboxes
 }
+
+/** The keys of the built-in template of the app in front (DATA_MODEL.md 10.5), at most 16. */
+export interface StripInfo { app: string; template: string; name: string; keys: { actionId: Id; label: string; icon?: string }[]; }
+export interface BatteryInfo { devices: { name: string; pct: number; kind: "pc" | "bt"; charging?: boolean }[]; updatedAt: number; } // at most 8
+export interface MailInfo { accounts: { id: Id; name: string; unread: number | null; error?: "auth" | "network" }[]; updatedAt: number; } // at most 3
 
 /** The live numbers of the signed-in YouTube channel. No token and no secret ever appear here. */
 export interface YoutubeInfo {

@@ -24,14 +24,6 @@ const NAMED: Record<string, string> = {
   ArrowDown: "down",
   ArrowLeft: "left",
   ArrowRight: "right",
-  PrintScreen: "printscreen",
-  Insert: "insert",
-  Period: "period",
-  Comma: "comma",
-  Minus: "minus",
-  Equal: "equal",
-  Slash: "slash",
-  Semicolon: "semicolon",
 };
 
 const MODIFIER_KEYS: Record<string, string> = { Control: "ctrl", Alt: "alt", AltGraph: "alt", Shift: "shift", Meta: "win", OS: "win" };
