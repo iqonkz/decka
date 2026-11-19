@@ -7,6 +7,9 @@ version = "0.7.0"
 edition = "2021"
 license = "MIT"
 
+[profile.dev]
+debug = "line-tables-only"
+
 # Dependencies are built without debug info: a much smaller target\debug; our own crates keep theirs.
 [profile.dev.package."*"]
 debug = false
