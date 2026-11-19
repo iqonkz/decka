@@ -6,4 +6,5 @@ export const ICON_NAMES = [
   "bell", "bell-off", "mail", "message-square", "music", "headphones", "camera", "image", "calendar", "clock",
   "timer", "star", "heart", "zap", "rocket", "bug", "check", "x", "plus", "minus",
   "refresh-cw", "search", "download", "upload", "copy", "trash-2", "square", "circle", "arrow-left", "arrow-right",
+  "rotate-ccw", "log-out", "monitor-off", // M17: system actions
 ];

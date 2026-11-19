@@ -108,6 +108,14 @@ describe("invalid inputs are rejected", () => {
   });
   const button = { id: "b", kind: "button", x: 0, y: 0, w: 1, h: 1, actionId: "lock" };
 
+  test("system ops: the M17 ones pass, an unknown one is rejected", () => {
+    const file = (op: string) => ({ version: 1, actions: { x: { name: "x", type: "system", op } } });
+    for (const op of ["lock", "sleep", "shutdown", "restart", "signout", "hibernate", "display_off", "task_manager", "settings", "explorer", "empty_recycle_bin"]) {
+      expect(valid(actionsRef, file(op)), op).toBe(true);
+    }
+    expect(valid(actionsRef, file("format_c"))).toBe(false);
+  });
+
   test("sanity: the minimal layout helper is valid", () => {
     expect(valid(layoutRef, layoutWith(button))).toBe(true);
   });

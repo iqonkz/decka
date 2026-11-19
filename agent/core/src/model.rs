@@ -31,6 +31,16 @@ pub enum MediaOp {
 pub enum SystemOp {
     Lock,
     Sleep,
+    /// M17 (DATA_MODEL.md 10.8).
+    Shutdown,
+    Restart,
+    Signout,
+    Hibernate,
+    DisplayOff,
+    TaskManager,
+    Settings,
+    Explorer,
+    EmptyRecycleBin,
 }
 
 /// M15: Core Audio toggles (DATA_MODEL.md 2.3).

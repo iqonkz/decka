@@ -1,4 +1,4 @@
-import { t, type Action, type MediaOp } from "@decka/shared";
+import { t, type Action, type MediaOp, type SystemOp } from "@decka/shared";
 import { useState } from "react";
 import Field from "../ui/Field";
 import { presetActions } from "../editor/addButton";
@@ -27,7 +27,7 @@ export interface Draft {
   type: ActionType;
   keysText: string;
   mediaOp: MediaOp;
-  systemOp: "lock" | "sleep";
+  systemOp: SystemOp;
   program: string;
   argsText: string;
   cwd: string;

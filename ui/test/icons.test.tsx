@@ -16,9 +16,9 @@ const NAMES =
 const render = (icon: string, icons: Record<string, string> = {}) => renderToString(<DeckEnvContext.Provider value={envWith(icons)}><Icon icon={icon} size={40} /></DeckEnvContext.Provider>);
 
 describe("Icon", () => {
-  test("the set has exactly 60 names", () => {
+  test("the set has the 60 names of DATA_MODEL.md 3.6 and the three of M17 (10.8)", () => {
     expect(NAMES).toHaveLength(60);
-    expect(Object.keys(ICONS).sort()).toEqual([...NAMES].sort());
+    expect(Object.keys(ICONS).sort()).toEqual([...NAMES, "rotate-ccw", "log-out", "monitor-off"].sort());
   });
 
   test("every name renders an svg of the requested pixel size", () => {

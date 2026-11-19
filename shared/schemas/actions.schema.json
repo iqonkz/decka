@@ -9,7 +9,7 @@
     "Launch": { "allOf": [ { "$ref": "#/$defs/Base" }, { "required": ["program"], "properties": { "type": { "const": "launch" }, "program": { "type": "string", "minLength": 1, "maxLength": 500 },
       "args": { "type": "array", "maxItems": 32, "items": { "type": "string", "maxLength": 500 } }, "cwd": { "type": "string", "maxLength": 500 }, "hidden": { "type": "boolean" } } } ] },
     "OpenUrl": { "allOf": [ { "$ref": "#/$defs/Base" }, { "required": ["url"], "properties": { "type": { "const": "open_url" }, "url": { "type": "string", "pattern": "^https?://", "maxLength": 2000 } } } ] },
-    "System": { "allOf": [ { "$ref": "#/$defs/Base" }, { "required": ["op"], "properties": { "type": { "const": "system" }, "op": { "enum": ["lock","sleep"] } } } ] },
+    "System": { "allOf": [ { "$ref": "#/$defs/Base" }, { "required": ["op"], "properties": { "type": { "const": "system" }, "op": { "enum": ["lock","sleep","shutdown","restart","signout","hibernate","display_off","task_manager","settings","explorer","empty_recycle_bin"] } } } ] },
     "Audio": { "allOf": [ { "$ref": "#/$defs/Base" }, { "required": ["op"], "properties": { "type": { "const": "audio" }, "op": { "enum": ["mic_toggle","out_mute_toggle"] } } } ] },
     "Obs": { "allOf": [ { "$ref": "#/$defs/Base" }, { "required": ["op"], "properties": { "type": { "const": "obs" }, "op": { "enum": ["record_toggle","stream_toggle","scene","input_mute_toggle","save_replay"] },
       "scene": { "type": "string", "minLength": 1, "maxLength": 100 }, "input": { "type": "string", "minLength": 1, "maxLength": 100 } } } ] },

@@ -18,9 +18,9 @@ const ID = "https://decka.invalid/schemas/catalog.schema.json";
 const ajv = new Ajv2020({ allErrors: true, strict: false });
 ajv.addSchema(catalogSchema);
 
-/** The 60 Lucide icons of the phone build (DATA_MODEL.md 3.6). */
+/** The 60 Lucide icons of the phone build (DATA_MODEL.md 3.6) and the three of M17 (rotate-ccw, log-out, monitor-off; 10.8). */
 const LUCIDE = new Set(
-  "play pause skip-back skip-forward volume volume-1 volume-2 volume-x mic mic-off video video-off monitor lock power moon sun home settings terminal code link git-branch globe folder file-text activity cpu hard-drive wifi bell bell-off mail message-square music headphones camera image calendar clock timer star heart zap rocket bug check x plus minus refresh-cw search download upload copy trash-2 square circle arrow-left arrow-right".split(" "),
+  "play pause skip-back skip-forward volume volume-1 volume-2 volume-x mic mic-off video video-off monitor lock power moon sun home settings terminal code link git-branch globe folder file-text activity cpu hard-drive wifi bell bell-off mail message-square music headphones camera image calendar clock timer star heart zap rocket bug check x plus minus refresh-cw search download upload copy trash-2 square circle arrow-left arrow-right rotate-ccw log-out monitor-off".split(" "),
 );
 const PHOSPHOR = path.resolve(__dirname, "../../node_modules/@phosphor-icons/core/assets/regular");
 

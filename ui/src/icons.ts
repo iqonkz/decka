@@ -26,12 +26,14 @@ import {
   Image as ImageIcon,
   Link as LinkIcon,
   Lock,
+  LogOut,
   Mail,
   MessageSquare,
   Mic,
   MicOff,
   Minus,
   Monitor,
+  MonitorOff,
   Moon,
   Music,
   Pause,
@@ -40,6 +42,7 @@ import {
   Power,
   RefreshCw,
   Rocket,
+  RotateCcw,
   Search,
   Settings,
   SkipBack,
@@ -124,6 +127,10 @@ export const ICONS: Record<string, LucideIcon> = {
   circle: Circle,
   "arrow-left": ArrowLeft,
   "arrow-right": ArrowRight,
+  // M17 (DATA_MODEL.md 10.8): the new system actions.
+  "rotate-ccw": RotateCcw,
+  "log-out": LogOut,
+  "monitor-off": MonitorOff,
 };
 
 export const FALLBACK_ICON: LucideIcon = Square;
