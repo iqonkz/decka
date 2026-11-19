@@ -44,67 +44,91 @@ $api = (Get-Content .tmp\cfg\config.json -Raw | ConvertFrom-Json).apiToken
 
 ---
 
-> **Выполненные задачи M0–M15b перенесены в [archive/TASKS-M0-M13.md](archive/TASKS-M0-M13.md).** Ссылки вида «T11.10», «T15.9» ведут туда. Нужный раздел открывай через поиск, файл целиком не читай.
+> **Выполненные задачи M0–M16 перенесены в [archive/TASKS-M0-M13.md](archive/TASKS-M0-M13.md).** Ссылки вида «T11.10», «T15.9» ведут туда. Нужный раздел открывай через поиск, файл целиком не читай.
 
-## M16 — ИИ-помощники: лимиты и разрешения (2026-11-17, D-48)
+## M17 — список владельца 2026-11-19 (D-49)
 
-Вся спецификация — DATA_MODEL.md §6.8. Типы — PROTOCOL.md §3 (`AiInfo`, `PermAnswerMsg`), §5, §9 (`CcStatus`). Безопасность — ARCHITECTURE.md S20.
+Спецификация — DATA_MODEL.md §10 (раздел по номеру задачи). Типы — PROTOCOL.md §3 (`NotifOpenMsg`, `StripInfo`, `BatteryInfo`, `MailInfo`, поля `Notification`). Вид — DESIGN.md §4.3, §4.9, §4.10. Безопасность — ARCHITECTURE.md S21.
 
 **Быстрый режим (решение владельца).**
-- Новых зависимостей нет.
-- Тесты — только перечисленные в задаче.
-- Без снимков, телефона, `tauri dev`-обходов и сборки релиза между задачами.
-- Ручные проверки → `MANUAL_CHECKS.md` (`PENDING (owner)`).
-- Документы, кроме указанных разделов, не читать.
+- Тесты — только перечисленные.
+- Без снимков и ручного обхода окна.
+- Телефон — только если он подключён и разблокирован, не больше 5 минут на задачу. Иначе ручные пункты идут в `MANUAL_CHECKS.md`, раздел `M17`, с пометкой `PENDING (owner)`.
+- Новых npm-зависимостей нет. Новые Rust-зависимости — только те, что названы в §10.7.
+- Блокер → запись в `BLOCKERS.md`, пункт пропустить, идти дальше.
+- `%APPDATA%\Decka`, настоящие почтовые ящики и уведомления владельца в тестах не использовать.
 
-**Безопасность.**
-- Настоящий `%USERPROFILE%\.claude\settings.json` NEVER не трогать в тестах: путь к домашней папке передаётся параметром, тесты используют временную папку.
-- `~/.codex` тестами не читать: нужна фикстура.
-
-### T16.1 — Агент: секция `ai`, эндпоинты `/api/cc/*`, Codex, установка в Claude Code
-1. Конфигурация `ai` и `hookToken`. `get_config` не отдаёт `hookToken`, `save_config` сохраняет прежний.
-2. `POST /api/cc/statusline` и `POST /api/cc/permission`. Проверки: только loopback, свой лимит, тело до 1 МБ, ожидание с guard на Drop.
-3. Сообщение WS `perm_answer`, секция `ai` (рассылка ≤ 1 раз в 2 с, кроме pending), переменные `ai.*` и их резерв.
-4. Сборщик Codex. `cc_install`, `cc_uninstall`, `cc_status` (IPC).
-5. Тесты (Rust, без сети и настоящих файлов):
-   - разбор statusline;
-   - `summary` для каждого вида инструмента и обрезка;
-   - permission: allow, deny, pc, таймаут (`tokio::time::pause`), нет телефона → пустое тело, обрыв соединения → запрос удалён, повторный ответ игнорируется;
-   - не-loopback → 404, apiToken вместо hookToken → 401;
-   - Codex: фикстура со строкой из §6.8 (`resets_at`) и старая (`resets_in_seconds`), метки окон;
-   - install/uninstall на временной папке: чужие ключи и хуки целы, чужой statusLine не тронут (`statusLineConflict`), повтор идемпотентен, `.decka-bak` создаётся один раз.
+### T17.1 — Память и перелистывание (§10.1, §10.2)
+1. Окно настроек уничтожается при закрытии и создаётся заново. Сборщики запускаются, только когда нужны. `sysinfo` обновляет только нужное.
+2. Телефон: `PageStrip` — по §10.2. Подписки на секции по §10.1.
+3. Тесты:
+   - чистая функция `neededCollectors(layout, actions)` → набор сборщиков;
+   - тест store: `patch sys` не меняет ссылки на данные кнопок.
+4. Замер. До и после: сумма private дерева `decka-agent.exe` с закрытым окном (скрипт `tools/mem-tree.ps1` — обход по `ParentProcessId`, только чтение). В отчёт — две цифры.
 ```
 npm run typecheck; npm test; cargo test -p decka-core
 ```
 
-### T16.2 — Клиент: виджет `ai`, лист разрешений, набор `ai`
-1. `shared`:
-   - типы `AiInfo`, `AiItem`, `PermAnswerMsg`;
-   - схемы и валидация размеров `ai`, `fitWidgetSize` для `ai`;
-   - `burnEta` с тестами: рост, нет роста, мало точек, eta после сброса → нет прогноза;
-   - набор `ai` в `sets.json`, виджет в библиотеке редактора;
-   - строки en/ru по DESIGN.md §6.
-2. Виджет `ai` по DATA_MODEL §6.8 во всех темах. Стили — существующие токены тем, новых цветов не вводить.
-3. Лист разрешений поверх deck: защита 400 мс, `perm_answer`, закрытие без ожидания `patch`. Тест store: ответ убирает лист; исчезновение из `pending` закрывает лист.
-4. `NOTICE.md`: строка `Idea of AI usage limits and phone approvals inspired by PhoneBox (github.com/ersinkoc/phonebox, MIT); no code copied.`
+### T17.2 — Сочетания клавиш и системные действия (§10.3, §10.8)
+1. `ChordField`: переключатели модификаторов и поле клавиши с поиском (DESIGN.md §4.9). Чистые функции `chordToState` / `stateToChord` с тестами: порядок модификаторов, одиночный `win`, без клавиши → ошибка.
+2. Новые `system.op`: схема, валидаторы TS и Rust, исполнение, каталог.
+3. Тесты:
+   - валидация новых `op`;
+   - отображение `op` → программа и аргументы (функция без исполнения);
+   - в `--dry-run` ничего не запускается.
 ```
 npm run typecheck; npm test; cargo test -p decka-core
 ```
 
-### T16.3 — Окно настроек и сборка
-1. `More → Integrations → AI coding` по §6.8: кнопки `Install`/`Remove`, статусы, переключатели, таймаут. Строки — через `t()`.
-2. CHANGELOG `Unreleased`: две-три строки для пользователя.
-3. Один прогон `npm run release:agent; npm run release:apk` — проверка, что всё собирается. Версию не поднимать, тег не ставить, релиз не публиковать.
-4. В `MANUAL_CHECKS.md`, раздел `M16`, — `PENDING (owner)`:
-   - `Install` → перезапуск Claude Code → строка `Decka · 5h …` в терминале и лимиты на телефоне;
-   - запрос `Bash` → лист на телефоне → `Allow`/`Deny`/`Answer on PC`/таймаут;
-   - телефон отключён → вопрос сразу в терминале;
-   - Codex — лимиты видны;
-   - `Remove` возвращает `settings.json`.
+### T17.3 — Полоса приложения и переворот (§10.5, §10.9)
+1. Агент: секция `strip`, исполнение действий `tpl-*` только для текущей полосы.
+2. Телефон:
+   - полоса по DESIGN.md §4.10;
+   - режимы `auto` / `tab` / `never` в `localStorage`;
+   - пункты меню `Turn` и `App strips`;
+   - блокировка ориентации по §10.9.
+3. Тесты:
+   - `stripFor(focusApp, layout, templates, lang)` (своя страница → `null`, шаблона нет → `null`, ≤ 16 кнопок);
+   - агент: `press tpl-word-bold` при полосе Word → ok, при другой полосе → `UNKNOWN_ACTION`;
+   - `orientationLock(display.orientation, turn)` — 6 сочетаний.
+```
+npm run typecheck; npm test; cargo test -p decka-core
+```
+
+### T17.4 — Заряд устройств и почта (§10.6, §10.7)
+1. Сборщик `battery`, виджет `battery`.
+2. Почта:
+   - `cargo add tokio-rustls@0.26.6 rustls-platform-verifier@0.7.1 -p decka-core`;
+   - IMAP-клиент из трёх команд;
+   - `set_mail_password` (DPAPI, как у OBS);
+   - раздел `More → Integrations → Mail` с пресетами;
+   - виджет `mail`.
+3. Тесты:
+   - разбор ответа `STATUS` и `NO`/`BAD` на LOGIN;
+   - экранирование кавычек в LOGIN;
+   - диалог с локальным TLS-сервером-заглушкой не нужен — достаточно тестов разбора на строках;
+   - иконка устройства по имени;
+   - дедупликация по имени.
+```
+npm run typecheck; npm test; cargo test -p decka-core
+```
+
+### T17.5 — Уведомления Windows (§10.4)
+1. **Шаг 0** — проверка `UserNotificationListener` в непакетном агенте (≤ 30 мин). Не работает → BLOCKERS, задача закрывается без кода, переходи к сборке.
+2. Работает:
+   - включение и список исключений в окне;
+   - чтение уведомлений → секция `notifications`;
+   - `notif_open`;
+   - тост на телефоне.
+3. Тесты:
+   - извлечение title и body из XML привязки `ToastGeneric` (фикстура);
+   - фильтр исключений;
+   - `notif_open` с неизвестным id ничего не запускает.
+4. Сборка: CHANGELOG `Unreleased` — строки M17. Затем один прогон `npm run release:agent; npm run release:apk`: версию не поднимать, тег не ставить, push не делать.
 ```
 npm run typecheck; npm test; cargo test -p decka-core; npm run release:agent; npm run release:apk
 ```
 
 ## Что ещё открыто
-- **Ручные проверки владельца:** `docs/MANUAL_CHECKS.md`, пункты `PENDING (owner)`. Приёмка на телефоне T15.9 описана в архиве.
-- **Вопрос Q-9** (Twitch, YouTube, Discord) — `docs/OPEN_QUESTIONS.md`.
+- **Ручные проверки владельца:** `docs/MANUAL_CHECKS.md`, пункты `PENDING (owner)`.
+- **Вопрос Q-9** — `docs/OPEN_QUESTIONS.md`. Twitch и YouTube уже сделаны (v0.5–v0.6); открыт Discord.

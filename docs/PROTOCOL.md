@@ -58,7 +58,9 @@ export interface PingMsg  { t: "ping"; ts: number; }
 // M16: ответ на запрос разрешения Claude Code (DATA_MODEL.md §6.8). Не команда: reqId выдан агентом,
 // одноразовый, ничего не несёт, кроме выбора. Неизвестный/истёкший reqId — молча игнорируется.
 export interface PermAnswerMsg { t: "perm_answer"; reqId: string; decision: "allow" | "deny" | "pc"; } // reqId ^[0-9a-f]{16}$
-export type ClientMsg = PairMsg | HelloMsg | PressMsg | NotifDismissMsg | PingMsg | PermAnswerMsg;
+// M17: открыть программу уведомления Windows (DATA_MODEL.md §10.4). Только id, выданный агентом.
+export interface NotifOpenMsg { t: "notif_open"; notifId: string; }
+export type ClientMsg = PairMsg | HelloMsg | PressMsg | NotifDismissMsg | PingMsg | PermAnswerMsg | NotifOpenMsg;
 
 // ===== Сервер -> Клиент (WS) =====
 export interface PairedMsg  { t: "paired"; deviceId: Id; token: string; }
@@ -89,7 +91,15 @@ export interface FullState {
   weather?: WeatherInfo | null;    // M15; null = выключено или ещё нет данных
   obs?: ObsInfo | null;            // M15; null = интеграция выключена
   ai?: AiInfo | null;              // M16; null = обе интеграции выключены
+  strip?: StripInfo | null;        // M17 §10.5; null = полосы нет
+  battery?: BatteryInfo | null;    // M17 §10.6; null = сборщик не нужен или нет данных
+  mail?: MailInfo | null;          // M17 §10.7; null = нет ящиков
 }
+
+// M17 (DATA_MODEL.md §10). Имена секций добавляются в SectionName: "strip" | "battery" | "mail".
+export interface StripInfo { app: string; template: string; name: string; keys: { actionId: Id; label: string; icon?: string }[]; } // keys <= 16
+export interface BatteryInfo { devices: { name: string; pct: number; kind: "pc" | "bt"; charging?: boolean }[]; updatedAt: number; } // <= 8
+export interface MailInfo { accounts: { id: Id; name: string; unread: number | null; error?: "auth" | "network" }[]; updatedAt: number; } // <= 3
 
 // M16: лимиты Claude Code / Codex и запросы разрешений (DATA_MODEL.md §6.8).
 export interface AiWindow {
@@ -187,7 +197,10 @@ export interface Notification {
   ts: number; title: string;     // title <= 120
   body?: string;                 // <= 500
   level: NotifLevel;
-  source?: string;               // <= 40
+  source?: string;               // <= 40; M17: "windows" — уведомление Windows (DATA_MODEL.md §10.4)
+  app?: string;                  // M17: отображаемое имя программы, <= 60
+  icon?: string;                 // M17: "img:<hash16>"
+  openable?: boolean;            // M17: тап шлёт notif_open
 }
 
 // ===== HTTP =====

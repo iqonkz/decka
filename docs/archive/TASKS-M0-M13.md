@@ -1599,4 +1599,5 @@ npm run typecheck; npm test; cargo test -p decka-core; npm run release:agent; np
   3. Ползунок громкости через `adb shell input swipe`: громкость ПК меняется, ползунок возвращается к `audio.volume`. Кнопка `Mic` меняет `mic.muted`, кнопка становится красной.
   4. Таблица к/с (`gfxinfo`) по темам на странице из п. 2 и на странице без новых виджетов. Новые виджеты допускают падение не больше 10%.
   5. На S9 дополнительно — пункты `S9 PENDING` из `MANUAL_CHECKS.md`. Логотип: иконка на домашнем экране, монохромная иконка, splash, экран сопряжения.
+- **M16 (ИИ-помощники, DATA_MODEL §6.8):** выполнен. Затем без задач в TASKS выпущены v0.4–v0.7: разрешения Codex, правила Always allow, история разрешений, Twitch, YouTube, виджет `context`, шаблоны 13 программ, подсказка шаблона, страницы по часам. Подробности — `git log`, CHANGELOG.
 - **Релиз v0.3.0:** тег стоит на коммите `release: Cargo.lock for v0.3.0`, файлы `Decka-Setup.exe` и `Decka.apk` опубликованы на GitHub Releases.

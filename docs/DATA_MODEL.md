@@ -37,7 +37,8 @@ export type Action =
   | (ActionBase & { type: "media"; op: MediaOp })
   | (ActionBase & { type: "launch"; program: string; args?: string[]; cwd?: string; hidden?: boolean })
   | (ActionBase & { type: "open_url"; url: string })
-  | (ActionBase & { type: "system"; op: "lock" | "sleep" })
+  | (ActionBase & { type: "system"; op: "lock" | "sleep"
+      | "shutdown" | "restart" | "signout" | "hibernate" | "display_off" | "task_manager" | "settings" | "explorer" | "empty_recycle_bin" }) // M17, §10.8
   | (ActionBase & { type: "audio"; op: "mic_toggle" | "out_mute_toggle" })                      // M15
   | (ActionBase & { type: "obs"; op: ObsOp; scene?: string; input?: string })                   // M15
   | (ActionBase & { type: "sequence"; steps: ({ actionId: Id } | { delayMs: number })[] });     // M15
@@ -738,3 +739,95 @@ export interface CatalogSet {
 4. Свободных клеток не хватает → новая страница с именем набора сразу после текущей, форма с левого верхнего угла.
 5. Пункты с `ask` в наборе берут значение из `ctx` (сцены OBS по порядку); нет значения — пункт пропускается.
 6. Повторная вставка того же набора на ту же страницу добавляет кнопки снова (без дедупликации кнопок; действия переиспользуются).
+
+## 10. M17 — список владельца 2026-11-19 (D-49)
+
+### 10.1 Скорость и память
+Замер на ПК владельца 2026-11-19: дерево процессов `decka-agent.exe` — 232 МБ private, из них агент 21 МБ, остальное — 6 процессов WebView2 скрытого окна настроек.
+- **Окно настроек уничтожается при закрытии** (крестик или Esc; `WebviewWindow::destroy`, не `hide`). Открывается заново из трея, при повторном запуске exe или по `decka://`, создаётся с теми же параметрами. Вкладка и прокрутка восстанавливаются из `localStorage`. Агент не зависит от существования окна: события в отсутствующее окно не отправляются, ошибок нет.
+- **Цель:** окно закрыто 10 с → у `decka-agent.exe` нет дочерних `msedgewebview2.exe`, дерево ≤ 60 МБ private. Открытие окна из трея ≤ 1,5 с.
+- **Сборщики:** `sysinfo` обновляет только нужное: CPU и память — раз в 2 с; сеть — раз в 2 с; диски — раз в 30 с. Списки процессов не обновляются. Сборщики, чьих секций нет ни в одной раскладке и которые не нужны переменным `bind`, не запускаются: `media`, `audio`, `weather`, `obs`, `ai`, `battery`, `mail`. Секция `sys` нужна, только если в раскладке есть виджет `sys`.
+- **Телефон:** раскладка не перерисовывается целиком на `patch` секции. Виджет подписан только на свою секцию, кнопки — только на `vars`, `statuses` и `icons`, и только в части своих `bind`. Изображения иконок декодируются один раз (кэш `Map<hash, HTMLImageElement>` или `img` с `decoding="async"`).
+
+### 10.2 Перелистывание без рывков
+Причина рывков (код `PageStrip.tsx`): `setOffset` на каждое движение пальца перерисовывает три страницы через React. Новые соседи монтируются в тот же кадр, что и конец доводки.
+- Во время жеста позиция меняется **напрямую в DOM** через `ref` (`style.transform = translate3d(...)`), не чаще одного раза в кадр (`requestAnimationFrame`). Состояние React меняется только в начале жеста (видимость соседа) и после доводки.
+- На `pointerdown` — `setPointerCapture`. На контейнере страниц — `touch-action: pan-y`. На слоях — `will-change: transform`, пока идёт жест или доводка.
+- `DeckBridge` и клавиши — `React.memo` по `page`, `grid` и своим данным, поэтому смена `offset` их не перерисовывает.
+- После доводки новые соседи монтируются в следующем кадре простоя (`requestIdleCallback`, запасной вариант — `setTimeout(…, 50)`), а не в кадре окончания анимации.
+- Порог, скорость и кривая — без изменений (DESIGN.md §3).
+
+### 10.3 Сочетания с системными клавишами
+Windows перехватывает часть сочетаний (`Win+D`, `Win+L`, `Alt+Tab`, `Win+Shift+S`, `Ctrl+Alt+Del`…) до окна, и запись их не видит. Поэтому `ChordField` дополняется ручным выбором (DESIGN.md §4.9):
+- **Модификаторы** — четыре кнопки-переключателя: `Ctrl`, `Alt`, `Shift`, `Win`.
+- **Клавиша** — поле с поиском по всем `KeyName` (§2.2). Группы: буквы, цифры, F1–F24, навигация, знаки. Подписи: `Print Screen`, `Page Up`, `.` …
+- Запись нажатием остаётся. Записанное сочетание сразу показывается в переключателях и поле — это одно и то же значение `keys`.
+- Порядок в `keys`: `ctrl`, `alt`, `shift`, `win`, затем клавиша. Без основной клавиши сохранить нельзя: `Pick a key`. Исключение — одиночный `win`, он допустим (открывает «Пуск»).
+
+### 10.4 Уведомления Windows на телефоне
+- **Источник:** `Windows.UI.Notifications.Management.UserNotificationListener` (WinRT). Признаки окна `windows`: `UI_Notifications`, `UI_Notifications_Management`, `ApplicationModel`.
+  - **Шаг 0 (проверка, ≤ 30 мин):** работает ли API в непакетном exe агента — `RequestAccessAsync` из потока окна, затем `GetNotificationsAsync(Toast)`.
+  - Не работает (ошибка доступа или `Denied` без запроса пользователю) → запись в BLOCKERS.md, пункт пропускается целиком. Пакеты с внешним расположением (sparse package) и чтение базы `wpndatabase.db` — **не делать**: это решение архитектора.
+- **Включение:** `More → Integrations → Windows notifications`: переключатель → `RequestAccessAsync` → Windows показывает свой запрос → статус `Allowed` / `Blocked in Windows Settings → Privacy → Notifications`. По умолчанию выключено. Список `Don't show from:` — приложения, уже присылавшие уведомления; отмечаются флажками.
+- **Чтение:** событие `NotificationChanged` (Added), а если подписка недоступна для непакетного приложения — опрос `GetNotificationsAsync` раз в 3 с с запоминанием виденных `Id`. Из уведомления берутся: `AppInfo.DisplayInfo.DisplayName`, `AppInfo.AppUserModelId` и тексты привязки `ToastGeneric` (первый — title, остальные через перевод строки — body). Обрезка 120/500. Уведомления Decka не пересылаются.
+- **Доставка:** в существующую секцию `notifications` (≤ 20, новые первыми) с полями `source: "windows"`, `app` (отображаемое имя), `openable: true` (AUMID известен). Иконка приложения — через хранилище иконок `img:<hash16>` (§8.1), если её удаётся получить из `AppInfo.DisplayInfo.GetLogo`, иначе без иконки. Снятие уведомления в Windows (Removed) убирает его и с телефона. `notif_dismiss` на телефоне скрывает только у Decka, в Windows не удаляет.
+- **Открыть:** тап по уведомлению на телефоне → `notif_open{notifId}`. Агент по своему `notifId` находит AUMID и запускает `explorer.exe shell:AppsFolder\<AUMID>` (`Command`, без shell). Это открывает или активирует программу. Нет AUMID или уведомление удалено → `press_result`-подобного ответа нет, ошибка пишется в лог. Телефон ничего не передаёт, кроме `notifId` (S21).
+- **Тост на телефоне:** новое уведомление Windows показывается тостом сверху 4 с (DESIGN.md §3), если на странице нет виджета `notifications`. Тап по тосту — как тап по уведомлению.
+
+### 10.5 Полоса приложения (вместо подсказки «Добавить кнопки?»)
+Сейчас при программе в фокусе без своей страницы телефон показывает подсказку `{app} is in front and has no page. Add keys for it?`. Её заменяет **полоса приложения** — выдвижная панель с кнопками встроенного шаблона, как Touch Bar на Mac. Раскладку она не меняет и новых страниц не создаёт.
+- **Когда:** у активного приложения (`focus.app`) нет своей страницы (ни одна страница не содержит его в `apps`) и есть встроенный шаблон `shared/templates/*.json` с этим exe в `apps`. Есть своя страница → как раньше, контекстная страница (§6.1), полосы нет.
+- **Секция `strip`** (агент):
+  - формат `{ app: string; template: string; name: string; keys: { actionId: Id; label: string; icon?: string }[] } | null`;
+  - `keys` — кнопки страницы шаблона в порядке чтения, максимум 16, с подписями на языке интерфейса;
+  - при смене фокуса пересчитывается со стабилизацией 700 мс, как контекст.
+- **Нажатие:** телефон шлёт обычный `press{actionId}` с id действия шаблона (`tpl-<template>-*`). Агент исполняет такое действие из встроенного шаблона, только если `strip.template` сейчас этот шаблон и в `actions.json` нет действия с таким id. В остальных случаях — `UNKNOWN_ACTION`. В `actions.json` ничего не пишется.
+- **Поведение на телефоне** (DESIGN.md §4.10). Режим полосы для каждого приложения хранится только на этом телефоне: `localStorage` `decka.strip.v1` = `{ "<exe>": "auto" | "tab" | "never" }`, по умолчанию `auto`.
+  - **`auto`:** полоса выезжает сама при появлении `strip` и остаётся, пока приложение в фокусе. Тап вне полосы сворачивает её в язычок, нажатие под ней не срабатывает.
+  - **`tab`:** виден только язычок у края; тап или свайп от края открывает полосу.
+  - **`never`:** ничего не показывается.
+- **Выбор режима** — кнопка `⋯` в заголовке полосы: `Open automatically` / `Only the tab` / `Never for <name>`. Список приложений с `never` — в меню телефона (DESIGN.md §4.3), пункт `App strips`, у каждого — `Show again`.
+- **Подсказка в окне ПК** (`TemplateHint`, вставка шаблона одним кликом) остаётся. Строка `pageapps.suggest` на телефоне больше не показывается. Виджет `context` без страницы показывает кнопки `strip`, если он есть.
+
+### 10.6 Заряд подключённых устройств
+- **Сборщик `battery`** (агент): раз в 5 мин и при старте перечисляет присутствующие устройства (`SetupDiGetClassDevsW(NULL, NULL, NULL, DIGCF_PRESENT | DIGCF_ALLCLASSES)`) и читает свойство `{104EA319-6EE2-4701-BD47-8DDBF425BBE5}, 2` (заряд Bluetooth-устройства, байт 0..100) через `SetupDiGetDevicePropertyW`. Имя — `DEVPKEY_Device_FriendlyName`. Дубликаты по имени (у одного устройства несколько узлов) — берётся максимум. Нужны признаки `Win32_Devices_DeviceAndDriverInstallation` и `Win32_Devices_Properties` того же `windows` 0.62.2.
+- **Батарея ПК** (ноутбук): `GetSystemPowerStatus` (`Win32_System_Power`). Нет батареи (`BatteryFlag & 128`) — пункт отсутствует.
+- **Секция `battery`:** `{ devices: { name: string; pct: number; kind: "pc" | "bt"; charging?: boolean }[]; updatedAt } | null`. ПК — первым, остальные по имени, ≤ 8.
+- **Переменные:** `battery.pc`, `battery.low` (число устройств ниже 20%). Префикс `battery.` зарезервирован.
+- **Виджет `battery`:** `1×1` — самое разряженное устройство; `2×1` / `2×2` / `3×1` — список строк: иконка по типу (`laptop`, `headphones`, `mouse`, `keyboard`, `gamepad`, иначе `bluetooth` — по словам в имени), имя, полоса, `%`. Заряд ниже 20% — цвет `warning`, ниже 10% — `error`. Нет устройств → `No devices report battery`.
+- Устройства, которые не сообщают заряд Windows (многие мыши с собственным приёмником), не показываются — это ограничение Windows, а не ошибка.
+
+### 10.7 Почта: непрочитанные
+- **Протокол:** IMAP по TLS (порт 993) — только счёт `UNSEEN` во `INBOX`. Писем и заголовков не читаем.
+  - Команды: приветствие → `a1 LOGIN "<user>" "<pass>"` (кавычки и `\` экранируются) → `a2 STATUS INBOX (UNSEEN)` → `a3 LOGOUT`.
+  - Таймаут 15 с. Только `tokio-rustls` 0.26.6 и `rustls-platform-verifier` 0.7.1 — они уже в `Cargo.lock` через `reqwest`; добавляются прямыми зависимостями ровно этих версий. Без STARTTLS и без незашифрованного входа.
+- **Учётные записи:** до 3, `config.mail.accounts[]`:
+  - формат `{ id: Id; name: string; host: string; port: number; user: string; password?: "dpapi:<base64>"; openActionId?: Id }`;
+  - пароль — как у OBS: `set_mail_password`, DPAPI, никогда в логах, протоколе, на телефоне;
+  - пресеты в окне: Gmail (`imap.gmail.com`, `open_url https://mail.google.com`), Yandex (`imap.yandex.ru`), Mail.ru (`imap.mail.ru`), iCloud (`imap.mail.me.com`), Other;
+  - подпись: `Use an app password (Gmail, Yandex, Mail.ru, iCloud). Outlook.com and Microsoft 365 are not supported — they allow only Microsoft sign-in`.
+- **Расписание:** раз в 2 мин и по кнопке `Check now`. Ошибка входа (`NO`/`BAD` на LOGIN) → `error: "auth"`, повторов нет до смены пароля. Сетевая ошибка → `error: "network"`, обычный повтор.
+- **Секция `mail`:** `{ accounts: { id; name; unread: number | null; error?: "auth" | "network" }[]; updatedAt } | null`. Переменные `mail.unread` (сумма) и `mail.<id>.unread`, префикс `mail.` зарезервирован.
+- **Виджет `mail`:** `1×1` — конверт и общее число (0 — без числа, приглушённо); `2×1` / `2×2` — строки по ящикам. Тап по строке (или по `1×1`) → `press(openActionId)` этого ящика (первого, если `1×1`). Это обычное нажатие существующего действия. Нет `openActionId` — тап ничего не делает.
+- **Безопасность (S21):** хост задаётся только в окне ПК. Исходящие соединения — только к хостам из `config.mail` (исключение из S18 для почты).
+
+### 10.8 Системные действия
+`system.op` дополняется (схема, валидаторы TS и Rust):
+- `shutdown` → `shutdown.exe /s /t 0`;
+- `restart` → `/r /t 0`;
+- `signout` → `/l`;
+- `hibernate` → `/h` (ненулевой код → `ACTION_FAILED` `Hibernation is turned off in Windows`);
+- `display_off` → `PostMessageW(HWND_BROADCAST, WM_SYSCOMMAND, SC_MONITORPOWER, 2)`;
+- `task_manager` → `taskmgr.exe`;
+- `settings` → `explorer.exe ms-settings:`;
+- `explorer` → `explorer.exe`;
+- `empty_recycle_bin` → `SHEmptyRecycleBinW(None, None, SHERB_NOCONFIRMATION | SHERB_NOPROGRESSUI | SHERB_NOSOUND)`; пустая корзина — не ошибка.
+
+Запуск — `Command` без shell, `CREATE_NO_WINDOW`. В `--dry-run` ничего не исполняется. Каталог, категория `System`: все новые действия. `shutdown`, `restart`, `signout`, `hibernate`, `empty_recycle_bin` — с `confirm: true`. Иконки Lucide: `power`, `rotate-ccw`, `log-out`, `moon`, `monitor-off`, `activity`, `settings`, `folder`, `trash-2`.
+
+### 10.9 Переворот телефона
+Ориентация раскладки (`display.orientation`, §3.7) не меняется. Сторону, которой стоит телефон, выбирает сам телефон и хранит у себя: `localStorage` `decka.turn.v1` = `"auto" | "normal" | "flipped"`, по умолчанию `auto`.
+- `auto` → блокировка `landscape` / `portrait`: датчик сам выбирает одну из двух сторон, и телефон можно ставить зарядным разъёмом вверх или вниз.
+- `normal` → `landscape-primary` / `portrait-primary`.
+- `flipped` → `landscape-secondary` / `portrait-secondary`.
+- Меню телефона (DESIGN.md §4.3): пункт `Turn` с тремя вариантами `Auto` / `Normal` / `Upside down`. Применяется сразу, без перезапуска; в веб-режиме пункт скрыт.

@@ -41,14 +41,14 @@ tools/    ws-smoke.mjs, make-icon.ps1
 | apiToken | `dk_` + 43 символа, заголовок `Authorization: Bearer` |
 | Лимиты | press 20/с на сокет; HTTP 60/мин на IP; pair 10/мин на IP |
 | Id | `^[a-z0-9_-]{1,64}$`; VarName `^[a-z0-9_.-]{1,64}$` |
-| Секции | `layout`, `sys`, `statuses`, `notifications` (≤ 20), `vars`; M11: `focus`, `media`; M12: `icons`; M15: `weather`, `obs` (необязательные); M16: `ai`. Переменные `audio.*`, `mic.*`, `media.*`, `obs.*`, `ai.*` — от сборщиков, зарезервированы |
+| Секции | `layout`, `sys`, `statuses`, `notifications` (≤ 20), `vars`; M11: `focus`, `media`; M12: `icons`; M15: `weather`, `obs` (необязательные); M16: `ai`; M17: `strip`, `battery`, `mail`. Переменные `audio.*`, `mic.*`, `media.*`, `obs.*`, `ai.*`, `battery.*`, `mail.*` — от сборщиков, зарезервированы |
 | Сетка | `layout.grid`: альбомная cols 3..8 × rows 2..5, по умолчанию 7×4; книжная (M14) cols 2..5 × rows 3..8 |
 | Версия | одна для агента, клиента и APK, источник — корневой `package.json`; `npm run version:bump` не запускать (релиз делает владелец) |
 | Каталог конфигурации | `%APPDATA%\Decka` или env `DECKA_CONFIG_DIR` |
 | Close-коды WS | 4401 unauthorized, 4403 revoked, 4426 version, 4429 rate, 1009 size, 1011 lagged |
 
 ## Сообщения (полностью — PROTOCOL.md §3)
-- C→S: `pair{v,code,client}`, `hello{v,token,client}`, `press{id,actionId}`, `notif_dismiss{notifId}`, `ping{ts}`, M16: `perm_answer{reqId,decision}`
+- C→S: `pair{v,code,client}`, `hello{v,token,client}`, `press{id,actionId}`, `notif_dismiss{notifId}`, `ping{ts}`, M16: `perm_answer{reqId,decision}`, M17: `notif_open{notifId}`
 - S→C: `paired{deviceId,token}`, `welcome{v,agent,deviceId,rev,state}`, `patch{rev,section,value}`, `press_result{id,ok,error?}`, `pong{ts}`, `error{code,message,fatal,supported?}`
 - HTTP: `GET /api/health`; `POST /api/notify`; `POST /api/status`; `DELETE /api/status/{id}`; `PUT|DELETE /api/vars/{name}`; M16 (только 127.0.0.1, `hookToken`): `POST /api/cc/statusline`, `POST /api/cc/permission`
 
