@@ -8,6 +8,7 @@ export * from "./validate";
 export * from "./pairUrl";
 export * from "./notifPrivacy";
 export * from "./i18n";
+export * from "./localized";
 export * from "./version";
 export * from "./rotate";
 export * from "./catalog";

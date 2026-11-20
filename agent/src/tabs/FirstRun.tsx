@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { SETS, getLanguage, insertSet, rotateLayout, t, tn, type ActionsFile, type InstalledApp, type LanguageSetting, type LayoutFile } from "@decka/shared";
+import { SETS, getLanguage, pickText, insertSet, rotateLayout, t, tn, type ActionsFile, type InstalledApp, type LanguageSetting, type LayoutFile } from "@decka/shared";
 import logoUrl from "../../../docs/assets/decka-logo.svg";
 import { call } from "../ipc";
 import { saveLanguage } from "../language";
+import LanguageOptions from "./LanguageOptions";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
 import EntryIcon from "../ui/EntryIcon";
@@ -148,9 +149,7 @@ export default function FirstRun({ onClose, startStep = 0 }: { onClose: () => vo
       <div className="wizard-card">
         {step === 0 && (
           <select className="wizard-lang" aria-label={t("settings.language")} value={layout?.display.language ?? "auto"} onChange={(e) => chooseLanguage(e.target.value as LanguageSetting)}>
-            <option value="auto">{t("settings.language_auto")}</option>
-            <option value="en">English</option>
-            <option value="ru">Русский</option>
+            <LanguageOptions />
           </select>
         )}
         {step === 0 && <img className="logo-wizard" src={logoUrl} width={96} height={96} alt="Decka" />}
@@ -210,9 +209,9 @@ export default function FirstRun({ onClose, startStep = 0 }: { onClose: () => vo
                       }
                     />
                     <EntryIcon icon={s.icon} />
-                    <strong>{s.name[getLanguage()]}</strong>
+                    <strong>{pickText(s.name, getLanguage())}</strong>
                   </span>
-                  <small className="muted">{s.description[getLanguage()]}</small>
+                  <small className="muted">{pickText(s.description, getLanguage())}</small>
                 </label>
               ))}
             </div>

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { highlightParts } from "./librarySearch";
 import EntryIcon from "../ui/EntryIcon";
-import { CATALOG, SETS, catalogItem, categoryItems, getLanguage, insertSet, searchCatalog, t, type ActionsFile, type Action, type CatalogItem, type CatalogSet, type InstalledApp, type LayoutFile } from "@decka/shared";
+import { CATALOG, SETS, catalogItem, categoryItems, getLanguage, insertSet, pickText, searchCatalog, textHits, t, type ActionsFile, type Action, type CatalogItem, type CatalogSet, type InstalledApp, type LayoutFile } from "@decka/shared";
 import PhIcon from "../ui/PhIcon";
 import { describeAction } from "../editor/describeAction";
 import { cachedApps, loadApps } from "../editor/apps";
@@ -25,14 +25,13 @@ function readOpen(): string[] {
 function hintOf(item: CatalogItem): string {
   if (item.widget) return `${item.widget.w}×${item.widget.h}`;
   if (item.action) {
-    const text = describeAction({ name: item.name[getLanguage()], ...item.action } as Action);
-    return text === item.name[getLanguage()] ? (item.requires === "obs" ? "OBS" : "") : text;
+    const text = describeAction({ name: pickText(item.name, getLanguage()), ...item.action } as Action);
+    return text === pickText(item.name, getLanguage()) ? (item.requires === "obs" ? "OBS" : "") : text;
   }
   return item.requires === "obs" ? "OBS" : "";
 }
 
-const matchesSet = (s: CatalogSet, q: string, lang: ReturnType<typeof getLanguage>) =>
-  s.name.en.toLowerCase().includes(q) || s.name.ru.toLowerCase().includes(q) || s.description[lang].toLowerCase().includes(q);
+const matchesSet = (s: CatalogSet, q: string, lang: ReturnType<typeof getLanguage>) => textHits(s.name, q) || pickText(s.description, lang).toLowerCase().includes(q);
 
 export interface LibraryProps {
   layout: LayoutFile;
@@ -89,7 +88,7 @@ export default function Library({ layout, actions, pageIndex, integrations, onBe
         tabIndex={0}
         className={waiting ? "palette-item library-item waiting" : "palette-item library-item"}
         data-item={item.id}
-        onPointerDown={(e) => !waiting && onBegin({ type: "catalog", itemId: item.id, label: item.name[lang] }, e)}
+        onPointerDown={(e) => !waiting && onBegin({ type: "catalog", itemId: item.id, label: pickText(item.name, lang) }, e)}
         onDoubleClick={() => add(item)}
         onKeyDown={(e) => {
           if (e.key === "ArrowDown" || e.key === "ArrowUp") {
@@ -103,7 +102,7 @@ export default function Library({ layout, actions, pageIndex, integrations, onBe
         title={waiting && item.requires ? t(`library.setup_${item.requires}`) : t("library.hint")}
       >
         <EntryIcon icon={item.icon} />
-        <span>{found !== null ? highlightParts(item.name[lang], q).map((p, i) => (p.bold ? <b key={i}>{p.text}</b> : p.text)) : item.name[lang]}</span>
+        <span>{found !== null ? highlightParts(pickText(item.name, lang), q).map((p, i) => (p.bold ? <b key={i}>{p.text}</b> : p.text)) : pickText(item.name, lang)}</span>
         <small className="muted">{waiting ? t("library.setup") : hintOf(item)}</small>
         <button type="button" className="row-add" aria-label={t("library.add_here")} title={t("library.add_here")} onPointerDown={(e) => e.stopPropagation()} onClick={() => add(item)}>
           <PhIcon name="plus" size={14} />
@@ -117,7 +116,7 @@ export default function Library({ layout, actions, pageIndex, integrations, onBe
     if (!page) return null;
     let n = 0; // a spread of different "random" numbers: the ids of the keys must differ
     const r = insertSet(layout, actions, page.id, set, { language: lang, scenes: ["a", "b", "c"], inputs: ["a"], random: () => (n++ * 0.6180339887) % 1 });
-    return r.ok && r.placedOn[0] !== undefined && r.placedOn[0] !== page.id ? set.name[lang] : null;
+    return r.ok && r.placedOn[0] !== undefined && r.placedOn[0] !== page.id ? pickText(set.name, lang) : null;
   };
 
   return (
@@ -165,7 +164,7 @@ export default function Library({ layout, actions, pageIndex, integrations, onBe
                 <button type="button" className="library-head" aria-expanded={expanded} onClick={() => toggle(category.id)}>
                   <PhIcon name={expanded ? "caret-down" : "caret-right"} size={14} />
                   <EntryIcon icon={category.icon} size={16} />
-                  <span>{category.name[lang]}</span>
+                  <span>{pickText(category.name, lang)}</span>
                   <small className="muted">{categoryItems(category).length}</small>
                 </button>
                 {expanded && categoryItems(category).map(itemRow)}
@@ -178,12 +177,12 @@ export default function Library({ layout, actions, pageIndex, integrations, onBe
             const waiting = !ready(set);
             const goesTo = waiting ? null : newPageFor(set);
             return (
-              <div key={set.id} className="set-card" data-set={set.id} onPointerDown={(e) => !waiting && onBegin({ type: "set", setId: set.id, label: set.name[lang] }, e)}>
+              <div key={set.id} className="set-card" data-set={set.id} onPointerDown={(e) => !waiting && onBegin({ type: "set", setId: set.id, label: pickText(set.name, lang) }, e)}>
                 <div className="set-head">
                   <EntryIcon icon={set.icon} />
-                  <strong>{set.name[lang]}</strong>
+                  <strong>{pickText(set.name, lang)}</strong>
                 </div>
-                <p className="muted set-text">{set.description[lang]}</p>
+                <p className="muted set-text">{pickText(set.description, lang)}</p>
                 <div className="set-foot">
                   <SetPreview set={set} />
                   <button type="button" className={waiting ? "set-add waiting" : "set-add"} onPointerDown={(e) => e.stopPropagation()} onClick={() => (waiting ? onSetup(set.requires!) : onAddSet(set))}>

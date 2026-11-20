@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { getLanguage, t, type Answer, type CatalogItem, type Page } from "@decka/shared";
+import { getLanguage, pickText, t, type Answer, type CatalogItem, type Page } from "@decka/shared";
 import Button from "../ui/Button";
 import { actionFromUrl } from "./addButton";
 import ChordField from "./ChordField";
@@ -51,7 +51,7 @@ export default function AskDialog({ item, pages, currentPageId, obs, onConfirm, 
   return (
     <div className="dialog-backdrop" onPointerDown={onClose}>
       <div className="dialog ask-dialog" role="dialog" aria-label={title} onPointerDown={(e) => e.stopPropagation()}>
-        <h2>{item.name[lang]}</h2>
+        <h2>{pickText(item.name, lang)}</h2>
         <strong>{title}</strong>
         {item.ask === "url" && (
           <input autoFocus placeholder="github.com" aria-label={title} value={url} onChange={(e) => { setUrl(e.target.value); setError(null); }} onKeyDown={(e) => e.key === "Enter" && confirm()} />

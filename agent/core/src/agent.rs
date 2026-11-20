@@ -1804,7 +1804,7 @@ impl Agent {
         if !(2..=80).contains(&query.chars().count()) {
             return Err("Type 2 to 80 characters".to_string());
         }
-        let language = if self.layout().display.language.as_deref() == Some("ru") { "ru" } else { "en" };
+        let language = crate::tray_text::agent_language(self.layout().display.language.as_deref());
         let body = crate::weather::fetch(&crate::weather::geocoding_url(base, query, language)).await?;
         Ok(crate::weather::parse_places(&body))
     }

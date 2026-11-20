@@ -142,13 +142,13 @@ fn key_face_must_be_standard_or_full() {
 }
 
 #[test]
-fn language_must_be_auto_en_or_ru() {
+fn language_must_be_auto_or_one_of_the_eleven() {
     let mut l = layout(5, 3, button(0, 0)).unwrap();
-    for ok in ["auto", "en", "ru"] {
+    for ok in ["auto", "en", "zh", "hi", "es", "ar", "fr", "pt", "ru", "de", "ja", "kk"] {
         l.display.language = Some(ok.into());
         assert!(validate_layout(&l, &default_actions()).is_empty(), "{ok}");
     }
-    l.display.language = Some("de".into());
+    l.display.language = Some("xx".into());
     let p: Vec<String> = validate_layout(&l, &default_actions()).into_iter().map(|i| i.path).collect();
     assert_eq!(p, ["/display/language"]);
 }

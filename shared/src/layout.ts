@@ -1,4 +1,5 @@
 import type { Id, VarName } from "./protocol";
+import type { Language } from "./languages";
 
 export interface LayoutFile {
   version: 1;
@@ -30,7 +31,7 @@ export interface DisplaySettings {
   orientation?: Orientation;  // M14: the phone's orientation, DATA_MODEL.md 3.7; absent = "landscape"
 }
 export type Orientation = "landscape" | "portrait";
-export type LanguageSetting = "auto" | "en" | "ru";
+export type LanguageSetting = "auto" | Language;
 export type KeyFace = "standard" | "full";
 export type ThemeId = "amoled" | "studio" | "material" | "glass";
 export type WallpaperId = "aurora" | "sunset" | "ocean" | "graphite" | "album";

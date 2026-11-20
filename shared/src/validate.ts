@@ -1,6 +1,7 @@
 import { isReservedVar, SEQUENCE_LIMITS, type ActionsFile } from "./actions";
 import { BACK_PAGE, type LayoutFile, type LayoutItem, type Orientation } from "./layout";
 import type { ValidationIssue } from "./ipc";
+import { isLanguage, LANGUAGES } from "./languages";
 
 const ID_RE = /^[a-z0-9_-]{1,64}$/;
 
@@ -98,7 +99,7 @@ export function validateLayout(layout: LayoutFile, actions: ActionsFile): Valida
 
   if (layout.display?.keyFace !== undefined && layout.display.keyFace !== "standard" && layout.display.keyFace !== "full") add("/display/keyFace", "keyFace must be standard or full");
   const language: unknown = layout.display?.language;
-  if (language !== undefined && language !== "auto" && language !== "en" && language !== "ru") add("/display/language", "language must be auto, en or ru");
+  if (language !== undefined && language !== "auto" && !isLanguage(language)) add("/display/language", `language must be auto or one of ${LANGUAGES.join(", ")}`);
 
   const pageIds = new Set<string>();
   const popupIds = new Set<string>();

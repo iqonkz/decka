@@ -2,6 +2,8 @@ import type { Action, ActionsFile } from "./actions";
 import { type ButtonItem, type LayoutFile, type LayoutItem, type Page } from "./layout";
 import { catalogItem, CATALOG, type CatalogFile, type CatalogItem, type CatalogSet } from "./catalog";
 import { sizeAllowed } from "./validate";
+import type { Language } from "./languages";
+import { pickText } from "./localized";
 
 // Putting catalog items and sets on a page (DATA_MODEL.md 9, DESIGN.md 4.5 / 4.8). Pure: nothing is changed in the arguments.
 
@@ -32,7 +34,7 @@ export function makeActionId(name: string, existing: Record<string, unknown>): s
 export interface Answer { url?: string; keys?: string[]; scene?: string; input?: string; page?: string; text?: string; }
 
 export interface InsertContext {
-  language: "en" | "ru";
+  language: Language;
   /** The scenes and audio inputs of OBS (`obs_status()`), in order: a set takes them one by one. */
   scenes?: string[];
   inputs?: string[];
@@ -137,7 +139,7 @@ function materialize(
     if (source.ask === "obs_scene") body = { ...body, scene: a.scene };
     if (source.ask === "obs_input") body = { ...body, input: a.input };
     if (source.ask === "text") body = { ...body, message: a.text };
-    const action = { name: source.name[lang].slice(0, 60), ...body } as Action;
+    const action = { name: pickText(source.name, lang).slice(0, 60), ...body } as Action;
     const all: ActionsFile = { ...actions, actions: { ...actions.actions, ...newActions } };
     const same = findSameAction(all, action);
     if (same) return same;
@@ -170,7 +172,7 @@ function materialize(
   }
 
   const actionId = actionIdFor(item, answer);
-  const look: Partial<ButtonItem> = { label: item.label[lang], icon: icon(item.icon) };
+  const look: Partial<ButtonItem> = { label: pickText(item.label, lang), icon: icon(item.icon) };
   const color = colour(item.color);
   if (color !== undefined) look.color = color;
   const button: Record<string, unknown> = { kind: "button", w: 1, h: 1, ...look };
@@ -182,7 +184,7 @@ function materialize(
     const states: Record<string, Record<string, string>> = {};
     for (const [key, state] of Object.entries(item.bind.states)) {
       const shown: Record<string, string> = {};
-      if (state.label) shown.label = state.label[lang];
+      if (state.label) shown.label = pickText(state.label, lang);
       if (state.icon) shown.icon = icon(state.icon);
       const c = colour(state.color);
       if (c !== undefined) shown.color = c;
@@ -213,7 +215,7 @@ export function insertSet(layout: LayoutFile, actions: ActionsFile, pageId: stri
     if (item.ask === "obs_input") return ctx.inputs?.[input++] !== undefined ? { input: ctx.inputs[input - 1]! } : {};
     return {};
   });
-  return place(layout, actions, pageId, entries.map((e, i) => ({ ...e, answer: answers[i]! })), unknown, ctx, { newPage: { name: set.name[ctx.language] } });
+  return place(layout, actions, pageId, entries.map((e, i) => ({ ...e, answer: answers[i]! })), unknown, ctx, { newPage: { name: pickText(set.name, ctx.language) } });
 }
 
 /** Where a set would go (DESIGN.md 4.8): the cells it takes on the page, or a new page when it does not fit. Changes nothing. */
@@ -224,7 +226,7 @@ export interface SetPreview {
 }
 
 /** The same decisions as `insertSet` (whole shape at `cell` or the first place, else cell by cell, else a new page), without touching the layout. */
-export function previewSet(layout: LayoutFile, pageId: string, set: CatalogSet, cell?: { x: number; y: number }, language: "en" | "ru" = "en", catalog: CatalogFile = CATALOG): SetPreview | null {
+export function previewSet(layout: LayoutFile, pageId: string, set: CatalogSet, cell?: { x: number; y: number }, language: Language = "en", catalog: CatalogFile = CATALOG): SetPreview | null {
   const page = layout.pages.find((p) => p.id === pageId);
   if (!page) return null;
   const { entries } = shapeOf(set.rows, catalog);
@@ -257,7 +259,7 @@ export function previewSet(layout: LayoutFile, pageId: string, set: CatalogSet, 
   if (freeCells(page, grid) >= needed) return { cells: oneByOne(page), newPage: null };
   const fresh: Page = { id: "preview", name: "", items: [] };
   const spot = wholeAt({ ...fresh });
-  return { cells: spot ? cellsAt(spot) : oneByOne(fresh), newPage: set.name[language].slice(0, MAX_NAME) };
+  return { cells: spot ? cellsAt(spot) : oneByOne(fresh), newPage: pickText(set.name, language).slice(0, MAX_NAME) };
 }
 
 /** One catalog item at the first free cell of a page (a double click in the library), or at `cell`. */

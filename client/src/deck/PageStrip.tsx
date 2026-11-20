@@ -193,6 +193,7 @@ export default function PageStrip({ pages, pageIndex, grid, onCommit }: Props) {
     <div
       ref={root}
       className="pages"
+      dir="ltr"
       style={{ touchAction: "pan-y" }}
       onPointerDown={onDown}
       onPointerMove={onMove}

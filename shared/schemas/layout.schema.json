@@ -61,7 +61,7 @@
         "wallpaper": { "enum": ["aurora","sunset","ocean","graphite","album"] },
         "keyFace": { "enum": ["standard","full"] },
         "keyLabels": { "type": "boolean" },
-        "language": { "enum": ["auto","en","ru"] },
+        "language": { "enum": ["auto","en","zh","hi","es","ar","fr","pt","ru","de","ja","kk"] },
         "orientation": { "enum": ["landscape","portrait"] },
         "night": { "type": "object", "required": ["enabled","from","to"], "properties": { "enabled": { "type": "boolean" },
           "from": { "type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$" }, "to": { "type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$" } } } } },

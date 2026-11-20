@@ -3,8 +3,9 @@ import { getLanguage, locale, t } from "@decka/shared";
 /** "<n> Kbps" below 1000, otherwise "<n.n> Mbps" (Кбит/с, Мбит/с in Russian, with a decimal comma). */
 export function formatRate(kbps: number): string {
   if (kbps < 1000) return t("unit.kbps", { n: Math.round(kbps) });
-  const mbps = (kbps / 1000).toFixed(1);
-  return t("unit.mbps", { n: getLanguage() === "ru" ? mbps.replace(".", ",") : mbps });
+  // The decimal separator of the language, with Latin digits everywhere (Arabic and Hindi digits would not match the rest of the widget).
+  const mbps = new Intl.NumberFormat(`${getLanguage()}-u-nu-latn`, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(kbps / 1000);
+  return t("unit.mbps", { n: mbps });
 }
 
 /** Integer percentage; 0 when `total` is 0. */

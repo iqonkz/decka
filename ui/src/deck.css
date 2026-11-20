@@ -116,6 +116,8 @@
 
 .sys { display: flex; flex-direction: column; justify-content: center; gap: 1.2vmin; width: 100%; height: 100%; padding: 0 2.2vmin; box-sizing: border-box; }
 .sys-row { display: flex; align-items: center; gap: 1.2vmin; font-size: 2.4vmin; }
+/* The text of a key or a widget follows its own script (dir="auto" of DESIGN.md 6) inside the left-to-right grid */
+.key-label, .key-full-label, .status-label, .notif-title, .notif-body { unicode-bidi: plaintext; }
 .sys-label { width: 7vmin; color: var(--muted, #9ca3af); }
 .sys-bar { flex: 1; height: 1.2vmin; border-radius: 0.6vmin; background: #26262c; overflow: hidden; }
 .sys-fill { display: block; height: 100%; }

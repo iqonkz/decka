@@ -52,10 +52,10 @@ pub fn forecast_url(base: &str, lat: f64, lon: f64, units: &str) -> String {
     url.to_string()
 }
 
-/// The place search request; `language` is `en` or `ru`.
+/// The place search request; `language` is a language code of the interface (anything else is asked for in English).
 pub fn geocoding_url(base: &str, query: &str, language: &str) -> String {
     let mut url = url::Url::parse(base).expect("the geocoding address is valid");
-    url.query_pairs_mut().append_pair("name", query).append_pair("count", "5").append_pair("language", if language == "ru" { "ru" } else { "en" });
+    url.query_pairs_mut().append_pair("name", query).append_pair("count", "5").append_pair("language", if crate::tray_text::LANGUAGES.contains(&language) { language } else { "en" });
     url.to_string()
 }
 
@@ -167,7 +167,8 @@ mod tests {
     fn the_search_asks_for_five_in_the_language_of_the_window() {
         let url = geocoding_url(GEOCODING_URL, "Alma Ata", "ru");
         assert_eq!(url, "https://geocoding-api.open-meteo.com/v1/search?name=Alma+Ata&count=5&language=ru");
-        assert!(geocoding_url(GEOCODING_URL, "x", "de").ends_with("language=en"));
+        assert!(geocoding_url(GEOCODING_URL, "x", "de").ends_with("language=de"));
+        assert!(geocoding_url(GEOCODING_URL, "x", "xx").ends_with("language=en"));
     }
 
     #[test]

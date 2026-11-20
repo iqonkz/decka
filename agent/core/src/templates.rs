@@ -39,24 +39,54 @@ pub struct PageTemplate {
     pub min_grid: MinGrid,
     pub actions: BTreeMap<String, Action>,
     pub items: Vec<LayoutItem>,
-    /// `nameRu` of the template (absent = `name` is used in Russian too).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub name_ru: Option<String>,
-    /// `nameRu` of the actions by action id (DATA_MODEL.md 10.5, T17.6); read from the template file, not part of `Action`.
+    /// The name of the template in the other languages by code (M19: the Russian one is `nameRu` of the file, the others come
+    /// from `shared/catalog/i18n/<code>.json`); `name` is English and the fallback.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
-    pub action_names_ru: BTreeMap<String, String>,
+    pub names: BTreeMap<String, String>,
+    /// The names of the actions by language code and action id (DATA_MODEL.md 10.5): the captions of the app strip.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub action_names: BTreeMap<String, BTreeMap<String, String>>,
 }
+
+/// The texts of the templates in the languages other than English and Russian (`templates.name`, `templates.actions` of each file).
+const OVERLAYS: [(&str, &str); 9] = [
+    ("zh", include_str!("../../../shared/catalog/i18n/zh.json")),
+    ("hi", include_str!("../../../shared/catalog/i18n/hi.json")),
+    ("es", include_str!("../../../shared/catalog/i18n/es.json")),
+    ("ar", include_str!("../../../shared/catalog/i18n/ar.json")),
+    ("fr", include_str!("../../../shared/catalog/i18n/fr.json")),
+    ("pt", include_str!("../../../shared/catalog/i18n/pt.json")),
+    ("de", include_str!("../../../shared/catalog/i18n/de.json")),
+    ("ja", include_str!("../../../shared/catalog/i18n/ja.json")),
+    ("kk", include_str!("../../../shared/catalog/i18n/kk.json")),
+];
 
 /// The built-in templates.
 pub fn all() -> Vec<PageTemplate> {
+    let overlays: Vec<(&str, serde_json::Value)> = OVERLAYS.iter().map(|(code, text)| (*code, serde_json::from_str(text).expect("embedded overlay is valid JSON"))).collect();
     SOURCES
         .iter()
         .map(|text| {
             let mut template: PageTemplate = serde_json::from_str(text).expect("embedded template is valid");
             let raw: serde_json::Value = serde_json::from_str(text).expect("embedded template is valid JSON");
-            template.name_ru = raw.get("nameRu").and_then(|v| v.as_str()).map(str::to_string);
+            if let Some(name) = raw.get("nameRu").and_then(|v| v.as_str()) {
+                template.names.insert("ru".to_string(), name.to_string());
+            }
             if let Some(actions) = raw.get("actions").and_then(|a| a.as_object()) {
-                template.action_names_ru = actions.iter().filter_map(|(id, a)| Some((id.clone(), a.get("nameRu")?.as_str()?.to_string()))).collect();
+                let russian: BTreeMap<String, String> = actions.iter().filter_map(|(id, a)| Some((id.clone(), a.get("nameRu")?.as_str()?.to_string()))).collect();
+                if !russian.is_empty() {
+                    template.action_names.insert("ru".to_string(), russian);
+                }
+            }
+            for (code, overlay) in &overlays {
+                let Some(templates) = overlay.get("templates") else { continue };
+                if let Some(name) = templates.get("name").and_then(|n| n.get(&template.id)).and_then(|v| v.as_str()) {
+                    template.names.insert(code.to_string(), name.to_string());
+                }
+                if let Some(map) = templates.get("actions").and_then(|a| a.get(&template.id)).and_then(|v| v.as_object()) {
+                    let names: BTreeMap<String, String> = map.iter().filter_map(|(id, v)| Some((id.clone(), v.as_str()?.to_string()))).collect();
+                    template.action_names.insert(code.to_string(), names);
+                }
             }
             template
         })

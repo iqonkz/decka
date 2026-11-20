@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { t, type ConfigFile, type LanguageSetting, type ValidationIssue } from "@decka/shared";
 import { call } from "../ipc";
 import { saveLanguage } from "../language";
+import LanguageOptions from "./LanguageOptions";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
 import Field from "../ui/Field";
@@ -65,9 +66,7 @@ export default function SettingsTab() {
               void saveLanguage(next);
             }}
           >
-            <option value="auto">{t("settings.language_auto")}</option>
-            <option value="en">English</option>
-            <option value="ru">Русский</option>
+            <LanguageOptions />
           </select>
         </Field>
         <Field label={t("settings.pc_name")} hint={t("settings.pc_name_hint")}>

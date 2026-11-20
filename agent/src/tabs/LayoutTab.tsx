@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Action, ActionsFile, Answer, ButtonItem, CatalogItem, CatalogSet, InsertOutcome, LayoutFile, LayoutItem, Page, SequenceStep, ValidationIssue } from "@decka/shared";
-import { SETS, catalogItem, getLanguage, insertItem, insertSet, previewSet, makeActionId, t, tn, validateLayout } from "@decka/shared";
+import { SETS, catalogItem, getLanguage, pickText, insertItem, insertSet, previewSet, makeActionId, t, tn, validateLayout } from "@decka/shared";
 import { call, navigate } from "../ipc";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
@@ -419,7 +419,7 @@ export default function LayoutTab() {
     if (set.requires && !integrations[set.requires]) return setupIntegration(set.requires);
     const obs = set.requires === "obs" ? await loadObs() : null;
     const ctx = await insertContext(itemsOfSet(set), layout, obs);
-    await applyInsert(insertSet(layout, actions, page.id, set, at ? { ...ctx, at } : ctx), t("library.added_set", { name: set.name[getLanguage()] }));
+    await applyInsert(insertSet(layout, actions, page.id, set, at ? { ...ctx, at } : ctx), t("library.added_set", { name: pickText(set.name, getLanguage()) }));
   }
   /** The sequence editor's `Add sequence`: a new action and a key that runs it. */
   async function saveSequence(name: string, steps: SequenceStep[]) {

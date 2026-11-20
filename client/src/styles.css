@@ -79,7 +79,7 @@ input { user-select: text; touch-action: manipulation; }
 .menu-sheet { width: min(520px, 100%); box-sizing: border-box; padding: 2vmin 3vmin 3vmin; border-radius: 3vmin 3vmin 0 0; background: #1b1b21; color: #f2f2f2; animation: sheet-up 200ms cubic-bezier(0.2, 0.8, 0.2, 1); }
 @keyframes sheet-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
 .menu-status { padding: 1.4vmin 1vmin; font-size: 2.8vmin; color: #9ca3af; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
-.menu-row { display: flex; align-items: center; justify-content: space-between; width: 100%; box-sizing: border-box; padding: 2vmin 1vmin; border: 0; background: transparent; color: inherit; font-size: 3.2vmin; text-align: left; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
+.menu-row { display: flex; align-items: center; justify-content: space-between; width: 100%; box-sizing: border-box; padding: 2vmin 1vmin; border: 0; background: transparent; color: inherit; font-size: 3.2vmin; text-align: start; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
 .menu-row input[type="checkbox"] { width: 4.4vmin; height: 4.4vmin; }
 .menu-seg { display: inline-flex; gap: 1vmin; }
 .menu-seg button { padding: 1vmin 2vmin; border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 2vmin; background: transparent; color: inherit; font-size: 2.8vmin; }

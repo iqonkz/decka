@@ -5,6 +5,8 @@ import Ajv2020 from "ajv/dist/2020";
 import { describe, expect, test } from "vitest";
 import catalogSchema from "../schemas/catalog.schema.json";
 import { CATALOG, LABEL_MAX, SETS, catalogItem, categoryItems, searchCatalog, type CatalogItem } from "../src/catalog";
+import { LANGUAGES } from "../src/languages";
+import { pickText } from "../src/localized";
 import { insertItem, insertSet, previewSet, type Answer, type InsertContext } from "../src/insertSet";
 import { sizeAllowed, validateActions, validateLayout } from "../src/validate";
 import type { Action, ActionsFile } from "../src/actions";
@@ -51,12 +53,12 @@ describe("the catalog files", () => {
     for (const set of SETS) for (const id of set.rows.flat()) if (id !== null) expect(catalogItem(id), `${set.id}: ${id}`).toBeDefined();
   });
 
-  test("labels fit a key: at most 10 characters in both languages, also in the states", () => {
+  test("labels fit a key: at most 12 characters in every language that has a text, also in the states", () => {
     for (const item of CATALOG.items) {
-      for (const lang of ["en", "ru"] as const) {
-        expect(item.label[lang].length, `${item.id} ${lang}`).toBeLessThanOrEqual(LABEL_MAX);
-        expect(item.name[lang].length, `${item.id} name ${lang}`).toBeLessThanOrEqual(40);
-        for (const [key, state] of Object.entries(item.bind?.states ?? {})) if (state.label) expect(state.label[lang].length, `${item.id} state ${key} ${lang}`).toBeLessThanOrEqual(LABEL_MAX);
+      for (const lang of LANGUAGES) {
+        expect(pickText(item.label, lang).length, `${item.id} ${lang}`).toBeLessThanOrEqual(LABEL_MAX);
+        expect(pickText(item.name, lang).length, `${item.id} name ${lang}`).toBeLessThanOrEqual(40);
+        for (const [key, state] of Object.entries(item.bind?.states ?? {})) if (state.label) expect(pickText(state.label, lang).length, `${item.id} state ${key} ${lang}`).toBeLessThanOrEqual(LABEL_MAX);
       }
     }
   });

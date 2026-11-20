@@ -66,7 +66,7 @@ export default function Grid({ page, grid, data, animate, onPress, onPressError,
   });
   const value = useMemo(() => ({ side: m.side, gap: m.gap }), [m.side, m.gap]);
   return (
-    <div ref={root} className="grid">
+    <div ref={root} className="grid" dir="ltr">
       <DeckEnvContext.Provider value={env}>
       <DeckMetricsContext.Provider value={value}>
         <div

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import EntryIcon from "../ui/EntryIcon";
-import { CATALOG, categoryItems, getLanguage, t, type ActionsFile, type InstalledApp, type Page } from "@decka/shared";
+import { CATALOG, categoryItems, getLanguage, pickText, t, type ActionsFile, type InstalledApp, type Page } from "@decka/shared";
 import { call } from "../ipc";
 import Button from "../ui/Button";
 import PhIcon from "../ui/PhIcon";
@@ -81,8 +81,8 @@ export default function QuickPicker({ anchor, cell, page, grid, actions, hideWid
     for (const category of appsOnly || !onCatalog ? [] : CATALOG.categories) {
       for (const item of categoryItems(category)) {
         if (item.widget && (hideWidgets || !fits(page, grid, { x: cell.x, y: cell.y, w: item.widget.w, h: item.widget.h }))) continue;
-        if (!(match(item.name[lang]) || match(item.name.en) || match(item.name.ru) || match(item.label[lang]))) continue;
-        out.push({ key: `catalog|${item.id}`, group: category.id, groupLabel: category.name[lang], label: item.name[lang], phIcon: item.icon, hint: item.widget ? `${item.widget.w}×${item.widget.h}` : undefined, choice: { type: "action", actionId: "" }, catalogId: item.id });
+        if (!(match(pickText(item.name, lang)) || match(item.name.en) || match(item.name.ru ?? "") || match(pickText(item.label, lang)))) continue;
+        out.push({ key: `catalog|${item.id}`, group: category.id, groupLabel: pickText(category.name, lang), label: pickText(item.name, lang), phIcon: item.icon, hint: item.widget ? `${item.widget.w}×${item.widget.h}` : undefined, choice: { type: "action", actionId: "" }, catalogId: item.id });
       }
     }
     const yours = Object.entries(appsOnly ? {} : actions.actions)

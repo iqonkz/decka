@@ -1,5 +1,5 @@
 import { useEffect, useSyncExternalStore } from "react";
-import { getLanguage, resolveLanguage, setLanguage, subscribeLanguage, type Language, type LanguageSetting } from "@decka/shared";
+import { getLanguage, isRtl, resolveLanguage, setLanguage, subscribeLanguage, type Language, type LanguageSetting } from "@decka/shared";
 
 /** The current interface language; the component re-renders when it changes (the root of an app uses this). */
 export function useLanguage(): Language {
@@ -16,6 +16,8 @@ export function useApplyLanguage(setting: LanguageSetting | undefined, systemLan
   useEffect(() => {
     setLanguage(language);
     document.documentElement.lang = language;
+    // Arabic is written from right to left: the window and the menus mirror; the grid and the pages keep `dir="ltr"` themselves.
+    document.documentElement.dir = isRtl(language) ? "rtl" : "ltr";
   }, [language]);
   return useLanguage();
 }

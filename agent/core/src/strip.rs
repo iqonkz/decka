@@ -8,8 +8,8 @@ pub const MAX_STRIP_KEYS: usize = 16;
 
 /// The strip for `focus_app`: `None` when no app is known, when a page of the layout already lists the app (the context page
 /// of §6.1 applies), when no template names the app, or when the template has no keys. Keys are the buttons of the template
-/// page in reading order (row by row), at most 16. With `lang` = `ru` the captions are the `nameRu` of the actions (and of the
-/// template); a missing `nameRu` leaves the English one.
+/// page in reading order (row by row), at most 16. The captions are the names of the actions in `lang` (and the name of the
+/// template); a language without a text leaves the English one.
 pub fn strip_for(focus_app: Option<&str>, layout: &LayoutFile, templates: &[PageTemplate], lang: &str) -> Option<StripInfo> {
     let app = focus_app?;
     if layout.pages.iter().any(|p| p.apps.as_ref().is_some_and(|apps| apps.iter().any(|a| a == app))) {
@@ -30,15 +30,15 @@ pub fn strip_for(focus_app: Option<&str>, layout: &LayoutFile, templates: &[Page
         .take(MAX_STRIP_KEYS)
         .map(|b| {
             let action_id = b.action_id.clone().unwrap_or_default();
-            let russian = if lang == "ru" { template.action_names_ru.get(&action_id).cloned() } else { None };
-            let label = russian.or_else(|| b.label.clone()).or_else(|| template.actions.get(&action_id).map(|a| a.name().to_string())).unwrap_or_default();
+            let translated = template.action_names.get(lang).and_then(|names| names.get(&action_id)).cloned();
+            let label = translated.or_else(|| b.label.clone()).or_else(|| template.actions.get(&action_id).map(|a| a.name().to_string())).unwrap_or_default();
             StripKey { action_id, label, icon: b.icon.clone() }
         })
         .collect();
     if keys.is_empty() {
         return None;
     }
-    let name = if lang == "ru" { template.name_ru.clone().unwrap_or_else(|| template.name.clone()) } else { template.name.clone() };
+    let name = template.names.get(lang).cloned().unwrap_or_else(|| template.name.clone());
     Some(StripInfo { app: app.to_string(), template: template.id.clone(), name, keys, icon: None })
 }
 
@@ -88,13 +88,15 @@ mod tests {
         assert_eq!(ru.keys[0].label, "Жирный");
         let en = strip_for(Some("winword.exe"), &layout, &templates, "en").unwrap();
         assert_eq!(en.keys[0].label, "Bold");
-        // A template without `nameRu` keeps the English captions also in Russian.
+        // A template without the names keeps the English captions also in Russian; so does a language that has none yet.
         let mut plain = templates.clone();
-        plain.iter_mut().for_each(|t| t.action_names_ru.clear());
+        plain.iter_mut().for_each(|t| t.action_names.clear());
         assert_eq!(strip_for(Some("winword.exe"), &layout, &plain, "ru").unwrap().keys[0].label, "Bold");
+        assert_eq!(strip_for(Some("winword.exe"), &layout, &templates, "xx").unwrap().keys[0].label, "Bold");
         // Every action of every template has a Russian name.
         for t in &templates {
-            assert!(t.actions.keys().all(|id| t.action_names_ru.contains_key(id)), "{}", t.id);
+            let ru = &t.action_names["ru"];
+            assert!(t.actions.keys().all(|id| ru.contains_key(id)), "{}", t.id);
         }
     }
 
