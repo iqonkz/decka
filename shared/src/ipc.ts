@@ -103,6 +103,7 @@ export interface IpcCommands {
   cancel_pairing(): void;
   list_devices(): DeviceInfo[];
   revoke_device(args: { deviceId: Id }): void;
+  set_can_approve(args: { deviceId: Id; allowed: boolean }): boolean;   // M18: `Can answer Claude Code`
   send_test_notification(): void;                              // title "Decka test", level "info", source "decka"
   list_window_apps(): string[];                                // M11: exe names (lower case, unique, sorted) of processes with visible top-level windows, without decka-agent.exe
   get_templates(): PageTemplate[];                             // M11: DATA_MODEL.md 7

@@ -14,6 +14,7 @@ use tokio::task::JoinHandle;
 
 use crate::actions::ActionRunner;
 use crate::auth::{Devices, Pairing};
+use crate::safety::{DangerGate, PhoneCtx};
 use crate::config::{self, json_text, save_text_atomic, Loaded};
 use crate::model::*;
 use crate::proto::{ErrorCode, NotifyReq};
@@ -108,6 +109,8 @@ pub struct DeviceInfo {
     /// `client.version` of the last `pair` / `hello` (M14); absent until the phone connects with a version-aware agent.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub app_version: Option<String>,
+    /// M18: may this phone answer Claude Code questions (DATA_MODEL.md 11.3).
+    pub can_approve: bool,
 }
 
 /// `refresh_program_icons` result (PROTOCOL.md 9).
@@ -297,6 +300,8 @@ struct Inner {
     auth_fail_limiter: RateLimiter,
     /// Handshakes from public networks: 5 per minute and IP (DATA_MODEL.md 11.2).
     public_limiter: RateLimiter,
+    /// Dangerous system actions from phones: one per 30 s (DATA_MODEL.md 11.4).
+    danger_gate: DangerGate,
     /// Network category of the local address a connection arrived on (cached 30 s).
     networks: crate::netpolicy::Networks,
     api_guard: crate::server::api_auth::ApiGuard,
@@ -407,6 +412,7 @@ impl Agent {
                 pair_limiter: RateLimiter::new(10, Duration::from_secs(60)),
                 auth_fail_limiter: RateLimiter::new(5, Duration::from_secs(60)),
                 public_limiter: RateLimiter::new(5, Duration::from_secs(60)),
+                danger_gate: DangerGate::default(),
                 networks: crate::netpolicy::Networks::default(),
                 api_guard: crate::server::api_auth::ApiGuard::new(),
                 conns: Mutex::new(HashMap::new()),
@@ -626,16 +632,21 @@ impl Agent {
     /// A new toast in Windows: it goes to the phone as a notification, unless its app is in the list of exceptions.
     fn on_windows_toast(&self, toast: crate::winnotif::WinToast) {
         crate::winnotif::remember_app(&mut self.inner.win_apps.lock().unwrap(), &toast.app);
-        let exclude = self.config().windows_notifications.map(|w| w.exclude).unwrap_or_default();
+        let settings = self.config().windows_notifications;
+        let exclude = settings.as_ref().map(|w| w.exclude.clone()).unwrap_or_default();
         if crate::winnotif::is_excluded(&toast.app, &exclude) {
             return;
         }
         let Some((title, body)) = crate::winnotif::title_and_body(&toast.texts) else { return };
+        // Privacy (DATA_MODEL.md 11.5): in the mode `app` the words of the notification never leave the PC.
+        let app_only = crate::winnotif::privacy_for(&toast.app, settings.as_ref().and_then(|w| w.privacy.as_ref())) == crate::model::PrivacyMode::App;
+        let (title, body) = if app_only { (if toast.app.is_empty() { "Windows".to_string() } else { toast.app.clone() }, None) } else { (title, body) };
         let openable = crate::winnotif::valid_aumid(&toast.aumid);
         let id = self.push_notification_with(
             NotifyReq { title, body, level: Some(NotifLevel::Info), source: Some("windows".to_string()) },
             Some(toast.app.clone()).filter(|a| !a.is_empty()),
             openable.then_some(true),
+            app_only.then_some(true),
         );
         if openable {
             let mut targets = self.inner.win_targets.lock().unwrap();
@@ -1630,16 +1641,24 @@ impl Agent {
             provider: if codex { "codex" } else { "claude" },
             replies: ai.replies.clone().unwrap_or_else(crate::ai::default_replies),
             approvals,
-            phones: self.inner.conns.lock().unwrap().len(),
+            // Only phones that may answer count: without one the question goes straight to the terminal (DATA_MODEL.md 11.3).
+            phones: self.inner.conns.lock().unwrap().values().filter(|c| self.inner.devices.can_approve(&c.device_id)).count(),
             timeout: Duration::from_secs(u64::from(ai.claude.timeout_sec)),
         };
         self.inner.ai.permission(opts, body).await
     }
 
-    /// `perm_answer` from a phone.
-    pub fn answer_permission(&self, req_id: &str, decision: crate::proto::PermDecision, reply: Option<usize>) {
-        self.inner.ai.answer_with(req_id, decision, reply);
+    /// `perm_answer` from the phone `device_id`. A phone without the right (`canApprove`) is ignored and logged; returns whether
+    /// the answer was taken.
+    pub fn answer_permission(&self, device_id: &str, req_id: &str, decision: crate::proto::PermDecision, reply: Option<usize>) -> bool {
+        if !self.inner.devices.can_approve(device_id) {
+            tracing::warn!("perm_answer ignored: device {device_id} may not answer Claude Code");
+            return false;
+        }
+        let name = self.inner.devices.name_of(device_id).unwrap_or_default();
+        let taken = self.inner.ai.answer_from_phone(req_id, decision, reply, &format!("Phone {name}"));
         self.save_ai_rules();
+        taken
     }
 
     /// Writes the rules of "Always allow" to config.json when they changed since the last save.
@@ -1952,9 +1971,16 @@ impl Agent {
             .into_iter()
             .map(|d| {
                 let is_connected = connected.contains(&d.id);
-                DeviceInfo { id: d.id, name: d.name, created_at: d.created_at, last_seen_at: d.last_seen_at, connected: is_connected, app_version: d.app_version }
+                let can_approve = d.can_approve.unwrap_or(true);
+                DeviceInfo { id: d.id, name: d.name, created_at: d.created_at, last_seen_at: d.last_seen_at, connected: is_connected, app_version: d.app_version, can_approve }
             })
             .collect()
+    }
+
+    /// The switch `Can answer Claude Code` of the window; false for an unknown device. Answers that arrive from a phone that
+    /// just lost the right are ignored from the next message on.
+    pub fn set_can_approve(&self, device_id: &str, allowed: bool) -> bool {
+        self.inner.devices.set_can_approve(device_id, allowed)
     }
 
     /// Removes the device and closes its open sockets with DEVICE_REVOKED.
@@ -2015,11 +2041,17 @@ impl Agent {
     /// Runs an action by id: runner on the blocking pool, then `toggleVar` on success. A `sequence` runs its steps one by one
     /// (DATA_MODEL.md 2.3) and answers `Already running` to a second press while it is still going.
     pub async fn execute(&self, action_id: &str) -> Result<(), (ErrorCode, String)> {
+        self.execute_for(action_id, None).await
+    }
+
+    /// `execute` for a press from a phone: the dangerous system actions are held back right after connecting and rate limited
+    /// (DATA_MODEL.md 11.4). `None` = the PC itself (the window's test button, HTTP), without those limits.
+    pub async fn execute_for(&self, action_id: &str, phone: Option<&PhoneCtx>) -> Result<(), (ErrorCode, String)> {
         let action = self.inner.actions.lock().unwrap().actions.get(action_id).cloned();
         let Some(action) = action else {
             // Not in actions.json: a key of the app strip shown now still runs (it comes from the built-in template).
             return match action_id.starts_with("tpl-").then(|| self.strip_action(action_id)).flatten() {
-                Some(from_template) => self.run_action(action_id, from_template).await,
+                Some(from_template) => self.run_action(action_id, from_template, phone).await,
                 None => Err((ErrorCode::UnknownAction, format!("action '{action_id}' is not defined"))),
             };
         };
@@ -2030,16 +2062,16 @@ impl Agent {
             }
             let _guard = RunningGuard { inner: self.inner.clone(), id: action_id.to_string() };
             for (index, step) in steps.iter().enumerate() {
-                self.run_step(step).await.map_err(|(code, message)| (code, format!("Step {}: {message}", index + 1)))?;
+                self.run_step(step, phone).await.map_err(|(code, message)| (code, format!("Step {}: {message}", index + 1)))?;
             }
             self.toggle_var(toggle);
             return Ok(());
         }
-        self.run_action(action_id, action).await
+        self.run_action(action_id, action, phone).await
     }
 
     /// One step of a sequence: wait, or run the action and wait for its result.
-    async fn run_step(&self, step: &SequenceStep) -> Result<(), (ErrorCode, String)> {
+    async fn run_step(&self, step: &SequenceStep, phone: Option<&PhoneCtx>) -> Result<(), (ErrorCode, String)> {
         match step {
             SequenceStep::Wait { delay_ms } => {
                 tokio::time::sleep(std::time::Duration::from_millis((*delay_ms).max(0) as u64)).await;
@@ -2051,14 +2083,21 @@ impl Agent {
                     None => Err((ErrorCode::UnknownAction, format!("action '{action_id}' is not defined"))),
                     // The file was edited after it was validated; a sequence never starts another one.
                     Some(Action::Sequence { .. }) => Err((ErrorCode::ActionFailed, "a sequence cannot contain another sequence".to_string())),
-                    Some(action) => self.run_action(action_id, action).await,
+                    Some(action) => self.run_action(action_id, action, phone).await,
                 }
             }
         }
     }
 
     /// The runner on the blocking pool, then `toggleVar` on success.
-    async fn run_action(&self, action_id: &str, action: Action) -> Result<(), (ErrorCode, String)> {
+    async fn run_action(&self, action_id: &str, action: Action, phone: Option<&PhoneCtx>) -> Result<(), (ErrorCode, String)> {
+        // Shutdown, restart, sign out and hibernate pressed on a phone: not right after connecting, not twice in a row (11.4).
+        if let (Action::System { op, .. }, Some(phone)) = (&action, phone) {
+            if crate::safety::is_dangerous_system(*op) {
+                self.inner.danger_gate.check(phone.connected_for).map_err(|m| (ErrorCode::ActionFailed, m.to_string()))?;
+                tracing::info!("system {} by {}", format!("{op:?}").to_lowercase(), phone.device_name);
+            }
+        }
         // YouTube and Twitch are spoken to by the agent itself (their tokens never reach a runner).
         if let Action::Youtube { op, message, toggle_var, .. } = &action {
             self.youtube_action(*op, message.as_deref()).await.map_err(|m| (ErrorCode::ActionFailed, m))?;
@@ -2266,11 +2305,11 @@ impl Agent {
 
     /// Adds a notification at the front (newest first, max 20) and returns its id.
     pub fn push_notification(&self, req: NotifyReq) -> String {
-        self.push_notification_with(req, None, None)
+        self.push_notification_with(req, None, None, None)
     }
 
     /// `push_notification` with the M17 fields: the display name of the Windows app and whether a tap can open it.
-    fn push_notification_with(&self, req: NotifyReq, app: Option<String>, openable: Option<bool>) -> String {
+    fn push_notification_with(&self, req: NotifyReq, app: Option<String>, openable: Option<bool>, hidden: Option<bool>) -> String {
         let id = self.inner.notif_counter.fetch_add(1, Ordering::Relaxed).to_string();
         let ts = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -2285,6 +2324,7 @@ impl Agent {
             source: req.source,
             app,
             openable,
+            hidden,
         };
         self.inner.store.update_notifications(|list| {
             list.insert(0, notification);

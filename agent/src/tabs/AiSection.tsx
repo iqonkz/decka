@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { t, type AiConfig, type AiRule, type CcStatus, type ConfigFile } from "@decka/shared";
+import { locale, t, type AiConfig, type AiRule, type CcStatus, type ConfigFile } from "@decka/shared";
 import { relTime } from "@decka/ui";
 import { call } from "../ipc";
 import Banner from "../ui/Banner";
@@ -158,6 +158,13 @@ export default function AiSection({ config, onSaved }: { config: ConfigFile; onS
                 <strong>{t(r.provider === "codex" ? "ai.codex" : "ai.claude")}</strong> · {r.tool}
                 {" · "}
                 {ruleText(r)}
+                {" · "}
+                {/* Who made the rule and until when (DATA_MODEL.md 11.3): a phone's rule ends after 8 hours. */}
+                <span className="muted">
+                  {r.source !== undefined && r.expiresAt !== undefined
+                    ? t("ai.rule_phone", { source: r.source, time: new Date(r.expiresAt).toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" }) })
+                    : t("ai.rule_pc")}
+                </span>
               </span>
               <span className="grow" />
               <Button onClick={() => void removeRule(r.id)}>{t("ai.rule_remove")}</Button>

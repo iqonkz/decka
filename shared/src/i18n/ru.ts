@@ -185,6 +185,14 @@ export const ru: Record<Base | ExtraPlural, string> = {
   "common.open": "Открыть",
 
   // ----- Window: Phone page and pairing -----
+  "pairing.can_approve": "Может отвечать Claude Code",
+  "perm.hold_hint": "Удерживайте, чтобы разрешить",
+  "notif.hidden": "Новое уведомление",
+  "winnotif.mode.full": "Полный текст",
+  "winnotif.mode.app": "Только имя программы",
+  "winnotif.mode.hide": "Не показывать",
+  "ai.rule_phone": "с {source}, до {time}",
+  "ai.rule_pc": "с ПК",
   "phone.net.usb": "USB",
   "phone.net.private": "Частная сеть",
   "phone.net.public": "Общественная сеть — всё зашифровано, только приложение Decka, сопряжение по QR",

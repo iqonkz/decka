@@ -62,6 +62,7 @@ pub fn run() {
             commands::cancel_pairing,
             commands::list_devices,
             commands::revoke_device,
+            commands::set_can_approve,
             commands::send_test_notification,
             commands::get_update_status,
             commands::check_updates,

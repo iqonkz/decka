@@ -6,6 +6,7 @@ export * from "./templates";
 export * from "./ipc";
 export * from "./validate";
 export * from "./pairUrl";
+export * from "./notifPrivacy";
 export * from "./i18n";
 export * from "./version";
 export * from "./rotate";

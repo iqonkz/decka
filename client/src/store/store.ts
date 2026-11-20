@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import type { AiInfo, FullState, NotifLevel, Notification, PatchMsg, PermRequest, SectionName, SysStats, WelcomeMsg } from "@decka/shared";
+import { t } from "@decka/shared";
 import { recordAi, recordSys, resetAiHistory, resetSysHistory } from "@decka/ui";
 import { popBack, pushBack } from "../deck/backStack";
 import { decideContextPage } from "../deck/context";
@@ -273,8 +274,9 @@ function toastNewNotifications(before: Notification[], after: Notification[]): v
     const windows = n.source === "windows";
     // A notification of Windows is shown for 4 s, and only when the page has no notifications widget to show it (10.4).
     if (windows && pageHasNotificationsWidget()) continue;
-    const toast: NewToast = { level: n.level, title: n.app && windows ? `${n.app}: ${n.title}` : n.title };
-    if (n.body !== undefined) toast.body = n.body;
+    // A hidden notification (DATA_MODEL.md 11.5) carries only the name of the program: the toast says `New notification` and names it.
+    const toast: NewToast = n.hidden === true ? { level: n.level, title: t("notif.hidden"), body: n.title } : { level: n.level, title: n.app && windows ? `${n.app}: ${n.title}` : n.title };
+    if (n.body !== undefined && n.hidden !== true) toast.body = n.body;
     if (windows) toast.ms = WINDOWS_TOAST_MS;
     if (windows && n.openable === true) toast.notifId = n.id;
     pushToast(toast);

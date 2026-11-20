@@ -205,6 +205,11 @@ impl Devices {
                 migrated = true;
             }
         }
+        // Phones paired before M18 keep answering Claude Code questions.
+        for d in file.devices.iter_mut().filter(|d| d.can_approve.is_none()) {
+            d.can_approve = Some(true);
+            migrated = true;
+        }
         let devices = Devices { path, file: Mutex::new(file) };
         if migrated {
             let file = devices.file.lock().unwrap();
@@ -212,6 +217,24 @@ impl Devices {
             tracing::info!("devices.json: token hashes moved to DPAPI-protected keys");
         }
         devices
+    }
+
+    /// May this phone answer Claude Code questions? An unknown device may not.
+    pub fn can_approve(&self, id: &str) -> bool {
+        self.file.lock().unwrap().devices.iter().find(|d| d.id == id).is_some_and(|d| d.can_approve.unwrap_or(true))
+    }
+
+    /// The switch `Can answer Claude Code` of the window; false when there is no such device.
+    pub fn set_can_approve(&self, id: &str, allowed: bool) -> bool {
+        let mut file = self.file.lock().unwrap();
+        let Some(d) = file.devices.iter_mut().find(|d| d.id == id) else { return false };
+        d.can_approve = Some(allowed);
+        self.save(&file);
+        true
+    }
+
+    pub fn name_of(&self, id: &str) -> Option<String> {
+        self.file.lock().unwrap().devices.iter().find(|d| d.id == id).map(|d| d.name.clone())
     }
 
     /// `K_dev` of a paired device (the secret of the v2 handshake).
@@ -237,7 +260,8 @@ impl Devices {
         };
         let now = now_ms();
         let (key_dpapi, token_hash) = store_key(&crate::secure::k_dev(&token));
-        let record = DeviceRecord { id, name: name.to_string(), token_hash, key_dpapi, created_at: now, last_seen_at: now, app_version: None };
+        // A new phone may not answer Claude Code until the owner allows it in the window (DATA_MODEL.md 11.3).
+        let record = DeviceRecord { id, name: name.to_string(), token_hash, key_dpapi, can_approve: Some(false), created_at: now, last_seen_at: now, app_version: None };
         file.devices.push(record.clone());
         self.save(&file);
         (record, token)

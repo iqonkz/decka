@@ -30,8 +30,9 @@ export default function Notifications(_props: { item: NotificationsItem }) {
       {list.map((n) => (
         <div className="notif" key={n.id} style={{ borderLeftColor: LEVEL_COLOR[n.level] }} onClick={() => (n.openable === true && onOpenNotification ? onOpenNotification(n.id) : onDismiss(n.id))}>
           <div className="notif-main">
-            <div className="notif-title">{n.title}</div>
-            {n.body && <div className="notif-body">{n.body}</div>}
+            {/* A hidden notification came without its text (DATA_MODEL.md 11.5): `title` is only the name of the program. */}
+            <div className="notif-title">{n.hidden === true ? t("notif.hidden") : n.title}</div>
+            {n.hidden === true ? <div className="notif-body">{n.title}</div> : n.body && <div className="notif-body">{n.body}</div>}
           </div>
           <div className="notif-meta">{[n.source, relTime(n.ts, now)].filter(Boolean).join(" · ")}</div>
         </div>

@@ -76,6 +76,26 @@ pub fn is_excluded(app: &str, exclude: &[String]) -> bool {
     exclude.iter().any(|e| e.eq_ignore_ascii_case(app))
 }
 
+/// Programs whose notifications carry other people's words: sent as the program name only unless the owner says otherwise
+/// (DATA_MODEL.md 11.5). Matched as a part of the program name, ignoring case.
+const PRIVATE_BY_DEFAULT: &[&str] = &["telegram", "whatsapp", "signal", "viber", "discord", "slack", "teams", "outlook", "mail", "thunderbird", "messenger", "skype"];
+
+/// How much of a notification of `app` goes to the phone: the owner's choice for this program, else the built-in messenger
+/// list, else the owner's default (`full` when nothing is set).
+pub fn privacy_for(app: &str, privacy: Option<&crate::model::NotifPrivacy>) -> crate::model::PrivacyMode {
+    use crate::model::PrivacyMode;
+    if let Some(p) = privacy {
+        if let Some((_, mode)) = p.apps.iter().find(|(name, _)| name.eq_ignore_ascii_case(app)) {
+            return *mode;
+        }
+    }
+    let lower = app.to_lowercase();
+    if PRIVATE_BY_DEFAULT.iter().any(|word| lower.contains(word)) {
+        return PrivacyMode::App;
+    }
+    privacy.map_or(PrivacyMode::Full, |p| p.default)
+}
+
 /// An AUMID is `Publisher.App_hash!AppId` or a path-like id of a classic program: letters, digits and `. _ ! - \ :`, at most
 /// 256 characters. Anything else is not launched.
 pub fn valid_aumid(aumid: &str) -> bool {
@@ -248,6 +268,27 @@ mod win {
             out.push(WinToast { id: n.Id().map_err(|e| e.message())?, app, aumid, texts });
         }
         Ok(out)
+    }
+}
+
+#[cfg(test)]
+mod privacy_tests {
+    use super::privacy_for;
+    use crate::model::{NotifPrivacy, PrivacyMode};
+
+    #[test]
+    fn messengers_are_app_only_by_default_and_the_owner_can_override() {
+        for app in ["Telegram Desktop", "WhatsApp", "Microsoft Teams", "Outlook", "Mail", "Discord", "Signal"] {
+            assert_eq!(privacy_for(app, None), PrivacyMode::App, "{app}");
+        }
+        assert_eq!(privacy_for("Calendar", None), PrivacyMode::Full);
+        let mut p = NotifPrivacy { default: PrivacyMode::Full, apps: Default::default() };
+        p.apps.insert("telegram desktop".to_string(), PrivacyMode::Full);
+        p.apps.insert("Calendar".to_string(), PrivacyMode::App);
+        assert_eq!(privacy_for("Telegram Desktop", Some(&p)), PrivacyMode::Full);
+        assert_eq!(privacy_for("Calendar", Some(&p)), PrivacyMode::App);
+        let all_private = NotifPrivacy { default: PrivacyMode::App, apps: Default::default() };
+        assert_eq!(privacy_for("Spotify", Some(&all_private)), PrivacyMode::App);
     }
 }
 

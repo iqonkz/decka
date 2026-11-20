@@ -156,7 +156,17 @@ export default function PairingTab({ embedded = false }: { embedded?: boolean } 
                   <td>
                     <span className={d.connected ? "dot online" : "dot"} title={d.connected ? t("pairing.online") : t("pairing.offline")} />
                   </td>
-                  <td>{d.name}</td>
+                  <td>
+                    {d.name}
+                    <label className="check block">
+                      <input
+                        type="checkbox"
+                        checked={d.canApprove}
+                        onChange={(e) => void call("set_can_approve", { deviceId: d.id, allowed: e.target.checked }).then(refreshDevices)}
+                      />{" "}
+                      {t("pairing.can_approve")}
+                    </label>
+                  </td>
                   <td>{fmtTime(d.createdAt)}</td>
                   <td>{fmtTime(d.lastSeenAt)}</td>
                   <td>

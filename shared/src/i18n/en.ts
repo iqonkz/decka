@@ -183,6 +183,14 @@ export const en = {
   "common.open": "Open",
 
   // ----- Window: Phone page and pairing -----
+  "pairing.can_approve": "Can answer Claude Code",
+  "perm.hold_hint": "Hold to allow",
+  "notif.hidden": "New notification",
+  "winnotif.mode.full": "Full text",
+  "winnotif.mode.app": "App name only",
+  "winnotif.mode.hide": "Don't show",
+  "ai.rule_phone": "from {source}, until {time}",
+  "ai.rule_pc": "from the PC",
   "phone.net.usb": "USB",
   "phone.net.private": "Private network",
   "phone.net.public": "Public network — encrypted, only the Decka app, pairing by QR",

@@ -28,7 +28,10 @@ export interface ConfigFile {
 /** `allowPublic: false` closes every connection that arrives on a public network. */
 export interface NetworkConfig { allowPublic: boolean; }
 /** `exclude`: display names of the Windows apps whose notifications are not sent to the phone; at most 50 of 1..80 characters. */
-export interface WindowsNotificationsConfig { enabled: boolean; exclude: string[]; }
+export interface WindowsNotificationsConfig { enabled: boolean; exclude: string[]; privacy?: NotifPrivacy; }
+/** M18 (DATA_MODEL.md 11.5): `app` = only the name of the program goes to the phone. Programs that look like messengers are `app` unless listed in `apps`. */
+export type PrivacyMode = "full" | "app";
+export interface NotifPrivacy { default: PrivacyMode; apps: Record<string, PrivacyMode>; }
 /** Up to three mailboxes. IMAP over TLS; the host is set only in the window (ARCHITECTURE.md S21). */
 export interface MailConfig { accounts: MailAccount[]; }
 /** `password` is only ever "dpapi:<base64>" on disk and is written only by `set_mail_password`; `get_config` leaves it out and says `passwordSet`. */
@@ -49,7 +52,7 @@ export interface AiConfig {
   rules?: AiRule[];                                   // what the phone's "Always allow" remembered; removed in the window
 }
 /** `kind`: `command` (value = the first words), `project` (value = the folder), `host` (value = the site), `tool` (value empty). */
-export interface AiRule { id: string; provider: "claude" | "codex"; tool: string; kind: "command" | "project" | "host" | "tool"; value: string; createdAt: number; }
+export interface AiRule { id: string; provider: "claude" | "codex"; tool: string; kind: "command" | "project" | "host" | "tool"; value: string; createdAt: number; sessionId?: string; expiresAt?: number; source?: string; } // M18: from a phone = one session, 8 h, source "Phone <name>"
 export interface WeatherConfig { enabled: boolean; place: string; lat: number; lon: number; units: "metric" | "imperial"; }
 /** `password` is only ever "dpapi:<base64>" on disk and is written only by `set_obs_password`; `get_config` leaves it out and says `passwordSet`. */
 export interface ObsConfig { enabled: boolean; port: number; password?: string; passwordSet?: boolean; }
@@ -62,7 +65,8 @@ export interface HttpCheck {
   group?: string;                    // <= 40
 }
 
-export interface DeviceInfo { id: Id; name: string; createdAt: number; lastSeenAt: number; connected: boolean; appVersion?: string; } // appVersion: client.version of the last pair/hello (M14)
-// devices.json on disk:
-// { "version": 1, "devices": [ { "id", "name", "tokenHash", "createdAt", "lastSeenAt" } ] }
-// tokenHash = hex(SHA-256(token)); the token itself is NEVER written to disk.
+export interface DeviceInfo { id: Id; name: string; createdAt: number; lastSeenAt: number; connected: boolean; appVersion?: string; canApprove: boolean; } // appVersion: client.version of the last pair/hello (M14); canApprove: may answer Claude Code (M18)
+// devices.json on disk (M18):
+// { "version": 1, "devices": [ { "id", "name", "keyDpapi", "canApprove", "createdAt", "lastSeenAt" } ] }
+// keyDpapi = "dpapi:<base64>" of hex(SHA-256(token)) (K_dev); the token itself is NEVER written to disk.
+// Before M18 the file held "tokenHash" (hex of the same hash); it is moved to keyDpapi at the first start.

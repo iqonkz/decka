@@ -20,6 +20,7 @@ pub mod paths;
 pub mod proto;
 pub mod qr;
 pub mod ratelimit;
+pub mod safety;
 pub mod secure;
 pub mod server;
 #[cfg(windows)]

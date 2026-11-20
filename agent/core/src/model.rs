@@ -626,6 +626,25 @@ pub struct WindowsNotificationsConfig {
     pub enabled: bool,
     #[serde(default)]
     pub exclude: Vec<String>,
+    /// M18 (DATA_MODEL.md 11.5): how much of a notification is sent to the phone; absent = the defaults.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub privacy: Option<NotifPrivacy>,
+}
+
+/// `full` = title and text, `app` = only the name of the program (the text never leaves the PC).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum PrivacyMode {
+    Full,
+    App,
+}
+
+/// `default` applies to every program that is not in `apps` (and not one of the built-in messenger names, see `winnotif::privacy_for`).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct NotifPrivacy {
+    pub default: PrivacyMode,
+    #[serde(default)]
+    pub apps: std::collections::BTreeMap<String, PrivacyMode>,
 }
 
 /// Up to three mailboxes. Only the host given here is ever connected to for mail (ARCHITECTURE.md S21).
@@ -1016,6 +1035,10 @@ pub struct DeviceRecord {
     /// M18: `K_dev` (SHA-256 of the token, hex) protected by DPAPI as `dpapi:<base64>`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub key_dpapi: Option<String>,
+    /// M18 (DATA_MODEL.md 11.3): may this phone answer Claude Code questions. Phones paired before M18 got `true` at the
+    /// update; new ones start with `false`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub can_approve: Option<bool>,
     pub created_at: u64,
     pub last_seen_at: u64,
     /// M14: `client.version` of the last `pair` / `hello` (ARCHITECTURE.md 8a); absent for phones seen before it was kept.
@@ -1113,6 +1136,9 @@ pub struct Notification {
     /// M17: a tap on the phone sends `notif_open` (the program is known).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub openable: Option<bool>,
+    /// M18 (DATA_MODEL.md 11.5): the text was kept on the PC; the phone shows `New notification` and `title` is the program.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hidden: Option<bool>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

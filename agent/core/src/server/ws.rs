@@ -21,6 +21,7 @@ use crate::model::Notification;
 use crate::netpolicy::{policy, Category, ConnInfo, Request, Verdict};
 use crate::proto::{AgentInfo, ClientInfo, ClientMsg, ErrorBody, ErrorCode, Hello2Mode, ServerMsg};
 use crate::ratelimit::RateLimiter;
+use crate::safety::PhoneCtx;
 use crate::secure::{self, Keys, Opener, Sealer};
 
 /// Largest plain JSON message of the client (and largest plain handshake frame).
@@ -121,7 +122,10 @@ fn error_msg(code: ErrorCode, message: &str) -> ServerMsg {
 /// Who is on the other end of an authorized socket (for the press audit log).
 struct Peer {
     device_id: String,
+    name: String,
     remote: SocketAddr,
+    /// When this connection was established (dangerous system actions wait for 60 s, DATA_MODEL.md 11.4).
+    since: std::time::Instant,
 }
 
 /// What the handshake knows about the other side once it has proven itself.
@@ -327,7 +331,8 @@ async fn run_device(agent: Agent, remote: SocketAddr, mut link: Link, device_id:
     if !link.send(&welcome).await {
         return;
     }
-    let who = Peer { device_id, remote };
+    let name = agent.devices().name_of(&device_id).unwrap_or_else(|| client.name.clone());
+    let who = Peer { device_id, name, remote, since: std::time::Instant::now() };
     session(&agent, &mut link, &mut patches, &mut kicked, snapshot_rev, &who).await;
     drop(guard);
 }
@@ -423,7 +428,7 @@ async fn handle_text(
         }
         Ok(ClientMsg::PermAnswer { req_id, decision, reply }) => {
             tracing::info!("perm_answer {req_id} {decision:?} device={}", who.device_id);
-            agent.answer_permission(&req_id, decision, reply.map(usize::from));
+            agent.answer_permission(&who.device_id, &req_id, decision, reply.map(usize::from));
             true
         }
         Ok(ClientMsg::Press { id, action_id }) => {
@@ -435,8 +440,9 @@ async fn handle_text(
             }
             let agent = agent.clone();
             let out = out.clone();
+            let phone = PhoneCtx { device_name: who.name.clone(), connected_for: who.since.elapsed() };
             tokio::spawn(async move {
-                let error = agent.execute(&action_id).await.err().map(|(code, message)| ErrorBody { code, message });
+                let error = agent.execute_for(&action_id, Some(&phone)).await.err().map(|(code, message)| ErrorBody { code, message });
                 let _ = out.send(ServerMsg::PressResult { id, ok: error.is_none(), error });
             });
             true

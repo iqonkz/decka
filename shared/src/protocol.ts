@@ -132,6 +132,7 @@ export interface PermRequest {
   expiresAt: number;               // ts after which the agent lets the question go to the terminal
   replies?: string[];              // ready answers of "Deny and say", at most 4
   always?: { kind: "command" | "project" | "host" | "tool"; value: string };   // what "Always allow" would remember; absent = nothing safe to remember
+  danger?: boolean;                // M18: a dangerous command; `Allow` is a 1 s hold and `Always allow` is not offered
 }
 /** One answered question (kept in the agent's memory only). `auto` = a rule of "Always allow" answered it. */
 export interface PermLog {
@@ -216,6 +217,7 @@ export interface Notification {
   source?: string;               // <= 40; M17: "windows" = a notification of Windows (DATA_MODEL.md 10.4)
   app?: string;                  // M17: the display name of the Windows app, <= 80
   openable?: boolean;            // M17: a tap sends `notif_open`
+  hidden?: boolean;              // M18: the text stayed on the PC; `title` is the program, the phone shows "New notification"
 }
 
 // ===== HTTP =====

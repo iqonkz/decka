@@ -256,6 +256,12 @@ pub fn revoke_device(app: AppHandle, device_id: String) -> Result<(), String> {
     Ok(())
 }
 
+/// `Can answer Claude Code` of one phone (DATA_MODEL.md 11.3).
+#[tauri::command]
+pub fn set_can_approve(app: AppHandle, device_id: String, allowed: bool) -> Result<bool, String> {
+    Ok(agent(&app)?.set_can_approve(&device_id, allowed))
+}
+
 #[tauri::command]
 pub fn send_test_notification(app: AppHandle) -> Result<(), String> {
     agent(&app)?.push_notification(NotifyReq {

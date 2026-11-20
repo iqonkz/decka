@@ -289,3 +289,48 @@ async fn a_forged_auth_ok_is_detectable() {
     ws.close(None).await.ok();
     e.agent.shutdown().await;
 }
+
+const HOOK_BODY: &[u8] = br#"{"tool_name":"Bash","tool_input":{"command":"git status"},"cwd":"C:\\p","session_id":"abcdef123456"}"#;
+
+async fn first_pending(agent: &Agent) -> String {
+    for _ in 0..200 {
+        if let Some(id) = agent.store().get("ai")["pending"][0]["reqId"].as_str() {
+            return id.to_string();
+        }
+        tokio::time::sleep(Duration::from_millis(25)).await;
+    }
+    panic!("no permission question appeared");
+}
+
+#[tokio::test]
+async fn only_a_phone_with_the_right_gets_and_answers_claude_code_questions() {
+    let e = env().await;
+    let home = tempfile::tempdir().unwrap();
+    e.agent.cc_install_in(home.path()).unwrap();
+    let (id, token) = pair_by_code(&e).await;
+    assert!(!e.agent.list_devices()[0].can_approve, "a new phone starts without the right");
+    let mut phone = handshake(e.port, Proof::Device(id.clone(), secure::k_dev(&token))).await;
+    assert_eq!(phone.recv().await["t"], "welcome");
+
+    // A connected phone without the right: the question goes straight to the terminal.
+    assert_eq!(e.agent.cc_permission(HOOK_BODY, false).await, None);
+
+    // With the right the question reaches the phone; an answer from it is taken.
+    assert!(e.agent.set_can_approve(&id, true));
+    let task = tokio::spawn({
+        let agent = e.agent.clone();
+        async move { agent.cc_permission(HOOK_BODY, false).await }
+    });
+    let req = first_pending(&e.agent).await;
+    // The right is taken away while the question is open: a perm_answer is ignored ...
+    assert!(e.agent.set_can_approve(&id, false));
+    phone.send(json!({ "t": "perm_answer", "reqId": req, "decision": "allow" })).await;
+    tokio::time::sleep(Duration::from_millis(300)).await;
+    assert!(!task.is_finished(), "an answer of a phone without the right must be ignored");
+    // ... and taken once the right is back.
+    assert!(e.agent.set_can_approve(&id, true));
+    phone.send(json!({ "t": "perm_answer", "reqId": req, "decision": "allow" })).await;
+    let answer = timeout(Duration::from_secs(3), task).await.expect("the question was answered").unwrap();
+    assert!(answer.is_some_and(|a| a.contains("allow")));
+    e.agent.shutdown().await;
+}

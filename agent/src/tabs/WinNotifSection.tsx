@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import { t, type ConfigFile, type WindowsNotificationsStatus } from "@decka/shared";
+import { effectivePrivacy, t, type ConfigFile, type NotifPrivacy, type WindowsNotificationsConfig, type WindowsNotificationsStatus } from "@decka/shared";
 import { call } from "../ipc";
 import Banner from "../ui/Banner";
 
+type Choice = "full" | "app" | "hide";
+
 /**
- * `More → Integrations → Windows notifications` (DATA_MODEL.md 10.4): the switch (Windows asks its own question the first time),
- * what Windows answered, and the apps whose notifications are not sent (`Don't show from:`).
+ * `More → Integrations → Windows notifications` (DATA_MODEL.md 10.4, 11.5): the switch (Windows asks its own question the first time),
+ * what Windows answered, and for every program how much goes to the phone: `Full text`, `App name only` or `Don't show`.
  */
 export default function WinNotifSection({ config, onSaved }: { config: ConfigFile; onSaved: () => Promise<void> }) {
   const saved = config.windowsNotifications;
@@ -24,7 +26,7 @@ export default function WinNotifSection({ config, onSaved }: { config: ConfigFil
     };
   }, [saved?.enabled]);
 
-  async function save(next: { enabled: boolean; exclude: string[] }) {
+  async function save(next: WindowsNotificationsConfig) {
     setError(null);
     const fresh = await call("get_config");
     const result = await call("save_config", { config: { ...fresh, windowsNotifications: next } });
@@ -34,16 +36,26 @@ export default function WinNotifSection({ config, onSaved }: { config: ConfigFil
 
   const enabled = saved?.enabled ?? false;
   const exclude = saved?.exclude ?? [];
+  const privacy: NotifPrivacy = saved?.privacy ?? { default: "full", apps: {} };
   // Apps already excluded stay in the list even when none of them sent a toast since the start.
   const apps = [...new Set([...(status?.apps ?? []), ...exclude])].sort((a, b) => a.localeCompare(b));
   const state = !enabled ? null : status?.access === "allowed" ? t("winnotif.allowed") : status?.access === "denied" ? t("winnotif.denied") : t("winnotif.unknown");
+  const choiceOf = (app: string): Choice => (exclude.some((e) => e.toLowerCase() === app.toLowerCase()) ? "hide" : effectivePrivacy(app, privacy));
+
+  function choose(app: string, choice: Choice) {
+    const others = exclude.filter((e) => e.toLowerCase() !== app.toLowerCase());
+    const nextApps = { ...privacy.apps };
+    for (const name of Object.keys(nextApps)) if (name.toLowerCase() === app.toLowerCase()) delete nextApps[name];
+    if (choice !== "hide") nextApps[app] = choice; // an explicit choice also overrides the built-in messenger list
+    void save({ enabled, exclude: choice === "hide" ? [...others, app].slice(0, 50) : others, privacy: { default: privacy.default, apps: nextApps } });
+  }
 
   return (
     <section className="card" id="winnotif">
       <h3>{t("winnotif.title")}</h3>
       <div className="row">
         <label className="check grow">
-          <input type="checkbox" checked={enabled} onChange={(e) => void save({ enabled: e.target.checked, exclude })} /> {t("winnotif.enable")}
+          <input type="checkbox" checked={enabled} onChange={(e) => void save({ ...saved, enabled: e.target.checked, exclude })} /> {t("winnotif.enable")}
         </label>
         {state && <strong className={status?.access === "allowed" ? "ok-text" : "warn-text"}>{state}</strong>}
       </div>
@@ -52,14 +64,14 @@ export default function WinNotifSection({ config, onSaved }: { config: ConfigFil
           <div className="muted">{t("winnotif.exclude")}</div>
           {apps.length === 0 && <small className="muted block">{t("winnotif.no_apps")}</small>}
           {apps.map((app) => (
-            <label className="check block" key={app}>
-              <input
-                type="checkbox"
-                checked={exclude.includes(app)}
-                onChange={(e) => void save({ enabled, exclude: e.target.checked ? [...exclude, app].slice(0, 50) : exclude.filter((x) => x !== app) })}
-              />{" "}
-              {app}
-            </label>
+            <div className="row" key={app}>
+              <span className="grow">{app}</span>
+              <select value={choiceOf(app)} onChange={(e) => choose(app, e.target.value as Choice)}>
+                <option value="full">{t("winnotif.mode.full")}</option>
+                <option value="app">{t("winnotif.mode.app")}</option>
+                <option value="hide">{t("winnotif.mode.hide")}</option>
+              </select>
+            </div>
           ))}
         </div>
       )}
