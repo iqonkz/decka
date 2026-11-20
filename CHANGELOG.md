@@ -4,6 +4,8 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+## 0.8.1 — 2026-11-20
+
 ### Added
 - **Claude limits from your account** (Integrations → AI coding): a switch that reads the limits through the Claude Code sign-in on this PC, for the VS Code extension, which has no status line. Off by default.
 - The empty notifications widget says when Windows notifications are off and where to turn them on.
