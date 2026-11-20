@@ -1,21 +1,106 @@
 {
   "id": "spotify",
   "name": "Spotify",
-  "apps": ["spotify.exe"],
-  "minGrid": { "cols": 7, "rows": 4 },
+  "apps": [
+    "spotify.exe"
+  ],
+  "minGrid": {
+    "cols": 7,
+    "rows": 4
+  },
   "actions": {
-    "tpl-spotify-prev": { "name": "Previous", "type": "media", "op": "prev" },
-    "tpl-spotify-play": { "name": "Play / Pause", "type": "media", "op": "play_pause" },
-    "tpl-spotify-next": { "name": "Next", "type": "media", "op": "next" },
-    "tpl-spotify-voldown": { "name": "Volume down", "type": "media", "op": "vol_down" },
-    "tpl-spotify-volup": { "name": "Volume up", "type": "media", "op": "vol_up" },
-    "tpl-spotify-mute": { "name": "Mute", "type": "media", "op": "mute" }
+    "tpl-spotify-prev": {
+      "name": "Previous",
+      "nameRu": "Предыдущий",
+      "type": "media",
+      "op": "prev"
+    },
+    "tpl-spotify-play": {
+      "name": "Play / Pause",
+      "nameRu": "Пуск / Пауза",
+      "type": "media",
+      "op": "play_pause"
+    },
+    "tpl-spotify-next": {
+      "name": "Next",
+      "nameRu": "Следующий",
+      "type": "media",
+      "op": "next"
+    },
+    "tpl-spotify-voldown": {
+      "name": "Volume down",
+      "nameRu": "Тише",
+      "type": "media",
+      "op": "vol_down"
+    },
+    "tpl-spotify-volup": {
+      "name": "Volume up",
+      "nameRu": "Громче",
+      "type": "media",
+      "op": "vol_up"
+    },
+    "tpl-spotify-mute": {
+      "name": "Mute",
+      "nameRu": "Без звука",
+      "type": "media",
+      "op": "mute"
+    }
   },
   "items": [
-    { "id": "now", "kind": "media", "x": 0, "y": 0, "w": 4, "h": 2, "prevAction": "tpl-spotify-prev", "playAction": "tpl-spotify-play", "nextAction": "tpl-spotify-next" },
-    { "id": "voldown", "kind": "button", "x": 0, "y": 2, "w": 1, "h": 1, "label": "Vol -", "icon": "lucide:volume-1", "actionId": "tpl-spotify-voldown" },
-    { "id": "volup", "kind": "button", "x": 1, "y": 2, "w": 1, "h": 1, "label": "Vol +", "icon": "lucide:volume-2", "actionId": "tpl-spotify-volup" },
-    { "id": "mute", "kind": "button", "x": 2, "y": 2, "w": 1, "h": 1, "label": "Mute", "icon": "lucide:volume-x", "actionId": "tpl-spotify-mute" },
-    { "id": "home", "kind": "button", "x": 6, "y": 3, "w": 1, "h": 1, "label": "Home", "icon": "lucide:home", "navigate": "$home" }
+    {
+      "id": "now",
+      "kind": "media",
+      "x": 0,
+      "y": 0,
+      "w": 4,
+      "h": 2,
+      "prevAction": "tpl-spotify-prev",
+      "playAction": "tpl-spotify-play",
+      "nextAction": "tpl-spotify-next"
+    },
+    {
+      "id": "voldown",
+      "kind": "button",
+      "x": 0,
+      "y": 2,
+      "w": 1,
+      "h": 1,
+      "label": "Vol -",
+      "icon": "lucide:volume-1",
+      "actionId": "tpl-spotify-voldown"
+    },
+    {
+      "id": "volup",
+      "kind": "button",
+      "x": 1,
+      "y": 2,
+      "w": 1,
+      "h": 1,
+      "label": "Vol +",
+      "icon": "lucide:volume-2",
+      "actionId": "tpl-spotify-volup"
+    },
+    {
+      "id": "mute",
+      "kind": "button",
+      "x": 2,
+      "y": 2,
+      "w": 1,
+      "h": 1,
+      "label": "Mute",
+      "icon": "lucide:volume-x",
+      "actionId": "tpl-spotify-mute"
+    },
+    {
+      "id": "home",
+      "kind": "button",
+      "x": 6,
+      "y": 3,
+      "w": 1,
+      "h": 1,
+      "label": "Home",
+      "icon": "lucide:home",
+      "navigate": "$home"
+    }
   ]
 }

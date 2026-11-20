@@ -12,6 +12,7 @@
   "actions": {
     "tpl-outlook-new": {
       "name": "New mail",
+      "nameRu": "Новое письмо",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -20,6 +21,7 @@
     },
     "tpl-outlook-reply": {
       "name": "Reply",
+      "nameRu": "Ответить",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -28,6 +30,7 @@
     },
     "tpl-outlook-replyall": {
       "name": "Reply all",
+      "nameRu": "Ответить всем",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -37,6 +40,7 @@
     },
     "tpl-outlook-forward": {
       "name": "Forward",
+      "nameRu": "Переслать",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -45,6 +49,7 @@
     },
     "tpl-outlook-send": {
       "name": "Send",
+      "nameRu": "Отправить",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -53,6 +58,7 @@
     },
     "tpl-outlook-mail": {
       "name": "Mail view",
+      "nameRu": "Почта",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -61,6 +67,7 @@
     },
     "tpl-outlook-calendar": {
       "name": "Calendar view",
+      "nameRu": "Календарь",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -69,6 +76,7 @@
     },
     "tpl-outlook-search": {
       "name": "Search",
+      "nameRu": "Поиск",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -77,6 +85,7 @@
     },
     "tpl-outlook-read": {
       "name": "Mark as read",
+      "nameRu": "Прочитано",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -85,6 +94,7 @@
     },
     "tpl-outlook-delete": {
       "name": "Delete",
+      "nameRu": "Удалить",
       "type": "hotkey",
       "keys": [
         "delete"

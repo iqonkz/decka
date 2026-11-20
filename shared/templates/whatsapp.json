@@ -12,6 +12,7 @@
   "actions": {
     "tpl-whatsapp-new": {
       "name": "New chat",
+      "nameRu": "Новый чат",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -20,6 +21,7 @@
     },
     "tpl-whatsapp-search": {
       "name": "Search",
+      "nameRu": "Поиск",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -28,6 +30,7 @@
     },
     "tpl-whatsapp-next": {
       "name": "Next chat",
+      "nameRu": "След. чат",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -36,6 +39,7 @@
     },
     "tpl-whatsapp-prev": {
       "name": "Previous chat",
+      "nameRu": "Пред. чат",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -45,6 +49,7 @@
     },
     "tpl-whatsapp-mute": {
       "name": "Mute chat",
+      "nameRu": "Без звука",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -54,6 +59,7 @@
     },
     "tpl-whatsapp-archive": {
       "name": "Archive chat",
+      "nameRu": "В архив",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -63,6 +69,7 @@
     },
     "tpl-whatsapp-group": {
       "name": "New group",
+      "nameRu": "Новая группа",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -72,6 +79,7 @@
     },
     "tpl-whatsapp-close": {
       "name": "Close the chat",
+      "nameRu": "Закрыть чат",
       "type": "hotkey",
       "keys": [
         "esc"

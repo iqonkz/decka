@@ -11,6 +11,7 @@
   "actions": {
     "tpl-powerpoint-start": {
       "name": "Start slide show",
+      "nameRu": "Показ с начала",
       "type": "hotkey",
       "keys": [
         "f5"
@@ -18,6 +19,7 @@
     },
     "tpl-powerpoint-current": {
       "name": "Start from this slide",
+      "nameRu": "Показ с текущего",
       "type": "hotkey",
       "keys": [
         "shift",
@@ -26,6 +28,7 @@
     },
     "tpl-powerpoint-prev": {
       "name": "Previous slide",
+      "nameRu": "Пред. слайд",
       "type": "hotkey",
       "keys": [
         "pageup"
@@ -33,6 +36,7 @@
     },
     "tpl-powerpoint-next": {
       "name": "Next slide",
+      "nameRu": "След. слайд",
       "type": "hotkey",
       "keys": [
         "pagedown"
@@ -40,6 +44,7 @@
     },
     "tpl-powerpoint-end": {
       "name": "End slide show",
+      "nameRu": "Завершить показ",
       "type": "hotkey",
       "keys": [
         "esc"
@@ -47,6 +52,7 @@
     },
     "tpl-powerpoint-newslide": {
       "name": "New slide",
+      "nameRu": "Новый слайд",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -55,6 +61,7 @@
     },
     "tpl-powerpoint-dup": {
       "name": "Duplicate slide",
+      "nameRu": "Дублировать слайд",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -64,6 +71,7 @@
     },
     "tpl-powerpoint-save": {
       "name": "Save",
+      "nameRu": "Сохранить",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -72,6 +80,7 @@
     },
     "tpl-powerpoint-undo": {
       "name": "Undo",
+      "nameRu": "Отменить",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -80,6 +89,7 @@
     },
     "tpl-powerpoint-bold": {
       "name": "Bold",
+      "nameRu": "Жирный",
       "type": "hotkey",
       "keys": [
         "ctrl",

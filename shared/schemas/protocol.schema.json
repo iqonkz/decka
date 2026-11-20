@@ -62,7 +62,7 @@
         "battery": { "oneOf": [ { "$ref": "#/$defs/BatteryInfo" }, { "type": "null" } ] },
         "mail": { "oneOf": [ { "$ref": "#/$defs/MailInfo" }, { "type": "null" } ] } } },
     "StripInfo": { "type": "object", "required": ["app","template","name","keys"],
-      "properties": { "app": { "type": "string" }, "template": { "type": "string" }, "name": { "type": "string" },
+      "properties": { "app": { "type": "string" }, "template": { "type": "string" }, "name": { "type": "string" }, "icon": { "type": "string", "pattern": "^img:[0-9a-f]{16}$" },
         "keys": { "type": "array", "maxItems": 16, "items": { "type": "object", "required": ["actionId","label"],
           "properties": { "actionId": { "type": "string", "pattern": "^[a-z0-9_-]{1,64}$" }, "label": { "type": "string" }, "icon": { "type": "string" } } } } } },
     "BatteryInfo": { "type": "object", "required": ["devices","updatedAt"],

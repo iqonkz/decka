@@ -11,6 +11,7 @@
   "actions": {
     "tpl-discord-mute": {
       "name": "Mute microphone",
+      "nameRu": "Микрофон",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -20,6 +21,7 @@
     },
     "tpl-discord-deafen": {
       "name": "Deafen",
+      "nameRu": "Звук",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -29,6 +31,7 @@
     },
     "tpl-discord-switcher": {
       "name": "Quick switcher",
+      "nameRu": "Быстрый переход",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -37,6 +40,7 @@
     },
     "tpl-discord-inbox": {
       "name": "Inbox",
+      "nameRu": "Входящие",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -45,6 +49,7 @@
     },
     "tpl-discord-nextsrv": {
       "name": "Next server",
+      "nameRu": "След. сервер",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -54,6 +59,7 @@
     },
     "tpl-discord-prevsrv": {
       "name": "Previous server",
+      "nameRu": "Пред. сервер",
       "type": "hotkey",
       "keys": [
         "ctrl",

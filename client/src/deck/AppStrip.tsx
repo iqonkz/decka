@@ -63,7 +63,7 @@ export default function AppStrip() {
   const { side, gap } = gridMetrics(viewport, grid.cols, grid.rows);
   const pad = Math.round(0.12 * side);
   const across = 2 * side + gap + 2 * pad; // the short side of the strip
-  const appIcon = "lucide:monitor"; // the icon of the program itself is not known to the phone; `monitor` stands for it
+  const appIcon = strip.icon ?? "lucide:app-window"; // the program's own icon (an `img:` of the icons section) when the PC found it
   const edge = portrait ? "strip-bottom" : "strip-right";
 
   const choose = (next: StripMode) => {

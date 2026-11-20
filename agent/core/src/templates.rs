@@ -39,11 +39,28 @@ pub struct PageTemplate {
     pub min_grid: MinGrid,
     pub actions: BTreeMap<String, Action>,
     pub items: Vec<LayoutItem>,
+    /// `nameRu` of the template (absent = `name` is used in Russian too).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name_ru: Option<String>,
+    /// `nameRu` of the actions by action id (DATA_MODEL.md 10.5, T17.6); read from the template file, not part of `Action`.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub action_names_ru: BTreeMap<String, String>,
 }
 
 /// The built-in templates.
 pub fn all() -> Vec<PageTemplate> {
-    SOURCES.iter().map(|text| serde_json::from_str(text).expect("embedded template is valid")).collect()
+    SOURCES
+        .iter()
+        .map(|text| {
+            let mut template: PageTemplate = serde_json::from_str(text).expect("embedded template is valid");
+            let raw: serde_json::Value = serde_json::from_str(text).expect("embedded template is valid JSON");
+            template.name_ru = raw.get("nameRu").and_then(|v| v.as_str()).map(str::to_string);
+            if let Some(actions) = raw.get("actions").and_then(|a| a.as_object()) {
+                template.action_names_ru = actions.iter().filter_map(|(id, a)| Some((id.clone(), a.get("nameRu")?.as_str()?.to_string()))).collect();
+            }
+            template
+        })
+        .collect()
 }
 
 fn issue(path: impl Into<String>, message: impl Into<String>) -> ValidationIssue {

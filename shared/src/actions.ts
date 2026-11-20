@@ -4,7 +4,8 @@ export interface ActionsFile { version: 1; actions: Record<Id, Action>; }
 
 interface ActionBase {
   name: string;          // 1..60 chars, shown in the settings window
-  toggleVar?: VarName;   // after a SUCCESSFUL run the agent inverts this boolean variable (missing = true)
+  nameRu?: string;       // built-in templates only: the Russian caption of the key on the app strip (DATA_MODEL.md 10.5)
+  toggleVar?: VarName;  // after a SUCCESSFUL run the agent inverts this boolean variable (missing = true)
 }
 export type Action =
   | (ActionBase & { type: "hotkey"; keys: KeyName[] })                 // 1..5 keys

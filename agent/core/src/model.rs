@@ -884,6 +884,9 @@ pub struct StripInfo {
     pub template: String,
     pub name: String,
     pub keys: Vec<StripKey>,
+    /// `img:<hash16>` of the program's own icon when its exe is among the installed programs (DATA_MODEL.md 10.5).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon: Option<String>,
 }
 
 /// Active PC window: the executable name only, NEVER the window title (S16).

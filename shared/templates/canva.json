@@ -11,6 +11,7 @@
   "actions": {
     "tpl-canva-text": {
       "name": "Text box",
+      "nameRu": "Текст",
       "type": "hotkey",
       "keys": [
         "t"
@@ -18,6 +19,7 @@
     },
     "tpl-canva-rect": {
       "name": "Rectangle",
+      "nameRu": "Прямоугольник",
       "type": "hotkey",
       "keys": [
         "r"
@@ -25,6 +27,7 @@
     },
     "tpl-canva-circle": {
       "name": "Circle",
+      "nameRu": "Круг",
       "type": "hotkey",
       "keys": [
         "c"
@@ -32,6 +35,7 @@
     },
     "tpl-canva-line": {
       "name": "Line",
+      "nameRu": "Линия",
       "type": "hotkey",
       "keys": [
         "l"
@@ -39,6 +43,7 @@
     },
     "tpl-canva-dup": {
       "name": "Duplicate",
+      "nameRu": "Дублировать",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -47,6 +52,7 @@
     },
     "tpl-canva-group": {
       "name": "Group",
+      "nameRu": "Сгруппировать",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -55,6 +61,7 @@
     },
     "tpl-canva-ungroup": {
       "name": "Ungroup",
+      "nameRu": "Разгруппировать",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -64,6 +71,7 @@
     },
     "tpl-canva-undo": {
       "name": "Undo",
+      "nameRu": "Отменить",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -72,6 +80,7 @@
     },
     "tpl-canva-redo": {
       "name": "Redo",
+      "nameRu": "Повторить",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -80,6 +89,7 @@
     },
     "tpl-canva-delete": {
       "name": "Delete",
+      "nameRu": "Удалить",
       "type": "hotkey",
       "keys": [
         "delete"
@@ -87,6 +97,7 @@
     },
     "tpl-canva-lock": {
       "name": "Lock / unlock",
+      "nameRu": "Закрепить",
       "type": "hotkey",
       "keys": [
         "alt",
@@ -96,6 +107,7 @@
     },
     "tpl-canva-present": {
       "name": "Present",
+      "nameRu": "Показ",
       "type": "hotkey",
       "keys": [
         "ctrl",

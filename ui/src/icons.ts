@@ -1,6 +1,7 @@
 // Fixed set of 60 Lucide icons (DATA_MODEL.md 3.6). Named imports only: a namespace import would pull in the whole package.
 import {
   Activity,
+  AppWindow,
   ArrowLeft,
   ArrowRight,
   Bell,
@@ -142,6 +143,7 @@ export const ICONS: Record<string, LucideIcon> = {
   keyboard: Keyboard,
   "gamepad-2": Gamepad2,
   bluetooth: Bluetooth,
+  "app-window": AppWindow, // the app strip when the program's own icon is not known
 };
 
 export const FALLBACK_ICON: LucideIcon = Square;

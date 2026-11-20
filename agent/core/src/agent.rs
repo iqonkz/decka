@@ -268,6 +268,9 @@ struct Inner {
     /// The app strip now (DATA_MODEL.md 10.5) and the counter that lets a newer focus change cancel a pending recount.
     strip: Mutex<Option<crate::model::StripInfo>>,
     strip_gen: std::sync::atomic::AtomicU64,
+    /// The installed programs (read once, without their list icons) and the icon found per app for the strip.
+    installed: Mutex<Option<Vec<crate::installed::InstalledApp>>>,
+    strip_icons: Mutex<std::collections::HashMap<String, Option<String>>>,
     battery_collector: Mutex<Option<crate::battery::BatteryCollector>>,
     mail_task: Mutex<Option<JoinHandle<()>>>,
     /// `Check now` in the window wakes the mail loop.
@@ -375,6 +378,8 @@ impl Agent {
                 needed: Mutex::new(None),
                 strip: Mutex::new(None),
                 strip_gen: std::sync::atomic::AtomicU64::new(0),
+                installed: Mutex::new(None),
+                strip_icons: Mutex::new(std::collections::HashMap::new()),
                 battery_collector: Mutex::new(None),
                 mail_task: Mutex::new(None),
                 mail_check: Arc::new(tokio::sync::Notify::new()),
@@ -557,7 +562,8 @@ impl Agent {
         self.inner.runtime.spawn(async move {
             tokio::time::sleep(std::time::Duration::from_millis(700)).await;
             if me.inner.strip_gen.load(Ordering::SeqCst) == generation {
-                me.recount_strip();
+                // The Start menu and the icon come from Windows: blocking work, off the runtime threads.
+                let _ = tokio::task::spawn_blocking(move || me.recount_strip(true)).await;
             }
         });
     }
@@ -741,17 +747,52 @@ impl Agent {
     #[doc(hidden)]
     pub fn set_focus_for_test(&self, app: Option<&str>) {
         *self.inner.focus_app.lock().unwrap() = app.map(str::to_string);
-        self.recount_strip();
+        self.recount_strip(false);
     }
 
-    fn recount_strip(&self) {
+    /// Recounts the strip; `with_icon` also looks up the program's own icon (the Start menu is read once, blocking).
+    fn recount_strip(&self, with_icon: bool) {
         let layout = self.layout();
         let lang = crate::tray_text::agent_language(layout.display.language.as_deref());
         let focus = self.inner.focus_app.lock().unwrap().clone();
-        let strip = crate::strip::strip_for(focus.as_deref(), &layout, &crate::templates::all(), lang);
+        let mut strip = crate::strip::strip_for(focus.as_deref(), &layout, &crate::templates::all(), lang);
+        if let (true, Some(s)) = (with_icon, strip.as_mut()) {
+            s.icon = self.strip_icon(&s.app);
+        }
         let value = strip.as_ref().map_or(serde_json::Value::Null, |s| serde_json::to_value(s).expect("strip serializes"));
         *self.inner.strip.lock().unwrap() = strip;
+        // The icon of the strip travels in the `icons` section next to the icons of the layout.
+        self.store_icons(&layout);
         self.inner.store.set("strip", value);
+    }
+
+    /// `img:<hash16>` of the installed program whose exe is `app`, `None` when it is not installed (remembered per app).
+    fn strip_icon(&self, app: &str) -> Option<String> {
+        if let Some(known) = self.inner.strip_icons.lock().unwrap().get(app) {
+            return known.clone();
+        }
+        let installed = {
+            let mut cache = self.inner.installed.lock().unwrap();
+            cache.get_or_insert_with(|| crate::installed::list_installed_apps().into_iter().map(|a| crate::installed::InstalledApp { icon: None, ..a }).collect()).clone()
+        };
+        let strip = StripInfo { app: app.to_string(), template: String::new(), name: String::new(), keys: Vec::new(), icon: None };
+        let icon = crate::strip::with_icon(strip, &installed, |program| crate::icons::icon_from_program(&self.inner.config_dir, program).ok()).icon;
+        self.inner.strip_icons.lock().unwrap().insert(app.to_string(), icon.clone());
+        icon
+    }
+
+    /// The `icons` section: the icons the layout uses and the one of the strip.
+    fn store_icons(&self, layout: &LayoutFile) {
+        let mut icons = crate::icons::collect_icons(&self.inner.config_dir, layout);
+        let strip_icon = self.inner.strip.lock().unwrap().as_ref().and_then(|s| s.icon.clone());
+        if let (Some(map), Some(icon)) = (icons.as_object_mut(), strip_icon) {
+            if let Some(hash) = crate::icons::img_hash(&icon) {
+                if let Some(url) = crate::icons::icon_data_url(&self.inner.config_dir, hash) {
+                    map.insert(hash.to_string(), serde_json::Value::String(url));
+                }
+            }
+        }
+        self.inner.store.set("icons", icons);
     }
 
     /// The template action of a `tpl-*` id, only while it is a key of the strip shown now and `actions.json` has no action
@@ -1993,10 +2034,9 @@ impl Agent {
 
     fn apply_layout(&self, layout: LayoutFile) {
         let value = serde_json::to_value(layout.to_client()).expect("layout serializes");
-        let icons = crate::icons::collect_icons(&self.inner.config_dir, &layout);
+        self.store_icons(&layout);
         *self.inner.layout.lock().unwrap() = layout;
         self.inner.store.set("layout", value);
-        self.inner.store.set("icons", icons);
         self.restart_if_needed_changed();
         self.schedule_strip(); // a page for the app may have appeared or gone
     }

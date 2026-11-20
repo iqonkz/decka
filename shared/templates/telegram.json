@@ -11,6 +11,7 @@
   "actions": {
     "tpl-telegram-search": {
       "name": "Search",
+      "nameRu": "Поиск",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -19,6 +20,7 @@
     },
     "tpl-telegram-next": {
       "name": "Next chat",
+      "nameRu": "След. чат",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -27,6 +29,7 @@
     },
     "tpl-telegram-prev": {
       "name": "Previous chat",
+      "nameRu": "Пред. чат",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -36,6 +39,7 @@
     },
     "tpl-telegram-close": {
       "name": "Close the chat",
+      "nameRu": "Закрыть чат",
       "type": "hotkey",
       "keys": [
         "esc"
@@ -43,6 +47,7 @@
     },
     "tpl-telegram-edit": {
       "name": "Edit last message",
+      "nameRu": "Править сообщение",
       "type": "hotkey",
       "keys": [
         "up"
@@ -50,6 +55,7 @@
     },
     "tpl-telegram-lock": {
       "name": "Lock the app",
+      "nameRu": "Заблокировать",
       "type": "hotkey",
       "keys": [
         "ctrl",

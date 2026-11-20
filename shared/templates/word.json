@@ -11,6 +11,7 @@
   "actions": {
     "tpl-word-bold": {
       "name": "Bold",
+      "nameRu": "Жирный",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -19,6 +20,7 @@
     },
     "tpl-word-italic": {
       "name": "Italic",
+      "nameRu": "Курсив",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -27,6 +29,7 @@
     },
     "tpl-word-underline": {
       "name": "Underline",
+      "nameRu": "Подчёркнутый",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -35,6 +38,7 @@
     },
     "tpl-word-left": {
       "name": "Align left",
+      "nameRu": "По левому краю",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -43,6 +47,7 @@
     },
     "tpl-word-center": {
       "name": "Center",
+      "nameRu": "По центру",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -51,6 +56,7 @@
     },
     "tpl-word-save": {
       "name": "Save",
+      "nameRu": "Сохранить",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -59,6 +65,7 @@
     },
     "tpl-word-undo": {
       "name": "Undo",
+      "nameRu": "Отменить",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -67,6 +74,7 @@
     },
     "tpl-word-redo": {
       "name": "Redo",
+      "nameRu": "Повторить",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -75,6 +83,7 @@
     },
     "tpl-word-find": {
       "name": "Find",
+      "nameRu": "Найти",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -83,6 +92,7 @@
     },
     "tpl-word-print": {
       "name": "Print",
+      "nameRu": "Печать",
       "type": "hotkey",
       "keys": [
         "ctrl",

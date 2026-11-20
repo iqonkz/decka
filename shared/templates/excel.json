@@ -11,6 +11,7 @@
   "actions": {
     "tpl-excel-save": {
       "name": "Save",
+      "nameRu": "Сохранить",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -19,6 +20,7 @@
     },
     "tpl-excel-undo": {
       "name": "Undo",
+      "nameRu": "Отменить",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -27,6 +29,7 @@
     },
     "tpl-excel-redo": {
       "name": "Redo",
+      "nameRu": "Повторить",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -35,6 +38,7 @@
     },
     "tpl-excel-find": {
       "name": "Find",
+      "nameRu": "Найти",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -43,6 +47,7 @@
     },
     "tpl-excel-bold": {
       "name": "Bold",
+      "nameRu": "Жирный",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -51,6 +56,7 @@
     },
     "tpl-excel-filter": {
       "name": "Filter on / off",
+      "nameRu": "Фильтр",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -60,6 +66,7 @@
     },
     "tpl-excel-edit": {
       "name": "Edit cell",
+      "nameRu": "Править ячейку",
       "type": "hotkey",
       "keys": [
         "f2"
@@ -67,6 +74,7 @@
     },
     "tpl-excel-fill": {
       "name": "Fill down",
+      "nameRu": "Заполнить вниз",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -75,6 +83,7 @@
     },
     "tpl-excel-format": {
       "name": "Format cells",
+      "nameRu": "Формат ячеек",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -83,6 +92,7 @@
     },
     "tpl-excel-sheet": {
       "name": "New sheet",
+      "nameRu": "Новый лист",
       "type": "hotkey",
       "keys": [
         "shift",

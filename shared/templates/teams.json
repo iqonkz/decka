@@ -12,6 +12,7 @@
   "actions": {
     "tpl-teams-mute": {
       "name": "Mute / unmute",
+      "nameRu": "Микрофон",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -21,6 +22,7 @@
     },
     "tpl-teams-video": {
       "name": "Camera on / off",
+      "nameRu": "Камера",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -30,6 +32,7 @@
     },
     "tpl-teams-share": {
       "name": "Share screen",
+      "nameRu": "Показ экрана",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -39,6 +42,7 @@
     },
     "tpl-teams-hand": {
       "name": "Raise / lower hand",
+      "nameRu": "Поднять руку",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -48,6 +52,7 @@
     },
     "tpl-teams-leave": {
       "name": "Leave the meeting",
+      "nameRu": "Выйти",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -57,6 +62,7 @@
     },
     "tpl-teams-accept": {
       "name": "Accept video call",
+      "nameRu": "Принять видео",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -66,6 +72,7 @@
     },
     "tpl-teams-decline": {
       "name": "Decline call",
+      "nameRu": "Отклонить",
       "type": "hotkey",
       "keys": [
         "ctrl",
@@ -75,6 +82,7 @@
     },
     "tpl-teams-search": {
       "name": "Search",
+      "nameRu": "Поиск",
       "type": "hotkey",
       "keys": [
         "ctrl",
