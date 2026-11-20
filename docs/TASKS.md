@@ -155,6 +155,51 @@ npm run typecheck; npm test; cargo test -p decka-core; npm run release:agent; np
 npm run typecheck; npm test; cargo test -p decka-core 2>&1 | Select-String "test result"
 ```
 
+## M18 — безопасность (2026-11-20, D-50)
+
+Спецификация: PROTOCOL.md §10 и §8 (QR), DATA_MODEL.md §11, ARCHITECTURE.md S22–S23. Быстрый режим M17 действует: только перечисленные тесты, ручное → `MANUAL_CHECKS.md` раздел M18.
+- **Новые зависимости — ровно эти:** `ring@0.17.14` (Rust, уже в lock), `@noble/ciphers@2.4.0`, `@noble/hashes@2.4.0` (клиент).
+- **Криптографию не изобретать:** только перечисленные функции библиотек. Сравнение MAC — функциями библиотек за постоянное время.
+
+### T18.1 — Протокол v2: рукопожатие и шифрование
+1. **Rust** (`decka-core`): модуль `secure` — вывод ключей, MAC, шифрование и проверка кадров со счётчиком. WS-сервер: `hello2` → `challenge` → `auth` → `auth_ok` → бинарные кадры; v1 только с loopback.
+2. **Клиент:** тот же модуль на `@noble`; `net` переходит на v2, без отката на v1. `S_qr` берётся из фрагмента QR. Экран «This is not your PC».
+3. **Хранение:** `K_dev` в `devices.json` → `keyDpapi`, перенос старого хеша. Код сопряжения создаёт `S_qr`, QR несёт `&s=`.
+4. **`tools/ws-smoke.mjs`:** поддержка v2 (через тот же модуль клиента или `@noble`), иначе макросы H-* сломаются.
+5. **Тесты:**
+   - векторы `shared/fixtures/crypto-v2.json` в Rust и TS;
+   - неверный `mac` → 4401;
+   - подменённый `auth_ok` → клиент рвёт соединение;
+   - повтор кадра, пропуск счётчика, изменённый байт → 4400;
+   - `hello` v1 из не-loopback → 4426, с loopback → работает;
+   - сопряжение `pair_qr` и `pair_code`, затем вход `device`;
+   - миграция: старый `devices.json` с хешем → вход старым токеном по v2 успешен.
+
+### T18.2 — Политика сетей
+1. Категория сети соединения и кэш (§11.2). Правила `local` / `private` / `public`, `allowPublic`, строка состояния и переключатель в окне.
+2. Тесты: чистая функция `policy(category, request)` для всех сочетаний (статика, `/api`, `pair_code`, `pair_qr`, v1). Категорию в тестах подставлять, сеть не трогать.
+
+### T18.3 — Разрешения, системные действия, уведомления
+1. `canApprove`, `danger` и удержание 1 с, `Always allow` с телефона (сессия, 8 ч, без `tool`), список правил в окне — §11.3.
+2. Ограничения опасных системных действий — §11.4.
+3. Приватность уведомлений — §11.5.
+4. **Тесты:**
+   - `perm_answer` без `canApprove` игнорируется;
+   - `allow_always` с видом `tool` → разовый `allow`;
+   - правило истекает и не действует в другой сессии;
+   - `shutdown` через 10 с после подключения → отказ, второй через 5 с → отказ;
+   - уведомление Telegram в режиме `app` уходит без текста.
+
+### T18.4 — Секреты, журнал, проверка и выпуск 0.9.0
+1. DPAPI для всех секретов и тест логов — §11.6.
+2. `SHA256SUMS.txt` в релизных скриптах, раздел README.
+3. `npm audit --omit=dev --audit-level=high`, `cargo audit` → итог в отчёт; `high`/`critical` → BLOCKERS, релиз не выпускать.
+4. **CHANGELOG** для пользователя. Обязательно строка: `Update Decka on the phone and the PC together — the connection is now encrypted; an old app will ask to update`.
+5. Всё зелёное → `npm run version:bump -- minor` (0.9.0), `release:agent`, `release:apk`, `gh release create v0.9.0` с `SHA256SUMS.txt`, `git push`, `git push --tags`; `latest` → `v0.9.0`.
+```
+npm run typecheck; npm test; cargo test -p decka-core 2>&1 | Select-String "test result"
+```
+
 ## Что ещё открыто
 - **Ручные проверки владельца:** `docs/MANUAL_CHECKS.md`, пункты `PENDING (owner)`.
 - **Вопрос Q-9** — `docs/OPEN_QUESTIONS.md`. Twitch и YouTube уже сделаны (v0.5–v0.6); открыт Discord.

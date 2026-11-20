@@ -47,6 +47,9 @@ tools/    ws-smoke.mjs, make-icon.ps1
 | Каталог конфигурации | `%APPDATA%\Decka` или env `DECKA_CONFIG_DIR` |
 | Close-коды WS | 4401 unauthorized, 4403 revoked, 4426 version, 4429 rate, 1009 size, 1011 lagged |
 
+## M18: защищённый канал (PROTOCOL.md §10)
+v2: `hello2` → `challenge` → `auth` → `auth_ok`, затем только бинарные кадры AES-256-GCM со счётчиком. v1 — только loopback. Ключи: `K_dev` = SHA-256(токен), `S_qr` из QR, `S_code` = PBKDF2(код). Политика сетей `local`/`private`/`public` — DATA_MODEL.md §11.2. Библиотеки: `ring` 0.17.14, `@noble/ciphers` и `@noble/hashes` 2.4.0.
+
 ## Сообщения (полностью — PROTOCOL.md §3)
 - C→S: `pair{v,code,client}`, `hello{v,token,client}`, `press{id,actionId}`, `notif_dismiss{notifId}`, `ping{ts}`, M16: `perm_answer{reqId,decision}`, M17: `notif_open{notifId}`
 - S→C: `paired{deviceId,token}`, `welcome{v,agent,deviceId,rev,state}`, `patch{rev,section,value}`, `press_result{id,ok,error?}`, `pong{ts}`, `error{code,message,fatal,supported?}`

@@ -756,6 +756,51 @@ export interface CatalogSet {
 5. Пункты с `ask` в наборе берут значение из `ctx` (сцены OBS по порядку); нет значения — пункт пропускается.
 6. Повторная вставка того же набора на ту же страницу добавляет кнопки снова (без дедупликации кнопок; действия переиспользуются).
 
+## 11. M18 — безопасность (решение владельца 2026-11-20, D-50)
+
+### 11.1 Шифрование
+Протокол v2 — PROTOCOL.md §10.
+
+### 11.2 Общественные сети
+Правило брандмауэра остаётся `profile=private,public`, потому что владелец пользуется Decka и в общественных сетях. Политику соблюдает сам агент **для каждого соединения**:
+- **Тип сети соединения:** локальный адрес принятого сокета → адаптер (`GetAdaptersAddresses`, имя адаптера = GUID) → категория сети (`INetworkListManager::GetNetworkConnections` → `GetAdapterId`, `GetNetwork().GetCategory()`). Признаки `windows` 0.62.2: `Win32_NetworkManagement_IpHelper`, `Win32_Networking_NetworkListManager`, `Win32_Networking_WinSock`. Loopback → `local`. Категория `DOMAIN`/`PRIVATE` → `private`. `PUBLIC` или не удалось определить → `public`. Кэш на 30 с.
+- **`local`:** всё, включая v1.
+- **`private`:** только v2. Веб-клиент отдаётся, ручной код разрешён, HTTP `/api/*` работает с `apiToken`.
+- **`public`:**
+  - только приложение (v2): статика веб-клиента → 404;
+  - сопряжение только `pair_qr` (`pair_code` → `error BAD_MESSAGE "On a public network pair with the QR code or USB"`);
+  - HTTP `/api/*` из сети → 404, с loopback — как обычно;
+  - лимит рукопожатий 5 в минуту.
+- **Настройка** `config.network.allowPublic: boolean`, по умолчанию `true`. `false` → соединения из общественной сети закрываются сразу после TCP-приёма.
+- **Окно:** страница `Phone`, строка состояния: `Public network — encrypted, only the Decka app, pairing by QR` / `Private network` / `USB`. Переключатель `Allow phones on public networks`.
+
+### 11.3 Разрешения Claude Code с телефона
+- **Кто может отвечать:** `devices.json` → `canApprove: boolean`. При обновлении существующим телефонам ставится `true`, новым — `false`. Переключатель `Can answer Claude Code` на странице `Phone`. Нет подключённого телефона с `canApprove` → запроса на телефоне нет, вопрос сразу в терминале. `perm_answer` от телефона без права игнорируется и пишется в лог.
+- **Опасные запросы:** агент помечает `PermRequest.danger: true` по уже существующему списку опасных команд (`ai.rs`). На телефоне такой `Allow` — удержание 1 с с круговым индикатором, как у меню (DESIGN.md §4.3). Тап только подсказывает `Hold to allow`. `Always allow` для опасных не показывается и не принимается.
+- **`Always allow` с телефона:**
+  - правило привязано к `session_id` Claude Code и живёт до 8 ч (`expiresAt`);
+  - вид `tool` (весь инструмент) с телефона не принимается — сервер исполняет как разовый `allow`, а на телефоне этот вариант не предлагается;
+  - в окне (`AI coding → Rules`) у правила видны источник (`Phone <name>` / `PC`), срок и кнопка `Remove`;
+  - правила с ПК — как раньше.
+
+### 11.4 Опасные системные действия
+`shutdown`, `restart`, `signout`, `hibernate` (§10.8):
+- отказ `ACTION_FAILED` `Too soon after connecting`, если соединение этого телефона моложе 60 с;
+- не чаще 1 раза в 30 с на весь агент (`Wait a little before trying again`);
+- каждое исполнение — строка лога `system <op> by <device name>`.
+Подтверждение `confirm` остаётся.
+
+### 11.5 Уведомления на виду
+- **Настройка:** `config.windowsNotifications.privacy = { default: "full" | "app"; apps: Record<string, "full" | "app"> }`. По умолчанию `default: "full"`, но для программ, чьё имя содержит (без учёта регистра) `telegram`, `whatsapp`, `signal`, `viber`, `discord`, `slack`, `teams`, `outlook`, `mail`, `thunderbird`, `messenger`, `skype`, — `app`.
+- **Режим `app`:** агент **не отправляет** текст на телефон: `title` = имя программы, `body` нет, `hidden: true`. Телефон показывает `New notification` / `Новое уведомление`.
+- **Окно:** в списке программ раздела `Windows notifications` у каждой — выбор `Full text` / `App name only` / `Don't show`.
+
+### 11.6 Секреты, журнал, релизы
+- **Секреты:** все токены и пароли в `config.json` и `devices.json` — только `dpapi:<base64>`, включая токены Twitch и YouTube и `K_dev`. Открытое значение при загрузке шифруется и перезаписывается. Тест: конфиг с открытыми токенами → после загрузки и сохранения в файле нет исходных строк.
+- **Журнал:** тест прогоняет сопряжение, вход, `perm_answer`, OBS и почту с известными секретными строками и проверяет, что их нет в выводе лога.
+- **Релизы:** `release:agent` / `release:apk` пишут `release\SHA256SUMS.txt` (`Get-FileHash -Algorithm SHA256`) и прикладывают его к релизу. README, раздел `Verify the download`: `Get-FileHash .\Decka-Setup-<v>.exe` и сравнение с файлом.
+- **Перед релизом:** `npm audit --omit=dev --audit-level=high` и `cargo audit`. Инструмент ставится один раз: `cargo install cargo-audit --locked`, в зависимости проекта не входит. Найденные `high`/`critical` → BLOCKERS. Обновлять зависимости самому нельзя.
+
 ## 10. M17 — список владельца 2026-11-19 (D-49)
 
 ### 10.1 Скорость и память
@@ -786,8 +831,8 @@ Windows перехватывает часть сочетаний (`Win+D`, `Win+
   - Не работает (ошибка доступа или `Denied` без запроса пользователю) → запись в BLOCKERS.md, пункт пропускается целиком. Пакеты с внешним расположением (sparse package) и чтение базы `wpndatabase.db` — **не делать**: это решение архитектора.
 - **Включение:** `More → Integrations → Windows notifications`: переключатель → `RequestAccessAsync` → Windows показывает свой запрос → статус `Allowed` / `Blocked in Windows Settings → Privacy → Notifications`. По умолчанию выключено. Список `Don't show from:` — приложения, уже присылавшие уведомления; отмечаются флажками.
 - **Исправление 2026-11-20 (T17.7).** У владельца уведомления не включены: в `config.json` нет `windowsNotifications`, виджет пуст. Поэтому:
-  1. Пока функция выключена, пустой виджет `notifications` показывает `Windows notifications are off` и подпись `Turn on in Decka → Integrations → Windows notifications`. Кнопки включения на телефоне нет: телефон не меняет настройки ПК. Состояние агент сообщает переменной `notif.windows` (bool; префикс `notif.` зарезервирован).
-  2. Первый показ виджета, когда функция выключена: агент один раз показывает уведомление Decka в Windows `Show Windows notifications on the phone? Turn on in Decka`. Клик открывает окно на этом разделе. Флаг `winNotifOffered` в конфиге.
+  1. Пока функция выключена, пустой виджет `notifications` показывает `Windows notifications are off` и подпись `Turn on in Decka → Integrations → Windows notifications`. Кнопки включения на телефоне нет: телефон не меняет настройки ПК. Состояние агент сообщает переменной `notif.windows`: при включённой функции — `true`, при выключенной переменной нет (принято 2026-11-20; префикс `notif.` зарезервирован).
+  2. ~~Разовое предложение тостом Windows~~ — снято 2026-11-20: тост от агента — отдельная функция, а подписи в виджете достаточно.
   3. При включении уже лежащие в Центре уведомлений тосты (до 20, новые первыми) сразу попадают в секцию. Раньше первый проход их только запоминал, и виджет оставался пустым до нового уведомления.
 - **Чтение:** событие `NotificationChanged` (Added), а если подписка недоступна для непакетного приложения — опрос `GetNotificationsAsync` раз в 3 с с запоминанием виденных `Id`. Из уведомления берутся: `AppInfo.DisplayInfo.DisplayName`, `AppInfo.AppUserModelId` и тексты привязки `ToastGeneric` (первый — title, остальные через перевод строки — body). Обрезка 120/500. Уведомления Decka не пересылаются.
 - **Доставка:** в существующую секцию `notifications` (≤ 20, новые первыми) с полями `source: "windows"`, `app` (отображаемое имя), `openable: true` (AUMID известен). Иконка приложения — через хранилище иконок `img:<hash16>` (§8.1), если её удаётся получить из `AppInfo.DisplayInfo.GetLogo`, иначе без иконки. Снятие уведомления в Windows (Removed) убирает его и с телефона. `notif_dismiss` на телефоне скрывает только у Decka, в Windows не удаляет.
