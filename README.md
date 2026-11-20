@@ -10,6 +10,17 @@ Get both files from the [latest release](https://github.com/iqonkz/decka/release
 2. Android: open the release page on the phone, download `Decka-<version>.apk`, allow installing from this source, open it.
 3. Scan the QR code shown in the Decka window on the PC.
 
+### Verify the download
+
+Every release carries `SHA256SUMS.txt`. In PowerShell, in the folder with the downloads:
+
+```powershell
+Get-FileHash .\Decka-Setup-<version>.exe
+Get-FileHash .\Decka-<version>.apk
+```
+
+The `Hash` column must equal the hash on the line of the same file in `SHA256SUMS.txt` (case does not matter). If it does not, do not install the file.
+
 ## What is Decka
 
 Decka turns an old Android phone into a desk panel for a Windows PC: a 5x3 grid of buttons that launch programs, send hotkeys, open URLs and control media, plus live widgets for PC state, service statuses and webhook notifications. A small agent runs in the Windows tray; the phone shows the panel and only ever tells the agent *which button* was pressed.
@@ -97,11 +108,17 @@ More examples (PowerShell, deploy wrapper, Claude Code hooks, GitHub Actions, bu
 - The phone sends only an `actionId`. There is no message that carries a command, path, argument, key or URL, and extra fields are ignored.
 - Actions live in `actions.json` on the PC; whoever can edit that file can already run code as you.
 - Pairing uses a one-time 8-character code (40 bits), valid for 120 seconds, 5 wrong attempts destroy it, 10 attempts per minute per IP.
-- Device tokens are stored on the PC only as SHA-256 hashes and can be revoked one by one; revoked devices are disconnected at once.
+- The connection between the phone and the PC is encrypted (AES-256-GCM, keys derived per connection) and both sides prove they hold the pairing key, so a device on the same Wi-Fi sees nothing useful and cannot pose as the PC or the phone. Phone and PC must run the same minor version.
+- On a public network (Windows says so) the PC serves only the Decka app and pairing is by QR code only; the setting `Allow phones on public networks` can close such connections completely.
+- A phone may answer Claude Code questions only if you allow it in the window; a dangerous command needs a one-second hold, and `Always allow` from a phone lasts for one session and at most 8 hours.
+- Shutdown, restart, sign out and hibernate from a phone are refused in the first minute after connecting and are limited to one per 30 seconds.
+- Notifications of messengers and mail programs are sent to the phone without their text (choose per program in the window).
+- Device keys and every password or sign-in token in `config.json` are protected with Windows DPAPI; they are never written to the log.
+- Device keys are stored on the PC only under DPAPI and can be revoked one by one; revoked devices are disconnected at once.
 - The API token only allows adding notifications, statuses and variables, never running actions. It can be regenerated.
 - WebSocket `Origin` is checked against a whitelist, the API needs an `Authorization` header (not a query string), and no CORS headers are sent.
 - Rate limits and size limits apply to every endpoint; commands are started without a shell.
-- **Traffic on Wi-Fi is not encrypted.** Someone on the same network can capture a token. Use USB mode or `127.0.0.1` binding on untrusted networks. TLS is planned after the MVP.
+- The web client (opened in a browser from the PC's address) uses the same encrypted protocol, but only the QR code or a typed code from a private network can pair it. The installer is not code-signed: check the download as described above.
 
 ## Configuration files
 

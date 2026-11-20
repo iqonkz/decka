@@ -182,13 +182,60 @@ fn load_file<T: Serialize + DeserializeOwned>(
     }
 }
 
+/// Turns a secret that was typed or pasted into the file as plain text into `dpapi:<base64>` (DATA_MODEL.md 11.6). Anything that
+/// is already a blob stays; without DPAPI (not Windows) the text is left alone. Returns whether it changed.
+fn protect_plain(value: &mut Option<String>) -> bool {
+    let Some(plain) = value.as_deref().filter(|v| !v.is_empty() && !v.starts_with(crate::dpapi::PREFIX)) else { return false };
+    match crate::dpapi::protect(plain) {
+        Ok(blob) => {
+            *value = Some(blob);
+            true
+        }
+        Err(e) => {
+            tracing::warn!("cannot protect a secret of config.json: {e}");
+            false
+        }
+    }
+}
+
+/// All passwords and sign-in tokens of config.json (OBS, mail, YouTube, Twitch) are kept only as DPAPI blobs. The setters of the
+/// window already write blobs; this catches a value written by hand. `apiToken` and the hook token stay readable: scripts and the
+/// Claude Code hooks read them from the file (see BLOCKERS.md). Returns whether anything was changed (the file must be rewritten).
+pub fn protect_secrets(config: &mut ConfigFile) -> bool {
+    let mut changed = false;
+    if let Some(obs) = config.obs.as_mut() {
+        changed |= protect_plain(&mut obs.password);
+    }
+    if let Some(mail) = config.mail.as_mut() {
+        for account in &mut mail.accounts {
+            changed |= protect_plain(&mut account.password);
+        }
+    }
+    if let Some(yt) = config.youtube.as_mut() {
+        changed |= protect_plain(&mut yt.secret);
+        changed |= protect_plain(&mut yt.tokens);
+    }
+    if let Some(tw) = config.twitch.as_mut() {
+        changed |= protect_plain(&mut tw.tokens);
+    }
+    changed
+}
+
 pub fn load_or_init(dir: &Path) -> Loaded {
     let mut issues = Vec::new();
     if let Err(e) = fs::create_dir_all(dir) {
         issues.push(("config.json".to_string(), ValidationIssue { path: String::new(), message: format!("cannot create config dir: {e}") }));
     }
 
-    let config = load_file(dir, "config.json", default_config, default_config, |_| {}, validate_config, &mut issues);
+    // Secrets written by hand are encrypted before the file is validated (the validator accepts blobs only), and written back;
+    // a config.json that could not be used is never rewritten.
+    let protected = std::cell::Cell::new(false);
+    let config = load_file(dir, "config.json", default_config, default_config, |c| protected.set(protect_secrets(c)), validate_config, &mut issues);
+    if protected.get() && !issues.iter().any(|(file, _)| file == "config.json") {
+        if let Err(e) = save_json_atomic(&dir.join("config.json"), &config) {
+            tracing::warn!("cannot rewrite config.json with protected secrets: {e}");
+        }
+    }
     let actions = load_file(dir, "actions.json", default_actions, empty_actions, |a| { migrate_actions(a); }, validate_actions, &mut issues);
     let layout = load_file(dir, "layout.json", default_layout, empty_layout, |_| {}, |l: &LayoutFile| validate_layout(l, &actions), &mut issues);
     let devices = load_file(dir, "devices.json", default_devices, default_devices, |_| {}, |d: &DevicesFile| {

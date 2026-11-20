@@ -94,3 +94,14 @@ test("the script refuses a dirty working tree and works on a clean one (tag incl
   assert.match(git("tag"), /v0\.1\.1/);
   assert.ok(existsSync(join(root, "CHANGELOG.md")));
 });
+
+test("SHA256SUMS.txt has one `<hash>  <name>` line per release file", async () => {
+  const { sumsText } = await import("./collect-release.mjs");
+  const dir = mkdtempSync(join(tmpdir(), "decka-sums-"));
+  writeFileSync(join(dir, "a.bin"), "abc");
+  writeFileSync(join(dir, "b.bin"), "");
+  assert.equal(
+    sumsText(dir, ["a.bin", "b.bin"]),
+    "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad  a.bin\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  b.bin\n",
+  );
+});

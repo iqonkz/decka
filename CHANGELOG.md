@@ -4,6 +4,18 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+### Added
+- **Encrypted connection.** Everything between the phone and the PC is now encrypted, and each side proves it holds the pairing key, so someone on the same Wi-Fi can neither read the traffic nor pose as your PC or phone. Update Decka on the phone and the PC together — the connection is now encrypted; an old app will ask to update.
+- **Public networks.** The PC knows which kind of network a phone connects through (Phone page). On a public network it serves only the Decka app and pairing is by QR code or USB; `Allow phones on public networks` turns such connections off completely.
+- **Who may answer Claude Code.** `Can answer Claude Code` per phone (phones paired before keep it, new ones start without). A dangerous command needs a one-second hold on the phone and offers no `Always allow`; `Always allow` from a phone applies to one session and ends after 8 hours, and the rules list shows who made each rule.
+- **Notification privacy.** Notifications of messengers and mail programs reach the phone as `New notification` with the program name only; choose `Full text`, `App name only` or `Don't show` for every program.
+- Every release carries `SHA256SUMS.txt`; the README explains how to check a download.
+
+### Changed
+- Shutdown, restart, sign out and hibernate from a phone are refused in the first minute after connecting and are limited to one per 30 seconds.
+- Device keys and the passwords and sign-in tokens in `config.json` are stored only under Windows DPAPI (a value typed into the file by hand is encrypted at the next start).
+- The phone's app and the PC must run the same minor version; the plain (v1) connection is accepted from this PC only (USB, development).
+
 ## 0.8.1 — 2026-11-20
 
 ### Added

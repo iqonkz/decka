@@ -1875,7 +1875,8 @@ impl Agent {
         });
     }
 
-    fn write_config(&self, config: ConfigFile) -> SaveResult {
+    fn write_config(&self, mut config: ConfigFile) -> SaveResult {
+        crate::config::protect_secrets(&mut config);
         let rejected = |message: String| SaveResult::Rejected(vec![ValidationIssue { path: String::new(), message }]);
         let text = match json_text(&config) {
             Ok(t) => t,

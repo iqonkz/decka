@@ -101,3 +101,31 @@ fn files_written_with_a_utf8_bom_are_read() {
     assert!(loaded.issues.is_empty(), "{:?}", loaded.issues);
     assert!(loaded.actions.actions.contains_key("charmap"));
 }
+
+/// DATA_MODEL.md 11.6: passwords and sign-in tokens typed into config.json as plain text are encrypted at the first load and
+/// written back; the original strings are gone from the file.
+#[test]
+fn plain_secrets_in_config_json_are_protected_at_load_and_rewritten() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut config = decka_core::config::default_config();
+    config.obs = Some(serde_json::from_value(json!({ "enabled": true, "port": 4455, "password": "plain-obs-pw" })).unwrap());
+    config.mail = Some(serde_json::from_value(json!({ "accounts": [{ "id": "m1", "name": "Mail", "host": "imap.example.org", "port": 993, "user": "me", "password": "plain-mail-pw" }] })).unwrap());
+    config.youtube = Some(serde_json::from_value(json!({ "enabled": true, "clientId": "cid", "secret": "plain-yt-secret", "tokens": "plain-yt-tokens" })).unwrap());
+    config.twitch = Some(serde_json::from_value(json!({ "enabled": true, "clientId": "cid", "tokens": "plain-tw-tokens" })).unwrap());
+    save_json_atomic(&dir.path().join("config.json"), &config).unwrap();
+
+    let loaded = load_or_init(dir.path());
+    assert!(loaded.issues.is_empty(), "{:?}", loaded.issues);
+    let on_disk = std::fs::read_to_string(dir.path().join("config.json")).unwrap();
+    for plain in ["plain-obs-pw", "plain-mail-pw", "plain-yt-secret", "plain-yt-tokens", "plain-tw-tokens"] {
+        assert!(!on_disk.contains(plain), "{plain} is still in config.json");
+    }
+    assert!(loaded.config.obs.unwrap().password.unwrap().starts_with("dpapi:"));
+    assert!(loaded.config.mail.unwrap().accounts[0].password.as_deref().unwrap().starts_with("dpapi:"));
+    assert!(loaded.config.youtube.as_ref().unwrap().tokens.as_deref().unwrap().starts_with("dpapi:"));
+    // The blobs read back as what was typed, and a second load changes nothing.
+    assert_eq!(decka_core::dpapi::unprotect(loaded.config.youtube.unwrap().secret.as_deref().unwrap()).unwrap(), "plain-yt-secret");
+    let again = load_or_init(dir.path());
+    assert!(again.issues.is_empty());
+    assert_eq!(std::fs::read_to_string(dir.path().join("config.json")).unwrap(), on_disk);
+}
