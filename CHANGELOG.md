@@ -4,6 +4,18 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+### Added
+- **Claude limits from your account** (Integrations → AI coding): a switch that reads the limits through the Claude Code sign-in on this PC, for the VS Code extension, which has no status line. Off by default.
+- The empty notifications widget says when Windows notifications are off and where to turn them on.
+
+### Fixed
+- Shortcuts with letters (Ctrl+B, Win+V, Win+.) work in Word, browsers and the Windows shell: keys are sent as virtual keys, with short pauses.
+- The volume slider no longer jumps between two values.
+- The CPU/RAM graph no longer resets when pages are swiped.
+- Windows notifications that were already in the Action Center appear when the feature is turned on.
+- Material theme has a black background.
+- Turn `Auto` follows the sensor on both sides.
+
 ## 0.8.0 — 2026-11-19
 
 ### Added
