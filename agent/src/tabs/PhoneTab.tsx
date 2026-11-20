@@ -4,6 +4,7 @@ import { call, onStatus } from "../ipc";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
 import DiagSection from "./DiagSection";
+import NetworkLine from "./NetworkLine";
 import PairingTab from "./PairingTab";
 
 /** The firewall hint appears when, a minute after this page was opened, no phone has connected (also when the first pairing fails). */
@@ -68,6 +69,8 @@ export default function PhoneTab() {
           </>
         )}
       </section>
+
+      <NetworkLine />
 
       <PairingTab embedded />
 

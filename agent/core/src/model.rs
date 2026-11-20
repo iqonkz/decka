@@ -608,6 +608,16 @@ pub struct ConfigFile {
     /// M17 (DATA_MODEL.md 10.4): Windows notifications on the phone; absent = off.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub windows_notifications: Option<WindowsNotificationsConfig>,
+    /// M18 (DATA_MODEL.md 11.2): the policy for phones on public networks; absent = `allowPublic: true`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub network: Option<NetworkConfig>,
+}
+
+/// `allowPublic: false` closes every connection that arrives on a public network.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NetworkConfig {
+    pub allow_public: bool,
 }
 
 /// The switch of the Windows notifications and the apps (display names) that are not shown.

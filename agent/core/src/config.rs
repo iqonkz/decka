@@ -63,6 +63,7 @@ pub fn default_config() -> ConfigFile {
         youtube: None,
         mail: None,
         windows_notifications: None,
+        network: None,
     }
 }
 

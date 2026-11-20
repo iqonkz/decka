@@ -185,6 +185,10 @@ export const ru: Record<Base | ExtraPlural, string> = {
   "common.open": "Открыть",
 
   // ----- Window: Phone page and pairing -----
+  "phone.net.usb": "USB",
+  "phone.net.private": "Частная сеть",
+  "phone.net.public": "Общественная сеть — всё зашифровано, только приложение Decka, сопряжение по QR",
+  "phone.net.allow_public": "Разрешить телефоны в общественных сетях",
   "phone.server_stopped": "Сервер остановлен",
   "phone.waiting": "Ожидаем телефон",
   "phone.connected": "Подключено",

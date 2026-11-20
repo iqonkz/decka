@@ -18,6 +18,7 @@ use tokio::time::{sleep, timeout, timeout_at, Instant};
 
 use crate::agent::Agent;
 use crate::model::Notification;
+use crate::netpolicy::{policy, Category, ConnInfo, Request, Verdict};
 use crate::proto::{AgentInfo, ClientInfo, ClientMsg, ErrorBody, ErrorCode, Hello2Mode, ServerMsg};
 use crate::ratelimit::RateLimiter;
 use crate::secure::{self, Keys, Opener, Sealer};
@@ -56,7 +57,7 @@ fn origin_allowed(headers: &HeaderMap) -> bool {
 
 pub async fn handler(
     State(agent): State<Agent>,
-    ConnectInfo(remote): ConnectInfo<SocketAddr>,
+    ConnectInfo(conn): ConnectInfo<ConnInfo>,
     headers: HeaderMap,
     ws: WebSocketUpgrade,
 ) -> Response {
@@ -65,7 +66,7 @@ pub async fn handler(
     }
     ws.max_message_size(MAX_FRAME_BYTES)
         .max_frame_size(MAX_FRAME_BYTES)
-        .on_upgrade(move |socket| connection(agent, remote, socket))
+        .on_upgrade(move |socket| connection(agent, conn, socket))
 }
 
 /// Both directions of an encrypted connection.
@@ -130,9 +131,19 @@ struct Proven {
     used_active_code: bool,
 }
 
-async fn connection(agent: Agent, remote: SocketAddr, socket: WebSocket) {
+async fn connection(agent: Agent, conn: ConnInfo, socket: WebSocket) {
+    let remote = conn.remote;
     let mut link = Link { ws: socket, sec: None };
     let deadline = Instant::now() + HANDSHAKE_TIMEOUT;
+    // The first lookup of a network asks Windows: keep it off the async threads.
+    let category = {
+        let agent = agent.clone();
+        tokio::task::spawn_blocking(move || agent.networks().category(conn.local.ip())).await.unwrap_or(Category::Public)
+    };
+    let allow_public = agent.allow_public();
+    if policy(category, Request::Static, allow_public) == Verdict::Drop {
+        return; // phones on public networks are switched off
+    }
     let unauthorized = "authentication required";
     let first = timeout_at(deadline, link.recv_first_text()).await.ok().flatten();
     let Some(first) = first else {
@@ -144,7 +155,15 @@ async fn connection(agent: Agent, remote: SocketAddr, socket: WebSocket) {
             if !SUPPORTED_VERSIONS.contains(&v) {
                 return version_error(&mut link, v).await;
             }
-            let Some(proven) = handshake_v2(&agent, remote, &mut link, deadline, mode, device_id.as_deref(), &cn).await else { return };
+            let wanted = match mode {
+                Hello2Mode::PairCode => Some(Request::PairCode),
+                Hello2Mode::PairQr => Some(Request::PairQr),
+                Hello2Mode::Device => None,
+            };
+            if let Some(Verdict::Refuse(message)) = wanted.map(|r| policy(category, r, allow_public)) {
+                return link.fatal(ErrorCode::BadMessage, message, CLOSE_UNAUTHORIZED, None).await;
+            }
+            let Some(proven) = handshake_v2(&agent, remote, category, &mut link, deadline, mode, device_id.as_deref(), &cn).await else { return };
             link.sec = Some(Secure { tx: Sealer::new(&proven.keys.s2c), rx: Opener::new(&proven.keys.c2s) });
             match mode {
                 Hello2Mode::Device => {
@@ -166,8 +185,8 @@ async fn connection(agent: Agent, remote: SocketAddr, socket: WebSocket) {
             }
         }
         // Protocol v1 (plain text): loopback only — USB through `adb reverse`, development and tests.
-        Ok(ClientMsg::Pair { v, code, client }) if remote.ip().is_loopback() => {
-            if !agent.pair_limiter().check(&remote.ip().to_string()) {
+        Ok(ClientMsg::Pair { v, code, client }) if policy(category, Request::V1, allow_public) == Verdict::Allow => {
+            if !agent.handshake_limiter(category).check(&remote.ip().to_string()) {
                 return link.fatal(ErrorCode::RateLimited, "too many pairing attempts", CLOSE_RATE, None).await;
             }
             if v != 1 {
@@ -183,7 +202,7 @@ async fn connection(agent: Agent, remote: SocketAddr, socket: WebSocket) {
             }
             run_device(agent, remote, link, record.id, client).await;
         }
-        Ok(ClientMsg::Hello { v, token, client }) if remote.ip().is_loopback() => {
+        Ok(ClientMsg::Hello { v, token, client }) if policy(category, Request::V1, allow_public) == Verdict::Allow => {
             if v != 1 {
                 return version_error(&mut link, v).await;
             }
@@ -204,9 +223,11 @@ fn decode16(text: &str) -> Option<[u8; 16]> {
 }
 
 /// The v2 handshake after `hello2` (PROTOCOL.md 10). On success `auth_ok` has been sent; on failure the socket is closed.
+#[allow(clippy::too_many_arguments)]
 async fn handshake_v2(
     agent: &Agent,
     remote: SocketAddr,
+    category: Category,
     link: &mut Link,
     deadline: Instant,
     mode: Hello2Mode,
@@ -214,7 +235,7 @@ async fn handshake_v2(
     cn_text: &str,
 ) -> Option<Proven> {
     let ip = remote.ip().to_string();
-    if !agent.pair_limiter().check(&ip) || agent.auth_fail_limiter().exhausted(&ip) {
+    if !agent.handshake_limiter(category).check(&ip) || agent.auth_fail_limiter().exhausted(&ip) {
         link.fatal(ErrorCode::RateLimited, "too many connection attempts", CLOSE_RATE, None).await;
         return None;
     }

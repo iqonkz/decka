@@ -23,7 +23,10 @@ export interface ConfigFile {
   youtube?: YoutubeConfig;           // absent = off
   mail?: MailConfig;                 // M17 (DATA_MODEL.md 10.7); absent = no mailboxes
   windowsNotifications?: WindowsNotificationsConfig; // M17 (DATA_MODEL.md 10.4); absent = off
+  network?: NetworkConfig;           // M18 (DATA_MODEL.md 11.2); absent = { allowPublic: true }
 }
+/** `allowPublic: false` closes every connection that arrives on a public network. */
+export interface NetworkConfig { allowPublic: boolean; }
 /** `exclude`: display names of the Windows apps whose notifications are not sent to the phone; at most 50 of 1..80 characters. */
 export interface WindowsNotificationsConfig { enabled: boolean; exclude: string[]; }
 /** Up to three mailboxes. IMAP over TLS; the host is set only in the window (ARCHITECTURE.md S21). */

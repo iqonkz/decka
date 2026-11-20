@@ -1,7 +1,6 @@
 //! Bearer-token authorization and per-IP limits for /api/* (PROTOCOL.md 5).
 
 use std::collections::HashMap;
-use std::net::SocketAddr;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
@@ -84,8 +83,8 @@ impl FromRequestParts<Agent> for ApiAuth {
     async fn from_request_parts(parts: &mut Parts, agent: &Agent) -> Result<Self, Self::Rejection> {
         let ip = parts
             .extensions
-            .get::<ConnectInfo<SocketAddr>>()
-            .map(|c| c.0.ip().to_string())
+            .get::<ConnectInfo<crate::netpolicy::ConnInfo>>()
+            .map(|c| c.0.remote.ip().to_string())
             .unwrap_or_default();
         let token = parts
             .headers

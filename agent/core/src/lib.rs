@@ -14,6 +14,7 @@ pub mod imaging;
 pub mod logging;
 pub mod media_control;
 pub mod model;
+pub mod netpolicy;
 pub mod obs;
 pub mod paths;
 pub mod proto;

@@ -1,5 +1,4 @@
 use axum::body::to_bytes;
-use std::net::SocketAddr;
 
 use axum::extract::{ConnectInfo, Path, Request, State};
 use axum::http::{header, StatusCode};
@@ -152,7 +151,7 @@ pub async fn var_put(State(agent): State<Agent>, _auth: ApiAuth, Path(name): Pat
 
 /// Checks a call of `/api/cc/*`: from this PC only (404 for others, so the endpoints do not show), with the hook token (401).
 fn cc_guard(agent: &Agent, req: &Request) -> Result<(), Response> {
-    let ip = req.extensions().get::<ConnectInfo<SocketAddr>>().map(|c| c.0.ip());
+    let ip = req.extensions().get::<ConnectInfo<crate::netpolicy::ConnInfo>>().map(|c| c.0.remote.ip());
     let token = req
         .headers()
         .get(header::AUTHORIZATION)

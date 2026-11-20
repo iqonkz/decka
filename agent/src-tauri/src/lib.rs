@@ -72,6 +72,7 @@ pub fn run() {
             commands::set_mail_password,
             commands::mail_check_now,
             commands::windows_notifications_status,
+            commands::network_status,
             commands::cc_status,
             commands::cc_install,
             commands::cc_uninstall,

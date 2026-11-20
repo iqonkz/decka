@@ -183,6 +183,10 @@ export const en = {
   "common.open": "Open",
 
   // ----- Window: Phone page and pairing -----
+  "phone.net.usb": "USB",
+  "phone.net.private": "Private network",
+  "phone.net.public": "Public network — encrypted, only the Decka app, pairing by QR",
+  "phone.net.allow_public": "Allow phones on public networks",
   "phone.server_stopped": "Server stopped",
   "phone.waiting": "Waiting for your phone",
   "phone.connected": "Connected",

@@ -59,6 +59,8 @@ export interface TwitchStatus {
 
 /** YouTube as the settings window sees it. */
 /** `access`: `allowed`, `denied` (blocked in Windows Settings → Privacy → Notifications) or `unknown`. */
+/** M18 (DATA_MODEL.md 11.2): the kind of network the phones use now and the switch `Allow phones on public networks`. */
+export interface NetworkStatus { kind: "usb" | "private" | "public"; allowPublic: boolean; }
 export interface WindowsNotificationsStatus { enabled: boolean; access: "allowed" | "denied" | "unknown"; apps: string[]; }
 
 export interface YoutubeStatus {
@@ -121,6 +123,7 @@ export interface IpcCommands {
   set_obs_password(args: { password: string }): void;           // M15: encrypts with DPAPI and saves; "" removes the password
   set_mail_password(args: { accountId: Id; password: string }): void; // M17: encrypts with DPAPI and saves for that mailbox; "" removes it
   mail_check_now(): void;                                       // M17: looks at the mailboxes at once
+  network_status(): NetworkStatus;                             // M18: usb / private / public and the allowPublic switch
   windows_notifications_status(): WindowsNotificationsStatus;   // M17: the switch, what Windows says about the access, the apps seen so far
   obs_status(): ObsStatus;                                      // M15: for the window (pick a scene / audio input when making keys)
 }

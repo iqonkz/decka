@@ -120,6 +120,15 @@ pub struct RefreshIcons {
 /// How many phone notifications can still be opened by `notif_open`.
 const WIN_TARGETS: usize = 100;
 
+/// Mirrors `NetworkStatus` in shared/src/ipc.ts (DATA_MODEL.md 11.2): what kind of network the phones use now.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NetworkStatus {
+    /// `usb` (only this PC is reachable), `private` or `public`.
+    pub kind: String,
+    pub allow_public: bool,
+}
+
 /// Mirrors `WindowsNotificationsStatus` in shared/src/ipc.ts.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct WinNotifStatus {
@@ -286,6 +295,10 @@ struct Inner {
     pair_limiter: RateLimiter,
     /// Failed v2 `auth` proofs per IP: 5 in a minute block the IP for the rest of it.
     auth_fail_limiter: RateLimiter,
+    /// Handshakes from public networks: 5 per minute and IP (DATA_MODEL.md 11.2).
+    public_limiter: RateLimiter,
+    /// Network category of the local address a connection arrived on (cached 30 s).
+    networks: crate::netpolicy::Networks,
     api_guard: crate::server::api_auth::ApiGuard,
     conns: Mutex<HashMap<u64, Conn>>,
     conn_counter: AtomicU64,
@@ -393,6 +406,8 @@ impl Agent {
                 notif_counter: AtomicU64::new(1),
                 pair_limiter: RateLimiter::new(10, Duration::from_secs(60)),
                 auth_fail_limiter: RateLimiter::new(5, Duration::from_secs(60)),
+                public_limiter: RateLimiter::new(5, Duration::from_secs(60)),
+                networks: crate::netpolicy::Networks::default(),
                 api_guard: crate::server::api_auth::ApiGuard::new(),
                 conns: Mutex::new(HashMap::new()),
                 conn_counter: AtomicU64::new(1),
@@ -880,6 +895,44 @@ impl Agent {
 
     pub fn auth_fail_limiter(&self) -> &RateLimiter {
         &self.inner.auth_fail_limiter
+    }
+
+    /// The handshake limiter that applies to a network category: 10 a minute, 5 on public networks.
+    pub fn handshake_limiter(&self, category: crate::netpolicy::Category) -> &RateLimiter {
+        if category == crate::netpolicy::Category::Public {
+            &self.inner.public_limiter
+        } else {
+            &self.inner.pair_limiter
+        }
+    }
+
+    pub fn networks(&self) -> &crate::netpolicy::Networks {
+        &self.inner.networks
+    }
+
+    /// `config.network.allowPublic` (default true).
+    pub fn allow_public(&self) -> bool {
+        self.config().network.is_none_or(|n| n.allow_public)
+    }
+
+    /// The kind of network the first LAN address of this PC is on (blocks for the Windows lookup on a cache miss).
+    pub fn network_status(&self) -> NetworkStatus {
+        use crate::netpolicy::Category;
+        let kind = if self.config().bind == "127.0.0.1" {
+            "usb"
+        } else {
+            match lan_ips().first().and_then(|ip| ip.parse::<IpAddr>().ok()).map(|ip| self.inner.networks.category(ip)) {
+                Some(Category::Private) => "private",
+                Some(Category::Public) => "public",
+                Some(Category::Local) | None => "usb",
+            }
+        };
+        NetworkStatus { kind: kind.to_string(), allow_public: self.allow_public() }
+    }
+
+    /// The decision of the network policy for one connection (DATA_MODEL.md 11.2). May block on the first Windows lookup.
+    pub fn network_verdict(&self, conn: &crate::netpolicy::ConnInfo, request: crate::netpolicy::Request) -> crate::netpolicy::Verdict {
+        crate::netpolicy::policy(self.inner.networks.category(conn.local.ip()), request, self.allow_public())
     }
 
     /// Adds a live connection to the registry. The receiver fires when the device is revoked.
@@ -2327,9 +2380,11 @@ impl Agent {
                 *self.inner.listen_error.lock().unwrap() = None;
 
                 let app = crate::server::router(self.clone(), self.inner.opts.client_dist.clone());
+                let agent = self.clone();
                 let (tx, rx) = oneshot::channel::<()>();
                 let join = tokio::spawn(async move {
-                    let serve = axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>())
+                    let listener = crate::netpolicy::PolicyListener { inner: listener, agent };
+                    let serve = axum::serve(listener, app.into_make_service_with_connect_info::<crate::netpolicy::ConnInfo>())
                         .with_graceful_shutdown(async move {
                             let _ = rx.await;
                         });
