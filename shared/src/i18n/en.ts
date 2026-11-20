@@ -6,6 +6,9 @@
 export const en = {
   // ----- Phone: pairing and connection -----
   "phone.update_required": "Update the Decka app to continue.",
+  "phone.not_your_pc": "This is not your PC — the answer did not match. Pair again if you reinstalled Decka.",
+  "phone.retry": "Retry",
+  "phone.unpair": "Pair again",
   "phone.connecting": "Connecting…",
   "pair.title": "Pair with your PC",
   "pair.hint": "Open Decka on your PC → Phone, then scan the QR code or type the code below.",
@@ -19,6 +22,7 @@ export const en = {
   "pair.error.not_qr": "This is not a Decka QR code",
   "pair.error.wrong_code": "Code is wrong or expired. Generate a new one on the PC.",
   "pair.error.rate": "Too many attempts. Wait a minute.",
+  "pair.error.mismatch": "This is not the PC from the QR code. Try again.",
   "pair.error.unreachable": "Can't reach the PC. Check Wi-Fi or the USB cable.",
   "badge.connecting": "Connecting…",
   "badge.offline": "PC offline — retrying",

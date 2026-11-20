@@ -1,0 +1,51 @@
+{
+  "note": "Test vectors for PROTOCOL.md section 10. Bytes are hex unless named base64url. cn/sn/macs travel as base64url; salts and MAC inputs use the DECODED 16-byte values. Generated with node:crypto.",
+  "token": "dGVzdC10b2tlbi1mb3ItZGVja2EtY3J5cHRvLXYyLTAxMjM",
+  "cn": "AAECAwQFBgcICQoLDA0ODw",
+  "sn": "8ODQwLCgkIBwYFBAMCAQAA",
+  "code": "K7M2QX9D",
+  "sQr": "030a11181f262d343b424950575e656c737a81888f969da4abb2b9c0c7ced5dc",
+  "kDev": "213b5bb663af68ef5c3cc76eac5ad17ac99c4a2c0f1e0492c38178290c82a817",
+  "sCode": "aa89efc3792a362ad3e6f0ca2cbe2aaf283c8d6ef2d83d031aed010380b74a62",
+  "modes": {
+    "device": {
+      "ikm": "213b5bb663af68ef5c3cc76eac5ad17ac99c4a2c0f1e0492c38178290c82a817",
+      "okm": "7216420a3b238d9ff9c0973218e5155a12d99ef03a3054f25140562338b1afe0ae65ce0214b39421e48b2e1a8a43702da99278977674621fae9473300ee175c539416eed029018edb648d7683c17e54d7dc62c8043325b60a728163b2bd90b58",
+      "macC": "l8YyHf1YLIP3eBNyTF0jQYtKqvJHyNsl6-R0pNyYPJs",
+      "macS": "hR1K9EOYpOG8_3_jyH7ZdZngDUikN2fyq3MY1KDuqyM"
+    },
+    "pair_qr": {
+      "ikm": "030a11181f262d343b424950575e656c737a81888f969da4abb2b9c0c7ced5dc",
+      "okm": "804cf9686983d6cfa539dc8d64a2bdca597a2e20238ef7f58bf44becb74d7e66cd06e7c0a03a7707ded8a9408c8924394d38663b6a2c9c298a2ea66e301fcb0ba6238b3d811da804ffddd514a20a5633a7cf549afdf888f373b5cc78ae2ea2d5",
+      "macC": "SOtoX23Ofsd_ZU2-WSKLDiJ7oddIblA1YYyA_-X_QOc",
+      "macS": "gypDEFdXYRDdhd-W0S5T0uQYigBlcRoEmpd6-iFADNQ"
+    },
+    "pair_code": {
+      "ikm": "aa89efc3792a362ad3e6f0ca2cbe2aaf283c8d6ef2d83d031aed010380b74a62",
+      "okm": "0c8c7da95aefb7e1eb89e3ca0a43445b103338846b468a4c6fe9a659e47a6f54c6d008bb037c9c54fc2f86968c12b481510cc20254d4c2f5508320e10011189d620b9ad1c91a23d378b42d5d9bd201059adbf840669b207bdaea69e678ab0546",
+      "macC": "u3cCW04nrZV9MA6Hr7csvBsuf7Bzb-4dflnbeE8MKT8",
+      "macS": "kxQckGRS-vPUnOKUl8hYEzScBHCRU6P2NSBLhsAO6wQ"
+    }
+  },
+  "frames": {
+    "c2s": [
+      {
+        "counter": 0,
+        "plain": "{\"t\":\"ping\",\"ts\":1794650002000}",
+        "hex": "00000000000000005d5fec78a1c112ed6c6495909b9c2b69d8d6a65fb0064c4e0963756f55184a3946ae00f849a7457c90ed2119826937"
+      },
+      {
+        "counter": 1,
+        "plain": "{\"t\":\"press\",\"id\":1,\"actionId\":\"vol-mute\"}",
+        "hex": "0000000000000001a09d8528375b2801ebe7baf363673b4c43280f6d671976debbaa33ace32b70a6858f60b0009a70bdb2f63156ac73915c965d827fe0359c65552a"
+      }
+    ],
+    "s2c": [
+      {
+        "counter": 0,
+        "plain": "{\"t\":\"pong\",\"ts\":1794650002000}",
+        "hex": "0000000000000000779024ea1866598e77410f89fc0f648f2a8fb1ca2395594943cbd127b94354c78ed898f47cb58c951808bcc53c5a43"
+      }
+    ]
+  }
+}

@@ -284,6 +284,8 @@ struct Inner {
     devices: Devices,
     notif_counter: AtomicU64,
     pair_limiter: RateLimiter,
+    /// Failed v2 `auth` proofs per IP: 5 in a minute block the IP for the rest of it.
+    auth_fail_limiter: RateLimiter,
     api_guard: crate::server::api_auth::ApiGuard,
     conns: Mutex<HashMap<u64, Conn>>,
     conn_counter: AtomicU64,
@@ -390,6 +392,7 @@ impl Agent {
                 devices: Devices::new(config_dir.join("devices.json"), devices),
                 notif_counter: AtomicU64::new(1),
                 pair_limiter: RateLimiter::new(10, Duration::from_secs(60)),
+                auth_fail_limiter: RateLimiter::new(5, Duration::from_secs(60)),
                 api_guard: crate::server::api_auth::ApiGuard::new(),
                 conns: Mutex::new(HashMap::new()),
                 conn_counter: AtomicU64::new(1),
@@ -875,6 +878,10 @@ impl Agent {
         &self.inner.pair_limiter
     }
 
+    pub fn auth_fail_limiter(&self) -> &RateLimiter {
+        &self.inner.auth_fail_limiter
+    }
+
     /// Adds a live connection to the registry. The receiver fires when the device is revoked.
     pub(crate) fn register_connection(&self, device_id: &str, name: &str, remote: SocketAddr) -> (ConnGuard, oneshot::Receiver<()>) {
         let id = self.inner.conn_counter.fetch_add(1, Ordering::Relaxed);
@@ -897,7 +904,7 @@ impl Agent {
 
     /// New pairing code (cancels the previous one) with the URL and QR code for it.
     pub fn start_pairing(&self) -> PairingInfo {
-        let (code, expires_at) = self.inner.pairing.start();
+        let (code, s_qr, expires_at) = self.inner.pairing.start_with_secret();
         let config = self.config();
         // USB-only mode or no LAN address: the phone reaches the PC through 127.0.0.1 (adb reverse).
         let mut ips = if config.bind == "127.0.0.1" { Vec::new() } else { lan_ips() };
@@ -905,7 +912,8 @@ impl Agent {
             ips.push("127.0.0.1".to_string());
         }
         let port = self.inner.listening.lock().unwrap().as_ref().map_or(config.port as u16, |l| l.port);
-        let url = crate::qr::pair_url(&ips[0], &ips, port, &code, &config.agent_name);
+        let s_qr = base64::Engine::encode(&base64::engine::general_purpose::URL_SAFE_NO_PAD, s_qr);
+        let url = crate::qr::pair_url(&ips[0], &ips, port, &code, &config.agent_name, &s_qr);
         let qr_svg = crate::qr::qr_svg(&url);
         PairingInfo { code, url, qr_svg, expires_at }
     }

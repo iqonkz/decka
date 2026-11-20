@@ -136,7 +136,7 @@ async fn unsupported_version_is_rejected_with_supported_list() {
     send(&mut ws, json!({ "t": "hello", "v": 2, "token": "x".repeat(43), "client": client() })).await;
     let err = recv(&mut ws).await;
     assert_eq!(err["code"], "PROTOCOL_VERSION");
-    assert_eq!(err["supported"], json!([1]));
+    assert_eq!(err["supported"], json!([2]));
     assert_eq!(close_code(&mut ws).await, 4426);
     e.agent.shutdown().await;
 }

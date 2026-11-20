@@ -930,6 +930,7 @@ dependencies = [
  "qrcode",
  "rand 0.10.3",
  "reqwest",
+ "ring",
  "rustls-platform-verifier",
  "serde",
  "serde_json",

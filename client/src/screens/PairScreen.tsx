@@ -40,7 +40,7 @@ export default function PairScreen() {
     if (!parsed) return setError(t("pair.error.not_qr"));
     setBusy(true);
     try {
-      await pairWith(parsed.hosts, parsed.port, parsed.code, parsed.agentName);
+      await pairWith(parsed.hosts, parsed.port, parsed.code, parsed.agentName, parsed.secret);
     } catch (err) {
       setError(pairErrorText((err as ConnFailure).code));
       setBusy(false);

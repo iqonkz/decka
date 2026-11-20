@@ -1,6 +1,7 @@
 import { DEFAULT_PORT, PAIR_ALPHABET } from "./protocol";
 
-export interface PairUrl { code: string; hosts: string[]; port: number; agentName: string; }
+/** `secret` is `S_qr` (32 bytes, base64url) from the `s=` part of the QR; absent for a hand-typed code. */
+export interface PairUrl { code: string; hosts: string[]; port: number; agentName: string; secret?: string; }
 
 const parsePort = (s: string): number | null => {
   if (!/^[0-9]{1,5}$/.test(s)) return null;
@@ -34,7 +35,13 @@ export function parsePairUrl(input: string): PairUrl | null {
 
   let hosts = (params.get("h") ?? "").split(",").map((h) => h.trim()).filter((h) => h !== "");
   if (hosts.length === 0) hosts = [url.hostname];
-  return { code, hosts, port, agentName: params.get("n") ?? "" };
+  const result: PairUrl = { code, hosts, port, agentName: params.get("n") ?? "" };
+  const secret = params.get("s");
+  if (secret !== null) {
+    if (!/^[A-Za-z0-9_-]{43}$/.test(secret)) return null; // 32 bytes in base64url
+    result.secret = secret;
+  }
+  return result;
 }
 
 // "host" or "host:port"; port defaults to 9247.

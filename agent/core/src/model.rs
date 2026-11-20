@@ -1000,7 +1000,12 @@ pub struct DevicesFile {
 pub struct DeviceRecord {
     pub id: String,
     pub name: String,
-    pub token_hash: String,
+    /// Before M18: SHA-256 of the token as hex. Migrated to `key_dpapi` at the first start and then removed from the file.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub token_hash: Option<String>,
+    /// M18: `K_dev` (SHA-256 of the token, hex) protected by DPAPI as `dpapi:<base64>`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub key_dpapi: Option<String>,
     pub created_at: u64,
     pub last_seen_at: u64,
     /// M14: `client.version` of the last `pair` / `hello` (ARCHITECTURE.md 8a); absent for phones seen before it was kept.

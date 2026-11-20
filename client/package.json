@@ -20,6 +20,8 @@
     "@capacitor/screen-orientation": "^8.0.2",
     "@decka/shared": "*",
     "@decka/ui": "*",
+    "@noble/ciphers": "2.4.0",
+    "@noble/hashes": "2.4.0",
     "@phosphor-icons/core": "^2.1.1",
     "lucide-react": "^1.73.0",
     "react": "^19.3.1",

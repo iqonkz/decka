@@ -16,10 +16,10 @@ fn percent_encode(input: &str) -> String {
     out
 }
 
-/// `http://<primaryIp>:<port>/#c=<CODE>&h=<ip1>,<ip2>&p=<port>&n=<name>`; the code sits in the fragment
-/// so it never reaches an HTTP request or a log.
-pub fn pair_url(primary_ip: &str, ips: &[String], port: u16, code: &str, agent_name: &str) -> String {
-    format!("http://{primary_ip}:{port}/#c={code}&h={}&p={port}&n={}", ips.join(","), percent_encode(agent_name))
+/// `http://<primaryIp>:<port>/#c=<CODE>&h=<ip1>,<ip2>&p=<port>&n=<name>&s=<S_qr>`; the code and `S_qr` (base64url) sit in
+/// the fragment so they never reach an HTTP request or a log.
+pub fn pair_url(primary_ip: &str, ips: &[String], port: u16, code: &str, agent_name: &str, s_qr: &str) -> String {
+    format!("http://{primary_ip}:{port}/#c={code}&h={}&p={port}&n={}&s={s_qr}", ips.join(","), percent_encode(agent_name))
 }
 
 /// SVG with error correction level M, black on white, quiet zone included.
@@ -44,8 +44,8 @@ mod tests {
     fn url_matches_the_documented_format() {
         let ips = vec!["192.168.1.5".to_string(), "10.0.0.2".to_string()];
         assert_eq!(
-            pair_url("192.168.1.5", &ips, 9247, "K7M2QX9D", "My PC"),
-            "http://192.168.1.5:9247/#c=K7M2QX9D&h=192.168.1.5,10.0.0.2&p=9247&n=My%20PC"
+            pair_url("192.168.1.5", &ips, 9247, "K7M2QX9D", "My PC", "AAEC"),
+            "http://192.168.1.5:9247/#c=K7M2QX9D&h=192.168.1.5,10.0.0.2&p=9247&n=My%20PC&s=AAEC"
         );
     }
 

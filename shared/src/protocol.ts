@@ -6,7 +6,7 @@ export const PAIR_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 export const LIMITS = { title: 120, body: 500, source: 40, statusText: 80, group: 40, label: 60, notifications: 20 };
 
 // ===== Base =====
-export const PROTOCOL_VERSION = 1;
+export const PROTOCOL_VERSION = 2;
 export type Id = string;        // ^[a-z0-9_-]{1,64}$
 export type VarName = string;   // ^[a-z0-9_.-]{1,64}$
 export type VarValue = string | number | boolean;
@@ -19,6 +19,11 @@ export type ErrorCode =
 // ===== Client -> Server (WS) =====
 export interface ClientInfo { name: string; app: "capacitor" | "web"; version: string; }
 
+/** M18 (PROTOCOL.md 10): the first frame of protocol v2. `cn` is 16 random bytes, base64url. */
+export interface Hello2Msg { t: "hello2"; v: number; mode: "device" | "pair_qr" | "pair_code"; deviceId?: Id; cn: string; client: ClientInfo; }
+/** M18: the proof of the client, HMAC-SHA256 in base64url. */
+export interface AuthMsg { t: "auth"; mac: string; }
+/** v1: plain text, accepted from loopback only. */
 export interface PairMsg  { t: "pair";  v: number; code: string; client: ClientInfo; }
 export interface HelloMsg { t: "hello"; v: number; token: string; client: ClientInfo; }
 export interface PressMsg { t: "press"; id: number; actionId: Id; }
@@ -28,9 +33,13 @@ export interface PingMsg  { t: "ping"; ts: number; }
 export interface PermAnswerMsg { t: "perm_answer"; reqId: string; decision: "allow" | "allow_always" | "deny" | "pc" | "reply"; reply?: number; }   // reply: the number of a ready answer (with decision "reply")   // reqId ^[0-9a-f]{16}$
 /** M17 (DATA_MODEL.md 10.4): open the program a Windows notification came from. Only the id of the notification travels. */
 export interface NotifOpenMsg { t: "notif_open"; notifId: string; }
-export type ClientMsg = PairMsg | HelloMsg | PressMsg | NotifDismissMsg | PingMsg | PermAnswerMsg | NotifOpenMsg;
+export type ClientMsg = Hello2Msg | AuthMsg | PairMsg | HelloMsg | PressMsg | NotifDismissMsg | PingMsg | PermAnswerMsg | NotifOpenMsg;
 
 // ===== Server -> Client (WS) =====
+/** M18: answer to `hello2`; `sn` is 16 random bytes, base64url. */
+export interface ChallengeMsg { t: "challenge"; sn: string; agent: { name: string; version: string }; }
+/** M18: the proof of the agent, HMAC-SHA256 in base64url. */
+export interface AuthOkMsg { t: "auth_ok"; mac: string; }
 export interface PairedMsg  { t: "paired"; deviceId: Id; token: string; }
 export interface WelcomeMsg {
   t: "welcome"; v: number;
@@ -43,7 +52,7 @@ export interface PatchMsg<K extends SectionName = SectionName> {
 export interface PressResultMsg { t: "press_result"; id: number; ok: boolean; error?: { code: ErrorCode; message: string }; }
 export interface PongMsg  { t: "pong"; ts: number; }
 export interface ErrorMsg { t: "error"; code: ErrorCode; message: string; fatal: boolean; supported?: number[]; }
-export type ServerMsg = PairedMsg | WelcomeMsg | PatchMsg | PressResultMsg | PongMsg | ErrorMsg;
+export type ServerMsg = ChallengeMsg | AuthOkMsg | PairedMsg | WelcomeMsg | PatchMsg | PressResultMsg | PongMsg | ErrorMsg;
 
 // ===== State (sections) =====
 export type SectionName = "layout" | "sys" | "statuses" | "notifications" | "vars" | "focus" | "media" | "icons" | "weather" | "obs" | "ai" | "twitch" | "youtube" | "strip" | "battery" | "mail"; // weather, obs: M15; ai: M16; strip, battery, mail: M17

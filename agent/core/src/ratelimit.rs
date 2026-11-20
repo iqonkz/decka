@@ -20,6 +20,14 @@ impl RateLimiter {
         self.check_at(key, Instant::now())
     }
 
+    /// True if the key already used up its allowance in the current window (does not count).
+    pub fn exhausted(&self, key: &str) -> bool {
+        let now = Instant::now();
+        let mut entries = self.entries.lock().unwrap();
+        entries.retain(|_, (start, _)| now.saturating_duration_since(*start) < self.window);
+        entries.get(key).is_some_and(|(_, n)| *n >= self.max)
+    }
+
     fn check_at(&self, key: &str, now: Instant) -> bool {
         let mut entries = self.entries.lock().unwrap();
         entries.retain(|_, (start, _)| now.saturating_duration_since(*start) < self.window);

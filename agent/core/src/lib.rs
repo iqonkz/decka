@@ -19,6 +19,7 @@ pub mod paths;
 pub mod proto;
 pub mod qr;
 pub mod ratelimit;
+pub mod secure;
 pub mod server;
 #[cfg(windows)]
 pub mod sta;
@@ -41,4 +42,4 @@ pub mod youtube;
 pub use agent::{Agent, AgentOptions, AgentStatus, SaveResult, StartError};
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
-pub const PROTOCOL_VERSION: u32 = 1;
+pub const PROTOCOL_VERSION: u32 = 2;

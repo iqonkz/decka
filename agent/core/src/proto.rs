@@ -36,6 +36,17 @@ pub struct ClientInfo {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "t", rename_all = "snake_case", rename_all_fields = "camelCase")]
 pub enum ClientMsg {
+    /// M18 (PROTOCOL.md 10): first frame of protocol v2; `cn` is 16 random bytes in base64url.
+    Hello2 {
+        v: u32,
+        mode: Hello2Mode,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        device_id: Option<String>,
+        cn: String,
+        client: ClientInfo,
+    },
+    /// M18: the client proof of the v2 handshake (HMAC, base64url).
+    Auth { mac: String },
     Pair { v: u32, code: String, client: ClientInfo },
     Hello { v: u32, token: String, client: ClientInfo },
     Press { id: u64, action_id: String },
@@ -50,6 +61,15 @@ pub enum ClientMsg {
         #[serde(default)]
         reply: Option<u8>,
     },
+}
+
+/// How a v2 connection proves itself: a paired device, the QR of a pairing, or the typed pairing code.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Hello2Mode {
+    Device,
+    PairQr,
+    PairCode,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -75,6 +95,10 @@ pub struct AgentInfo {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "t", rename_all = "snake_case", rename_all_fields = "camelCase")]
 pub enum ServerMsg {
+    /// M18: answer to `hello2`; `sn` is 16 random bytes in base64url.
+    Challenge { sn: String, agent: AgentInfo },
+    /// M18: the server proof of the v2 handshake (HMAC, base64url).
+    AuthOk { mac: String },
     Paired {
         device_id: String,
         token: String,

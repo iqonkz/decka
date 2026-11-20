@@ -8,6 +8,9 @@ type ExtraPlural = Base extends infer K ? (K extends `${infer B}.other` ? `${B}.
 export const ru: Record<Base | ExtraPlural, string> = {
   // ----- Phone: pairing and connection -----
   "phone.update_required": "Обновите приложение Decka, чтобы продолжить.",
+  "phone.not_your_pc": "Это не ваш ПК — ответ не совпал. Сопрягите заново, если переустанавливали Decka.",
+  "phone.retry": "Повторить",
+  "phone.unpair": "Сопрячь заново",
   "phone.connecting": "Подключение…",
   "pair.title": "Подключение к ПК",
   "pair.hint": "Откройте Decka на ПК → «Телефон», затем отсканируйте QR-код или введите код ниже.",
@@ -21,6 +24,7 @@ export const ru: Record<Base | ExtraPlural, string> = {
   "pair.error.not_qr": "Это не QR-код Decka",
   "pair.error.wrong_code": "Код неверный или устарел. Создайте новый на ПК.",
   "pair.error.rate": "Слишком много попыток. Подождите минуту.",
+  "pair.error.mismatch": "Это не тот ПК, что в QR-коде. Попробуйте ещё раз.",
   "pair.error.unreachable": "Не удаётся связаться с ПК. Проверьте Wi-Fi или USB-кабель.",
   "badge.connecting": "Подключение…",
   "badge.offline": "Нет связи с ПК — повторяем попытку",

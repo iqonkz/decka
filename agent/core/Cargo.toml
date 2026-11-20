@@ -20,6 +20,7 @@ notify = "8.2.2"
 qrcode = { version = "0.14.1", default-features = false, features = ["svg"] }
 rand = "0.10.3"
 reqwest = "0.13.5"
+ring = "0.17.14"
 rustls-platform-verifier = "0.7.1"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"

@@ -1,8 +1,7 @@
 // The single place where Connection, the store and local storage meet (ARCHITECTURE.md 4.4).
-import type { ErrorCode } from "@decka/shared";
 import { parsePairUrl, t } from "@decka/shared";
 import { buildCandidates } from "../net/candidates";
-import { Connection, type ConnFailure, type WebSocketCtor } from "../net/connection";
+import { Connection, type ConnFailure, type FatalCode, type WebSocketCtor } from "../net/connection";
 import { hapticEvent } from "../platform/haptics";
 import { clientInfo, isNative } from "../platform/native";
 import { applyPatch, applyWelcome, markPermAnswered, navigateManually, setState } from "../store/store";
@@ -26,6 +25,7 @@ function conn(): Connection {
     clearTimeout: (h) => window.clearTimeout(h as number),
     candidates,
     token: () => loadConn()?.token ?? null,
+    deviceId: () => loadConn()?.deviceId ?? null,
     native: isNative(),
     clientInfo: clientInfo(),
     onWelcome: applyWelcome,
@@ -35,8 +35,9 @@ function conn(): Connection {
       if (pairTarget) return; // the pairing screen stays up until pairing finishes
       setState({ conn: c, via });
     },
-    onFatal: (code: ErrorCode) => {
-      if (code === "PROTOCOL_VERSION") setState({ conn: "update_required" });
+    onFatal: (code: FatalCode) => {
+      if (code === "SERVER_MISMATCH") setState({ conn: pairTarget ? "unpaired" : "not_your_pc" });
+      else if (code === "PROTOCOL_VERSION") setState({ conn: "update_required" });
       else unpair(); // UNAUTHORIZED / DEVICE_REVOKED: the saved pairing is no longer valid
     },
   });
@@ -49,17 +50,20 @@ export function pairErrorText(code: ConnFailure["code"]): string {
       return t("pair.error.wrong_code");
     case "RATE_LIMITED":
       return t("pair.error.rate");
+    case "SERVER_MISMATCH":
+      return t("pair.error.mismatch");
     default:
       return t("pair.error.unreachable");
   }
 }
 
 /** Pairs with the PC; on success the connection continues with the new token. Rejects with a ConnFailure. */
-export async function pairWith(hosts: string[], port: number, code: string, agentName: string): Promise<void> {
+export async function pairWith(hosts: string[], port: number, code: string, agentName: string, secret?: string): Promise<void> {
   const c = conn();
   pairTarget = { hosts, port };
   try {
-    const paired = await c.pair(code);
+    // With the secret of the QR (`s=`) the pairing runs as `pair_qr`, otherwise as `pair_code` (PROTOCOL.md 10).
+    const paired = await c.pair(code, secret);
     saveConn({ token: paired.token, deviceId: paired.deviceId, hosts, port, agentName });
   } catch (e) {
     pairTarget = null;
@@ -69,6 +73,13 @@ export async function pairWith(hosts: string[], port: number, code: string, agen
   }
   pairTarget = null;
   setState({ conn: "connecting", lastError: null });
+  c.start(); // the pairing socket is closed; continue as a device with the saved token
+}
+
+/** The "Retry" of the screen "This is not your PC": one new attempt with the saved pairing. */
+export function retryConnection(): void {
+  setState({ conn: "connecting" });
+  conn().start();
 }
 
 export function unpair(): void {
@@ -111,7 +122,7 @@ export function init(): void {
     const parsed = parsePairUrl(location.href);
     if (parsed) {
       history.replaceState(null, "", location.pathname + location.search); // erase the code from the address bar
-      pairWith(parsed.hosts, parsed.port, parsed.code, parsed.agentName).catch((e: ConnFailure) => {
+      pairWith(parsed.hosts, parsed.port, parsed.code, parsed.agentName, parsed.secret).catch((e: ConnFailure) => {
         setState({ conn: "unpaired", lastError: pairErrorText(e.code) });
       });
       return;

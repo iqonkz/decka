@@ -1,5 +1,6 @@
 import type { ClientInfo, ErrorCode, PairedMsg, PatchMsg, PressResultMsg, ServerMsg, WelcomeMsg } from "@decka/shared";
 import { PROTOCOL_VERSION } from "@decka/shared";
+import { Opener, Sealer, deriveKeys, fromB64u, kDev, mac, macEquals, randomBytes, sCode, toB64u, type Keys } from "./secure";
 
 /** The subset of WebSocket that Connection uses (also implemented by test fakes). */
 export interface WebSocketLike {
@@ -7,7 +8,8 @@ export interface WebSocketLike {
   onmessage: ((ev: { data: unknown }) => void) | null;
   onclose: (() => void) | null;
   onerror: (() => void) | null;
-  send(data: string): void;
+  binaryType?: string;
+  send(data: string | Uint8Array): void;
   close(): void;
 }
 export type WebSocketCtor = new (url: string) => WebSocketLike;
@@ -16,9 +18,12 @@ export type ConnStatus = "connecting" | "online" | "offline";
 
 /** What a rejected press/pair promise carries. */
 export interface ConnFailure {
-  code: ErrorCode | "TIMEOUT" | "OFFLINE" | "UNREACHABLE";
+  code: ErrorCode | "TIMEOUT" | "OFFLINE" | "UNREACHABLE" | "SERVER_MISMATCH";
   message?: string;
 }
+
+/** The PC did not prove it holds our key (PROTOCOL.md 10): not the PC we paired with. */
+export type FatalCode = ErrorCode | "SERVER_MISMATCH";
 
 export interface ConnectionDeps {
   WebSocketCtor: WebSocketCtor;
@@ -27,13 +32,22 @@ export interface ConnectionDeps {
   clearTimeout: (handle: unknown) => void;
   candidates: () => string[];
   token: () => string | null;
+  deviceId: () => string | null;
   native: boolean;
   clientInfo: ClientInfo;
   onWelcome: (msg: WelcomeMsg) => void;
   onPatch: (msg: PatchMsg) => void;
   onPressResult: (msg: PressResultMsg) => void;
   onStatus: (conn: ConnStatus, via: "usb" | "lan" | null) => void;
-  onFatal: (code: ErrorCode) => void;
+  onFatal: (code: FatalCode) => void;
+}
+
+/** Handshake state of the open socket (one per attempt). */
+interface Handshake {
+  mode: "device" | "pair_qr" | "pair_code";
+  cn: Uint8Array;
+  /** Set once `auth` is sent: the keys and the sn that the server's `auth_ok` is checked with. */
+  sent: { keys: Keys; sn: Uint8Array } | null;
 }
 
 const ATTEMPT_MS = 1500;
@@ -62,6 +76,9 @@ export class Connection {
   private pingTimer: unknown = null;
   private watchdog: unknown = null;
   private pairCode: string | null = null;
+  private pairSecret: Uint8Array | null = null;
+  private hs: Handshake | null = null;
+  private sec: { tx: Sealer; rx: Opener } | null = null;
   private pairing: { resolve: (m: PairedMsg) => void; reject: (e: ConnFailure) => void } | null = null;
   private pending = new Map<number, PendingPress>();
   private nextId = 0;
@@ -79,18 +96,26 @@ export class Connection {
   stop(): void {
     this.running = false;
     this.pairCode = null;
+    this.pairSecret = null;
     this.clearTimers();
     this.detach();
     this.failPending({ code: "OFFLINE" });
     this.rejectPairing({ code: "OFFLINE" });
   }
 
-  /** Pairs using the candidates currently returned by `deps.candidates()`. */
-  pair(code: string): Promise<PairedMsg> {
+  /**
+   * Pairs using the candidates currently returned by `deps.candidates()`. With `secret` (`S_qr` from the QR, base64url)
+   * the handshake runs in `pair_qr` mode, otherwise in `pair_code` mode with the typed code. The connection stops once
+   * `paired` has arrived; the caller saves the token and calls `start()`.
+   */
+  pair(code: string, secret?: string): Promise<PairedMsg> {
     this.stop();
     return new Promise<PairedMsg>((resolve, reject) => {
+      const s = secret === undefined ? null : fromB64u(secret);
+      if (secret !== undefined && (s === null || s.length !== 32)) return reject({ code: "BAD_MESSAGE" } satisfies ConnFailure);
       this.pairing = { resolve, reject };
       this.pairCode = code;
+      this.pairSecret = s;
       this.running = true;
       this.delayIdx = 0;
       this.setStatus("connecting", null);
@@ -109,22 +134,29 @@ export class Connection {
       }, PRESS_TIMEOUT_MS);
       this.pending.set(id, { resolve, reject, timer });
       // The phone sends only the action id: exactly these three fields.
-      ws.send(JSON.stringify({ t: "press", id, actionId }));
+      this.sendMsg({ t: "press", id, actionId });
     });
   }
 
   dismiss(notifId: string): void {
-    if (this.ws && this.welcomed) this.ws.send(JSON.stringify({ t: "notif_dismiss", notifId }));
+    if (this.ws && this.welcomed) this.sendMsg({ t: "notif_dismiss", notifId });
   }
 
   /** Asks the PC to open the program a Windows notification came from (DATA_MODEL.md 10.4); only the id is sent. */
   openNotification(notifId: string): void {
-    if (this.ws && this.welcomed) this.ws.send(JSON.stringify({ t: "notif_open", notifId }));
+    if (this.ws && this.welcomed) this.sendMsg({ t: "notif_open", notifId });
   }
 
   /** The answer to a permission question of Claude Code (DATA_MODEL.md 6.8). */
   permAnswer(reqId: string, decision: "allow" | "allow_always" | "deny" | "pc" | "reply", reply?: number): void {
-    if (this.ws && this.welcomed) this.ws.send(JSON.stringify({ t: "perm_answer", reqId, decision, ...(reply !== undefined ? { reply } : {}) }));
+    if (this.ws && this.welcomed) this.sendMsg({ t: "perm_answer", reqId, decision, ...(reply !== undefined ? { reply } : {}) });
+  }
+
+  /** After the handshake every message goes out as an encrypted binary frame; never as plain text. */
+  private sendMsg(msg: Record<string, unknown>): void {
+    const ws = this.ws;
+    if (!ws || !this.sec) return;
+    ws.send(this.sec.tx.seal(new TextEncoder().encode(JSON.stringify(msg))));
   }
 
   /** The page became visible: if there is no live socket, retry right now. */
@@ -159,6 +191,9 @@ export class Connection {
     this.ws = ws;
     this.welcomed = false;
     this.nextId = 0;
+    this.hs = null;
+    this.sec = null;
+    ws.binaryType = "arraybuffer";
     ws.onopen = () => {
       if (this.ws === ws) this.sendFirst(ws);
     };
@@ -178,18 +213,55 @@ export class Connection {
     }, ATTEMPT_MS);
   }
 
+  /** Step 1 of the v2 handshake. This client never falls back to protocol v1. */
   private sendFirst(ws: WebSocketLike): void {
+    const cn = randomBytes(16);
+    let hello: Record<string, unknown>;
     if (this.pairCode !== null) {
-      ws.send(JSON.stringify({ t: "pair", v: PROTOCOL_VERSION, code: this.pairCode, client: this.d.clientInfo }));
-      return;
+      const mode = this.pairSecret !== null ? "pair_qr" : "pair_code";
+      this.hs = { mode, cn, sent: null };
+      hello = { t: "hello2", v: PROTOCOL_VERSION, mode, cn: toB64u(cn), client: this.d.clientInfo };
+    } else {
+      const deviceId = this.d.deviceId();
+      if (this.d.token() === null || deviceId === null) {
+        this.stop();
+        this.d.onFatal("UNAUTHORIZED");
+        return;
+      }
+      this.hs = { mode: "device", cn, sent: null };
+      hello = { t: "hello2", v: PROTOCOL_VERSION, mode: "device", deviceId, cn: toB64u(cn), client: this.d.clientInfo };
     }
-    const token = this.d.token();
-    if (token === null) {
+    ws.send(JSON.stringify(hello));
+  }
+
+  /** Steps 2-3: the `challenge` arrived; derive the keys and prove we hold the secret. */
+  private onChallenge(sn: Uint8Array): void {
+    const hs = this.hs;
+    const ws = this.ws;
+    if (!hs || !ws || hs.sent) return;
+    this.clearAttempt(); // the right PC answered; PBKDF2 may take a while on a slow phone
+    let ikm: Uint8Array;
+    if (hs.mode === "device") ikm = kDev(this.d.token() ?? "");
+    else if (hs.mode === "pair_qr") ikm = this.pairSecret ?? new Uint8Array(32);
+    else ikm = sCode(this.pairCode ?? "", hs.cn, sn);
+    const keys = deriveKeys(ikm, hs.cn, sn);
+    hs.sent = { keys, sn };
+    ws.send(JSON.stringify({ t: "auth", mac: toB64u(mac(keys.auth, "C", hs.cn, sn)) }));
+  }
+
+  /** Step 5: the PC must prove the same; a forged `auth_ok` ends the connection for good (until a manual retry). */
+  private onAuthOk(received: Uint8Array | null): void {
+    const hs = this.hs;
+    if (!hs?.sent) return;
+    const expected = mac(hs.sent.keys.auth, "S", hs.cn, hs.sent.sn);
+    if (received === null || !macEquals(expected, received)) {
+      this.rejectPairing({ code: "SERVER_MISMATCH" });
       this.stop();
-      this.d.onFatal("UNAUTHORIZED");
+      this.d.onFatal("SERVER_MISMATCH");
       return;
     }
-    ws.send(JSON.stringify({ t: "hello", v: PROTOCOL_VERSION, token, client: this.d.clientInfo }));
+    this.sec = { tx: new Sealer(hs.sent.keys.c2s), rx: new Opener(hs.sent.keys.s2c) };
+    this.hs = null;
   }
 
   private cycleFailed(): void {
@@ -231,20 +303,41 @@ export class Connection {
   // ----- incoming frames -----
 
   private handleFrame(data: unknown): void {
+    let text: string;
+    if (this.sec) {
+      // After the handshake only encrypted binary frames are accepted; any failure of the checks ends the link.
+      const bytes =
+        data instanceof ArrayBuffer ? new Uint8Array(data) : ArrayBuffer.isView(data) ? new Uint8Array(data.buffer, data.byteOffset, data.byteLength) : null;
+      const plain = bytes ? this.sec.rx.open(bytes) : null;
+      if (plain === null) return this.socketClosed();
+      text = new TextDecoder().decode(plain);
+    } else {
+      if (typeof data !== "string") return; // no binary frame is expected before auth_ok
+      text = data;
+    }
     let msg: ServerMsg;
     try {
-      msg = JSON.parse(String(data)) as ServerMsg;
+      msg = JSON.parse(text) as ServerMsg;
     } catch {
       return;
     }
     if (typeof msg !== "object" || msg === null) return;
+
+    if (!this.sec) {
+      // Handshake phase: only these three messages mean anything.
+      if (msg.t === "challenge") this.onChallenge(fromB64u(msg.sn) ?? new Uint8Array(0));
+      else if (msg.t === "auth_ok") this.onAuthOk(fromB64u(msg.mac));
+      else if (msg.t === "error") this.onError(msg.code);
+      return;
+    }
     if (this.welcomed) this.resetWatchdog();
 
     switch (msg.t) {
       case "paired":
-        this.pairCode = null; // later reconnects use the saved token
+        // Pairing is done: the connection ends and the caller reconnects as a device with the saved token.
         this.pairing?.resolve(msg);
         this.pairing = null;
+        this.stop();
         break;
       case "welcome":
         this.onWelcomeMsg(msg);
@@ -301,7 +394,7 @@ export class Connection {
 
   private schedulePing(): void {
     this.pingTimer = this.d.setTimeout(() => {
-      this.ws?.send(JSON.stringify({ t: "ping", ts: this.d.now() }));
+      this.sendMsg({ t: "ping", ts: this.d.now() });
       this.schedulePing();
     }, PING_MS);
   }
@@ -350,6 +443,8 @@ export class Connection {
     const ws = this.ws;
     this.ws = null;
     this.welcomed = false;
+    this.hs = null;
+    this.sec = null;
     this.clearAttempt();
     this.clearHeartbeat();
     if (!ws) return;
