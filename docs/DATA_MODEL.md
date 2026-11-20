@@ -135,7 +135,7 @@ export interface DisplaySettings {
   wallpaper?: "aurora" | "sunset" | "ocean" | "graphite" | "album"; // M13: только тема glass; отсутствует = "aurora"
   keyFace?: "standard" | "full";   // M14: стиль кнопок по умолчанию, DESIGN.md §2.1; отсутствует = "standard"
   keyLabels?: boolean;             // M14: показывать подписи кнопок по умолчанию; отсутствует = true
-  language?: "auto" | "en" | "ru"; // M14: язык интерфейса, DESIGN.md §6; отсутствует = "auto"
+  language?: "auto" | Language;    // M14: язык интерфейса, DESIGN.md §6; отсутствует = "auto". M19: Language = "en"|"zh"|"hi"|"es"|"ar"|"fr"|"pt"|"ru"|"de"|"ja"|"kk"; неизвестный код при чтении → "auto"
   orientation?: "landscape" | "portrait"; // M14: ориентация телефона, §3.7; отсутствует = "landscape"
 }
 
@@ -700,7 +700,10 @@ export interface PageTemplate {
 // /shared/src/catalog.ts
 export interface CatalogItem {
   id: string;                          // "media.shuffle", "audio.mic"; уникален
-  label: { en: string; ru: string };   // подпись кнопки, ≤ 10 символов на обоих языках
+  // M19: все { en: string; ru: string } каталога, наборов и шаблонов → LocalizedText = { en: string } & Partial<Record<Language, string>>;
+  // выбор — pickText(text, lang): нужный язык, иначе en. Тест каталога требует все 11 языков у каждого текста.
+  // Шаблоны: nameRu (T17.6) → names: LocalizedText без en (en — прежнее name).
+  label: { en: string; ru: string };   // подпись кнопки, ≤ 10 символов на обоих языках (M19: ≤ 12 на любом языке)
   name: { en: string; ru: string };    // имя в библиотеке и в actions.json, ≤ 40
   icon: string;                        // "lucide:<имя>" или "ph:<имя>" (Phosphor; окно превращает в img: через icon_from_svg при создании)
   color?: string;                      // только сервисы и опасные действия, см. DESIGN.md §2.4
