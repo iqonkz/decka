@@ -60,6 +60,10 @@ export type KeyName = string; // см. 2.2
 
 Исполнение `hotkey`: клавиши нажимаются в порядке массива (press), затем отпускаются в обратном порядке (release). Пример `["ctrl","shift","esc"]`.
 
+**Исправление 2026-11-20 (T17.7).** Буквы, цифры и знаки нажимаются **виртуальным кодом клавиши**, а не символом. Раньше был `Key::Unicode`: при русской раскладке у `b` нет клавиши, enigo отправлял символ (`KEYEVENTF_UNICODE`), Windows игнорировал модификаторы, и вместо `Ctrl+B` в документ печаталась буква.
+- Коды: `a`..`z` → `0x41..0x5A`; `0`..`9` → `0x30..0x39`; `period` `0xBE`, `comma` `0xBC`, `minus` `0xBD`, `equal` `0xBB`, `slash` `0xBF`, `semicolon` `0xBA` (enigo 0.6.1: `Key::Other(vk)`).
+- Пауза 10 мс между нажатиями клавиш сочетания. Удержание 30 мс до отпускания: Office и оболочка Windows (`Win+V`, `Win+.`) иначе пропускают быстрые сочетания.
+
 ### 2.3 Семантика и валидация
 
 | type | Исполнение на Windows | Валидация |
@@ -480,6 +484,8 @@ export interface DeviceInfo { id: Id; name: string; createdAt: number; lastSeenA
 
 ### 6.5 График нагрузки (M15)
 
+**Исправление 2026-11-20 (T17.7).** Запись и сброс истории вызывались из хука `useDeckProps`, а он работает в каждой смонтированной странице, в полосе и во всплывающей группе. Монтирование соседней страницы при малейшем свайпе сбрасывало график, а одно значение записывалось несколько раз. Теперь история (и `ai`) пишется в одном месте — в store при приёме `welcome` / `patch sys` и сбрасывается только при новом соединении.
+
 `sys` с `graph: true`: клиент хранит последние 60 значений `cpu` и `ram` (≈ 2 мин при опросе 2 с), очищает при переподключении. Линия толщиной 1.5 px, под ней заливка цветом линии с непрозрачностью 0.15; CPU — `#3b82f6`, RAM — `#a855f7` (для Material — акцент и вторичный тон). Текущие значения цифрами справа сверху. Сеть и диск — как раньше, строкой снизу при `h = 2`.
 
 ### 6.6 Звук: сборщик и ползунок (M15)
@@ -487,6 +493,8 @@ export interface DeviceInfo { id: Id; name: string; createdAt: number; lastSeenA
 - **Сборщик `audio`** (агент): раз в 500 мс читает Core Audio — громкость устройства вывода по умолчанию (`GetMasterVolumeLevelScalar`, 0..100 целым), mute вывода и mute микрофона по умолчанию. Публикует `vars`: `audio.volume`, `audio.muted`, `mic.muted`; изменения рассылаются, только если значение поменялось. Нет устройства → переменная удаляется.
 - **Сборщик `media`** дополнительно публикует `media.playing`, `media.shuffle`, `media.repeat` (переменные для `bind`).
 - **Ползунок `volume`** — телефон по-прежнему шлёт **только `press` с `actionId`** (правило безопасности): перетаскивание по дорожке переводится в число шагов по 2% (шаг клавиши громкости Windows) и отправляется нажатиями `upAction`/`downAction`, не чаще 15 в секунду; во время перетаскивания ползунок показывает ожидаемое значение, после отпускания через 600 мс — значение `audio.volume`. Тап по значку динамика → `muteAction`. Нет переменной `audio.volume` → ползунок серый, работают только `+` / `−` по тапу на концах.
+
+**Исправление 2026-11-20 (T17.7).** Ползунок зацикливался на ±2: при нечётной громкости (37 → цель 40) до цели оставался 1%, `Math.round(0.5) = 1` давал шаг, и ползунок перескакивал 39 ↔ 41. Теперь `volumeSteps` считает шаги через `Math.floor(|diff| / 2)`: разница меньше шага — это «на месте».
 
 ### 6.7 Таймер (M15)
 
@@ -529,6 +537,14 @@ export interface DeviceInfo { id: Id; name: string; createdAt: number; lastSeenA
    - `deny` → `{"hookSpecificOutput":{"hookEventName":"PermissionRequest","decision":{"behavior":"deny","message":"Denied from the Decka phone panel"}}}`;
    - `pc` или таймаут → 200 с пустым телом (вопрос появится в терминале).
    Каждый исход удаляет запрос из `pending` и рассылает `patch ai`. Первый ответ побеждает; повторные `perm_answer` с тем же `reqId` игнорируются.
+
+**Лимиты Claude без строки статуса (T17.7, 2026-11-20, пересмотр D-48).** Расширение Claude Code для VS Code не выполняет `statusLine`. У владельца так и есть: установка верная, но данных нет. Поэтому добавлен второй источник, **включается явно**: `config.ai.claude.accountLimits: boolean`, по умолчанию `false`.
+- **Как получаем:** раз в 5 мин читаем `%USERPROFILE%\.claude\.credentials.json` → `claudeAiOauth.accessToken` и `expiresAt` (мс). Затем `GET https://api.anthropic.com/api/oauth/usage` с заголовками `Authorization: Bearer <accessToken>`, `anthropic-beta: oauth-2025-04-20`, `User-Agent: decka-agent/<версия>`, таймаут 10 с.
+- **Ответ** (недокументированный, разбирать терпимо): `five_hour` и `seven_day` → `{ utilization: number 0..100, resets_at: ISO-строка | null }` → окна `5h` / `7d`. Неизвестные поля игнорируются; нет ни одного окна → данные не меняются.
+- **Токен:** никуда не сохраняется и не логируется, читается из файла перед каждым запросом и уходит только на `api.anthropic.com` (вшит, S18). Токен истёк (`expiresAt` в прошлом) или ответ 401/403 → запроса нет до следующего цикла. Статус в окне: `Open Claude Code once to refresh the sign-in`. Файла нет → `Not signed in to Claude Code`.
+- **Приоритет:** данные строки статуса новее 5 мин важнее. Иначе — данные аккаунта.
+- **Окно** (`AI coding`): переключатель `Read limits from my Claude account (needed for the VS Code extension)`, под ним мелко `Decka reads the Claude Code sign-in on this PC and asks Anthropic for your usage. Nothing else is sent.`
+- **Виджет:** при `claude = null` подсказка меняется на `Using VS Code? Turn on "Read limits from my Claude account" in Decka`.
 
 **Codex** (`codex.enabled`): раз в 60 с найти самый новый `rollout-*.jsonl` в `%USERPROFILE%\.codex\sessions\YYYY\MM\DD\` — идти по папкам дат по убыванию, не сканировать всё дерево; смотреть не дальше 14 последних дней. Прочитать последние 256 КБ файла, найти последнюю строку с `"rate_limits"` и взять `payload.rate_limits`:
 ```json
@@ -769,6 +785,10 @@ Windows перехватывает часть сочетаний (`Win+D`, `Win+
   - **Шаг 0 (проверка, ≤ 30 мин):** работает ли API в непакетном exe агента — `RequestAccessAsync` из потока окна, затем `GetNotificationsAsync(Toast)`.
   - Не работает (ошибка доступа или `Denied` без запроса пользователю) → запись в BLOCKERS.md, пункт пропускается целиком. Пакеты с внешним расположением (sparse package) и чтение базы `wpndatabase.db` — **не делать**: это решение архитектора.
 - **Включение:** `More → Integrations → Windows notifications`: переключатель → `RequestAccessAsync` → Windows показывает свой запрос → статус `Allowed` / `Blocked in Windows Settings → Privacy → Notifications`. По умолчанию выключено. Список `Don't show from:` — приложения, уже присылавшие уведомления; отмечаются флажками.
+- **Исправление 2026-11-20 (T17.7).** У владельца уведомления не включены: в `config.json` нет `windowsNotifications`, виджет пуст. Поэтому:
+  1. Пока функция выключена, пустой виджет `notifications` показывает `Windows notifications are off` и подпись `Turn on in Decka → Integrations → Windows notifications`. Кнопки включения на телефоне нет: телефон не меняет настройки ПК. Состояние агент сообщает переменной `notif.windows` (bool; префикс `notif.` зарезервирован).
+  2. Первый показ виджета, когда функция выключена: агент один раз показывает уведомление Decka в Windows `Show Windows notifications on the phone? Turn on in Decka`. Клик открывает окно на этом разделе. Флаг `winNotifOffered` в конфиге.
+  3. При включении уже лежащие в Центре уведомлений тосты (до 20, новые первыми) сразу попадают в секцию. Раньше первый проход их только запоминал, и виджет оставался пустым до нового уведомления.
 - **Чтение:** событие `NotificationChanged` (Added), а если подписка недоступна для непакетного приложения — опрос `GetNotificationsAsync` раз в 3 с с запоминанием виденных `Id`. Из уведомления берутся: `AppInfo.DisplayInfo.DisplayName`, `AppInfo.AppUserModelId` и тексты привязки `ToastGeneric` (первый — title, остальные через перевод строки — body). Обрезка 120/500. Уведомления Decka не пересылаются.
 - **Доставка:** в существующую секцию `notifications` (≤ 20, новые первыми) с полями `source: "windows"`, `app` (отображаемое имя), `openable: true` (AUMID известен). Иконка приложения — через хранилище иконок `img:<hash16>` (§8.1), если её удаётся получить из `AppInfo.DisplayInfo.GetLogo`, иначе без иконки. Снятие уведомления в Windows (Removed) убирает его и с телефона. `notif_dismiss` на телефоне скрывает только у Decka, в Windows не удаляет.
 - **Открыть:** тап по уведомлению на телефоне → `notif_open{notifId}`. Агент по своему `notifId` находит AUMID и запускает `explorer.exe shell:AppsFolder\<AUMID>` (`Command`, без shell). Это открывает или активирует программу. Нет AUMID или уведомление удалено → `press_result`-подобного ответа нет, ошибка пишется в лог. Телефон ничего не передаёт, кроме `notifId` (S21).
@@ -836,7 +856,10 @@ Windows перехватывает часть сочетаний (`Win+D`, `Win+
 
 ### 10.9 Переворот телефона
 Ориентация раскладки (`display.orientation`, §3.7) не меняется. Сторону, которой стоит телефон, выбирает сам телефон и хранит у себя: `localStorage` `decka.turn.v1` = `"auto" | "normal" | "flipped"`, по умолчанию `auto`.
-- `auto` → блокировка `landscape` / `portrait`: датчик сам выбирает одну из двух сторон, и телефон можно ставить зарядным разъёмом вверх или вниз.
+- `auto` → датчик сам выбирает одну из двух сторон, и телефон можно ставить зарядным разъёмом вверх или вниз.
+  - **Исправление 2026-11-20 (T17.7):** `@capacitor/screen-orientation` 8.0.2 переводит `landscape` в `SCREEN_ORIENTATION_LANDSCAPE` — жёстко обычная сторона, датчик не работает. Поэтому `auto` идёт не через плагин, а через свой маленький Capacitor-плагин в `client/android` (`DeckaTurn.setSensor({ portrait: boolean })` → `activity.setRequestedOrientation(SCREEN_ORIENTATION_SENSOR_LANDSCAPE | SENSOR_PORTRAIT)` в UI-потоке).
+  - `SENSOR_*` поворачивает экран даже при выключенном автоповороте в Android — так и нужно для подставки.
+  - `normal` / `flipped` по-прежнему идут через плагин. В веб-режиме ничего не делается.
 - `normal` → `landscape-primary` / `portrait-primary`.
 - `flipped` → `landscape-secondary` / `portrait-secondary`.
 - Меню телефона (DESIGN.md §4.3): пункт `Turn` с тремя вариантами `Auto` / `Normal` / `Upside down`. Применяется сразу, без перезапуска; в веб-режиме пункт скрыт.

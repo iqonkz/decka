@@ -141,6 +141,20 @@ npm run typecheck; npm test; cargo test -p decka-core; npm run release:agent; np
    - `https://api.github.com/repos/iqonkz/decka/releases/latest` → `v0.8.0`.
 6. `target\debug` > 20 ГБ → `cargo clean --profile dev`.
 
+### T17.7 — Ошибки из отзыва владельца (2026-11-20)
+Причины найдены архитектором по коду. Ниже — что исправить и где.
+1. **Сочетания в Word, браузере, `Win+V`; «быстрые кнопки печатают в ячейки»** — одна причина: `agent/core/src/actions/keys.rs` отдаёт буквы как `Key::Unicode`. Исправление — DATA_MODEL.md §2.2, «Исправление 2026-11-20»: виртуальные коды и паузы в `actions/windows.rs::hotkey`. Тест: `map_key` для `a`, `z`, `0`, `period`, `slash` даёт `Key::Other(<код>)`, ни одна клавиша сочетаний не даёт `Key::Unicode`.
+2. **Громкость ±2:** `ui/src/widgets/volumeSteps.ts` — §6.6, исправление. Тест: от 37 к 40, от 41 к 40, от 0 к 100 — последовательность шагов конечна и не меняет направление.
+3. **График CPU/RAM сбрасывается:** `client/src/deck/useDeckProps.ts` — эффекты `recordSys`/`resetSysHistory`/`recordAi`/`resetAiHistory` перенести в `client/src/store/store.ts` (приём `welcome` и `patch`) — §6.5, исправление. Тест store: два `patch sys` → в истории ровно 2 точки, сколько бы DeckBridge ни было смонтировано; новое соединение → история пуста.
+4. **Уведомления Windows пустые:** §10.4, «Исправление 2026-11-20» (подпись в пустом виджете, `notif.windows`, одно предложение в Windows, существующие тосты сразу). Тест: первый проход с 3 тостами при включённой функции даёт 3 уведомления.
+5. **Claude «данных пока нет»:** VS Code не выполняет `statusLine`. Нужен второй источник `accountLimits` — §6.8, абзац «Лимиты Claude без строки статуса». Тесты: разбор ответа (фикстура `{"five_hour":{"utilization":23.5,"resets_at":"2026-11-20T15:00:00Z"},"seven_day":{"utilization":41,"resets_at":null},"extra":1}`); истёкший `expiresAt` → нет запроса; приоритет свежей строки статуса. Настоящий `.credentials.json` в тестах не читать, путь — параметром.
+6. **Material:** фон `#000000` — DESIGN.md §1.3.
+7. **Переворот `Auto` не работает:** плагин отдаёт жёсткую `LANDSCAPE`. Свой плагин `DeckaTurn` — DATA_MODEL.md §10.9, исправление. Тест: `orientationLock` / выбор пути (`auto` → `DeckaTurn`, остальные → плагин) для 6 сочетаний.
+8. **Сборка и выпуск 0.8.1:** `npm run version:bump -- patch`, затем `release:agent`, `release:apk`, `gh release create v0.8.1` (как v0.8.0), `git push`, `git push --tags`; `latest` → `v0.8.1`. Только при зелёных тестах.
+```
+npm run typecheck; npm test; cargo test -p decka-core 2>&1 | Select-String "test result"
+```
+
 ## Что ещё открыто
 - **Ручные проверки владельца:** `docs/MANUAL_CHECKS.md`, пункты `PENDING (owner)`.
 - **Вопрос Q-9** — `docs/OPEN_QUESTIONS.md`. Twitch и YouTube уже сделаны (v0.5–v0.6); открыт Discord.

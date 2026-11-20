@@ -45,7 +45,7 @@
 ### 1.3 Material — по мотивам Material 3 (тёмная схема)
 
 - Палитра генерируется из акцентного цвета `display.accent` (по умолчанию `#7c5cff`) библиотекой `@material/material-color-utilities` 0.4.0: `SchemeTonalSpot` (или эквивалент API этой версии), `isDark = true`, contrast 0. Используются роли: `surface`, `surfaceContainer`, `surfaceContainerHigh`, `onSurface`, `onSurfaceVariant`, `primary`, `primaryContainer`, `onPrimaryContainer`, `outlineVariant`.
-- Фон экрана: `surface`. Клавиша: `surfaceContainerHigh`, иконка `onSurface`, подпись `onSurfaceVariant`, вес 500. Обводки и тени нет (тональная глубина вместо теней).
+- Фон экрана: **`#000000`** (решение владельца 2026-11-20: на AMOLED чёрные пиксели не светятся, а фон — самая большая площадь; было `surface`, серое на сером). Окно настроек и превью используют тот же чёрный. Клавиша: `surfaceContainerHigh`, иконка `onSurface`, подпись `onSurfaceVariant`, вес 500. Обводки и тени нет (тональная глубина вместо теней).
 - Цветная клавиша: для её `color` генерируется своя схема (тот же алгоритм, seed = `color`, кэш по цвету); фон `primaryContainer`, иконка и подпись `onPrimaryContainer`.
 - Радиус: `0.24 × side`; при нажатии радиус анимируется до `0.36 × side` (морфинг формы) и поверх — слой состояния `onSurface` с непрозрачностью 0.12; отпускание — обратно за 150 мс.
 - Пульсация состояния `pending` — кольцо цвета `primary`.
