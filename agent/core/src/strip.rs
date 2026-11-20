@@ -101,6 +101,17 @@ mod tests {
     }
 
     #[test]
+    fn the_captions_come_in_the_languages_of_the_overlays() {
+        let layout = layout_with_page_for(None);
+        let templates = crate::templates::all();
+        let caption = |lang: &str| strip_for(Some("winword.exe"), &layout, &templates, lang).unwrap().keys[0].label.clone();
+        assert_eq!(caption("es"), "Negrita");
+        assert_eq!(caption("kk"), "Жуан");
+        let browser = strip_for(Some("chrome.exe"), &layout, &templates, "es").map(|s| s.name);
+        assert_eq!(browser.as_deref(), Some("Navegador"));
+    }
+
+    #[test]
     fn the_icon_is_set_when_the_exe_is_installed() {
         let app = |program: &str| crate::installed::InstalledApp { name: "x".into(), program: program.into(), args: vec![], cwd: None, icon: None };
         let strip = strip_for(Some("winword.exe"), &layout_with_page_for(None), &crate::templates::all(), "en").unwrap();

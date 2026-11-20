@@ -5,7 +5,7 @@ import { CATALOG, LANGUAGES, LANGUAGE_NAMES, SETS, TABLES, en, isRtl, languageOr
  * The languages whose dictionaries are translated (the `TODO translate` header is gone). The strict checks run for these only;
  * each translation task of M19 adds its languages here.
  */
-const TRANSLATED: Language[] = ["ru"];
+const TRANSLATED: Language[] = ["ru", "es", "kk"];
 
 /** Strings that may be the same in every language: product and technology names, units that are written the same. */
 const SAME_IN_ALL = new Set<string>(["USB", "Wi-Fi", "QR", "Decka", "AMOLED", "Studio", "Material", "Glass", "Phosphor", "OK", "Decka {version}", "OBS", "OBS Studio", "Claude", "Codex", "Claude Code", "Twitch", "YouTube", "REC", "LIVE", "Weather data by Open-Meteo.com (CC BY 4.0)"]);
@@ -132,7 +132,9 @@ describe("the dictionaries", () => {
   test("a translated language has the plural forms its rules use", () => {
     const bases = [...new Set(Object.keys(en).filter((k) => k.endsWith(".other")).map((k) => k.slice(0, -6)))];
     for (const lang of TRANSLATED) {
-      const categories = new Intl.PluralRules(lang).resolvedOptions().pluralCategories;
+      // The categories the language really uses for whole numbers (Spanish and French have `many` only for millions).
+      const rules = new Intl.PluralRules(lang);
+      const categories = new Set(Array.from({ length: 201 }, (_, n) => rules.select(n)));
       for (const base of bases) for (const category of categories) expect(TABLES[lang], `${lang}: ${base}.${category}`).toHaveProperty(`${base}.${category}`);
     }
   });
