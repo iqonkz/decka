@@ -781,6 +781,9 @@ pub struct AiClaudeConfig {
     pub approvals: bool,
     /// 60 | 120 | 300.
     pub timeout_sec: u32,
+    /// Read the limits from the Claude account (needed for the VS Code extension, which has no statusline); off by default.
+    #[serde(default)]
+    pub account_limits: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

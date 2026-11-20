@@ -1,5 +1,6 @@
 //! AI coding helpers (DATA_MODEL.md 6.8): the limits Claude Code and Codex write on this PC, and the permission questions of
-//! Claude Code answered from the phone. Everything is local: nothing here talks to the internet and no OAuth token is read.
+//! Claude Code answered from the phone. Everything is local, except the opt-in `accountLimits` poll (the sign-in token goes
+//! only to api.anthropic.com).
 
 use std::collections::{BTreeMap, VecDeque};
 use std::io::{Read, Seek, SeekFrom};
@@ -378,6 +379,8 @@ struct Data {
     rules_dirty: bool,
     active: bool,
     claude: Option<AiProvider>,
+    /// When the statusline last brought limits (ms); account data does not overwrite fresher ones.
+    status_at: Option<u64>,
     codex: Option<AiProvider>,
     sessions: Vec<AiSession>,
     pending: Vec<Pending>,
@@ -519,6 +522,19 @@ impl AiHub {
         }
     }
 
+    /// Limits read from the Claude account: used only when no statusline reading is fresher than 5 minutes.
+    pub fn set_account_claude(&self, windows: Vec<AiWindow>, now_ms: u64) {
+        let mut d = self.data.lock().unwrap();
+        if d.status_at.is_some_and(|at| now_ms.saturating_sub(at) < STATUSLINE_FRESH_MS) {
+            return;
+        }
+        let next = Some(AiProvider { windows, plan: None, updated_at: now_ms });
+        if d.claude != next {
+            d.claude = next;
+            self.flush(&mut d, false);
+        }
+    }
+
     pub fn set_codex(&self, codex: Option<AiProvider>) {
         let mut d = self.data.lock().unwrap();
         if d.codex != codex {
@@ -542,6 +558,7 @@ impl AiHub {
         if let Some(s) = s {
             if let Some(windows) = s.windows {
                 d.claude = Some(AiProvider { windows, plan: None, updated_at: now_ms });
+                d.status_at = Some(now_ms);
             }
             if let Some(id) = s.session {
                 let session = AiSession { id: id.clone(), project: s.project, model: s.model, ctx_pct: s.ctx_pct, last_seen: now_ms };
@@ -755,6 +772,79 @@ pub fn parse_timestamp_ms(s: &str) -> Option<u64> {
     let days = era * 146097 + yoe * 365 + yoe / 4 - yoe / 100 + doy - 719468;
     let total_ms = ((days * 24 + hh) * 60 + mm - offset_min) as f64 * 60_000.0 + secs * 1000.0;
     (total_ms >= 0.0).then_some(total_ms as u64)
+}
+
+// ===== Claude account limits (DATA_MODEL.md 6.8, "Лимиты Claude без строки статуса") =====
+
+/// The only host the sign-in token is ever sent to (ARCHITECTURE.md S18).
+pub const ACCOUNT_USAGE_URL: &str = "https://api.anthropic.com/api/oauth/usage";
+/// How often the account is asked.
+pub const ACCOUNT_POLL: Duration = Duration::from_secs(300);
+/// Statusline data newer than this wins over the account data.
+pub const STATUSLINE_FRESH_MS: u64 = 300_000;
+
+/// Why no account data could be read; the window shows a hint for each.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AccountError {
+    /// No credentials file: `Not signed in to Claude Code`.
+    NotSignedIn,
+    /// The token has expired or was refused: `Open Claude Code once to refresh the sign-in`.
+    Expired,
+}
+
+/// The access token of the Claude Code sign-in in `credentials` (the text of `.credentials.json`). The token is never logged.
+pub fn oauth_token(credentials: &str, now_ms: u64) -> Result<String, AccountError> {
+    let v: Value = serde_json::from_str(credentials).map_err(|_| AccountError::NotSignedIn)?;
+    let oauth = v.get("claudeAiOauth").ok_or(AccountError::NotSignedIn)?;
+    let token = oauth.get("accessToken").and_then(Value::as_str).filter(|t| !t.is_empty()).ok_or(AccountError::NotSignedIn)?;
+    if oauth.get("expiresAt").and_then(Value::as_u64).is_some_and(|at| at <= now_ms) {
+        return Err(AccountError::Expired);
+    }
+    Ok(token.to_string())
+}
+
+/// The windows of an `/api/oauth/usage` answer; unknown fields are ignored, no usable window = `None`.
+pub fn parse_account_usage(body: &str, now_ms: u64) -> Option<Vec<AiWindow>> {
+    let v: Value = serde_json::from_str(body).ok()?;
+    let window = |key: &str, label: &str| -> Option<AiWindow> {
+        let w = v.get(key)?;
+        let pct = w.get("utilization")?.as_f64()?;
+        // A window without a reset time stays until the next poll replaces it.
+        let resets_at = w.get("resets_at").and_then(Value::as_str).and_then(parse_timestamp_ms).unwrap_or(now_ms + 7 * 24 * 3_600_000);
+        Some(AiWindow { label: label.to_string(), pct: pct1(pct), resets_at })
+    };
+    let windows: Vec<AiWindow> = [window("five_hour", "5h"), window("seven_day", "7d")].into_iter().flatten().collect();
+    (!windows.is_empty()).then_some(windows)
+}
+
+/// One poll: reads the token from `credentials_path` (a parameter, so tests never touch the real file) and asks `url`.
+/// `Ok(None)` = the answer had no usable window.
+pub async fn fetch_account_limits(credentials_path: &Path, url: &str, now_ms: u64) -> Result<Option<Vec<AiWindow>>, AccountError> {
+    let text = std::fs::read_to_string(credentials_path).map_err(|_| AccountError::NotSignedIn)?;
+    let token = oauth_token(&text, now_ms)?;
+    let client = reqwest::Client::builder().timeout(Duration::from_secs(10)).build().map_err(|_| AccountError::Expired)?;
+    let response = client
+        .get(url)
+        .bearer_auth(&token)
+        .header("anthropic-beta", "oauth-2025-04-20")
+        .header("User-Agent", format!("decka-agent/{}", crate::VERSION))
+        .send()
+        .await
+        .ok();
+    let Some(response) = response else { return Ok(None) };
+    if matches!(response.status().as_u16(), 401 | 403) {
+        return Err(AccountError::Expired);
+    }
+    if !response.status().is_success() {
+        return Ok(None);
+    }
+    let body = response.text().await.unwrap_or_default();
+    Ok(parse_account_usage(&body, now_ms))
+}
+
+/// `%USERPROFILE%\.claude\.credentials.json`.
+pub fn credentials_path(home: &Path) -> PathBuf {
+    home.join(".claude").join(".credentials.json")
 }
 
 /// The last `rate_limits` of a Codex rollout text (the tail of the file). `updated_at` is filled by the caller.
@@ -1030,6 +1120,46 @@ pub fn state_of(home: &Path) -> (bool, bool) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    const USAGE: &str = r#"{"five_hour":{"utilization":23.5,"resets_at":"2026-11-20T15:00:00Z"},"seven_day":{"utilization":41,"resets_at":null},"extra":1}"#;
+
+    #[test]
+    fn account_usage_answer_is_parsed_tolerantly() {
+        let now = 1_000;
+        let windows = parse_account_usage(USAGE, now).unwrap();
+        assert_eq!((windows[0].label.as_str(), windows[0].pct, windows[0].resets_at), ("5h", 23.5, parse_timestamp_ms("2026-11-20T15:00:00Z").unwrap()));
+        assert_eq!((windows[1].label.as_str(), windows[1].pct), ("7d", 41.0));
+        assert!(windows[1].resets_at > now);
+        assert!(parse_account_usage(r#"{"extra":1}"#, now).is_none());
+        assert!(parse_account_usage("not json", now).is_none());
+    }
+
+    #[tokio::test]
+    async fn an_expired_sign_in_makes_no_request() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join(".credentials.json");
+        std::fs::write(&path, r#"{"claudeAiOauth":{"accessToken":"fake-token","expiresAt":5}}"#).unwrap();
+        assert_eq!(oauth_token(&std::fs::read_to_string(&path).unwrap(), 10), Err(AccountError::Expired));
+        // The URL cannot be reached: reaching it would be an error other than `Expired`.
+        let got = fetch_account_limits(&path, "http://127.0.0.1:1/usage", 10).await;
+        assert_eq!(got, Err(AccountError::Expired));
+        assert_eq!(fetch_account_limits(&dir.path().join("none.json"), "http://127.0.0.1:1/usage", 10).await, Err(AccountError::NotSignedIn));
+        assert_eq!(oauth_token(r#"{"claudeAiOauth":{"accessToken":"t","expiresAt":50}}"#, 10), Ok("t".to_string()));
+    }
+
+    #[test]
+    fn a_fresh_statusline_beats_account_data() {
+        let hub = hub();
+        let account = |pct| vec![AiWindow { label: "5h".into(), pct, resets_at: u64::MAX / 2 }];
+        hub.set_account_claude(account(10.0), 1_000);
+        assert_eq!(hub.data.lock().unwrap().claude.as_ref().unwrap().windows[0].pct, 10.0);
+        let body = br#"{"session_id":"abcdef12","cwd":"C:\\p","rate_limits":{"five_hour":{"used_percentage":30,"resets_at":99999999999}}}"#;
+        hub.statusline(parse_statusline(body), 2_000);
+        hub.set_account_claude(account(10.0), 3_000); // statusline is 1 s old: ignored
+        assert_eq!(hub.data.lock().unwrap().claude.as_ref().unwrap().windows[0].pct, 30.0);
+        hub.set_account_claude(account(11.0), 2_000 + STATUSLINE_FRESH_MS); // stale now: the account wins
+        assert_eq!(hub.data.lock().unwrap().claude.as_ref().unwrap().windows[0].pct, 11.0);
+    }
 
     fn hub() -> Arc<AiHub> {
         let hub = AiHub::new(Store::new(json!({})));

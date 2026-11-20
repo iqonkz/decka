@@ -12,6 +12,7 @@ import com.getcapacitor.BridgeActivity;
 public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        registerPlugin(DeckaTurnPlugin.class);
         super.onCreate(savedInstanceState);
         // Safety net in case the keep-awake plugin fails.
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);

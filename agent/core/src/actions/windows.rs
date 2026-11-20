@@ -38,8 +38,10 @@ mod keyboard {
                 return Err(e.to_string());
             }
             pressed.push(key);
+            // Office and the Windows shell drop combos that arrive too fast.
+            std::thread::sleep(Duration::from_millis(10));
         }
-        std::thread::sleep(Duration::from_millis(20));
+        std::thread::sleep(Duration::from_millis(30));
         let mut first_error = None;
         for p in pressed.iter().rev() {
             if let Err(e) = enigo.key(*p, Direction::Release) {

@@ -96,6 +96,10 @@ export default function AiSection({ config, onSaved }: { config: ConfigFile; onS
       </div>
       {installed && status?.statusLineConflict && <Banner kind="warning">{t("aiset.conflict")}</Banner>}
       <label className="check">
+        <input type="checkbox" checked={ai.claude.accountLimits === true} onChange={(e) => void save({ ...ai, claude: { ...ai.claude, accountLimits: e.target.checked } })} /> {t("aiset.account")}
+      </label>
+      <small className="muted block">{t("aiset.account_hint")}</small>
+      <label className="check">
         <input type="checkbox" checked={ai.claude.approvals} onChange={(e) => void save({ ...ai, claude: { ...ai.claude, approvals: e.target.checked } })} /> {t("aiset.approve")}
       </label>
       <div className="row">

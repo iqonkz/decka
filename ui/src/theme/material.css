@@ -1,6 +1,6 @@
 /* Material: tonal surfaces generated from the accent (DESIGN.md 1.3). No outlines, no shadows. */
 [data-theme="material"] {
-  --screen-bg: var(--m-surface);
+  --screen-bg: #000000;
   --k-radius: 0.24;
   --ink: var(--m-on-surface);
   --label-color: var(--m-on-surface-variant);

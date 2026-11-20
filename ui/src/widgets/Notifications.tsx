@@ -7,7 +7,7 @@ import { LEVEL_COLOR } from "./statusOrder";
 const REFRESH_MS = 30_000;
 
 export default function Notifications(_props: { item: NotificationsItem }) {
-  const { notifications: list, onDismiss, onOpenNotification } = useDeckEnv();
+  const { notifications: list, vars, onDismiss, onOpenNotification } = useDeckEnv();
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -15,7 +15,15 @@ export default function Notifications(_props: { item: NotificationsItem }) {
     return () => window.clearInterval(timer);
   }, []);
 
-  if (!list || list.length === 0) return <div className="tile-body notif-empty">{t("widget.no_notifications")}</div>;
+  if (!list || list.length === 0) {
+    const off = vars["notif.windows"] !== true;
+    return (
+      <div className="tile-body notif-empty">
+        {off ? t("widget.notif_off") : t("widget.no_notifications")}
+        {off && <div className="notif-body">{t("widget.notif_off_hint")}</div>}
+      </div>
+    );
+  }
   return (
     // Vertical scrolling stays inside the widget: its pointerdown never reaches the page swipe handler.
     <div className="notifs" onPointerDown={(e) => e.stopPropagation()}>

@@ -39,7 +39,7 @@ export interface YoutubeConfig { enabled: boolean; clientId: string; secret?: st
 export interface TwitchConfig { enabled: boolean; clientId: string; login?: string; userId?: string; tokens?: string; tokensSet?: boolean; }
 /** `hookToken` is made by `cc_install` and never reaches the window. */
 export interface AiConfig {
-  claude: { enabled: boolean; approvals: boolean; timeoutSec: 60 | 120 | 300 };
+  claude: { enabled: boolean; approvals: boolean; timeoutSec: 60 | 120 | 300; accountLimits?: boolean };
   codex: { enabled: boolean; approvals?: boolean };   // approvals: phone approvals for Codex, absent = on
   hookToken?: string;
   replies?: string[];                                 // ready answers of "Deny and say", at most 4 of 1..120 characters; absent = three built-in ones

@@ -25,6 +25,11 @@ export function resetSysHistory(): void {
   listeners.forEach((fn) => fn());
 }
 
+/** The current readings (tests and non-React callers). */
+export function getSysHistory(): SysHistory {
+  return history;
+}
+
 export function useSysHistory(): SysHistory {
   return useSyncExternalStore(
     (fn) => {

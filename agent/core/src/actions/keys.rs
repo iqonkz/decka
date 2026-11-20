@@ -54,13 +54,13 @@ pub fn map_key(name: &str) -> Option<Key> {
         "right" => Key::RightArrow,
         "printscreen" => Key::PrintScr,
         "insert" => Key::Insert,
-        // Punctuation (M15): typed as the character, so the layout of the PC decides the physical key.
-        "period" => Key::Unicode('.'),
-        "comma" => Key::Unicode(','),
-        "minus" => Key::Unicode('-'),
-        "equal" => Key::Unicode('='),
-        "slash" => Key::Unicode('/'),
-        "semicolon" => Key::Unicode(';'),
+        // Punctuation: virtual-key codes (VK_OEM_*), never Unicode, so modifiers stay effective on any layout.
+        "period" => Key::Other(0xBE),
+        "comma" => Key::Other(0xBC),
+        "minus" => Key::Other(0xBD),
+        "equal" => Key::Other(0xBB),
+        "slash" => Key::Other(0xBF),
+        "semicolon" => Key::Other(0xBA),
         _ => return map_char_or_f(name),
     };
     Some(named)
@@ -70,7 +70,8 @@ fn map_char_or_f(name: &str) -> Option<Key> {
     let mut chars = name.chars();
     let first = chars.next()?;
     if chars.next().is_none() {
-        return (first.is_ascii_lowercase() || first.is_ascii_digit()).then_some(Key::Unicode(first));
+        // Letters and digits: VK code equals the upper-case ASCII code.
+        return (first.is_ascii_lowercase() || first.is_ascii_digit()).then(|| Key::Other(u32::from(first.to_ascii_uppercase())));
     }
     let digits = name.strip_prefix('f')?;
     if digits.starts_with('0') || !digits.bytes().all(|b| b.is_ascii_digit()) {
@@ -116,6 +117,16 @@ mod tests {
         assert_eq!(names.len(), 86);
         for n in &names {
             assert!(map_key(n).is_some(), "no mapping for {n}");
+        }
+    }
+
+    #[test]
+    fn characters_use_virtual_key_codes() {
+        for (name, vk) in [("a", 0x41), ("z", 0x5A), ("0", 0x30), ("9", 0x39), ("period", 0xBE), ("slash", 0xBF)] {
+            assert!(matches!(map_key(name), Some(Key::Other(v)) if v == vk), "{name}");
+        }
+        for n in all_names() {
+            assert!(!matches!(map_key(&n), Some(Key::Unicode(_))), "{n} must not be Unicode");
         }
     }
 

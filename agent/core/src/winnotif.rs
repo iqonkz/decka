@@ -175,7 +175,6 @@ fn run(handlers: Handlers, stop: Arc<AtomicBool>) {
     #[cfg(windows)]
     win::init_and_request_access();
     let mut seen: HashSet<u32> = HashSet::new();
-    let mut first = true;
     loop {
         match read_toasts() {
             Ok(now) => {
@@ -183,13 +182,10 @@ fn run(handlers: Handlers, stop: Arc<AtomicBool>) {
                 for toast in &added {
                     (handlers.seen_app)(&toast.app);
                 }
-                // The toasts that were already there when the switch went on are not sent: they are old news.
-                if !first {
-                    added.into_iter().for_each(|t| (handlers.added)(t));
-                    removed.into_iter().for_each(|id| (handlers.removed)(id));
-                }
+                // Toasts already in the Action Center when the switch went on are delivered too (DATA_MODEL.md 10.4).
+                added.into_iter().for_each(|t| (handlers.added)(t));
+                removed.into_iter().for_each(|id| (handlers.removed)(id));
                 seen = now.iter().map(|t| t.id).collect();
-                first = false;
             }
             Err(e) => tracing::debug!("windows notifications: {e}"),
         }
@@ -301,6 +297,13 @@ mod tests {
         let (added, removed) = diff(&seen, &[toast(2), toast(3), toast(4)]);
         assert_eq!(added.iter().map(|t| t.id).collect::<Vec<_>>(), [4]);
         assert_eq!(removed, [1]);
+    }
+
+    #[test]
+    fn the_first_pass_delivers_every_toast_already_there() {
+        let toast = |id| WinToast { id, app: "A".into(), aumid: "A.B!C".into(), texts: vec!["t".into()] };
+        let (added, removed) = diff(&HashSet::new(), &[toast(1), toast(2), toast(3)]);
+        assert_eq!((added.len(), removed.len()), (3, 0));
     }
 
     #[test]

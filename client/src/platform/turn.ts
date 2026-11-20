@@ -36,6 +36,14 @@ export function saveTurn(turn: Turn, storage: Pick<Storage, "setItem"> | undefin
  * The lock the screen gets: `auto` lets the sensor pick either side of the layout's orientation, `normal` the primary side,
  * `flipped` the secondary one (DATA_MODEL.md 10.9).
  */
+export type TurnRoute = { via: "sensor"; portrait: boolean } | { via: "plugin"; lock: OrientationLockType };
+
+/** `auto` goes to the own `DeckaTurn` plugin (sensor); `normal` / `flipped` to the screen-orientation plugin (DATA_MODEL.md 10.9). */
+export function turnRoute(orientation: Orientation | undefined, turn: Turn): TurnRoute {
+  if (turn === "auto") return { via: "sensor", portrait: orientation === "portrait" };
+  return { via: "plugin", lock: orientationLock(orientation, turn) };
+}
+
 export function orientationLock(orientation: Orientation | undefined, turn: Turn): OrientationLockType {
   const base = orientation === "portrait" ? "portrait" : "landscape";
   if (turn === "auto") return base;

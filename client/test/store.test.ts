@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, test } from "vitest";
 import type { PatchMsg, WelcomeMsg } from "@decka/shared";
 import welcomeFixture from "@decka/shared/fixtures/s2c-welcome.json";
+import { getSysHistory, resetSysHistory } from "@decka/ui";
 import { applyPatch, applyWelcome, expireToasts, getState, pushToast, resetState, setState } from "../src/store/store";
 
 const welcome = welcomeFixture as unknown as WelcomeMsg; // rev 42, one page
@@ -32,6 +33,20 @@ describe("applyWelcome", () => {
   });
 });
 
+describe("sys history", () => {
+  const sys = (cpu: number) => ({ cpu, mem: { usedMb: 4000, totalMb: 8000 } });
+  test("every sys patch is one point; a new connection starts afresh", () => {
+    applyWelcome(welcome);
+    resetSysHistory();
+    applyPatch(patch(43, "sys", sys(10)));
+    applyPatch(patch(44, "sys", sys(20)));
+    expect(getSysHistory().cpu).toEqual([10, 20]);
+    applyWelcome(welcome);
+    applyWelcome({ ...welcome, state: { ...welcome.state, sys: undefined } } as unknown as WelcomeMsg);
+    expect(getSysHistory().cpu).toEqual([]);
+  });
+});
+
 describe("applyPatch", () => {
   test("replaces the section and bumps rev", () => {
     applyWelcome(welcome);
@@ -43,9 +58,10 @@ describe("applyPatch", () => {
   test("a sys patch keeps the references of the data the keys read", () => {
     applyWelcome(welcome);
     const before = getState().state!;
-    applyPatch(patch(43, "sys", { cpu: 5 }));
+    const sys = { cpu: 5, mem: { usedMb: 1, totalMb: 2 } };
+    applyPatch(patch(43, "sys", sys));
     const after = getState().state!;
-    expect(after.sys).toEqual({ cpu: 5 });
+    expect(after.sys).toEqual(sys);
     expect(after.vars).toBe(before.vars);
     expect(after.statuses).toBe(before.statuses);
     expect(after.icons).toBe(before.icons);

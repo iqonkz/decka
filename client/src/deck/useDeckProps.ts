@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { t, BACK_PAGE } from "@decka/shared";
-import { EMPTY_DATA, pressErrorTitle, recordAi, recordSys, resetAiHistory, resetSysHistory, type DeckCallbacks, type DeckData } from "@decka/ui";
+import { EMPTY_DATA, pressErrorTitle, type DeckCallbacks, type DeckData } from "@decka/ui";
 import { dismiss, openNotification, press } from "../app/controller";
 import { lastTouchWokeScreen } from "../display/idle";
 import { hapticEvent } from "../platform/haptics";
@@ -55,21 +55,6 @@ export function useDeckProps(): { data: DeckData } & Required<DeckCallbacks> {
     }),
     [online, vars, sys, statuses, notifications, media, weather, obs, ai, twitch, youtube, battery, mail, icons, appPages, focusApp, keyFace, keyLabels],
   );
-
-  // The graph of the `sys` widget: the readings are kept here, outside the widgets, and start again with the connection.
-  useEffect(() => {
-    if (online) resetSysHistory();
-  }, [online]);
-  useEffect(() => {
-    recordSys(sys ?? null);
-  }, [sys]);
-  // The forecast of the `ai` widget: one reading of every limit window per update, kept outside the widget.
-  useEffect(() => {
-    if (online) resetAiHistory();
-  }, [online]);
-  useEffect(() => {
-    recordAi(ai ?? null);
-  }, [ai]);
 
   const onPressError = useCallback((e: { code: string; message?: string }) => {
     hapticEvent({ type: "press_result", ok: false });

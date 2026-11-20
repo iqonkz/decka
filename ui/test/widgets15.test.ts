@@ -13,11 +13,27 @@ describe("volumeSteps", () => {
     expect(VOLUME_STEP).toBe(2);
   });
 
-  test("no move is no press; an odd difference rounds to the nearest step", () => {
+  test("no move is no press; a difference below one step stays put", () => {
     expect(volumeSteps(30, 30).count).toBe(0);
-    expect(volumeSteps(30, 31).count).toBe(1); // 0.5 steps rounds up: the nearest the keys can get
-    expect(volumeSteps(30, 33).count).toBe(2);
-    expect(volumeSteps(33, 30)).toEqual({ action: "down", count: 2 });
+    expect(volumeSteps(30, 31).count).toBe(0);
+    expect(volumeSteps(30, 33).count).toBe(1);
+    expect(volumeSteps(33, 30)).toEqual({ action: "down", count: 1 });
+  });
+
+  test("the press loop is finite and never changes direction", () => {
+    for (const [from, to] of [[37, 40], [41, 40], [0, 100], [100, 0], [1, 2]] as const) {
+      let shown: number = from;
+      const dirs = new Set<string>();
+      let n = 0;
+      for (;; n++) {
+        const { action, count } = volumeSteps(shown, to);
+        if (count === 0) break;
+        dirs.add(action);
+        shown += action === "up" ? VOLUME_STEP : -VOLUME_STEP;
+        expect(n).toBeLessThan(100);
+      }
+      expect(dirs.size).toBeLessThanOrEqual(1);
+    }
   });
 
   test("the value under the finger is clamped to 0..100; a vertical track grows upwards", () => {

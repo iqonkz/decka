@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
-import type { AiInfo, FullState, NotifLevel, Notification, PatchMsg, PermRequest, SectionName, WelcomeMsg } from "@decka/shared";
+import type { AiInfo, FullState, NotifLevel, Notification, PatchMsg, PermRequest, SectionName, SysStats, WelcomeMsg } from "@decka/shared";
+import { recordAi, recordSys, resetAiHistory, resetSysHistory } from "@decka/ui";
 import { popBack, pushBack } from "../deck/backStack";
 import { decideContextPage } from "../deck/context";
 
@@ -130,6 +131,11 @@ export function applyWelcome(msg: WelcomeMsg): void {
     lastError: null,
     permClosed: [], // a new connection starts the sheet afresh: what is still pending is shown again
   }));
+  // A new connection starts the graph and forecast histories afresh, then the welcome readings are the first points.
+  resetSysHistory();
+  resetAiHistory();
+  recordSys(msg.state.sys ?? null);
+  recordAi(msg.state.ai ?? null);
   runContext();
 }
 
@@ -147,6 +153,9 @@ export function applyPatch(msg: PatchMsg): void {
     // An open group whose page is gone (or is no longer a popup page) closes.
     ...(layoutChanged && s.popup && !next.layout.pages.some((p) => p.id === s.popup!.pageId && p.popup === true) ? { popup: null } : {}),
   });
+  // Histories are recorded here, once per update, however many deck views are mounted (DATA_MODEL.md 6.5).
+  if (msg.section === "sys") recordSys((msg.value as SysStats | null) ?? null);
+  if (msg.section === "ai") recordAi((msg.value as AiInfo | null) ?? null);
   if (msg.section === "notifications") toastNewNotifications(s.state.notifications, msg.value as Notification[]);
   if (msg.section === "ai") onAiPatch(s.state.ai?.pending ?? [], (msg.value as AiInfo | null)?.pending ?? []);
   if (msg.section === "focus" || layoutChanged) runContext();

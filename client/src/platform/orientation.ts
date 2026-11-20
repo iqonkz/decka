@@ -1,7 +1,11 @@
 import { ScreenOrientation } from "@capacitor/screen-orientation";
 import type { Orientation } from "@decka/shared";
 import { isNative } from "./native";
-import { loadTurn, orientationLock, saveTurn, type Turn } from "./turn";
+import { registerPlugin } from "@capacitor/core";
+import { loadTurn, saveTurn, turnRoute, type Turn } from "./turn";
+
+/** Own Capacitor plugin (client/android DeckaTurnPlugin): the sensor picks either side. */
+const DeckaTurn = registerPlugin<{ setSensor(options: { portrait: boolean }): Promise<void> }>("DeckaTurn");
 
 /** The orientation of the last layout, so that the next start opens in it at once (before any layout arrives). */
 export const ORIENTATION_KEY = "decka.orientation.v1";
@@ -35,7 +39,9 @@ export function saveOrientation(orientation: Orientation, storage: Pick<Storage,
 export async function lockOrientation(orientation: Orientation, turn: Turn = loadTurn()): Promise<void> {
   if (!isNative()) return;
   try {
-    await ScreenOrientation.lock({ orientation: orientationLock(orientation, turn) });
+    const route = turnRoute(orientation, turn);
+    if (route.via === "sensor") await DeckaTurn.setSensor({ portrait: route.portrait });
+    else await ScreenOrientation.lock({ orientation: route.lock });
   } catch {
     // an old WebView or a device that refuses: the screen keeps what it has
   }

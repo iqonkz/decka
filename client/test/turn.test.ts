@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import type { StripInfo } from "@decka/shared";
-import { loadTurn, orientationLock, saveTurn, TURN_KEY } from "../src/platform/turn";
+import { loadTurn, orientationLock, saveTurn, TURN_KEY, turnRoute } from "../src/platform/turn";
 import { hiddenStripApps, loadStripModes, stripModeFor, stripPage, STRIP_KEY } from "../src/deck/stripMode";
 
 function memory(initial: Record<string, string> = {}) {
@@ -16,6 +16,14 @@ describe("orientationLock (DATA_MODEL.md 10.9)", () => {
     expect(orientationLock("portrait", "auto")).toBe("portrait");
     expect(orientationLock("portrait", "normal")).toBe("portrait-primary");
     expect(orientationLock("portrait", "flipped")).toBe("portrait-secondary");
+  });
+  test("auto goes to the sensor plugin, the others to the screen-orientation plugin", () => {
+    expect(turnRoute("landscape", "auto")).toEqual({ via: "sensor", portrait: false });
+    expect(turnRoute("portrait", "auto")).toEqual({ via: "sensor", portrait: true });
+    expect(turnRoute("landscape", "normal")).toEqual({ via: "plugin", lock: "landscape-primary" });
+    expect(turnRoute("landscape", "flipped")).toEqual({ via: "plugin", lock: "landscape-secondary" });
+    expect(turnRoute("portrait", "normal")).toEqual({ via: "plugin", lock: "portrait-primary" });
+    expect(turnRoute("portrait", "flipped")).toEqual({ via: "plugin", lock: "portrait-secondary" });
   });
   test("an absent orientation is landscape", () => {
     expect(orientationLock(undefined, "flipped")).toBe("landscape-secondary");

@@ -572,7 +572,16 @@ impl Agent {
     fn start_winnotif(&self) {
         let old = self.inner.winnotif_collector.lock().unwrap().take();
         drop(old); // joins the thread
-        if !self.config().windows_notifications.is_some_and(|w| w.enabled) {
+        let enabled = self.config().windows_notifications.is_some_and(|w| w.enabled);
+        // `notif.windows` = true while the feature is on; absent = off (the empty widget then explains how to turn it on).
+        self.inner.store.update_vars(|vars| {
+            if enabled {
+                vars.insert("notif.windows".to_string(), VarValue::Bool(true));
+            } else {
+                vars.remove("notif.windows");
+            }
+        });
+        if !enabled {
             return;
         }
         let (added_inner, removed_inner, seen_inner) = (Arc::downgrade(&self.inner), Arc::downgrade(&self.inner), Arc::downgrade(&self.inner));
@@ -994,9 +1003,20 @@ impl Agent {
             return;
         }
         let hub = self.inner.ai.clone();
+        let account_on = claude_on && ai.as_ref().is_some_and(|a| a.claude.account_limits);
         let task = self.inner.runtime.spawn(async move {
             let mut ticks = 0u64;
             loop {
+                if account_on && ticks % crate::ai::ACCOUNT_POLL.as_secs() == 0 {
+                    if let Some(home) = crate::ai::home_dir() {
+                        let now = crate::auth::now_ms();
+                        match crate::ai::fetch_account_limits(&crate::ai::credentials_path(&home), crate::ai::ACCOUNT_USAGE_URL, now).await {
+                            Ok(Some(windows)) => hub.set_account_claude(windows, now),
+                            Ok(None) => {}
+                            Err(e) => tracing::debug!("claude account limits: {e:?}"),
+                        }
+                    }
+                }
                 if ticks % 60 == 0 {
                     hub.prune(crate::auth::now_ms());
                     if codex_on {
@@ -1605,7 +1625,7 @@ impl Agent {
         let mut config = self.config();
         let codex_found = crate::ai::codex_dir(home).is_dir();
         let ai = config.ai.get_or_insert_with(|| AiConfig {
-            claude: AiClaudeConfig { enabled: true, approvals: true, timeout_sec: 120 },
+            claude: AiClaudeConfig { enabled: true, approvals: true, timeout_sec: 120, account_limits: false },
             codex: AiCodexConfig { enabled: codex_found, approvals: None },
             hook_token: None,
             rules: Vec::new(),

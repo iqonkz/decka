@@ -8,7 +8,7 @@ export const VOLUME_SETTLE_MS = 600;
 /** The key presses that bring the volume from `fromPct` to `toPct`: the direction and how many 2 % steps. */
 export function volumeSteps(fromPct: number, toPct: number): { action: "up" | "down"; count: number } {
   const diff = toPct - fromPct;
-  return { action: diff < 0 ? "down" : "up", count: Math.round(Math.abs(diff) / VOLUME_STEP) };
+  return { action: diff < 0 ? "down" : "up", count: Math.floor(Math.abs(diff) / VOLUME_STEP) };
 }
 
 /** The value 0..100 under the finger: `pos` and `start` in px along the track of `length` px; a vertical track grows upwards. */
