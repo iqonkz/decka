@@ -130,6 +130,17 @@ npm run typecheck; npm test; cargo test -p decka-core
 npm run typecheck; npm test; cargo test -p decka-core; npm run release:agent; npm run release:apk
 ```
 
+### T17.6 — Исправления и выпуск v0.8.0 (2026-11-20)
+Коммит `release: v0.8.0` и тег `v0.8.0` уже на GitHub, но релиз не опубликован, а установщик собран до смены версии и называется 0.7.0.
+1. Полоса приложения: `nameRu` во всех 13 шаблонах и `StripInfo.icon` — DATA_MODEL.md §10.5, «Исправление T17.6». Тесты: `strip_for` при `ru` даёт русские подписи; при отсутствии `nameRu` — английские; иконка ставится, когда exe есть среди установленных приложений.
+2. Проверка: `cargo test -p decka-core 2>&1 | Select-String "test result"` — каждая строка `ok`. `npm run typecheck; npm test`. Коммит `T17.6: ...`.
+3. Версия остаётся 0.8.0 (не поднимать). Тег `v0.8.0` указывает на коммит без T17.6, поэтому перенести его на новый HEAD: `git tag -f -a v0.8.0 -m "v0.8.0"`, затем `git push origin main` и `git push -f origin v0.8.0`. Тег не опубликован как релиз, никто на него не ссылается — разрешение владельца 2026-11-20.
+4. `npm run release:agent; npm run release:apk` — в `release\` файлы `*-0.8.0.*`.
+5. Релиз:
+   - `gh release create v0.8.0 <установщик> <apk> --title "Decka 0.8.0" --notes-file <раздел 0.8.0 из CHANGELOG>` — как для v0.7.0;
+   - `https://api.github.com/repos/iqonkz/decka/releases/latest` → `v0.8.0`.
+6. `target\debug` > 20 ГБ → `cargo clean --profile dev`.
+
 ## Что ещё открыто
 - **Ручные проверки владельца:** `docs/MANUAL_CHECKS.md`, пункты `PENDING (owner)`.
 - **Вопрос Q-9** — `docs/OPEN_QUESTIONS.md`. Twitch и YouTube уже сделаны (v0.5–v0.6); открыт Discord.
