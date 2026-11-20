@@ -90,7 +90,19 @@ export function findFreeSpot(page: Page, grid: Grid, w: number, h: number): { x:
   return null;
 }
 
-export type AddResult = { ok: true; page: Page } | { ok: false; error: string };
+export const NO_FREE_CELL = "No free cell on this page";
+
+/** The `+` of the library (DESIGN.md 4.8a): puts the item into the first free place of the page; its x and y are replaced. */
+export function addToFirstFree(layout: LayoutFile, pageId: string, item: LayoutItem): { ok: true; layout: LayoutFile } | { ok: false; error: string } {
+  const page = layout.pages.find((p) => p.id === pageId);
+  if (!page) return { ok: false, error: NO_FREE_CELL };
+  const spot = findFreeSpot(page, layout.grid, item.w, item.h);
+  if (!spot) return { ok: false, error: NO_FREE_CELL };
+  const placed = { ...item, x: spot.x, y: spot.y } as LayoutItem;
+  return { ok: true, layout: { ...layout, pages: layout.pages.map((p) => (p.id === pageId ? { ...p, items: [...p.items, placed] } : p)) } };
+}
+
+export type AddResult ={ ok: true; page: Page } | { ok: false; error: string };
 
 export const NO_SPACE = "Not enough free space here";
 

@@ -88,15 +88,41 @@ th { color: var(--muted); font-weight: 600; font-size: 12px; }
 .palette-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); cursor: grab; user-select: none; }
 .palette-item span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* The library (DESIGN.md 4.8) */
-.editor { grid-template-columns: 260px minmax(0, 1fr); }
+.editor { grid-template-columns: 280px minmax(0, 1fr); }
 .library { max-height: 620px; }
 .library-category { display: flex; flex-direction: column; gap: 4px; }
 .library-head { display: flex; align-items: center; gap: 6px; width: 100%; padding: 6px 4px; border: 0; background: none; color: inherit; font: inherit; font-weight: 600; text-align: left; cursor: pointer; }
 .library-head span { flex: 1; text-align: left; }
 .library-head { justify-content: flex-start; }
-.library .page-tab { padding: 4px 9px; font-size: 13px; }
-.library .row.wrap { gap: 4px; flex-wrap: nowrap; }
-.library-item small { flex: none; max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Library panel (DESIGN.md 4.8a): the head stays, the list scrolls under it */
+.library { padding: 12px; gap: 8px; }
+.library-top { display: flex; flex-direction: column; gap: 8px; flex: none; }
+.search-box { display: flex; align-items: center; gap: 6px; height: 36px; padding: 0 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); color: var(--muted); }
+.search-box:focus-within { border: 1.5px solid var(--accent); padding: 0 9.5px; }
+.library .search-box input:not([type="checkbox"]):not([type="radio"]):not([type="color"]) { flex: 1; width: auto; min-width: 0; height: 100%; padding: 0; border: 0; border-radius: 0; outline: 0; background: transparent; color: var(--text); font: inherit; box-shadow: none; }
+.search-clear { display: flex; align-items: center; padding: 2px; border: 0; border-radius: 4px; background: none; color: var(--muted); cursor: pointer; }
+.segments { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 3px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); }
+.segment { min-width: 0; height: 30px; padding: 0 4px; border: 0; border-radius: 7px; background: transparent; color: var(--text); font: inherit; font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; transition: background 150ms; }
+.segment.active { background: var(--accent); color: #fff; }
+.library .palette-list { padding-top: 4px; gap: 2px; }
+.library .palette-item { height: 36px; padding: 0 6px 0 8px; border: 0; border-radius: 8px; background: transparent; }
+.library .palette-item:hover, .library .palette-item:focus-visible { background: var(--bg); outline: 0; }
+.library-head { position: sticky; top: 0; z-index: 1; height: 32px; background: var(--panel); }
+.library-head small { flex: none; font-size: 11px; }
+.library .palette-item > span:not(.app-noicon) { flex: 1 1 auto; min-width: 5em; }
+.library .app-noicon { flex: none; border-radius: 6px; background: var(--border); }
+.library-item small { flex: 0 1 auto; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
+.row-add { display: none; flex: none; align-items: center; justify-content: center; width: 24px; height: 24px; padding: 0; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--text); cursor: pointer; }
+.library-item:hover .row-add, .library-item:focus-visible .row-add { display: flex; }
+.row-add:hover { background: var(--accent); color: #fff; }
+/* Thin scrollbars for the whole window (WebView2 and Chrome) */
+* { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { border-radius: 4px; background: var(--border); }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-button { display: none; }
+/* Rows of buttons never push their last button out of the window: they shrink and cut with an ellipsis */
+.row > button, .row > .btn { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .library-item.waiting { opacity: 0.6; cursor: pointer; }
 .set-card { display: flex; flex-direction: column; gap: 6px; padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); cursor: grab; user-select: none; touch-action: none; }
 .set-head { display: flex; align-items: center; gap: 8px; }

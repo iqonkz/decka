@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { highlightParts } from "./librarySearch";
 import EntryIcon from "../ui/EntryIcon";
 import { CATALOG, SETS, catalogItem, categoryItems, getLanguage, insertSet, searchCatalog, t, type ActionsFile, type Action, type CatalogItem, type CatalogSet, type InstalledApp, type LayoutFile } from "@decka/shared";
 import PhIcon from "../ui/PhIcon";
@@ -30,6 +31,9 @@ function hintOf(item: CatalogItem): string {
   return item.requires === "obs" ? "OBS" : "";
 }
 
+const matchesSet = (s: CatalogSet, q: string, lang: ReturnType<typeof getLanguage>) =>
+  s.name.en.toLowerCase().includes(q) || s.name.ru.toLowerCase().includes(q) || s.description[lang].toLowerCase().includes(q);
+
 export interface LibraryProps {
   layout: LayoutFile;
   actions: ActionsFile;
@@ -48,6 +52,7 @@ export default function Library({ layout, actions, pageIndex, integrations, onBe
   const [open, setOpen] = useState<string[]>(readOpen);
   const [apps, setApps] = useState<InstalledApp[] | null>(cachedApps());
   const lang = getLanguage();
+  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (tab === "apps" && apps === null) loadApps().then(setApps, () => setApps([]));
@@ -66,20 +71,43 @@ export default function Library({ layout, actions, pageIndex, integrations, onBe
   const ready = (item: { requires?: "obs" | "weather" | "twitch" | "youtube" }) => item.requires === undefined || integrations[item.requires];
   const page = layout.pages[pageIndex];
 
+  const add = (item: CatalogItem) => (!ready(item) ? onSetup(item.requires!) : onAddItem(item.id));
+  /** Moves the focus along the rows of the list (and back to the search field above the first one). */
+  const moveFocus = (from: HTMLElement, step: 1 | -1) => {
+    const rows = Array.from(from.closest(".palette-list")?.querySelectorAll<HTMLElement>("[data-row]") ?? []);
+    const next = rows[rows.indexOf(from) + step];
+    if (next) next.focus();
+    else if (step === -1) searchRef.current?.focus();
+  };
+
   const itemRow = (item: CatalogItem) => {
     const waiting = !ready(item);
     return (
       <div
         key={item.id}
+        data-row=""
+        tabIndex={0}
         className={waiting ? "palette-item library-item waiting" : "palette-item library-item"}
         data-item={item.id}
         onPointerDown={(e) => !waiting && onBegin({ type: "catalog", itemId: item.id, label: item.name[lang] }, e)}
-        onDoubleClick={() => (waiting ? onSetup(item.requires!) : onAddItem(item.id))}
+        onDoubleClick={() => add(item)}
+        onKeyDown={(e) => {
+          if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+            e.preventDefault();
+            moveFocus(e.currentTarget, e.key === "ArrowDown" ? 1 : -1);
+          } else if (e.key === "Enter") {
+            e.preventDefault();
+            add(item);
+          }
+        }}
         title={waiting && item.requires ? t(`library.setup_${item.requires}`) : t("library.hint")}
       >
         <EntryIcon icon={item.icon} />
-        <span>{item.name[lang]}</span>
+        <span>{found !== null ? highlightParts(item.name[lang], q).map((p, i) => (p.bold ? <b key={i}>{p.text}</b> : p.text)) : item.name[lang]}</span>
         <small className="muted">{waiting ? t("library.setup") : hintOf(item)}</small>
+        <button type="button" className="row-add" aria-label={t("library.add_here")} title={t("library.add_here")} onPointerDown={(e) => e.stopPropagation()} onClick={() => add(item)}>
+          <PhIcon name="plus" size={14} />
+        </button>
       </div>
     );
   };
@@ -94,16 +122,40 @@ export default function Library({ layout, actions, pageIndex, integrations, onBe
 
   return (
     <aside className="palette library">
-      <input aria-label={t("library.search")} placeholder={t("library.search")} value={query} onChange={(e) => setQuery(e.target.value)} />
-      <div className="row wrap" role="tablist">
-        {(["library", "sets", "apps"] as Tab[]).map((id) => (
-          <button key={id} type="button" role="tab" aria-selected={tab === id} className={tab === id ? "page-tab active" : "page-tab"} onClick={() => setTab(id)}>
-            {t(`library.tab_${id}`)}
-          </button>
-        ))}
+      <div className="library-top">
+        <div className="search-box">
+          <PhIcon name="magnifying-glass" size={16} />
+          <input
+            ref={searchRef}
+            aria-label={t("library.search")}
+            placeholder={t("library.search")}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setQuery("");
+              else if (e.key === "ArrowDown") {
+                e.preventDefault();
+                document.querySelector<HTMLElement>(".library .palette-list [data-row]")?.focus();
+              }
+            }}
+          />
+          {query !== "" && (
+            <button type="button" className="search-clear" aria-label={t("library.clear")} title={t("library.clear")} onClick={() => setQuery("")}>
+              <PhIcon name="x" size={14} />
+            </button>
+          )}
+        </div>
+        <div className="segments" role="tablist">
+          {(["library", "sets", "apps"] as Tab[]).map((id) => (
+            <button key={id} type="button" role="tab" aria-selected={tab === id} className={tab === id ? "segment active" : "segment"} onClick={() => setTab(id)}>
+              {t(`library.tab_${id}`)}
+            </button>
+          ))}
+        </div>
       </div>
       <div className="palette-list">
-        {tab === "library" && found !== null && (found.length === 0 ? <p className="muted">{t("library.nothing")}</p> : found.map(itemRow))}
+        {q !== "" && tab !== "apps" && (tab === "library" ? found?.length === 0 : !SETS.some((s) => matchesSet(s, q, lang))) && <p className="muted">{t("library.nothing")}</p>}
+        {tab === "library" && found !== null && found.map(itemRow)}
         {tab === "library" &&
           found === null &&
           libraryCategories().map((category) => {
@@ -114,6 +166,7 @@ export default function Library({ layout, actions, pageIndex, integrations, onBe
                   <PhIcon name={expanded ? "caret-down" : "caret-right"} size={14} />
                   <EntryIcon icon={category.icon} size={16} />
                   <span>{category.name[lang]}</span>
+                  <small className="muted">{categoryItems(category).length}</small>
                 </button>
                 {expanded && categoryItems(category).map(itemRow)}
               </div>
@@ -121,7 +174,7 @@ export default function Library({ layout, actions, pageIndex, integrations, onBe
           })}
 
         {tab === "sets" &&
-          SETS.filter((s) => q === "" || s.name.en.toLowerCase().includes(q) || s.name.ru.toLowerCase().includes(q) || s.description[lang].toLowerCase().includes(q)).map((set) => {
+          SETS.filter((s) => q === "" || matchesSet(s, q, lang)).map((set) => {
             const waiting = !ready(set);
             const goesTo = waiting ? null : newPageFor(set);
             return (
@@ -143,6 +196,7 @@ export default function Library({ layout, actions, pageIndex, integrations, onBe
           })}
 
         {tab === "apps" && apps === null && <p className="muted">…</p>}
+        {tab === "apps" && q !== "" && apps !== null && !apps.some((a) => a.name.toLowerCase().includes(q)) && <p className="muted">{t("library.nothing")}</p>}
         {tab === "apps" &&
           (apps ?? [])
             .filter((a) => q === "" || a.name.toLowerCase().includes(q))

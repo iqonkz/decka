@@ -256,3 +256,7 @@
 - PENDING (owner, a PC you can afford to restart): a `shutdown` key pressed in the first minute after the phone connected answers `Too soon after connecting`; two presses in a row answer `Wait a little before trying again`; the log line is `system shutdown by <phone>`.
 - PENDING (owner): a message in Telegram/Outlook/Teams shows on the phone as `New notification` + the program name, without text; More → Integrations → Windows notifications: `Full text` for that program brings the text back; `Don't show` hides it.
 - PENDING (owner): the release has `SHA256SUMS.txt`; `Get-FileHash` of the installer and the APK equal their lines.
+
+## T17.8 — library panel (2026-11-21)
+- DONE (screenshots, Chrome with a mock IPC, `node tools/ui-shots.mjs all`): `ui-library-ru.png`, `ui-sets-ru.png`, `ui-apps-ru.png` at 1000 px and `ui-library-ru-min.png` at 760 px: nothing cut off, the head does not scroll, the segments fit, rows show `+` on hover.
+- PENDING (owner): in the real Tauri window (WebView2): the thin scrollbar, `+` on a row adds the key to the first free cell (`No free cell on this page` when the page is full), `Esc` clears the search, `↓` goes from the field to the list, `Enter` on a row adds it.
