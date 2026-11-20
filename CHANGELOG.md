@@ -4,6 +4,8 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+## 0.9.0 — 2026-11-20
+
 ### Added
 - **Encrypted connection.** Everything between the phone and the PC is now encrypted, and each side proves it holds the pairing key, so someone on the same Wi-Fi can neither read the traffic nor pose as your PC or phone. Update Decka on the phone and the PC together — the connection is now encrypted; an old app will ask to update.
 - **Public networks.** The PC knows which kind of network a phone connects through (Phone page). On a public network it serves only the Decka app and pairing is by QR code or USB; `Allow phones on public networks` turns such connections off completely.
