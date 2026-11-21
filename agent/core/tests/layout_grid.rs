@@ -99,6 +99,22 @@ fn context_page_apps_follow_the_m11_rules() {
 }
 
 #[test]
+fn validate_voice_item_is_one_by_one_with_optional_label() {
+    let voice = |extra: Value| {
+        let mut item = json!({ "id": "v", "kind": "voice", "x": 0, "y": 0, "w": 1, "h": 1 });
+        item.as_object_mut().unwrap().extend(extra.as_object().unwrap().clone());
+        paths(7, 4, json!([item]))
+    };
+    assert!(voice(json!({})).is_empty());
+    assert!(voice(json!({ "label": "Voice" })).is_empty());
+    assert_eq!(voice(json!({ "w": 2 })), ["/pages/0/items/0"]);
+    assert_eq!(voice(json!({ "h": 2 })), ["/pages/0/items/0"]);
+    // The label survives a round trip through the model.
+    let parsed = layout(7, 4, json!([{ "id": "v", "kind": "voice", "x": 0, "y": 0, "w": 1, "h": 1, "label": "Hi" }])).unwrap();
+    assert!(serde_json::to_string(&parsed).unwrap().contains("\"label\":\"Hi\""));
+}
+
+#[test]
 fn the_media_widget_has_size_and_action_rules() {
     let media = |extra: Value| {
         let mut item = json!({ "id": "m", "kind": "media", "x": 0, "y": 0, "w": 3, "h": 1 });
