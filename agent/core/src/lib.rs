@@ -38,6 +38,7 @@ pub mod twitch;
 pub mod updates;
 pub mod usb;
 pub mod validate;
+pub mod voice;
 pub mod watch;
 pub mod weather;
 pub mod youtube;

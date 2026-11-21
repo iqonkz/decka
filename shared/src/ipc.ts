@@ -93,6 +93,7 @@ export interface IpcCommands {
   voice_enable(): VoiceStatus;
   voice_cancel(): VoiceStatus;
   voice_remove(): VoiceStatus;
+  voice_confirm(args: { id: string; yes: boolean }): void;
   voice_set(args: {
     model?: "standard" | "light";
     hotkey?: string[];

@@ -14,6 +14,21 @@ export async function onVoiceStatus(fn: (status: VoiceStatus) => void): Promise<
   return listen<VoiceStatus>("voice-status", (event) => fn(event.payload));
 }
 
+export interface VoicePillEvent {
+  state: "idle" | "listening" | "loading" | "thinking" | "confirm" | "done" | "error";
+  id?: string;
+  source?: "pc" | "phone";
+  heard?: string;
+  reply?: string;
+  confirm?: { text: string };
+  level?: number;
+}
+
+/** Subscribes to `voice-pill`; returns the unsubscribe function. */
+export async function onVoicePill(fn: (data: VoicePillEvent) => void): Promise<() => void> {
+  return listen<VoicePillEvent>("voice-pill", (event) => fn(event.payload));
+}
+
 /** Subscribes to `decka://status-changed`; returns the unsubscribe function. */
 export async function onStatus(fn: (status: AgentStatus) => void): Promise<() => void> {
   return listen<AgentStatus>("decka://status-changed", (event) => fn(event.payload));
