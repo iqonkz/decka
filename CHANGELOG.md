@@ -4,6 +4,12 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+### Fixed
+- Library rows show the right hint: the shortcut for a hotkey, the exe for a program, the host for a link; media, audio, OBS and system keys have none. The name gets at least 60% of the row.
+- Empty widgets (notifications, ...) show the title and the hint on separate lines, the hint is cut to two lines.
+- Dates in languages without `Intl` data (Kazakh showed `M11 21, Sat`) come from the dictionary: `21 қараша, сб`.
+- The library panel is 300 px wide and the Kazakh tabs (`Түймелер`, `Жиындар`, `Қолданбалар`) fit whole.
+
 ## 0.10.0 — 2026-11-21
 
 ### Added
