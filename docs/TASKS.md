@@ -271,6 +271,20 @@ npm run typecheck; npm test; cargo test -p decka-core 2>&1 | Select-String "test
 4. **Ширина панели библиотеки** — не меньше 300 px (сегмент ≈ 95 px). Казахские вкладки: `Түймелер` / `Жиындар` / `Қолданбалар` (владелец может поправить — меняется только `kk.ts` и `GLOSSARY.md`). Снимок `ui-library-kk.png` — посмотри сам, вкладки целиком.
 5. Тесты — только затронутые модули (§0 п. 7c). Затем выпуск **0.10.1** (`version:bump -- patch`, полный прогон, release:agent, release:apk, SHA256SUMS, `gh release create`, push).
 
+### T19.6 — Подписанный release-APK вместо debug (2026-11-21)
+Сейчас в релизах лежит debug-APK. Он крупнее и медленнее, а главное — помечен `debuggable`: по USB-отладке `adb run-as app.decka.client` читает данные приложения, включая токен устройства. Это обходит защиту M18.
+1. **Ключ подписи** (делается один раз):
+   - `keytool -genkeypair -v -keystore "%USERPROFILE%\.decka-signing\decka-release.jks" -alias decka -keyalg RSA -keysize 4096 -validity 10000`;
+   - папка вне репозитория; пароль — случайный, 32 символа;
+   - пароль хранить в `%USERPROFILE%\.decka-signing\decka-release.pass`, защищённом DPAPI (`ConvertFrom-SecureString`); в репозиторий, логи и отчёт не попадает.
+2. **Gradle:** `signingConfigs.release` читает путь и пароль из переменных среды `DECKA_KEYSTORE`, `DECKA_KEYSTORE_PASS`; `buildTypes.release` — `minifyEnabled false`, `debuggable false`, подпись release.
+   - `npm run release:apk` собирает `assembleRelease`; скрипт сам расшифровывает пароль в переменную процесса.
+   - Без ключа — понятная ошибка, а не тихий debug.
+   - `.gitignore`: `*.jks`, `*.keystore`.
+3. **Переход:** подпись меняется, поэтому Android не обновит поверх debug-версии. В CHANGELOG и заметках релиза: `This release is signed with a new key: uninstall the old Decka app first, then install and pair again`.
+4. **Проверка:** `apksigner verify --print-certs` на APK. `aapt dump badging` — нет `application-debuggable`.
+5. Выпуск 0.10.2 по обычным шагам. В отчёте — **только путь** к ключу; пароль и сам ключ не показывать.
+
 ## Что ещё открыто
 - **Ручные проверки владельца:** `docs/MANUAL_CHECKS.md`, пункты `PENDING (owner)`.
 - **Вопрос Q-9** — `docs/OPEN_QUESTIONS.md`. Twitch и YouTube уже сделаны (v0.5–v0.6); открыт Discord.
