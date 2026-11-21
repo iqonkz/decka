@@ -910,6 +910,15 @@ Windows перехватывает часть сочетаний (`Win+D`, `Win+
   - **Исправление 2026-11-20 (T17.7):** `@capacitor/screen-orientation` 8.0.2 переводит `landscape` в `SCREEN_ORIENTATION_LANDSCAPE` — жёстко обычная сторона, датчик не работает. Поэтому `auto` идёт не через плагин, а через свой маленький Capacitor-плагин в `client/android` (`DeckaTurn.setSensor({ portrait: boolean })` → `activity.setRequestedOrientation(SCREEN_ORIENTATION_SENSOR_LANDSCAPE | SENSOR_PORTRAIT)` в UI-потоке).
   - `SENSOR_*` поворачивает экран даже при выключенном автоповороте в Android — так и нужно для подставки.
   - `normal` / `flipped` по-прежнему идут через плагин. В веб-режиме ничего не делается.
+  - **Исправление 2026-11-21 (T20.1):** на телефоне владельца `SENSOR_LANDSCAPE` не переворачивает экран. Вероятно, это особенность прошивки, телефон для проверки не был подключён. Поэтому `auto` больше не полагается на системный датчик-режим:
+    - `DeckaTurn` сам слушает `OrientationEventListener` (угол 0..359) и ставит **жёсткую** сторону:
+      - для альбомной — угол 60..120 → `REVERSE_LANDSCAPE`, 240..300 → `LANDSCAPE`;
+      - для книжной — 330..30 → `PORTRAIT`, 150..210 → `REVERSE_PORTRAIT`;
+      - вне этих секторов сторона не меняется (гистерезис);
+    - смена — только если новый сектор держится 600 мс;
+    - **ориентацию раскладки (книжная/альбомная) датчик никогда не меняет** — её выбирают в окне ПК (`display.orientation`);
+    - слушатель включается в `auto` и выключается в `normal` / `flipped`, а также при `onPause`; в `onResume` включается снова, если `auto`;
+    - JS-API: `DeckaTurn.setAuto({ portrait })` и `DeckaTurn.stop()`. Метод `setSensor` удаляется.
 - `normal` → `landscape-primary` / `portrait-primary`.
 - `flipped` → `landscape-secondary` / `portrait-secondary`.
 - Меню телефона (DESIGN.md §4.3): пункт `Turn` с тремя вариантами `Auto` / `Normal` / `Upside down`. Применяется сразу, без перезапуска; в веб-режиме пункт скрыт.

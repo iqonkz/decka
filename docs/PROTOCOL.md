@@ -60,7 +60,11 @@ export interface PingMsg  { t: "ping"; ts: number; }
 export interface PermAnswerMsg { t: "perm_answer"; reqId: string; decision: "allow" | "deny" | "pc"; } // reqId ^[0-9a-f]{16}$
 // M17: открыть программу уведомления Windows (DATA_MODEL.md §10.4). Только id, выданный агентом.
 export interface NotifOpenMsg { t: "notif_open"; notifId: string; }
-export type ClientMsg = PairMsg | HelloMsg | PressMsg | NotifDismissMsg | PingMsg | PermAnswerMsg | NotifOpenMsg;
+// M20 (TASKS T20.4): загрузка нового APK с ПК внутри зашифрованного канала.
+export interface ApkGetMsg { t: "apk_get"; offset: number; }                       // offset кратен 3000
+export type ClientMsg = PairMsg | HelloMsg | PressMsg | NotifDismissMsg | PingMsg | PermAnswerMsg | NotifOpenMsg | ApkGetMsg;
+// S→C: { t: "apk_chunk"; offset: number; data: string /* base64, ≤ 3000 байт */; total: number; sha256: string /* hex */ } — ApkChunkMsg;
+// секция FullState.update?: UpdateInfo2 | null, где UpdateInfo2 = { app?: { version: string; size: number; sha256: string } }.
 
 // ===== Сервер -> Клиент (WS) =====
 export interface PairedMsg  { t: "paired"; deviceId: Id; token: string; }
