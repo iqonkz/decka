@@ -4,6 +4,9 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+### Changed
+- The release APK is now a signed release build instead of a debug build: smaller, not `debuggable` (no `adb run-as` access to the device token). **This release is signed with a new key: uninstall the old Decka app first, then install and pair again.**
+
 ## 0.10.1 — 2026-11-21
 
 ### Fixed

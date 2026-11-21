@@ -1,5 +1,5 @@
 // `npm run release:collect`: gathers the files for the GitHub release into release/ (git-ignored):
-// Decka-Setup-<version>.exe (NSIS installer), Decka-<version>.apk (debug APK) and notes.md (this version's CHANGELOG section + install steps).
+// Decka-Setup-<version>.exe (NSIS installer), Decka-<version>.apk (signed release APK) and notes.md (this version's CHANGELOG section + install steps).
 // Run after `npm run release:agent` and `npm run release:apk`; fails with a clear message if a build is missing.
 import { createHash } from "node:crypto";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
@@ -14,7 +14,7 @@ export const apkName = (version) => `Decka-${version}.apk`;
 export const installBlock = (version) => `## Install
 
 1. Windows: run ${installerName(version)}. SmartScreen may warn because the installer is not code-signed: More info → Run anyway.
-2. Android: open this page on the phone, download ${apkName(version)}, allow installing from this source, open it.
+2. Android: open this page on the phone, download ${apkName(version)}, allow installing from this source, open it. If you have an older Decka (debug-signed) installed, uninstall it first: the APK is signed with a new key, so it cannot be installed over the old one. Then pair again.
 3. Scan the QR code shown in the Decka window on the PC.
 
 To check a download, compare \`Get-FileHash .\\${installerName(version)}\` with the line in \`SHA256SUMS.txt\`.
@@ -39,8 +39,8 @@ export function collect(root) {
   const nsisDir = join(root, "target", "release", "bundle", "nsis");
   const installer = existsSync(nsisDir) ? readdirSync(nsisDir).find((f) => f.startsWith(`Decka_${version}_`) && f.endsWith("-setup.exe")) : undefined;
   if (!installer) throw new Error(`no NSIS installer for ${version} in ${nsisDir}; run "npm run release:agent" first`);
-  const apk = join(root, "client", "android", "app", "build", "outputs", "apk", "debug", "app-debug.apk");
-  if (!existsSync(apk)) throw new Error(`no debug APK at ${apk}; run "npm run release:apk" first`);
+  const apk = join(root, "client", "android", "app", "build", "outputs", "apk", "release", "app-release.apk");
+  if (!existsSync(apk)) throw new Error(`no signed release APK at ${apk}; run "npm run release:apk" first`);
   const notes = `${changelogSection(readFileSync(join(root, "CHANGELOG.md"), "utf8"), version)}\n\n${installBlock(version)}`;
   const out = join(root, "release");
   rmSync(out, { recursive: true, force: true });

@@ -12,6 +12,6 @@
     "build:ui": "npm run build -w client && npm run build -w agent",
     "tauri": "npm run tauri -w agent --",
     "release:agent": "npm run build:ui && npm run tauri -- build",
-    "release:apk": "npm run android:sync -w client && npm run android:apk -w client"
+    "release:apk": "npm run android:sync -w client && powershell -NoProfile -ExecutionPolicy Bypass -File tools/build-release-apk.ps1"
   }
 }

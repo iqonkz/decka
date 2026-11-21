@@ -37,7 +37,7 @@ Decka turns an old Android phone into a desk panel for a Windows PC: a 5x3 grid 
 ## Quick start
 
 1. **Install the agent.** Run the NSIS installer from the releases page (or build it, see [Building from source](#building-from-source)). Decka starts in the tray; open the settings window from the tray icon.
-2. **Install the app on the phone.** Copy `app-debug.apk` / the release APK to the phone and install it (or `adb install -r app-debug.apk`).
+2. **Install the app on the phone.** Copy the release APK to the phone and install it (or `adb install -r Decka-<version>.apk`). If an older debug-signed Decka is installed, uninstall it first.
 3. **Pair.** In the settings window open **Pairing** and press **Start pairing**; a QR code and an 8-character code appear for 120 seconds. In the app press **Scan QR code**, or type the address and code by hand.
 4. Edit buttons in the **Actions** and **Layout** tabs. Changes appear on the phone within a second.
 
@@ -137,7 +137,7 @@ npm ci
 npm run typecheck; npm test; cargo test -p decka-core
 npm run tauri dev        # agent with the settings window
 npm run release:agent    # NSIS installer in target\release\bundle\nsis\
-npm run release:apk      # client\android\app\build\outputs\apk\debug\app-debug.apk
+npm run release:apk      # client\android\app\build\outputs\apk\release\app-release.apk (signed; key in %USERPROFILE%\.decka-signing)
 ```
 
 ## Troubleshooting

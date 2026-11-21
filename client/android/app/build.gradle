@@ -16,8 +16,30 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            // Path and password come from the environment (set by tools/build-release-apk.ps1); never stored in the repo.
+            def ks = System.getenv("DECKA_KEYSTORE")
+            def pass = System.getenv("DECKA_KEYSTORE_PASS")
+            if (ks && pass) {
+                storeFile file(ks)
+                storePassword pass
+                keyAlias "decka"
+                keyPassword pass
+            }
+        }
+    }
     buildTypes {
         release {
+            if (!System.getenv("DECKA_KEYSTORE") || !System.getenv("DECKA_KEYSTORE_PASS")) {
+                gradle.taskGraph.whenReady { graph ->
+                    if (graph.allTasks.any { it.name == "assembleRelease" || it.name == "bundleRelease" }) {
+                        throw new GradleException("DECKA_KEYSTORE and DECKA_KEYSTORE_PASS are not set; use npm run release:apk (signing key in %USERPROFILE%\\.decka-signing)")
+                    }
+                }
+            }
+            debuggable false
+            signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
