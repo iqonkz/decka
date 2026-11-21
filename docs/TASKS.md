@@ -116,6 +116,51 @@ DATA_MODEL.md §10.9, «Исправление 2026-11-21»:
   - Задачи с буквой `b` можно делать параллельно, когда готова одноимённая задача Claude: формат файлов задан в DATA_MODEL §12.4.
 - **Тестам не нужны модели и интернет:** серверы подменяются заглушкой (маленький HTTP-сервер в тесте). Настоящие загрузки и модели — только в ручной проверке и в `voice-eval` при выпуске.
 
+### Распределение остатка M21 (2026-11-21, у Claude 63% лимита) — главнее пометок в задачах ниже
+**Владение файлами — чтобы агенты не правили одно и то же:**
+- **Второй агент:**
+  - `agent/src/**` (весь интерфейс окна, включая `VoiceSection.tsx`, плашку `VoicePill.tsx`, поле горячей клавиши);
+  - `client/src/voice/capture.ts`;
+  - `tools/voice-eval.mjs`;
+  - `shared/ai/manifest.json`;
+  - `agent/core/src/voice/audio.rs` (чистые функции звука);
+  - `agent/core/src/ai/hardware.rs`.
+- **Claude:**
+  - `agent/core/src/ai/{mod,download,supervisor}.rs`;
+  - `agent/core/src/voice/{mod,pipeline,matcher,tools,llm,mic,hotkey}.rs`;
+  - приём `voice_*` в `server/ws.rs`;
+  - `agent/src-tauri/**` (создание окна плашки, команды IPC);
+  - `client/src/voice/api.ts` (связка с протоколом);
+  - проверка и слияние веток.
+
+**Контракт IPC** (`shared/src/ipc.ts`; второй агент пишет интерфейс на нём, Claude реализует в Rust):
+```ts
+interface VoiceStatus { state: "off"|"downloading"|"ready"|"loading"|"error"; progress?: { done: number; total: number };
+  hardware: { gpu?: string; vramGb?: number; ramGb: number }; model: "standard"|"light"; downloadGb: number;
+  hotkey: string[]; keepLoaded: boolean; speak: boolean; phoneButton: boolean; mic?: string; mics: string[]; error?: string }
+voice_status(): VoiceStatus; voice_enable(): VoiceStatus; voice_cancel(): VoiceStatus; voice_remove(): VoiceStatus;
+voice_set(args: { model?, hotkey?, keepLoaded?, speak?, phoneButton?, mic? }): VoiceStatus;
+// событие окна "voice-status" (VoiceStatus) при каждом изменении; окно плашки — событие "voice-pill" (секция voice, PROTOCOL §3)
+```
+
+**Порядок:**
+1. **Второй агент, ветка `ag-voice-2`:** A1 → A2 → A3 → A4.
+2. **Claude параллельно:** T21.R (слить `ag-voice`) → C1 → C2 → C3 → C4 → C5.
+3. **Затем Claude:** T21.R2 (слить `ag-voice-2`) → C6 (связать интерфейс с IPC) → T21.S → T21.6.
+
+| Кто | Задача | Что входит (подробности — в T21.1…T21.5 ниже) |
+|---|---|---|
+| второй агент | **A1** | `shared/ai/manifest.json`: SHA-256 и размеры из API GitHub и Hugging Face (§12.1). `hardware.rs`: DXGI и ОЗУ, функция рекомендации (§12.2) с тестами. Окно `More → Voice`: все состояния §12.7 на контракте IPC (заглушка в `shared/src/ipc.ts`, если нет) |
+| второй агент | **A2** | `audio.rs`: WAV-заголовок, ресемплинг до 16 кГц, детектор тишины — с тестами из T21.2. Интерфейс плашки `VoicePill.tsx` (DESIGN §4.12), получает данные событием `voice-pill`. Поле горячей клавиши на `ChordField` |
+| второй агент | **A3** | `tools/voice-eval.mjs` (режим `--check` без модели; режим прогона — через `http://127.0.0.1:<port>` с ключом из аргументов) |
+| второй агент | **A4** | `client/src/voice/capture.ts`: `getUserMedia`, `AudioContext`, 16 кГц, куски по 100 мс, тесты разбиения. Отправку делает `api.ts` (Claude) |
+| Claude | **C1** | Загрузчик (Range, SHA-256, хосты, `tar.exe`), надзор (Job Object, порт, ключ, health, ленивый старт, простой, перезапуски), команды IPC по контракту |
+| Claude | **C2** | Микрофон `cpal` (функции звука из `audio.rs`), `RegisterHotKey`, запрос к whisper, создание и уничтожение окна плашки (`focus: false`) |
+| Claude | **C3** | = T21.3 (инструменты, сопоставитель, подтверждение, секция `voice`) |
+| Claude | **C4** | = T21.4 п. 1 и тесты (схема, контекст, проверка ответа) |
+| Claude | **C5** | = T21.5 п. 1 и связка `api.ts` с `capture.ts` и протоколом |
+| Claude | **C6** | После слияния `ag-voice-2`: проверить, что окно и плашка работают с настоящими командами IPC; мелкие правки |
+
 ### T21.1 — Пакет ИИ: манифест, загрузка, железо, надзор — [Claude]
 1. `shared/ai/manifest.json` по §12.1. SHA-256 и размеры взять из API GitHub и Hugging Face, не скачивая файлы.
 2. Загрузчик (докачка, SHA-256, `tar.exe`, атомарная замена), определение железа и рекомендация (§12.2), надзор за серверами (§12.3: Job Object, порт, ключ, health, ленивый старт, простой 10 мин, перезапуски).
