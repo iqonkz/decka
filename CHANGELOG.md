@@ -4,6 +4,8 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+## 0.11.0 — 2026-11-21
+
 ### Added
 - **One-click update of the PC agent**: when a newer release exists, More → About shows `Update to X.Y.Z`. Decka downloads the installer, checks its signature against the update key built into the agent (an unsigned or altered file is refused: `The update is not signed by Decka`), installs it and restarts. `Download` stays as a fallback. The installer is still not a Windows-signed one, so SmartScreen may warn on a manual install.
 - **Update the phone app from the PC**: the agent downloads the new APK of the release, checks it against `SHA256SUMS.txt` and the signature of that file, and offers it to paired phones. The phone menu shows `Update Decka to X.Y.Z`; the file travels through the encrypted channel, is checked again on the phone and opened in Android's installer (Android asks once to allow installing from Decka). The APK has the same signature, so it installs over the old one and the pairing stays.
