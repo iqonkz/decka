@@ -68,8 +68,13 @@ export interface VoiceCancelMsg { t: "voice_cancel"; id: string; }
 export interface VoiceConfirmMsg { t: "voice_confirm"; id: string; yes: boolean; }
 // Секция FullState.voice?: VoiceInfo | null:
 // { state: "idle"|"listening"|"loading"|"thinking"|"confirm"|"done"|"error"; id?: string; source?: "pc"|"phone";
-//   heard?: string (≤ 300); reply?: string (≤ 300); confirm?: { text: string } }
-// Лимиты: запись ≤ 30 с (больше — обрезается и завершается), seq строго +1, ≤ 15 кусков в секунду на устройство.
+//   heard?: string (≤ 300); reply?: string (≤ 300); confirm?: { text: string; key?: string; args?: Record<string,string> };
+//   replyKey?: string; replyArgs?: Record<string,string> }
+// Тексты: постоянные фразы агента ("Didn't catch that", "Cancelled", вопросы подтверждения) идут ключом i18n
+// (replyKey / confirm.key + args, ключи voice.reply.* и voice.confirm.* в shared/src/i18n), интерфейс показывает t(key, args).
+// reply и confirm.text — только свободный текст (ответ модели, имена программ) и запасной вариант, если ключа нет в словаре.
+// Лимиты: запись ≤ 30 с (больше — обрезается и завершается), seq начинается с 0 и растёт строго +1, ≤ 15 кусков в секунду на устройство.
+// voice_end / voice_cancel / voice_confirm с неизвестным id молча игнорируются; voice_chunk с неизвестным id → BAD_MESSAGE.
 // M20 (TASKS T20.4): загрузка нового APK с ПК внутри зашифрованного канала.
 export interface ApkGetMsg { t: "apk_get"; offset: number; }                       // offset кратен 3000
 export type ClientMsg = PairMsg | HelloMsg | PressMsg | NotifDismissMsg | PingMsg | PermAnswerMsg | NotifOpenMsg | ApkGetMsg;
