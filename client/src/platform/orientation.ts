@@ -4,8 +4,8 @@ import { isNative } from "./native";
 import { registerPlugin } from "@capacitor/core";
 import { loadTurn, saveTurn, turnRoute, type Turn } from "./turn";
 
-/** Own Capacitor plugin (client/android DeckaTurnPlugin): the sensor picks either side. */
-const DeckaTurn = registerPlugin<{ setSensor(options: { portrait: boolean }): Promise<void> }>("DeckaTurn");
+/** Own Capacitor plugin (client/android DeckaTurnPlugin): an angle listener picks either side; the layout orientation is never changed. */
+const DeckaTurn = registerPlugin<{ setAuto(options: { portrait: boolean }): Promise<void>; stop(): Promise<void> }>("DeckaTurn");
 
 /** The orientation of the last layout, so that the next start opens in it at once (before any layout arrives). */
 export const ORIENTATION_KEY = "decka.orientation.v1";
@@ -40,8 +40,12 @@ export async function lockOrientation(orientation: Orientation, turn: Turn = loa
   if (!isNative()) return;
   try {
     const route = turnRoute(orientation, turn);
-    if (route.via === "sensor") await DeckaTurn.setSensor({ portrait: route.portrait });
-    else await ScreenOrientation.lock({ orientation: route.lock });
+    if (route.via === "sensor") {
+      await DeckaTurn.setAuto({ portrait: route.portrait });
+    } else {
+      await DeckaTurn.stop();
+      await ScreenOrientation.lock({ orientation: route.lock });
+    }
   } catch {
     // an old WebView or a device that refuses: the screen keeps what it has
   }

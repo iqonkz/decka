@@ -38,7 +38,26 @@ export function saveTurn(turn: Turn, storage: Pick<Storage, "setItem"> | undefin
  */
 export type TurnRoute = { via: "sensor"; portrait: boolean } | { via: "plugin"; lock: OrientationLockType };
 
-/** `auto` goes to the own `DeckaTurn` plugin (sensor); `normal` / `flipped` to the screen-orientation plugin (DATA_MODEL.md 10.9). */
+/** The side of the layout's orientation: `primary` = LANDSCAPE / PORTRAIT, `secondary` = the reverse one. */
+export type TurnSide = "primary" | "secondary";
+
+/**
+ * Sector table of the own sensor listener (DATA_MODEL.md 10.9, T20.1); `DeckaTurnPlugin.java` repeats it.
+ * `angle` is the OrientationEventListener angle 0..359 (-1 = unknown). Outside the sectors the side stays (hysteresis).
+ */
+export function turnSide(angle: number, current: TurnSide, portrait: boolean): TurnSide {
+  if (!Number.isFinite(angle) || angle < 0 || angle > 359) return current;
+  if (portrait) {
+    if (angle >= 330 || angle <= 30) return "primary";
+    if (angle >= 150 && angle <= 210) return "secondary";
+  } else {
+    if (angle >= 240 && angle <= 300) return "primary";
+    if (angle >= 60 && angle <= 120) return "secondary";
+  }
+  return current;
+}
+
+/** `auto` goes to the own `DeckaTurn` plugin (angle listener); `normal` / `flipped` to the screen-orientation plugin (DATA_MODEL.md 10.9). */
 export function turnRoute(orientation: Orientation | undefined, turn: Turn): TurnRoute {
   if (turn === "auto") return { via: "sensor", portrait: orientation === "portrait" };
   return { via: "plugin", lock: orientationLock(orientation, turn) };

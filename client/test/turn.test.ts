@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import type { StripInfo } from "@decka/shared";
-import { loadTurn, orientationLock, saveTurn, TURN_KEY, turnRoute } from "../src/platform/turn";
+import { loadTurn, orientationLock, saveTurn, TURN_KEY, turnRoute, turnSide } from "../src/platform/turn";
 import { hiddenStripApps, loadStripModes, stripModeFor, stripPage, STRIP_KEY } from "../src/deck/stripMode";
 
 function memory(initial: Record<string, string> = {}) {
@@ -24,6 +24,17 @@ describe("orientationLock (DATA_MODEL.md 10.9)", () => {
     expect(turnRoute("landscape", "flipped")).toEqual({ via: "plugin", lock: "landscape-secondary" });
     expect(turnRoute("portrait", "normal")).toEqual({ via: "plugin", lock: "portrait-primary" });
     expect(turnRoute("portrait", "flipped")).toEqual({ via: "plugin", lock: "portrait-secondary" });
+  });
+  test("turnSide sectors, landscape and portrait (T20.1)", () => {
+    const angles = [0, 45, 90, 135, 200, 270, 330];
+    // landscape: 60..120 secondary, 240..300 primary, the rest keeps the current side
+    expect(angles.map((a) => turnSide(a, "primary", false))).toEqual(["primary", "primary", "secondary", "primary", "primary", "primary", "primary"]);
+    expect(angles.map((a) => turnSide(a, "secondary", false))).toEqual(["secondary", "secondary", "secondary", "secondary", "secondary", "primary", "secondary"]);
+    // portrait: 330..30 primary, 150..210 secondary
+    expect(angles.map((a) => turnSide(a, "primary", true))).toEqual(["primary", "primary", "primary", "primary", "secondary", "primary", "primary"]);
+    expect(angles.map((a) => turnSide(a, "secondary", true))).toEqual(["primary", "secondary", "secondary", "secondary", "secondary", "secondary", "primary"]);
+    expect(turnSide(-1, "secondary", false)).toBe("secondary");
+    expect(turnSide(Number.NaN, "primary", true)).toBe("primary");
   });
   test("an absent orientation is landscape", () => {
     expect(orientationLock(undefined, "flipped")).toBe("landscape-secondary");
