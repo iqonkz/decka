@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { highlightParts } from "./librarySearch";
 import EntryIcon from "../ui/EntryIcon";
-import { CATALOG, SETS, catalogItem, categoryItems, getLanguage, insertSet, pickText, searchCatalog, textHits, t, type ActionsFile, type Action, type CatalogItem, type CatalogSet, type InstalledApp, type LayoutFile } from "@decka/shared";
+import { CATALOG, SETS, catalogItem, categoryItems, getLanguage, insertSet, pickText, searchCatalog, textHits, t, type ActionsFile, type CatalogItem, type CatalogSet, type InstalledApp, type LayoutFile } from "@decka/shared";
 import PhIcon from "../ui/PhIcon";
-import { describeAction } from "../editor/describeAction";
+import { hintOf } from "../editor/libraryHint";
 import { cachedApps, loadApps } from "../editor/apps";
 import { libraryCategories, type Integrations } from "../editor/catalogUi";
 import type { DragPayload } from "./dragMachine";
@@ -19,16 +19,6 @@ function readOpen(): string[] {
     // no storage: the first category is open
   }
   return [libraryCategories()[0]?.id ?? ""];
-}
-
-/** What an item does, in grey on the right: the keys of a shortcut, the size of a widget, `OBS`. */
-function hintOf(item: CatalogItem): string {
-  if (item.widget) return `${item.widget.w}×${item.widget.h}`;
-  if (item.action) {
-    const text = describeAction({ name: pickText(item.name, getLanguage()), ...item.action } as Action);
-    return text === pickText(item.name, getLanguage()) ? (item.requires === "obs" ? "OBS" : "") : text;
-  }
-  return item.requires === "obs" ? "OBS" : "";
 }
 
 const matchesSet = (s: CatalogSet, q: string, lang: ReturnType<typeof getLanguage>) => textHits(s.name, q) || pickText(s.description, lang).toLowerCase().includes(q);

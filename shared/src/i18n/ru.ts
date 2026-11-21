@@ -849,5 +849,12 @@ export const ru: Record<Base | ExtraPlural, string> = {
   "orientation.rotate": "Повернуть",
   "orientation.rotated": "Повернуто. Ctrl+Z — отменить.",
   "orientation.undone": "Возвращено как было.",
+  "date.format": "{weekday}, {day} {month}",
+  "date.month.1": "января", "date.month.2": "февраля", "date.month.3": "марта", "date.month.4": "апреля", "date.month.5": "мая", "date.month.6": "июня",
+  "date.month.7": "июля", "date.month.8": "августа", "date.month.9": "сентября", "date.month.10": "октября", "date.month.11": "ноября", "date.month.12": "декабря",
+  "date.month_short.1": "янв.", "date.month_short.2": "февр.", "date.month_short.3": "мар.", "date.month_short.4": "апр.", "date.month_short.5": "мая", "date.month_short.6": "июн.",
+  "date.month_short.7": "июл.", "date.month_short.8": "авг.", "date.month_short.9": "сент.", "date.month_short.10": "окт.", "date.month_short.11": "нояб.", "date.month_short.12": "дек.",
+  "date.weekday.0": "воскресенье", "date.weekday.1": "понедельник", "date.weekday.2": "вторник", "date.weekday.3": "среда", "date.weekday.4": "четверг", "date.weekday.5": "пятница", "date.weekday.6": "суббота",
+  "date.weekday_short.0": "вс", "date.weekday_short.1": "пн", "date.weekday_short.2": "вт", "date.weekday_short.3": "ср", "date.weekday_short.4": "чт", "date.weekday_short.5": "пт", "date.weekday_short.6": "сб",
   // @@END
 };

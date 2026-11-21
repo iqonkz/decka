@@ -1,4 +1,5 @@
-import { locale, type WeatherItem } from "@decka/shared";
+import { type WeatherItem } from "@decka/shared";
+import { formatWeekday } from "./format";
 import { useDeckEnv } from "../deckEnv";
 import { weatherIcon, type WeatherIconName } from "./weatherIcon";
 import { WEATHER_SVG } from "./weatherIcons";
@@ -18,7 +19,7 @@ function WeatherGlyph({ name, size }: { name: WeatherIconName; size: number }) {
 /** `2026-11-17` -> a short weekday in the language of the interface (`Tue`, `вт`). */
 function weekday(date: string): string {
   const d = new Date(`${date}T12:00:00`);
-  return Number.isNaN(d.getTime()) ? "" : new Intl.DateTimeFormat(locale(), { weekday: "short" }).format(d);
+  return Number.isNaN(d.getTime()) ? "" : formatWeekday(d);
 }
 
 const deg = (n: number): string => `${n}°`;

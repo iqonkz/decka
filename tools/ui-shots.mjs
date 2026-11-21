@@ -86,6 +86,7 @@ const SCENARIOS = {
   "i18n-de-more": { language: "de", width: 1000, height: 760, steps: [{ click: ".tabs .tab:nth-child(4)" }, { wait: 300 }] },
   "i18n-ar": { language: "ar", width: 1000, height: 760, steps: [{ hover: ".library .palette-item" }] },
   "i18n-ar-more": { language: "ar", width: 1000, height: 760, steps: [{ click: ".tabs .tab:nth-child(4)" }, { wait: 300 }] },
+  "ui-library-kk": { language: "kk", width: 1000, height: 760, steps: [{ hover: ".library .palette-item" }] },
   "i18n-kk": { language: "kk", width: 1000, height: 760, steps: [{ hover: ".library .palette-item" }] },
   "i18n-ja": { language: "ja", width: 1000, height: 760, steps: [{ hover: ".library .palette-item" }] },
 };

@@ -88,7 +88,7 @@ th { color: var(--muted); font-weight: 600; font-size: 12px; }
 .palette-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); cursor: grab; user-select: none; }
 .palette-item span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* The library (DESIGN.md 4.8) */
-.editor { grid-template-columns: 280px minmax(0, 1fr); }
+.editor { grid-template-columns: 300px minmax(0, 1fr); }
 .library { max-height: 620px; }
 .library-category { display: flex; flex-direction: column; gap: 4px; }
 .library-head { display: flex; align-items: center; gap: 6px; width: 100%; padding: 6px 4px; border: 0; background: none; color: inherit; font: inherit; font-weight: 600; text-align: start; cursor: pointer; }
@@ -103,17 +103,17 @@ th { color: var(--muted); font-weight: 600; font-size: 12px; }
 .search-box:focus-within { border: 1.5px solid var(--accent); padding: 0 9.5px; }
 .library .search-box input:not([type="checkbox"]):not([type="radio"]):not([type="color"]) { flex: 1; width: auto; min-width: 0; height: 100%; padding: 0; border: 0; border-radius: 0; outline: 0; background: transparent; color: var(--text); font: inherit; box-shadow: none; }
 .search-clear { display: flex; align-items: center; padding: 2px; border: 0; border-radius: 4px; background: none; color: var(--muted); cursor: pointer; }
-.segments { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 3px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); }
-.segment { min-width: 0; height: 30px; padding: 0 4px; border: 0; border-radius: 7px; background: transparent; color: var(--text); font: inherit; font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; transition: background 150ms; }
+.segments { display: grid; grid-template-columns: repeat(3, minmax(max-content, 1fr)); padding: 3px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); }
+.segment { min-width: max-content; height: 30px; padding: 0 8px; border: 0; border-radius: 7px; background: transparent; color: var(--text); font: inherit; font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; transition: background 150ms; }
 .segment.active { background: var(--accent); color: #fff; }
 .library .palette-list { padding-top: 4px; gap: 2px; }
 .library .palette-item { height: 36px; padding: 0 6px 0 8px; border: 0; border-radius: 8px; background: transparent; }
 .library .palette-item:hover, .library .palette-item:focus-visible { background: var(--bg); outline: 0; }
 .library-head { position: sticky; top: 0; z-index: 1; height: 32px; background: var(--panel); }
 .library-head small { flex: none; font-size: 11px; }
-.library .palette-item > span:not(.app-noicon) { flex: 1 1 auto; min-width: 5em; }
+.library .palette-item > span:not(.app-noicon) { flex: 1 1 auto; min-width: 60%; }
 .library .app-noicon { flex: none; border-radius: 6px; background: var(--border); }
-.library-item small { flex: 0 1 auto; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
+.library-item small { flex: 0 1 auto; max-width: 30%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
 .row-add { display: none; flex: none; align-items: center; justify-content: center; width: 24px; height: 24px; padding: 0; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--text); cursor: pointer; }
 .library-item:hover .row-add, .library-item:focus-visible .row-add { display: flex; }
 .row-add:hover { background: var(--accent); color: #fff; }

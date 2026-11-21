@@ -19,8 +19,8 @@ export default function Notifications(_props: { item: NotificationsItem }) {
     const off = vars["notif.windows"] !== true;
     return (
       <div className="tile-body notif-empty">
-        {off ? t("widget.notif_off") : t("widget.no_notifications")}
-        {off && <div className="notif-body">{t("widget.notif_off_hint")}</div>}
+        <div className="empty-title">{off ? t("widget.notif_off") : t("widget.no_notifications")}</div>
+        {off && <div className="empty-hint">{t("widget.notif_off_hint")}</div>}
       </div>
     );
   }

@@ -1,5 +1,33 @@
 import { describe, expect, test } from "vitest";
-import { formatClock, formatRate, percent } from "../src/widgets/format";
+import { formatClock, formatDate, formatRate, formatWeekday, hasDateData, percent, type IntlLike } from "../src/widgets/format";
+
+/** An `Intl` that lists every language as supported but has no month names (the WebView case for `kk`). */
+const bareIntl = {
+  DateTimeFormat: Object.assign(
+    function () {
+      return { format: () => "M11 21, Sat" };
+    },
+    { supportedLocalesOf: (l: string) => [l] },
+  ),
+} as unknown as IntlLike;
+const emptyIntl = { DateTimeFormat: Object.assign(function () {}, { supportedLocalesOf: () => [] }) } as unknown as IntlLike;
+
+describe("dates without Intl data", () => {
+  const d = new Date(2026, 10, 21); // Saturday
+  test("detects missing data: no supported locales, or `M11` in the output", () => {
+    expect(hasDateData("kk", bareIntl)).toBe(false);
+    expect(hasDateData("kk", emptyIntl)).toBe(false);
+    expect(hasDateData("en")).toBe(true);
+  });
+  test("kk comes from the dictionary: `21 қараша, сб`", () => {
+    expect(formatDate(d, "kk", bareIntl)).toBe("21 қараша, сб");
+    expect(formatWeekday(d, "kk", emptyIntl)).toBe("сб");
+  });
+  test("other languages follow the same rule", () => {
+    expect(formatDate(d, "ru", bareIntl)).toBe("сб, 21 ноября");
+    expect(formatDate(d, "en", bareIntl)).toBe("Sat, 21 November");
+  });
+});
 
 describe("formatRate", () => {
   test("Kbps below 1000, Mbps with one decimal from 1000", () => {

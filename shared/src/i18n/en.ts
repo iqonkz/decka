@@ -827,5 +827,12 @@ export const en = {
   "orientation.rotate": "Rotate",
   "orientation.rotated": "Turned. Press Ctrl+Z to undo.",
   "orientation.undone": "Turned back.",
+  "date.format": "{weekday}, {day} {month}",
+  "date.month.1": "January", "date.month.2": "February", "date.month.3": "March", "date.month.4": "April", "date.month.5": "May", "date.month.6": "June",
+  "date.month.7": "July", "date.month.8": "August", "date.month.9": "September", "date.month.10": "October", "date.month.11": "November", "date.month.12": "December",
+  "date.month_short.1": "Jan", "date.month_short.2": "Feb", "date.month_short.3": "Mar", "date.month_short.4": "Apr", "date.month_short.5": "May", "date.month_short.6": "Jun",
+  "date.month_short.7": "Jul", "date.month_short.8": "Aug", "date.month_short.9": "Sep", "date.month_short.10": "Oct", "date.month_short.11": "Nov", "date.month_short.12": "Dec",
+  "date.weekday.0": "Sunday", "date.weekday.1": "Monday", "date.weekday.2": "Tuesday", "date.weekday.3": "Wednesday", "date.weekday.4": "Thursday", "date.weekday.5": "Friday", "date.weekday.6": "Saturday",
+  "date.weekday_short.0": "Sun", "date.weekday_short.1": "Mon", "date.weekday_short.2": "Tue", "date.weekday_short.3": "Wed", "date.weekday_short.4": "Thu", "date.weekday_short.5": "Fri", "date.weekday_short.6": "Sat",
   // @@END
 } as const;

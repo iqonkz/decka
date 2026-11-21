@@ -101,7 +101,8 @@ describe("the dictionaries", () => {
 
   test.each(LANGUAGES.filter((l) => l !== "en"))("%s has every key of en, none empty, and the same {parameters}", (lang) => {
     const table = TABLES[lang];
-    for (const [key, source] of Object.entries(en)) {
+    // `date.*` is the fallback for languages without `Intl` data (T19.5): only en, ru and kk carry it.
+    for (const [key, source] of Object.entries(en).filter(([k]) => !k.startsWith("date."))) {
       const text = table[key];
       expect(text, `${lang}: ${key}`).toBeDefined();
       expect(text!.trim(), `${lang}: ${key}`).not.toBe("");
@@ -118,7 +119,7 @@ describe("the dictionaries", () => {
   });
 
   test("Russian differs from English except for names that are written the same", () => {
-    for (const [key, source] of Object.entries(en)) {
+    for (const [key, source] of Object.entries(en).filter(([k]) => !k.startsWith("date."))) {
       if (TABLES.ru[key] === source) expect(looksUniversal(source), `${key}: "${source}"`).toBe(true);
     }
   });
