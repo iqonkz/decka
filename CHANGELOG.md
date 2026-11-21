@@ -4,6 +4,8 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+## 0.10.1 — 2026-11-21
+
 ### Fixed
 - Library rows show the right hint: the shortcut for a hotkey, the exe for a program, the host for a link; media, audio, OBS and system keys have none. The name gets at least 60% of the row.
 - Empty widgets (notifications, ...) show the title and the hint on separate lines, the hint is cut to two lines.
