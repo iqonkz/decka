@@ -4,6 +4,17 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+### Added
+- **One-click update of the PC agent**: when a newer release exists, More → About shows `Update to X.Y.Z`. Decka downloads the installer, checks its signature against the update key built into the agent (an unsigned or altered file is refused: `The update is not signed by Decka`), installs it and restarts. `Download` stays as a fallback. The installer is still not a Windows-signed one, so SmartScreen may warn on a manual install.
+- **Update the phone app from the PC**: the agent downloads the new APK of the release, checks it against `SHA256SUMS.txt` and the signature of that file, and offers it to paired phones. The phone menu shows `Update Decka to X.Y.Z`; the file travels through the encrypted channel, is checked again on the phone and opened in Android's installer (Android asks once to allow installing from Decka). The APK has the same signature, so it installs over the old one and the pairing stays.
+- Release files now include `latest.json` (the update manifest) and `SHA256SUMS.txt.sig`.
+
+### Changed
+- **AI limits widget redesigned**: figures and shapes instead of words. 2x1: a ring per provider; 2x2: two concentric rings (short window outside, week inside); from 3x2: two bars per provider. Colour changes at 70% and 90%. `↻ 2h 14m` is the time to the reset, `⚠ 14:20` the forecast when the limit ends before it. Text that does not fit is left out instead of cut. A tap opens a sheet with exact percents, reset times, the forecast, the plan and the sessions.
+
+### Fixed
+- **Turning the phone upside down**: `Auto` now reads the angle of the phone itself and flips between the two sides of the layout's orientation; it no longer relies on the system sensor mode, which did nothing on some phones. The layout orientation is never changed by the sensor.
+
 ## 0.10.2 — 2026-11-21
 
 ### Changed

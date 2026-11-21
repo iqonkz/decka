@@ -267,3 +267,10 @@
 - PENDING (owner): Kazakh and Russian read by a native speaker; the other nine are machine translations.
 - PENDING (owner): on the phone: switch the language in the window, the phone follows within a second; Arabic: the menu and the sheets mirror, the grid and the page swipe do not; Hindi, Chinese and Japanese show real letters on the Galaxy (system fonts of Android).
 - PENDING (owner): the tray menu in a Windows with another UI language (`auto`), for example German.
+
+## M20 — flip, limits widget, one-click updates (2026-11-21)
+- PENDING (owner): T20.1 on the phone: with `Turn → Auto`, put it on its other side (charging port up, then down): the screen flips within a second and stays; the layout orientation (portrait/landscape) never changes. With a phone on USB: `adb shell dumpsys window | findstr mCurrentAppOrientation` changes between `0` and `8` (landscape). No phone was connected when this was written.
+- DONE (screenshots, headless Chrome, `node tools/ai-shots.mjs`): `.tmp\shots\ai-2x1.png`, `ai-2x2.png`, `ai-4x2.png` (AMOLED) and `ai-2x2-material.png` on an 800x360 phone-sized deck: no cut text, nothing below 11 px; long session names and the `ctx` part are left out when they do not fit.
+- PENDING (owner): the limits widget on the phone at 2x1, 2x2, 3x2 and 4x2 (ring colours at 70% / 90%, the `↻` and `⚠` lines, the details sheet on a tap).
+- PENDING (owner): one-click update of the agent, on the NEXT release after 0.11.0 (0.11.1): More → About → `Update to 0.11.1` downloads, installs passively and restarts the agent. The update key is in `%USERPROFILE%\.decka-signing\updater.key` (password under DPAPI in `updater.pass`); back both up: without them installed agents cannot take later updates.
+- PENDING (owner): update of the phone app from the PC, also on 0.11.1: the phone menu shows `Update Decka to 0.11.1`, the progress, then Android's installer (the first time: allow installing from Decka). The pairing stays because the APK has the same signature.
