@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { t } from "@decka/shared";
 import logoUrl from "../../docs/assets/decka-logo.svg";
 import { call, onVoicePill, type VoicePillEvent } from "./ipc";
 
@@ -97,43 +98,41 @@ export default function VoicePill({ initialData, onConfirm }: VoicePillProps) {
               {data.heard ? (
                 <span className="voice-heard">{data.heard}</span>
               ) : (
-                <span className="voice-status-text">Listening…</span>
+                <span className="voice-status-text">{t("voice.listening")}</span>
               )}
             </span>
           )}
 
           {data.state === "thinking" && (
-            <span className="voice-thinking">
-              Thinking<span className="voice-dots">…</span>
-            </span>
+            <span className="voice-thinking">{t("voice.thinking")}</span>
           )}
 
           {data.state === "done" && (
             <span className="voice-done">
               <span className="voice-check" aria-hidden="true">✓ </span>
-              {data.reply || data.heard || "Done"}
+              {data.reply || data.heard || t("voice.done")}
             </span>
           )}
 
           {data.state === "error" && (
             <span className="voice-error">
               <span className="voice-error-dot" aria-hidden="true">● </span>
-              {data.reply || "Didn't catch that"}
+              {data.reply || t("voice.error")}
             </span>
           )}
 
           {data.state === "confirm" && (
             <span className="voice-confirm-prompt">
-              {data.confirm?.text || data.reply || "Confirm action"}
+              {data.confirm?.text || data.reply || t("voice.confirm_title")}
             </span>
           )}
 
           {data.state === "idle" && (
-            <span className="voice-status-text">Ready</span>
+            <span className="voice-status-text">{t("voice.key_label")}</span>
           )}
 
           {data.state === "loading" && (
-            <span className="voice-status-text">Loading…</span>
+            <span className="voice-status-text">{t("voice.loading")}</span>
           )}
         </div>
       </div>
@@ -142,7 +141,7 @@ export default function VoicePill({ initialData, onConfirm }: VoicePillProps) {
       {data.state === "confirm" && (
         <div className="voice-pill-confirm">
           <div className="voice-confirm-text">
-            {data.confirm?.text || data.reply || "Confirm this action?"}
+            {data.confirm?.text || data.reply || t("voice.confirm_title")}
           </div>
           <div className="voice-confirm-actions">
             <button
@@ -150,14 +149,14 @@ export default function VoicePill({ initialData, onConfirm }: VoicePillProps) {
               className="voice-btn voice-btn-no"
               onClick={() => void handleConfirm(false)}
             >
-              No <span className="voice-btn-key">(Esc)</span>
+              {t("voice.no")} <span className="voice-btn-key">(Esc)</span>
             </button>
             <button
               type="button"
               className="voice-btn voice-btn-yes"
               onClick={() => void handleConfirm(true)}
             >
-              Yes <span className="voice-btn-key">(Enter)</span>
+              {t("voice.yes")} <span className="voice-btn-key">(Enter)</span>
             </button>
           </div>
         </div>
