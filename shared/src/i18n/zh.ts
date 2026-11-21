@@ -814,6 +814,15 @@ export const zh: Dictionary = {
   "about.check_failed": "无法连接到 GitHub。请稍后再试。",
   "update.available": "Decka {version} 可用",
   "update.download": "下载",
+  "update.install": "更新到 {version}",
+  "update.downloading": "正在下载 {pct}%",
+  "update.installing": "正在安装…",
+  "update.not_signed": "此更新未经 Decka 签名",
+  "update.failed": "更新失败。你仍可使用“下载”。",
+  "update.app_banner": "将 Decka 更新到 {version}",
+  "update.app_verifying": "正在检查文件…",
+  "update.app_bad": "文件未通过检查，未安装任何内容。",
+  "update.app_failed": "无法下载更新",
 
   // ----- Orientation -----
   "orientation.title": "方向",

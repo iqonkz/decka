@@ -814,6 +814,15 @@ export const ja: Dictionary = {
   "about.check_failed": "GitHub に接続できませんでした。後でもう一度お試しください。",
   "update.available": "Decka {version} が利用できます",
   "update.download": "ダウンロード",
+  "update.install": "{version} に更新",
+  "update.downloading": "ダウンロード中 {pct}%",
+  "update.installing": "インストール中…",
+  "update.not_signed": "この更新には Decka の署名がありません",
+  "update.failed": "更新に失敗しました。「ダウンロード」は引き続き使えます。",
+  "update.app_banner": "Decka を {version} に更新",
+  "update.app_verifying": "ファイルを確認中…",
+  "update.app_bad": "ファイルの確認に失敗しました。何もインストールされていません。",
+  "update.app_failed": "更新をダウンロードできませんでした",
 
   // ----- Orientation -----
   "orientation.title": "向き",

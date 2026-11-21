@@ -850,6 +850,15 @@ export const ar: Dictionary = {
   "about.check_failed": "تعذّر الوصول إلى GitHub. حاول لاحقًا.",
   "update.available": "Decka {version} متاح",
   "update.download": "تنزيل",
+  "update.install": "التحديث إلى {version}",
+  "update.downloading": "جارٍ التنزيل {pct}%",
+  "update.installing": "جارٍ التثبيت…",
+  "update.not_signed": "التحديث غير موقّع من Decka",
+  "update.failed": "فشل التحديث. لا يزال بإمكانك استخدام تنزيل.",
+  "update.app_banner": "تحديث Decka إلى {version}",
+  "update.app_verifying": "جارٍ فحص الملف…",
+  "update.app_bad": "لم ينجح الملف في الفحص. لم يتم تثبيت أي شيء.",
+  "update.app_failed": "تعذّر تنزيل التحديث",
 
   // ----- Orientation -----
   "orientation.title": "الاتجاه",

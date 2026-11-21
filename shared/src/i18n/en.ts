@@ -816,6 +816,15 @@ export const en = {
   "about.check_failed": "Could not reach GitHub. Try again later.",
   "update.available": "Decka {version} is available",
   "update.download": "Download",
+  "update.install": "Update to {version}",
+  "update.downloading": "Downloading {pct}%",
+  "update.installing": "Installing…",
+  "update.not_signed": "The update is not signed by Decka",
+  "update.failed": "The update failed. You can still use Download.",
+  "update.app_banner": "Update Decka to {version}",
+  "update.app_verifying": "Checking the file…",
+  "update.app_bad": "The file did not pass the check. Nothing was installed.",
+  "update.app_failed": "Could not download the update",
 
   // ----- Orientation -----
   "orientation.title": "Orientation",

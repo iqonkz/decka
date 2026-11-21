@@ -814,6 +814,15 @@ export const hi: Dictionary = {
   "about.check_failed": "GitHub तक नहीं पहुँच सके। बाद में फिर कोशिश करें।",
   "update.available": "Decka {version} उपलब्ध है",
   "update.download": "डाउनलोड करें",
+  "update.install": "{version} पर अपडेट करें",
+  "update.downloading": "डाउनलोड हो रहा है {pct}%",
+  "update.installing": "इंस्टॉल हो रहा है…",
+  "update.not_signed": "यह अपडेट Decka द्वारा हस्ताक्षरित नहीं है",
+  "update.failed": "अपडेट विफल रहा। आप अब भी डाउनलोड का उपयोग कर सकते हैं।",
+  "update.app_banner": "Decka को {version} पर अपडेट करें",
+  "update.app_verifying": "फ़ाइल जाँची जा रही है…",
+  "update.app_bad": "फ़ाइल जाँच में विफल रही। कुछ भी इंस्टॉल नहीं हुआ।",
+  "update.app_failed": "अपडेट डाउनलोड नहीं हो सका",
 
   // ----- Orientation -----
   "orientation.title": "दिशा",

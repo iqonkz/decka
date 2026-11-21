@@ -836,6 +836,15 @@ export const ru: Record<Base | ExtraPlural, string> = {
   "about.check_failed": "Не удалось связаться с GitHub. Попробуйте позже.",
   "update.available": "Доступна Decka {version}",
   "update.download": "Скачать",
+  "update.install": "Обновить до {version}",
+  "update.downloading": "Загрузка {pct}%",
+  "update.installing": "Установка…",
+  "update.not_signed": "Обновление не подписано Decka",
+  "update.failed": "Не удалось обновиться. Можно скачать вручную.",
+  "update.app_banner": "Обновить Decka до {version}",
+  "update.app_verifying": "Проверка файла…",
+  "update.app_bad": "Файл не прошёл проверку. Ничего не установлено.",
+  "update.app_failed": "Не удалось скачать обновление",
 
   // ----- Orientation -----
   "orientation.title": "Ориентация",

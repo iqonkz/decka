@@ -814,6 +814,15 @@ export const kk: Dictionary = {
   "about.check_failed": "GitHub-қа қосылу мүмкін болмады. Кейінірек қайталап көріңіз.",
   "update.available": "Decka {version} қолжетімді",
   "update.download": "Жүктеп алу",
+  "update.install": "{version} нұсқасына жаңарту",
+  "update.downloading": "Жүктелуде {pct}%",
+  "update.installing": "Орнатылуда…",
+  "update.not_signed": "Жаңартуға Decka қол қоймаған",
+  "update.failed": "Жаңарту сәтсіз аяқталды. Жүктеп алу түймесін қолдануға болады.",
+  "update.app_banner": "Decka-ны {version} нұсқасына жаңарту",
+  "update.app_verifying": "Файл тексерілуде…",
+  "update.app_bad": "Файл тексеруден өтпеді. Ештеңе орнатылмады.",
+  "update.app_failed": "Жаңартуды жүктеу мүмкін болмады",
 
   // ----- Orientation -----
   "orientation.title": "Бағдар",

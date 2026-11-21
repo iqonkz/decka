@@ -814,6 +814,15 @@ export const pt: Dictionary = {
   "about.check_failed": "Não foi possível acessar o GitHub. Tente mais tarde.",
   "update.available": "O Decka {version} está disponível",
   "update.download": "Baixar",
+  "update.install": "Atualizar para {version}",
+  "update.downloading": "Baixando {pct}%",
+  "update.installing": "Instalando…",
+  "update.not_signed": "A atualização não está assinada pelo Decka",
+  "update.failed": "A atualização falhou. Você ainda pode usar Baixar.",
+  "update.app_banner": "Atualizar o Decka para {version}",
+  "update.app_verifying": "Verificando o arquivo…",
+  "update.app_bad": "O arquivo não passou na verificação. Nada foi instalado.",
+  "update.app_failed": "Não foi possível baixar a atualização",
 
   // ----- Orientation -----
   "orientation.title": "Orientação",

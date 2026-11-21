@@ -3,5 +3,5 @@
   "identifier": "default",
   "description": "Permissions of the settings window",
   "windows": ["settings"],
-  "permissions": ["core:default", "dialog:allow-open"]
+  "permissions": ["core:default", "dialog:allow-open", "updater:default", "process:allow-restart"]
 }

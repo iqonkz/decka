@@ -37,6 +37,9 @@ pub fn run() {
     builder
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, Some(vec!["--minimized"])))
         .plugin(tauri_plugin_dialog::init())
+        // One-click update of the agent (T20.3): the plugin verifies the minisign signature against `plugins.updater.pubkey`.
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .on_window_event(|window, event| {
             // Closing the window destroys it (its WebView2 processes go with it); the app lives in the tray until "Quit".
             if let WindowEvent::CloseRequested { api, .. } = event {
