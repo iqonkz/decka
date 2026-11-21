@@ -1,0 +1,23 @@
+{
+  "lang": "en",
+  "yes": ["yes", "yeah", "yep", "sure", "confirm", "ok"],
+  "no": ["no", "nope", "cancel", "stop", "don't"],
+  "intents": [
+    { "tool": "volume", "args": { "op": "up" }, "patterns": ["volume up", "louder", "turn it up", "increase volume"] },
+    { "tool": "volume", "args": { "op": "down" }, "patterns": ["volume down", "quieter", "turn it down", "lower volume"] },
+    { "tool": "volume", "args": { "op": "mute" }, "patterns": ["mute", "unmute", "silence", "mute volume"] },
+    { "tool": "media", "args": { "op": "play_pause" }, "patterns": ["play", "pause", "play pause", "stop playback"] },
+    { "tool": "media", "args": { "op": "next" }, "patterns": ["next track", "next song", "skip track", "skip"] },
+    { "tool": "media", "args": { "op": "prev" }, "patterns": ["previous track", "previous song", "prev track"] },
+    { "tool": "open_app", "patterns": ["open {app}", "launch {app}", "start {app}"] },
+    { "tool": "close_app", "patterns": ["close {app}", "quit {app}", "exit {app}"] },
+    { "tool": "switch_app", "patterns": ["switch to {app}", "go to {app}"] },
+    { "tool": "go_page", "patterns": ["go to page {name}", "open page {name}", "page {name}"] },
+    { "tool": "press_button", "patterns": ["press {label}", "click {label}", "press button {label}"] },
+    { "tool": "web_search", "args": { "site": "web" }, "patterns": ["search for {query}", "search {query}", "google {query}"] },
+    { "tool": "web_search", "args": { "site": "youtube" }, "patterns": ["search youtube for {query}", "find on youtube {query}", "youtube {query}"] },
+    { "tool": "timer", "patterns": ["timer for {n} minutes", "set timer for {n} minutes", "set a timer for {n} minutes"] },
+    { "tool": "system", "args": { "op": "lock" }, "patterns": ["lock computer", "lock pc", "lock screen", "lock workstation"] },
+    { "tool": "system", "args": { "op": "sleep" }, "patterns": ["sleep computer", "sleep pc", "put computer to sleep"] }
+  ]
+}

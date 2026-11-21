@@ -1,0 +1,12 @@
+[
+  { "say": "сделай погромче", "tool": "volume", "args": { "op": "up" } },
+  { "say": "пожалуйста сделай потише", "tool": "volume", "args": { "op": "down" } },
+  { "say": "быстро заглуши звук", "tool": "volume", "args": { "op": "mute" } },
+  { "say": "поставь воспроизведение на паузу", "tool": "media", "args": { "op": "play_pause" } },
+  { "say": "переключи на следующий трек", "tool": "media", "args": { "op": "next" } },
+  { "say": "верни предыдущий трек", "tool": "media", "args": { "op": "prev" } },
+  { "say": "заблокируй экран компьютера", "tool": "system", "args": { "op": "lock" } },
+  { "say": "отправь компьютер в спящий режим", "tool": "system", "args": { "op": "sleep" } },
+  { "say": "пожалуйста запусти калькулятор", "tool": "open_app", "args": { "name": "калькулятор" } },
+  { "say": "заведи таймер на 10 минут", "tool": "timer", "args": { "minutes": 10 } }
+]

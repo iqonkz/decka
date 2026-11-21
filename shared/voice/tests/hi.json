@@ -1,0 +1,12 @@
+[
+  { "say": "थोड़ी आवाज़ बढ़ाओ", "tool": "volume", "args": { "op": "up" } },
+  { "say": "कृपया आवाज़ धीमी करो", "tool": "volume", "args": { "op": "down" } },
+  { "say": "तुरंत आवाज़ बंद कर दो", "tool": "volume", "args": { "op": "mute" } },
+  { "say": "गाना रोक दीजिए", "tool": "media", "args": { "op": "play_pause" } },
+  { "say": "अगले गाने पर जाओ", "tool": "media", "args": { "op": "next" } },
+  { "say": "पिछला गाना वापस चलाओ", "tool": "media", "args": { "op": "prev" } },
+  { "say": "कंप्यूटर को लॉक कर दो", "tool": "system", "args": { "op": "lock" } },
+  { "say": "पीसी को स्लीप मोड में डालो", "tool": "system", "args": { "op": "sleep" } },
+  { "say": "कृपया कैलकुलेटर खोलो", "tool": "open_app", "args": { "name": "कैलकुलेटर" } },
+  { "say": "दस मिनट का टाइमर सेट करो", "tool": "timer", "args": { "minutes": 10 } }
+]

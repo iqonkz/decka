@@ -1,0 +1,12 @@
+[
+  { "say": "音量を少し大きくして", "tool": "volume", "args": { "op": "up" } },
+  { "say": "音量を少し下げてください", "tool": "volume", "args": { "op": "down" } },
+  { "say": "今すぐ音声をミュート", "tool": "volume", "args": { "op": "mute" } },
+  { "say": "再生を一時停止して", "tool": "media", "args": { "op": "play_pause" } },
+  { "say": "次の曲にスキップ", "tool": "media", "args": { "op": "next" } },
+  { "say": "前の曲に戻して", "tool": "media", "args": { "op": "prev" } },
+  { "say": "パソコンの画面をロック", "tool": "system", "args": { "op": "lock" } },
+  { "say": "パソコンをスリープにして", "tool": "system", "args": { "op": "sleep" } },
+  { "say": "電卓を開いてください", "tool": "open_app", "args": { "name": "電卓" } },
+  { "say": "10分のタイマーをかけて", "tool": "timer", "args": { "minutes": 10 } }
+]

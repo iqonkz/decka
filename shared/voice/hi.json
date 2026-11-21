@@ -1,0 +1,23 @@
+{
+  "lang": "hi",
+  "yes": ["हाँ", "हां", "ज़रूर", "ठीक है", "पुष्टि करें"],
+  "no": ["नहीं", "रद्द करें", "मत करो", "बंद करो", "नहीं चाहिए"],
+  "intents": [
+    { "tool": "volume", "args": { "op": "up" }, "patterns": ["आवाज़ बढ़ाओ", "ध्वनि बढ़ाओ", "तेज़ करो"] },
+    { "tool": "volume", "args": { "op": "down" }, "patterns": ["आवाज़ कम करो", "ध्वनि कम करो", "धीमा करो"] },
+    { "tool": "volume", "args": { "op": "mute" }, "patterns": ["म्यूट करो", "आवाज़ बंद करो", "आवाज़ चालू करो"] },
+    { "tool": "media", "args": { "op": "play_pause" }, "patterns": ["चलाओ", "रोकें", "प्ले करो", "पॉज़ करो"] },
+    { "tool": "media", "args": { "op": "next" }, "patterns": ["अगला गाना", "अगला ट्रैक"] },
+    { "tool": "media", "args": { "op": "prev" }, "patterns": ["पिछला गाना", "पिछला ट्रैक"] },
+    { "tool": "open_app", "patterns": ["{app} खोलो", "{app} शुरू करो"] },
+    { "tool": "close_app", "patterns": ["{app} बंद करो", "{app} से बाहर निकलो"] },
+    { "tool": "switch_app", "patterns": ["{app} पर जाओ", "{app} पर स्विच करो"] },
+    { "tool": "go_page", "patterns": ["पेज {name} खोलो", "पेज {name} पर जाओ"] },
+    { "tool": "press_button", "patterns": ["कुंजी {label} दबाएँ", "{label} दबाओ"] },
+    { "tool": "web_search", "args": { "site": "web" }, "patterns": ["वेब पर खोजें {query}", "सर्च करो {query}"] },
+    { "tool": "web_search", "args": { "site": "youtube" }, "patterns": ["यूट्यूब पर खोजें {query}", "यूट्यूब पर ढूँढो {query}"] },
+    { "tool": "timer", "patterns": ["{n} मिनट का टाइमर लगाओ", "{n} मिनट का टाइमर"] },
+    { "tool": "system", "args": { "op": "lock" }, "patterns": ["कंप्यूटर लॉक करो", "स्क्रीन लॉक करो"] },
+    { "tool": "system", "args": { "op": "sleep" }, "patterns": ["कंप्यूटर स्लीप करो", "स्लीप मोड"] }
+  ]
+}

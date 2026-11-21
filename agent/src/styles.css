@@ -416,3 +416,32 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="color"]), select, te
 .diag-ok .diag-mark { color: var(--ok); }
 .diag-warn .diag-mark, .diag-unknown .diag-mark { color: var(--warn); }
 .diag-fail .diag-mark { color: var(--danger); }
+
+/* Voice help section (M21) */
+.voice-help-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin: 12px 0;
+}
+.voice-help-card {
+  padding: 12px 14px;
+}
+.voice-help-card h4 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.voice-examples-list {
+  margin: 0;
+  padding-inline-start: 16px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.voice-examples-list li {
+  margin-bottom: 4px;
+}
+.voice-limit {
+  margin-top: 10px;
+  font-size: 12px;
+}

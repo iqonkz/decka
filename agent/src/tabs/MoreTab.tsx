@@ -7,13 +7,14 @@ import ActionsTab from "./ActionsTab";
 import UpdateBanner from "./UpdateBanner";
 import IntegrationsTab from "./IntegrationsTab";
 import SettingsTab from "./SettingsTab";
+import VoiceSection from "./VoiceSection";
 import Button from "../ui/Button";
 
 type Updates = ReturnType<typeof useUpdates>;
 
-export type MoreSection = "actions" | "integrations" | "settings" | "about";
+export type MoreSection = "actions" | "integrations" | "settings" | "voice" | "about";
 
-const SECTION_IDS: MoreSection[] = ["actions", "integrations", "settings", "about"];
+const SECTION_IDS: MoreSection[] = ["actions", "integrations", "settings", "voice", "about"];
 
 function sectionLabel(id: MoreSection): string {
   return t(`more.${id}`);
@@ -102,6 +103,7 @@ export default function MoreTab({ section, onSection, updates }: { section: More
         {section === "actions" && <ActionsTab />}
         {section === "integrations" && <IntegrationsTab />}
         {section === "settings" && <SettingsTab />}
+        {section === "voice" && <VoiceSection />}
         {section === "about" && <About updates={updates} />}
       </div>
     </div>

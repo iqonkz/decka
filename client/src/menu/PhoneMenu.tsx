@@ -6,6 +6,7 @@ import { hiddenStripApps, setStripMode, useStripModes } from "../deck/stripMode"
 import { applyTurn } from "../platform/orientation";
 import { isNative } from "../platform/native";
 import { loadTurn, type Turn } from "../platform/turn";
+import { loadVoiceButtonEnabled, saveVoiceButtonEnabled } from "../voice/voiceFabMath";
 import { useAppState } from "../store/store";
 import { statusLine, versionLine } from "./menuModel";
 
@@ -29,6 +30,7 @@ export default function PhoneMenu({ reduced, onToggleReduced, haptics, onToggleH
   // A new app is offered only on the phone (the system installer), and only when it is newer than this one.
   const newApp = isNative() && offered && isNewerVersion(offered.version, import.meta.env.VITE_APP_VERSION) ? offered : null;
   const [turn, setTurn] = useState<Turn>(() => loadTurn());
+  const [voiceButton, setVoiceButton] = useState(() => loadVoiceButtonEnabled());
   const hidden = hiddenStripApps(useStripModes());
 
   return (
@@ -55,6 +57,19 @@ export default function PhoneMenu({ reduced, onToggleReduced, haptics, onToggleH
         <label className="menu-row">
           <span>{t("menu.haptics")}</span>
           <input type="checkbox" checked={haptics} onChange={(e) => onToggleHaptics(e.target.checked)} />
+        </label>
+        <label className="menu-row">
+          <span>{t("menu.voice_button")}</span>
+          <input
+            type="checkbox"
+            checked={voiceButton}
+            onChange={(e) => {
+              const val = e.target.checked;
+              setVoiceButton(val);
+              saveVoiceButtonEnabled(val);
+              window.dispatchEvent(new CustomEvent("decka:voice:enabled"));
+            }}
+          />
         </label>
         {isNative() && (
           <div className="menu-row menu-turn">

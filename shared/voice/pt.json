@@ -1,0 +1,23 @@
+{
+  "lang": "pt",
+  "yes": ["sim", "claro", "confirmar", "com certeza", "ok"],
+  "no": ["não", "nao", "cancelar", "parar", "não quero"],
+  "intents": [
+    { "tool": "volume", "args": { "op": "up" }, "patterns": ["aumentar volume", "mais alto", "aumenta o som"] },
+    { "tool": "volume", "args": { "op": "down" }, "patterns": ["diminuir volume", "mais baixo", "abaixa o som"] },
+    { "tool": "volume", "args": { "op": "mute" }, "patterns": ["mutar", "silenciar", "ativar som"] },
+    { "tool": "media", "args": { "op": "play_pause" }, "patterns": ["reproduzir", "pausar", "pausa", "continuar"] },
+    { "tool": "media", "args": { "op": "next" }, "patterns": ["próxima faixa", "próxima música", "avançar"] },
+    { "tool": "media", "args": { "op": "prev" }, "patterns": ["faixa anterior", "música anterior"] },
+    { "tool": "open_app", "patterns": ["abrir {app}", "abre {app}", "iniciar {app}"] },
+    { "tool": "close_app", "patterns": ["fechar {app}", "fecha {app}", "sair do {app}"] },
+    { "tool": "switch_app", "patterns": ["mudar para {app}", "ir para {app}"] },
+    { "tool": "go_page", "patterns": ["ir para a página {name}", "abrir página {name}", "página {name}"] },
+    { "tool": "press_button", "patterns": ["pressionar tecla {label}", "aperta {label}"] },
+    { "tool": "web_search", "args": { "site": "web" }, "patterns": ["pesquisar {query}", "buscar na web {query}"] },
+    { "tool": "web_search", "args": { "site": "youtube" }, "patterns": ["pesquisar no youtube {query}", "buscar no youtube {query}"] },
+    { "tool": "timer", "patterns": ["temporizador de {n} minutos", "definir temporizador de {n} minutos"] },
+    { "tool": "system", "args": { "op": "lock" }, "patterns": ["bloquear pc", "bloquear computador", "bloquear tela"] },
+    { "tool": "system", "args": { "op": "sleep" }, "patterns": ["suspender pc", "colocar computador em suspensão"] }
+  ]
+}

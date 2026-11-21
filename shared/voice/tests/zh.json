@@ -1,0 +1,12 @@
+[
+  { "say": "声音调大一点", "tool": "volume", "args": { "op": "up" } },
+  { "say": "帮我把声音调小一点", "tool": "volume", "args": { "op": "down" } },
+  { "say": "现在立刻静音", "tool": "volume", "args": { "op": "mute" } },
+  { "say": "请暂停当前播放", "tool": "media", "args": { "op": "play_pause" } },
+  { "say": "跳到下一首歌曲", "tool": "media", "args": { "op": "next" } },
+  { "say": "播放上一首歌曲", "tool": "media", "args": { "op": "prev" } },
+  { "say": "帮我锁定电脑屏幕", "tool": "system", "args": { "op": "lock" } },
+  { "say": "让电脑进入睡眠模式", "tool": "system", "args": { "op": "sleep" } },
+  { "say": "请打开计算器", "tool": "open_app", "args": { "name": "计算器" } },
+  { "say": "帮我设置十分钟计时器", "tool": "timer", "args": { "minutes": 10 } }
+]
