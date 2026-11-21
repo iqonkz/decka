@@ -16,7 +16,7 @@ use tokio::sync::broadcast::error::RecvError;
 use tokio::sync::mpsc;
 use tokio::time::{sleep, timeout, timeout_at, Instant};
 
-use crate::agent::Agent;
+use crate::agent::{Agent, ApkGetError};
 use crate::model::Notification;
 use crate::netpolicy::{policy, Category, ConnInfo, Request, Verdict};
 use crate::proto::{AgentInfo, ClientInfo, ClientMsg, ErrorBody, ErrorCode, Hello2Mode, ServerMsg};
@@ -334,6 +334,7 @@ async fn run_device(agent: Agent, remote: SocketAddr, mut link: Link, device_id:
     let name = agent.devices().name_of(&device_id).unwrap_or_else(|| client.name.clone());
     let who = Peer { device_id, name, remote, since: std::time::Instant::now() };
     session(&agent, &mut link, &mut patches, &mut kicked, snapshot_rev, &who).await;
+    agent.apk_release(&who.device_id, &who.remote.to_string());
     drop(guard);
 }
 
@@ -419,6 +420,18 @@ async fn handle_text(
         Ok(ClientMsg::NotifDismiss { notif_id }) => {
             agent.store().update_notifications(|list: &mut Vec<Notification>| list.retain(|n| n.id != notif_id));
             true
+        }
+        Ok(ClientMsg::ApkGet { offset }) => {
+            // The APK goes only through the encrypted channel to a paired device (T20.4).
+            if link.sec.is_none() {
+                return link.send(&error_msg(ErrorCode::BadMessage, "the update needs the encrypted channel")).await;
+            }
+            match agent.apk_chunk(&who.device_id, &who.remote.to_string(), offset) {
+                Ok(chunk) => link.send(&chunk).await,
+                Err(ApkGetError::NoUpdate) => link.send(&error_msg(ErrorCode::NotFound, "no update to download")).await,
+                Err(ApkGetError::Busy) => link.send(&error_msg(ErrorCode::RateLimited, "another download of this device is running")).await,
+                Err(ApkGetError::BadOffset) => link.send(&error_msg(ErrorCode::BadMessage, "bad offset")).await,
+            }
         }
         Ok(ClientMsg::NotifOpen { notif_id }) => {
             // Only the id of the notification comes from the phone (ARCHITECTURE.md S21); the program is the agent's own record.

@@ -33,7 +33,9 @@ export interface PingMsg  { t: "ping"; ts: number; }
 export interface PermAnswerMsg { t: "perm_answer"; reqId: string; decision: "allow" | "allow_always" | "deny" | "pc" | "reply"; reply?: number; }   // reply: the number of a ready answer (with decision "reply")   // reqId ^[0-9a-f]{16}$
 /** M17 (DATA_MODEL.md 10.4): open the program a Windows notification came from. Only the id of the notification travels. */
 export interface NotifOpenMsg { t: "notif_open"; notifId: string; }
-export type ClientMsg = Hello2Msg | AuthMsg | PairMsg | HelloMsg | PressMsg | NotifDismissMsg | PingMsg | PermAnswerMsg | NotifOpenMsg;
+/** M20 (T20.4): the next piece of the new APK; `offset` is a multiple of 3000. Only inside the encrypted channel. */
+export interface ApkGetMsg { t: "apk_get"; offset: number; }
+export type ClientMsg = Hello2Msg | AuthMsg | PairMsg | HelloMsg | PressMsg | NotifDismissMsg | PingMsg | PermAnswerMsg | NotifOpenMsg | ApkGetMsg;
 
 // ===== Server -> Client (WS) =====
 /** M18: answer to `hello2`; `sn` is 16 random bytes, base64url. */
@@ -52,10 +54,12 @@ export interface PatchMsg<K extends SectionName = SectionName> {
 export interface PressResultMsg { t: "press_result"; id: number; ok: boolean; error?: { code: ErrorCode; message: string }; }
 export interface PongMsg  { t: "pong"; ts: number; }
 export interface ErrorMsg { t: "error"; code: ErrorCode; message: string; fatal: boolean; supported?: number[]; }
-export type ServerMsg = ChallengeMsg | AuthOkMsg | PairedMsg | WelcomeMsg | PatchMsg | PressResultMsg | PongMsg | ErrorMsg;
+/** M20 (T20.4): a piece of the new APK, `data` is base64 of at most 3000 bytes; `total` and `sha256` (hex) describe the whole file. */
+export interface ApkChunkMsg { t: "apk_chunk"; offset: number; data: string; total: number; sha256: string; }
+export type ServerMsg = ChallengeMsg | AuthOkMsg | PairedMsg | WelcomeMsg | PatchMsg | PressResultMsg | PongMsg | ApkChunkMsg | ErrorMsg;
 
 // ===== State (sections) =====
-export type SectionName = "layout" | "sys" | "statuses" | "notifications" | "vars" | "focus" | "media" | "icons" | "weather" | "obs" | "ai" | "twitch" | "youtube" | "strip" | "battery" | "mail"; // weather, obs: M15; ai: M16; strip, battery, mail: M17
+export type SectionName = "layout" | "sys" | "statuses" | "notifications" | "vars" | "focus" | "media" | "icons" | "weather" | "obs" | "ai" | "twitch" | "youtube" | "strip" | "battery" | "mail" | "update"; // weather, obs: M15; ai: M16; strip, battery, mail: M17; update: M20
 export interface FullState {
   layout: ClientLayout;
   sys: SysStats | null;            // null = collector disabled
@@ -73,7 +77,11 @@ export interface FullState {
   strip?: StripInfo | null;        // M17 (DATA_MODEL.md 10.5); null = no app strip
   battery?: BatteryInfo | null;    // M17 (10.6); null = the collector is not needed or has no data
   mail?: MailInfo | null;          // M17 (10.7); null = no mailboxes
+  update?: UpdateInfo2 | null;     // M20 (T20.4); null = no new app for the phone
 }
+
+/** A newer app, downloaded and verified by the agent: the phone fetches it with `apk_get`. */
+export interface UpdateInfo2 { app?: { version: string; size: number; sha256: string } }
 
 /** The keys of the built-in template of the app in front (DATA_MODEL.md 10.5), at most 16. */
 export interface StripInfo { app: string; template: string; name: string; keys: { actionId: Id; label: string; icon?: string }[]; icon?: string; } // icon: "img:<hash16>" of the installed program, absent = lucide:app-window

@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { sameMinor, t } from "@decka/shared";
+import { startAppUpdate } from "../app/controller";
+import { isNewerVersion } from "../update/apkAssembler";
 import { hiddenStripApps, setStripMode, useStripModes } from "../deck/stripMode";
 import { applyTurn } from "../platform/orientation";
 import { isNative } from "../platform/native";
@@ -22,6 +24,10 @@ export default function PhoneMenu({ reduced, onToggleReduced, haptics, onToggleH
   const via = useAppState((s) => s.via);
   const agentName = useAppState((s) => s.agentName);
   const agentVersion = useAppState((s) => s.agentVersion);
+  const offered = useAppState((s) => s.state?.update?.app);
+  const appUpdate = useAppState((s) => s.appUpdate);
+  // A new app is offered only on the phone (the system installer), and only when it is newer than this one.
+  const newApp = isNative() && offered && isNewerVersion(offered.version, import.meta.env.VITE_APP_VERSION) ? offered : null;
   const [turn, setTurn] = useState<Turn>(() => loadTurn());
   const hidden = hiddenStripApps(useStripModes());
 
@@ -29,6 +35,19 @@ export default function PhoneMenu({ reduced, onToggleReduced, haptics, onToggleH
     <div className="menu-backdrop" onPointerDown={onClose}>
       <div className="menu-sheet" role="dialog" aria-label={t("menu.label")} onPointerDown={(e) => e.stopPropagation()}>
         <div className="menu-status">{statusLine(conn, via, agentName)}</div>
+        {newApp && (
+          <button type="button" className="menu-row menu-button menu-update" disabled={appUpdate.phase === "downloading" || appUpdate.phase === "verifying"} onClick={() => void startAppUpdate()}>
+            {appUpdate.phase === "downloading"
+              ? t("update.downloading", { pct: appUpdate.pct })
+              : appUpdate.phase === "verifying"
+                ? t("update.app_verifying")
+                : appUpdate.phase === "error"
+                  ? appUpdate.kind === "bad"
+                    ? t("update.app_bad")
+                    : t("update.app_failed")
+                  : t("update.app_banner", { version: newApp.version })}
+          </button>
+        )}
         <label className="menu-row">
           <span>{t("menu.reduce_effects")}</span>
           <input type="checkbox" checked={reduced} onChange={(e) => onToggleReduced(e.target.checked)} />

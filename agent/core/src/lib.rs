@@ -1,5 +1,6 @@
 pub mod actions;
 pub mod agent;
+pub mod apk_update;
 pub mod ai;
 pub mod audio;
 pub mod auth;

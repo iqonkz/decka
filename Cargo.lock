@@ -937,6 +937,7 @@ dependencies = [
  "enigo",
  "futures-util",
  "local-ip-address",
+ "minisign-verify",
  "notify",
  "qrcode",
  "rand 0.10.3",

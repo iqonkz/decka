@@ -348,6 +348,10 @@ struct Inner {
     update: Mutex<crate::updates::UpdateStatus>,
     /// Sends the new status to the window and the tray when a check finishes.
     update_tx: watch::Sender<crate::updates::UpdateStatus>,
+    /// T20.4: the APK of the newer release (downloaded and verified), the folder it lives in and the one-download-per-device gate.
+    app_update: Mutex<Option<crate::apk_update::AppUpdate>>,
+    updates_dir: PathBuf,
+    apk_gate: Mutex<crate::apk_update::DownloadGate>,
     /// Runtime of `Agent::start`; lets synchronous callers (UI commands) start background tasks.
     runtime: tokio::runtime::Handle,
 }
@@ -434,6 +438,9 @@ impl Agent {
                 focus_app: Mutex::new(None),
                 update: Mutex::new(crate::updates::UpdateStatus::default()),
                 update_tx: watch::channel(crate::updates::UpdateStatus::default()).0,
+                app_update: Mutex::new(None),
+                updates_dir: updates_dir(&config_dir, opts.config_dir.is_some()),
+                apk_gate: Mutex::new(crate::apk_update::DownloadGate::default()),
                 runtime: tokio::runtime::Handle::current(),
                 opts,
             }),
@@ -1810,8 +1817,64 @@ impl Agent {
     }
 
     /// Asks GitHub for the latest release once (on request: `Check now`, opening `About`) and keeps the answer.
+    /// A newer release also gets its APK prepared for the phones (T20.4) in the background.
     pub async fn check_updates(&self) -> crate::updates::UpdateStatus {
-        self.check_updates_at(crate::updates::LATEST_URL).await
+        let status = self.check_updates_at(crate::updates::LATEST_URL).await;
+        if let Some(found) = status.available.as_ref() {
+            let me = self.clone();
+            let version = found.version.clone();
+            self.inner.runtime.spawn(async move {
+                me.prepare_app_update(&crate::apk_update::release_base(&version), &version, crate::apk_update::UPDATE_PUBKEY).await;
+            });
+        }
+        status
+    }
+
+    /// Downloads and verifies the APK of `version` from `base`, and on success offers it to the phones (section `update`).
+    /// A failed check leaves nothing offered. Returns whether the APK is ready.
+    pub async fn prepare_app_update(&self, base: &str, version: &str, pubkey: &str) -> bool {
+        if self.inner.app_update.lock().unwrap().as_ref().is_some_and(|a| a.version == version) {
+            return true;
+        }
+        match crate::apk_update::prepare(base, version, &self.inner.updates_dir, pubkey).await {
+            Ok(update) => {
+                let info = serde_json::json!({ "app": { "version": update.version, "size": update.size, "sha256": update.sha256 } });
+                *self.inner.app_update.lock().unwrap() = Some(update);
+                self.inner.store.set("update", info);
+                true
+            }
+            Err(e) => {
+                tracing::warn!("app update {version}: not offered ({e:?})");
+                false
+            }
+        }
+    }
+
+    /// The APK the phones may fetch now.
+    pub fn app_update(&self) -> Option<crate::apk_update::AppUpdate> {
+        self.inner.app_update.lock().unwrap().clone()
+    }
+
+    /// `apk_get` of an authorized phone: the chunk at `offset`. Only for the offered APK, offsets that are multiples of 3000
+    /// inside the file, and one connection per device at a time.
+    pub fn apk_chunk(&self, device_id: &str, conn: &str, offset: u64) -> Result<crate::proto::ServerMsg, ApkGetError> {
+        let Some(update) = self.app_update() else { return Err(ApkGetError::NoUpdate) };
+        if !self.inner.apk_gate.lock().unwrap().allow(device_id, conn, crate::auth::now_ms()) {
+            return Err(ApkGetError::Busy);
+        }
+        let Some(bytes) = crate::apk_update::read_chunk(&update, offset) else { return Err(ApkGetError::BadOffset) };
+        use base64::Engine as _;
+        Ok(crate::proto::ServerMsg::ApkChunk {
+            offset,
+            data: base64::engine::general_purpose::STANDARD.encode(bytes),
+            total: update.size,
+            sha256: update.sha256,
+        })
+    }
+
+    /// The phone's connection ended: its download place is free again.
+    pub fn apk_release(&self, device_id: &str, conn: &str) {
+        self.inner.apk_gate.lock().unwrap().release(device_id, conn);
     }
 
     /// `check_updates` against another address (the tests use a local server).
@@ -2456,6 +2519,25 @@ impl Agent {
 }
 
 /// Placeholder for the status channel's initial value; replaced right after construction.
+/// Why an `apk_get` was not served (the connection stays open).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ApkGetError {
+    /// No verified APK is offered.
+    NoUpdate,
+    /// Another connection of this device is downloading.
+    Busy,
+    /// Not a multiple of 3000 or outside the file.
+    BadOffset,
+}
+
+/// `%LOCALAPPDATA%\Decka\updates`; a test copy (explicit or env configuration folder) keeps it inside its own folder.
+fn updates_dir(config_dir: &std::path::Path, explicit: bool) -> PathBuf {
+    if explicit || std::env::var_os("DECKA_CONFIG_DIR").is_some_and(|d| !d.is_empty()) {
+        return config_dir.join("updates");
+    }
+    dirs::data_local_dir().unwrap_or_else(|| PathBuf::from(".")).join("Decka").join("updates")
+}
+
 fn blank_status(config_dir: &std::path::Path) -> AgentStatus {
     AgentStatus {
         version: crate::VERSION.to_string(),

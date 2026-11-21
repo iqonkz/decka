@@ -44,9 +44,13 @@ export interface AppState {
   permClosed: string[];
   /** The list of answered questions is open (a tap on the `ai` widget). */
   permHistoryOpen: boolean;
+  /** T20.4: the download of the new app from the PC. `bad` = the file did not pass the check, `failed` = anything else. */
+  appUpdate: AppUpdatePhase;
 }
 
-const SECTIONS: readonly string[] = ["layout", "sys", "statuses", "notifications", "vars", "focus", "media", "icons", "weather", "obs", "ai", "twitch", "youtube", "strip", "battery", "mail"];
+export type AppUpdatePhase = { phase: "idle" } | { phase: "downloading"; pct: number } | { phase: "verifying" } | { phase: "error"; kind: "bad" | "failed" };
+
+const SECTIONS: readonly string[] = ["layout", "sys", "statuses", "notifications", "vars", "focus", "media", "icons", "weather", "obs", "ai", "twitch", "youtube", "strip", "battery", "mail", "update"];
 const MAX_TOASTS = 3;
 const DEFAULT_TOAST_MS = 8000;
 
@@ -68,6 +72,7 @@ const initial = (): AppState => ({
   lastError: null,
   permClosed: [],
   permHistoryOpen: false,
+  appUpdate: { phase: "idle" },
 });
 
 let current: AppState = initial();

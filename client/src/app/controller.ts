@@ -3,8 +3,10 @@ import { parsePairUrl, t } from "@decka/shared";
 import { buildCandidates } from "../net/candidates";
 import { Connection, type ConnFailure, type FatalCode, type WebSocketCtor } from "../net/connection";
 import { hapticEvent } from "../platform/haptics";
+import { installApk } from "../platform/install";
 import { clientInfo, isNative } from "../platform/native";
-import { applyPatch, applyWelcome, markPermAnswered, navigateManually, setState } from "../store/store";
+import { applyPatch, applyWelcome, getState, markPermAnswered, navigateManually, setState } from "../store/store";
+import { ApkAssembler, ApkError } from "../update/apkAssembler";
 import { clearConn, loadConn, saveConn } from "../store/storage";
 
 /** Where the next pairing attempt goes; null when not pairing. */
@@ -105,6 +107,34 @@ export function openNotification(notifId: string): void {
 export function answerPerm(reqId: string, decision: "allow" | "allow_always" | "deny" | "pc" | "reply", reply?: number): void {
   markPermAnswered(reqId);
   conn().permAnswer(reqId, decision, reply);
+}
+
+/**
+ * T20.4: fetches the new app from the PC piece by piece (inside the encrypted channel), checks its SHA-256 here and hands it to
+ * Android's installer. Only the announced file counts: any piece that does not fit the announcement ends the download.
+ */
+export async function startAppUpdate(): Promise<void> {
+  const info = getState().state?.update?.app;
+  const phase = getState().appUpdate.phase;
+  if (!info || phase === "downloading" || phase === "verifying") return;
+  setState({ appUpdate: { phase: "downloading", pct: 0 } });
+  try {
+    const assembler = new ApkAssembler(info.size, info.sha256);
+    for (let offset = assembler.next; offset !== null; offset = assembler.next) {
+      const chunk = await conn().apkGet(offset);
+      if (chunk.total !== info.size || chunk.sha256 !== info.sha256) throw new ApkError("BAD_CHUNK");
+      assembler.add(chunk.offset, Uint8Array.from(atob(chunk.data), (c) => c.charCodeAt(0)));
+      const pct = assembler.percent;
+      const shown = getState().appUpdate;
+      if (shown.phase === "downloading" && shown.pct !== pct) setState({ appUpdate: { phase: "downloading", pct } });
+    }
+    setState({ appUpdate: { phase: "verifying" } });
+    const bytes = assembler.finish();
+    await installApk(bytes, info.sha256);
+    setState({ appUpdate: { phase: "idle" } });
+  } catch (e) {
+    setState({ appUpdate: { phase: "error", kind: e instanceof ApkError && e.code === "HASH_MISMATCH" ? "bad" : "failed" } });
+  }
 }
 
 /** Manual navigation (swipe, `navigate` button). */

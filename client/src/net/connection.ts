@@ -1,4 +1,4 @@
-import type { ClientInfo, ErrorCode, PairedMsg, PatchMsg, PressResultMsg, ServerMsg, WelcomeMsg } from "@decka/shared";
+import type { ApkChunkMsg, ClientInfo, ErrorCode, PairedMsg, PatchMsg, PressResultMsg, ServerMsg, WelcomeMsg } from "@decka/shared";
 import { PROTOCOL_VERSION } from "@decka/shared";
 import { Opener, Sealer, deriveKeys, fromB64u, kDev, mac, macEquals, randomBytes, sCode, toB64u, type Keys } from "./secure";
 
@@ -82,6 +82,8 @@ export class Connection {
   private pairing: { resolve: (m: PairedMsg) => void; reject: (e: ConnFailure) => void } | null = null;
   private pending = new Map<number, PendingPress>();
   private nextId = 0;
+  /** The one piece of the new APK being waited for (T20.4): asked one at a time. */
+  private apkWait: { offset: number; resolve: (m: ApkChunkMsg) => void; reject: (e: ConnFailure) => void; timer: unknown } | null = null;
 
   constructor(private readonly d: ConnectionDeps) {}
 
@@ -145,6 +147,20 @@ export class Connection {
   /** Asks the PC to open the program a Windows notification came from (DATA_MODEL.md 10.4); only the id is sent. */
   openNotification(notifId: string): void {
     if (this.ws && this.welcomed) this.sendMsg({ t: "notif_open", notifId });
+  }
+
+  /** Asks the PC for the piece of the new APK at `offset` (T20.4); one request at a time. Rejects with a ConnFailure. */
+  apkGet(offset: number): Promise<ApkChunkMsg> {
+    if (!this.ws || !this.welcomed) return Promise.reject<ApkChunkMsg>({ code: "OFFLINE" } satisfies ConnFailure);
+    if (this.apkWait) return Promise.reject<ApkChunkMsg>({ code: "RATE_LIMITED" } satisfies ConnFailure);
+    return new Promise<ApkChunkMsg>((resolve, reject) => {
+      const timer = this.d.setTimeout(() => {
+        this.apkWait = null;
+        reject({ code: "TIMEOUT" } satisfies ConnFailure);
+      }, PRESS_TIMEOUT_MS);
+      this.apkWait = { offset, resolve, reject, timer };
+      this.sendMsg({ t: "apk_get", offset });
+    });
   }
 
   /** The answer to a permission question of Claude Code (DATA_MODEL.md 6.8). */
@@ -348,8 +364,19 @@ export class Connection {
       case "press_result":
         this.onPressResult(msg);
         break;
+      case "apk_chunk": {
+        const wait = this.apkWait;
+        if (wait && wait.offset === msg.offset) {
+          this.apkWait = null;
+          this.d.clearTimeout(wait.timer);
+          wait.resolve(msg);
+        }
+        break;
+      }
       case "error":
-        this.onError(msg.code);
+        // A refusal of the piece (not found, busy, bad offset) is for the download, not for the connection.
+        if (!msg.fatal && this.apkWait) this.failApk({ code: msg.code });
+        else this.onError(msg.code);
         break;
       default:
         break; // pong and unknown types
@@ -462,6 +489,15 @@ export class Connection {
       p.reject(e);
     }
     this.pending.clear();
+    this.failApk(e);
+  }
+
+  private failApk(e: ConnFailure): void {
+    const wait = this.apkWait;
+    if (!wait) return;
+    this.apkWait = null;
+    this.d.clearTimeout(wait.timer);
+    wait.reject(e);
   }
 
   private rejectPairing(e: ConnFailure): void {

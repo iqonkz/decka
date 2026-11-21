@@ -54,6 +54,8 @@ pub enum ClientMsg {
     /// M17: the phone asks to open the program a Windows notification came from; only the id of the notification is sent.
     NotifOpen { notif_id: String },
     Ping { ts: i64 },
+    /// T20.4: the next piece of the new APK (`offset` is a multiple of 3000). Only inside the encrypted channel.
+    ApkGet { offset: u64 },
     /// M16: the answer of the phone to a permission question (DATA_MODEL.md 6.8).
     PermAnswer {
         req_id: String,
@@ -123,6 +125,13 @@ pub enum ServerMsg {
     },
     Pong {
         ts: i64,
+    },
+    /// T20.4: a piece of the new APK; `data` is base64 of at most 3000 bytes, `sha256` is lower-case hex of the whole file.
+    ApkChunk {
+        offset: u64,
+        data: String,
+        total: u64,
+        sha256: String,
     },
     Error {
         code: ErrorCode,
