@@ -29,6 +29,7 @@ export const DEFAULT_SIZE: Record<Kind, { w: number; h: number }> = {
   battery: { w: 2, h: 1 },
   mail: { w: 2, h: 1 },
   context: { w: 3, h: 2 },
+  voice: { w: 1, h: 1 },
 };
 
 /** Allowed sizes per kind (DATA_MODEL.md 3.2 item 4): [minW, maxW, minH, maxH]; list widgets may fill the grid. */
@@ -36,6 +37,7 @@ export function sizeRange(kind: Kind, grid: Grid): [number, number, number, numb
   switch (kind) {
     case "button":
     case "status":
+    case "voice":
       return [1, 1, 1, 1];
     case "clock":
       return [1, 2, 1, 1];
@@ -146,6 +148,8 @@ export function makeItem(kind: Kind, x: number, y: number, id = newItemId(kind))
   switch (kind) {
     case "button":
       return { ...base, kind, label: t("item.new_button") };
+    case "voice":
+      return { ...base, kind, label: t("voice.key_label") };
     case "clock":
       return { ...base, kind };
     case "sys":

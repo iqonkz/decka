@@ -3,6 +3,7 @@ import Button from "./Button";
 import Ai from "./widgets/Ai";
 import Battery from "./widgets/Battery";
 import Mail from "./widgets/Mail";
+import VoiceKey from "./widgets/VoiceKey";
 import Twitch from "./widgets/Twitch";
 import Youtube from "./widgets/Youtube";
 import Clock from "./widgets/Clock";
@@ -74,12 +75,15 @@ export default function Tile({ item }: { item: LayoutItem }) {
     case "context":
       content = <Context item={item} />;
       break;
+    case "voice":
+      content = <VoiceKey item={item} />;
+      break;
     default:
       content = <div className="tile-body">?</div>;
   }
   // Keys draw their own face; every widget is a panel whose face the theme defines.
   // The context widget is a bare grid of keys (its empty hint draws its own frame).
-  const panel = item.kind !== "button" && item.kind !== "context";
+  const panel = item.kind !== "button" && item.kind !== "context" && item.kind !== "voice";
   return (
     <div className={panel ? "tile panel" : "tile"} data-tile-id={item.id} style={{ gridColumn: `${item.x + 1} / span ${item.w}`, gridRow: `${item.y + 1} / span ${item.h}` }}>
       {content}

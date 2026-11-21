@@ -22,6 +22,7 @@ export function sizeLimits(kind: string, grid: LayoutFile["grid"], graph = false
   switch (kind) {
     case "button":
     case "status":
+    case "voice":
       return [1, 1, 1, 1];
     case "clock":
       return [1, 2, 1, 1];

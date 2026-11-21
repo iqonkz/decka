@@ -19,6 +19,8 @@ import Toasts from "../deck/Toasts";
 import PageHint from "../deck/PageHint";
 import PermHistory from "../deck/PermHistory";
 import PermSheet from "../deck/PermSheet";
+import VoiceFab from "../voice/VoiceFab";
+import VoiceConfirmSheet from "../voice/VoiceConfirmSheet";
 import { noteTouch, runContext, useAppState } from "../store/store";
 
 const CONTEXT_TICK_MS = 1000;
@@ -128,6 +130,8 @@ export default function DeckScreen() {
       {mode === "sleep" && <Screensaver />}
       <PermSheet />
       <PermHistory />
+      <VoiceFab />
+      <VoiceConfirmSheet />
       {confirmUnpair && (
         <div className="dialog-backdrop">
           <div className="dialog" role="dialog" aria-label={t("unpair.title")}>
