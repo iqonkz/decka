@@ -326,6 +326,8 @@ struct Inner {
     weather_last: Mutex<Option<WeatherInfo>>,
     /// AI coding helpers (M16): the limits, the sessions and the permission questions.
     ai: Arc<crate::ai::AiHub>,
+    /// M21: the entrance of the `voice_*` messages of the phones (a pipeline is attached when voice control is on).
+    voice: crate::voice::VoiceHub,
     ai_task: Mutex<Option<JoinHandle<()>>>,
     /// Twitch: the polling loop, the sign-in in progress (and its error), the last error and the last good numbers.
     twitch_task: Mutex<Option<JoinHandle<()>>>,
@@ -381,6 +383,7 @@ impl Agent {
                 layout: Mutex::new(layout),
                 statuses: crate::statuses::Statuses::new(store.clone()),
                 ai: crate::ai::AiHub::new(store.clone()),
+                voice: crate::voice::VoiceHub::new(),
                 ai_task: Mutex::new(None),
                 twitch_task: Mutex::new(None),
                 twitch_login_task: Mutex::new(None),
@@ -488,6 +491,11 @@ impl Agent {
             Err(e) => tracing::warn!("cannot watch the config directory: {e}"),
         }
         Ok(agent)
+    }
+
+    /// M21: where `voice_*` messages of the phones arrive; `set_sink` connects the pipeline.
+    pub fn voice(&self) -> &crate::voice::VoiceHub {
+        &self.inner.voice
     }
 
     pub fn store(&self) -> &Store {

@@ -334,3 +334,69 @@ async fn only_a_phone_with_the_right_gets_and_answers_claude_code_questions() {
     assert!(answer.is_some_and(|a| a.contains("allow")));
     e.agent.shutdown().await;
 }
+
+/// M21: a voice_* message with a bad shape gets `BAD_MESSAGE`, voice is `NOT_FOUND` while it is off, and a phone
+/// cannot start a request with a made-up id; the connection survives all of them.
+#[tokio::test]
+async fn voice_messages_are_checked_and_answered_with_protocol_errors() {
+    let e = env().await;
+    let (id, token) = pair_by_code(&e).await;
+    let mut phone = handshake(e.port, Proof::Device(id, secure::k_dev(&token))).await;
+    assert_eq!(phone.recv().await["t"], "welcome");
+
+    // Voice control is off: no pipeline is attached.
+    phone.send(json!({ "t": "voice_start", "id": "00112233aabbccdd" })).await;
+    let err = phone.recv().await;
+    assert_eq!((err["t"].as_str(), err["code"].as_str(), err["fatal"].as_bool()), (Some("error"), Some("NOT_FOUND"), Some(false)));
+
+    // Wrong shapes: missing field, wrong type, unknown extra command-like message.
+    for bad in [
+        json!({ "t": "voice_start" }),
+        json!({ "t": "voice_chunk", "id": "00112233aabbccdd", "seq": "1", "data": "AAAA" }),
+        json!({ "t": "voice_confirm", "id": "00112233aabbccdd", "yes": "yes" }),
+        json!({ "t": "voice_run", "id": "00112233aabbccdd", "cmd": "calc.exe" }),
+    ] {
+        phone.send(bad).await;
+        let err = phone.recv().await;
+        assert_eq!((err["t"].as_str(), err["code"].as_str()), (Some("error"), Some("BAD_MESSAGE")), "{err}");
+    }
+
+    // A pipeline is attached: the id must be 16 hex characters, a chunk needs a recording.
+    struct Sink;
+    impl decka_core::voice::PhoneSink for Sink {
+        fn start(&self, _: &str) -> Result<(), decka_core::voice::VoiceError> {
+            Ok(())
+        }
+        fn audio(&self, _: &[u8]) {}
+        fn end(&self, _: &str) {}
+        fn cancel(&self, _: &str) {}
+        fn confirm(&self, _: &str, _: bool) {}
+    }
+    e.agent.voice().set_sink(Some(Arc::new(Sink)));
+    phone.send(json!({ "t": "voice_start", "id": "not-hex" })).await;
+    assert_eq!(phone.recv().await["code"], "BAD_MESSAGE");
+    phone.send(json!({ "t": "voice_chunk", "id": "00112233aabbccdd", "seq": 0, "data": "AAAA" })).await;
+    assert_eq!(phone.recv().await["code"], "BAD_MESSAGE");
+    phone.send(json!({ "t": "voice_start", "id": "00112233aabbccdd" })).await;
+    phone.send(json!({ "t": "voice_start", "id": "ffffffffffffffff" })).await;
+    assert_eq!(phone.recv().await["code"], "RATE_LIMITED", "a second recording of the same phone");
+    phone.send(json!({ "t": "voice_chunk", "id": "00112233aabbccdd", "seq": 0, "data": "AAAAAA==" })).await;
+    phone.send(json!({ "t": "ping", "ts": 9 })).await;
+    assert_eq!(phone.recv().await, json!({ "t": "pong", "ts": 9 }), "good messages produce no answer and the link lives on");
+    e.agent.shutdown().await;
+}
+
+/// Plain v1 (loopback, unencrypted) must not carry voice.
+#[tokio::test]
+async fn voice_is_refused_outside_the_encrypted_channel() {
+    let e = env().await;
+    let (id, token) = pair_by_code(&e).await;
+    let _ = (id, &token);
+    let mut ws = connect_async(format!("ws://127.0.0.1:{}/ws", e.port)).await.unwrap().0;
+    ws.send(Message::text(json!({ "t": "hello", "v": 1, "token": token, "client": client() }).to_string())).await.unwrap();
+    assert_eq!(recv_text(&mut ws).await["t"], "welcome");
+    ws.send(Message::text(json!({ "t": "voice_start", "id": "00112233aabbccdd" }).to_string())).await.unwrap();
+    let err = recv_text(&mut ws).await;
+    assert_eq!((err["t"].as_str(), err["code"].as_str()), (Some("error"), Some("BAD_MESSAGE")));
+    e.agent.shutdown().await;
+}

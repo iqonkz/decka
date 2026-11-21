@@ -56,6 +56,12 @@ pub enum ClientMsg {
     Ping { ts: i64 },
     /// T20.4: the next piece of the new APK (`offset` is a multiple of 3000). Only inside the encrypted channel.
     ApkGet { offset: u64 },
+    /// M21 (PROTOCOL.md 3): voice from the phone; audio and answers only, inside the encrypted channel.
+    VoiceStart { id: String },
+    VoiceChunk { id: String, seq: u64, data: String },
+    VoiceEnd { id: String },
+    VoiceCancel { id: String },
+    VoiceConfirm { id: String, yes: bool },
     /// M16: the answer of the phone to a permission question (DATA_MODEL.md 6.8).
     PermAnswer {
         req_id: String,

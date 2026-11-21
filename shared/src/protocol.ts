@@ -35,7 +35,19 @@ export interface PermAnswerMsg { t: "perm_answer"; reqId: string; decision: "all
 export interface NotifOpenMsg { t: "notif_open"; notifId: string; }
 /** M20 (T20.4): the next piece of the new APK; `offset` is a multiple of 3000. Only inside the encrypted channel. */
 export interface ApkGetMsg { t: "apk_get"; offset: number; }
-export type ClientMsg = Hello2Msg | AuthMsg | PairMsg | HelloMsg | PressMsg | NotifDismissMsg | PingMsg | PermAnswerMsg | NotifOpenMsg | ApkGetMsg;
+// M21 (DATA_MODEL.md 12.6): voice from the phone, only inside the v2 channel. `seq` counts from 0 and grows by exactly 1.
+export interface VoiceStartMsg { t: "voice_start"; id: string; }                                   // id: 16 lower-case hex characters
+export interface VoiceChunkMsg { t: "voice_chunk"; id: string; seq: number; data: string; }         // base64 PCM16 16 kHz mono, <= 3200 bytes (100 ms), <= 15 per second
+export interface VoiceEndMsg { t: "voice_end"; id: string; }
+export interface VoiceCancelMsg { t: "voice_cancel"; id: string; }
+export interface VoiceConfirmMsg { t: "voice_confirm"; id: string; yes: boolean; }
+/** The `voice` section: the state of the current voice request; null before the first one. */
+export interface VoiceInfo {
+  state: "idle" | "listening" | "loading" | "thinking" | "confirm" | "done" | "error";
+  id?: string; source?: "pc" | "phone"; heard?: string; reply?: string; confirm?: { text: string };
+}
+export type ClientMsg = Hello2Msg | AuthMsg | PairMsg | HelloMsg | PressMsg | NotifDismissMsg | PingMsg | PermAnswerMsg | NotifOpenMsg | ApkGetMsg
+  | VoiceStartMsg | VoiceChunkMsg | VoiceEndMsg | VoiceCancelMsg | VoiceConfirmMsg;
 
 // ===== Server -> Client (WS) =====
 /** M18: answer to `hello2`; `sn` is 16 random bytes, base64url. */
@@ -59,7 +71,7 @@ export interface ApkChunkMsg { t: "apk_chunk"; offset: number; data: string; tot
 export type ServerMsg = ChallengeMsg | AuthOkMsg | PairedMsg | WelcomeMsg | PatchMsg | PressResultMsg | PongMsg | ApkChunkMsg | ErrorMsg;
 
 // ===== State (sections) =====
-export type SectionName = "layout" | "sys" | "statuses" | "notifications" | "vars" | "focus" | "media" | "icons" | "weather" | "obs" | "ai" | "twitch" | "youtube" | "strip" | "battery" | "mail" | "update"; // weather, obs: M15; ai: M16; strip, battery, mail: M17; update: M20
+export type SectionName = "layout" | "sys" | "statuses" | "notifications" | "vars" | "focus" | "media" | "icons" | "weather" | "obs" | "ai" | "twitch" | "youtube" | "strip" | "battery" | "mail" | "update" | "voice"; // weather, obs: M15; ai: M16; strip, battery, mail: M17; update: M20; voice: M21
 export interface FullState {
   layout: ClientLayout;
   sys: SysStats | null;            // null = collector disabled
@@ -78,6 +90,7 @@ export interface FullState {
   battery?: BatteryInfo | null;    // M17 (10.6); null = the collector is not needed or has no data
   mail?: MailInfo | null;          // M17 (10.7); null = no mailboxes
   update?: UpdateInfo2 | null;     // M20 (T20.4); null = no new app for the phone
+  voice?: VoiceInfo | null;        // M21
 }
 
 /** A newer app, downloaded and verified by the agent: the phone fetches it with `apk_get`. */

@@ -335,6 +335,7 @@ async fn run_device(agent: Agent, remote: SocketAddr, mut link: Link, device_id:
     let who = Peer { device_id, name, remote, since: std::time::Instant::now() };
     session(&agent, &mut link, &mut patches, &mut kicked, snapshot_rev, &who).await;
     agent.apk_release(&who.device_id, &who.remote.to_string());
+    agent.voice().device_gone(&who.device_id);
     drop(guard);
 }
 
@@ -431,6 +432,32 @@ async fn handle_text(
                 Err(ApkGetError::NoUpdate) => link.send(&error_msg(ErrorCode::NotFound, "no update to download")).await,
                 Err(ApkGetError::Busy) => link.send(&error_msg(ErrorCode::RateLimited, "another download of this device is running")).await,
                 Err(ApkGetError::BadOffset) => link.send(&error_msg(ErrorCode::BadMessage, "bad offset")).await,
+            }
+        }
+        // M21: voice from the phone. Audio and answers only (S24); what to do is decided by the PC.
+        Ok(
+            msg @ (ClientMsg::VoiceStart { .. }
+            | ClientMsg::VoiceChunk { .. }
+            | ClientMsg::VoiceEnd { .. }
+            | ClientMsg::VoiceCancel { .. }
+            | ClientMsg::VoiceConfirm { .. }),
+        ) => {
+            if link.sec.is_none() {
+                return link.send(&error_msg(ErrorCode::BadMessage, "voice needs the encrypted channel")).await;
+            }
+            let device = who.device_id.as_str();
+            let voice = agent.voice();
+            let result = match msg {
+                ClientMsg::VoiceStart { id } => voice.start(device, &id),
+                ClientMsg::VoiceChunk { id, seq, data } => voice.chunk(device, &id, seq, &data, std::time::Instant::now()),
+                ClientMsg::VoiceEnd { id } => Ok(voice.end(device, &id)),
+                ClientMsg::VoiceCancel { id } => Ok(voice.cancel(device, &id)),
+                ClientMsg::VoiceConfirm { id, yes } => Ok(voice.confirm(device, &id, yes)),
+                _ => Ok(()),
+            };
+            match result {
+                Ok(()) => true,
+                Err(e) => link.send(&error_msg(e.code(), &e.message())).await,
             }
         }
         Ok(ClientMsg::NotifOpen { notif_id }) => {
