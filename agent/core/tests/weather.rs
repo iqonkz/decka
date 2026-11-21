@@ -111,7 +111,10 @@ async fn the_place_search_gives_up_to_five_places_and_checks_the_query() {
     assert_eq!(places.len(), 5);
     assert_eq!((places[0].name.as_str(), places[0].lat, places[0].lon), ("Almaty", 43.26, 76.93));
     let request = seen.lock().unwrap().clone();
-    assert!(request.contains("name=Alma+Ata") && request.contains("count=5") && request.contains("language=en"), "{request}");
+    assert!(request.contains("name=Alma+Ata") && request.contains("count=5"), "{request}");
+    // The answer is asked for in the language of the deck (`auto` follows Windows, so the code depends on this PC).
+    let language = decka_core::tray_text::agent_language(None);
+    assert!(request.contains(&format!("language={language}")), "{request}");
 
     assert!(agent.search_place_at(&url, "a").await.is_err());
     assert!(agent.search_place_at(&url, &"x".repeat(81)).await.is_err());
