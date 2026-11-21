@@ -388,3 +388,35 @@ pub fn open_config_dir(app: AppHandle) -> Result<(), String> {
     let agent = agent(&app)?;
     std::process::Command::new("explorer.exe").arg(agent.config_dir()).spawn().map(drop).map_err(|e| e.to_string())
 }
+
+// ---- M21: voice control (shared/src/ipc.ts `voice_*`; the event `voice-status` carries every change) ----
+
+fn voice(app: &AppHandle) -> Result<decka_core::ai::service::VoiceService, String> {
+    app.try_state::<decka_core::ai::service::VoiceService>().map(|s| s.inner().clone()).ok_or_else(|| "voice control did not start".to_string())
+}
+
+#[tauri::command]
+pub fn voice_status(app: AppHandle) -> Result<decka_core::ai::service::VoiceStatus, String> {
+    Ok(voice(&app)?.status())
+}
+
+/// `Turn on voice control` (download) or `Retry` (servers gave up).
+#[tauri::command]
+pub fn voice_enable(app: AppHandle) -> Result<decka_core::ai::service::VoiceStatus, String> {
+    Ok(voice(&app)?.enable())
+}
+
+#[tauri::command]
+pub fn voice_cancel(app: AppHandle) -> Result<decka_core::ai::service::VoiceStatus, String> {
+    Ok(voice(&app)?.cancel())
+}
+
+#[tauri::command]
+pub async fn voice_remove(app: AppHandle) -> Result<decka_core::ai::service::VoiceStatus, String> {
+    Ok(voice(&app)?.remove().await)
+}
+
+#[tauri::command]
+pub fn voice_set(app: AppHandle, args: decka_core::ai::service::VoiceSetArgs) -> Result<decka_core::ai::service::VoiceStatus, String> {
+    voice(&app)?.set(args)
+}

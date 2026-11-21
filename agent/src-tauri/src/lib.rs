@@ -1,5 +1,6 @@
 mod commands;
 mod tray;
+mod voice;
 
 use std::sync::Arc;
 
@@ -102,6 +103,11 @@ pub fn run() {
             commands::list_window_apps,
             commands::get_templates,
             commands::add_template,
+            commands::voice_status,
+            commands::voice_enable,
+            commands::voice_cancel,
+            commands::voice_remove,
+            commands::voice_set,
         ])
         .setup(|app| {
             let minimized = std::env::args().any(|a| a == "--minimized");
@@ -142,6 +148,7 @@ pub fn run() {
                         }
                     });
                     agent.start_update_loop();
+                    voice::setup(app.handle(), agent.config_dir());
 
                     app.manage(agent);
                 }

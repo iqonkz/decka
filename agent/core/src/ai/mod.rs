@@ -2,6 +2,11 @@
 //! Claude Code answered from the phone. Everything is local, except the opt-in `accountLimits` poll (the sign-in token goes
 //! only to api.anthropic.com).
 
+// M21 voice package: downloader, server supervisor and the settings-window service (DATA_MODEL.md 12).
+pub mod download;
+pub mod service;
+pub mod supervisor;
+
 use std::collections::{BTreeMap, VecDeque};
 use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
