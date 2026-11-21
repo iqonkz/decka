@@ -271,28 +271,44 @@
 .twitch-empty { flex-direction: row; align-items: center; justify-content: center; gap: 1.2vmin; color: var(--muted, #9ca3af); }
 
 /* ===== M16: AI limits (DATA_MODEL.md 6.8) ===== */
-.ai { position: relative; display: flex; gap: 2vmin; width: 100%; height: 100%; padding: 1.2vmin 2vmin; box-sizing: border-box; min-width: 0; overflow: hidden; font-size: 2.2vmin; }
-.ai-compact { padding: 0.6vmin 1.6vmin; font-size: 2vmin; }
-.ai-limits { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 1vmin; min-width: 0; }
-.ai-provider { display: flex; flex-direction: column; gap: 0.5vmin; min-width: 0; }
-.ai-name { font-weight: 700; display: flex; align-items: baseline; gap: 1vmin; }
-.ai-plan { font-weight: 400; color: var(--muted, #9ca3af); font-size: 1.8vmin; }
-.ai-window { display: flex; flex-direction: column; min-width: 0; }
-.ai-line { display: flex; align-items: center; gap: 1.2vmin; min-width: 0; font-variant-numeric: tabular-nums; }
-.ai-label { flex: none; width: 3.4ch; color: var(--muted, #9ca3af); }
-.ai-bar { flex: 1; min-width: 6vmin; height: 1.2vmin; border-radius: 1vmin; background: rgba(127, 127, 127, 0.25); overflow: hidden; }
+/* DESIGN.md 4.11: sizes in px from the tile (the widget computes what fits); text is never below 11 px and is left out, not cut. */
+.ai { position: relative; display: flex; gap: 8px; width: 100%; height: 100%; box-sizing: border-box; min-width: 0; overflow: hidden; font-size: 13px; }
+.ai-limits { flex: none; display: flex; align-items: center; justify-content: center; min-width: 0; }
+.ai-rings { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
+.ai-cell { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-width: 0; }
+.ai-ring-box { position: relative; flex: none; }
+.ai-ring-box > svg { display: block; }
+.ai-ring-pct { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ai-cell-row { display: flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap; }
+.ai-rows { display: flex; flex-direction: column; justify-content: center; width: 100%; }
+.ai-block { display: flex; align-items: center; gap: 8px; min-width: 0; overflow: hidden; }
+.ai-block-main { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 4px; min-width: 0; }
+.ai-line { display: flex; align-items: center; gap: 6px; min-width: 0; font-variant-numeric: tabular-nums; }
+.ai-label { flex: none; width: 26px; color: var(--muted, #9ca3af); font-size: 11px; white-space: nowrap; }
+.ai-bar { flex: 1; min-width: 0; height: 6px; border-radius: 3px; background: rgba(127, 127, 127, 0.25); overflow: hidden; }
 .ai-fill { display: block; height: 100%; border-radius: inherit; }
-.ai-pct { flex: none; min-width: 4ch; text-align: right; font-weight: 700; }
-.ai-reset { flex: none; color: var(--muted, #9ca3af); white-space: nowrap; font-size: 1.9vmin; }
-.ai-forecast { color: #d97706; font-size: 1.9vmin; padding-left: 4.6ch; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ai-nodata { display: flex; flex-direction: column; justify-content: center; color: var(--muted, #9ca3af); min-width: 0; }
-.ai-nodata span, .ai-nodata small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ai-sessions { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 0.8vmin; min-width: 0; border-left: 1px solid rgba(127, 127, 127, 0.25); padding-left: 2vmin; }
-.ai-session { display: flex; align-items: baseline; gap: 1vmin; min-width: 0; }
-.ai-project { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ai-meta { color: var(--muted, #9ca3af); white-space: nowrap; }
-.ai-wait-dot { flex: none; width: 1.4vmin; height: 1.4vmin; border-radius: 50%; align-self: center; }
-.ai-badge { position: absolute; top: 0.8vmin; right: 0.8vmin; min-width: 4vmin; height: 4vmin; padding: 0 1vmin; border: 0; border-radius: 2vmin; background: #d97706; color: #fff; font: inherit; font-weight: 700; }
+.ai-pct { flex: none; width: 40px; text-align: right; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ai-dash { color: var(--muted, #9ca3af); width: auto; flex: 1; text-align: left; }
+.ai-reset { flex: none; color: var(--muted, #9ca3af); white-space: nowrap; font-size: 12px; }
+.ai-hint { color: var(--muted, #9ca3af); font-size: 12px; white-space: nowrap; }
+.ai-sessions { box-sizing: border-box; flex: none; display: flex; flex-direction: column; justify-content: center; gap: 6px; min-width: 0; border-left: 1px solid rgba(127, 127, 127, 0.25); padding-left: 8px; overflow: hidden; }
+.ai-session { display: flex; align-items: baseline; gap: 8px; min-width: 0; white-space: nowrap; font-size: 13px; }
+.ai-project { font-weight: 600; }
+.ai-meta { color: var(--muted, #9ca3af); font-size: 12px; }
+.ai-wait-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; align-self: center; }
+.ai-badge { position: absolute; top: 4px; right: 4px; min-width: 22px; height: 22px; padding: 0 6px; border: 0; border-radius: 11px; background: #d97706; color: #fff; font: inherit; font-size: 12px; font-weight: 700; }
+/* The details sheet (the tap on the widget): limits per window, forecast, plan, sessions. */
+.ai-detail { display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; }
+.ai-d-prov { display: flex; flex-direction: column; gap: 6px; }
+.ai-d-head { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 15px; }
+.ai-d-plan { font-weight: 400; color: var(--muted, #9ca3af); font-size: 13px; }
+.ai-d-win { display: flex; align-items: center; gap: 8px; font-size: 14px; font-variant-numeric: tabular-nums; }
+.ai-d-win .ai-bar { height: 8px; border-radius: 4px; }
+.ai-d-win .ai-pct { width: 52px; font-size: 14px; }
+.ai-d-sub { color: var(--muted, #9ca3af); font-size: 12px; padding-left: 34px; }
+.ai-d-sub.warn { color: #d97706; }
+.ai-d-meta { color: var(--muted, #9ca3af); font-size: 12px; }
+.ai-d-sessions { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
 
 /* ===== M15: system graph (DATA_MODEL.md 6.5) ===== */
 .sys-graph { position: relative; display: flex; flex-direction: column; width: 100%; height: 100%; padding: 1vmin 2vmin; box-sizing: border-box; gap: 0.6vmin; }

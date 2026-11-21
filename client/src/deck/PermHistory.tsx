@@ -1,4 +1,5 @@
-import { locale, t, type PermLog } from "@decka/shared";
+import { burnEta, locale, t, type AiInfo, type PermLog } from "@decka/shared";
+import { burnKey, formatReset, levelColor, ProviderMark, useAiHistory, windowLabel } from "@decka/ui";
 import { closePermHistory, useAppState } from "../store/store";
 
 const MARK: Record<PermLog["decision"], string> = { allow: "✓", auto: "⚡", deny: "✗", pc: "↩" };
@@ -16,17 +17,75 @@ function decisionText(d: PermLog["decision"]): string {
   }
 }
 
-/** The list of the last questions of Claude Code / Codex and what was decided (a tap on the `ai` widget opens it). */
+/** The details of the limits: exact percent and reset time of each window, the forecast, the plan, the data age, the sessions (DESIGN.md 4.11). */
+function Limits({ ai }: { ai: AiInfo }) {
+  const history = useAiHistory();
+  const now = Date.now();
+  const hhmm = new Intl.DateTimeFormat(locale(), { hour: "2-digit", minute: "2-digit" });
+  const units = { d: t("ai.unit_d"), h: t("ai.unit_h"), m: t("ai.unit_m") };
+  const providers = (["claude", "codex"] as const).flatMap((p) => (ai[p] ? [{ id: p, data: ai[p] }] : []));
+  if (providers.length === 0 && ai.sessions.length === 0) return <div className="ai-d-meta">{t("ai.no_data")}</div>;
+  return (
+    <div className="ai-detail">
+      {providers.map(({ id, data }) =>
+        data ? (
+          <div key={id} className="ai-d-prov">
+            <div className="ai-d-head">
+              <ProviderMark provider={id} size={18} />
+              {t(`ai.${id}`)}
+              {data.plan !== undefined && <span className="ai-d-plan">{t("ai.plan_label", { plan: data.plan })}</span>}
+            </div>
+            {data.windows.map((w) => {
+              const eta = burnEta(history[burnKey(id, w.label)] ?? [], now, w.resetsAt);
+              const left = w.resetsAt - now;
+              return (
+                <div key={w.label}>
+                  <div className="ai-d-win">
+                    <span className="ai-label" style={{ width: 34 }}>{windowLabel(w.label, units)}</span>
+                    <span className="ai-bar"><span className="ai-fill" style={{ width: `${Math.min(100, Math.max(0, w.pct))}%`, background: levelColor(w.pct) }} /></span>
+                    <span className="ai-pct">{w.pct.toFixed(w.pct % 1 === 0 ? 0 : 1)}%</span>
+                  </div>
+                  {left > 0 && <div className="ai-d-sub">↻ {t("ai.resets_in", { time: formatReset(left, units) })}</div>}
+                  {eta !== null && <div className="ai-d-sub warn">⚠ {t("ai.runs_out", { time: hhmm.format(new Date(eta)) })}</div>}
+                </div>
+              );
+            })}
+            <div className="ai-d-meta">{t("ai.updated", { time: hhmm.format(new Date(data.updatedAt)) })}</div>
+          </div>
+        ) : null,
+      )}
+      {ai.claude == null && <div className="ai-d-meta">{t("ai.no_data")} · {t("ai.no_data_hint")}</div>}
+      {ai.sessions.length > 0 && (
+        <div className="ai-d-prov">
+          <div className="ai-d-head">{t("ai.sessions_title")}</div>
+          <div className="ai-d-sessions">
+            {ai.sessions.map((s) => (
+              <div key={s.id}>
+                <b>{s.project}</b>
+                <span className="ai-d-meta"> {s.model ?? ""}{s.ctxPct !== undefined ? ` · ${t("ai.ctx", { pct: s.ctxPct })}` : ""}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** The sheet a tap on the `ai` widget opens: the details of the limits, then the last questions of Claude Code / Codex and what was decided. */
 export default function PermHistory() {
   const open = useAppState((s) => s.permHistoryOpen);
-  const history = useAppState((s) => s.state?.ai?.history);
+  const ai = useAppState((s) => s.state?.ai);
+  const history = ai?.history;
   const waiting = useAppState((s) => (s.state?.ai?.pending.length ?? 0) > 0);
   if (!open || waiting) return null; // a question that waits for an answer comes first
   const time = new Intl.DateTimeFormat(locale(), { hour: "2-digit", minute: "2-digit" });
   return (
     <div className="perm-backdrop" onClick={closePermHistory}>
-      <div className="perm-sheet" role="dialog" aria-label={t("hist.title")} onClick={(e) => e.stopPropagation()}>
-        <h2 className="perm-title">{t("hist.title")}</h2>
+      <div className="perm-sheet" role="dialog" aria-label={t("ai.detail_title")} onClick={(e) => e.stopPropagation()}>
+        <h2 className="perm-title">{t("ai.detail_title")}</h2>
+        {ai && <Limits ai={ai} />}
+        <h3 className="perm-project">{t("hist.title")}</h3>
         <div className="hist-list">
           {(history ?? []).length === 0 && <div className="perm-project">{t("hist.empty")}</div>}
           {(history ?? []).map((h, i) => (

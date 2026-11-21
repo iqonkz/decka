@@ -27,4 +27,7 @@ export { currentPosition, formatTime } from "./widgets/mediaPos";
 export { LEVEL_COLOR, STATE_COLOR, sortStatuses } from "./widgets/statusOrder";
 export { relTime } from "./widgets/relTime";
 export { getSysHistory, recordSys, resetSysHistory } from "./widgets/sysHistory";
-export { recordAi, resetAiHistory } from "./widgets/aiHistory";
+export { recordAi, resetAiHistory, useAiHistory, burnKey } from "./widgets/aiHistory";
+export { ProviderMark } from "./widgets/aiMarks";
+export { levelColor } from "./widgets/Ai";
+export { closestWindow, formatReset, windowLabel } from "./widgets/aiModel";
