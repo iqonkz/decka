@@ -7,8 +7,8 @@
     { "tool": "volume", "args": { "op": "down" }, "patterns": ["дыбысты бәсеңдет", "ақырынырақ", "дыбысты азайт"] },
     { "tool": "volume", "args": { "op": "mute" }, "patterns": ["дыбысты өшір", "үнсіз", "дыбысты қос"] },
     { "tool": "media", "args": { "op": "play_pause" }, "patterns": ["ойнату", "кідірту", "пауза", "жалғастыру"] },
-    { "tool": "media", "args": { "op": "next" }, "patterns": ["келесі трек", "келесі ән", "өткізіп жіберу"] },
-    { "tool": "media", "args": { "op": "prev" }, "patterns": ["алдыңғы трек", "алдыңғы ән"] },
+    { "tool": "media", "args": { "op": "next" }, "patterns": ["келесі трек", "келесі ән", "өткізіп жіберу", "келесі әнге ауыстыр"] },
+    { "tool": "media", "args": { "op": "prev" }, "patterns": ["алдыңғы трек", "алдыңғы ән", "алдыңғы әнді қайта қос"] },
     { "tool": "open_app", "patterns": ["{app} аш", "{app} іске қос"] },
     { "tool": "close_app", "patterns": ["{app} жап", "{app} шығу"] },
     { "tool": "switch_app", "patterns": ["{app} ауысу", "{app} өту"] },
@@ -16,7 +16,8 @@
     { "tool": "press_button", "patterns": ["{label} батырмасын бас", "{label} бас"] },
     { "tool": "web_search", "args": { "site": "web" }, "patterns": ["интернеттен {query} ізде", "{query} іздеу"] },
     { "tool": "web_search", "args": { "site": "youtube" }, "patterns": ["ютубтан {query} ізде", "youtube {query} іздеу"] },
-    { "tool": "timer", "patterns": ["{n} минутқа таймер қой", "{n} минуттық таймер"] },
+    { "tool": "timer", "args": { "minutes": 10 }, "patterns": ["он минутқа таймер орнат", "он минуттық таймер"] },
+    { "tool": "timer", "patterns": ["{n} минутқа таймер қой", "{n} минуттық таймер", "{n} минутқа таймер орнат"] },
     { "tool": "system", "args": { "op": "lock" }, "patterns": ["пк құлыптау", "компьютерді құлыпта", "экранды құлыптау"] },
     { "tool": "system", "args": { "op": "sleep" }, "patterns": ["ұйқы режимі", "компьютерді ұйықтату"] }
   ]
