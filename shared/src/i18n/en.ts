@@ -148,6 +148,7 @@ export const en = {
   "more.actions": "Actions",
   "more.integrations": "Integrations",
   "more.settings": "Settings",
+  "more.voice": "Voice",
   "more.about": "About",
   "about.text": "Decka turns an old phone into a panel for this PC: buttons, widgets and live information.",
   "about.licence": "MIT licence. The setup guide pairs a phone, picks a look and adds your apps.",

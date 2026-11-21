@@ -146,6 +146,7 @@ export const zh: Dictionary = {
   "more.actions": "操作",
   "more.integrations": "集成",
   "more.settings": "设置",
+  "more.voice": "语音",
   "more.about": "关于",
   "about.text": "Decka 把旧手机变成这台电脑的面板：按键、小组件和实时信息。",
   "about.licence": "MIT 许可证。设置向导会配对手机、选择外观并添加你的程序。",

@@ -150,6 +150,7 @@ export const ru: Record<Base | ExtraPlural, string> = {
   "more.actions": "Действия",
   "more.integrations": "Интеграции",
   "more.settings": "Настройки",
+  "more.voice": "Голос",
   "more.about": "О программе",
   "about.text": "Decka превращает старый телефон в панель для этого ПК: кнопки, виджеты и живая информация.",
   "about.licence": "Лицензия MIT. Мастер настройки подключает телефон, подбирает вид и добавляет ваши программы.",

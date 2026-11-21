@@ -146,6 +146,7 @@ export const fr: Dictionary = {
   "more.actions": "Actions",
   "more.integrations": "Intégrations",
   "more.settings": "Paramètres",
+  "more.voice": "Voix",
   "more.about": "À propos",
   "about.text": "Decka transforme un vieux téléphone en panneau de commande pour ce PC : boutons, widgets et informations en direct.",
   "about.licence": "Licence MIT. L'assistant de configuration associe un téléphone, choisit une apparence et ajoute vos programmes.",

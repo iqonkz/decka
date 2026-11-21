@@ -146,6 +146,7 @@ export const ar: Dictionary = {
   "more.actions": "الإجراءات",
   "more.integrations": "التكاملات",
   "more.settings": "الإعدادات",
+  "more.voice": "صوت",
   "more.about": "حول",
   "about.text": "يحوّل Decka هاتفًا قديمًا إلى لوحة لهذا الحاسوب: أزرار وويدجت ومعلومات مباشرة.",
   "about.licence": "ترخيص MIT. يربط دليل الإعداد هاتفًا، ويختار مظهرًا، ويضيف برامجك.",

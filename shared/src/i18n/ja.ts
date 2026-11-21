@@ -146,6 +146,7 @@ export const ja: Dictionary = {
   "more.actions": "アクション",
   "more.integrations": "連携",
   "more.settings": "設定",
+  "more.voice": "音声",
   "more.about": "情報",
   "about.text": "Decka は古いスマートフォンをこの PC のパネルに変えます。ボタン、ウィジェット、リアルタイムの情報が使えます。",
   "about.licence": "MIT ライセンス。セットアップ ガイドでは、スマートフォンの接続、外観の選択、プログラムの追加を行います。",

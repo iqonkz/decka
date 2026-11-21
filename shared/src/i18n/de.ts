@@ -146,6 +146,7 @@ export const de: Dictionary = {
   "more.actions": "Aktionen",
   "more.integrations": "Integrationen",
   "more.settings": "Einstellungen",
+  "more.voice": "Stimme",
   "more.about": "Info",
   "about.text": "Decka macht aus einem alten Telefon ein Bedienfeld für diesen PC: Tasten, Widgets und Live-Informationen.",
   "about.licence": "MIT-Lizenz. Die Einrichtung koppelt ein Telefon, wählt ein Aussehen und fügt deine Programme hinzu.",

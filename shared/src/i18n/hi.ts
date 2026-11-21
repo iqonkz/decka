@@ -146,6 +146,7 @@ export const hi: Dictionary = {
   "more.actions": "क्रियाएँ",
   "more.integrations": "एकीकरण",
   "more.settings": "सेटिंग",
+  "more.voice": "आवाज़",
   "more.about": "परिचय",
   "about.text": "Decka एक पुराने फ़ोन को इस पीसी के पैनल में बदल देता है: बटन, विजेट और लाइव जानकारी।",
   "about.licence": "MIT लाइसेंस। सेटअप गाइड फ़ोन जोड़ता है, रूप चुनता है और आपके प्रोग्राम जोड़ता है।",
