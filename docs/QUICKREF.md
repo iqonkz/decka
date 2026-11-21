@@ -47,6 +47,9 @@ tools/    ws-smoke.mjs, make-icon.ps1
 | Каталог конфигурации | `%APPDATA%\Decka` или env `DECKA_CONFIG_DIR` |
 | Close-коды WS | 4401 unauthorized, 4403 revoked, 4426 version, 4429 rate, 1009 size, 1011 lagged |
 
+## M21: голос (DATA_MODEL.md §12)
+Пакет ИИ по кнопке: `llama-server` (Vulkan) + `whisper-server` + модели Qwen3.5 и whisper, всё в `%LOCALAPPDATA%\Decka\ai\`, невидимые дочерние процессы на 127.0.0.1. Понимание: таблицы фраз `shared/voice/<lang>.json`, затем ИИ с JSON-схемой. Власть — только инструменты §12.5. Вход: `Ctrl+Alt+Space` на ПК, плавающая кнопка на телефоне (`voice_*` в канале v2).
+
 ## M18: защищённый канал (PROTOCOL.md §10)
 v2: `hello2` → `challenge` → `auth` → `auth_ok`, затем только бинарные кадры AES-256-GCM со счётчиком. v1 — только loopback. Ключи: `K_dev` = SHA-256(токен), `S_qr` из QR, `S_code` = PBKDF2(код). Политика сетей `local`/`private`/`public` — DATA_MODEL.md §11.2. Библиотеки: `ring` 0.17.14, `@noble/ciphers` и `@noble/hashes` 2.4.0.
 

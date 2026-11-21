@@ -60,6 +60,16 @@ export interface PingMsg  { t: "ping"; ts: number; }
 export interface PermAnswerMsg { t: "perm_answer"; reqId: string; decision: "allow" | "deny" | "pc"; } // reqId ^[0-9a-f]{16}$
 // M17: открыть программу уведомления Windows (DATA_MODEL.md §10.4). Только id, выданный агентом.
 export interface NotifOpenMsg { t: "notif_open"; notifId: string; }
+// M21 (DATA_MODEL.md §12): голос с телефона. Только внутри канала v2. Звук — данные; что делать, решает ПК (S24).
+export interface VoiceStartMsg  { t: "voice_start"; id: string; }                        // id — 16 hex от клиента, одна активная запись на устройство
+export interface VoiceChunkMsg  { t: "voice_chunk"; id: string; seq: number; data: string; } // base64 PCM16 16 кГц моно, ≤ 3200 байт (100 мс)
+export interface VoiceEndMsg    { t: "voice_end"; id: string; }
+export interface VoiceCancelMsg { t: "voice_cancel"; id: string; }
+export interface VoiceConfirmMsg { t: "voice_confirm"; id: string; yes: boolean; }
+// Секция FullState.voice?: VoiceInfo | null:
+// { state: "idle"|"listening"|"loading"|"thinking"|"confirm"|"done"|"error"; id?: string; source?: "pc"|"phone";
+//   heard?: string (≤ 300); reply?: string (≤ 300); confirm?: { text: string } }
+// Лимиты: запись ≤ 30 с (больше — обрезается и завершается), seq строго +1, ≤ 15 кусков в секунду на устройство.
 // M20 (TASKS T20.4): загрузка нового APK с ПК внутри зашифрованного канала.
 export interface ApkGetMsg { t: "apk_get"; offset: number; }                       // offset кратен 3000
 export type ClientMsg = PairMsg | HelloMsg | PressMsg | NotifDismissMsg | PingMsg | PermAnswerMsg | NotifOpenMsg | ApkGetMsg;
