@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "files": [
+    {
+      "id": "llama-runtime",
+      "kind": "runtime",
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b12602/llama-b12602-bin-win-vulkan-x64.zip",
+      "sha256": "723c13b3bc0759c1d86c09316a06cb549c78702cf3a441de5bff64c27f26fded",
+      "size": 38857755,
+      "license": "MIT"
+    },
+    {
+      "id": "whisper-runtime",
+      "kind": "runtime",
+      "url": "https://github.com/ggml-org/whisper.cpp/releases/download/b5907/whisper-bin-x64.zip",
+      "sha256": "ecca07b277d943e9b9f4712856a144b857271a6b333104e511e1988e80db582b",
+      "size": 9168428,
+      "license": "MIT"
+    },
+    {
+      "id": "llm-standard",
+      "kind": "llm",
+      "url": "https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/main/Qwen3.5-4B-Q4_K_M.gguf",
+      "sha256": "00fe7986ff5f6b463e62455821146049db6f9313603938a70800d1fb69ef11a4",
+      "size": 2740937888,
+      "license": "Apache-2.0"
+    },
+    {
+      "id": "llm-light",
+      "kind": "llm",
+      "url": "https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/Qwen3.5-2B-Q4_K_M.gguf",
+      "sha256": "aaf42c8b7c3cab2bf3d69c355048d4a0ee9973d48f16c731c0520ee914699223",
+      "size": 1280835840,
+      "license": "Apache-2.0"
+    },
+    {
+      "id": "stt",
+      "kind": "stt",
+      "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q5_0.bin",
+      "sha256": "394221709cd5ad1f40c46e6031ca61bce88931e6e088c188294c6d5a55ffa7e2",
+      "size": 574041195,
+      "license": "MIT"
+    }
+  ]
+}

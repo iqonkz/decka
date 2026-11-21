@@ -9,6 +9,7 @@ use std::time::{Duration, Instant};
 use serde::{Deserialize, Serialize};
 
 use super::download::{extract_archive, Downloader, ManifestEntry};
+use super::hardware::{detect_hardware, HardwareInfo};
 use super::supervisor::{SupState, Supervisor, SupervisorConfig};
 
 // ---- Contract types (mirror `VoiceStatus` in shared/src/ipc.ts) --------------------------------------------------
@@ -34,16 +35,6 @@ pub enum ModelChoice {
 pub struct Progress {
     pub done: u64,
     pub total: u64,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct HardwareInfo {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub gpu: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub vram_gb: Option<f64>,
-    pub ram_gb: f64,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -103,38 +94,29 @@ impl Default for VoiceSettings {
     }
 }
 
-// ---- Hardware (STUB: `hardware.rs` belongs to the second agent; C6 swaps this for it) ----------------------------
+// ---- Hardware (detection and the 12.2 rule live in `hardware.rs`) ------------------------------------------------
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct Hardware {
-    pub gpu: Option<String>,
-    pub vram_gb: Option<f64>,
-    pub ram_gb: f64,
-}
-
+/// Where the PC's hardware comes from; tests give a fixed answer.
 pub trait HardwareProbe: Send + Sync {
-    fn probe(&self) -> Hardware;
+    fn probe(&self) -> HardwareInfo;
 }
 
-/// RAM from `sysinfo`, no GPU information.
-pub struct SysinfoProbe;
+/// The real thing: DXGI for the video card, `sysinfo` for the RAM.
+pub struct DetectProbe;
 
-impl HardwareProbe for SysinfoProbe {
-    fn probe(&self) -> Hardware {
-        let ram = sysinfo::System::new().map(|mut s| { s.refresh_memory(); s.total_memory() }).unwrap_or(0);
-        Hardware { gpu: None, vram_gb: None, ram_gb: ram as f64 / (1024.0 * 1024.0 * 1024.0) }
+impl HardwareProbe for DetectProbe {
+    fn probe(&self) -> HardwareInfo {
+        detect_hardware()
     }
 }
 
-/// DATA_MODEL.md 12.2: the standard (4B) model with >= 6 GB of video memory, or >= 16 GB of RAM; otherwise the light one.
-pub fn recommend(hw: &Hardware) -> ModelChoice {
-    if hw.vram_gb.is_some_and(|v| v >= 6.0) || hw.ram_gb >= 16.0 {
-        ModelChoice::Standard
-    } else {
-        ModelChoice::Light
+/// DATA_MODEL.md 12.2 through `hardware::recommend_model`.
+pub fn recommend(hw: &HardwareInfo) -> ModelChoice {
+    match hw.recommended_model() {
+        "standard" => ModelChoice::Standard,
+        _ => ModelChoice::Light,
     }
 }
-
 // ---- Plan of files ----------------------------------------------------------------------------------------------
 
 /// The manifest entries one install needs: both runtimes, the chosen model, the speech model.
@@ -329,7 +311,7 @@ impl VoiceService {
         VoiceStatus {
             state,
             progress,
-            hardware: HardwareInfo { gpu: hw.gpu, vram_gb: hw.vram_gb, ram_gb: hw.ram_gb },
+            hardware: hw,
             model,
             download_gb: total as f64 / 1e9,
             hotkey: st.settings.hotkey.clone(),
@@ -559,15 +541,15 @@ mod tests {
     use super::*;
     use sha2::{Digest, Sha256};
 
-    struct Fixed(Hardware);
+    struct Fixed(HardwareInfo);
     impl HardwareProbe for Fixed {
-        fn probe(&self) -> Hardware {
+        fn probe(&self) -> HardwareInfo {
             self.0.clone()
         }
     }
 
-    fn hw(vram: Option<f64>, ram: f64) -> Hardware {
-        Hardware { gpu: vram.map(|_| "GPU".into()), vram_gb: vram, ram_gb: ram }
+    fn hw(vram: Option<f64>, ram: f64) -> HardwareInfo {
+        HardwareInfo { gpu: vram.map(|_| "GPU".into()), vram_gb: vram, ram_gb: ram }
     }
 
     fn entry(id: &str, kind: &str, url: &str, data: &[u8]) -> ManifestEntry {
@@ -611,7 +593,7 @@ mod tests {
         assert!(partial.speak && partial.phone_button);
     }
 
-    fn service(dir: &Path, hardware: Hardware) -> (VoiceService, Arc<Mutex<Vec<VoiceStatus>>>) {
+    fn service(dir: &Path, hardware: HardwareInfo) -> (VoiceService, Arc<Mutex<Vec<VoiceStatus>>>) {
         let seen = Arc::new(Mutex::new(Vec::new()));
         let sink = seen.clone();
         let svc = VoiceService::new(

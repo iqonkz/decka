@@ -5,7 +5,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use decka_core::ai::download::{parse_manifest, Downloader, ManifestEntry};
-use decka_core::ai::service::{default_root, SysinfoProbe, VoiceDeps, VoiceService};
+use decka_core::ai::service::{default_root, DetectProbe, VoiceDeps, VoiceService};
 use tauri::{AppHandle, Emitter, Manager};
 
 /// `shared/ai/manifest.json`: the bundled resource, or the repository copy when running from a checkout.
@@ -30,7 +30,7 @@ pub fn setup(app: &AppHandle, config_dir: &Path) {
         root: default_root(),
         settings_path: config_dir.join("voice.json"),
         manifest: load_manifest(app),
-        hardware: Arc::new(SysinfoProbe),
+        hardware: Arc::new(DetectProbe),
         // The microphone list comes with the capture code (C2); until then the window shows only the default device.
         mics: Arc::new(Vec::new),
         downloader: Downloader::default(),

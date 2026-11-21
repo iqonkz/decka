@@ -1,10 +1,32 @@
 import { invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
-import type { AgentStatus, IpcCommands } from "@decka/shared";
+import type { AgentStatus, IpcCommands, VoiceStatus } from "@decka/shared";
+
+export { listen };
 
 /** Typed `invoke`: the command names and shapes come from `IpcCommands` (PROTOCOL.md 9). */
 export function call<K extends keyof IpcCommands>(cmd: K, args?: Parameters<IpcCommands[K]>[0]): Promise<ReturnType<IpcCommands[K]>> {
   return invoke<ReturnType<IpcCommands[K]>>(cmd, args as Record<string, unknown> | undefined);
+}
+
+/** Subscribes to `voice-status`; returns the unsubscribe function. */
+export async function onVoiceStatus(fn: (status: VoiceStatus) => void): Promise<() => void> {
+  return listen<VoiceStatus>("voice-status", (event) => fn(event.payload));
+}
+
+export interface VoicePillEvent {
+  state: "idle" | "listening" | "loading" | "thinking" | "confirm" | "done" | "error";
+  id?: string;
+  source?: "pc" | "phone";
+  heard?: string;
+  reply?: string;
+  confirm?: { text: string };
+  level?: number;
+}
+
+/** Subscribes to `voice-pill`; returns the unsubscribe function. */
+export async function onVoicePill(fn: (data: VoicePillEvent) => void): Promise<() => void> {
+  return listen<VoicePillEvent>("voice-pill", (event) => fn(event.payload));
 }
 
 /** Subscribes to `decka://status-changed`; returns the unsubscribe function. */
