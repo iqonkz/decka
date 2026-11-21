@@ -9,7 +9,7 @@
     { "tool": "media", "args": { "op": "play_pause" }, "patterns": ["ойнату", "кідірту", "пауза", "жалғастыру"] },
     { "tool": "media", "args": { "op": "next" }, "patterns": ["келесі трек", "келесі ән", "өткізіп жіберу", "келесі әнге ауыстыр"] },
     { "tool": "media", "args": { "op": "prev" }, "patterns": ["алдыңғы трек", "алдыңғы ән", "алдыңғы әнді қайта қос"] },
-    { "tool": "open_app", "patterns": ["{app} аш", "{app} іске қос"] },
+    { "tool": "open_app", "patterns": ["{app} аш", "{app} ашасың ба", "{app} іске қос"] },
     { "tool": "close_app", "patterns": ["{app} жап", "{app} шығу"] },
     { "tool": "switch_app", "patterns": ["{app} ауысу", "{app} өту"] },
     { "tool": "go_page", "patterns": ["{name} бетіне өту", "{name} бетін аш", "{name} беті"] },

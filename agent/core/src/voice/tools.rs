@@ -7,7 +7,7 @@ use std::collections::HashSet;
 
 use serde_json::Value;
 
-use super::matcher::{tokens, trigram_sim, FUZZY_THRESHOLD};
+use super::matcher::{strip_suffix, tokens, trigram_sim, FUZZY_THRESHOLD};
 use crate::model::{MediaOp, SystemOp};
 
 /// The whole white list (12.5 without the later stages: write, notes, screen help, files, calendar, chains).
@@ -56,6 +56,8 @@ pub struct PageRef {
 /// What exists on this PC right now; the host builds it from `actions.json`, `layout.json` and the installed programs.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Context {
+    /// Language of the phrase table in use: picks the case suffixes cut from spoken names.
+    pub lang: String,
     pub actions: Vec<ActionRef>,
     pub buttons: Vec<ButtonRef>,
     pub apps: Vec<AppRef>,
@@ -150,9 +152,19 @@ fn name_score(spoken: &[String], known: &str) -> f64 {
 
 /// Indices of the best-fitting entries (several when the best scores are within the margin). `key` merges entries that
 /// are the same target under different names.
-fn best<T>(spoken: &str, items: &[T], name: impl Fn(&T) -> &str, key: impl Fn(&T) -> String) -> Vec<usize> {
-    let spoken = tokens(spoken);
-    let scored: Vec<(f64, usize)> = items.iter().enumerate().map(|(i, t)| (name_score(&spoken, name(t)), i)).filter(|s| s.0 > 0.0).collect();
+fn best<T>(lang: &str, spoken: &str, items: &[T], name: impl Fn(&T) -> &str, key: impl Fn(&T) -> String) -> Vec<usize> {
+    let mut spoken = tokens(spoken);
+    let score = |spoken: &[String]| -> Vec<(f64, usize)> {
+        items.iter().enumerate().map(|(i, t)| (name_score(spoken, name(t)), i)).filter(|s| s.0 > 0.0).collect()
+    };
+    let mut scored = score(&spoken);
+    // A case suffix on the last word is cut only when the name as spoken matches nothing.
+    if scored.is_empty() {
+        if let Some(stem) = spoken.last().and_then(|w| strip_suffix(lang, w)) {
+            *spoken.last_mut().unwrap() = stem;
+            scored = score(&spoken);
+        }
+    }
     let Some(top) = scored.iter().map(|s| s.0).fold(None, |m: Option<f64>, x| Some(m.map_or(x, |y| y.max(x)))) else {
         return Vec::new();
     };
@@ -219,7 +231,7 @@ fn run(tool: &str, args: &serde_json::Map<String, Value>, ctx: &Context) -> Resu
             // A button by its label, or any action by its name.
             let mut cands: Vec<(String, String)> = ctx.buttons.iter().map(|b| (b.label.clone(), b.action_id.clone())).collect();
             cands.extend(ctx.actions.iter().map(|a| (a.name.clone(), a.id.clone())));
-            let found = best(label, &cands, |c| c.0.as_str(), |c| c.1.clone());
+            let found = best(&ctx.lang, label, &cands, |c| c.0.as_str(), |c| c.1.clone());
             match found.as_slice() {
                 [] => reject("no such button"),
                 [i] => match ctx.actions.iter().find(|a| a.id == cands[*i].1) {
@@ -232,7 +244,7 @@ fn run(tool: &str, args: &serde_json::Map<String, Value>, ctx: &Context) -> Resu
         "open_app" | "switch_app" | "close_app" => {
             only(args, &["name"])?;
             let name = text(args, "name", 100)?;
-            let found = best(name, &ctx.apps, |a| a.name.as_str(), |a| a.program.to_ascii_lowercase());
+            let found = best(&ctx.lang, name, &ctx.apps, |a| a.name.as_str(), |a| a.program.to_ascii_lowercase());
             match found.as_slice() {
                 [] => reject("that program is not installed"),
                 [i] => {
@@ -287,7 +299,7 @@ fn run(tool: &str, args: &serde_json::Map<String, Value>, ctx: &Context) -> Resu
         "go_page" => {
             only(args, &["name"])?;
             let name = text(args, "name", 100)?;
-            let found = best(name, &ctx.pages, |p| p.name.as_str(), |p| p.id.clone());
+            let found = best(&ctx.lang, name, &ctx.pages, |p| p.name.as_str(), |p| p.id.clone());
             match found.as_slice() {
                 [] => reject("no such page"),
                 [i] => ready(ToolCall::GoPage { page_id: ctx.pages[*i].id.clone(), name: ctx.pages[*i].name.clone() }, false, format!("Go to page {}", ctx.pages[*i].name)),
@@ -376,7 +388,28 @@ mod tests {
             ],
             pages: vec![PageRef { id: "main".into(), name: "Main".into() }, PageRef { id: "media".into(), name: "Media".into() }],
             confirm_actions: vec!["shutdown".into()],
+            lang: "en".into(),
         }
+    }
+
+    #[test]
+    fn a_kazakh_case_suffix_is_cut_only_when_the_raw_name_matches_nothing() {
+        let mut c = ctx();
+        c.lang = "kk".into();
+        c.apps.push(AppRef { name: "Хром".into(), program: "C:\\hrom.exe".into() });
+        c.apps.push(AppRef { name: "Тіркелді".into(), program: "C:\\reg.exe".into() });
+        let open = |c: &Context, name: &str| validate(&RawCall { tool: "open_app".into(), args: json!({ "name": name }) }, c);
+        match open(&c, "хромнан") {
+            Resolved::Ready(v) => assert!(matches!(v.call, ToolCall::OpenApp { ref program, .. } if program == "C:\\hrom.exe")),
+            other => panic!("{other:?}"),
+        }
+        // The raw name is itself a known name: nothing is cut.
+        match open(&c, "тіркелді") {
+            Resolved::Ready(v) => assert!(matches!(v.call, ToolCall::OpenApp { ref program, .. } if program == "C:\\reg.exe")),
+            other => panic!("{other:?}"),
+        }
+        c.lang = "en".into();
+        assert!(!matches!(open(&c, "хромнан"), Resolved::Ready(_)));
     }
 
     fn call(tool: &str, args: Value) -> Resolved {

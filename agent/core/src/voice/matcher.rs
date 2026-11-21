@@ -183,6 +183,31 @@ fn number_words(toks: Vec<String>) -> Vec<String> {
     out
 }
 
+// ---- Case suffixes of slot values -------------------------------------------------------------------------------
+
+/// Suffix table per language: case endings that may sit on a spoken name ("калькуляторды" = calculator, accusative).
+/// Longest first is enforced by `strip_suffix`, so the order here does not matter. Add other languages here.
+fn suffixes(lang: &str) -> &'static [&'static str] {
+    match lang {
+        "kk" => &[
+            "ды", "ді", "ты", "ті", "ны", "ні", "дан", "ден", "тан", "тен", "нан", "нен", "да", "де", "та", "те", "на", "не", "ға", "ге", "қа", "ке",
+            "дың", "дің", "тың", "тің", "ның", "нің", "мен", "бен", "пен", "ын", "ін", "н",
+        ],
+        _ => &[],
+    }
+}
+
+/// The stem of a word without its longest case suffix; the stem keeps at least 3 characters. `None` when nothing
+/// can be cut (no suffix for the language, no match, stem too short).
+pub fn strip_suffix(lang: &str, word: &str) -> Option<String> {
+    let total = word.chars().count();
+    suffixes(lang)
+        .iter()
+        .filter(|s| word.ends_with(**s) && total - s.chars().count() >= 3)
+        .max_by_key(|s| s.chars().count())
+        .map(|s| word[..word.len() - s.len()].to_string())
+}
+
 fn join(tokens: &[String]) -> String {
     let mut s = String::new();
     for (i, t) in tokens.iter().enumerate() {
@@ -521,7 +546,8 @@ mod tests {
     #[test]
     fn every_phrase_test_file_passes() {
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("shared").join("voice");
-        let (mut en_failures, mut other_failures, mut other_total) = (Vec::new(), Vec::new(), 0);
+        let (mut en_failures, mut other_failures, mut other_total, mut en_total) = (Vec::new(), Vec::new(), 0, 0);
+        let mut per_lang_misses: std::collections::BTreeMap<String, usize> = Default::default();
         let mut files = 0;
         for entry in std::fs::read_dir(root.join("tests")).unwrap().flatten() {
             let path = entry.path();
@@ -532,16 +558,26 @@ mod tests {
             for case in cases {
                 let say = case["say"].as_str().unwrap();
                 let want_args = case["args"].as_object().cloned().unwrap_or_default();
+                // A name slot may still carry a case suffix: tools.rs cuts it when the raw name matches nothing.
+                let same = |got: Option<&Value>, want: &Value| {
+                    got == Some(want)
+                        || got.zip(want.as_str()).is_some_and(|(g, w)| g.as_str().and_then(|g| strip_suffix(&lang, g)).as_deref() == Some(w))
+                };
                 let bad = match table.matches(say) {
-                    Match::Hit(i) if i.tool == case["tool"] && want_args.iter().all(|(k, v)| i.args.get(k) == Some(v)) => None,
+                    Match::Hit(i) if i.tool == case["tool"] && want_args.iter().all(|(k, v)| same(i.args.get(k), v)) => None,
                     other => Some(format!("{lang}: {say:?} -> {other:?}")),
                 };
-                if lang != "en" {
+                if lang == "en" {
+                    en_total += 1;
+                } else {
                     other_total += 1;
                 }
                 match (bad, lang == "en") {
                     (Some(b), true) => en_failures.push(b),
-                    (Some(b), false) => other_failures.push(b),
+                    (Some(b), false) => {
+                        other_failures.push(b);
+                        *per_lang_misses.entry(lang.clone()).or_insert(0) += 1;
+                    }
                     (None, _) => {}
                 }
             }
@@ -550,6 +586,21 @@ mod tests {
         assert!(en_failures.is_empty(), "en must pass:\n{}", en_failures.join("\n"));
         let passed = other_total - other_failures.len();
         eprintln!("other languages: {passed} of {other_total} phrases matched; misses:\n{}", other_failures.join("\n"));
-        assert!(passed >= 55, "the other languages got worse: {passed} of {other_total}");
+        assert!(passed + en_total >= 109, "the bar is 109 of 110: {} of {}", passed + en_total, other_total + en_total);
+        assert_eq!(en_total, 10, "the bar is en 10/10");
+        // Every other language misses at most one of its ten phrases.
+        for (lang, misses) in &per_lang_misses {
+            assert!(*misses <= 1, "{lang} missed {misses} of 10");
+        }
+    }
+
+    #[test]
+    fn kk_case_suffixes_are_cut_longest_first_and_keep_a_stem() {
+        assert_eq!(strip_suffix("kk", "калькуляторды").as_deref(), Some("калькулятор"));
+        assert_eq!(strip_suffix("kk", "бетін").as_deref(), Some("бет"));
+        assert_eq!(strip_suffix("kk", "хромнан").as_deref(), Some("хром"));
+        assert_eq!(strip_suffix("kk", "ады"), None); // stem would be 1 character
+        assert_eq!(strip_suffix("kk", "калькулятор"), None);
+        assert_eq!(strip_suffix("en", "calculators"), None);
     }
 }
