@@ -703,6 +703,8 @@ export interface CatalogItem {
   // M19: все { en: string; ru: string } каталога, наборов и шаблонов → LocalizedText = { en: string } & Partial<Record<Language, string>>;
   // выбор — pickText(text, lang): нужный язык, иначе en. Тест каталога требует все 11 языков у каждого текста.
   // Шаблоны: nameRu (T17.6) → names: LocalizedText без en (en — прежнее name).
+  // Принято по итогам M19 (2026-11-21): тексты 9 новых языков лежат в shared/catalog/i18n/<код>.json и сливаются при загрузке;
+  // у шаблонов в Rust — поля names и actionNames.
   label: { en: string; ru: string };   // подпись кнопки, ≤ 10 символов на обоих языках (M19: ≤ 12 на любом языке)
   name: { en: string; ru: string };    // имя в библиотеке и в actions.json, ≤ 40
   icon: string;                        // "lucide:<имя>" или "ph:<имя>" (Phosphor; окно превращает в img: через icon_from_svg при создании)
