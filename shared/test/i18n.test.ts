@@ -5,7 +5,7 @@ import { CATALOG, LANGUAGES, LANGUAGE_NAMES, SETS, TABLES, en, isRtl, languageOr
  * The languages whose dictionaries are translated (the `TODO translate` header is gone). The strict checks run for these only;
  * each translation task of M19 adds its languages here.
  */
-const TRANSLATED: Language[] = ["ru", "es", "kk", "zh", "ja", "hi"];
+const TRANSLATED: Language[] = ["ru", "es", "kk", "zh", "ja", "hi", "ar", "fr", "pt", "de"];
 
 /** Strings that may be the same in every language: product and technology names, units that are written the same. */
 const SAME_IN_ALL = new Set<string>(["USB", "Wi-Fi", "QR", "Decka", "AMOLED", "Studio", "Material", "Glass", "Phosphor", "OK", "Decka {version}", "OBS", "OBS Studio", "Claude", "Codex", "Claude Code", "Twitch", "YouTube", "REC", "LIVE", "Weather data by Open-Meteo.com (CC BY 4.0)"]);
