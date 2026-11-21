@@ -26,6 +26,7 @@ const LANGUAGES = ["en", "zh", "hi", "es", "ar", "fr", "pt", "ru", "de", "ja", "
 describe("Voice phrase tables (T21.3b)", () => {
   const voiceDir = path.resolve(__dirname, "../voice");
   const testsDir = path.resolve(__dirname, "../voice/tests");
+  const evalDir = path.resolve(__dirname, "../voice/eval");
 
   for (const lang of LANGUAGES) {
     it(`validates voice table for ${lang}`, () => {
@@ -69,6 +70,22 @@ describe("Voice phrase tables (T21.3b)", () => {
         if (t.args) {
           expect(typeof t.args).toBe("object");
         }
+      }
+    });
+
+    it(`validates eval set for ${lang} (T21.4b)`, () => {
+      const filePath = path.join(evalDir, `${lang}.json`);
+      expect(fs.existsSync(filePath)).toBe(true);
+
+      const evalSet = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+      expect(Array.isArray(evalSet)).toBe(true);
+      expect(evalSet.length).toBe(25);
+
+      for (const item of evalSet) {
+        expect(typeof item.say).toBe("string");
+        expect(item.say.trim().length).toBeGreaterThan(0);
+        expect(VALID_TOOLS.has(item.tool)).toBe(true);
+        expect(typeof item.args).toBe("object");
       }
     });
   }
