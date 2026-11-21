@@ -76,7 +76,11 @@ In **Layout** the preview is the real deck in the chosen look: drag a program, a
 
 ## Language
 
-English and Russian, switched in **More → Settings → Language**; **Auto** follows the system language of the window, the phone and Windows.
+English, 中文（简体）, हिन्दी, Español, العربية, Français, Português (Brasil), Русский, Deutsch, 日本語 and Қазақша, switched in **More → Settings → Language** (and on the first step of the setup guide); **Auto** follows the system language of the window, the phone and Windows, and falls back to English for any other language. Arabic is written right to left in the window and the menus; the grid of keys never mirrors, because the positions of keys are your data.
+
+### Translations
+
+The translations were made by a language model from a fixed glossary (`shared/src/i18n/GLOSSARY.md`); only Russian and Kazakh have been checked by native speakers. To send a correction, open a pull request that changes the text of one key in `shared/src/i18n/<code>.ts` (keep the `{placeholders}` as they are), or the name of a ready-made key, set or template caption in `shared/catalog/i18n/<code>.json`; an issue with the key and the better text is just as welcome. `npm test` checks that every dictionary has every key, the same placeholders, and no empty text.
 
 ## Versions
 

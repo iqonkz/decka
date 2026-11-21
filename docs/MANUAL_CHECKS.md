@@ -260,3 +260,10 @@
 ## T17.8 — library panel (2026-11-21)
 - DONE (screenshots, Chrome with a mock IPC, `node tools/ui-shots.mjs all`): `ui-library-ru.png`, `ui-sets-ru.png`, `ui-apps-ru.png` at 1000 px and `ui-library-ru-min.png` at 760 px: nothing cut off, the head does not scroll, the segments fit, rows show `+` on hover.
 - PENDING (owner): in the real Tauri window (WebView2): the thin scrollbar, `+` on a row adds the key to the first free cell (`No free cell on this page` when the page is full), `Esc` clears the search, `↓` goes from the field to the list, `Enter` on a row adds it.
+
+## M19 — 11 languages (2026-11-21)
+- DONE (tests): every dictionary has every key of `en.ts`, no empty text, the same `{placeholders}`, at most 20% of the texts equal to English (names excepted); plural forms for every language by `Intl.PluralRules` (Arabic has all six); `auto`: `zh-TW`→`zh`, `pt-PT`→`pt`, `kk-KZ`→`kk`, `sw`→`en`; every text of the catalog, the sets and the template captions in all 11 languages (labels ≤ 12 characters); tray texts and `GetUserDefaultUILanguage` ids; `display.language` accepts the 11 codes.
+- DONE (screenshots, Chrome with a mock IPC, `node tools/ui-shots.mjs all`): `.tmp\shots\i18n-de.png`, `i18n-ar.png`, `i18n-kk.png`, `i18n-ja.png` (and `i18n-de-more.png`, `i18n-ar-more.png`): Arabic mirrors the window but not the grid; no tofu in Chinese/Japanese/Kazakh; long German names are cut with an ellipsis.
+- PENDING (owner): Kazakh and Russian read by a native speaker; the other nine are machine translations.
+- PENDING (owner): on the phone: switch the language in the window, the phone follows within a second; Arabic: the menu and the sheets mirror, the grid and the page swipe do not; Hindi, Chinese and Japanese show real letters on the Galaxy (system fonts of Android).
+- PENDING (owner): the tray menu in a Windows with another UI language (`auto`), for example German.
