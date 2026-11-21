@@ -1,0 +1,12 @@
+[
+  { "say": "peux-tu monter le volume", "tool": "volume", "args": { "op": "up" } },
+  { "say": "s'il te plaît baisse un peu le son", "tool": "volume", "args": { "op": "down" } },
+  { "say": "coupe complètement le son", "tool": "volume", "args": { "op": "mute" } },
+  { "say": "mets la lecture en pause", "tool": "media", "args": { "op": "play_pause" } },
+  { "say": "passe au morceau suivant", "tool": "media", "args": { "op": "next" } },
+  { "say": "reviens à la piste précédente", "tool": "media", "args": { "op": "prev" } },
+  { "say": "verrouille mon ordinateur", "tool": "system", "args": { "op": "lock" } },
+  { "say": "mets le pc en veille maintenant", "tool": "system", "args": { "op": "sleep" } },
+  { "say": "peux-tu ouvrir la calculatrice", "tool": "open_app", "args": { "name": "calculatrice" } },
+  { "say": "programme un minuteur de dix minutes", "tool": "timer", "args": { "minutes": 10 } }
+]

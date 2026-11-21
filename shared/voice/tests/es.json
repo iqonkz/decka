@@ -1,0 +1,12 @@
+[
+  { "say": "puedes subir el volumen", "tool": "volume", "args": { "op": "up" } },
+  { "say": "por favor baja un poco el volumen", "tool": "volume", "args": { "op": "down" } },
+  { "say": "silencia el audio ahora", "tool": "volume", "args": { "op": "mute" } },
+  { "say": "pausa la reproducción", "tool": "media", "args": { "op": "play_pause" } },
+  { "say": "pasa a la siguiente canción", "tool": "media", "args": { "op": "next" } },
+  { "say": "vuelve a la canción anterior", "tool": "media", "args": { "op": "prev" } },
+  { "say": "bloquea la pantalla del pc", "tool": "system", "args": { "op": "lock" } },
+  { "say": "pon el ordenador a dormir", "tool": "system", "args": { "op": "sleep" } },
+  { "say": "por favor abre la calculadora", "tool": "open_app", "args": { "name": "calculadora" } },
+  { "say": "activa un temporizador de diez minutos", "tool": "timer", "args": { "minutes": 10 } }
+]

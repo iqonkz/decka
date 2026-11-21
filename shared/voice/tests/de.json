@@ -1,0 +1,12 @@
+[
+  { "say": "mach bitte etwas lauter", "tool": "volume", "args": { "op": "up" } },
+  { "say": "bitte die lautstärke verringern", "tool": "volume", "args": { "op": "down" } },
+  { "say": "ton sofort stummschalten", "tool": "volume", "args": { "op": "mute" } },
+  { "say": "die wiedergabe pausieren", "tool": "media", "args": { "op": "play_pause" } },
+  { "say": "zum nächsten lied springen", "tool": "media", "args": { "op": "next" } },
+  { "say": "zurück zum vorherigen titel", "tool": "media", "args": { "op": "prev" } },
+  { "say": "den bildschirm jetzt sperren", "tool": "system", "args": { "op": "lock" } },
+  { "say": "den computer schlafen legen", "tool": "system", "args": { "op": "sleep" } },
+  { "say": "bitte rechner öffnen", "tool": "open_app", "args": { "name": "rechner" } },
+  { "say": "stell einen timer auf zehn minuten", "tool": "timer", "args": { "minutes": 10 } }
+]

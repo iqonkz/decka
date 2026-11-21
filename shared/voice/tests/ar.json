@@ -1,0 +1,12 @@
+[
+  { "say": "قم برفع مستوى الصوت", "tool": "volume", "args": { "op": "up" } },
+  { "say": "يرجى خفض الصوت قليلا", "tool": "volume", "args": { "op": "down" } },
+  { "say": "اكتم الصوت تماما", "tool": "volume", "args": { "op": "mute" } },
+  { "say": "أوقف التشغيل مؤقتا", "tool": "media", "args": { "op": "play_pause" } },
+  { "say": "انتقل إلى الأغنية التالية", "tool": "media", "args": { "op": "next" } },
+  { "say": "ارجع إلى المقطع السابق", "tool": "media", "args": { "op": "prev" } },
+  { "say": "قم بقفل شاشة الكمبيوتر", "tool": "system", "args": { "op": "lock" } },
+  { "say": "ضع الحاسوب في وضع السكون", "tool": "system", "args": { "op": "sleep" } },
+  { "say": "يرجى فتح تطبيق الآلة الحاسبة", "tool": "open_app", "args": { "name": "الحاسبة" } },
+  { "say": "اضبط مؤقتا لخمس دقائق", "tool": "timer", "args": { "minutes": 5 } }
+]

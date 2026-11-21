@@ -1,0 +1,23 @@
+{
+  "lang": "ja",
+  "yes": ["はい", "ええ", "確認", "了解", "そうです"],
+  "no": ["いいえ", "キャンセル", "やめて", "停止", "違います"],
+  "intents": [
+    { "tool": "volume", "args": { "op": "up" }, "patterns": ["音量を上げて", "音量を大きくして", "もっと大きく"] },
+    { "tool": "volume", "args": { "op": "down" }, "patterns": ["音量を下げて", "音量を小さくして", "もっと静かに"] },
+    { "tool": "volume", "args": { "op": "mute" }, "patterns": ["ミュート", "消音", "音声を消す"] },
+    { "tool": "media", "args": { "op": "play_pause" }, "patterns": ["再生", "一時停止", "再開", "停止"] },
+    { "tool": "media", "args": { "op": "next" }, "patterns": ["次の曲", "次のトラック", "スキップ"] },
+    { "tool": "media", "args": { "op": "prev" }, "patterns": ["前の曲", "前のトラック"] },
+    { "tool": "open_app", "patterns": ["{app}を開く", "{app}を起動して", "{app}を開いて"] },
+    { "tool": "close_app", "patterns": ["{app}を閉じる", "{app}を終了して"] },
+    { "tool": "switch_app", "patterns": ["{app}に切り替えて", "{app}へ移動"] },
+    { "tool": "go_page", "patterns": ["ページ{name}を開く", "ページ{name}に移動"] },
+    { "tool": "press_button", "patterns": ["キー{label}を押す", "{label}を押して"] },
+    { "tool": "web_search", "args": { "site": "web" }, "patterns": ["{query}を検索", "ウェブで{query}を検索"] },
+    { "tool": "web_search", "args": { "site": "youtube" }, "patterns": ["youtubeで{query}を検索", "ユーチューブで{query}を検索"] },
+    { "tool": "timer", "patterns": ["{n}分のタイマー", "{n}分のタイマーをセット"] },
+    { "tool": "system", "args": { "op": "lock" }, "patterns": ["pcをロック", "画面をロック", "コンピューターをロック"] },
+    { "tool": "system", "args": { "op": "sleep" }, "patterns": ["pcをスリープ", "スリープ状態にする"] }
+  ]
+}

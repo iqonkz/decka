@@ -1,0 +1,23 @@
+{
+  "lang": "ar",
+  "yes": ["نعم", "أجل", "تأكيد", "موافق", "بالتأكيد"],
+  "no": ["لا", "إلغاء", "توقف", "كلا"],
+  "intents": [
+    { "tool": "volume", "args": { "op": "up" }, "patterns": ["ارفع الصوت", "زيادة الصوت", "صوت أعلى"] },
+    { "tool": "volume", "args": { "op": "down" }, "patterns": ["اخفض الصوت", "تقليل الصوت", "صوت أخفض"] },
+    { "tool": "volume", "args": { "op": "mute" }, "patterns": ["كتم الصوت", "صامت", "إلغاء الكتم"] },
+    { "tool": "media", "args": { "op": "play_pause" }, "patterns": ["تشغيل", "إيقاف مؤقت", "استئناف"] },
+    { "tool": "media", "args": { "op": "next" }, "patterns": ["المقطع التالي", "الأغنية التالية", "تخطي"] },
+    { "tool": "media", "args": { "op": "prev" }, "patterns": ["المقطع السابق", "الأغنية السابقة"] },
+    { "tool": "open_app", "patterns": ["افتح {app}", "شغل {app}"] },
+    { "tool": "close_app", "patterns": ["أغلق {app}", "إنهاء {app}"] },
+    { "tool": "switch_app", "patterns": ["انتقل إلى {app}", "التبديل إلى {app}"] },
+    { "tool": "go_page", "patterns": ["انتقل إلى صفحة {name}", "صفحة {name}"] },
+    { "tool": "press_button", "patterns": ["اضغط زر {label}", "اضغط {label}"] },
+    { "tool": "web_search", "args": { "site": "web" }, "patterns": ["ابحث عن {query}", "بحث في الويب عن {query}"] },
+    { "tool": "web_search", "args": { "site": "youtube" }, "patterns": ["ابحث في يوتيوب عن {query}", "يوتيوب {query}"] },
+    { "tool": "timer", "patterns": ["مؤقت لمدة {n} دقيقة", "اضبط مؤقت {n} دقائق"] },
+    { "tool": "system", "args": { "op": "lock" }, "patterns": ["قفل الحاسوب", "قفل الشاشة"] },
+    { "tool": "system", "args": { "op": "sleep" }, "patterns": ["إسبات الحاسوب", "وضع السكون"] }
+  ]
+}

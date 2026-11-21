@@ -1,0 +1,12 @@
+[
+  { "say": "дыбысын сәл қаттырақ жаса", "tool": "volume", "args": { "op": "up" } },
+  { "say": "дыбысын ақырынырақ қойшы", "tool": "volume", "args": { "op": "down" } },
+  { "say": "дыбысты қазір өшір", "tool": "volume", "args": { "op": "mute" } },
+  { "say": "ойнатуды кідірте тұр", "tool": "media", "args": { "op": "play_pause" } },
+  { "say": "келесі әнге ауыстыр", "tool": "media", "args": { "op": "next" } },
+  { "say": "алдыңғы әнді қайта қос", "tool": "media", "args": { "op": "prev" } },
+  { "say": "компьютер экранын құлыпта", "tool": "system", "args": { "op": "lock" } },
+  { "say": "компьютерді ұйқы режиміне жібер", "tool": "system", "args": { "op": "sleep" } },
+  { "say": "калькуляторды ашасың ба", "tool": "open_app", "args": { "name": "калькулятор" } },
+  { "say": "он минутқа таймер орнат", "tool": "timer", "args": { "minutes": 10 } }
+]

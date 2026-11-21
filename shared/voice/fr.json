@@ -1,0 +1,23 @@
+{
+  "lang": "fr",
+  "yes": ["oui", "ouais", "d'accord", "confirmer", "bien sûr"],
+  "no": ["non", "annuler", "arrêter", "pas question"],
+  "intents": [
+    { "tool": "volume", "args": { "op": "up" }, "patterns": ["monte le son", "plus fort", "augmente le volume"] },
+    { "tool": "volume", "args": { "op": "down" }, "patterns": ["baisse le son", "moins fort", "diminue le volume"] },
+    { "tool": "volume", "args": { "op": "mute" }, "patterns": ["coupe le son", "silence", "activer le son"] },
+    { "tool": "media", "args": { "op": "play_pause" }, "patterns": ["lecture", "pause", "reprendre", "arrêter"] },
+    { "tool": "media", "args": { "op": "next" }, "patterns": ["piste suivante", "morceau suivant", "chanson suivante"] },
+    { "tool": "media", "args": { "op": "prev" }, "patterns": ["piste précédente", "morceau précédent"] },
+    { "tool": "open_app", "patterns": ["ouvre {app}", "ouvrir {app}", "lance {app}"] },
+    { "tool": "close_app", "patterns": ["ferme {app}", "fermer {app}", "quitte {app}"] },
+    { "tool": "switch_app", "patterns": ["passe à {app}", "bascule vers {app}"] },
+    { "tool": "go_page", "patterns": ["aller à la page {name}", "ouvre la page {name}", "page {name}"] },
+    { "tool": "press_button", "patterns": ["appuie sur la touche {label}", "clique sur {label}"] },
+    { "tool": "web_search", "args": { "site": "web" }, "patterns": ["recherche {query}", "cherche sur le web {query}"] },
+    { "tool": "web_search", "args": { "site": "youtube" }, "patterns": ["cherche sur youtube {query}", "recherche youtube {query}"] },
+    { "tool": "timer", "patterns": ["minuteur de {n} minutes", "mets un minuteur de {n} minutes"] },
+    { "tool": "system", "args": { "op": "lock" }, "patterns": ["verrouille le pc", "verrouille l'ordinateur", "verrouiller l'écran"] },
+    { "tool": "system", "args": { "op": "sleep" }, "patterns": ["mets en veille le pc", "veille ordinateur"] }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "lang": "zh",
+  "yes": ["是", "好的", "确认", "对", "行"],
+  "no": ["不", "取消", "不要", "停止", "算了"],
+  "intents": [
+    { "tool": "volume", "args": { "op": "up" }, "patterns": ["大点声", "增大音量", "调大音量", "声音大一点"] },
+    { "tool": "volume", "args": { "op": "down" }, "patterns": ["小点声", "减小音量", "调小音量", "声音小一点"] },
+    { "tool": "volume", "args": { "op": "mute" }, "patterns": ["静音", "关闭声音", "恢复声音"] },
+    { "tool": "media", "args": { "op": "play_pause" }, "patterns": ["播放", "暂停", "继续播放", "停止播放"] },
+    { "tool": "media", "args": { "op": "next" }, "patterns": ["下一首", "下一曲", "切歌"] },
+    { "tool": "media", "args": { "op": "prev" }, "patterns": ["上一首", "上一曲"] },
+    { "tool": "open_app", "patterns": ["打开{app}", "启动{app}"] },
+    { "tool": "close_app", "patterns": ["关闭{app}", "退出{app}"] },
+    { "tool": "switch_app", "patterns": ["切换到{app}", "转到{app}"] },
+    { "tool": "go_page", "patterns": ["切换到页面{name}", "打开页面{name}", "页面{name}"] },
+    { "tool": "press_button", "patterns": ["按键{label}", "点击{label}", "按下{label}"] },
+    { "tool": "web_search", "args": { "site": "web" }, "patterns": ["搜索{query}", "在网上搜索{query}"] },
+    { "tool": "web_search", "args": { "site": "youtube" }, "patterns": ["在youtube上搜索{query}", "在youtube查找{query}"] },
+    { "tool": "timer", "patterns": ["设置{n}分钟计时器", "{n}分钟倒计时"] },
+    { "tool": "system", "args": { "op": "lock" }, "patterns": ["锁定电脑", "锁屏", "锁定屏幕"] },
+    { "tool": "system", "args": { "op": "sleep" }, "patterns": ["电脑睡眠", "进入睡眠模式", "睡眠模式"] }
+  ]
+}
