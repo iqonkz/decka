@@ -488,6 +488,18 @@ pub struct PlainItem {
     pub h: i32,
 }
 
+/// M21: 1x1 voice key (DATA_MODEL.md 12); sends no actionId, the phone starts the voice session itself.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct VoiceItem {
+    pub id: String,
+    pub x: i32,
+    pub y: i32,
+    pub w: i32,
+    pub h: i32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum LayoutItem {
@@ -511,6 +523,7 @@ pub enum LayoutItem {
     Mail(PlainItem),
     /// The keys of the page of the app in front, shown inside a widget.
     Context(PlainItem),
+    Voice(VoiceItem),
 }
 
 impl LayoutItem {
@@ -522,6 +535,7 @@ impl LayoutItem {
             LayoutItem::Sys(i) => (&i.id, i.x, i.y, i.w, i.h),
             LayoutItem::Statuses(i) => (&i.id, i.x, i.y, i.w, i.h),
             LayoutItem::Status(i) => (&i.id, i.x, i.y, i.w, i.h),
+            LayoutItem::Voice(i) => (&i.id, i.x, i.y, i.w, i.h),
             LayoutItem::Notifications(i) => (&i.id, i.x, i.y, i.w, i.h),
             LayoutItem::Media(i) => (&i.id, i.x, i.y, i.w, i.h),
             LayoutItem::Volume(i) => (&i.id, i.x, i.y, i.w, i.h),
@@ -539,6 +553,7 @@ impl LayoutItem {
             LayoutItem::Sys(i) => (i.x, i.y) = (x, y),
             LayoutItem::Statuses(i) => (i.x, i.y) = (x, y),
             LayoutItem::Status(i) => (i.x, i.y) = (x, y),
+            LayoutItem::Voice(i) => (i.x, i.y) = (x, y),
             LayoutItem::Notifications(i) => (i.x, i.y) = (x, y),
             LayoutItem::Media(i) => (i.x, i.y) = (x, y),
             LayoutItem::Volume(i) => (i.x, i.y) = (x, y),
@@ -567,6 +582,7 @@ impl LayoutItem {
             LayoutItem::Battery(_) => "battery",
             LayoutItem::Mail(_) => "mail",
             LayoutItem::Context(_) => "context",
+            LayoutItem::Voice(_) => "voice",
         }
     }
 }

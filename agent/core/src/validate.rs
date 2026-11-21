@@ -217,7 +217,7 @@ pub fn validate_actions(file: &ActionsFile) -> Vec<ValidationIssue> {
 /// Allowed size per kind as a box: (min_w, max_w, min_h, max_h). The list widgets may fill the whole grid.
 fn size_limits(kind: &str, cols: i32, rows: i32, graph: bool) -> (i32, i32, i32, i32) {
     match kind {
-        "button" | "status" => (1, 1, 1, 1),
+        "button" | "status" | "voice" => (1, 1, 1, 1),
         "clock" => (1, 2, 1, 1),
         "sys" if graph => (2, 4, 1, 2),
         "sys" => (2, 2, 1, 2),
@@ -480,7 +480,7 @@ pub fn validate_layout(layout: &LayoutFile, actions: &ActionsFile) -> Vec<Valida
                         out.push(issue(format!("{path}/show"), "show must be both, claude or codex"));
                     }
                 }
-                LayoutItem::Clock(_) | LayoutItem::Sys(_) | LayoutItem::Notifications(_) | LayoutItem::Weather(_) | LayoutItem::Obs(_) | LayoutItem::Twitch(_) | LayoutItem::Youtube(_) | LayoutItem::Context(_) | LayoutItem::Battery(_) | LayoutItem::Mail(_) => {}
+                LayoutItem::Clock(_) | LayoutItem::Sys(_) | LayoutItem::Notifications(_) | LayoutItem::Weather(_) | LayoutItem::Obs(_) | LayoutItem::Twitch(_) | LayoutItem::Youtube(_) | LayoutItem::Context(_) | LayoutItem::Voice(_) | LayoutItem::Battery(_) | LayoutItem::Mail(_) => {}
             }
         }
     }
