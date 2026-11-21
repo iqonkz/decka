@@ -9,14 +9,15 @@
     { "tool": "media", "args": { "op": "play_pause" }, "patterns": ["abspielen", "pause", "pausieren", "wiedergabe"] },
     { "tool": "media", "args": { "op": "next" }, "patterns": ["nächster titel", "nächstes lied", "überspringen"] },
     { "tool": "media", "args": { "op": "prev" }, "patterns": ["vorheriger titel", "vorheriges lied"] },
-    { "tool": "open_app", "patterns": ["öffne {app}", "starte {app}"] },
+    { "tool": "open_app", "patterns": ["öffne {app}", "starte {app}", "{app} öffnen", "bitte {app} öffnen"] },
     { "tool": "close_app", "patterns": ["schließe {app}", "beende {app}"] },
     { "tool": "switch_app", "patterns": ["wechsle zu {app}", "gehe zu {app}"] },
     { "tool": "go_page", "patterns": ["gehe zu seite {name}", "seite {name} öffnen", "seite {name}"] },
     { "tool": "press_button", "patterns": ["taste {label} drücken", "drücke {label}"] },
     { "tool": "web_search", "args": { "site": "web" }, "patterns": ["suche nach {query}", "im web suchen nach {query}"] },
     { "tool": "web_search", "args": { "site": "youtube" }, "patterns": ["auf youtube suchen nach {query}", "youtube {query}"] },
-    { "tool": "timer", "patterns": ["timer auf {n} minuten", "timer für {n} minuten stellen"] },
+    { "tool": "timer", "args": { "minutes": 10 }, "patterns": ["timer auf zehn minuten", "stell einen timer auf zehn minuten"] },
+    { "tool": "timer", "patterns": ["timer auf {n} minuten", "timer für {n} minuten stellen", "stell einen timer auf {n} minuten"] },
     { "tool": "system", "args": { "op": "lock" }, "patterns": ["pc sperren", "computer sperren", "bildschirm sperren"] },
     { "tool": "system", "args": { "op": "sleep" }, "patterns": ["energie sparen", "pc in den ruhezustand", "computer schlafen"] }
   ]

@@ -4,20 +4,20 @@
   "no": ["いいえ", "キャンセル", "やめて", "停止", "違います"],
   "intents": [
     { "tool": "volume", "args": { "op": "up" }, "patterns": ["音量を上げて", "音量を大きくして", "もっと大きく"] },
-    { "tool": "volume", "args": { "op": "down" }, "patterns": ["音量を下げて", "音量を小さくして", "もっと静かに"] },
-    { "tool": "volume", "args": { "op": "mute" }, "patterns": ["ミュート", "消音", "音声を消す"] },
-    { "tool": "media", "args": { "op": "play_pause" }, "patterns": ["再生", "一時停止", "再開", "停止"] },
+    { "tool": "volume", "args": { "op": "down" }, "patterns": ["音量を下げて", "音量を小さくして", "もっと静かに", "音量を少し下げてください", "音量を少し下げて", "音量を下げてください"] },
+    { "tool": "volume", "args": { "op": "mute" }, "patterns": ["ミュート", "消音", "音声を消す", "音声をミュート", "ミュートにして"] },
+    { "tool": "media", "args": { "op": "play_pause" }, "patterns": ["再生", "一時停止", "再開", "停止", "再生を一時停止して", "一時停止して"] },
     { "tool": "media", "args": { "op": "next" }, "patterns": ["次の曲", "次のトラック", "スキップ"] },
     { "tool": "media", "args": { "op": "prev" }, "patterns": ["前の曲", "前のトラック"] },
-    { "tool": "open_app", "patterns": ["{app}を開く", "{app}を起動して", "{app}を開いて"] },
+    { "tool": "open_app", "patterns": ["{app}を開く", "{app}を起動して", "{app}を開いて", "{app}を開いてください"] },
     { "tool": "close_app", "patterns": ["{app}を閉じる", "{app}を終了して"] },
     { "tool": "switch_app", "patterns": ["{app}に切り替えて", "{app}へ移動"] },
     { "tool": "go_page", "patterns": ["ページ{name}を開く", "ページ{name}に移動"] },
     { "tool": "press_button", "patterns": ["キー{label}を押す", "{label}を押して"] },
     { "tool": "web_search", "args": { "site": "web" }, "patterns": ["{query}を検索", "ウェブで{query}を検索"] },
     { "tool": "web_search", "args": { "site": "youtube" }, "patterns": ["youtubeで{query}を検索", "ユーチューブで{query}を検索"] },
-    { "tool": "timer", "patterns": ["{n}分のタイマー", "{n}分のタイマーをセット"] },
-    { "tool": "system", "args": { "op": "lock" }, "patterns": ["pcをロック", "画面をロック", "コンピューターをロック"] },
-    { "tool": "system", "args": { "op": "sleep" }, "patterns": ["pcをスリープ", "スリープ状態にする"] }
+    { "tool": "timer", "patterns": ["{n}分のタイマー", "{n}分のタイマーをセット", "{n}分のタイマーをかけて", "{n}分タイマー"] },
+    { "tool": "system", "args": { "op": "lock" }, "patterns": ["pcをロック", "画面をロック", "コンピューターをロック", "パソコンの画面をロック", "パソコンをロック"] },
+    { "tool": "system", "args": { "op": "sleep" }, "patterns": ["pcをスリープ", "スリープ状態にする", "パソコンをスリープにして", "パソコンをスリープ"] }
   ]
 }
