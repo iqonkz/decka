@@ -72,7 +72,35 @@ export interface YoutubeStatus {
   pending?: { userCode: string; verificationUri: string; expiresAt: number };   // a sign-in in progress: type the code on google.com/device
 }
 
+/** M21 (TASKS.md §0, DATA_MODEL.md 12.7): voice control state and settings. */
+export interface VoiceStatus {
+  state: "off" | "downloading" | "ready" | "loading" | "error";
+  progress?: { done: number; total: number };
+  hardware: { gpu?: string; vramGb?: number; ramGb: number };
+  model: "standard" | "light";
+  downloadGb: number;
+  hotkey: string[];
+  keepLoaded: boolean;
+  speak: boolean;
+  phoneButton: boolean;
+  mic?: string;
+  mics: string[];
+  error?: string;
+}
+
 export interface IpcCommands {
+  voice_status(): VoiceStatus;
+  voice_enable(): VoiceStatus;
+  voice_cancel(): VoiceStatus;
+  voice_remove(): VoiceStatus;
+  voice_set(args: {
+    model?: "standard" | "light";
+    hotkey?: string[];
+    keepLoaded?: boolean;
+    speak?: boolean;
+    phoneButton?: boolean;
+    mic?: string;
+  }): VoiceStatus;
   youtube_status(): YoutubeStatus;
   youtube_login_start(): { userCode: string; verificationUri: string; expiresAt: number };   // needs the client id and the secret; an error is a string
   youtube_logout(): void;

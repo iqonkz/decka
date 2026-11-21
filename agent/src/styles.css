@@ -416,3 +416,7 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="color"]), select, te
 .diag-ok .diag-mark { color: var(--ok); }
 .diag-warn .diag-mark, .diag-unknown .diag-mark { color: var(--warn); }
 .diag-fail .diag-mark { color: var(--danger); }
+
+/* Voice settings (M21) */
+.progress-bar { width: 100%; height: 8px; border-radius: 4px; background: var(--border); overflow: hidden; margin-top: 6px; }
+.progress-fill { height: 100%; background: var(--accent); transition: width 0.2s ease; }

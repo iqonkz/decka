@@ -2,6 +2,8 @@
 //! Claude Code answered from the phone. Everything is local, except the opt-in `accountLimits` poll (the sign-in token goes
 //! only to api.anthropic.com).
 
+pub mod hardware;
+
 use std::collections::{BTreeMap, VecDeque};
 use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
