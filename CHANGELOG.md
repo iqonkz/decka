@@ -4,6 +4,8 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+## 0.10.0 — 2026-11-21
+
 ### Added
 - **11 languages**: English, 中文（简体）, हिन्दी, Español, العربية, Français, Português (Brasil), Русский, Deutsch, 日本語, Қазақша. Pick one in More → Settings → Language or on the first step of the setup guide; **Auto** follows the system language. The window, the phone, the tray menu, the ready-made keys, the sets and the app-strip captions are all translated. Arabic runs right to left in the window and the menus; the grid of keys is never mirrored. The translations were made by a language model: corrections are welcome (README → Translations).
 - **Library panel** of the Deck tab, redesigned: a fixed search field (`Esc` clears, `↓` goes to the list), a segmented switch Keys / Sets / Apps, rows with a `+` that adds a key to the first free cell, sticky categories with counts, keyboard navigation.
