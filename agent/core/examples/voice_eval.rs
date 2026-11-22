@@ -31,11 +31,15 @@ fn context(lang: &str) -> Context {
     }
 }
 
-/// Every expected argument is there and equal (text without case, numbers as numbers).
+/// Every expected argument is there and equal (numbers as numbers). Text is compared without case and by containment either
+/// way: the tools match names fuzzily (`chrome` finds `Google Chrome`) and a search query may carry an extra word.
 fn args_match(expected: &Value, actual: &Value) -> bool {
     let Some(exp) = expected.as_object() else { return true };
     exp.iter().all(|(k, v)| match (v, actual.get(k)) {
-        (Value::String(a), Some(Value::String(b))) => a.to_lowercase() == b.to_lowercase(),
+        (Value::String(a), Some(Value::String(b))) => {
+            let (a, b) = (a.to_lowercase(), b.to_lowercase());
+            a == b || (!a.is_empty() && !b.is_empty() && (a.contains(&b) || b.contains(&a)))
+        }
         (a, Some(b)) => a == b,
         _ => false,
     })
