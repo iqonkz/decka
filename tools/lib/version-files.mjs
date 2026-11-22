@@ -33,7 +33,14 @@ export function nextVersion(version, kind) {
   if (kind === "major") return `${major + 1}.0.0`;
   if (kind === "minor") return `${major}.${minor + 1}.0`;
   if (kind === "patch") return `${major}.${minor}.${patch + 1}`;
-  throw new Error(`unknown kind: ${kind} (patch, minor or major)`);
+  // An exact number (a release that is a bigger step than `minor`, e.g. 0.11.0 -> 0.20.0): it must be higher than now.
+  const exact = SEMVER.exec(String(kind));
+  const [a, b, c] = exact ? [Number(exact[1]), Number(exact[2]), Number(exact[3])] : [0, 0, 0];
+  if (exact && String(kind) === `${a}.${b}.${c}`) {
+    if (a > major || (a === major && (b > minor || (b === minor && c > patch)))) return String(kind);
+    throw new Error(`${kind} is not higher than the current ${version}`);
+  }
+  throw new Error(`unknown kind: ${kind} (patch, minor, major or an exact X.Y.Z)`);
 }
 
 /** What every file says now: `[{ label, value }]`, with `versionCode` last (its value is the number as text). */

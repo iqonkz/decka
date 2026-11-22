@@ -18,6 +18,9 @@ ull` when its source is absent |
 | [Xenon](https://github.com/marcimastro98/Xenon) | Custom non-commercial (source-available) | Pairing a phone with a code on the home network without an account; stating privacy boundaries in the README |
 | [PhoneBox](https://github.com/ersinkoc/phonebox) | MIT | Idea of AI usage limits and phone approvals inspired by PhoneBox (github.com/ersinkoc/phonebox, MIT); no code copied |
 | [Bitfocus Companion](https://github.com/bitfocus/companion) | MIT (not verified on the repository page) | "Feedback": a button's look is computed from external state, not from the local press |
+| [Nixi](https://heynixi.com) (heynixi) | not applicable (idea only) | Voice control of the PC with a small floating pill and a local model |
+
+Voice control ideas inspired by Nixi (heynixi); no code copied. llama.cpp and whisper.cpp (MIT), Qwen3.5 (Apache-2.0), Whisper models (MIT) are downloaded at the user's request.
 
 ## Main dependencies
 

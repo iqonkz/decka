@@ -74,6 +74,15 @@ A long press (1.2 s) on an empty spot of the phone screen opens the phone menu: 
 
 In **Layout** the preview is the real deck in the chosen look: drag a program, an action or a widget from the left onto a cell, drag keys to move or swap them, drag a corner to resize a widget, and use Ctrl+Z, Ctrl+Y and Ctrl+S. A key can open a popup group (a small panel of related keys) instead of, or after, running its action. For icons, **Phosphor** offers thousands of vector icons in six weights; they take the colour of the key.
 
+## Voice control
+
+Say what you want: *turn the volume down*, *open Spotify*, *switch to Chrome*, *move this window to the other monitor*, *search YouTube for lofi*, *set a timer for 10 minutes*, *lock the PC*. Start it with **Ctrl+Alt+Space** on the PC (press again to finish, **Esc** cancels) or with the round microphone button on the phone (hold to talk).
+
+- **Off until you turn it on.** **More → Voice → Turn on voice control** downloads the speech and language models once (about 3.2 GB; 1.8 GB with the light model for PCs with little memory), each file checked against a fixed SHA-256, to `%LOCALAPPDATA%\Decka\ai`. **Remove voice control** deletes them.
+- **Everything runs on this PC.** Speech recognition (whisper.cpp) and the language model (llama.cpp with Qwen3.5) run as hidden local programs on `127.0.0.1`; what you say is never sent anywhere and never written to the log.
+- **Only a fixed set of tools.** A phrase is understood by a table of phrases in your language first, then by the model; either way the result is one of a short list of tools (volume, media, open/switch/close a program from the installed list, a button or action you already have, a page, a web search, a site name, typing text, a timer, lock/sleep). The model cannot run commands, open paths or URLs of its own; locking and sleeping ask for a confirmation. The phone only sends sound and the answer to a confirmation.
+- **Languages:** the 11 languages of the interface; the language of the commands is the interface language. Kazakh and Hindi are less accurate; see `CHANGELOG.md` for the measured accuracy.
+
 ## Language
 
 English, 中文（简体）, हिन्दी, Español, العربية, Français, Português (Brasil), Русский, Deutsch, 日本語 and Қазақша, switched in **More → Settings → Language** (and on the first step of the setup guide); **Auto** follows the system language of the window, the phone and Windows, and falls back to English for any other language. Arabic is written right to left in the window and the menus; the grid of keys never mirrors, because the positions of keys are your data.

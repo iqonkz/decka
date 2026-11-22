@@ -40,6 +40,10 @@ test("patch, minor and major", () => {
   assert.equal(nextVersion("0.1.9", "minor"), "0.2.0");
   assert.equal(nextVersion("1.4.7", "major"), "2.0.0");
   assert.throws(() => nextVersion("1.0.0", "huge"));
+  assert.equal(nextVersion("0.11.0", "0.20.0"), "0.20.0", "an exact number is taken as it is");
+  assert.throws(() => nextVersion("0.11.0", "0.11.0"), /not higher/);
+  assert.throws(() => nextVersion("0.11.0", "0.10.9"), /not higher/);
+  assert.throws(() => nextVersion("0.11.0", "0.020.0"));
 });
 
 test("a bump changes every file and versionCode, and the changelog moves under the new version with the date", () => {
