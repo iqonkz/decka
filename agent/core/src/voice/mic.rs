@@ -1,4 +1,4 @@
-﻿//! The microphone of the PC (DATA_MODEL.md 12.6): `cpal` delivers frames in whatever format the device has; this module
+//! The microphone of the PC (DATA_MODEL.md 12.6): `cpal` delivers frames in whatever format the device has; this module
 //! turns them into 16 kHz mono PCM16 chunks of 100 ms, with the level for the pill and the end-of-speech decision.
 //! The conversion (`Capture`, `choose_device`) is pure; the thin layer at the bottom talks to `cpal` on a thread of its own.
 

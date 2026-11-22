@@ -1,4 +1,4 @@
-﻿//! Supervisor of the two local servers behind voice control (DATA_MODEL.md 12.3): `llama-server` and `whisper-server`
+//! Supervisor of the two local servers behind voice control (DATA_MODEL.md 12.3): `llama-server` and `whisper-server`
 //! as hidden child processes inside a Job Object (they die with the agent), on free 127.0.0.1 ports, `llama-server`
 //! behind a random key per launch. Lazy start, unload after idle, restart with back-off, stop after repeated crashes.
 //!

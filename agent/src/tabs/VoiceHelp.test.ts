@@ -18,7 +18,7 @@ describe("VoiceHelp 'What you can say' (T21.6b)", () => {
   });
 
   it("extracts examples for System category in Kazakh", () => {
-    const examples = getExamplesForCategory(kk, ["timer", "web_search", "system"], 3);
+    const examples = getExamplesForCategory(kk, ["timer", "system"], 3);
     expect(examples.length).toBeGreaterThanOrEqual(2);
     expect(examples.some((ex) => ex.includes("таймер") || ex.includes("құлыптау"))).toBe(true);
   });

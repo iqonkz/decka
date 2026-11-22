@@ -1,4 +1,4 @@
-﻿//! The AI path of a voice request (DATA_MODEL.md 12.4 item 4): what is sent to the local `llama-server` and how its answer
+//! The AI path of a voice request (DATA_MODEL.md 12.4 item 4): what is sent to the local `llama-server` and how its answer
 //! is read. The model only proposes a tool call; nothing it says runs before `tools::validate` has checked it, and an
 //! answer that does not fit is no answer at all (`None` -> "Didn't get that").
 //!

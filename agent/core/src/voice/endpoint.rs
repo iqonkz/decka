@@ -1,4 +1,4 @@
-﻿//! End of the phrase by silence (DATA_MODEL.md 12.6a). A pure function over the RMS of 100 ms chunks (PCM normalised to 1.0):
+//! End of the phrase by silence (DATA_MODEL.md 12.6a). A pure function over the RMS of 100 ms chunks (PCM normalised to 1.0):
 //! `continue | end | no_speech`. The phone has the same logic with the same constants in `client/src/voice/endpoint.ts`.
 
 /// One chunk is 100 ms.

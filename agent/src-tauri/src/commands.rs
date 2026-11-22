@@ -1,4 +1,4 @@
-﻿//! IPC commands of the settings window (PROTOCOL.md 9): names and argument/result shapes mirror
+//! IPC commands of the settings window (PROTOCOL.md 9): names and argument/result shapes mirror
 //! `IpcCommands` in shared/src/ipc.ts. They are reachable only from the window, never over the network.
 
 use decka_core::model::{ActionsFile, ConfigFile, LayoutFile};
@@ -36,7 +36,7 @@ pub async fn check_updates(app: AppHandle) -> Result<decka_core::updates::Update
     Ok(agent(&app)?.check_updates().await)
 }
 
-/// The place search of `More в†’ Integrations в†’ Weather`: a list of places, or `{ error }`.
+/// The place search of `More → Integrations → Weather`: a list of places, or `{ error }`.
 #[tauri::command]
 pub async fn search_place(app: AppHandle, query: String) -> Result<serde_json::Value, String> {
     Ok(match agent(&app)?.search_place(&query).await {
@@ -54,25 +54,25 @@ pub async fn refresh_weather(app: AppHandle) -> Result<serde_json::Value, String
     })
 }
 
-/// `More в†’ Integrations в†’ OBS Studio`: connection state, scenes and audio inputs.
+/// `More → Integrations → OBS Studio`: connection state, scenes and audio inputs.
 #[tauri::command]
 pub async fn obs_status(app: AppHandle) -> Result<decka_core::agent::ObsStatusInfo, String> {
     Ok(agent(&app)?.obs_status().await)
 }
 
-/// `Set passwordвЂ¦`: DPAPI-encrypted and saved; an empty password removes it.
+/// `Set password…`: DPAPI-encrypted and saved; an empty password removes it.
 #[tauri::command]
 pub fn set_obs_password(app: AppHandle, password: String) -> Result<(), String> {
     agent(&app)?.set_obs_password(&password)
 }
 
-/// `More в†’ Integrations в†’ Mail`: the password of one mailbox, DPAPI-encrypted and saved; an empty password removes it.
+/// `More → Integrations → Mail`: the password of one mailbox, DPAPI-encrypted and saved; an empty password removes it.
 #[tauri::command]
 pub fn set_mail_password(app: AppHandle, account_id: String, password: String) -> Result<(), String> {
     agent(&app)?.set_mail_password(&account_id, &password)
 }
 
-/// `More в†’ Integrations в†’ Windows notifications`: the switch, the access Windows gives and the apps seen so far.
+/// `More → Integrations → Windows notifications`: the switch, the access Windows gives and the apps seen so far.
 #[tauri::command]
 pub async fn windows_notifications_status(app: AppHandle) -> Result<decka_core::agent::WinNotifStatus, String> {
     let agent = agent(&app)?;
@@ -94,7 +94,7 @@ pub fn mail_check_now(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-/// `More в†’ Integrations в†’ AI coding`: what Claude Code and Codex look like from here.
+/// `More → Integrations → AI coding`: what Claude Code and Codex look like from here.
 #[tauri::command]
 pub fn cc_status(app: AppHandle) -> Result<decka_core::agent::CcStatus, String> {
     Ok(agent(&app)?.cc_status())
@@ -112,7 +112,7 @@ pub fn cc_uninstall(app: AppHandle) -> Result<decka_core::agent::CcStatus, Strin
     agent(&app)?.cc_uninstall()
 }
 
-/// `More в†’ Integrations в†’ Twitch`: the sign-in and what the agent sees.
+/// `More → Integrations → Twitch`: the sign-in and what the agent sees.
 #[tauri::command]
 pub fn twitch_status(app: AppHandle) -> Result<decka_core::agent::TwitchStatus, String> {
     Ok(agent(&app)?.twitch_status())
@@ -130,7 +130,7 @@ pub fn twitch_logout(app: AppHandle) -> Result<(), String> {
     agent(&app)?.twitch_logout()
 }
 
-/// `More в†’ Integrations в†’ YouTube`: the sign-in and what the agent sees.
+/// `More → Integrations → YouTube`: the sign-in and what the agent sees.
 #[tauri::command]
 pub fn youtube_status(app: AppHandle) -> Result<decka_core::agent::YoutubeStatus, String> {
     Ok(agent(&app)?.youtube_status())
@@ -148,7 +148,7 @@ pub fn youtube_logout(app: AppHandle) -> Result<(), String> {
     agent(&app)?.youtube_logout()
 }
 
-/// `Set secretвЂ¦`: the client secret of the Google application, encrypted with DPAPI; empty removes it.
+/// `Set secret…`: the client secret of the Google application, encrypted with DPAPI; empty removes it.
 #[tauri::command]
 pub fn set_youtube_secret(app: AppHandle, secret: String) -> Result<(), String> {
     agent(&app)?.set_youtube_secret(&secret)

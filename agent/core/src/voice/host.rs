@@ -1,5 +1,5 @@
-﻿//! Voice control inside the running agent (M21 C2): connects the pipeline (`pipeline::Driver`) to the things that exist
-//! only there вЂ” the microphone, the hotkey, whisper, the action runners, the `voice` section of the state and the pill.
+//! Voice control inside the running agent (M21 C2): connects the pipeline (`pipeline::Driver`) to the things that exist
+//! only there — the microphone, the hotkey, whisper, the action runners, the `voice` section of the state and the pill.
 //! The decisions (`press_event`, `pill_cmds`, `tool_action`, `build_context`, `pill_payload`) are pure functions with tests;
 //! `Host` is the glue. The window of the pill is created by the application through the `PillHook`.
 
