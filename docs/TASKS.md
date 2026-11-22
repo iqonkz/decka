@@ -269,6 +269,9 @@ voice_set(args: { model?, hotkey?, keepLoaded?, speak?, phoneButton?, mic? }): V
 ### T22.1 — Снимки для README и лендинга (после T21.8) — [Claude]
 Headless Chrome (как `voice-shots`), демо-раскладка без личных данных: телефон в альбомной 1280×600 — по снимку на тему (AMOLED, Studio, Material, Glass) → `docs/img/theme-*.png`; `docs/img/hero.png` (Glass или Material, главная страница с виджетами); окно настроек → `docs/img/settings.png`; плашка голоса с ответом → `docs/img/voice.png`. Вставить в README вместо заглушек. Коммит `T22.1: screenshots`. Сборка не нужна.
 
+### T22.3 — Снимки ПК для лендинга — [Claude]
+В `tools/voice-shots` (демо-данные, без личных): `docs/img/pc-editor.png` 1600×1000 — окно настроек, вкладка раскладки: сетка с кнопками и виджетами, справа открыта библиотека действий, выбрана кнопка; `docs/img/pc-voice.png` 1600×900 — плашка голоса с ответом поверх нейтрального рабочего стола (градиент, без чужих логотипов). Открыть каждый снимок перед коммитом. Коммит `T22.3: PC screenshots`, сборка не нужна.
+
 ### T22.2 — Лендинг в репозитории madiseit.com — [второй агент]
 Спецификация — `docs/LANDING.md`. Работа в `C:\DEV\madiseit.com` (свой репозиторий владельца); из Decka — только чтение фактов и снимков `docs/img/`.
 
