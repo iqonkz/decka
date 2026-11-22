@@ -659,6 +659,24 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn set_saves_every_field_of_the_flat_camel_case_payload() {
+        let dir = tempfile::tempdir().unwrap();
+        let (svc, _) = service(dir.path(), hw(None, 8.0));
+        // What the settings window sends: flat camelCase keys.
+        let args: VoiceSetArgs = serde_json::from_value(serde_json::json!({
+            "model": "light", "hotkey": ["Ctrl", "F8"], "keepLoaded": true, "speak": true, "phoneButton": false, "mic": "Headset"
+        }))
+        .unwrap();
+        svc.set(args).unwrap();
+        let (again, _) = service(dir.path(), hw(None, 8.0));
+        let s = again.status();
+        assert_eq!(s.model, ModelChoice::Light);
+        assert_eq!(s.hotkey, ["ctrl", "f8"]);
+        assert!(s.keep_loaded && s.speak && !s.phone_button);
+        assert_eq!(s.mic.as_deref(), Some("Headset"));
+    }
+
+    #[tokio::test]
     async fn the_model_choice_switches_the_planned_download_and_the_size() {
         let dir = tempfile::tempdir().unwrap();
         let (svc, _) = service(dir.path(), hw(Some(8.0), 16.0));

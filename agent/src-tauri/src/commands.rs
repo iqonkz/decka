@@ -417,9 +417,19 @@ pub async fn voice_remove(app: AppHandle) -> Result<decka_core::ai::service::Voi
 }
 
 #[tauri::command]
-pub fn voice_set(app: AppHandle, args: decka_core::ai::service::VoiceSetArgs) -> Result<decka_core::ai::service::VoiceStatus, String> {
-    voice(&app)?.set(args)
+pub fn voice_set(
+    app: AppHandle,
+    model: Option<decka_core::ai::service::ModelChoice>,
+    hotkey: Option<Vec<String>>,
+    keep_loaded: Option<bool>,
+    speak: Option<bool>,
+    phone_button: Option<bool>,
+    mic: Option<String>,
+) -> Result<decka_core::ai::service::VoiceStatus, String> {
+    // Flat camelCase keys like every other command (shared/src/ipc.ts `VoiceSetArgs`); tools/check-ipc.mjs guards the names.
+    voice(&app)?.set(decka_core::ai::service::VoiceSetArgs { model, hotkey, keep_loaded, speak, phone_button, mic })
 }
+
 /// The Yes/No of the voice pill (oice_confirm of shared/src/ipc.ts); an unknown id is ignored by the pipeline.
 #[tauri::command]
 pub fn voice_confirm(app: AppHandle, id: String, yes: bool) -> Result<(), String> {

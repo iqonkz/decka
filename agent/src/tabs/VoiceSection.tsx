@@ -198,14 +198,7 @@ export default function VoiceSection() {
               </span>
             </label>
 
-            <label className="check">
-              <input
-                type="checkbox"
-                checked={status.speak}
-                onChange={(e) => void setConfig({ speak: e.target.checked })}
-              />
-              <span>{t("voice.speak")}</span>
-            </label>
+            {/* "Speak the answers" is hidden until the spoken answers exist (DATA_MODEL.md 12.10, "later"). */}
 
             <label className="check">
               <input

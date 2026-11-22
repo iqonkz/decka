@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "decka",
   "version": "0.20.1",
   "private": true,
@@ -6,7 +6,7 @@
   "engines": { "node": ">=22.12" },
   "scripts": {
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present && node tools/check-i18n.mjs && node tools/check-version.mjs && node --test tools/version.test.mjs tools/latest.test.mjs",
+    "test": "npm run test --workspaces --if-present && node tools/check-i18n.mjs && node tools/check-version.mjs && node tools/check-ipc.mjs && node --test tools/version.test.mjs tools/latest.test.mjs tools/check-ipc.test.mjs",
     "version:bump": "node tools/bump-version.mjs",
     "release:collect": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/release-collect.ps1",
     "build:ui": "npm run build -w client && npm run build -w agent",
