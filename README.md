@@ -76,7 +76,7 @@ In **Layout** the preview is the real deck in the chosen look: drag a program, a
 
 ## Voice control
 
-Say what you want: *turn the volume down*, *open Spotify*, *switch to Chrome*, *move this window to the other monitor*, *search YouTube for lofi*, *set a timer for 10 minutes*, *lock the PC*. Start it with **Ctrl+Alt+Space** on the PC (press again to finish, **Esc** cancels) or with the round microphone button on the phone (hold to talk).
+Say what you want: *turn the volume down*, *open Spotify*, *switch to Chrome*, *move this window to the other monitor*, *search YouTube for lofi*, *set a timer for 10 minutes*, *lock the PC*. Start it with **Ctrl+Alt+Space** on the PC (press again to finish, **Esc** cancels) or with the round microphone button on the phone (hold to talk, drag to move).
 
 - **Off until you turn it on.** **More → Voice → Turn on voice control** downloads the speech and language models once (about 3.2 GB; 1.8 GB with the light model for PCs with little memory), each file checked against a fixed SHA-256, to `%LOCALAPPDATA%\Decka\ai`. **Remove voice control** deletes them.
 - **Everything runs on this PC.** Speech recognition (whisper.cpp) and the language model (llama.cpp with Qwen3.5) run as hidden local programs on `127.0.0.1`; what you say is never sent anywhere and never written to the log.

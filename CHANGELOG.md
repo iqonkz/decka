@@ -4,6 +4,38 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+### Added
+- **Voice control (local AI)**: say what you want, with **Ctrl+Alt+Space** on the PC (a small pill shows what was heard and what was done; press again to finish, Esc cancels) or with the round microphone button on the phone (hold to talk, drag to move it to another edge; it can be hidden in the phone menu; there is also a `voice` key for the grid). Switched on in **More → Voice → Turn on voice control**: the speech model (Whisper large-v3-turbo) and the language model (Qwen3.5 4B, or 2B on PCs with little memory) are downloaded once (≈ 3.2 GB), every file checked against a fixed SHA-256, and run as hidden programs on `127.0.0.1` (llama.cpp with Vulkan, whisper.cpp). Nothing you say leaves the PC and no phrase is written to the log. The servers start with the first phrase and stop after 10 minutes of silence (`Keep the model loaded` switches that off).
+- **Understanding**: a table of phrases for each of the 11 languages first (instant), then the model with a JSON schema for the rest. The model only proposes a call of one of a fixed list of tools; every call is checked on the PC against what exists (installed programs, your buttons, actions and pages) before anything runs. Tools: press a button or run an action of yours, open / switch to / close a program, move the window to the other monitor, which monitor, volume (up, down, mute, a number), media, go to a page, web search (web, YouTube, maps), open a site, type text, dictate (the next phrase is typed as it is), timer, lock and sleep (these ask `Yes / No` first, by voice, by Enter / Esc or on the phone sheet).
+- **What you can say** help card in More → Voice, with examples in your language.
+- Phone: the sound travels only inside the encrypted channel (`voice_start`, `voice_chunk`, `voice_end`, `voice_cancel`, `voice_confirm`); one recording per phone, 30 s at most; the phone never sends a command.
+- `voice.*` is now a reserved variable prefix (`voice.ready`, `voice.goto`).
+- Developer tools: `tools/voice-eval.mjs --check` validates the evaluation sets; `cargo run --release -p decka-core --example voice_eval -- --serve standard|light --settings <dir>` measures accuracy against the installed models; `tools/voice-shots.mjs` draws the pill and the phone button.
+
+### Fixed
+- Model downloads from Hugging Face failed on the redirect to its new CDN host (`us.aws.cdn.hf.co`); the whole `*.hf.co` domain is allowed now (the SHA-256 check is unchanged).
+
+### Voice accuracy (measured on this release, text only, no audio)
+25 phrases per language that do not repeat the table word for word, through the phrase table and, where it has no match, the real model (Qwen3.5 Q4_K_M on a Vulkan GPU). A call counts as right when the tool and the expected arguments match (text arguments by containment, ignoring case). Targets: en, ru, es, de, fr, pt 90 %, the rest 80 % (DATA_MODEL.md 12.8).
+
+| Language | 4B (standard) | 2B (light) |
+|---|---|---|
+| en | 96 % | 80 % |
+| ru | 92 % | 64 % |
+| es | 88 % | 60 % |
+| de | 96 % | 60 % |
+| fr | 96 % | 60 % |
+| pt | 96 % | 68 % |
+| zh | 80 % | 60 % |
+| hi | 72 % | 48 % |
+| ar | 92 % | 56 % |
+| ja | 92 % | 60 % |
+| kk | 84 % | 44 % |
+
+Understanding time of a phrase (without recording and speech recognition): the table 0.07 ms; the model 545 ms with 4B and 410 ms with 2B on a warm server (the first phrase after a pause also loads the model: ≈ 4 s here).
+
+Voice commands in Spanish and Hindi are experimental with the standard model, and in every language with the light model (use it only when memory is short). Russian and Kazakh phrase tables were written by a language model and are checked by the owner.
+
 ## 0.11.0 — 2026-11-21
 
 ### Added
