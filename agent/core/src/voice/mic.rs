@@ -219,7 +219,14 @@ mod device {
                     }
                     let config = supported.config();
                     let mut capture = Capture::new(rate, channels);
-                    let on_err = move |e: cpal::Error| on_error(format!("Microphone stopped: {e}"));
+                    // A buffer under/overrun is a glitch of one block, not the end of the device (it used to close every recording).
+                    let on_err = move |e: cpal::Error| {
+                        if e.kind() == cpal::ErrorKind::Xrun {
+                            super::log_line("xrun ignored");
+                        } else {
+                            on_error(format!("Microphone stopped: {e}"));
+                        }
+                    };
                     let mut emit = move |frames: Vec<i16>| {
                         for fed in capture.feed(&frames) {
                             on_chunk(fed);

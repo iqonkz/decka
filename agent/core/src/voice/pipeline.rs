@@ -161,6 +161,42 @@ impl State {
     }
 }
 
+/// The variant of an event without its payload (for `voice.log`).
+fn event_name(e: &Event) -> &'static str {
+    match e {
+        Event::Start { source: Source::Pc, .. } => "Start(pc)",
+        Event::Start { .. } => "Start(phone)",
+        Event::AudioEnd => "AudioEnd",
+        Event::Cancel => "Cancel",
+        Event::ModelLoading => "ModelLoading",
+        Event::Transcript(_) => "Transcript",
+        Event::CaptureFailed(_) => "CaptureFailed",
+        Event::NoSpeech => "NoSpeech",
+        Event::Watchdog => "Watchdog",
+        Event::LlmAnswer(_) => "LlmAnswer",
+        Event::Confirm { .. } => "Confirm",
+        Event::Tick { .. } => "Tick",
+        Event::Executed(_) => "Executed",
+        Event::Reset => "Reset",
+        #[allow(unreachable_patterns)]
+        _ => "Other",
+    }
+}
+
+fn phase_name(p: &Phase) -> &'static str {
+    match p {
+        Phase::Idle => "Idle",
+        Phase::Listening => "Listening",
+        Phase::Transcribing => "Transcribing",
+        Phase::Loading => "Loading",
+        Phase::Thinking => "Thinking",
+        Phase::Done(_) => "Done",
+        Phase::Failed(_) => "Failed",
+        #[allow(unreachable_patterns)]
+        _ => "Other",
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Event {
     Start { id: String, source: Source },
@@ -250,6 +286,9 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
         (Phase::Idle, Event::Cancel) => (s, Vec::new()),
         (Phase::Listening, Event::CaptureFailed(e)) => {
             tracing::warn!("voice microphone: {e}");
+            if !cfg!(test) {
+                super::mic::log_line(&format!("capture failed: {e}"));
+            }
             let (mut next, _) = finish_key(s, Phase::Failed(msg::MIC_UNAVAILABLE.into()), ReplyKey::plain(key::MIC_UNAVAILABLE));
             next.heard = None;
             (next, vec![Effect::StopCapture])
@@ -427,9 +466,15 @@ impl Driver {
         let (table, ctx) = self.ports.env();
         let env = Env { table: &table, ctx: &ctx, confirm_ms: self.confirm_ms, dictate: self.ports.dictating() };
         let now_ms = self.t0.elapsed().as_millis() as u64;
+        let name = event_name(&event);
         let (info, effects, pcm) = {
             let mut sh = self.shared.lock().unwrap();
+            let before = phase_name(&sh.state.phase);
             let (next, effects) = step(&sh.state, event, now_ms, &env);
+            if name != "Tick" && !cfg!(test) {
+                // Names only: never sound or text.
+                super::mic::log_line(&format!("event {name} t={now_ms}ms {before} -> {}", phase_name(&next.phase)));
+            }
             let changed = next != sh.state;
             if matches!(next.phase, Phase::Listening) && !matches!(sh.state.phase, Phase::Listening) {
                 sh.audio.clear();

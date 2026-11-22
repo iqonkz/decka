@@ -31,6 +31,13 @@ pub const WATCHDOG_MS: u64 = 30_000;
 pub const MIC_SILENT_MS: u64 = 1_000;
 /// The decisions of this many requests after the start are written to `voice.log`.
 const LOGGED_FIRST: usize = 5;
+/// A press or a click that arrives sooner than this after the start of a PC recording cannot end it.
+const MIN_RECORDING_MS: u128 = 400;
+static PC_STARTED: std::sync::Mutex<Option<Instant>> = std::sync::Mutex::new(None);
+
+fn too_early() -> bool {
+    PC_STARTED.lock().unwrap().is_some_and(|t| t.elapsed().as_millis() < MIN_RECORDING_MS)
+}
 static LOGGED_REQUESTS: AtomicUsize = AtomicUsize::new(0);
 
 // ---- Pure decisions ---------------------------------------------------------------------------------------------
@@ -328,7 +335,8 @@ impl Host {
     pub fn stop(&self) {
         let driver = self.inner.driver();
         let s = driver.state();
-        if s.phase == Phase::Listening && s.source == Some(Source::Pc) {
+        mic::log_line("voice_stop from the pill");
+        if s.phase == Phase::Listening && s.source == Some(Source::Pc) && !too_early() {
             driver.handle_event(Event::AudioEnd);
         }
     }
@@ -353,12 +361,20 @@ impl Inner {
 
     fn pressed(&self, p: Pressed) {
         let state = self.driver().state();
+        mic::log_line(&format!("hotkey {p:?} phase={:?}", std::mem::discriminant(&state.phase)));
         let event = match p {
             Pressed::Main => press_event(&state, format!("{:016x}", rand::random::<u64>())),
             Pressed::Esc => esc_event(&state),
             Pressed::Enter => enter_event(&state),
         };
         if let Some(e) = event {
+            if e == Event::AudioEnd && too_early() {
+                mic::log_line("end ignored: too early");
+                return;
+            }
+            if matches!(e, Event::Start { .. }) {
+                *PC_STARTED.lock().unwrap() = Some(Instant::now());
+            }
             self.driver().handle_event(e);
         }
     }
