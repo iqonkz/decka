@@ -40,6 +40,7 @@ const SHOTS = {
   "pill-done": [PILL, "scene=pill&state=done&heard=open+calculator&reply=Opened+Calculator"],
   "pill-confirm": [PILL, "scene=pill&state=confirm&heard=lock+my+pc"],
   "pill-error": [PILL, "scene=pill&state=error&heard=blah&reply=Didn%27t+get+that"],
+  voice: [PILL, "scene=pill&state=done&heard=open+calculator&reply=Opened+Calculator&pad=1"],
   "pill-done-ru": [PILL, "scene=pill&state=done&lang=ru&heard=%D0%BE%D1%82%D0%BA%D1%80%D0%BE%D0%B9+%D0%BA%D0%B0%D0%BB%D1%8C%D0%BA%D1%83%D0%BB%D1%8F%D1%82%D0%BE%D1%80&reply=Done"],
   "theme-amoled": [DECK, "scene=deck&theme=amoled"],
   "theme-studio": [DECK, "scene=deck&theme=studio"],
@@ -75,6 +76,7 @@ async function shoot(name, [size, query]) {
     ws.addEventListener("message", (ev) => {
       const m = JSON.parse(String(ev.data));
       if (m.id && waiting.has(m.id)) waiting.get(m.id)(m);
+      else if (m.method === "Runtime.consoleAPICalled" && process.env.DEBUG_SHOTS) console.log("console:", m.params.args.map((a) => a.value ?? a.description).join(" "));
       else if (m.method === "Runtime.exceptionThrown") console.error("page error:", m.params.exceptionDetails.exception?.description ?? m.params.exceptionDetails.text);
     });
     const send = (method, params = {}) => new Promise((resolve, reject) => {
@@ -87,7 +89,14 @@ async function shoot(name, [size, query]) {
     await send("Emulation.setDeviceMetricsOverride", { width: size.w, height: size.h, deviceScaleFactor: size.scale, mobile: false });
     await send("Page.navigate", { url: `${base}?${query}` });
     await sleep(1200);
-    const shot = await send("Page.captureScreenshot", { format: "png" });
+    const params = { format: "png" };
+    if (query.includes("pad=1")) {
+      // Crop to the pill with a 40 px margin on every side (T22.1).
+      const r = await send("Runtime.evaluate", { expression: "(() => { const b = document.querySelector('.voice-pill-container').getBoundingClientRect(); return JSON.stringify([b.x, b.y, b.width, b.height]); })()", returnByValue: true });
+      const [x, y, w, h] = JSON.parse(r.result.value);
+      params.clip = { x: Math.floor(x) - 40, y: Math.floor(y) - 40, width: Math.ceil(w) + 80, height: Math.ceil(h) + 80, scale: 1 };
+    }
+    const shot = await send("Page.captureScreenshot", params);
     mkdirSync(outDir, { recursive: true });
     const file = join(outDir, `${name}.png`);
     writeFileSync(file, Buffer.from(shot.data, "base64"));

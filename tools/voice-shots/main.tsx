@@ -2,6 +2,7 @@
 // (client) in the states of DESIGN.md 4.12. Not part of the app.
 import { createRoot } from "react-dom/client";
 import { setLanguage, type Language } from "@decka/shared";
+import { recordSys, resetSysHistory } from "@decka/ui";
 import VoicePill from "../../agent/src/VoicePill";
 import VoiceFab from "../../client/src/voice/VoiceFab";
 import VoiceConfirmSheet from "../../client/src/voice/VoiceConfirmSheet";
@@ -33,6 +34,16 @@ if (scene === "deck" || scene === "settings") {
   const fx = JSON.parse(JSON.stringify(stateFx.default)) as { layout: { display: Record<string, unknown>; pages: { items: unknown[] }[] }; [k: string]: unknown };
   fx.layout.display = { ...fx.layout.display, theme: q.get("theme") ?? "glass", wallpaper: q.get("wallpaper") ?? "aurora", orientation: "landscape" };
   fx.layout.pages[0]!.items.push({ id: "w-media", kind: "media", x: 2, y: 3, w: 3, h: 1, prevAction: "media-prev", playAction: "media-play", nextAction: "media-next" });
+  // OBS: connected, recording and live, so the widget shows no "Offline"; the sys graph gets a full history of a plausible curve.
+  const now = Date.now();
+  fx.obs = { connected: true, recording: true, recordStartedAt: now - 754_000, streaming: true, streamStartedAt: now - 3_910_000, scene: "Gaming", replayBuffer: false };
+  resetSysHistory();
+  const sys = fx.sys as { cpu: number; mem: { usedMb: number; totalMb: number } };
+  for (let i = 0; i < 70; i++) {
+    const cpu = Math.round(34 + 22 * Math.sin(i / 5) + 9 * Math.sin(i * 1.7) + (i % 7) * 1.5);
+    const ramPct = 55 + 6 * Math.sin(i / 11) + i * 0.08;
+    recordSys({ ...sys, cpu: Math.max(4, Math.min(96, cpu)), mem: { totalMb: 32000, usedMb: Math.round((ramPct / 100) * 32000) } } as never);
+  }
   if (scene === "deck") {
     await import("../../client/src/styles.css");
     localStorage.setItem("decka.glass.reduced.v1", "0");
@@ -45,7 +56,7 @@ if (scene === "deck" || scene === "settings") {
     localStorage.setItem("decka.wizard.done.v1", "1");
     localStorage.setItem("decka.editor.tips.v1", "1");
     const layout = { version: 1, ...fx.layout };
-    const answers: Record<string, unknown> = { get_layout: layout, get_actions: actionsFx.default, get_update_status: { state: "idle" }, get_status: { running: true } };
+    const answers: Record<string, unknown> = { get_layout: layout, get_actions: actionsFx.default, get_update_status: { state: "idle" }, get_status: { version: "0.20.1", focusApp: null, listening: { bind: "0.0.0.0", port: 9247 }, lanIps: ["192.168.1.20"], clients: [{ deviceId: "demo", name: "Phone", remote: "192.168.1.31", connectedAt: Date.now() }], usb: { enabled: false, adbFound: false, devices: [] }, configDir: "C:\\Users\\demo\\AppData\\Roaming\\Decka" }, list_window_apps: ["code.exe", "chrome.exe"], get_templates: [], get_config: (await import("../../shared/fixtures/config.example.json")).default };
     (window as never as { __TAURI_INTERNALS__: unknown }).__TAURI_INTERNALS__ = {
       invoke: async (cmd: string) => {
         if (cmd in answers) return answers[cmd];
@@ -64,6 +75,8 @@ if (scene === "pill") await import("../../agent/src/styles.css");
 else await import("../../client/src/styles.css");
 if (scene === "pill") {
   document.body.style.background = "#1b1b22";
+  // `pad=1`: the pill sits in the middle of a canvas that the shooter crops to the pill plus 40 px on every side.
+  if (q.get("pad")) document.body.style.cssText += ";display:flex;align-items:center;justify-content:center;";
   root.render(<VoicePill initialData={{ ...info, level: Number(q.get("level") ?? 0.6), hotkey: "Ctrl+Alt+Space" } as never} />);
 } else {
   document.body.style.background = "#000";
