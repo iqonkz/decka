@@ -4,6 +4,8 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+## 0.20.3 — 2026-11-22
+
 ### Changed
 - **Stage-based watchdog**: individual timeouts per stage instead of a global 30 s limit: listening (30 s), model loading (up to 120 s), recognition (15 s), and AI inference (20 s). The watchdog timer resets at each stage transition.
 - **Background pre-warming**: `llama-server` and `whisper-server` start in the background immediately upon pressing the hotkey or tapping the voice button, parallel to speech recording. The "Loading the model…" pill is only shown if the server is still loading after the phrase finishes.
