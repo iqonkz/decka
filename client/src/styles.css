@@ -229,6 +229,17 @@ input { user-select: text; touch-action: manipulation; }
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
   cursor: pointer;
   transition: width 160ms ease, height 160ms ease;
+  /* No long-press menu, no text selection, no gestures of the page (DATA_MODEL.md 12.6). */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.voice-fab * {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 .voice-fab.glass {
   background: rgba(255, 255, 255, 0.12);
@@ -246,7 +257,8 @@ input { user-select: text; touch-action: manipulation; }
   inset: -8px;
   border-radius: 50%;
   border: 2px solid var(--accent, #3b82f6);
-  animation: voice-pulse 1.2s infinite ease-out;
+  /* The radius follows the level of the microphone (set inline), not a fixed pulse. */
+  transition: transform 100ms linear, opacity 100ms linear;
   pointer-events: none;
 }
 @keyframes voice-pulse {

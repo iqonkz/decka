@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { chunkToBase64, MAX_RECORDING_MS, newVoiceId, VoiceSession, type VoiceDeps, type VoiceMsg } from "./session";
 import { pageIndexOf, parseGoto } from "./gotoMath";
 
-function rig(opts: { online?: boolean; micFails?: boolean } = {}) {
+function rig(opts: { online?: boolean; micFails?: boolean; extra?: Partial<VoiceDeps> } = {}) {
   const sent: VoiceMsg[] = [];
   const timers: { fn: () => void; ms: number; live: boolean }[] = [];
   let feed: (c: Int16Array) => void = () => {};
@@ -21,6 +21,7 @@ function rig(opts: { online?: boolean; micFails?: boolean } = {}) {
     newId: () => "0011223344556677",
     setTimeout: (fn, ms) => (timers.push({ fn, ms, live: true }), timers.length - 1),
     clearTimeout: (h) => { const t = timers[h as number]; if (t) t.live = false; },
+    ...opts.extra,
   };
   return { s: new VoiceSession(deps), sent, timers, feed: (c: Int16Array) => feed(c), open: () => openMic?.(), stopped: () => stopped, offline: () => { online = false; } };
 }
@@ -132,5 +133,57 @@ describe("voice.goto", () => {
     expect(pageIndexOf(pages, "media")).toBe(2);
     expect(pageIndexOf(pages, "pop")).toBe(-1);
     expect(pageIndexOf(pages, "none")).toBe(-1);
+  });
+});
+
+describe("voice session: end by silence (12.6a)", () => {
+  const loud = () => new Int16Array(1600).fill(8000);
+  const quiet = () => new Int16Array(1600);
+  const open = async (r: ReturnType<typeof rig>, mode?: "tap" | "hold") => {
+    const p = r.s.start(mode);
+    r.open();
+    await p;
+  };
+
+  it("a tap recording ends by itself 2 s after the speech and sends voice_end", async () => {
+    const r = rig();
+    await open(r, "tap");
+    for (let i = 0; i < 3; i++) r.feed(quiet());
+    for (let i = 0; i < 5; i++) r.feed(loud());
+    for (let i = 0; i < 25; i++) r.feed(quiet());
+    expect(r.sent.filter((m) => m.t === "voice_end")).toHaveLength(1);
+    expect(r.sent.filter((m) => m.t === "voice_cancel")).toHaveLength(0);
+    expect(r.s.active).toBe(false);
+  });
+
+  it("nothing said for 5 s cancels, sends no end and says so", async () => {
+    let said = 0;
+    const r = rig({ extra: { onNoSpeech: () => { said++; } } });
+    await open(r, "tap");
+    for (let i = 0; i < 55; i++) r.feed(quiet());
+    expect(r.sent.at(-1)?.t).toBe("voice_cancel");
+    expect(r.sent.some((m) => m.t === "voice_end")).toBe(false);
+    expect(said).toBe(1);
+  });
+
+  it("the walkie-talkie (hold) is not ended by silence", async () => {
+    const r = rig();
+    await open(r, "hold");
+    for (let i = 0; i < 3; i++) r.feed(quiet());
+    for (let i = 0; i < 5; i++) r.feed(loud());
+    for (let i = 0; i < 60; i++) r.feed(quiet());
+    expect(r.s.active).toBe(true);
+    r.s.stop();
+    expect(r.sent.at(-1)?.t).toBe("voice_end");
+  });
+
+  it("reports the level of every chunk and 0 when over", async () => {
+    const levels: number[] = [];
+    const r = rig({ extra: { onLevel: (l) => levels.push(l) } });
+    await open(r, "hold");
+    r.feed(loud());
+    r.s.stop();
+    expect(levels[0]).toBeGreaterThan(0.5);
+    expect(levels.at(-1)).toBe(0);
   });
 });

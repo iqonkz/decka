@@ -1,8 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Mic } from "lucide-react";
-import { startVoice, stopVoice, useVoiceState, voiceReady } from "./api";
+import {
+  startVoice,
+  stopVoice,
+  useVoiceLevel,
+  useVoiceRecording,
+  useVoiceState,
+  voiceReady,
+  VOICE_NO_SPEECH_EVENT,
+  type VoiceInfo,
+} from "./api";
 import {
   detectVoiceGesture,
+  HOLD_TO_TALK_THRESHOLD_MS,
   loadFabPosition,
   loadVoiceButtonEnabled,
   saveFabPosition,
@@ -64,111 +74,115 @@ export default function VoiceFab() {
     };
   }, []);
 
-  // Toggle voice when custom event arrives (e.g. from grid VoiceKey)
-  const toggleVoice = useCallback(() => {
-    if (voiceState?.state === "listening" || voiceState?.state === "thinking") {
-      try {
-        stopVoice();
-      } catch {
-        // ignore not implemented
-      }
-    } else {
-      void startVoice().catch(() => {});
+  // A tap from elsewhere (e.g. the grid key `voice`): the same as a tap on the button.
+  const level = useVoiceLevel();
+  const recording = useVoiceRecording();
+  const recordingRef = useRef(recording);
+  recordingRef.current = recording;
+
+  const tap = useCallback(() => {
+    if (recordingRef.current) {
+      stopVoice(); // the second tap ends the recording at once
+    } else if (voiceState?.state !== "listening") {
+      void startVoice("tap").catch(() => {});
     }
   }, [voiceState]);
 
   useEffect(() => {
-    const onToggle = () => toggleVoice();
+    const onToggle = () => tap();
     window.addEventListener("decka:voice:toggle", onToggle);
     return () => window.removeEventListener("decka:voice:toggle", onToggle);
-  }, [toggleVoice]);
+  }, [tap]);
 
-  // Pointer interactions
+  // "Didn't hear anything": the request was cancelled on the phone, so the PC has nothing to show; the bubble says it.
+  const [notice, setNotice] = useState<VoiceInfo | null>(null);
+  useEffect(() => {
+    let timer: number | undefined;
+    const onNoSpeech = () => {
+      setNotice({ state: "error", replyKey: "voice.reply.no_speech" });
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => setNotice(null), 4500);
+    };
+    window.addEventListener(VOICE_NO_SPEECH_EVENT, onNoSpeech);
+    return () => {
+      window.removeEventListener(VOICE_NO_SPEECH_EVENT, onNoSpeech);
+      window.clearTimeout(timer);
+    };
+  }, []);
+
+  // Pointer interactions: tap = listen (the end comes by silence) or stop; hold >= 250 ms = walkie-talkie; move > 8 px = drag.
   const pointerStart = useRef<{ x: number; y: number; time: number; origX: number; origY: number } | null>(null);
   const holdTimer = useRef<number | null>(null);
   const gestureState = useRef<"talk" | "drag" | "pending">("pending");
+  const wasRecording = useRef(false);
 
-  const onPointerDown = (e: React.PointerEvent) => {
-    e.stopPropagation();
-    e.currentTarget.setPointerCapture(e.pointerId);
-
-    const now = Date.now();
-    pointerStart.current = {
-      x: e.clientX,
-      y: e.clientY,
-      time: now,
-      origX: posRef.current.x,
-      origY: posRef.current.y,
-    };
-    gestureState.current = "pending";
-
-    if (holdTimer.current !== null) {
-      window.clearTimeout(holdTimer.current);
-    }
-
-    holdTimer.current = window.setTimeout(() => {
-      if (gestureState.current === "pending") {
-        gestureState.current = "talk";
-        setIsHolding(true);
-        void startVoice().catch(() => {});
-      }
-    }, 250);
-  };
-
-  const onPointerMove = (e: React.PointerEvent) => {
-    if (!pointerStart.current) return;
-    const dx = e.clientX - pointerStart.current.x;
-    const dy = e.clientY - pointerStart.current.y;
-    const elapsed = Date.now() - pointerStart.current.time;
-
-    const gesture = detectVoiceGesture(dx, dy, elapsed);
-    if (gesture === "drag") {
-      if (gestureState.current !== "drag") {
-        gestureState.current = "drag";
-        if (holdTimer.current !== null) {
-          window.clearTimeout(holdTimer.current);
-          holdTimer.current = null;
-        }
-        setIsDragging(true);
-      }
-      setPos({
-        x: pointerStart.current.origX + dx,
-        y: pointerStart.current.origY + dy,
-      });
-    }
-  };
-
-  const onPointerUp = (e: React.PointerEvent) => {
+  const clearHold = () => {
     if (holdTimer.current !== null) {
       window.clearTimeout(holdTimer.current);
       holdTimer.current = null;
     }
+  };
 
+  const onPointerDown = (e: React.PointerEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    pointerStart.current = { x: e.clientX, y: e.clientY, time: Date.now(), origX: posRef.current.x, origY: posRef.current.y };
+    gestureState.current = "pending";
+    wasRecording.current = recordingRef.current;
+    clearHold();
+    // While recording, a press can only be a tap (stop) or a drag; the walkie-talkie starts from silence.
+    if (wasRecording.current) return;
+    holdTimer.current = window.setTimeout(() => {
+      holdTimer.current = null;
+      if (gestureState.current === "pending") {
+        gestureState.current = "talk";
+        setIsHolding(true);
+        void startVoice("hold").catch(() => {});
+      }
+    }, HOLD_TO_TALK_THRESHOLD_MS);
+  };
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    e.stopPropagation();
+    const start = pointerStart.current;
+    if (!start || gestureState.current === "talk") return;
+    const dx = e.clientX - start.x;
+    const dy = e.clientY - start.y;
+    if (detectVoiceGesture(dx, dy, 0) === "drag") {
+      if (gestureState.current !== "drag") {
+        gestureState.current = "drag";
+        clearHold();
+        setIsDragging(true);
+      }
+      setPos({ x: start.origX + dx, y: start.origY + dy });
+    }
+  };
+
+  const onPointerUp = (e: React.PointerEvent) => {
+    e.stopPropagation();
+    clearHold();
     if (!pointerStart.current) return;
-    const elapsed = Date.now() - pointerStart.current.time;
-    const wasHolding = isHolding || gestureState.current === "talk";
-    const wasDragging = isDragging || gestureState.current === "drag";
-
+    const gesture = gestureState.current;
     pointerStart.current = null;
+    gestureState.current = "pending";
     setIsHolding(false);
     setIsDragging(false);
 
-    if (wasDragging) {
-      // Snap to edge and save
+    if (gesture === "drag") {
       const snapped = snapToEdge(posRef.current, viewport);
       setPos(snapped);
       saveFabPosition(snapped);
-    } else if (wasHolding) {
-      // Finished speaking
-      try {
-        stopVoice();
-      } catch {
-        // ignore
-      }
-    } else if (elapsed < 250) {
-      // Tap: toggle voice
-      toggleVoice();
+    } else if (gesture === "talk") {
+      stopVoice(); // release ends the walkie-talkie
+    } else if (e.type === "pointerup") {
+      tap();
     }
+  };
+
+  const swallow = (e: React.SyntheticEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
   };
 
   if (!isReady || !enabled) {
@@ -176,11 +190,11 @@ export default function VoiceFab() {
   }
 
   const isGlass = theme === "glass";
-  const isListening = isHolding || voiceState?.state === "listening";
+  const isListening = recording || isHolding;
 
   return (
     <>
-      <VoiceBubble state={voiceState} fabPos={pos} />
+      <VoiceBubble state={notice ?? voiceState} fabPos={pos} />
       <div
         className={`voice-fab ${isGlass ? "glass" : ""} ${isListening ? "listening" : ""} ${isDragging ? "dragging" : ""}`}
         style={{
@@ -191,15 +205,30 @@ export default function VoiceFab() {
           height: isListening ? "64px" : "56px",
           touchAction: "none",
           userSelect: "none",
+          WebkitUserSelect: "none",
+          WebkitTouchCallout: "none",
+          WebkitTapHighlightColor: "transparent",
           zIndex: 50,
         }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
+        onContextMenu={swallow}
+        onDragStart={swallow}
+        onTouchStart={(e) => e.stopPropagation()}
+        onTouchEnd={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
-        {isListening && <span className="voice-pulsing-ring" aria-hidden="true" />}
-        <Mic size={24} className="voice-fab-icon" />
+        {isListening && <span className="voice-pulsing-ring" aria-hidden="true" style={{ transform: `scale(${1 + level * 0.7})`, opacity: 0.35 + level * 0.65 }} />}
+        {recording ? (
+          // Phosphor "stop" (fill)
+          <svg width="24" height="24" viewBox="0 0 256 256" fill="currentColor" className="voice-fab-icon" aria-hidden="true">
+            <path d="M208,32H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32Z" />
+          </svg>
+        ) : (
+          <Mic size={24} className="voice-fab-icon" />
+        )}
       </div>
     </>
   );
