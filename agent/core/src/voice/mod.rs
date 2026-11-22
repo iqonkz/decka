@@ -11,6 +11,7 @@ pub mod matcher;
 pub mod mic;
 pub mod pipeline;
 pub mod tools;
+pub mod winops;
 
 use std::collections::{HashMap, VecDeque};
 use std::sync::{Arc, Mutex};

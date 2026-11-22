@@ -36,7 +36,7 @@ pub fn is_mail_host(s: &str) -> bool {
 
 /// M15: variables set by the collectors; nobody else writes them (PROTOCOL.md 4, HTTP rules).
 pub fn is_reserved_var(name: &str) -> bool {
-    ["audio.", "mic.", "media.", "obs.", "ai.", "twitch.", "youtube.", "battery.", "mail.", "notif."].iter().any(|p| name.starts_with(p))
+    ["audio.", "mic.", "media.", "obs.", "ai.", "twitch.", "youtube.", "battery.", "mail.", "notif.", "voice."].iter().any(|p| name.starts_with(p))
 }
 
 /// `^[a-z0-9._ ()-]{1,60}\.exe$`

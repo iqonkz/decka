@@ -73,6 +73,24 @@ pub fn toggle(op: AudioOp) -> Result<(), String> {
     }
 }
 
+/// The scalar Core Audio takes for a whole percent (values above 100 are 100).
+pub fn scalar(percent: u8) -> f32 {
+    f32::from(percent.min(100)) / 100.0
+}
+
+/// Sets the volume of the default output device to `percent` (voice tool `volume set`) and unmutes it.
+pub fn set_volume(percent: u8) -> Result<(), String> {
+    #[cfg(windows)]
+    {
+        win::set_volume(percent)
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = percent;
+        Err("unsupported platform".to_string())
+    }
+}
+
 pub struct AudioCollector {
     stop: Arc<AtomicBool>,
     thread: Option<JoinHandle<()>>,
@@ -159,6 +177,21 @@ mod win {
         })
     }
 
+    pub fn set_volume(percent: u8) -> Result<(), String> {
+        with_com(|| {
+            let volume = endpoint(eRender).ok_or("No audio output")?;
+            // SAFETY: `volume` was activated on this thread.
+            unsafe {
+                volume.SetMasterVolumeLevelScalar(super::scalar(percent), std::ptr::null()).map_err(|e| e.message())?;
+                // A level set by voice is meant to be heard.
+                if percent > 0 {
+                    let _ = volume.SetMute(false, std::ptr::null());
+                }
+            }
+            Ok(())
+        })
+    }
+
     pub fn toggle(op: AudioOp) -> Result<(), String> {
         let (flow, missing) = match op {
             AudioOp::MicToggle => (eCapture, "No microphone"),
@@ -187,6 +220,12 @@ mod tests {
     #[test]
     fn the_scalar_becomes_a_whole_percent() {
         assert_eq!([percent(0.0), percent(0.42), percent(0.425), percent(1.0), percent(1.7), percent(-1.0)], [0, 42, 43, 100, 100, 0]);
+    }
+
+    #[test]
+    fn a_percent_becomes_a_scalar_and_back() {
+        assert_eq!([scalar(0), scalar(50), scalar(100), scalar(250)], [0.0, 0.5, 1.0, 1.0]);
+        assert!((0..=100u8).all(|p| percent(scalar(p)) == p), "the round trip loses nothing");
     }
 
     #[test]

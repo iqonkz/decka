@@ -4,9 +4,9 @@
 //! `Host` is the glue. The window of the pill is created by the application through the `PillHook`.
 
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, OnceLock, Weak};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use serde_json::{json, Value};
 
@@ -14,6 +14,7 @@ use super::hotkey::{self, Pressed, Plan, Tracker};
 use super::matcher::Table;
 use super::mic;
 use super::pipeline::{msg, BoxFut, Driver, Event, Phase, Ports, Source, State, VoiceInfo};
+use super::winops;
 use super::tools::{ActionRef, AppRef, ButtonRef, Context, PageRef, RawCall, ToolCall, VolumeOp};
 use crate::agent::Agent;
 use crate::ai::service::{VoiceService, VoiceState, VoiceStatus};
@@ -107,10 +108,23 @@ pub fn tool_action(call: &ToolCall) -> Result<(Action, String), String> {
         ToolCall::Volume(VolumeOp::Up) => media(MediaOp::VolUp, ""),
         ToolCall::Volume(VolumeOp::Down) => media(MediaOp::VolDown, ""),
         ToolCall::Volume(VolumeOp::Mute) => media(MediaOp::Mute, ""),
-        ToolCall::Volume(VolumeOp::Set(_)) => Err("Setting the volume to a number is not available yet".into()),
-        ToolCall::RunAction { .. } => Err("not an action of its own".into()),
-        _ => Err("This is not available yet".into()),
+        // The rest has no action of its own: `Ports::execute` runs it through `winops`, the timer and the host.
+        _ => Err("not an action of its own".into()),
     }
+}
+
+/// How long "dictate" waits for the phrase to type; later the next phrase is an ordinary command again.
+pub const DICTATE_WINDOW: Duration = Duration::from_secs(60);
+
+/// Whether a dictation armed until `until` is still waiting at `now`.
+pub fn dictation_waiting(until: Option<Instant>, now: Instant) -> bool {
+    until.is_some_and(|u| now < u)
+}
+
+/// The value of the variable `voice.goto`: the page and a counter, so going to the same page twice is a new value.
+/// The phones watch the variable and navigate (they never send the page back).
+pub fn goto_value(page_id: &str, seq: u64) -> String {
+    format!("{page_id}#{seq}")
 }
 
 /// What exists on this PC now (DATA_MODEL.md 12.5): the lists the tools check names against.
@@ -167,6 +181,12 @@ pub fn is_on(status: &VoiceStatus) -> bool {
 pub type PillHook = Arc<dyn Fn(PillCmd) + Send + Sync>;
 
 struct Inner {
+    handle: tokio::runtime::Handle,
+    /// "Dictate" waits for the next phrase until this moment.
+    dictate_until: Arc<Mutex<Option<Instant>>>,
+    /// Timers that are running now (at most `winops::MAX_TIMERS`).
+    timers: Arc<AtomicUsize>,
+    goto_seq: Arc<AtomicU64>,
     agent: Agent,
     service: VoiceService,
     pill: PillHook,
@@ -191,6 +211,10 @@ pub struct Host {
 impl Host {
     pub fn new(handle: tokio::runtime::Handle, agent: Agent, service: VoiceService, pill: PillHook) -> Host {
         let inner = Arc::new(Inner {
+            handle: handle.clone(),
+            dictate_until: Arc::new(Mutex::new(None)),
+            timers: Arc::new(AtomicUsize::new(0)),
+            goto_seq: Arc::new(AtomicU64::new(0)),
             agent,
             service,
             pill,
@@ -341,6 +365,10 @@ impl Ports for Inner {
         (self.table(lang), ctx)
     }
 
+    fn dictating(&self) -> bool {
+        dictation_waiting(*self.dictate_until.lock().unwrap(), Instant::now())
+    }
+
     fn transcribe(&self, pcm: Vec<u8>) -> BoxFut<Result<String, String>> {
         let (sup, lang) = (self.service.supervisor().clone(), self.language());
         Box::pin(async move {
@@ -359,9 +387,67 @@ impl Ports for Inner {
 
     fn execute(&self, call: ToolCall) -> BoxFut<Result<String, String>> {
         let agent = self.agent.clone();
+        let (dictate, timers, goto_seq) = (self.dictate_until.clone(), self.timers.clone(), self.goto_seq.clone());
+        let handle = self.handle.clone();
         Box::pin(async move {
             if let ToolCall::RunAction { action_id } = &call {
                 return agent.execute(action_id).await.map(|_| String::new()).map_err(|(_, m)| m);
+            }
+            match &call {
+                ToolCall::Volume(VolumeOp::Set(v)) => {
+                    let v = *v;
+                    return tokio::task::spawn_blocking(move || crate::audio::set_volume(v).map(|_| winops::volume_text(v)))
+                        .await
+                        .map_err(|e| format!("The action did not finish: {e}"))?;
+                }
+                ToolCall::SwitchApp { name, program } | ToolCall::CloseApp { name, program } => {
+                    let (name, program, close) = (name.clone(), program.clone(), matches!(call, ToolCall::CloseApp { .. }));
+                    return tokio::task::spawn_blocking(move || {
+                        let done = if close { winops::close_app(&program, &name) } else { winops::switch_app(&program, &name) };
+                        done.map(|_| if close { format!("Closing {name}") } else { format!("Switched to {name}") })
+                    })
+                    .await
+                    .map_err(|e| format!("The action did not finish: {e}"))?;
+                }
+                ToolCall::WindowOtherMonitor => {
+                    return tokio::task::spawn_blocking(winops::move_to_other_monitor).await.map_err(|e| format!("The action did not finish: {e}"))?;
+                }
+                ToolCall::WhichMonitor => {
+                    return tokio::task::spawn_blocking(winops::which_monitor).await.map_err(|e| format!("The action did not finish: {e}"))?;
+                }
+                ToolCall::TypeText { text } => {
+                    *dictate.lock().unwrap() = None;
+                    let text = text.clone();
+                    return tokio::task::spawn_blocking(move || winops::type_text(&text).map(|_| String::new()))
+                        .await
+                        .map_err(|e| format!("The action did not finish: {e}"))?;
+                }
+                ToolCall::Dictate => {
+                    *dictate.lock().unwrap() = Some(Instant::now() + DICTATE_WINDOW);
+                    return Ok("Say the text to type".into());
+                }
+                ToolCall::Timer { minutes, label } => {
+                    if timers.fetch_add(1, Ordering::SeqCst) >= winops::MAX_TIMERS {
+                        timers.fetch_sub(1, Ordering::SeqCst);
+                        return Err("Too many timers are running".into());
+                    }
+                    let (minutes, label) = (*minutes, label.clone());
+                    handle.spawn(async move {
+                        tokio::time::sleep(Duration::from_secs(u64::from(minutes) * 60)).await;
+                        let (title, body) = winops::timer_notice(minutes, label.as_deref());
+                        agent.push_notification(crate::proto::NotifyReq { title, body: Some(body), level: Some(crate::model::NotifLevel::Info), source: Some("voice".into()) });
+                        timers.fetch_sub(1, Ordering::SeqCst);
+                    });
+                    return Ok(winops::timer_set_text(minutes));
+                }
+                ToolCall::GoPage { page_id, name } => {
+                    let value = goto_value(page_id, goto_seq.fetch_add(1, Ordering::SeqCst) + 1);
+                    agent.store().update_vars(|vars| {
+                        vars.insert("voice.goto".to_string(), VarValue::Str(value));
+                    });
+                    return Ok(format!("Page {name}"));
+                }
+                _ => {}
             }
             let (action, text) = tool_action(&call)?;
             let runner = agent.runner().clone();
@@ -488,7 +574,7 @@ mod tests {
     }
 
     #[test]
-    fn tools_map_to_the_existing_executors_and_the_rest_is_not_available_yet() {
+    fn tools_map_to_the_existing_executors_and_the_rest_runs_elsewhere() {
         let (a, text) = tool_action(&ToolCall::OpenApp { name: "Calculator".into(), program: "C:\\calc.exe".into() }).unwrap();
         assert!(matches!(a, Action::Launch { ref program, args: None, .. } if program == "C:\\calc.exe"));
         assert_eq!(text, "Opened Calculator");
@@ -498,6 +584,21 @@ mod tests {
         for stub in [ToolCall::Volume(VolumeOp::Set(30)), ToolCall::Dictate, ToolCall::WhichMonitor, ToolCall::Timer { minutes: 5, label: None }] {
             assert!(tool_action(&stub).is_err(), "{stub:?}");
         }
+    }
+
+    #[test]
+    fn a_dictation_waits_for_a_minute_and_then_lapses() {
+        let now = Instant::now();
+        assert!(!dictation_waiting(None, now));
+        assert!(dictation_waiting(Some(now + DICTATE_WINDOW), now));
+        assert!(!dictation_waiting(Some(now), now), "the deadline itself is already over");
+        assert!(!dictation_waiting(Some(now), now + Duration::from_secs(1)));
+    }
+
+    #[test]
+    fn going_to_the_same_page_twice_is_a_new_value() {
+        assert_ne!(goto_value("media", 1), goto_value("media", 2));
+        assert_eq!(goto_value("media", 7), "media#7");
     }
 
     #[test]

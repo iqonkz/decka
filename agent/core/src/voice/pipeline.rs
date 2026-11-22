@@ -20,7 +20,7 @@ const MAX_TEXT: usize = 300;
 /// Texts the user sees (PROTOCOL.md 3, DATA_MODEL.md 12.4).
 pub mod msg {
     pub const DIDNT_CATCH: &str = "Didn't catch that";
-    pub const DIDNT_GET: &str = "Didn't get that — try again";
+    pub const DIDNT_GET: &str = "Didn't get that вЂ” try again";
     pub const CANCELLED: &str = "Cancelled";
     pub const DONE: &str = "Done";
     pub const NO_MIC: &str = "No microphone found";
@@ -189,6 +189,8 @@ pub struct Env<'a> {
     pub table: &'a Table,
     pub ctx: &'a Context,
     pub confirm_ms: u64,
+    /// "Dictate" is waiting: the next phrase is typed as it is, not understood as a command.
+    pub dictate: bool,
 }
 
 fn describe(i: &Intent) -> String {
@@ -257,6 +259,10 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
             }
             let mut s = s;
             s.heard = Some(text.clone());
+            if env.dictate {
+                let args = serde_json::json!({ "text": text });
+                return resolve(s, &RawCall { tool: "type_text".into(), args }, now_ms, env, false);
+            }
             match env.table.matches(&text) {
                 Match::Hit(intent) => resolve(s, &RawCall { tool: intent.tool, args: serde_json::Value::Object(intent.args) }, now_ms, env, false),
                 Match::Ambiguous(list) => {
@@ -322,6 +328,10 @@ pub type BoxFut<T> = Pin<Box<dyn Future<Output = T> + Send>>;
 pub trait Ports: Send + Sync + 'static {
     /// The phrase table and the things that exist on this PC, read fresh for every request.
     fn env(&self) -> (Arc<Table>, Context);
+    /// "Dictate" is waiting for the phrase to type (default: never).
+    fn dictating(&self) -> bool {
+        false
+    }
     /// 16 kHz mono PCM16 -> text.
     fn transcribe(&self, pcm: Vec<u8>) -> BoxFut<Result<String, String>>;
     /// The AI path; `None` = no usable answer.
@@ -372,7 +382,7 @@ impl Driver {
     /// Feeds one event; effects run in the background and answer with further events.
     pub fn handle_event(&self, event: Event) {
         let (table, ctx) = self.ports.env();
-        let env = Env { table: &table, ctx: &ctx, confirm_ms: self.confirm_ms };
+        let env = Env { table: &table, ctx: &ctx, confirm_ms: self.confirm_ms, dictate: self.ports.dictating() };
         let now_ms = self.t0.elapsed().as_millis() as u64;
         let (info, effects, pcm) = {
             let mut sh = self.shared.lock().unwrap();
@@ -449,7 +459,7 @@ mod tests {
     /// Runs `events` from idle; returns the last state and every effect.
     fn run(events: Vec<Event>) -> (State, Vec<Effect>) {
         let (t, c) = (table(), ctx());
-        let env = Env { table: &t, ctx: &c, confirm_ms: CONFIRM_TIMEOUT_MS };
+        let env = Env { table: &t, ctx: &c, confirm_ms: CONFIRM_TIMEOUT_MS, dictate: false };
         let mut state = State::idle();
         let mut all = Vec::new();
         for (i, e) in events.into_iter().enumerate() {
@@ -478,6 +488,17 @@ mod tests {
         assert_eq!(s.phase, Phase::Done("Done".into()));
         let info = s.info();
         assert_eq!((info.state, info.reply.as_deref(), info.source), ("done", Some("Done"), Some(Source::Phone)));
+    }
+
+    #[test]
+    fn a_dictated_phrase_is_typed_as_it_is_even_when_it_sounds_like_a_command() {
+        let (t, c) = (table(), ctx());
+        let env = Env { table: &t, ctx: &c, confirm_ms: CONFIRM_TIMEOUT_MS, dictate: true };
+        let (s, _) = step(&State::idle(), start(Source::Phone), 1, &env);
+        let (s, _) = step(&s, Event::AudioEnd, 2, &env);
+        let (s, fx) = step(&s, said("volume up"), 3, &env);
+        assert_eq!(s.phase, Phase::Executing);
+        assert_eq!(fx, [Effect::Execute(ToolCall::TypeText { text: "volume up".into() })]);
     }
 
     #[test]
@@ -511,7 +532,7 @@ mod tests {
 
         // Timeout: a tick before the deadline changes nothing, a tick after it cancels.
         let (t, c) = (table(), ctx());
-        let env = Env { table: &t, ctx: &c, confirm_ms: 10_000 };
+        let env = Env { table: &t, ctx: &c, confirm_ms: 10_000, dictate: false };
         let (s, _) = run(go());
         let Phase::Confirming { deadline_ms, .. } = s.phase.clone() else { panic!() };
         let (early, _) = step(&s, Event::Tick { now_ms: deadline_ms - 1 }, 0, &env);
@@ -576,7 +597,7 @@ mod tests {
     fn an_ambiguous_phrase_asks_and_does_not_act() {
         let t = Table::parse(r#"{"lang":"en","intents":[{"tool":"volume","args":{"op":"mute"},"patterns":["sound off"]},{"tool":"system","args":{"op":"sleep"},"patterns":["sound off"]}]}"#).unwrap();
         let c = ctx();
-        let env = Env { table: &t, ctx: &c, confirm_ms: 1 };
+        let env = Env { table: &t, ctx: &c, confirm_ms: 1, dictate: false };
         let mut st = State::idle();
         for e in [start(Source::Phone), Event::AudioEnd, said("sound off")] {
             let (s, fx) = step(&st, e, 0, &env);
@@ -719,7 +740,7 @@ mod tests {
     #[test]
     fn a_microphone_that_fails_ends_the_request_and_stops_the_capture() {
         let (t, c) = (table(), ctx());
-        let env = Env { table: &t, ctx: &c, confirm_ms: CONFIRM_TIMEOUT_MS };
+        let env = Env { table: &t, ctx: &c, confirm_ms: CONFIRM_TIMEOUT_MS, dictate: false };
         let (listening, _) = step(&State::idle(), Event::Start { id: "0011223344556677".into(), source: Source::Pc }, 0, &env);
         let (failed, effects) = step(&listening, Event::CaptureFailed(msg::NO_MIC.into()), 1, &env);
         assert_eq!(failed.phase, Phase::Failed(msg::NO_MIC.into()));
