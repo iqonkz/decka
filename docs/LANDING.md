@@ -33,7 +33,7 @@
 4. **Голос** — отдельный блок: снимок плашки и 4–5 примеров фраз чипами (`Turn the volume down`, `Open Chrome`, `Set a timer for 10 minutes`, `Move this window to the other monitor`; ru — по-русски). Строка: `Runs on your PC. About 3 GB download, works without a graphics card.` — цифры сверить с DATA_MODEL §12.2/§12.9.
 5. **Темы** — 4 снимка (AMOLED, Studio, Material, Glass), горизонтальная прокрутка на телефоне, сетка 2×2 на десктопе.
 6. **Открытый код** — MIT, ссылка на GitHub, `No account, no ads, no tracking.` / `Без аккаунта, рекламы и слежки.`
-7. **Требования:** Windows 10/11 x64; Android-телефон (версия из minSdk); одна сеть Wi-Fi; голос — по §12.2.
+7. **Требования (пересмотр владельца: «16 ГБ ОЗУ» отпугивает):** Decka — `Any PC with Windows 10/11 (64-bit)` / `Любой ПК с Windows 10/11 (64-бит)`; Android 8+; одна сеть Wi-Fi. Голос — отдельной карточкой с пометкой `Optional` / `По желанию`: `8 GB RAM is enough — Decka picks the model for your PC automatically. With a graphics card (6 GB+) or 16 GB RAM you get the more accurate model.` / `Хватит 8 ГБ ОЗУ — Decka сама подберёт модель под ваш ПК. С видеокартой от 6 ГБ или 16 ГБ ОЗУ — более точная модель.`; загрузка 1,8–3,2 ГБ. Цифру «16 ГБ» как требование нигде не писать (§12.2: 16 ГБ — лишь порог выбора точной модели без видеокарты).
 8. **FAQ** (раскрывающиеся, `@headlessui` Disclosure как на сайте): бесплатно ли; нужен ли интернет; какие телефоны (iPhone — нет); безопасно ли; уходит ли голос в облако (нет); как обновлять (в один клик из приложения).
 9. Подвал — общий подвал сайта.
 
