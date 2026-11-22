@@ -32,7 +32,7 @@ if (scene === "pill") await import("../../agent/src/styles.css");
 else await import("../../client/src/styles.css");
 if (scene === "pill") {
   document.body.style.background = "#1b1b22";
-  root.render(<VoicePill initialData={{ ...info, level: 0.6, hotkey: "Ctrl+Alt+Space" } as never} />);
+  root.render(<VoicePill initialData={{ ...info, level: Number(q.get("level") ?? 0.6), hotkey: "Ctrl+Alt+Space" } as never} />);
 } else {
   document.body.style.background = "#000";
   localStorage.removeItem("decka.voicefab.v1");
