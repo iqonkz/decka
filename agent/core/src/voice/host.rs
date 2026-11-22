@@ -585,6 +585,7 @@ impl Ports for Inner {
                 let hotkey = self.service.status().hotkey;
                 let last_info = self.last.lock().unwrap().clone();
                 self.chunks.store(0, Ordering::SeqCst);
+                mic::ring_clear();
                 let (counter, decided) = (self.chunks.clone(), Arc::new(AtomicBool::new(false)));
                 // The decisions of the first requests after the start (or all of them with `DECKA_VOICE_DEBUG`) go to voice.log.
                 let log = std::env::var_os("DECKA_VOICE_DEBUG").is_some() || LOGGED_REQUESTS.fetch_add(1, Ordering::SeqCst) < LOGGED_FIRST;
@@ -594,16 +595,24 @@ impl Ports for Inner {
                     log,
                     move |fed| {
                         counter.fetch_add(1, Ordering::SeqCst);
+                        let line = mic::decision_line(&fed.decision, fed.verdict);
                         if log {
-                            mic::log_line(&mic::decision_line(&fed.decision, fed.verdict));
+                            mic::log_line(&line);
                         }
+                        // The last 50 decisions are kept in memory and dumped to voice.log on NoSpeech / CaptureFailed.
+                        mic::ring_push(line);
                         feed.push_audio(&fed.pcm);
                         // The wave of the pill follows the voice (a chunk is 100 ms, so at most 10 times a second).
                         if let Some(info) = last_info.as_ref().filter(|i| i.state == "listening") {
                             if let Some(cmd) = pill_cmd(info, &hotkey, fed.level) {
                                 // Windows of the pill belong to the main thread: never wait for it on the audio thread.
-                                let pill_self = pill_self.clone();
-                                handle.spawn_blocking(move || pill_self(cmd));
+                                let (pill_self, driver) = (pill_self.clone(), feed.clone());
+                                handle.spawn_blocking(move || {
+                                    // A wave update that waited for the window must not bring the pill back after it was closed.
+                                    if driver.state().phase == Phase::Listening {
+                                        pill_self(cmd);
+                                    }
+                                });
                             }
                         }
                         let event = match fed.verdict {
@@ -673,6 +682,16 @@ impl Ports for Inner {
                 std::thread::sleep(Duration::from_millis(wait));
                 if changes.load(Ordering::SeqCst) == seen {
                     driver.handle_event(Event::Watchdog);
+                }
+            });
+        }
+        // Idle always takes the pill away; a second, idempotent Destroy catches a window that was still being created.
+        if info.state == "idle" {
+            let (driver, pill) = (self.driver().clone(), self.pill.clone());
+            std::thread::spawn(move || {
+                std::thread::sleep(Duration::from_millis(1500));
+                if driver.state().phase == Phase::Idle {
+                    pill(PillCmd::Destroy);
                 }
             });
         }

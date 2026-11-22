@@ -191,6 +191,8 @@ fn phase_name(p: &Phase) -> &'static str {
         Phase::Transcribing => "Transcribing",
         Phase::Loading => "Loading",
         Phase::Thinking => "Thinking",
+        Phase::Confirming { .. } => "Confirming",
+        Phase::Executing => "Executing",
         Phase::Done(_) => "Done",
         Phase::Failed(_) => "Failed",
         #[allow(unreachable_patterns)]
@@ -289,12 +291,16 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
             tracing::warn!("voice microphone: {e}");
             if !cfg!(test) {
                 super::mic::log_line(&format!("capture failed: {e}"));
+                super::mic::ring_dump("capture failed");
             }
             let (mut next, _) = finish_key(s, Phase::Failed(msg::MIC_UNAVAILABLE.into()), ReplyKey::plain(key::MIC_UNAVAILABLE));
             next.heard = None;
             (next, vec![Effect::StopCapture])
         }
         (Phase::Listening, Event::NoSpeech) => {
+            if !cfg!(test) {
+                super::mic::ring_dump("no speech");
+            }
             let (mut next, _) = finish_key(s, Phase::Failed(msg::NO_SPEECH.into()), ReplyKey::plain(key::NO_SPEECH));
             next.heard = None;
             (next, vec![Effect::StopCapture])
@@ -580,6 +586,21 @@ mod tests {
 
     fn said(text: &str) -> Event {
         Event::Transcript(Ok(text.into()))
+    }
+
+    #[test]
+    fn repeated_presses_always_end_in_idle() {
+        // Failed -> Start during the result -> NoSpeech -> Reset -> Idle; five times in a row.
+        let mut events = Vec::new();
+        for _ in 0..5 {
+            events.extend([start(Source::Pc), Event::NoSpeech, start(Source::Pc), Event::NoSpeech, Event::Reset]);
+        }
+        let (s, _) = run(events);
+        assert_eq!(s.phase, Phase::Idle);
+        assert_eq!(s.id, None);
+        // A stale Reset after a new Start changes nothing; the session goes on.
+        let (s, _) = run(vec![start(Source::Pc), Event::NoSpeech, start(Source::Pc), Event::Reset]);
+        assert_eq!(s.phase, Phase::Listening);
     }
 
     #[test]

@@ -69,7 +69,11 @@ fn create_pill(app: &AppHandle) -> Option<tauri::WebviewWindow> {
     Some(window)
 }
 
+/// Counts the closings of the pill: a window that was created while a close came in is closed again.
+static CLOSED: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
 fn show_pill(app: &AppHandle, payload: Value) {
+    let epoch = CLOSED.load(std::sync::atomic::Ordering::SeqCst);
     let (window, fresh) = match app.get_webview_window(PILL) {
         Some(w) => (w, false),
         None => match create_pill(app) {
@@ -77,6 +81,10 @@ fn show_pill(app: &AppHandle, payload: Value) {
             None => return,
         },
     };
+    if CLOSED.load(std::sync::atomic::Ordering::SeqCst) != epoch {
+        let _ = window.destroy();
+        return;
+    }
     let open = matches!(payload.get("state").and_then(Value::as_str), Some("confirm" | "done" | "error"));
     let _ = window.set_size(LogicalSize::new(PILL_WIDTH, if open { PILL_HEIGHT_OPEN } else { PILL_HEIGHT }));
     let _ = window.emit("voice-pill", payload.clone());
@@ -97,6 +105,7 @@ fn pill(app: &AppHandle, cmd: PillCmd) {
     match cmd {
         PillCmd::Show(payload) => show_pill(app, payload),
         PillCmd::Destroy => {
+            CLOSED.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
             if let Some(w) = app.get_webview_window(PILL) {
                 let _ = w.destroy();
             }
