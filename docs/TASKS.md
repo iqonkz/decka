@@ -259,6 +259,12 @@ voice_set(args: { model?, hotkey?, keepLoaded?, speak?, phoneButton?, mic? }): V
 4. Телефон: тап / «рация» / перетаскивание по §12.6; подавить `contextmenu`, выделение и лист долгого нажатия страницы; кольцо по уровню; убрать настройку `Tap to start / tap to stop` (и строки i18n).
 5. Проверка: typecheck, тесты затронутых модулей, `cargo test -p decka-core`; снимок плашки с волной в Chrome (уровень подставить вручную). Затем выпуск 0.20.1 обычными шагами (`version:bump -- 0.20.1`, release:agent, release:apk, SHA256SUMS, latest.json, `gh release create`). `PENDING (owner)`: тап → сказать фразу → конец сам через 2 с на ПК и телефоне.
 
+### T22.1 — Снимки для README и лендинга (после T21.8) — [Claude]
+Headless Chrome (как `voice-shots`), демо-раскладка без личных данных: телефон в альбомной 1280×600 — по снимку на тему (AMOLED, Studio, Material, Glass) → `docs/img/theme-*.png`; `docs/img/hero.png` (Glass или Material, главная страница с виджетами); окно настроек → `docs/img/settings.png`; плашка голоса с ответом → `docs/img/voice.png`. Вставить в README вместо заглушек. Коммит `T22.1: screenshots`. Сборка не нужна.
+
+### T22.2 — Лендинг в репозитории madiseit.com — [второй агент]
+Спецификация — `docs/LANDING.md`. Работа в `C:\DEV\madiseit.com` (свой репозиторий владельца); из Decka — только чтение фактов и снимков `docs/img/`.
+
 ## Дальше (план, детали — когда владелец выберет)
 0. **Голос, следующие этапы (M22+):**
    - `write` — черновик от ИИ в поле в фокусе;
