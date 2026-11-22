@@ -9,14 +9,17 @@ use std::sync::Arc;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 
-/// The only hosts a download (and every redirect) may go to.
-pub const ALLOWED_HOSTS: [&str; 6] = [
+/// The only hosts a download (and every redirect) may go to. `*.name` allows every subdomain of `name`, not `name` itself.
+/// Hugging Face serves files from changing hosts of its own domain (`us.aws.cdn.hf.co` since 2026-11); the SHA-256 of the
+/// manifest decides whether the bytes are accepted, the host list only narrows where they may come from.
+pub const ALLOWED_HOSTS: [&str; 7] = [
     "github.com",
     "objects.githubusercontent.com",
     "release-assets.githubusercontent.com",
     "huggingface.co",
     "cdn-lfs.hf.co",
     "cas-bridge.xethub.hf.co",
+    "*.hf.co",
 ];
 
 #[derive(Debug, thiserror::Error, PartialEq)]
@@ -82,7 +85,13 @@ pub fn host_allowed<S: AsRef<str>>(url: &str, hosts: &[S], allow_http: bool) -> 
     if u.scheme() != "https" && !(allow_http && u.scheme() == "http") {
         return false;
     }
-    u.host_str().is_some_and(|h| hosts.iter().any(|a| a.as_ref().eq_ignore_ascii_case(h)))
+    u.host_str().is_some_and(|h| {
+        hosts.iter().any(|a| match a.as_ref().strip_prefix("*.") {
+            // A real subdomain: a dot before the name, so `evilhf.co` and `hf.co` itself do not match `*.hf.co`.
+            Some(suffix) => h.len() > suffix.len() + 1 && h.to_ascii_lowercase().ends_with(&format!(".{}", suffix.to_ascii_lowercase())),
+            None => a.as_ref().eq_ignore_ascii_case(h),
+        })
+    })
 }
 
 pub fn sha256_file(path: &Path) -> std::io::Result<String> {
@@ -313,6 +322,11 @@ mod tests {
         assert!(host_allowed("https://github.com/x", &ALLOWED_HOSTS, false));
         assert!(!host_allowed("https://evil.example/x", &ALLOWED_HOSTS, false));
         assert!(!host_allowed("https://github.com.evil.example/x", &ALLOWED_HOSTS, false));
+        // The CDN host of Hugging Face that broke the first real download, and the look-alikes that must stay out.
+        assert!(host_allowed("https://us.aws.cdn.hf.co/xet-bridge-us/abc?X=1", &ALLOWED_HOSTS, false));
+        assert!(!host_allowed("https://evilhf.co/x", &ALLOWED_HOSTS, false));
+        assert!(!host_allowed("https://hf.co.evil.example/x", &ALLOWED_HOSTS, false));
+        assert!(!host_allowed("http://us.aws.cdn.hf.co/x", &ALLOWED_HOSTS, false));
         assert!(!host_allowed("http://github.com/x", &ALLOWED_HOSTS, false), "plain http is refused");
         assert!(!host_allowed("not a url", &ALLOWED_HOSTS, false));
     }
