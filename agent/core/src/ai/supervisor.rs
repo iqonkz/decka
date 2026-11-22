@@ -1,4 +1,4 @@
-//! Supervisor of the two local servers behind voice control (DATA_MODEL.md 12.3): `llama-server` and `whisper-server`
+﻿//! Supervisor of the two local servers behind voice control (DATA_MODEL.md 12.3): `llama-server` and `whisper-server`
 //! as hidden child processes inside a Job Object (they die with the agent), on free 127.0.0.1 ports, `llama-server`
 //! behind a random key per launch. Lazy start, unload after idle, restart with back-off, stop after repeated crashes.
 //!
@@ -474,7 +474,7 @@ async fn wait_healthy(port: u16, path: &str, timeout: Duration, child: &mut toki
 // ---- Speech recognition request ---------------------------------------------------------------------------------
 
 /// A recognition of a 30 s phrase takes seconds on a GPU and under half a minute on a CPU.
-pub const TRANSCRIBE_TIMEOUT: Duration = Duration::from_secs(60);
+pub const TRANSCRIBE_TIMEOUT: Duration = Duration::from_secs(15);
 
 /// The `multipart/form-data` body of `POST /inference` (DATA_MODEL.md 12.4 item 2): `file` (WAV), the forced `language`,
 /// `response_format=json`, `temperature=0`.

@@ -1,4 +1,4 @@
-//! The AI path of a voice request (DATA_MODEL.md 12.4 item 4): what is sent to the local `llama-server` and how its answer
+﻿//! The AI path of a voice request (DATA_MODEL.md 12.4 item 4): what is sent to the local `llama-server` and how its answer
 //! is read. The model only proposes a tool call; nothing it says runs before `tools::validate` has checked it, and an
 //! answer that does not fit is no answer at all (`None` -> "Didn't get that").
 //!
@@ -17,7 +17,7 @@ pub const MAX_CONTEXT_CHARS: usize = 6_000;
 pub const MAX_TOKENS: u32 = 256;
 pub const TEMPERATURE: f64 = 0.1;
 /// A phrase is short; a model that has not answered in this time is not going to.
-pub const ASK_TIMEOUT: Duration = Duration::from_secs(30);
+pub const ASK_TIMEOUT: Duration = Duration::from_secs(20);
 /// The longest `say` kept (PROTOCOL.md 3: `reply` <= 300).
 pub const MAX_SAY: usize = 300;
 const MAX_NAME: usize = 60;

@@ -1,5 +1,5 @@
-//! Voice control inside the running agent (M21 C2): connects the pipeline (`pipeline::Driver`) to the things that exist
-//! only there — the microphone, the hotkey, whisper, the action runners, the `voice` section of the state and the pill.
+﻿//! Voice control inside the running agent (M21 C2): connects the pipeline (`pipeline::Driver`) to the things that exist
+//! only there вЂ” the microphone, the hotkey, whisper, the action runners, the `voice` section of the state and the pill.
 //! The decisions (`press_event`, `pill_cmds`, `tool_action`, `build_context`, `pill_payload`) are pure functions with tests;
 //! `Host` is the glue. The window of the pill is created by the application through the `PillHook`.
 
@@ -29,6 +29,9 @@ pub const RESULT_SHOWN_MS: u64 = 4_000;
 pub const WATCHDOG_MS: u64 = 30_000;
 /// An opened microphone that gives no chunk for this long is unavailable.
 pub const MIC_SILENT_MS: u64 = 1_000;
+/// The decisions of this many requests after the start are written to `voice.log`.
+const LOGGED_FIRST: usize = 5;
+static LOGGED_REQUESTS: AtomicUsize = AtomicUsize::new(0);
 
 // ---- Pure decisions ---------------------------------------------------------------------------------------------
 
@@ -483,7 +486,11 @@ impl Ports for Inner {
         {
             let mut slot = self.mic.lock().unwrap();
             if !on {
-                *slot = None; // dropping closes the device
+                // Closing the device waits for the audio thread; it must never happen on the thread that handles the event
+                // (the main thread of the application in the case of `voice_stop`): a thread of its own does it.
+                if let Some(m) = slot.take() {
+                    std::thread::spawn(move || drop(m));
+                }
                 return;
             }
             let wanted = self.service.status().mic;
@@ -494,15 +501,24 @@ impl Ports for Inner {
                 let last_info = self.last.lock().unwrap().clone();
                 self.chunks.store(0, Ordering::SeqCst);
                 let (counter, decided) = (self.chunks.clone(), Arc::new(AtomicBool::new(false)));
+                // The decisions of the first requests after the start (or all of them with `DECKA_VOICE_DEBUG`) go to voice.log.
+                let log = std::env::var_os("DECKA_VOICE_DEBUG").is_some() || LOGGED_REQUESTS.fetch_add(1, Ordering::SeqCst) < LOGGED_FIRST;
+                let handle = self.handle.clone();
                 mic::start(
                     wanted,
+                    log,
                     move |fed| {
                         counter.fetch_add(1, Ordering::SeqCst);
+                        if log {
+                            mic::log_line(&mic::decision_line(&fed.decision, fed.verdict));
+                        }
                         feed.push_audio(&fed.pcm);
                         // The wave of the pill follows the voice (a chunk is 100 ms, so at most 10 times a second).
                         if let Some(info) = last_info.as_ref().filter(|i| i.state == "listening") {
                             if let Some(cmd) = pill_cmd(info, &hotkey, fed.level) {
-                                pill_self(cmd);
+                                // Windows of the pill belong to the main thread: never wait for it on the audio thread.
+                                let pill_self = pill_self.clone();
+                                handle.spawn_blocking(move || pill_self(cmd));
                             }
                         }
                         let event = match fed.verdict {

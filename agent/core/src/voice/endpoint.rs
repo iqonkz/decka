@@ -1,13 +1,19 @@
-//! End of the phrase by silence (DATA_MODEL.md 12.6a). A pure function over the RMS of 100 ms chunks (PCM normalised to 1.0):
+﻿//! End of the phrase by silence (DATA_MODEL.md 12.6a). A pure function over the RMS of 100 ms chunks (PCM normalised to 1.0):
 //! `continue | end | no_speech`. The phone has the same logic with the same constants in `client/src/voice/endpoint.ts`.
 
 /// One chunk is 100 ms.
 pub const CHUNK_MS: u32 = 100;
-/// The first 300 ms measure the noise floor.
-pub const CALIBRATION_MS: u32 = 300;
-/// Speech is a chunk louder than `max(floor * NOISE_FACTOR, MIN_THRESHOLD)`.
+/// The noise floor is a low percentile of the last `FLOOR_WINDOW` chunks, so speech from the first second cannot raise it.
+pub const FLOOR_WINDOW: usize = 30;
+pub const FLOOR_PERCENTILE: f32 = 0.2;
+/// Speech is a chunk louder than `clamp(floor * NOISE_FACTOR, MIN_THRESHOLD, MAX_THRESHOLD)`. The cap keeps a loud first
+/// second (or a very noisy room) from hiding the speech.
 pub const NOISE_FACTOR: f32 = 3.0;
 pub const MIN_THRESHOLD: f32 = 0.015;
+pub const MAX_THRESHOLD: f32 = 0.03;
+/// After speech, a chunk is silence below this share of the mean speech level (a microphone whose gain rises in a pause
+/// would otherwise keep the phrase open for ever).
+pub const END_RATIO: f32 = 0.25;
 /// Speech counts after this much of it.
 pub const MIN_SPEECH_MS: u32 = 300;
 /// This much silence in a row after speech ends the phrase.
@@ -24,14 +30,25 @@ pub enum Verdict {
     NoSpeech,
 }
 
+/// What the last chunk looked like, for `voice.log` (numbers only: no sound, no text).
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+pub struct Decision {
+    pub rms: f32,
+    pub floor: f32,
+    pub threshold: f32,
+    pub speech_ms: u32,
+    pub silence_ms: u32,
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct Endpointer {
     elapsed_ms: u32,
-    floor_sum: f32,
-    floor_n: u32,
-    threshold: f32,
+    window: std::collections::VecDeque<f32>,
     speech_ms: u32,
     silence_ms: u32,
+    speech_sum: f32,
+    speech_n: u32,
+    last: Decision,
 }
 
 impl Endpointer {
@@ -39,21 +56,37 @@ impl Endpointer {
         Endpointer::default()
     }
 
+    /// The decision about the chunk fed last.
+    pub fn last(&self) -> Decision {
+        self.last
+    }
+
+    fn floor(&self) -> f32 {
+        let mut v: Vec<f32> = self.window.iter().copied().collect();
+        v.sort_by(|a, b| a.total_cmp(b));
+        v.get(((v.len().saturating_sub(1)) as f32 * FLOOR_PERCENTILE) as usize).copied().unwrap_or(0.0)
+    }
+
     /// The RMS of the next chunk of 100 ms.
     pub fn feed(&mut self, rms: f32) -> Verdict {
         self.elapsed_ms += CHUNK_MS;
-        if self.floor_n < CALIBRATION_MS / CHUNK_MS {
-            self.floor_sum += rms;
-            self.floor_n += 1;
-            if self.floor_n == CALIBRATION_MS / CHUNK_MS {
-                self.threshold = (self.floor_sum / self.floor_n as f32 * NOISE_FACTOR).max(MIN_THRESHOLD);
-            }
-        } else if rms > self.threshold {
+        self.window.push_back(rms);
+        if self.window.len() > FLOOR_WINDOW {
+            self.window.pop_front();
+        }
+        let floor = self.floor();
+        let start = (floor * NOISE_FACTOR).clamp(MIN_THRESHOLD, MAX_THRESHOLD);
+        let in_speech = self.speech_ms >= MIN_SPEECH_MS;
+        let threshold = if in_speech { start.max(END_RATIO * self.speech_sum / self.speech_n.max(1) as f32) } else { start };
+        if rms > threshold {
             self.speech_ms += CHUNK_MS;
             self.silence_ms = 0;
-        } else if self.speech_ms >= MIN_SPEECH_MS {
+            self.speech_sum += rms;
+            self.speech_n += 1;
+        } else if in_speech {
             self.silence_ms += CHUNK_MS;
         }
+        self.last = Decision { rms, floor, threshold, speech_ms: self.speech_ms, silence_ms: self.silence_ms };
         if self.elapsed_ms >= MAX_MS || self.silence_ms >= END_SILENCE_MS {
             Verdict::End
         } else if self.speech_ms < MIN_SPEECH_MS && self.elapsed_ms >= NO_SPEECH_MS {
@@ -63,7 +96,6 @@ impl Endpointer {
         }
     }
 }
-
 /// The wave of the pill: rises at once, falls with a time constant of 150 ms.
 #[derive(Debug, Clone, Default)]
 pub struct LevelSmoother {

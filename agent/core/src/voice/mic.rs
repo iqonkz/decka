@@ -1,9 +1,9 @@
-//! The microphone of the PC (DATA_MODEL.md 12.6): `cpal` delivers frames in whatever format the device has; this module
+﻿//! The microphone of the PC (DATA_MODEL.md 12.6): `cpal` delivers frames in whatever format the device has; this module
 //! turns them into 16 kHz mono PCM16 chunks of 100 ms, with the level for the pill and the end-of-speech decision.
 //! The conversion (`Capture`, `choose_device`) is pure; the thin layer at the bottom talks to `cpal` on a thread of its own.
 
 use super::audio::{calculate_rms, resample_to_16k};
-use super::endpoint::{Endpointer, LevelSmoother, Verdict};
+use super::endpoint::{Decision, Endpointer, LevelSmoother, Verdict};
 
 /// One chunk is 100 ms of audio, as on the phone (PROTOCOL.md 3).
 const CHUNK_MS: u32 = 100;
@@ -17,6 +17,34 @@ pub struct Fed {
     pub level: f32,
     /// The end-of-phrase decision (DATA_MODEL.md 12.6a).
     pub verdict: Verdict,
+    /// What the endpoint saw (for oice.log).
+    pub decision: Decision,
+}
+
+/// One line of %LOCALAPPDATA%\Decka\logs\voice.log: numbers about the decisions only, never sound or text. The file is cut to
+/// its last half when it grows past 256 KB. Failures to write are ignored.
+pub fn log_line(line: &str) {
+    use std::io::Write;
+    let Some(base) = std::env::var_os("LOCALAPPDATA").map(std::path::PathBuf::from).or_else(dirs::data_local_dir) else { return };
+    let dir = base.join("Decka").join("logs");
+    let _ = std::fs::create_dir_all(&dir);
+    let path = dir.join("voice.log");
+    if std::fs::metadata(&path).is_ok_and(|m| m.len() > 256 * 1024) {
+        if let Ok(text) = std::fs::read_to_string(&path) {
+            let keep = text.len() / 2;
+            let cut = text.char_indices().map(|(i, _)| i).find(|i| *i >= keep).unwrap_or(0);
+            let _ = std::fs::write(&path, &text[cut..]);
+        }
+    }
+    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(path) {
+        let secs = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
+        let _ = writeln!(f, "{secs} {line}");
+    }
+}
+
+/// The line for a chunk: rms, floor, threshold and the running counters.
+pub fn decision_line(d: &Decision, verdict: Verdict) -> String {
+    format!("chunk rms={:.4} floor={:.4} thr={:.4} speech_ms={} silence_ms={} verdict={:?}", d.rms, d.floor, d.threshold, d.speech_ms, d.silence_ms, verdict)
 }
 
 /// Sample conversions of the formats `cpal` hands out.
@@ -75,7 +103,7 @@ impl Capture {
             let rms = calculate_rms(&mono16) / 32768.0;
             let verdict = self.endpointer.feed(rms);
             let level = self.smoother.feed(rms);
-            out.push(Fed { pcm: mono16.iter().flat_map(|s| s.to_le_bytes()).collect(), level, verdict });
+            out.push(Fed { pcm: mono16.iter().flat_map(|s| s.to_le_bytes()).collect(), level, verdict, decision: self.endpointer.last() });
         }
         out
     }
@@ -162,6 +190,7 @@ mod device {
     /// thread of its own (it is not `Send` on Windows); an error while recording goes to `on_error`.
     pub fn start(
         wanted: Option<String>,
+        log: bool,
         mut on_chunk: impl FnMut(Fed) + Send + 'static,
         on_error: impl Fn(String) + Send + Sync + 'static,
     ) -> Result<Mic, String> {
@@ -185,6 +214,9 @@ mod device {
                     };
                     let supported = device.default_input_config().map_err(|e| format!("Microphone is not available: {e}"))?;
                     let (rate, channels, format) = (supported.sample_rate(), supported.channels(), supported.sample_format());
+                    if log {
+                        super::log_line(&format!("device rate={rate} channels={channels} format={format:?}"));
+                    }
                     let config = supported.config();
                     let mut capture = Capture::new(rate, channels);
                     let on_err = move |e: cpal::Error| on_error(format!("Microphone stopped: {e}"));
@@ -300,6 +332,68 @@ mod tests {
         let ended = (0..30).map(|_| c.feed(&vec![0; 1600]).remove(0).verdict).position(|v| v == Verdict::End);
         // 2 s of silence = the 20th chunk.
         assert_eq!(ended, Some(19));
+    }
+
+    /// A recording as the microphone delivers it: stereo, 48 kHz, i16. A segment is `(seconds, rms of the sound, rms of the noise)`;
+    /// the sound is a few voiced partials with a syllable rhythm, the noise is a deterministic hash noise.
+    fn recording(segments: &[(f32, f32, f32)]) -> Vec<i16> {
+        let (rate, mut n) = (48_000usize, 0u64);
+        let mut out = Vec::new();
+        for &(secs, speech, noise) in segments {
+            for i in 0..(secs * rate as f32) as usize {
+                let t = i as f32 / rate as f32;
+                let syllable = if speech > 0.0 { 0.55 + 0.45 * (t * 14.0).sin().abs() } else { 0.0 };
+                let voice = ((t * 220.0 * std::f32::consts::TAU).sin() + 0.5 * (t * 880.0 * std::f32::consts::TAU).sin()) * 0.63 * syllable;
+                n = n.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+                let hiss = ((n >> 33) as f32 / (1u64 << 31) as f32 - 0.5) * 3.46;
+                let v = ((voice * speech * 2.2 + hiss * noise) * 32767.0).round().clamp(-32768.0, 32767.0) as i16;
+                out.extend([v, v]);
+            }
+        }
+        out
+    }
+
+    /// Runs a recording through the capture in pieces of the size a device delivers; returns the second of the end verdict.
+    fn ends_at(rec: &[i16]) -> Option<f32> {
+        let mut c = Capture::new(48_000, 2);
+        let mut chunks = 0;
+        for piece in rec.chunks(960 * 2) {
+            for fed in c.feed(piece) {
+                chunks += 1;
+                if fed.verdict == Verdict::End {
+                    return Some(chunks as f32 / 10.0);
+                }
+            }
+        }
+        None
+    }
+
+    #[test]
+    fn a_recorded_phrase_ends_within_2_5_seconds_after_the_speech_on_any_microphone() {
+        // (name, lead-in noise seconds, speech seconds, speech level, noise level)
+        let cases: [(&str, f32, f32, f32, f32); 5] = [("ordinary", 0.5, 2.0, 0.08, 0.004), ("quiet", 0.5, 2.0, 0.02, 0.0015), ("noisy room", 0.5, 2.0, 0.1, 0.012), ("speech at once", 0.0, 2.5, 0.08, 0.004), ("very quiet", 0.3, 2.0, 0.03, 0.001)];
+        for (name, lead, speech, level, noise) in cases {
+            let rec = recording(&[(lead.max(0.05), 0.0, noise), (speech, level, noise), (4.0, 0.0, noise)]);
+            let speech_end = lead.max(0.05) + speech;
+            let end = ends_at(&rec).unwrap_or_else(|| panic!("{name}: the recording never ended"));
+            assert!(end >= speech_end + 1.5 && end <= speech_end + 2.5, "{name}: speech ended at {speech_end} s, the verdict came at {end} s");
+        }
+    }
+
+    #[test]
+    fn a_microphone_that_raises_its_gain_in_the_pause_still_ends_the_phrase() {
+        // Automatic gain: the noise after the speech is four times louder than before it.
+        let rec = recording(&[(0.5, 0.0, 0.004), (2.0, 0.08, 0.004), (5.0, 0.0, 0.017)]);
+        let end = ends_at(&rec).expect("the recording never ended");
+        assert!(end <= 4.5 + 0.1, "the verdict came at {end} s");
+    }
+
+    #[test]
+    fn the_decision_of_a_chunk_is_in_the_log_line() {
+        let mut c = Capture::new(16_000, 1);
+        let fed = c.feed(&tone(1600, 3000)).remove(0);
+        let line = decision_line(&fed.decision, fed.verdict);
+        assert!(line.starts_with("chunk rms=0.0") && line.contains("floor=") && line.contains("thr=0.0300") && line.ends_with("verdict=Continue"), "{line}");
     }
 
     #[test]
