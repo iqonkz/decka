@@ -1,6 +1,6 @@
 {
   "name": "decka",
-  "version": "0.20.0",
+  "version": "0.20.1",
   "private": true,
   "workspaces": ["shared", "ui", "client", "agent"],
   "engines": { "node": ">=22.12" },

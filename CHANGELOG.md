@@ -4,6 +4,8 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+## 0.20.1 — 2026-11-22
+
 ### Fixed
 - **Voice pill stuck in "Listening…"**: the end of a phrase used a fixed loudness limit, so with a quiet microphone the recording never ended and the wave stayed as three dots. The pill now measures the room noise first and ends the phrase itself after 2 s of silence; nothing said for 5 s ends with "Didn't hear anything"; a request can never stay in one state longer than 30 s ("Something went wrong, try again"); a microphone that does not open or gives no sound is reported as "Microphone is unavailable".
 - Phone: a tap on the voice button did nothing and a long press opened the page's menu. A tap now listens (the icon turns to stop, the ring follows your voice, silence for 2 s ends it, a second tap ends it at once); holding for 250 ms is a walkie-talkie (release ends it); dragging moves the button. The long-press menu and text selection no longer appear on the button.
