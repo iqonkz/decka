@@ -4,6 +4,8 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+## 0.20.0 — 2026-11-22
+
 ### Added
 - **Voice control (local AI)**: say what you want, with **Ctrl+Alt+Space** on the PC (a small pill shows what was heard and what was done; press again to finish, Esc cancels) or with the round microphone button on the phone (hold to talk, drag to move it to another edge; it can be hidden in the phone menu; there is also a `voice` key for the grid). Switched on in **More → Voice → Turn on voice control**: the speech model (Whisper large-v3-turbo) and the language model (Qwen3.5 4B, or 2B on PCs with little memory) are downloaded once (≈ 3.2 GB), every file checked against a fixed SHA-256, and run as hidden programs on `127.0.0.1` (llama.cpp with Vulkan, whisper.cpp). Nothing you say leaves the PC and no phrase is written to the log. The servers start with the first phrase and stop after 10 minutes of silence (`Keep the model loaded` switches that off).
 - **Understanding**: a table of phrases for each of the 11 languages first (instant), then the model with a JSON schema for the rest. The model only proposes a call of one of a fixed list of tools; every call is checked on the PC against what exists (installed programs, your buttons, actions and pages) before anything runs. Tools: press a button or run an action of yours, open / switch to / close a program, move the window to the other monitor, which monitor, volume (up, down, mute, a number), media, go to a page, web search (web, YouTube, maps), open a site, type text, dictate (the next phrase is typed as it is), timer, lock and sleep (these ask `Yes / No` first, by voice, by Enter / Esc or on the phone sheet).
