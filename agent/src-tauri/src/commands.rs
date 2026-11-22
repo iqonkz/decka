@@ -420,3 +420,10 @@ pub async fn voice_remove(app: AppHandle) -> Result<decka_core::ai::service::Voi
 pub fn voice_set(app: AppHandle, args: decka_core::ai::service::VoiceSetArgs) -> Result<decka_core::ai::service::VoiceStatus, String> {
     voice(&app)?.set(args)
 }
+/// The Yes/No of the voice pill (oice_confirm of shared/src/ipc.ts); an unknown id is ignored by the pipeline.
+#[tauri::command]
+pub fn voice_confirm(app: AppHandle, id: String, yes: bool) -> Result<(), String> {
+    let host = app.try_state::<decka_core::voice::host::Host>().ok_or_else(|| "voice control did not start".to_string())?;
+    host.confirm(&id, yes);
+    Ok(())
+}

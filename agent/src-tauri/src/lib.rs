@@ -108,6 +108,7 @@ pub fn run() {
             commands::voice_cancel,
             commands::voice_remove,
             commands::voice_set,
+            commands::voice_confirm,
         ])
         .setup(|app| {
             let minimized = std::env::args().any(|a| a == "--minimized");
@@ -148,7 +149,7 @@ pub fn run() {
                         }
                     });
                     agent.start_update_loop();
-                    voice::setup(app.handle(), agent.config_dir());
+                    voice::setup(app.handle(), &agent);
 
                     app.manage(agent);
                 }

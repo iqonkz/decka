@@ -5,7 +5,10 @@
 //! and the limits, and only then reaches the pipeline (ARCHITECTURE.md S24).
 
 pub mod audio;
+pub mod host;
+pub mod hotkey;
 pub mod matcher;
+pub mod mic;
 pub mod pipeline;
 pub mod tools;
 

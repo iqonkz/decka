@@ -471,9 +471,95 @@ async fn wait_healthy(port: u16, path: &str, timeout: Duration, child: &mut toki
     }
 }
 
+// ---- Speech recognition request ---------------------------------------------------------------------------------
+
+/// A recognition of a 30 s phrase takes seconds on a GPU and under half a minute on a CPU.
+pub const TRANSCRIBE_TIMEOUT: Duration = Duration::from_secs(60);
+
+/// The `multipart/form-data` body of `POST /inference` (DATA_MODEL.md 12.4 item 2): `file` (WAV), the forced `language`,
+/// `response_format=json`, `temperature=0`.
+pub fn whisper_multipart(boundary: &str, wav: &[u8], language: &str) -> Vec<u8> {
+    let mut body = Vec::with_capacity(wav.len() + 512);
+    let field = |body: &mut Vec<u8>, name: &str, value: &str| {
+        body.extend_from_slice(format!("--{boundary}\r\nContent-Disposition: form-data; name=\"{name}\"\r\n\r\n{value}\r\n").as_bytes());
+    };
+    body.extend_from_slice(
+        format!("--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"voice.wav\"\r\nContent-Type: audio/wav\r\n\r\n").as_bytes(),
+    );
+    body.extend_from_slice(wav);
+    body.extend_from_slice(b"\r\n");
+    field(&mut body, "language", language);
+    field(&mut body, "response_format", "json");
+    field(&mut body, "temperature", "0");
+    body.extend_from_slice(format!("--{boundary}--\r\n").as_bytes());
+    body
+}
+
+/// The text of a whisper answer (`{"text": " open calculator"}`). Silence comes back as an empty text or as a marker such as
+/// `[BLANK_AUDIO]` / `(silence)`: both are an empty result.
+pub fn parse_whisper_response(body: &str) -> Result<String, String> {
+    let v: serde_json::Value = serde_json::from_str(body).map_err(|_| "Speech recognition answered something unreadable".to_string())?;
+    if let Some(e) = v.get("error").and_then(|e| e.as_str()) {
+        return Err(format!("Speech recognition failed: {e}"));
+    }
+    let text = v.get("text").and_then(|t| t.as_str()).ok_or_else(|| "Speech recognition answered without text".to_string())?;
+    let text = text.split_whitespace().collect::<Vec<_>>().join(" ");
+    let marker = (text.starts_with('[') && text.ends_with(']')) || (text.starts_with('(') && text.ends_with(')'));
+    Ok(if marker { String::new() } else { text })
+}
+
+impl Supervisor {
+    /// Recognises 16 kHz mono PCM16 with `whisper-server` (started lazily; the first call waits for the models).
+    pub async fn transcribe(&self, pcm: &[u8], language: &str) -> Result<String, String> {
+        let endpoints = self.ensure_started().await?;
+        let samples: Vec<i16> = pcm.chunks_exact(2).map(|b| i16::from_le_bytes([b[0], b[1]])).collect();
+        let wav = crate::voice::audio::encode_wav_pcm16(&samples, 16_000);
+        let boundary = format!("decka{}", new_key());
+        let body = whisper_multipart(&boundary, &wav, language);
+        let client = reqwest::Client::builder().timeout(TRANSCRIBE_TIMEOUT).build().map_err(|e| e.to_string())?;
+        let url = format!("http://127.0.0.1:{}/inference", endpoints.whisper_port);
+        let answer = client
+            .post(url)
+            .header("Content-Type", format!("multipart/form-data; boundary={boundary}"))
+            .body(body)
+            .send()
+            .await
+            .map_err(|e| format!("Speech recognition did not answer: {e}"))?;
+        if !answer.status().is_success() {
+            return Err(format!("Speech recognition failed: HTTP {}", answer.status().as_u16()));
+        }
+        let text = answer.text().await.map_err(|e| e.to_string())?;
+        self.touch();
+        parse_whisper_response(&text)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_multipart_body_has_the_file_and_the_fixed_fields_in_order() {
+        let body = whisper_multipart("BND", b"RIFFdata", "ru");
+        let text = String::from_utf8_lossy(&body).to_string();
+        assert!(text.starts_with("--BND\r\nContent-Disposition: form-data; name=\"file\"; filename=\"voice.wav\"\r\nContent-Type: audio/wav\r\n\r\nRIFFdata\r\n"));
+        let at = |needle: &str| text.find(needle).unwrap_or_else(|| panic!("{needle} missing"));
+        assert!(at("name=\"language\"\r\n\r\nru\r\n") < at("name=\"response_format\"\r\n\r\njson\r\n"));
+        assert!(at("name=\"response_format\"") < at("name=\"temperature\"\r\n\r\n0\r\n"));
+        assert!(text.ends_with("--BND--\r\n"));
+        assert_eq!(text.matches("--BND\r\n").count(), 4);
+    }
+
+    #[test]
+    fn a_whisper_answer_gives_clean_text_and_silence_gives_nothing() {
+        assert_eq!(parse_whisper_response(r#"{"text":"  open   calculator\n"}"#).unwrap(), "open calculator");
+        assert_eq!(parse_whisper_response(r#"{"text":" [BLANK_AUDIO]"}"#).unwrap(), "");
+        assert_eq!(parse_whisper_response(r#"{"text":"(silence)"}"#).unwrap(), "");
+        assert_eq!(parse_whisper_response(r#"{"text":""}"#).unwrap(), "");
+        assert!(parse_whisper_response(r#"{"error":"bad audio"}"#).unwrap_err().contains("bad audio"));
+        assert!(parse_whisper_response("<html>").is_err());
+        assert!(parse_whisper_response(r#"{"other":1}"#).is_err());
+    }
 
     #[test]
     fn crashes_restart_after_2_5_15_seconds_and_the_fourth_in_ten_minutes_gives_up() {

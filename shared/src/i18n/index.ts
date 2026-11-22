@@ -88,6 +88,15 @@ export function t(key: TranslationKey, params?: Params): string {
   return translate(current, key, params);
 }
 
+/**
+ * A text of the voice section (PROTOCOL.md 3): the dictionary text of `key` with `args` when the key is known, else the
+ * free text `fallback` (a model answer, a program name, a key of a newer agent).
+ */
+export function tVoice(key: string | undefined, args: Params | undefined, fallback: string | undefined): string | undefined {
+  if (key && key in en) return translate(current, key as TranslationKey, args);
+  return fallback;
+}
+
 /** `1 button`, `2 buttons`: shorthand for a plural family with the number as `count`. */
 export function tn(key: TranslationKey, count: number, params?: Params): string {
   return translate(current, key, { ...params, count });

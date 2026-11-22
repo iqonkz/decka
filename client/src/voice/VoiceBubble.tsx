@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { t } from "@decka/shared";
+import { t, tVoice } from "@decka/shared";
 import type { VoiceInfo } from "./api";
 
 interface Props {
@@ -32,7 +32,8 @@ export default function VoiceBubble({ state, fabPos }: Props) {
     return null;
   }
 
-  const { state: phase, heard, reply } = cachedState;
+  const { state: phase, heard, replyKey, replyArgs } = cachedState;
+  const reply = tVoice(replyKey, replyArgs, cachedState.reply);
 
   let statusText = "";
   if (phase === "listening") {
@@ -40,7 +41,7 @@ export default function VoiceBubble({ state, fabPos }: Props) {
   } else if (phase === "thinking" || phase === "loading") {
     statusText = t("voice.thinking");
   } else if (phase === "error") {
-    statusText = t("voice.error");
+    statusText = reply || t("voice.error");
   } else if (phase === "done") {
     statusText = reply || t("voice.done");
   } else if (reply) {

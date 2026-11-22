@@ -99,6 +99,9 @@ pub struct Validated {
     pub confirm: bool,
     /// What the confirmation shows and the log keeps, e.g. `Lock the computer`.
     pub summary: String,
+    /// i18n key of the confirmation (`voice.confirm.*`) with its arguments; `summary` is the English fallback.
+    pub key: Option<&'static str>,
+    pub args: std::collections::BTreeMap<String, String>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -115,7 +118,13 @@ fn reject(why: &str) -> Resolved {
 }
 
 fn ready(call: ToolCall, confirm: bool, summary: impl Into<String>) -> Resolved {
-    Resolved::Ready(Validated { call, confirm, summary: summary.into() })
+    Resolved::Ready(Validated { call, confirm, summary: summary.into(), key: None, args: Default::default() })
+}
+
+/// `ready` for a confirmation with an i18n key.
+fn ready_key(call: ToolCall, confirm: bool, summary: impl Into<String>, key: &'static str, args: &[(&str, &str)]) -> Resolved {
+    let args = args.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect();
+    Resolved::Ready(Validated { call, confirm, summary: summary.into(), key: Some(key), args })
 }
 
 /// Only these fields may be present; anything else makes the whole call void.
@@ -350,8 +359,8 @@ fn run(tool: &str, args: &serde_json::Map<String, Value>, ctx: &Context) -> Resu
             only(args, &["op"])?;
             // Only the harmless pair; shutdown, restart and the like are not voice tools.
             match args.get("op").and_then(Value::as_str).unwrap_or_default() {
-                "lock" => ready(ToolCall::System(SystemOp::Lock), true, "Lock the computer"),
-                "sleep" => ready(ToolCall::System(SystemOp::Sleep), true, "Put the computer to sleep"),
+                "lock" => ready_key(ToolCall::System(SystemOp::Lock), true, "Lock the computer", "voice.confirm.lock", &[]),
+                "sleep" => ready_key(ToolCall::System(SystemOp::Sleep), true, "Put the computer to sleep", "voice.confirm.sleep", &[]),
                 _ => reject("unknown system op"),
             }
         }
@@ -360,7 +369,7 @@ fn run(tool: &str, args: &serde_json::Map<String, Value>, ctx: &Context) -> Resu
 }
 
 fn run_action(a: &ActionRef, ctx: &Context) -> Resolved {
-    ready(ToolCall::RunAction { action_id: a.id.clone() }, ctx.confirm_actions.contains(&a.id), format!("Run {}", a.name))
+    ready_key(ToolCall::RunAction { action_id: a.id.clone() }, ctx.confirm_actions.contains(&a.id), format!("Run {}", a.name), "voice.confirm.run", &[("name", &a.name)])
 }
 
 #[cfg(test)]

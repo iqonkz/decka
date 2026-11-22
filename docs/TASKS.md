@@ -245,7 +245,7 @@ voice_set(args: { model?, hotkey?, keepLoaded?, speak?, phoneButton?, mic? }): V
 ### T21.S — Стабилизация M21 — [Claude]
 По п. 7d. Полный прогон, исправление упавшего, снимки плашки и кнопки на телефоне — в Chrome, аудит.
 
-### T21.6 — Выпуск 0.12.0 — [Claude]
+### T21.6 — Выпуск 0.20.0 (решение владельца 2026-11-22: крупный шаг — локальный ИИ-агент; версию задать явно, не `minor`: если `version:bump` не принимает номер — `npm run version:bump -- 0.20.0` или правка источника версии тем же скриптом) — [Claude]
 1. После T21.R и T21.S. NOTICE: `Voice control ideas inspired by Nixi (heynixi); no code copied. llama.cpp and whisper.cpp (MIT), Qwen3.5 (Apache-2.0), Whisper models (MIT) are downloaded at the user's request.`
 2. Выпуск по обычным шагам. Дополнительно: на ПК исполнителя один раз включить голос (настоящая загрузка ≈ 3,2 ГБ) и прогнать `voice-eval` на 4B и на 2B (лёгкая); таблицу точности по языкам — в отчёт и CHANGELOG (§12.8).
 3. `PENDING (owner)`: голосом с ПК и с телефона на русском и казахском; подтверждение; работа без видеокарты (если есть такой ПК).

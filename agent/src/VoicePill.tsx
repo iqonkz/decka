@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { t } from "@decka/shared";
+import { t, tVoice } from "@decka/shared";
 import logoUrl from "../../docs/assets/decka-logo.svg";
 import { call, onVoicePill, type VoicePillEvent } from "./ipc";
 
@@ -68,6 +68,8 @@ export default function VoicePill({ initialData, onConfirm }: VoicePillProps) {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [data.state, data.id]);
 
+  const reply = tVoice(data.replyKey, data.replyArgs, data.reply);
+  const confirmText = tVoice(data.confirm?.key, data.confirm?.args, data.confirm?.text);
   const level = Math.max(0, Math.min(1, data.level ?? (data.state === "listening" ? 0.3 : 0.05)));
 
   // Waveform 5 bars scaled by level
@@ -110,25 +112,25 @@ export default function VoicePill({ initialData, onConfirm }: VoicePillProps) {
           {data.state === "done" && (
             <span className="voice-done">
               <span className="voice-check" aria-hidden="true">✓ </span>
-              {data.reply || data.heard || t("voice.done")}
+              {reply || data.heard || t("voice.done")}
             </span>
           )}
 
           {data.state === "error" && (
             <span className="voice-error">
               <span className="voice-error-dot" aria-hidden="true">● </span>
-              {data.reply || t("voice.error")}
+              {reply || t("voice.error")}
             </span>
           )}
 
           {data.state === "confirm" && (
             <span className="voice-confirm-prompt">
-              {data.confirm?.text || data.reply || t("voice.confirm_title")}
+              {confirmText || reply || t("voice.confirm_title")}
             </span>
           )}
 
           {data.state === "idle" && (
-            <span className="voice-status-text">{t("voice.key_label")}</span>
+            <span className="voice-status-text">{t("voice.ready", { hotkey: data.hotkey ?? "" })}</span>
           )}
 
           {data.state === "loading" && (
@@ -141,7 +143,7 @@ export default function VoicePill({ initialData, onConfirm }: VoicePillProps) {
       {data.state === "confirm" && (
         <div className="voice-pill-confirm">
           <div className="voice-confirm-text">
-            {data.confirm?.text || data.reply || t("voice.confirm_title")}
+            {confirmText || reply || t("voice.confirm_title")}
           </div>
           <div className="voice-confirm-actions">
             <button

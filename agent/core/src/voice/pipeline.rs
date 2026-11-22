@@ -2,6 +2,7 @@
 //! -> execute. `step` is a pure function over events; `Driver` runs its effects against `Ports` (whisper, the model, the
 //! executors, the microphone), which tests replace with fakes.
 
+use std::collections::BTreeMap;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::{Arc, Mutex};
@@ -22,6 +23,35 @@ pub mod msg {
     pub const DIDNT_GET: &str = "Didn't get that — try again";
     pub const CANCELLED: &str = "Cancelled";
     pub const DONE: &str = "Done";
+    pub const NO_MIC: &str = "No microphone found";
+}
+
+/// i18n keys of the fixed phrases (`shared/src/i18n`, `voice.reply.*`); the English text of `msg` is their fallback.
+pub mod key {
+    pub const DIDNT_CATCH: &str = "voice.reply.didnt_catch";
+    pub const DIDNT_GET: &str = "voice.reply.didnt_get";
+    pub const CANCELLED: &str = "voice.reply.cancelled";
+    pub const DONE: &str = "voice.reply.done";
+    pub const WHICH: &str = "voice.reply.which";
+    pub const CANT: &str = "voice.reply.cant";
+    pub const NO_MIC: &str = "voice.reply.no_mic";
+}
+
+/// A fixed phrase as an i18n key with its arguments (PROTOCOL.md 3: `replyKey` / `replyArgs`).
+#[derive(Debug, Clone, PartialEq)]
+pub struct ReplyKey {
+    pub key: &'static str,
+    pub args: BTreeMap<String, String>,
+}
+
+impl ReplyKey {
+    pub fn plain(key: &'static str) -> ReplyKey {
+        ReplyKey { key, args: BTreeMap::new() }
+    }
+
+    pub fn with(key: &'static str, name: &str, value: &str) -> ReplyKey {
+        ReplyKey { key, args: BTreeMap::from([(name.to_string(), value.to_string())]) }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -54,11 +84,13 @@ pub struct State {
     pub heard: Option<String>,
     /// The model's own short answer; replaces the standard result text.
     pub say: Option<String>,
+    /// The key of the fixed phrase in `Done` / `Failed`; `None` for free text (the model's answer, an executor's result).
+    pub reply_key: Option<ReplyKey>,
 }
 
 impl State {
     pub fn idle() -> State {
-        State { phase: Phase::Idle, id: None, source: None, heard: None, say: None }
+        State { phase: Phase::Idle, id: None, source: None, heard: None, say: None, reply_key: None }
     }
 }
 
@@ -74,13 +106,22 @@ pub struct VoiceInfo {
     pub heard: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reply: Option<String>,
+    #[serde(rename = "replyKey", skip_serializing_if = "Option::is_none")]
+    pub reply_key: Option<&'static str>,
+    #[serde(rename = "replyArgs", skip_serializing_if = "BTreeMap::is_empty")]
+    pub reply_args: BTreeMap<String, String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub confirm: Option<ConfirmInfo>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ConfirmInfo {
+    /// The English text: free text or the fallback of `key`.
     pub text: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub key: Option<&'static str>,
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub args: BTreeMap<String, String>,
 }
 
 fn cut(s: &str) -> String {
@@ -94,7 +135,9 @@ impl State {
             Phase::Listening => ("listening", None, None),
             Phase::Transcribing | Phase::Thinking | Phase::Executing => ("thinking", None, None),
             Phase::Loading => ("loading", None, None),
-            Phase::Confirming { call, .. } => ("confirm", None, Some(ConfirmInfo { text: cut(&call.summary) })),
+            Phase::Confirming { call, .. } => {
+                ("confirm", None, Some(ConfirmInfo { text: cut(&call.summary), key: call.key, args: call.args.clone() }))
+            }
             Phase::Done(r) => ("done", Some(cut(r)), None),
             Phase::Failed(r) => ("error", Some(cut(r)), None),
         };
@@ -105,6 +148,8 @@ impl State {
             source: self.source.filter(|_| !idle),
             heard: self.heard.as_deref().map(cut),
             reply,
+            reply_key: self.reply_key.as_ref().filter(|_| matches!(state, "done" | "error")).map(|k| k.key),
+            reply_args: self.reply_key.as_ref().filter(|_| matches!(state, "done" | "error")).map(|k| k.args.clone()).unwrap_or_default(),
             confirm,
         }
     }
@@ -119,6 +164,8 @@ pub enum Event {
     /// The servers are starting.
     ModelLoading,
     Transcript(Result<String, String>),
+    /// The PC microphone could not be opened or died while recording.
+    CaptureFailed(String),
     /// The model's answer: a tool call (with its short text) or nothing usable.
     LlmAnswer(Option<(RawCall, Option<String>)>),
     Confirm { id: String, yes: bool },
@@ -151,6 +198,14 @@ fn describe(i: &Intent) -> String {
 
 fn finish(mut s: State, phase: Phase) -> (State, Vec<Effect>) {
     s.phase = phase;
+    s.reply_key = None;
+    (s, Vec::new())
+}
+
+/// `finish` for a fixed phrase: the text is the English fallback of `key`.
+fn finish_key(mut s: State, phase: Phase, key: ReplyKey) -> (State, Vec<Effect>) {
+    s.phase = phase;
+    s.reply_key = Some(key);
     (s, Vec::new())
 }
 
@@ -166,9 +221,9 @@ fn resolve(mut s: State, raw: &RawCall, now_ms: u64, env: &Env, from_model: bool
             s.phase = Phase::Executing;
             (s, vec![Effect::Execute(v.call)])
         }
-        Resolved::Ask { question, .. } => finish(s, Phase::Done(question)),
-        Resolved::Reject(_) if from_model => finish(s, Phase::Failed(msg::DIDNT_GET.into())),
-        Resolved::Reject(why) => finish(s, Phase::Failed(format!("Can't do that: {why}"))),
+        Resolved::Ask { question, options } => finish_key(s, Phase::Done(question), ReplyKey::with(key::WHICH, "options", &options.iter().take(3).cloned().collect::<Vec<_>>().join(" / "))),
+        Resolved::Reject(_) if from_model => finish_key(s, Phase::Failed(msg::DIDNT_GET.into()), ReplyKey::plain(key::DIDNT_GET)),
+        Resolved::Reject(why) => finish_key(s, Phase::Failed(format!("Can't do that: {why}")), ReplyKey::with(key::CANT, "why", &why)),
     }
 }
 
@@ -178,9 +233,14 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
     match (&state.phase, event) {
         (Phase::Idle | Phase::Done(_) | Phase::Failed(_), Event::Start { id, source }) => {
             let effects = if source == Source::Pc { vec![Effect::StartCapture] } else { Vec::new() };
-            (State { phase: Phase::Listening, id: Some(id), source: Some(source), heard: None, say: None }, effects)
+            (State { phase: Phase::Listening, id: Some(id), source: Some(source), heard: None, say: None, reply_key: None }, effects)
         }
         (Phase::Idle, Event::Cancel) => (s, Vec::new()),
+        (Phase::Listening, Event::CaptureFailed(e)) => {
+            let (mut next, _) = if e == msg::NO_MIC { finish_key(s, Phase::Failed(e), ReplyKey::plain(key::NO_MIC)) } else { finish(s, Phase::Failed(e)) };
+            next.heard = None;
+            (next, vec![Effect::StopCapture])
+        }
         (_, Event::Cancel) => (State::idle(), vec![Effect::StopCapture]),
         (Phase::Done(_) | Phase::Failed(_), Event::Reset) => (State::idle(), Vec::new()),
         (Phase::Listening, Event::AudioEnd) => {
@@ -193,7 +253,7 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
         (Phase::Transcribing | Phase::Loading, Event::Transcript(Ok(text))) => {
             let text = text.trim().to_string();
             if text.is_empty() {
-                return finish(s, Phase::Failed(msg::DIDNT_CATCH.into()));
+                return finish_key(s, Phase::Failed(msg::DIDNT_CATCH.into()), ReplyKey::plain(key::DIDNT_CATCH));
             }
             let mut s = s;
             s.heard = Some(text.clone());
@@ -201,7 +261,8 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
                 Match::Hit(intent) => resolve(s, &RawCall { tool: intent.tool, args: serde_json::Value::Object(intent.args) }, now_ms, env, false),
                 Match::Ambiguous(list) => {
                     let names: Vec<String> = list.iter().take(3).map(describe).collect();
-                    finish(s, Phase::Done(format!("Which one: {}?", names.join(" or "))))
+                    let shown = names.join(" / ");
+                    finish_key(s, Phase::Done(format!("Which one: {}?", names.join(" or "))), ReplyKey::with(key::WHICH, "options", &shown))
                 }
                 Match::None => {
                     s.phase = Phase::Thinking;
@@ -210,7 +271,7 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
             }
         }
         (Phase::Thinking | Phase::Loading | Phase::Transcribing, Event::LlmAnswer(answer)) => match answer {
-            None => finish(s, Phase::Failed(msg::DIDNT_GET.into())),
+            None => finish_key(s, Phase::Failed(msg::DIDNT_GET.into()), ReplyKey::plain(key::DIDNT_GET)),
             Some((raw, say)) => {
                 let mut s = s;
                 s.say = say.filter(|t| !t.trim().is_empty());
@@ -225,7 +286,7 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
                 s.phase = Phase::Executing;
                 (s, vec![Effect::Execute(call)])
             }
-            Some(false) => finish(s, Phase::Done(msg::CANCELLED.into())),
+            Some(false) => finish_key(s, Phase::Done(msg::CANCELLED.into()), ReplyKey::plain(key::CANCELLED)),
             None => (s, Vec::new()),
         },
         (Phase::Confirming { call, .. }, Event::Confirm { id, yes }) if state.id.as_deref() == Some(id.as_str()) => {
@@ -235,13 +296,18 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
                 s.phase = Phase::Executing;
                 (s, vec![Effect::Execute(call)])
             } else {
-                finish(s, Phase::Done(msg::CANCELLED.into()))
+                finish_key(s, Phase::Done(msg::CANCELLED.into()), ReplyKey::plain(key::CANCELLED))
             }
         }
-        (Phase::Confirming { deadline_ms, .. }, Event::Tick { now_ms }) if now_ms >= *deadline_ms => finish(s, Phase::Done(msg::CANCELLED.into())),
+        (Phase::Confirming { deadline_ms, .. }, Event::Tick { now_ms }) if now_ms >= *deadline_ms => {
+            finish_key(s, Phase::Done(msg::CANCELLED.into()), ReplyKey::plain(key::CANCELLED))
+        }
         (Phase::Executing, Event::Executed(Ok(reply))) => {
-            let text = s.say.clone().unwrap_or(if reply.is_empty() { msg::DONE.to_string() } else { reply });
-            finish(s, Phase::Done(text))
+            match (s.say.clone(), reply.is_empty()) {
+                (Some(say), _) => finish(s, Phase::Done(say)),
+                (None, true) => finish_key(s, Phase::Done(msg::DONE.to_string()), ReplyKey::plain(key::DONE)),
+                (None, false) => finish(s, Phase::Done(reply)),
+            }
         }
         (Phase::Executing, Event::Executed(Err(e))) => finish(s, Phase::Failed(e)),
         _ => (s, Vec::new()),
@@ -633,4 +699,34 @@ mod tests {
         settle(&fake, "done").await;
         assert_eq!(fake.executed.lock().unwrap().len(), 1);
     }
-}
+
+    #[test]
+    fn fixed_phrases_carry_i18n_keys_and_free_text_does_not() {
+        let (s, _) = run(vec![start(Source::Phone), Event::AudioEnd, said("   ")]);
+        let i = s.info();
+        assert_eq!((i.reply_key, i.reply.as_deref()), (Some("voice.reply.didnt_catch"), Some(msg::DIDNT_CATCH)));
+        let (s, _) = run(vec![start(Source::Phone), Event::AudioEnd, said("please lock my pc")]);
+        let c = s.info().confirm.unwrap();
+        assert_eq!((c.key, c.text.as_str()), (Some("voice.confirm.lock"), "Lock the computer"));
+        let (s, _) = run(vec![start(Source::Phone), Event::AudioEnd, said("please lock my pc"), Event::Confirm { id: "00112233aabbccdd".into(), yes: false }]);
+        assert_eq!(s.info().reply_key, Some("voice.reply.cancelled"));
+        // The model's own answer is free text: no key.
+        let (done, _) = run(vec![start(Source::Phone), Event::AudioEnd, said("what a lovely day"), Event::LlmAnswer(Some((RawCall { tool: "open_app".into(), args: json!({ "name": "calculator" }) }, Some("Opening it".into())))), Event::Executed(Ok(String::new()))]);
+        let i = done.info();
+        assert_eq!((i.reply_key, i.reply.as_deref()), (None, Some("Opening it")));
+    }
+
+    #[test]
+    fn a_microphone_that_fails_ends_the_request_and_stops_the_capture() {
+        let (t, c) = (table(), ctx());
+        let env = Env { table: &t, ctx: &c, confirm_ms: CONFIRM_TIMEOUT_MS };
+        let (listening, _) = step(&State::idle(), Event::Start { id: "0011223344556677".into(), source: Source::Pc }, 0, &env);
+        let (failed, effects) = step(&listening, Event::CaptureFailed(msg::NO_MIC.into()), 1, &env);
+        assert_eq!(failed.phase, Phase::Failed(msg::NO_MIC.into()));
+        assert_eq!(failed.info().reply_key, Some("voice.reply.no_mic"));
+        assert_eq!(effects, [Effect::StopCapture]);
+        let (other, _) = step(&listening, Event::CaptureFailed("Microphone stopped".into()), 1, &env);
+        assert_eq!(other.info().reply_key, None);
+        // Outside of a recording it changes nothing.
+        assert_eq!(step(&State::idle(), Event::CaptureFailed("x".into()), 1, &env).0, State::idle());
+    }}

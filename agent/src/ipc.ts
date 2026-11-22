@@ -20,7 +20,11 @@ export interface VoicePillEvent {
   source?: "pc" | "phone";
   heard?: string;
   reply?: string;
-  confirm?: { text: string };
+  confirm?: { text: string; key?: string; args?: Record<string, string> };
+  replyKey?: string;
+  replyArgs?: Record<string, string>;
+  /** The chord shown by the idle state, e.g. `Ctrl+Alt+Space`. */
+  hotkey?: string;
   level?: number;
 }
 

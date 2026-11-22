@@ -187,6 +187,8 @@ struct State {
     settings: VoiceSettings,
     download: Option<Download>,
     last_error: Option<String>,
+    /// The hotkey could not be registered (taken by another program): shown in the status, voice control still works.
+    hotkey_error: Option<String>,
 }
 
 struct Inner {
@@ -234,7 +236,7 @@ impl VoiceService {
                 downloader: deps.downloader,
                 supervisor,
                 emit: deps.emit,
-                state: Mutex::new(State { settings, download: None, last_error: None }),
+                state: Mutex::new(State { settings, download: None, last_error: None, hotkey_error: None }),
             }),
             handle,
         };
@@ -320,8 +322,20 @@ impl VoiceService {
             phone_button: st.settings.phone_button,
             mic: st.settings.mic.clone(),
             mics: (self.inner.mics)(),
-            error,
+            error: error.or_else(|| st.hotkey_error.clone()),
         }
+    }
+
+    /// The result of registering the hotkey: `Some(text)` shows it as `VoiceStatus.error`, `None` clears it.
+    pub fn set_hotkey_error(&self, error: Option<String>) {
+        {
+            let mut st = self.inner.state.lock().unwrap();
+            if st.hotkey_error == error {
+                return;
+            }
+            st.hotkey_error = error;
+        }
+        self.emit();
     }
 
     fn emit(&self) {

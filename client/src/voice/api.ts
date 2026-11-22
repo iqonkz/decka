@@ -6,7 +6,9 @@ export interface VoiceInfo {
   source?: "pc" | "phone";
   heard?: string;
   reply?: string;
-  confirm?: { text: string };
+  confirm?: { text: string; key?: string; args?: Record<string, string> };
+  replyKey?: string;
+  replyArgs?: Record<string, string>;
 }
 
 export async function startVoice(): Promise<void> {

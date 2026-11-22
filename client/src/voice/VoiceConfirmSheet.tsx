@@ -1,4 +1,4 @@
-import { t } from "@decka/shared";
+import { t, tVoice } from "@decka/shared";
 import { confirmVoice, useVoiceState } from "./api";
 
 export default function VoiceConfirmSheet() {
@@ -19,7 +19,7 @@ export default function VoiceConfirmSheet() {
         onPointerDown={(e) => e.stopPropagation()}
       >
         <div className="perm-count">{t("voice.confirm_title")}</div>
-        <h2 className="perm-title">{confirm.text}</h2>
+        <h2 className="perm-title">{tVoice(confirm.key, confirm.args, confirm.text)}</h2>
         <div className="perm-actions" style={{ marginTop: "1.6vmin" }}>
           <button
             type="button"
