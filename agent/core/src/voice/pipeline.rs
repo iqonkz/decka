@@ -264,7 +264,16 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
                 return resolve(s, &RawCall { tool: "type_text".into(), args }, now_ms, env, false);
             }
             match env.table.matches(&text) {
-                Match::Hit(intent) => resolve(s, &RawCall { tool: intent.tool, args: serde_json::Value::Object(intent.args) }, now_ms, env, false),
+                Match::Hit(intent) => {
+                    let raw = RawCall { tool: intent.tool, args: serde_json::Value::Object(intent.args) };
+                    // A template can swallow a phrase meant for another tool ("open main page" is no program): the
+                    // model gets the phrase before it is given up on.
+                    if matches!(validate(&raw, env.ctx), Resolved::Reject(_)) {
+                        s.phase = Phase::Thinking;
+                        return (s, vec![Effect::AskLlm(text)]);
+                    }
+                    resolve(s, &raw, now_ms, env, false)
+                }
                 Match::Ambiguous(list) => {
                     let names: Vec<String> = list.iter().take(3).map(describe).collect();
                     let shown = names.join(" / ");
@@ -277,7 +286,20 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
             }
         }
         (Phase::Thinking | Phase::Loading | Phase::Transcribing, Event::LlmAnswer(answer)) => match answer {
-            None => finish_key(s, Phase::Failed(msg::DIDNT_GET.into()), ReplyKey::plain(key::DIDNT_GET)),
+            None => {
+                // No answer from the model: say why the table's own reading was refused, when there was one.
+                let table_reject = s.heard.as_deref().and_then(|h| match env.table.matches(h) {
+                    Match::Hit(i) => match validate(&RawCall { tool: i.tool, args: serde_json::Value::Object(i.args) }, env.ctx) {
+                        Resolved::Reject(why) => Some(why),
+                        _ => None,
+                    },
+                    _ => None,
+                });
+                match table_reject {
+                    Some(why) => finish_key(s, Phase::Failed(format!("Can't do that: {why}")), ReplyKey::with(key::CANT, "why", &why)),
+                    None => finish_key(s, Phase::Failed(msg::DIDNT_GET.into()), ReplyKey::plain(key::DIDNT_GET)),
+                }
+            }
             Some((raw, say)) => {
                 let mut s = s;
                 s.say = say.filter(|t| !t.trim().is_empty());
@@ -563,10 +585,17 @@ mod tests {
     fn silence_and_failures_end_with_the_standard_texts() {
         assert_eq!(run(vec![start(Source::Phone), Event::AudioEnd, said("   ")]).0.phase, Phase::Failed(msg::DIDNT_CATCH.into()));
         assert_eq!(run(vec![start(Source::Phone), Event::AudioEnd, Event::Transcript(Err("whisper is down".into()))]).0.phase, Phase::Failed("whisper is down".into()));
-        // A known phrase for a program that is not installed: no action.
+        // A known phrase for a program that is not installed: the model is asked first (the template may have swallowed a
+        // phrase for another tool); with no answer the table's own refusal is what the user reads. No action either way.
         let (s, fx) = run(vec![start(Source::Phone), Event::AudioEnd, said("open powershell")]);
-        assert!(matches!(s.phase, Phase::Failed(_)));
+        assert_eq!(s.phase, Phase::Thinking);
+        assert!(fx.contains(&Effect::AskLlm("open powershell".into())) && !fx.iter().any(|e| matches!(e, Effect::Execute(_))));
+        let (s, fx) = run(vec![start(Source::Phone), Event::AudioEnd, said("open powershell"), Event::LlmAnswer(None)]);
+        assert!(matches!(&s.phase, Phase::Failed(m) if m.starts_with("Can't do that")), "{:?}", s.phase);
         assert!(!fx.iter().any(|e| matches!(e, Effect::Execute(_))));
+        // The model may know better: "open main page" is a page, not a program.
+        let (s, _) = run(vec![start(Source::Phone), Event::AudioEnd, said("open powershell"), Event::LlmAnswer(Some((RawCall { tool: "open_app".into(), args: json!({ "name": "calculator" }) }, None)))]);
+        assert_eq!(s.phase, Phase::Executing);
     }
 
     #[test]

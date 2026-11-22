@@ -380,9 +380,9 @@ impl Ports for Inner {
         })
     }
 
-    fn ask_llm(&self, _text: String, _ctx: Context) -> BoxFut<Option<(RawCall, Option<String>)>> {
-        // The AI path comes with T21.4; until then a phrase the table does not know is "Didn't get that".
-        Box::pin(async { None })
+    fn ask_llm(&self, text: String, ctx: Context) -> BoxFut<Option<(RawCall, Option<String>)>> {
+        let (sup, lang) = (self.service.supervisor().clone(), self.language());
+        Box::pin(async move { super::llm::ask(&sup, lang, &text, &ctx).await })
     }
 
     fn execute(&self, call: ToolCall) -> BoxFut<Result<String, String>> {

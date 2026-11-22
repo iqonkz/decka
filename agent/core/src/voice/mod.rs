@@ -7,6 +7,7 @@
 pub mod audio;
 pub mod host;
 pub mod hotkey;
+pub mod llm;
 pub mod matcher;
 pub mod mic;
 pub mod pipeline;
