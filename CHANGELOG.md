@@ -11,6 +11,7 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 - Phone: a tap on the voice button did nothing and a long press opened the page's menu. A tap now listens (the icon turns to stop, the ring follows your voice, silence for 2 s ends it, a second tap ends it at once); holding for 250 ms is a walkie-talkie (release ends it); dragging moves the button. The long-press menu and text selection no longer appear on the button.
 
 ### Added
+- Faster voice commands in Spanish, Hindi and Kazakh.
 - **Stop button on the PC pill** (and a click anywhere on the pill): ends the recording and runs the command at once, without taking the focus from the program you type in.
 - The wave of the pill is five bars that follow the loudness of your voice.
 
