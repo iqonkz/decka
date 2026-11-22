@@ -2,26 +2,21 @@
 //! turns them into 16 kHz mono PCM16 chunks of 100 ms, with the level for the pill and the end-of-speech decision.
 //! The conversion (`Capture`, `choose_device`) is pure; the thin layer at the bottom talks to `cpal` on a thread of its own.
 
-use super::audio::{calculate_rms, resample_to_16k, SilenceDecision, SilenceDetector};
-use super::MAX_RECORDING_SECONDS;
+use super::audio::{calculate_rms, resample_to_16k};
+use super::endpoint::{Endpointer, LevelSmoother, Verdict};
 
 /// One chunk is 100 ms of audio, as on the phone (PROTOCOL.md 3).
 const CHUNK_MS: u32 = 100;
-/// Silence that ends a recording after speech (DATA_MODEL.md 12.4 item 1).
-pub const TRAILING_SILENCE_MS: u32 = 1200;
-/// RMS (16-bit scale) of ordinary speech at a desk microphone is a few thousand; this is the floor of speech.
-pub const SPEECH_RMS: f32 = 350.0;
-/// An RMS at which the pill wave is at full height.
-const LEVEL_FULL_RMS: f32 = 6000.0;
 
 /// What `Capture` hands over for every 100 ms.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Fed {
     /// 16 kHz mono PCM16, little endian.
     pub pcm: Vec<u8>,
-    /// 0..1 for the wave of the pill.
+    /// 0..1 for the wave of the pill (smoothed: rises at once, falls in 150 ms).
     pub level: f32,
-    pub decision: SilenceDecision,
+    /// The end-of-phrase decision (DATA_MODEL.md 12.6a).
+    pub verdict: Verdict,
 }
 
 /// Sample conversions of the formats `cpal` hands out.
@@ -53,7 +48,8 @@ pub struct Capture {
     pending: Vec<i16>,
     chunk_len: usize,
     rate: u32,
-    detector: SilenceDetector,
+    endpointer: Endpointer,
+    smoother: LevelSmoother,
 }
 
 impl Capture {
@@ -64,7 +60,8 @@ impl Capture {
             pending: Vec::new(),
             chunk_len,
             rate,
-            detector: SilenceDetector::new(16_000, SPEECH_RMS, TRAILING_SILENCE_MS, MAX_RECORDING_SECONDS as u32),
+            endpointer: Endpointer::new(),
+            smoother: LevelSmoother::default(),
         }
     }
 
@@ -75,9 +72,10 @@ impl Capture {
         while self.pending.len() >= self.chunk_len {
             let chunk: Vec<i16> = self.pending.drain(..self.chunk_len).collect();
             let mono16 = resample_to_16k(&chunk, self.rate);
-            let decision = self.detector.process_chunk(&mono16);
-            let level = (calculate_rms(&mono16) / LEVEL_FULL_RMS).clamp(0.0, 1.0);
-            out.push(Fed { pcm: mono16.iter().flat_map(|s| s.to_le_bytes()).collect(), level, decision });
+            let rms = calculate_rms(&mono16) / 32768.0;
+            let verdict = self.endpointer.feed(rms);
+            let level = self.smoother.feed(rms);
+            out.push(Fed { pcm: mono16.iter().flat_map(|s| s.to_le_bytes()).collect(), level, verdict });
         }
         out
     }
@@ -288,25 +286,27 @@ mod tests {
     }
 
     #[test]
-    fn speech_then_silence_ends_the_recording_and_silence_alone_never_does() {
+    fn speech_then_silence_ends_the_recording_and_silence_alone_says_no_speech() {
         let mut c = Capture::new(16_000, 1);
-        for _ in 0..30 {
-            assert!(c.feed(&vec![0; 1600]).iter().all(|f| f.decision == SilenceDecision::Continue), "silence before speech");
+        let first = (0..60).map(|_| c.feed(&vec![0; 1600]).remove(0).verdict).position(|v| v != Verdict::Continue);
+        assert_eq!(first, Some(49), "5 s of silence: nothing was said");
+        let mut c = Capture::new(16_000, 1);
+        for _ in 0..3 {
+            c.feed(&vec![0; 1600]);
         }
-        let mut c = Capture::new(16_000, 1);
         for _ in 0..5 {
-            assert_eq!(c.feed(&tone(1600, 4000))[0].decision, SilenceDecision::Continue);
+            assert_eq!(c.feed(&tone(1600, 4000))[0].verdict, Verdict::Continue);
         }
-        let ended = (0..20).map(|_| c.feed(&vec![0; 1600]).remove(0).decision).position(|d| d == SilenceDecision::EndOfSpeech);
-        // 1.2 s of silence = the 12th chunk.
-        assert_eq!(ended, Some(11));
+        let ended = (0..30).map(|_| c.feed(&vec![0; 1600]).remove(0).verdict).position(|v| v == Verdict::End);
+        // 2 s of silence = the 20th chunk.
+        assert_eq!(ended, Some(19));
     }
 
     #[test]
-    fn a_recording_is_cut_at_30_seconds() {
+    fn a_recording_is_cut_at_20_seconds() {
         let mut c = Capture::new(16_000, 1);
-        let last = (0..300).map(|_| c.feed(&tone(1600, 4000)).remove(0).decision).last();
-        assert_eq!(last, Some(SilenceDecision::MaxDurationExceeded));
+        let last = (0..300).map(|_| c.feed(&tone(1600, 4000)).remove(0).verdict).position(|v| v == Verdict::End);
+        assert_eq!(last, Some(199));
     }
 
     #[test]

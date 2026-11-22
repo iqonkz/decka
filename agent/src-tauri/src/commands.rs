@@ -427,3 +427,11 @@ pub fn voice_confirm(app: AppHandle, id: String, yes: bool) -> Result<(), String
     host.confirm(&id, yes);
     Ok(())
 }
+
+/// The click on the stop button (or the pill) while it listens: the recording ends and the command runs (DATA_MODEL.md 12.6a).
+#[tauri::command]
+pub fn voice_stop(app: AppHandle) -> Result<(), String> {
+    let host = app.try_state::<decka_core::voice::host::Host>().ok_or_else(|| "voice control did not start".to_string())?;
+    host.stop();
+    Ok(())
+}

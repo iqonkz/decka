@@ -24,6 +24,9 @@ pub mod msg {
     pub const CANCELLED: &str = "Cancelled";
     pub const DONE: &str = "Done";
     pub const NO_MIC: &str = "No microphone found";
+    pub const MIC_UNAVAILABLE: &str = "Microphone is unavailable";
+    pub const NO_SPEECH: &str = "Didn't hear anything";
+    pub const WRONG: &str = "Something went wrong, try again";
 }
 
 /// i18n keys of the fixed phrases (`shared/src/i18n`, `voice.reply.*`); the English text of `msg` is their fallback.
@@ -35,6 +38,9 @@ pub mod key {
     pub const WHICH: &str = "voice.reply.which";
     pub const CANT: &str = "voice.reply.cant";
     pub const NO_MIC: &str = "voice.reply.no_mic";
+    pub const MIC_UNAVAILABLE: &str = "voice.reply.mic_unavailable";
+    pub const NO_SPEECH: &str = "voice.reply.no_speech";
+    pub const WRONG: &str = "voice.reply.wrong";
 }
 
 /// A fixed phrase as an i18n key with its arguments (PROTOCOL.md 3: `replyKey` / `replyArgs`).
@@ -166,6 +172,10 @@ pub enum Event {
     Transcript(Result<String, String>),
     /// The PC microphone could not be opened or died while recording.
     CaptureFailed(String),
+    /// Nothing was said for 5 s (DATA_MODEL.md 12.6a): the request ends, no sound goes to recognition.
+    NoSpeech,
+    /// The state has not changed for 30 s (the watchdog).
+    Watchdog,
     /// The model's answer: a tool call (with its short text) or nothing usable.
     LlmAnswer(Option<(RawCall, Option<String>)>),
     Confirm { id: String, yes: bool },
@@ -239,7 +249,18 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
         }
         (Phase::Idle, Event::Cancel) => (s, Vec::new()),
         (Phase::Listening, Event::CaptureFailed(e)) => {
-            let (mut next, _) = if e == msg::NO_MIC { finish_key(s, Phase::Failed(e), ReplyKey::plain(key::NO_MIC)) } else { finish(s, Phase::Failed(e)) };
+            tracing::warn!("voice microphone: {e}");
+            let (mut next, _) = finish_key(s, Phase::Failed(msg::MIC_UNAVAILABLE.into()), ReplyKey::plain(key::MIC_UNAVAILABLE));
+            next.heard = None;
+            (next, vec![Effect::StopCapture])
+        }
+        (Phase::Listening, Event::NoSpeech) => {
+            let (mut next, _) = finish_key(s, Phase::Failed(msg::NO_SPEECH.into()), ReplyKey::plain(key::NO_SPEECH));
+            next.heard = None;
+            (next, vec![Effect::StopCapture])
+        }
+        (Phase::Listening | Phase::Transcribing | Phase::Loading | Phase::Thinking, Event::Watchdog) => {
+            let (mut next, _) = finish_key(s, Phase::Failed(msg::WRONG.into()), ReplyKey::plain(key::WRONG));
             next.heard = None;
             (next, vec![Effect::StopCapture])
         }
@@ -772,11 +793,31 @@ mod tests {
         let env = Env { table: &t, ctx: &c, confirm_ms: CONFIRM_TIMEOUT_MS, dictate: false };
         let (listening, _) = step(&State::idle(), Event::Start { id: "0011223344556677".into(), source: Source::Pc }, 0, &env);
         let (failed, effects) = step(&listening, Event::CaptureFailed(msg::NO_MIC.into()), 1, &env);
-        assert_eq!(failed.phase, Phase::Failed(msg::NO_MIC.into()));
-        assert_eq!(failed.info().reply_key, Some("voice.reply.no_mic"));
+        assert_eq!(failed.phase, Phase::Failed(msg::MIC_UNAVAILABLE.into()));
+        assert_eq!(failed.info().reply_key, Some("voice.reply.mic_unavailable"));
         assert_eq!(effects, [Effect::StopCapture]);
         let (other, _) = step(&listening, Event::CaptureFailed("Microphone stopped".into()), 1, &env);
-        assert_eq!(other.info().reply_key, None);
+        assert_eq!(other.info().reply_key, Some("voice.reply.mic_unavailable"));
         // Outside of a recording it changes nothing.
         assert_eq!(step(&State::idle(), Event::CaptureFailed("x".into()), 1, &env).0, State::idle());
-    }}
+    }
+
+    #[test]
+    fn nothing_said_and_the_watchdog_end_the_request_with_their_own_phrases() {
+        let (t, c) = (table(), ctx());
+        let env = Env { table: &t, ctx: &c, confirm_ms: CONFIRM_TIMEOUT_MS, dictate: false };
+        let (listening, _) = step(&State::idle(), Event::Start { id: "0011223344556677".into(), source: Source::Pc }, 0, &env);
+        let (quiet, effects) = step(&listening, Event::NoSpeech, 1, &env);
+        assert_eq!((quiet.phase.clone(), quiet.info().reply_key), (Phase::Failed(msg::NO_SPEECH.into()), Some("voice.reply.no_speech")));
+        assert_eq!(effects, [Effect::StopCapture], "the sound does not go to recognition");
+        for phase in [Phase::Listening, Phase::Transcribing, Phase::Loading, Phase::Thinking] {
+            let mut s = listening.clone();
+            s.phase = phase;
+            let (w, effects) = step(&s, Event::Watchdog, 1, &env);
+            assert_eq!((w.phase.clone(), w.info().reply_key, effects), (Phase::Failed(msg::WRONG.into()), Some("voice.reply.wrong"), vec![Effect::StopCapture]));
+        }
+        assert_eq!(step(&State::idle(), Event::Watchdog, 1, &env).0, State::idle());
+        let (done, _) = step(&quiet, Event::Watchdog, 1, &env);
+        assert_eq!(done, quiet, "a finished request is not touched");
+    }
+}

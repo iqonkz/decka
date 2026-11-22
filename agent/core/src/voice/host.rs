@@ -10,6 +10,7 @@ use std::time::{Duration, Instant};
 
 use serde_json::{json, Value};
 
+use super::endpoint::Verdict;
 use super::hotkey::{self, Pressed, Plan, Tracker};
 use super::matcher::Table;
 use super::mic;
@@ -24,6 +25,10 @@ use crate::model::{Action, ActionsFile, LayoutFile, LayoutItem, MediaOp, VarValu
 
 /// A finished request stays on the screen this long, then the pipeline returns to idle and the pill goes away.
 pub const RESULT_SHOWN_MS: u64 = 4_000;
+/// A request that does not change its state for this long is cancelled (DATA_MODEL.md 12.6a).
+pub const WATCHDOG_MS: u64 = 30_000;
+/// An opened microphone that gives no chunk for this long is unavailable.
+pub const MIC_SILENT_MS: u64 = 1_000;
 
 // ---- Pure decisions ---------------------------------------------------------------------------------------------
 
@@ -201,6 +206,10 @@ struct Inner {
     mic: Mutex<Option<mic::Mic>>,
     /// The last info of a request, to repeat it with a new level.
     last: Mutex<Option<VoiceInfo>>,
+    /// Chunks the microphone has delivered to the current request.
+    chunks: Arc<AtomicUsize>,
+    /// Counts the changes of the state; the watchdog fires if the count did not move.
+    changes: Arc<AtomicU64>,
 }
 
 #[derive(Clone)]
@@ -228,6 +237,8 @@ impl Host {
             #[cfg(windows)]
             mic: Mutex::new(None),
             last: Mutex::new(None),
+            chunks: Arc::new(AtomicUsize::new(0)),
+            changes: Arc::new(AtomicU64::new(0)),
         });
         let driver = Driver::new(handle.clone(), inner.clone());
         let _ = inner.driver.set(driver);
@@ -308,6 +319,15 @@ impl Host {
     /// `voice_confirm` of the pill (IPC).
     pub fn confirm(&self, id: &str, yes: bool) {
         self.inner.driver().handle_event(Event::Confirm { id: id.to_string(), yes });
+    }
+
+    /// `voice_stop` of the pill (IPC): the click on the stop button or on the pill ends the recording of the PC at once.
+    pub fn stop(&self) {
+        let driver = self.inner.driver();
+        let s = driver.state();
+        if s.phase == Phase::Listening && s.source == Some(Source::Pc) {
+            driver.handle_event(Event::AudioEnd);
+        }
     }
 }
 
@@ -472,25 +492,46 @@ impl Ports for Inner {
                 let pill_self = self.pill.clone();
                 let hotkey = self.service.status().hotkey;
                 let last_info = self.last.lock().unwrap().clone();
+                self.chunks.store(0, Ordering::SeqCst);
+                let (counter, decided) = (self.chunks.clone(), Arc::new(AtomicBool::new(false)));
                 mic::start(
                     wanted,
                     move |fed| {
+                        counter.fetch_add(1, Ordering::SeqCst);
                         feed.push_audio(&fed.pcm);
-                        // The wave of the pill follows the voice.
+                        // The wave of the pill follows the voice (a chunk is 100 ms, so at most 10 times a second).
                         if let Some(info) = last_info.as_ref().filter(|i| i.state == "listening") {
                             if let Some(cmd) = pill_cmd(info, &hotkey, fed.level) {
                                 pill_self(cmd);
                             }
                         }
-                        if fed.decision != super::audio::SilenceDecision::Continue && feed.state().phase == Phase::Listening {
-                            feed.handle_event(Event::AudioEnd);
+                        let event = match fed.verdict {
+                            Verdict::Continue => return,
+                            Verdict::End => Event::AudioEnd,
+                            Verdict::NoSpeech => Event::NoSpeech,
+                        };
+                        // Once, and not on the audio thread: the event stops the capture, which waits for this very thread.
+                        if feed.state().phase == Phase::Listening && !decided.swap(true, Ordering::SeqCst) {
+                            let driver = feed.clone();
+                            std::thread::spawn(move || driver.handle_event(event));
                         }
                     },
                     move |e| fail.handle_event(Event::CaptureFailed(e)),
                 )
             };
             match started {
-                Ok(m) => *slot = Some(m),
+                Ok(m) => {
+                    *slot = Some(m);
+                    // No chunk in a second: the device opened but gives no sound.
+                    let (driver, counter, id) = (self.driver().clone(), self.chunks.clone(), self.driver().state().id);
+                    std::thread::spawn(move || {
+                        std::thread::sleep(Duration::from_millis(MIC_SILENT_MS));
+                        let s = driver.state();
+                        if s.phase == Phase::Listening && s.id == id && counter.load(Ordering::SeqCst) == 0 {
+                            driver.handle_event(Event::CaptureFailed("no audio chunks".into()));
+                        }
+                    });
+                }
                 Err(e) => {
                     drop(slot);
                     let text = if e == msg::NO_MIC { e } else { format!("Microphone: {e}") };
@@ -510,6 +551,17 @@ impl Ports for Inner {
         self.agent.store().set("voice", serde_json::to_value(&info).unwrap_or(Value::Null));
         self.show(&info, 0.0);
         self.set_aux(&state);
+        // The watchdog: a request that waits in one state for 30 s is cancelled.
+        let seen = self.changes.fetch_add(1, Ordering::SeqCst) + 1;
+        if matches!(info.state, "listening" | "loading" | "thinking") {
+            let (driver, changes) = (self.driver().clone(), self.changes.clone());
+            std::thread::spawn(move || {
+                std::thread::sleep(Duration::from_millis(WATCHDOG_MS));
+                if changes.load(Ordering::SeqCst) == seen {
+                    driver.handle_event(Event::Watchdog);
+                }
+            });
+        }
         // A result stays visible for a moment, then the pipeline is idle again.
         if matches!(info.state, "done" | "error") {
             let (driver, id) = (self.driver().clone(), info.id.clone());

@@ -5,6 +5,7 @@
 //! and the limits, and only then reaches the pipeline (ARCHITECTURE.md S24).
 
 pub mod audio;
+pub mod endpoint;
 pub mod host;
 pub mod hotkey;
 pub mod llm;

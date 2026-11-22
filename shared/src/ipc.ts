@@ -101,6 +101,7 @@ export interface IpcCommands {
   voice_enable(): VoiceStatus;                                 // Turn on voice control / Retry
   voice_cancel(): VoiceStatus;
   voice_confirm(args: { id: string; yes: boolean }): void;     // the Yes/No of the PC pill (the pill window arrives with C2)
+  voice_stop(args: Record<string, never>): void;               // the stop button of the PC pill: end the recording now (12.6a)
   voice_remove(): VoiceStatus;
   voice_set(args: VoiceSetArgs): VoiceStatus;                  // an invalid hotkey is an error string
   youtube_status(): YoutubeStatus;
