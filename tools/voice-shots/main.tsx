@@ -1,0 +1,46 @@
+// Harness of tools/voice-shots.mjs: draws the real PC pill (agent) and the real phone button, bubble and confirmation sheet
+// (client) in the states of DESIGN.md 4.12. Not part of the app.
+import { createRoot } from "react-dom/client";
+import { setLanguage, type Language } from "@decka/shared";
+import VoicePill from "../../agent/src/VoicePill";
+import VoiceFab from "../../client/src/voice/VoiceFab";
+import VoiceConfirmSheet from "../../client/src/voice/VoiceConfirmSheet";
+import { setState } from "../../client/src/store/store";
+
+const q = new URLSearchParams(location.search);
+const scene = q.get("scene") ?? "pill";
+const state = (q.get("state") ?? "listening") as "idle" | "listening" | "loading" | "thinking" | "confirm" | "done" | "error";
+setLanguage((q.get("lang") ?? "en") as Language);
+
+const sample = {
+  heard: q.get("heard") ?? "turn the volume up",
+  reply: q.get("reply") ?? "Done",
+  confirm: { text: "Lock the computer", key: "voice.confirm.lock" },
+};
+const info = {
+  state,
+  id: "0011223344556677",
+  source: scene === "pill" ? "pc" : "phone",
+  ...(state === "listening" ? {} : { heard: sample.heard }),
+  ...(state === "done" || state === "error" ? { reply: sample.reply } : {}),
+  ...(state === "confirm" ? { confirm: sample.confirm } : {}),
+};
+
+const root = createRoot(document.getElementById("root")!);
+// The two bundles have their own style sheets that must not meet: only the scene's one is loaded.
+if (scene === "pill") await import("../../agent/src/styles.css");
+else await import("../../client/src/styles.css");
+if (scene === "pill") {
+  document.body.style.background = "#1b1b22";
+  root.render(<VoicePill initialData={{ ...info, level: 0.6, hotkey: "Ctrl+Alt+Space" } as never} />);
+} else {
+  document.body.style.background = "#000";
+  localStorage.removeItem("decka.voicefab.v1");
+  setState({ conn: "online", state: { vars: { "voice.ready": true }, voice: info, layout: { display: { theme: "amoled" }, pages: [] } } as never });
+  root.render(
+    <>
+      <VoiceFab />
+      <VoiceConfirmSheet />
+    </>,
+  );
+}
