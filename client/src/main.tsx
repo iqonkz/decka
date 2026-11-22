@@ -13,6 +13,13 @@ setLanguage(resolveLanguage("auto", navigator.language));
 void lockOrientation(savedOrientation());
 init();
 keepAwake();
+// A long press on a key must not open the system context menu or select text (DATA_MODEL 12.6); text fields keep theirs.
+document.addEventListener("contextmenu", (e) => {
+  if (!(e.target instanceof Element && e.target.closest("input, textarea, [contenteditable='true']"))) e.preventDefault();
+});
+document.addEventListener("selectstart", (e) => {
+  if (!(e.target instanceof Element && e.target.closest("input, textarea, [contenteditable='true']"))) e.preventDefault();
+});
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

@@ -1,4 +1,4 @@
-//! Supervisor of the two local servers behind voice control (DATA_MODEL.md 12.3): `llama-server` and `whisper-server`
+﻿//! Supervisor of the two local servers behind voice control (DATA_MODEL.md 12.3): `llama-server` and `whisper-server`
 //! as hidden child processes inside a Job Object (they die with the agent), on free 127.0.0.1 ports, `llama-server`
 //! behind a random key per launch. Lazy start, unload after idle, restart with back-off, stop after repeated crashes.
 //!
@@ -15,7 +15,7 @@ pub const CRASH_WINDOW_MS: u64 = 10 * 60 * 1000;
 /// More crashes than this inside `CRASH_WINDOW_MS` stop the servers until a manual retry.
 pub const MAX_CRASHES: usize = 3;
 pub const IDLE_MS: u64 = 10 * 60 * 1000;
-pub const READY_TIMEOUT: Duration = Duration::from_secs(60);
+pub const READY_TIMEOUT: Duration = Duration::from_secs(120);
 const IDLE_CHECK: Duration = Duration::from_secs(30);
 const MAX_LOG_LINES: usize = 50;
 
@@ -476,6 +476,11 @@ async fn wait_healthy(port: u16, path: &str, timeout: Duration, child: &mut toki
 /// A recognition of a 30 s phrase takes seconds on a GPU and under half a minute on a CPU.
 pub const TRANSCRIBE_TIMEOUT: Duration = Duration::from_secs(15);
 
+/// `TRANSCRIBE_TIMEOUT`, or `DECKA_VOICE_STT_TIMEOUT_S` seconds (a slow CPU, tests).
+pub fn transcribe_timeout() -> Duration {
+    std::env::var("DECKA_VOICE_STT_TIMEOUT_S").ok().and_then(|v| v.parse().ok()).map_or(TRANSCRIBE_TIMEOUT, Duration::from_secs)
+}
+
 /// The `multipart/form-data` body of `POST /inference` (DATA_MODEL.md 12.4 item 2): `file` (WAV), the forced `language`,
 /// `response_format=json`, `temperature=0`.
 pub fn whisper_multipart(boundary: &str, wav: &[u8], language: &str) -> Vec<u8> {
@@ -516,7 +521,7 @@ impl Supervisor {
         let wav = crate::voice::audio::encode_wav_pcm16(&samples, 16_000);
         let boundary = format!("decka{}", new_key());
         let body = whisper_multipart(&boundary, &wav, language);
-        let client = reqwest::Client::builder().timeout(TRANSCRIBE_TIMEOUT).build().map_err(|e| e.to_string())?;
+        let client = reqwest::Client::builder().timeout(transcribe_timeout()).build().map_err(|e| e.to_string())?;
         let url = format!("http://127.0.0.1:{}/inference", endpoints.whisper_port);
         let answer = client
             .post(url)

@@ -328,7 +328,10 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
                     let raw = RawCall { tool: intent.tool, args: serde_json::Value::Object(intent.args) };
                     // A template can swallow a phrase meant for another tool ("open main page" is no program): the
                     // model gets the phrase before it is given up on.
-                    if matches!(validate(&raw, env.ctx), Resolved::Reject(_)) {
+                    if let Resolved::Reject(why) = validate(&raw, env.ctx) {
+                        if !cfg!(test) {
+                            super::mic::log_line(&format!("table hit {} but refused: {why} (apps known: {})", raw.tool, env.ctx.apps.len()));
+                        }
                         s.phase = Phase::Thinking;
                         return (s, vec![Effect::AskLlm(text)]);
                     }
@@ -467,6 +470,18 @@ impl Driver {
         let env = Env { table: &table, ctx: &ctx, confirm_ms: self.confirm_ms, dictate: self.ports.dictating() };
         let now_ms = self.t0.elapsed().as_millis() as u64;
         let name = event_name(&event);
+        if !cfg!(test) {
+            match &event {
+                Event::LlmAnswer(Some((call, _))) => super::mic::log_line(&format!("model chose tool {}", call.tool)),
+                Event::LlmAnswer(None) => super::mic::log_line("model gave no usable answer"),
+                Event::Executed(r) => super::mic::log_line(&format!("executed: {}", match r { Ok(m) => format!("ok {m}"), Err(e) => format!("error {e}") })),
+                _ => {}
+            }
+        }
+        if let (Event::Transcript(Err(e)), false) = (&event, cfg!(test)) {
+            // The error of the servers, not the words of the user.
+            super::mic::log_line(&format!("transcript error: {e}"));
+        }
         let (info, effects, pcm) = {
             let mut sh = self.shared.lock().unwrap();
             let before = phase_name(&sh.state.phase);

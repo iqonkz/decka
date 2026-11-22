@@ -216,7 +216,7 @@ export default function VoiceFab() {
         onPointerCancel={onPointerUp}
         onContextMenu={swallow}
         onDragStart={swallow}
-        onTouchStart={(e) => e.stopPropagation()}
+        onTouchStart={swallow}
         onTouchEnd={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
       >

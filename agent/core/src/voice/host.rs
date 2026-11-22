@@ -27,6 +27,18 @@ use crate::model::{Action, ActionsFile, LayoutFile, LayoutItem, MediaOp, VarValu
 pub const RESULT_SHOWN_MS: u64 = 4_000;
 /// A request that does not change its state for this long is cancelled (DATA_MODEL.md 12.6a).
 pub const WATCHDOG_MS: u64 = 30_000;
+
+/// How long one stage may stay unchanged before the watchdog gives up on it; the clock restarts at every change of stage.
+pub fn watchdog_ms(phase: &Phase) -> u64 {
+    match phase {
+        Phase::Listening => 30_000,
+        Phase::Loading => 120_000,
+        // The recognition's own timeout (15 s default), plus a second buffer.
+        Phase::Transcribing => crate::ai::supervisor::transcribe_timeout().as_millis() as u64 + 1_000,
+        Phase::Thinking => 20_000,
+        _ => WATCHDOG_MS,
+    }
+}
 /// An opened microphone that gives no chunk for this long is unavailable.
 pub const MIC_SILENT_MS: u64 = 1_000;
 /// The decisions of this many requests after the start are written to `voice.log`.
@@ -256,7 +268,12 @@ impl Host {
         // The list of programs takes a moment to read: not on the first request.
         let weak = Arc::downgrade(&host.inner);
         handle.spawn_blocking(move || {
-            let apps = crate::installed::list_installed_apps();
+            let mut apps = crate::installed::list_installed_apps();
+            for (name, path) in [("Calculator", r"C:\Windows\System32\calc.exe"), ("Notepad", r"C:\Windows\System32\notepad.exe")] {
+                if std::path::Path::new(path).is_file() && !apps.iter().any(|a| a.name.eq_ignore_ascii_case(name)) {
+                    apps.push(InstalledApp { name: name.into(), program: path.into(), args: vec![], cwd: None, icon: None });
+                }
+            }
             if let Some(inner) = weak.upgrade() {
                 *inner.installed.lock().unwrap() = apps;
             }
@@ -331,6 +348,16 @@ impl Host {
         self.inner.driver().handle_event(Event::Confirm { id: id.to_string(), yes });
     }
 
+    /// Starts or ends a PC voice request, as if the hotkey were pressed.
+    pub fn trigger(&self) {
+        self.inner.pressed(Pressed::Main);
+    }
+
+    /// The current state of the pipeline.
+    pub fn state(&self) -> State {
+        self.inner.driver().state()
+    }
+
     /// `voice_stop` of the pill (IPC): the click on the stop button or on the pill ends the recording of the PC at once.
     pub fn stop(&self) {
         let driver = self.inner.driver();
@@ -392,7 +419,20 @@ impl Inner {
     fn show(&self, info: &VoiceInfo, level: f32) {
         let hotkey = self.service.status().hotkey;
         if let Some(cmd) = pill_cmd(info, &hotkey, level) {
-            (self.pill)(cmd);
+            // The window of the pill belongs to the main thread and takes seconds to appear: the pipeline (and the
+            // microphone) must not wait for it. One worker keeps the commands in order.
+            static WORKER: std::sync::OnceLock<std::sync::Mutex<std::sync::mpsc::Sender<Box<dyn FnOnce() + Send>>>> = std::sync::OnceLock::new();
+            let tx = WORKER.get_or_init(|| {
+                let (tx, rx) = std::sync::mpsc::channel::<Box<dyn FnOnce() + Send>>();
+                std::thread::spawn(move || {
+                    while let Ok(job) = rx.recv() {
+                        job();
+                    }
+                });
+                std::sync::Mutex::new(tx)
+            });
+            let pill = self.pill.clone();
+            let _ = tx.lock().unwrap().send(Box::new(move || pill(cmd)));
         }
     }
 }
@@ -409,11 +449,15 @@ impl Ports for Inner {
     }
 
     fn transcribe(&self, pcm: Vec<u8>) -> BoxFut<Result<String, String>> {
-        let (sup, lang) = (self.service.supervisor().clone(), self.language());
+        let (sup, lang, driver) = (self.service.supervisor().clone(), self.language(), self.driver().clone());
         Box::pin(async move {
             // Less than a tenth of a second is a key click, not speech.
             if pcm.len() < super::MAX_CHUNK_BYTES / 2 {
                 return Ok(String::new());
+            }
+            // The warm-up has not finished by the end of the phrase: only now the pill says so.
+            if sup.state() == SupState::Loading {
+                driver.handle_event(Event::ModelLoading);
             }
             sup.transcribe(&pcm, lang).await
         })
@@ -509,6 +553,31 @@ impl Ports for Inner {
                 }
                 return;
             }
+            // Test input (T21.11): `DECKA_VOICE_WAV` = a 16 kHz mono PCM16 WAV that is fed instead of the microphone, in real time.
+            if let Some(path) = std::env::var_os("DECKA_VOICE_WAV") {
+                let read = std::fs::read(&path);
+                mic::log_line(&format!("test wav: {}", match &read { Ok(b) => format!("{} bytes", b.len()), Err(e) => e.to_string() }));
+                if let Ok(bytes) = read {
+                    let pcm = bytes.get(44..).unwrap_or_default().to_vec();
+                    let (driver, id) = (self.driver().clone(), self.driver().state().id);
+                    std::thread::spawn(move || {
+                        for chunk in pcm.chunks(super::MAX_CHUNK_BYTES) {
+                            std::thread::sleep(Duration::from_millis(100));
+                            let s = driver.state();
+                            if s.phase != Phase::Listening || s.id != id {
+                                return;
+                            }
+                            driver.push_audio(chunk);
+                        }
+                        std::thread::sleep(Duration::from_millis(300));
+                        let s = driver.state();
+                        if s.phase == Phase::Listening && s.id == id {
+                            driver.handle_event(Event::AudioEnd);
+                        }
+                    });
+                    return;
+                }
+            }
             let wanted = self.service.status().mic;
             let started = {
                 let (feed, fail) = (self.driver().clone(), self.driver().clone());
@@ -579,16 +648,29 @@ impl Ports for Inner {
 
     fn publish(&self, info: VoiceInfo) {
         let state = self.driver().state();
+        let was_listening = self.last.lock().unwrap().as_ref().is_some_and(|i| i.state == "listening");
         *self.last.lock().unwrap() = Some(info.clone());
+        // Warm-up: the servers start while the phrase is still being recorded (a no-op when they run already).
+        if info.state == "listening" && !was_listening {
+            let sup = self.service.supervisor().clone();
+            self.handle.spawn(async move {
+                if let Err(e) = sup.ensure_started().await {
+                    mic::log_line(&format!("warm-up failed: {e}"));
+                }
+            });
+        }
         self.agent.store().set("voice", serde_json::to_value(&info).unwrap_or(Value::Null));
+        let shown = Instant::now();
         self.show(&info, 0.0);
         self.set_aux(&state);
-        // The watchdog: a request that waits in one state for 30 s is cancelled.
+        // The watchdog: a request waits in one stage for as long as `watchdog_ms` says, then it is cancelled.
         let seen = self.changes.fetch_add(1, Ordering::SeqCst) + 1;
         if matches!(info.state, "listening" | "loading" | "thinking") {
             let (driver, changes) = (self.driver().clone(), self.changes.clone());
+            let wait = watchdog_ms(&state.phase);
+            mic::log_line(&format!("stage {} watchdog={}s pill={}ms", info.state, wait / 1000, shown.elapsed().as_millis()));
             std::thread::spawn(move || {
-                std::thread::sleep(Duration::from_millis(WATCHDOG_MS));
+                std::thread::sleep(Duration::from_millis(wait));
                 if changes.load(Ordering::SeqCst) == seen {
                     driver.handle_event(Event::Watchdog);
                 }
