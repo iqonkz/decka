@@ -4,6 +4,11 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+### Fixed
+- **Voice settings**: the "Keep the model loaded" checkbox and the other voice settings gave `missing required key args` and were not saved. All of them (hotkey, model, microphone, keep loaded, phone button) save again. The "Speak the answers" checkbox is hidden until spoken answers exist.
+- **The program froze on "Thinking…"** after pressing stop on the voice pill: closing the microphone waited for the audio thread while that thread waited for the main window thread. Closing now happens on a thread of its own, the pill is updated off the audio thread, and recognition (15 s) and the language model (20 s) have time limits.
+- **A phrase that never ended on a real microphone**: the noise level is now taken from the quietest part of the last 3 seconds (speech in the first second no longer counts as noise), and a microphone that raises its gain in a pause no longer keeps the phrase open. The decisions of the first five requests go to `%LOCALAPPDATA%\Decka\logs\voice.log` (numbers only, no sound and no text; set `DECKA_VOICE_DEBUG=1` for all).
+
 ## 0.20.1 — 2026-11-22
 
 ### Fixed
