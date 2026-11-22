@@ -44,7 +44,8 @@
       "icons/icon.ico"
     ],
     "resources": {
-      "../../client/dist": "client"
+      "../../client/dist": "client",
+      "../../shared/ai/manifest.json": "ai/manifest.json"
     },
     "windows": {
       "nsis": {
