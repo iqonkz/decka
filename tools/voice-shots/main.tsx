@@ -8,6 +8,12 @@ import VoiceFab from "../../client/src/voice/VoiceFab";
 import VoiceConfirmSheet from "../../client/src/voice/VoiceConfirmSheet";
 import { setState } from "../../client/src/store/store";
 
+// The demo layout refers to a few actions that the default set does not have: simple stand-ins, so the editor shows no problems.
+function demoActions(base: { version: number; actions: Record<string, unknown> }) {
+  const stub = (name: string, op: string) => ({ name, type: "media", op });
+  return { ...base, actions: { ...base.actions, "mic-toggle": stub("Mic on", "mute"), shuffle: stub("Shuffle", "next"), "out-mute": stub("Mute", "mute"), "obs-record": stub("Record", "play_pause"), "go-live": stub("Go live", "play_pause") } };
+}
+
 const q = new URLSearchParams(location.search);
 const scene = q.get("scene") ?? "pill";
 const state = (q.get("state") ?? "listening") as "idle" | "listening" | "loading" | "thinking" | "confirm" | "done" | "error";
@@ -56,7 +62,7 @@ if (scene === "deck" || scene === "settings") {
     localStorage.setItem("decka.wizard.done.v1", "1");
     localStorage.setItem("decka.editor.tips.v1", "1");
     const layout = { version: 1, ...fx.layout };
-    const answers: Record<string, unknown> = { get_layout: layout, get_actions: actionsFx.default, get_update_status: { state: "idle" }, get_status: { version: "0.20.1", focusApp: null, listening: { bind: "0.0.0.0", port: 9247 }, lanIps: ["192.168.1.20"], clients: [{ deviceId: "demo", name: "Phone", remote: "192.168.1.31", connectedAt: Date.now() }], usb: { enabled: false, adbFound: false, devices: [] }, configDir: "C:\\Users\\demo\\AppData\\Roaming\\Decka" }, list_window_apps: ["code.exe", "chrome.exe"], get_templates: [], get_config: (await import("../../shared/fixtures/config.example.json")).default };
+    const answers: Record<string, unknown> = { get_layout: layout, get_actions: demoActions(actionsFx.default as { version: number; actions: Record<string, unknown> }), get_update_status: { state: "idle" }, get_status: { version: "0.20.1", focusApp: null, listening: { bind: "0.0.0.0", port: 9247 }, lanIps: ["192.168.1.20"], clients: [{ deviceId: "demo", name: "Phone", remote: "192.168.1.31", connectedAt: Date.now() }], usb: { enabled: false, adbFound: false, devices: [] }, configDir: "C:\\Users\\demo\\AppData\\Roaming\\Decka" }, list_window_apps: ["code.exe", "chrome.exe"], get_templates: [], get_config: (await import("../../shared/fixtures/config.example.json")).default };
     (window as never as { __TAURI_INTERNALS__: unknown }).__TAURI_INTERNALS__ = {
       invoke: async (cmd: string) => {
         if (cmd in answers) return answers[cmd];
@@ -75,6 +81,11 @@ if (scene === "pill") await import("../../agent/src/styles.css");
 else await import("../../client/src/styles.css");
 if (scene === "pill") {
   document.body.style.background = "#1b1b22";
+  // `desk=1` (T22.3): a neutral desktop (gradient, no logos) with the pill near the top of the screen.
+  if (q.get("desk")) {
+    document.body.style.cssText += ";margin:0;min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding-top:150px;box-sizing:border-box;background:radial-gradient(1200px 700px at 20% 15%,#3b4a8c 0%,transparent 60%),radial-gradient(1000px 700px at 85% 90%,#7a3b8c 0%,transparent 55%),linear-gradient(135deg,#141a33,#241437);";
+  }
+  if (q.get("desk")) document.getElementById("root")!.style.zoom = "2";
   // `pad=1`: the pill sits in the middle of a canvas that the shooter crops to the pill plus 40 px on every side.
   if (q.get("pad")) document.body.style.cssText += ";display:flex;align-items:center;justify-content:center;";
   root.render(<VoicePill initialData={{ ...info, level: Number(q.get("level") ?? 0.6), hotkey: "Ctrl+Alt+Space" } as never} />);

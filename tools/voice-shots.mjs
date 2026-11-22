@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 // Pictures of the voice pill (PC) and of the voice button, bubble and confirmation sheet (phone) for visual acceptance (T21.S).
 // Builds tools/voice-shots with Vite, serves it, drives headless Chrome/Edge with the DevTools protocol.
 //   node tools/voice-shots.mjs [outDir]      writes pill-*.png (360x160 css px, x3) and phone-*.png (800x360 css px, x2)
@@ -47,6 +47,9 @@ const SHOTS = {
   "theme-material": [DECK, "scene=deck&theme=material"],
   "theme-glass": [DECK, "scene=deck&theme=glass"],
   settings: [{ w: 1100, h: 700, scale: 1 }, "scene=settings&theme=studio"],
+  // Landing pictures (T22.3): `click` selects an item of the editor before the shot.
+  "pc-editor": [{ w: 1600, h: 1000, scale: 1 }, "scene=settings&theme=studio", ".editor-item::6"],
+  "pc-voice": [{ w: 1600, h: 900, scale: 1 }, "scene=pill&state=done&heard=open+calculator&reply=Opened+Calculator&desk=1"],
   "phone-idle": [PHONE, "scene=phone&state=idle"],
   "phone-listening": [PHONE, "scene=phone&state=listening"],
   "phone-done": [PHONE, "scene=phone&state=done&heard=turn+the+volume+up&reply=Done"],
@@ -55,7 +58,7 @@ const SHOTS = {
 const only = process.env.ONLY?.split(",");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function shoot(name, [size, query]) {
+async function shoot(name, [size, query, click]) {
   const profile = mkdtempSync(join(tmpdir(), "decka-voiceshots-"));
   const port = 9340 + Math.floor(Math.random() * 400);
   const chrome = spawn(CHROME, ["--headless=new", `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`, "--lang=en-US", `--window-size=${size.w},${size.h}`, "about:blank"], { stdio: "ignore" });
@@ -89,6 +92,15 @@ async function shoot(name, [size, query]) {
     await send("Emulation.setDeviceMetricsOverride", { width: size.w, height: size.h, deviceScaleFactor: size.scale, mobile: false });
     await send("Page.navigate", { url: `${base}?${query}` });
     await sleep(1200);
+    if (click) {
+      const r = await send("Runtime.evaluate", { expression: `(() => { const [sel, txt] = ${JSON.stringify(click)}.split("::"); const e = [...document.querySelectorAll(sel)][Number(txt) || 0]; if (!e) return null; const b = e.getBoundingClientRect(); return JSON.stringify([b.x + b.width / 2, b.y + b.height / 2]); })()`, returnByValue: true });
+      if (!r.result.value) throw new Error(`${name}: nothing matches ${click}`);
+      const [x, y] = JSON.parse(r.result.value);
+      await send("Input.dispatchMouseEvent", { type: "mouseMoved", x, y });
+      await send("Input.dispatchMouseEvent", { type: "mousePressed", x, y, button: "left", clickCount: 1 });
+      await send("Input.dispatchMouseEvent", { type: "mouseReleased", x, y, button: "left", clickCount: 1 });
+      await sleep(600);
+    }
     const params = { format: "png" };
     if (query.includes("pad=1")) {
       // Crop to the pill with a 40 px margin on every side (T22.1).
