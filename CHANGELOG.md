@@ -4,7 +4,7 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
-## 0.20.3 — 2026-11-22
+## 0.20.4 — 2026-11-22
 
 ### Changed
 - **Stage-based watchdog**: individual timeouts per stage instead of a global 30 s limit: listening (30 s), model loading (up to 120 s), recognition (its own limit, see below), and AI inference (20 s). The watchdog timer resets at each stage transition.
@@ -15,6 +15,9 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ### Fixed
 - **Recording closed at once on the PC**: a single audio buffer glitch (xrun) of the microphone was treated as the end of the device; it is ignored now. A press of the hotkey or a click on the pill within 400 ms of the start no longer ends the recording. The window of the pill no longer holds the microphone back (it used to delay the start by 3-7 s).
+- **The pill stayed on the screen (T21.13)**: a late update of the wave could bring the closed pill back, and a close that came while the window was still being created was lost. Going idle now always closes the pill, in every sequence of repeated presses.
+- **No sound from the microphone (T21.14)**: a microphone that gives only digital silence is reopened after a second; if it stays silent, the other real microphones are tried in turn (virtual ones such as AudioRelay, Steam Streaming, CABLE, Stereo Mix are skipped) and the one that works is remembered. When none works the pill says "Microphone gives no sound — choose it in More → Voice" (11 languages). `voice.log` names the device that was opened and keeps the last 50 endpoint decisions for NoSpeech and capture failures.
+- **Invented text from silence (T21.14)**: a recording without any speech is no longer sent to the recognizer or the language model, even after "stop"; the answer is "Didn't hear anything".
 - `voice.log` records the events of a session (names and timings only, no sound, no text).
 - **Phone long-press gestures**: long pressing the floating voice button in mobile browsers no longer opens context menus, selects text, or triggers page gestures.
 

@@ -875,6 +875,7 @@ export const pt: Dictionary = {
   "voice.reply.no_speech": "Não ouvi nada",
   "voice.reply.wrong": "Algo deu errado, tente novamente",
   "voice.reply.mic_unavailable": "O microfone não está disponível",
+  "voice.reply.no_sound": "O microfone não dá som: escolha-o em Mais → Voz",
   "voice.stop_hint": "Clique para terminar",
   "voice.confirm.lock": "Bloquear o computador",
   "voice.confirm.sleep": "Suspender o computador",

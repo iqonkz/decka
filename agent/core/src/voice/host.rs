@@ -18,7 +18,7 @@ use super::pipeline::{msg, BoxFut, Driver, Event, Phase, Ports, Source, State, V
 use super::winops;
 use super::tools::{ActionRef, AppRef, ButtonRef, Context, PageRef, RawCall, ToolCall, VolumeOp};
 use crate::agent::Agent;
-use crate::ai::service::{VoiceService, VoiceState, VoiceStatus};
+use crate::ai::service::{VoiceService, VoiceSetArgs, VoiceState, VoiceStatus};
 use crate::ai::supervisor::SupState;
 use crate::installed::InstalledApp;
 use crate::model::{Action, ActionsFile, LayoutFile, LayoutItem, MediaOp, VarValue};
@@ -580,7 +580,7 @@ impl Ports for Inner {
             }
             let wanted = self.service.status().mic;
             let started = {
-                let (feed, fail) = (self.driver().clone(), self.driver().clone());
+                let (feed, fail, service) = (self.driver().clone(), self.driver().clone(), self.service.clone());
                 let pill_self = self.pill.clone();
                 let hotkey = self.service.status().hotkey;
                 let last_info = self.last.lock().unwrap().clone();
@@ -601,6 +601,7 @@ impl Ports for Inner {
                         }
                         // The last 50 decisions are kept in memory and dumped to voice.log on NoSpeech / CaptureFailed.
                         mic::ring_push(line);
+                        feed.note_speech(fed.decision.speech_ms);
                         feed.push_audio(&fed.pcm);
                         // The wave of the pill follows the voice (a chunk is 100 ms, so at most 10 times a second).
                         if let Some(info) = last_info.as_ref().filter(|i| i.state == "listening") {
@@ -627,6 +628,10 @@ impl Ports for Inner {
                         }
                     },
                     move |e| fail.handle_event(Event::CaptureFailed(e)),
+                    move |name| {
+                        // The microphone that gave sound after the silence of the first one becomes the chosen one.
+                        let _ = service.set(VoiceSetArgs { mic: Some(name), ..Default::default() });
+                    },
                 )
             };
             match started {

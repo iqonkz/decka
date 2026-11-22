@@ -42,8 +42,42 @@ pub fn log_line(line: &str) {
     }
 }
 
+/// The error text that means "no microphone gave any sound" (the pipeline turns it into its own message).
+pub const NO_SOUND: &str = "Microphone gives no sound — choose it in More → Voice";
+
+/// Names of devices that only pass sound from other software: they are silent when nothing plays into them.
+pub fn is_virtual(name: &str) -> bool {
+    let n = name.to_lowercase();
+    ["virtual", "steam streaming", "stereo mix", "cable", "audiorelay"].iter().any(|v| n.contains(v))
+}
+
+/// Which devices to try when `first` (the device in use) gives only silence: the others in list order, virtual ones skipped.
+/// The first item is `first` itself.
+pub fn attempt_order(names: &[String], first: Option<&str>) -> Vec<String> {
+    let mut out: Vec<String> = first.map(|f| f.to_string()).into_iter().collect();
+    out.extend(names.iter().filter(|n| !is_virtual(n) && Some(n.as_str()) != first).cloned());
+    out
+}
+
+/// Counts chunks of digital silence in a row.
+#[derive(Debug, Default)]
+pub struct DeadStream {
+    zeros: u32,
+}
+
+impl DeadStream {
+    /// `true` once a second of chunks (all of them zeros) has gone by; and for every further silent chunk.
+    pub fn push(&mut self, rms: f32) -> bool {
+        if rms < DIGITAL_SILENCE {
+            self.zeros += 1;
+        } else {
+            self.zeros = 0;
+        }
+        self.zeros >= DEAD_CHUNKS
+    }
+}
 /// A chunk this quiet is digital silence (all zeros), not a quiet room.
-pub const DIGITAL_SILENCE: f32 = 0.00003;
+pub const DIGITAL_SILENCE: f32 = 0.000001;
 /// This many chunks of digital silence in a row (1 s) mean the stream is dead.
 pub const DEAD_CHUNKS: u32 = 10;
 
@@ -185,7 +219,7 @@ mod device {
     use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
     use cpal::SampleFormat;
 
-    use super::{choose_device, DEAD_CHUNKS, DIGITAL_SILENCE, f32_to_i16, i32_to_i16, u16_to_i16, unique_names, Capture, Choice, Fed};
+    use super::{attempt_order, choose_device, DeadStream, DIGITAL_SILENCE, f32_to_i16, i32_to_i16, u16_to_i16, unique_names, Capture, Choice, Fed};
 
     fn input_names(host: &cpal::Host) -> Vec<String> {
         host.input_devices().map(|list| unique_names(list.filter_map(|d| d.description().ok().map(|x| x.name().to_string())))).unwrap_or_default()
@@ -221,8 +255,22 @@ mod device {
 
     type Sink = Arc<Mutex<Box<dyn FnMut(Fed) + Send>>>;
 
-    /// Opens the stream. `dead` is raised when a second of digital silence (all zeros) comes in a row.
-    fn build(wanted: &Option<String>, log: bool, sink: &Sink, on_error: &Arc<dyn Fn(String) + Send + Sync>, dead: &Arc<AtomicBool>) -> Result<cpal::Stream, String> {
+    /// What a stream tells the thread that owns it.
+    #[derive(Clone, Default)]
+    struct Flags {
+        /// A second of digital silence in a row.
+        dead: Arc<AtomicBool>,
+        /// A chunk with real sound came in.
+        alive: Arc<AtomicBool>,
+    }
+
+    /// The name of the device that is used when nothing is chosen.
+    fn default_name(host: &cpal::Host) -> Option<String> {
+        host.default_input_device().and_then(|d| d.description().ok().map(|x| x.name().to_string()))
+    }
+
+    /// Opens the stream of `wanted` (a name, else the default device); returns it with the name of the device.
+    fn build(wanted: &Option<String>, log: bool, sink: &Sink, on_error: &Arc<dyn Fn(String) + Send + Sync>, flags: &Flags) -> Result<(cpal::Stream, Option<String>), String> {
         let host = cpal::default_host();
         let names = input_names(&host);
         let device = match choose_device(&names, wanted.as_deref()) {
@@ -235,11 +283,12 @@ mod device {
                 .or_else(|| host.default_input_device())
                 .ok_or_else(|| "No microphone found".to_string())?,
         };
+        let device_name = device.description().ok().map(|x| x.name().to_string());
         let supported = device.default_input_config().map_err(|e| format!("Microphone is not available: {e}"))?;
         let (rate, channels, format) = (supported.sample_rate(), supported.channels(), supported.sample_format());
-        if log {
-            super::log_line(&format!("device rate={rate} channels={channels} format={format:?}"));
-        }
+        // The name of the microphone is not private data of the user's speech: the log says which device gave the silence.
+        super::log_line(&format!("device name={} rate={rate} channels={channels} format={format:?}", device_name.as_deref().unwrap_or("?")));
+        let _ = log;
         let config = supported.config();
         let mut capture = Capture::new(rate, channels);
         // A buffer under/overrun is a glitch of one block, not the end of the device (it used to close every recording).
@@ -251,18 +300,15 @@ mod device {
                 on_error(format!("Microphone stopped: {e}"));
             }
         };
-        let (sink, dead) = (sink.clone(), dead.clone());
-        let mut zeros = 0u32;
+        let (sink, flags) = (sink.clone(), flags.clone());
+        let mut dead = DeadStream::default();
         let mut emit = move |frames: Vec<i16>| {
             for fed in capture.feed(&frames) {
-                // After an xrun some drivers hand out zeros for good: a second of them is a dead stream.
-                if fed.decision.rms < DIGITAL_SILENCE {
-                    zeros += 1;
-                    if zeros >= DEAD_CHUNKS {
-                        dead.store(true, Ordering::SeqCst);
-                    }
-                } else {
-                    zeros = 0;
+                if dead.push(fed.decision.rms) {
+                    flags.dead.store(true, Ordering::SeqCst);
+                }
+                if fed.decision.rms >= DIGITAL_SILENCE {
+                    flags.alive.store(true, Ordering::SeqCst);
                 }
                 if let Ok(mut f) = sink.lock() {
                     f(fed);
@@ -278,17 +324,19 @@ mod device {
         }
         .map_err(|e| format!("Microphone is not available: {e}"))?;
         stream.play().map_err(|e| format!("Microphone is not available: {e}"))?;
-        Ok(stream)
+        Ok((stream, device_name))
     }
 
     /// Opens the microphone (`wanted` by name, else the default) and calls `on_chunk` for every 100 ms. The stream lives on a
     /// thread of its own (it is not `Send` on Windows); an error while recording goes to `on_error`. A stream that gives only
-    /// digital silence for a second is reopened once.
+    /// digital silence for a second is reopened once; if it is still silent, the other real microphones are tried in turn
+    /// (virtual ones are skipped) and the one that works goes to `on_device`. None works: `on_error(NO_SOUND)`.
     pub fn start(
         wanted: Option<String>,
         log: bool,
         on_chunk: impl FnMut(Fed) + Send + 'static,
         on_error: impl Fn(String) + Send + Sync + 'static,
+        on_device: impl Fn(String) + Send + 'static,
     ) -> Result<Mic, String> {
         let (ready_tx, ready_rx) = mpsc::channel::<Result<(), String>>();
         let (stop_tx, stop_rx) = mpsc::channel::<()>();
@@ -297,29 +345,69 @@ mod device {
         let join = std::thread::Builder::new()
             .name("decka-mic".into())
             .spawn(move || {
-                let dead = Arc::new(AtomicBool::new(false));
-                match build(&wanted, log, &sink, &on_error, &dead) {
-                    Ok(mut stream) => {
+                let flags = Flags::default();
+                match build(&wanted, log, &sink, &on_error, &flags) {
+                    Ok((mut stream, first)) => {
                         let _ = ready_tx.send(Ok(()));
+                        let mut current = first.clone();
                         let mut reopened = false;
+                        let mut queue: Option<std::collections::VecDeque<String>> = None;
+                        let mut switched = false;
                         loop {
-                            match stop_rx.recv_timeout(Duration::from_millis(100)) {
-                                Err(mpsc::RecvTimeoutError::Timeout) => {}
-                                _ => break, // stop, or the handle was dropped
+                            if !matches!(stop_rx.recv_timeout(Duration::from_millis(100)), Err(mpsc::RecvTimeoutError::Timeout)) {
+                                break; // stop, or the handle was dropped
                             }
-                            if !reopened && dead.load(Ordering::SeqCst) {
+                            if switched && flags.alive.load(Ordering::SeqCst) {
+                                switched = false;
+                                if let Some(name) = &current {
+                                    super::log_line(&format!("working microphone found name={name}"));
+                                    on_device(name.clone());
+                                }
+                            }
+                            if !flags.dead.swap(false, Ordering::SeqCst) {
+                                continue;
+                            }
+                            flags.alive.store(false, Ordering::SeqCst);
+                            drop(stream);
+                            if !reopened {
                                 reopened = true;
-                                drop(stream);
-                                dead.store(false, Ordering::SeqCst);
-                                match build(&wanted, log, &sink, &on_error, &dead) {
-                                    Ok(s) => {
+                                super::log_line("digital silence: reopening the stream");
+                                match build(&Some(current.clone().unwrap_or_default()).filter(|n| !n.is_empty()), log, &sink, &on_error, &flags) {
+                                    Ok((s, _)) => {
                                         super::log_line("stream reopened");
                                         stream = s;
+                                        continue;
                                     }
-                                    Err(e) => {
-                                        on_error(e);
-                                        return;
+                                    Err(e) => super::log_line(&format!("reopen failed: {e}")),
+                                }
+                            }
+                            // Still silent: the other microphones, one by one.
+                            let q = queue.get_or_insert_with(|| {
+                                let names = input_names(&cpal::default_host());
+                                attempt_order(&names, current.as_deref()).into_iter().skip(1).collect()
+                            });
+                            let mut found = None;
+                            while let Some(next) = q.pop_front() {
+                                super::log_line(&format!("digital silence: trying microphone name={next}"));
+                                match build(&Some(next.clone()), log, &sink, &on_error, &flags) {
+                                    Ok((s, n)) => {
+                                        found = Some((s, n.unwrap_or(next)));
+                                        break;
                                     }
+                                    Err(e) => super::log_line(&format!("microphone failed: {e}")),
+                                }
+                            }
+                            match found {
+                                Some((s, n)) => {
+                                    stream = s;
+                                    current = Some(n);
+                                    switched = true;
+                                }
+                                None => {
+                                    // Not on this thread: the error stops the capture, which waits for this thread.
+                                    let on_error = on_error.clone();
+                                    std::thread::spawn(move || on_error(super::NO_SOUND.to_string()));
+                                    return;
                                 }
                             }
                         }
@@ -356,6 +444,23 @@ mod tests {
         (0..len).map(|i| if i % 2 == 0 { amp } else { -amp }).collect()
     }
 
+    #[test]
+    fn dead_stream_needs_a_whole_second_of_zeros() {
+        let mut d = DeadStream::default();
+        assert!((0..9).all(|_| !d.push(0.0)));
+        assert!(d.push(0.0));
+        assert!(!{ d.push(0.01); d.push(0.0) }, "a real chunk starts the count again");
+    }
+
+    #[test]
+    fn virtual_microphones_are_skipped_and_the_one_in_use_comes_first() {
+        let names: Vec<String> = ["Mic (MCHOSE V9 PRO)", "Микрофон (MCHOSE V9 PRO HEADSET)", "Virtual Mic (AudioRelay)", "Steam Streaming Microphone", "CABLE Output", "Stereo Mix"].map(String::from).to_vec();
+        assert!(is_virtual("Virtual Mic (AudioRelay)") && is_virtual("steam streaming microphone") && !is_virtual("Mic (MCHOSE V9 PRO)"));
+        // The default is a virtual one: it is tried first (by the reopen), then the real ones.
+        assert_eq!(attempt_order(&names, Some("Virtual Mic (AudioRelay)")), ["Virtual Mic (AudioRelay)", "Mic (MCHOSE V9 PRO)", "Микрофон (MCHOSE V9 PRO HEADSET)"]);
+        assert_eq!(attempt_order(&names, Some("Mic (MCHOSE V9 PRO)")), ["Mic (MCHOSE V9 PRO)", "Микрофон (MCHOSE V9 PRO HEADSET)"]);
+        assert_eq!(attempt_order(&names, None).len(), 2);
+    }
     #[test]
     fn sample_formats_are_converted_to_i16() {
         assert_eq!(f32_to_i16(0.0), 0);

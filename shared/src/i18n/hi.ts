@@ -875,6 +875,7 @@ export const hi: Dictionary = {
   "voice.reply.no_speech": "कुछ सुनाई नहीं दिया",
   "voice.reply.wrong": "कुछ गलत हो गया, फिर से कोशिश करें",
   "voice.reply.mic_unavailable": "माइक्रोफ़ोन उपलब्ध नहीं है",
+  "voice.reply.no_sound": "माइक्रोफ़ोन से आवाज़ नहीं आ रही — इसे “और → आवाज़” में चुनें",
   "voice.stop_hint": "समाप्त करने के लिए क्लिक करें",
   "voice.confirm.lock": "कंप्यूटर लॉक करें",
   "voice.confirm.sleep": "कंप्यूटर को स्लीप में भेजें",

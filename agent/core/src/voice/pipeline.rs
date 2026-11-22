@@ -26,6 +26,7 @@ pub mod msg {
     pub const NO_MIC: &str = "No microphone found";
     pub const MIC_UNAVAILABLE: &str = "Microphone is unavailable";
     pub const NO_SPEECH: &str = "Didn't hear anything";
+    pub const NO_SOUND: &str = crate::voice::mic::NO_SOUND;
     pub const WRONG: &str = "Something went wrong, try again";
 }
 
@@ -40,6 +41,7 @@ pub mod key {
     pub const NO_MIC: &str = "voice.reply.no_mic";
     pub const MIC_UNAVAILABLE: &str = "voice.reply.mic_unavailable";
     pub const NO_SPEECH: &str = "voice.reply.no_speech";
+    pub const NO_SOUND: &str = "voice.reply.no_sound";
     pub const WRONG: &str = "voice.reply.wrong";
 }
 
@@ -287,6 +289,15 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
             (State { phase: Phase::Listening, id: Some(id), source: Some(source), heard: None, say: None, reply_key: None }, effects)
         }
         (Phase::Idle, Event::Cancel) => (s, Vec::new()),
+        (Phase::Listening, Event::CaptureFailed(e)) if e == msg::NO_SOUND => {
+            if !cfg!(test) {
+                super::mic::log_line("capture failed: no sound from any microphone");
+                super::mic::ring_dump("no sound");
+            }
+            let (mut next, _) = finish_key(s, Phase::Failed(msg::NO_SOUND.into()), ReplyKey::plain(key::NO_SOUND));
+            next.heard = None;
+            (next, vec![Effect::StopCapture])
+        }
         (Phase::Listening, Event::CaptureFailed(e)) => {
             tracing::warn!("voice microphone: {e}");
             if !cfg!(test) {
@@ -439,6 +450,16 @@ pub trait Ports: Send + Sync + 'static {
 struct Shared {
     state: State,
     audio: Vec<u8>,
+    /// Speech the endpoint heard in this recording (`None`: not known, e.g. a phone).
+    speech_ms: Option<u32>,
+}
+
+/// A recording of the PC without a single chunk of speech never goes to the recognizer: whisper invents text from silence.
+pub fn audio_end_or_no_speech(event: Event, speech_ms: Option<u32>) -> Event {
+    match (event, speech_ms) {
+        (Event::AudioEnd, Some(0)) => Event::NoSpeech,
+        (e, _) => e,
+    }
 }
 
 /// Owns one pipeline: feeds events to `step` and runs the effects. Cheap to clone.
@@ -457,11 +478,19 @@ impl Driver {
     }
 
     pub fn with_confirm_timeout(handle: tokio::runtime::Handle, ports: Arc<dyn Ports>, confirm_ms: u64) -> Driver {
-        Driver { ports, shared: Arc::new(Mutex::new(Shared { state: State::idle(), audio: Vec::new() })), handle, t0: std::time::Instant::now(), confirm_ms }
+        Driver { ports, shared: Arc::new(Mutex::new(Shared { state: State::idle(), audio: Vec::new(), speech_ms: None })), handle, t0: std::time::Instant::now(), confirm_ms }
     }
 
     pub fn state(&self) -> State {
         self.shared.lock().unwrap().state.clone()
+    }
+
+    /// The endpoint's count of speech so far in the running recording.
+    pub fn note_speech(&self, ms: u32) {
+        let mut sh = self.shared.lock().unwrap();
+        if sh.state.phase == Phase::Listening {
+            sh.speech_ms = Some(ms);
+        }
     }
 
     pub fn push_audio(&self, pcm: &[u8]) {
@@ -492,6 +521,7 @@ impl Driver {
         let (info, effects, pcm) = {
             let mut sh = self.shared.lock().unwrap();
             let before = phase_name(&sh.state.phase);
+            let event = if sh.state.phase == Phase::Listening { audio_end_or_no_speech(event, sh.speech_ms) } else { event };
             let (next, effects) = step(&sh.state, event, now_ms, &env);
             if name != "Tick" && !cfg!(test) {
                 // Names only: never sound or text.
@@ -500,6 +530,7 @@ impl Driver {
             let changed = next != sh.state;
             if matches!(next.phase, Phase::Listening) && !matches!(sh.state.phase, Phase::Listening) {
                 sh.audio.clear();
+                sh.speech_ms = None;
             }
             let pcm = if effects.contains(&Effect::Transcribe) { std::mem::take(&mut sh.audio) } else { Vec::new() };
             sh.state = next;
@@ -586,6 +617,25 @@ mod tests {
 
     fn said(text: &str) -> Event {
         Event::Transcript(Ok(text.into()))
+    }
+
+    #[test]
+    fn a_recording_without_speech_is_not_sent_to_the_recognizer() {
+        assert_eq!(audio_end_or_no_speech(Event::AudioEnd, Some(0)), Event::NoSpeech);
+        assert_eq!(audio_end_or_no_speech(Event::AudioEnd, Some(300)), Event::AudioEnd);
+        assert_eq!(audio_end_or_no_speech(Event::AudioEnd, None), Event::AudioEnd);
+        let (s, fx) = run(vec![start(Source::Pc), audio_end_or_no_speech(Event::AudioEnd, Some(0))]);
+        assert_eq!(s.phase, Phase::Failed(msg::NO_SPEECH.into()));
+        assert!(!fx.contains(&Effect::Transcribe));
+    }
+
+    #[test]
+    fn no_sound_from_any_microphone_fails_and_the_pill_goes_idle() {
+        let (s, _) = run(vec![start(Source::Pc), Event::CaptureFailed(msg::NO_SOUND.into())]);
+        assert_eq!(s.info().reply_key, Some("voice.reply.no_sound"));
+        let mut events = vec![start(Source::Pc), Event::CaptureFailed(msg::NO_SOUND.into()), start(Source::Pc), audio_end_or_no_speech(Event::AudioEnd, Some(0)), Event::Reset];
+        events.extend([start(Source::Pc), Event::CaptureFailed(msg::NO_SOUND.into()), Event::Reset]);
+        assert_eq!(run(events).0.phase, Phase::Idle);
     }
 
     #[test]

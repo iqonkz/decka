@@ -882,6 +882,7 @@ export const kk: Dictionary = {
   "voice.reply.no_speech": "Ештеңе естілмеді",
   "voice.reply.wrong": "Бір нәрсе дұрыс болмады, қайталап көріңіз",
   "voice.reply.mic_unavailable": "Микрофон қолжетімсіз",
+  "voice.reply.no_sound": "Микрофон дыбыс бермейді — оны «Тағы → Дауыс» бөлімінде таңдаңыз",
   "voice.stop_hint": "Аяқтау үшін басыңыз",
   "voice.confirm.lock": "Компьютерді құлыптау",
   "voice.confirm.sleep": "Компьютерді ұйқы режиміне жіберу",

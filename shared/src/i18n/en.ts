@@ -884,6 +884,7 @@ export const en = {
   "voice.reply.no_speech": "Didn't hear anything",
   "voice.reply.wrong": "Something went wrong, try again",
   "voice.reply.mic_unavailable": "Microphone is unavailable",
+  "voice.reply.no_sound": "Microphone gives no sound — choose it in More → Voice",
   "voice.stop_hint": "Click to finish",
   "voice.confirm.lock": "Lock the computer",
   "voice.confirm.sleep": "Put the computer to sleep",
