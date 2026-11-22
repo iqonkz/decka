@@ -15,7 +15,7 @@ export async function onVoiceStatus(fn: (status: VoiceStatus) => void): Promise<
 }
 
 export interface VoicePillEvent {
-  state: "idle" | "listening" | "loading" | "thinking" | "confirm" | "done" | "error";
+  state: "idle" | "listening" | "loading" | "recognizing" | "thinking" | "confirm" | "done" | "error";
   id?: string;
   source?: "pc" | "phone";
   heard?: string;

@@ -866,6 +866,7 @@ export const ru: Record<Base | ExtraPlural, string> = {
   "menu.voice_button": "Кнопка голоса",
   "voice.listening": "Слушаю…",
   "voice.thinking": "Думаю…",
+  "voice.recognizing": "Распознаю…",
   "voice.done": "Готово",
   "voice.error": "Не удалось распознать",
   "voice.confirm_title": "Подтвердите действие",

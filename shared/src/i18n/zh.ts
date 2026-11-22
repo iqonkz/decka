@@ -842,6 +842,7 @@ export const zh: Dictionary = {
   "menu.voice_button": "语音按钮",
   "voice.listening": "正在聆听…",
   "voice.thinking": "思考中…",
+  "voice.recognizing": "识别中…",
   "voice.done": "完成",
   "voice.error": "没听清",
   "voice.confirm_title": "确认操作",

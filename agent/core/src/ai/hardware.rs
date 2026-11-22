@@ -18,6 +18,12 @@ impl HardwareInfo {
         recommend_model(self.vram_gb, self.ram_gb)
     }
 
+    /// Speech recognition goes to the video card: NVIDIA (the only ready-made GPU build of whisper.cpp for Windows is
+    /// cuBLAS) with at least 2 GB of video memory.
+    pub fn whisper_gpu(&self) -> bool {
+        self.gpu.as_deref().is_some_and(|g| g.to_ascii_lowercase().contains("nvidia")) && self.vram_gb.is_some_and(|v| v >= 2.0)
+    }
+
     /// Formats the hardware summary line for the settings window.
     /// E.g. "This PC: NVIDIA GeForce RTX 2060 SUPER (8 GB), 15.8 GB RAM — standard model"
     pub fn summary_string(&self) -> String {

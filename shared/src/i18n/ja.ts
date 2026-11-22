@@ -842,6 +842,7 @@ export const ja: Dictionary = {
   "menu.voice_button": "音声ボタン",
   "voice.listening": "聞き取り中…",
   "voice.thinking": "考え中…",
+  "voice.recognizing": "認識中…",
   "voice.done": "完了",
   "voice.error": "聞き取れませんでした",
   "voice.confirm_title": "アクションを確認",

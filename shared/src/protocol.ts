@@ -43,7 +43,7 @@ export interface VoiceCancelMsg { t: "voice_cancel"; id: string; }
 export interface VoiceConfirmMsg { t: "voice_confirm"; id: string; yes: boolean; }
 /** The `voice` section: the state of the current voice request; null before the first one. */
 export interface VoiceInfo {
-  state: "idle" | "listening" | "loading" | "thinking" | "confirm" | "done" | "error";
+  state: "idle" | "listening" | "loading" | "recognizing" | "thinking" | "confirm" | "done" | "error";
   id?: string; source?: "pc" | "phone"; heard?: string; reply?: string; confirm?: { text: string; key?: string; args?: Record<string, string> };
   /** i18n key (`voice.reply.*`) of a fixed agent phrase; `reply` is the free text or the fallback. */
   replyKey?: string; replyArgs?: Record<string, string>;

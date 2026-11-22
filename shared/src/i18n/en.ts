@@ -844,6 +844,7 @@ export const en = {
   "menu.voice_button": "Voice button",
   "voice.listening": "Listening…",
   "voice.thinking": "Thinking…",
+  "voice.recognizing": "Recognizing…",
   "voice.done": "Done",
   "voice.error": "Didn't catch that",
   "voice.confirm_title": "Confirm action",

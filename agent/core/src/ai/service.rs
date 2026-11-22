@@ -120,12 +120,12 @@ pub fn recommend(hw: &HardwareInfo) -> ModelChoice {
 // ---- Plan of files ----------------------------------------------------------------------------------------------
 
 /// The manifest entries one install needs: both runtimes, the chosen model, the speech model.
-pub fn plan<'a>(manifest: &'a [ManifestEntry], model: ModelChoice) -> Vec<&'a ManifestEntry> {
+pub fn plan<'a>(manifest: &'a [ManifestEntry], model: ModelChoice, gpu: bool) -> Vec<&'a ManifestEntry> {
     let llm = match model {
         ModelChoice::Standard => "llm-standard",
         ModelChoice::Light => "llm-light",
     };
-    ["llama-runtime", "whisper-runtime", llm, "stt"].iter().filter_map(|id| manifest.iter().find(|e| e.id == *id)).collect()
+    ["llama-runtime", if gpu { "whisper-runtime-cuda" } else { "whisper-runtime" }, llm, "stt"].iter().filter_map(|id| manifest.iter().find(|e| e.id == *id)).collect()
 }
 
 fn url_file_name(url: &str) -> String {
@@ -196,6 +196,8 @@ struct Inner {
     settings_path: PathBuf,
     manifest: Vec<ManifestEntry>,
     hardware: Arc<dyn HardwareProbe>,
+    /// The video card does not change while the agent runs: asked once (the DXGI query is slow on a busy card).
+    hardware_cache: std::sync::OnceLock<HardwareInfo>,
     mics: Arc<dyn Fn() -> Vec<String> + Send + Sync>,
     downloader: Downloader,
     supervisor: Supervisor,
@@ -232,6 +234,7 @@ impl VoiceService {
                 settings_path: deps.settings_path,
                 manifest: deps.manifest,
                 hardware: deps.hardware,
+                hardware_cache: std::sync::OnceLock::new(),
                 mics: deps.mics,
                 downloader: deps.downloader,
                 supervisor,
@@ -256,13 +259,22 @@ impl VoiceService {
         &self.inner.supervisor
     }
 
+    fn hardware(&self) -> HardwareInfo {
+        self.inner.hardware_cache.get_or_init(|| self.inner.hardware.probe()).clone()
+    }
+
     fn model(&self) -> ModelChoice {
         let chosen = self.inner.state.lock().unwrap().settings.model;
-        chosen.unwrap_or_else(|| recommend(&self.inner.hardware.probe()))
+        chosen.unwrap_or_else(|| recommend(&self.hardware()))
+    }
+
+    /// The GPU build of `whisper-server` (cuBLAS) for an NVIDIA card with at least 2 GB; otherwise the CPU build.
+    fn whisper_gpu(&self) -> bool {
+        self.inner.manifest.iter().any(|e| e.id == "whisper-runtime-cuda") && self.hardware().whisper_gpu()
     }
 
     fn installed(&self) -> bool {
-        let files = plan(&self.inner.manifest, self.model());
+        let files = plan(&self.inner.manifest, self.model(), self.whisper_gpu());
         files.len() == 4 && files.iter().all(|e| is_present(&self.inner.root, e))
     }
 
@@ -276,7 +288,7 @@ impl VoiceService {
         if !self.installed() {
             return None;
         }
-        let files = plan(&self.inner.manifest, self.model());
+        let files = plan(&self.inner.manifest, self.model(), self.whisper_gpu());
         let root = &self.inner.root;
         let llama_exe = find_file(&target_of(root, files[0]), "llama-server.exe")?;
         let whisper_exe = find_file(&target_of(root, files[1]), "whisper-server.exe")?;
@@ -287,16 +299,17 @@ impl VoiceService {
             whisper_exe,
             whisper_model: target_of(root, files[3]),
             keep_loaded,
+            whisper_gpu: files[1].id == "whisper-runtime-cuda",
         })
     }
 
     pub fn status(&self) -> VoiceStatus {
-        let hw = self.inner.hardware.probe();
+        let hw = self.hardware();
         let model = self.model();
         let installed = self.installed();
         let sup = self.inner.supervisor.state();
         let st = self.inner.state.lock().unwrap();
-        let total: u64 = plan(&self.inner.manifest, model).iter().map(|e| e.size).sum();
+        let total: u64 = plan(&self.inner.manifest, model, self.whisper_gpu()).iter().map(|e| e.size).sum();
         let (state, progress, error) = if let Some(d) = &st.download {
             (VoiceState::Downloading, Some(d.progress.clone()), None)
         } else if let Some(msg) = &st.last_error {
@@ -381,7 +394,7 @@ impl VoiceService {
 
     async fn run_download(&self, cancel: Arc<AtomicBool>) {
         let model = self.model();
-        let files: Vec<ManifestEntry> = plan(&self.inner.manifest, model).into_iter().cloned().collect();
+        let files: Vec<ManifestEntry> = plan(&self.inner.manifest, model, self.whisper_gpu()).into_iter().cloned().collect();
         let result = if files.len() != 4 {
             Err("The voice package list is incomplete".to_string())
         } else {
@@ -545,7 +558,7 @@ impl VoiceService {
 
     /// True when the runtimes and the speech model are there, i.e. the user had voice control turned on.
     fn was_installed_before_switch(&self) -> bool {
-        let files = plan(&self.inner.manifest, self.model());
+        let files = plan(&self.inner.manifest, self.model(), self.whisper_gpu());
         files.len() == 4 && [0usize, 1, 3].iter().all(|i| is_present(&self.inner.root, files[*i]))
     }
 }
@@ -593,9 +606,17 @@ mod tests {
     #[test]
     fn the_plan_has_both_runtimes_the_chosen_model_and_speech() {
         let m = manifest();
-        let ids = |c| plan(&m, c).iter().map(|e| e.id.clone()).collect::<Vec<_>>();
+        let ids = |c| plan(&m, c, false).iter().map(|e| e.id.clone()).collect::<Vec<_>>();
         assert_eq!(ids(ModelChoice::Standard), ["llama-runtime", "whisper-runtime", "llm-standard", "stt"]);
         assert_eq!(ids(ModelChoice::Light), ["llama-runtime", "whisper-runtime", "llm-light", "stt"]);
+        let mut with_cuda = manifest();
+        with_cuda.push(entry("whisper-runtime-cuda", "runtime", "http://127.0.0.1:1/whisper-cuda.zip", b"ff"));
+        let gpu_ids: Vec<_> = plan(&with_cuda, ModelChoice::Standard, true).iter().map(|e| e.id.clone()).collect();
+        assert_eq!(gpu_ids, ["llama-runtime", "whisper-runtime-cuda", "llm-standard", "stt"]);
+        let nvidia = |vram| HardwareInfo { gpu: Some("NVIDIA GeForce RTX 2060 SUPER".into()), vram_gb: Some(vram), ram_gb: 16.0 };
+        assert!(nvidia(8.0).whisper_gpu() && nvidia(2.0).whisper_gpu() && !nvidia(1.0).whisper_gpu());
+        assert!(!hw(Some(8.0), 16.0).whisper_gpu(), "only NVIDIA has a ready GPU build");
+        assert!(!hw(None, 16.0).whisper_gpu());
     }
 
     #[test]

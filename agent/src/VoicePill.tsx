@@ -122,6 +122,10 @@ export default function VoicePill({ initialData, onConfirm }: VoicePillProps) {
             </span>
           )}
 
+          {data.state === "recognizing" && (
+            <span className="voice-thinking">{t("voice.recognizing")}</span>
+          )}
+
           {data.state === "thinking" && (
             <span className="voice-thinking">{t("voice.thinking")}</span>
           )}

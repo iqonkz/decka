@@ -7,12 +7,15 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 ## 0.20.3 — 2026-11-22
 
 ### Changed
-- **Stage-based watchdog**: individual timeouts per stage instead of a global 30 s limit: listening (30 s), model loading (up to 120 s), recognition (15 s), and AI inference (20 s). The watchdog timer resets at each stage transition.
+- **Stage-based watchdog**: individual timeouts per stage instead of a global 30 s limit: listening (30 s), model loading (up to 120 s), recognition (its own limit, see below), and AI inference (20 s). The watchdog timer resets at each stage transition.
 - **Background pre-warming**: `llama-server` and `whisper-server` start in the background immediately upon pressing the hotkey or tapping the voice button, parallel to speech recording. The "Loading the model…" pill is only shown if the server is still loading after the phrase finishes.
+- **Speech recognition on the video card**: on an NVIDIA card with 2 GB or more the GPU build (cuBLAS) of `whisper-server` is downloaded (whisper.cpp b5907, `whisper-bin-win-cuda-12.4.0-x64`, about 735 MB; there is no ready Vulkan build); other PCs keep the CPU build. A phrase takes 0.1-0.3 s instead of 12-20 s (RTX 2060 SUPER, large-v3-turbo); the first start on a card compiles its kernels once, inside "Loading the model…". After the update `Turn on voice control` downloads the new runtime once.
+- **Faster recognition everywhere**: greedy decoding (beam 1, best of 1), no timestamps, `audio_ctx` by the length of the recording, one thread per physical core (a CPU takes about 4.5 s instead of 13 s for a short phrase).
+- **Recognition limit**: 15 s on a GPU, 10 s + 3 x the length of the recording on a CPU (at most 60 s). The pill and the phone show `Recognizing…` (11 languages). `DECKA_VOICE_STT_TIMEOUT_S` is gone.
 
 ### Fixed
 - **Recording closed at once on the PC**: a single audio buffer glitch (xrun) of the microphone was treated as the end of the device; it is ignored now. A press of the hotkey or a click on the pill within 400 ms of the start no longer ends the recording. The window of the pill no longer holds the microphone back (it used to delay the start by 3-7 s).
-- `voice.log` records the events of a session (names and timings only, no sound, no text); `DECKA_VOICE_STT_TIMEOUT_S` overrides the recognition timeout (slow CPUs).
+- `voice.log` records the events of a session (names and timings only, no sound, no text).
 - **Phone long-press gestures**: long pressing the floating voice button in mobile browsers no longer opens context menus, selects text, or triggers page gestures.
 
 ## 0.20.2 — 2026-11-22

@@ -842,6 +842,7 @@ export const fr: Dictionary = {
   "menu.voice_button": "Bouton vocal",
   "voice.listening": "Écoute en cours…",
   "voice.thinking": "Réflexion…",
+  "voice.recognizing": "Reconnaissance…",
   "voice.done": "Terminé",
   "voice.error": "Pas compris",
   "voice.confirm_title": "Confirmer l'action",

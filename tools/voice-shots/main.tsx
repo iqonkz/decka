@@ -16,7 +16,7 @@ function demoActions(base: { version: number; actions: Record<string, unknown> }
 
 const q = new URLSearchParams(location.search);
 const scene = q.get("scene") ?? "pill";
-const state = (q.get("state") ?? "listening") as "idle" | "listening" | "loading" | "thinking" | "confirm" | "done" | "error";
+const state = (q.get("state") ?? "listening") as "idle" | "listening" | "loading" | "recognizing" | "thinking" | "confirm" | "done" | "error";
 setLanguage((q.get("lang") ?? "en") as Language);
 
 const sample = {

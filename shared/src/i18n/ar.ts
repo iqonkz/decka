@@ -882,6 +882,7 @@ export const ar: Dictionary = {
   "menu.voice_button": "زر الصوت",
   "voice.listening": "جارٍ الاستماع…",
   "voice.thinking": "جارٍ التفكير…",
+  "voice.recognizing": "جارٍ التعرف…",
   "voice.done": "تم",
   "voice.error": "لم أفهم ذلك",
   "voice.confirm_title": "تأكيد الإجراء",

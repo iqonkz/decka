@@ -842,6 +842,7 @@ export const hi: Dictionary = {
   "menu.voice_button": "आवाज़ बटन",
   "voice.listening": "सुन रहा हूँ…",
   "voice.thinking": "सोच रहा हूँ…",
+  "voice.recognizing": "पहचान रहा हूँ…",
   "voice.done": "पूर्ण",
   "voice.error": "समझ नहीं आया",
   "voice.confirm_title": "क्रिया की पुष्टि करें",

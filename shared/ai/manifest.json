@@ -18,6 +18,14 @@
       "license": "MIT"
     },
     {
+      "id": "whisper-runtime-cuda",
+      "kind": "runtime",
+      "url": "https://github.com/ggml-org/whisper.cpp/releases/download/b5907/whisper-bin-win-cuda-12.4.0-x64.zip",
+      "sha256": "34f872ce724ca1ff0a4afca481853e5ee74250f8cb22153e499f953562846039",
+      "size": 735571214,
+      "license": "MIT"
+    },
+    {
       "id": "llm-standard",
       "kind": "llm",
       "url": "https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/main/Qwen3.5-4B-Q4_K_M.gguf",

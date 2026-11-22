@@ -53,7 +53,7 @@ pub fn llama_args(model: &Path, port: u16, key: &str) -> Vec<String> {
     a
 }
 
-pub fn whisper_args(model: &Path, port: u16, cores: usize) -> Vec<String> {
+pub fn whisper_args(model: &Path, port: u16, threads: usize) -> Vec<String> {
     vec![
         "-m".into(),
         model.display().to_string(),
@@ -62,7 +62,7 @@ pub fn whisper_args(model: &Path, port: u16, cores: usize) -> Vec<String> {
         "--port".into(),
         port.to_string(),
         "-t".into(),
-        cores.saturating_sub(1).max(1).to_string(),
+        threads.max(1).to_string(),
     ]
 }
 
@@ -155,6 +155,8 @@ pub struct Endpoints {
     pub llama_port: u16,
     pub llama_key: String,
     pub whisper_port: u16,
+    /// The recognition runs on the video card (a longer first start, a short limit).
+    pub whisper_gpu: bool,
 }
 
 /// What the settings window shows: `Loading` -> `loading`, `Ready` -> `ready`, `Stopped` -> `error`.
@@ -174,6 +176,8 @@ pub struct SupervisorConfig {
     pub whisper_exe: PathBuf,
     pub whisper_model: PathBuf,
     pub keep_loaded: bool,
+    /// whisper_exe is the GPU build.
+    pub whisper_gpu: bool,
 }
 
 #[derive(Default)]
@@ -277,8 +281,8 @@ impl Supervisor {
             llama_port: free_port().map_err(|e| e.to_string())?,
             llama_key: new_key(),
             whisper_port: free_port().map_err(|e| e.to_string())?,
+            whisper_gpu: cfg.whisper_gpu,
         };
-        let cores = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(2);
         let llama = Spec {
             name: "llama-server",
             exe: cfg.llama_exe.clone(),
@@ -289,7 +293,7 @@ impl Supervisor {
         let whisper = Spec {
             name: "whisper-server",
             exe: cfg.whisper_exe.clone(),
-            args: whisper_args(&cfg.whisper_model, endpoints.whisper_port, cores),
+            args: whisper_args(&cfg.whisper_model, endpoints.whisper_port, physical_cores()),
             port: endpoints.whisper_port,
             health: "/",
         };
@@ -304,6 +308,12 @@ impl Supervisor {
                 return Err(msg);
             }
         };
+
+        // The first run on a video card compiles its kernels (tens of seconds, once): a silent second here, so that it
+        // happens while the model is "loading" and not inside the first phrase.
+        if cfg.whisper_gpu {
+            warm_whisper(endpoints.whisper_port).await;
+        }
 
         let (stop_tx, stop_rx) = watch::channel(false);
         self.spawn_monitor(llama, llama_run, stop_rx.clone());
@@ -473,17 +483,29 @@ async fn wait_healthy(port: u16, path: &str, timeout: Duration, child: &mut toki
 
 // ---- Speech recognition request ---------------------------------------------------------------------------------
 
-/// A recognition of a 30 s phrase takes seconds on a GPU and under half a minute on a CPU.
-pub const TRANSCRIBE_TIMEOUT: Duration = Duration::from_secs(15);
+/// The limit of one recognition (architect, M21-4): 15 s on a GPU; 10 s + 3 x the length of the recording on a CPU, at most 60 s.
+pub fn stt_timeout(gpu: bool, seconds: f64) -> Duration {
+    if gpu {
+        Duration::from_secs(15)
+    } else {
+        Duration::from_secs_f64((10.0 + 3.0 * seconds.max(0.0)).min(60.0))
+    }
+}
 
-/// `TRANSCRIBE_TIMEOUT`, or `DECKA_VOICE_STT_TIMEOUT_S` seconds (a slow CPU, tests).
-pub fn transcribe_timeout() -> Duration {
-    std::env::var("DECKA_VOICE_STT_TIMEOUT_S").ok().and_then(|v| v.parse().ok()).map_or(TRANSCRIBE_TIMEOUT, Duration::from_secs)
+/// `audio_ctx` of whisper for a recording: 50 frames per second plus a margin, not the whole 30 s window (1500 frames).
+pub fn audio_ctx(seconds: f64) -> u32 {
+    ((seconds.max(0.0) * 50.0).ceil() as u32 + 150).clamp(300, 1500)
+}
+
+/// Physical cores (the threads of the recognition); the logical count halved when the system does not say.
+pub fn physical_cores() -> usize {
+    let logical = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(2);
+    sysinfo::System::physical_core_count().unwrap_or((logical / 2).max(1)).max(1)
 }
 
 /// The `multipart/form-data` body of `POST /inference` (DATA_MODEL.md 12.4 item 2): `file` (WAV), the forced `language`,
 /// `response_format=json`, `temperature=0`.
-pub fn whisper_multipart(boundary: &str, wav: &[u8], language: &str) -> Vec<u8> {
+pub fn whisper_multipart(boundary: &str, wav: &[u8], language: &str, audio_ctx: u32) -> Vec<u8> {
     let mut body = Vec::with_capacity(wav.len() + 512);
     let field = |body: &mut Vec<u8>, name: &str, value: &str| {
         body.extend_from_slice(format!("--{boundary}\r\nContent-Disposition: form-data; name=\"{name}\"\r\n\r\n{value}\r\n").as_bytes());
@@ -496,6 +518,11 @@ pub fn whisper_multipart(boundary: &str, wav: &[u8], language: &str) -> Vec<u8> 
     field(&mut body, "language", language);
     field(&mut body, "response_format", "json");
     field(&mut body, "temperature", "0");
+    // Short phrases: greedy decoding, no timestamps, only the part of the window that holds the recording.
+    field(&mut body, "beam_size", "1");
+    field(&mut body, "best_of", "1");
+    field(&mut body, "no_timestamps", "true");
+    field(&mut body, "audio_ctx", &audio_ctx.to_string());
     body.extend_from_slice(format!("--{boundary}--\r\n").as_bytes());
     body
 }
@@ -513,6 +540,20 @@ pub fn parse_whisper_response(body: &str) -> Result<String, String> {
     Ok(if marker { String::new() } else { text })
 }
 
+/// One second of silence through `/inference`; failures are ignored (a real request reports its own).
+async fn warm_whisper(port: u16) {
+    let wav = crate::voice::audio::encode_wav_pcm16(&vec![0i16; 16_000], 16_000);
+    let boundary = format!("decka{}", new_key());
+    let body = whisper_multipart(&boundary, &wav, "en", audio_ctx(1.0));
+    let Ok(client) = reqwest::Client::builder().timeout(Duration::from_secs(170)).build() else { return };
+    let _ = client
+        .post(format!("http://127.0.0.1:{port}/inference"))
+        .header("Content-Type", format!("multipart/form-data; boundary={boundary}"))
+        .body(body)
+        .send()
+        .await;
+}
+
 impl Supervisor {
     /// Recognises 16 kHz mono PCM16 with `whisper-server` (started lazily; the first call waits for the models).
     pub async fn transcribe(&self, pcm: &[u8], language: &str) -> Result<String, String> {
@@ -520,8 +561,8 @@ impl Supervisor {
         let samples: Vec<i16> = pcm.chunks_exact(2).map(|b| i16::from_le_bytes([b[0], b[1]])).collect();
         let wav = crate::voice::audio::encode_wav_pcm16(&samples, 16_000);
         let boundary = format!("decka{}", new_key());
-        let body = whisper_multipart(&boundary, &wav, language);
-        let client = reqwest::Client::builder().timeout(transcribe_timeout()).build().map_err(|e| e.to_string())?;
+        let body = whisper_multipart(&boundary, &wav, language, audio_ctx(samples.len() as f64 / 16_000.0));
+        let client = reqwest::Client::builder().timeout(stt_timeout(endpoints.whisper_gpu, samples.len() as f64 / 16_000.0)).build().map_err(|e| e.to_string())?;
         let url = format!("http://127.0.0.1:{}/inference", endpoints.whisper_port);
         let answer = client
             .post(url)
@@ -545,14 +586,20 @@ mod tests {
 
     #[test]
     fn the_multipart_body_has_the_file_and_the_fixed_fields_in_order() {
-        let body = whisper_multipart("BND", b"RIFFdata", "ru");
+        let body = whisper_multipart("BND", b"RIFFdata", "ru", 400);
         let text = String::from_utf8_lossy(&body).to_string();
         assert!(text.starts_with("--BND\r\nContent-Disposition: form-data; name=\"file\"; filename=\"voice.wav\"\r\nContent-Type: audio/wav\r\n\r\nRIFFdata\r\n"));
         let at = |needle: &str| text.find(needle).unwrap_or_else(|| panic!("{needle} missing"));
         assert!(at("name=\"language\"\r\n\r\nru\r\n") < at("name=\"response_format\"\r\n\r\njson\r\n"));
         assert!(at("name=\"response_format\"") < at("name=\"temperature\"\r\n\r\n0\r\n"));
         assert!(text.ends_with("--BND--\r\n"));
-        assert_eq!(text.matches("--BND\r\n").count(), 4);
+        assert_eq!(text.matches("--BND\r\n").count(), 8);
+        assert!(text.contains("name=\"audio_ctx\"\r\n\r\n400\r\n") && text.contains("name=\"beam_size\"\r\n\r\n1\r\n"));
+        assert_eq!(stt_timeout(true, 20.0).as_secs(), 15);
+        assert_eq!(stt_timeout(false, 2.0).as_secs(), 16);
+        assert_eq!(stt_timeout(false, 30.0).as_secs(), 60);
+        assert_eq!(audio_ctx(2.0), 300);
+        assert_eq!(audio_ctx(30.0), 1500);
     }
 
     #[test]
@@ -605,7 +652,7 @@ mod tests {
             a.join(" "),
             "-m m.gguf -c 4096 -ngl 99 --jinja --no-webui --host 127.0.0.1 --port 5555 --api-key k"
         );
-        assert_eq!(whisper_args(Path::new("w.bin"), 6000, 8).join(" "), "-m w.bin --host 127.0.0.1 --port 6000 -t 7");
+        assert_eq!(whisper_args(Path::new("w.bin"), 6000, 4).join(" "), "-m w.bin --host 127.0.0.1 --port 6000 -t 4");
         assert_eq!(whisper_args(Path::new("w.bin"), 6000, 1).last().unwrap(), "1", "at least one thread");
     }
 
@@ -657,6 +704,7 @@ mod tests {
             whisper_exe: PathBuf::from("Z:\\nope\\whisper-server.exe"),
             whisper_model: PathBuf::from("w"),
             keep_loaded: false,
+            whisper_gpu: false,
         }));
         let err = sup.ensure_started().await.unwrap_err();
         assert!(err.contains("server"), "{err}");

@@ -842,6 +842,7 @@ export const kk: Dictionary = {
   "menu.voice_button": "Дауыс батырмасы",
   "voice.listening": "Тыңдап тұрмын…",
   "voice.thinking": "Ойлануда…",
+  "voice.recognizing": "Танып жатырмын…",
   "voice.done": "Дайын",
   "voice.error": "Танылмады",
   "voice.confirm_title": "Әрекетті растаңыз",

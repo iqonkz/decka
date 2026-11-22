@@ -38,6 +38,8 @@ export default function VoiceBubble({ state, fabPos }: Props) {
   let statusText = "";
   if (phase === "listening") {
     statusText = t("voice.listening");
+  } else if (phase === "recognizing") {
+    statusText = t("voice.recognizing");
   } else if (phase === "thinking" || phase === "loading") {
     statusText = t("voice.thinking");
   } else if (phase === "error") {

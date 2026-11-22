@@ -139,7 +139,8 @@ impl State {
         let (state, reply, confirm) = match &self.phase {
             Phase::Idle => ("idle", None, None),
             Phase::Listening => ("listening", None, None),
-            Phase::Transcribing | Phase::Thinking | Phase::Executing => ("thinking", None, None),
+            Phase::Transcribing => ("recognizing", None, None),
+            Phase::Thinking | Phase::Executing => ("thinking", None, None),
             Phase::Loading => ("loading", None, None),
             Phase::Confirming { call, .. } => {
                 ("confirm", None, Some(ConfirmInfo { text: cut(&call.summary), key: call.key, args: call.args.clone() }))
@@ -801,7 +802,7 @@ mod tests {
         assert_eq!(fake.heard.lock().unwrap().as_slice(), [6400], "the recording reached recognition");
         assert_eq!(fake.executed.lock().unwrap().len(), 1);
         let states: Vec<_> = fake.published.lock().unwrap().iter().map(|i| i.state).collect();
-        assert_eq!(states, ["listening", "thinking", "thinking", "done"]);
+        assert_eq!(states, ["listening", "recognizing", "thinking", "done"]);
     }
 
     #[tokio::test]

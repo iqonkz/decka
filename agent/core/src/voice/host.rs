@@ -33,8 +33,8 @@ pub fn watchdog_ms(phase: &Phase) -> u64 {
     match phase {
         Phase::Listening => 30_000,
         Phase::Loading => 120_000,
-        // The recognition's own timeout (15 s default), plus a second buffer.
-        Phase::Transcribing => crate::ai::supervisor::transcribe_timeout().as_millis() as u64 + 1_000,
+        // The request has its own limit (15 s on a GPU, up to 60 s on a CPU, `supervisor::stt_timeout`): this is the backstop.
+        Phase::Transcribing => 61_000,
         Phase::Thinking => 20_000,
         _ => WATCHDOG_MS,
     }
@@ -665,7 +665,7 @@ impl Ports for Inner {
         self.set_aux(&state);
         // The watchdog: a request waits in one stage for as long as `watchdog_ms` says, then it is cancelled.
         let seen = self.changes.fetch_add(1, Ordering::SeqCst) + 1;
-        if matches!(info.state, "listening" | "loading" | "thinking") {
+        if matches!(info.state, "listening" | "loading" | "recognizing" | "thinking") {
             let (driver, changes) = (self.driver().clone(), self.changes.clone());
             let wait = watchdog_ms(&state.phase);
             mic::log_line(&format!("stage {} watchdog={}s pill={}ms", info.state, wait / 1000, shown.elapsed().as_millis()));
