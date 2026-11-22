@@ -1,7 +1,9 @@
 # Лендинг Decka на madiseit.com (решение архитектора 2026-11-22)
 
 ## Решения
-- **Адрес:** `madiseit.com/en/decka` и `madiseit.com/ru/decka` — страница внутри сайта владельца (репозиторий `C:\DEV\madiseit.com`), не поддомен. Причины: стиль, шапка, подвал, тёмная тема и выбор языка уже есть; один деплой (`pnpm deploy`); вес основного домена в поиске. `madiseit.com/decka` (без языка) — редирект по правилам сайта (`LocaleRedirect`/Worker). Если у Decka появится свой домен — 301 на него.
+- **Адрес (пересмотр владельца 2026-11-22: `/ru/decka` выглядит громоздко):** `decka.madiseit.com` — поддомен, который обслуживает **тот же Worker и тот же код** сайта (репозиторий `C:\DEV\madiseit.com`; в `wrangler.jsonc` — второй custom domain). Worker по заголовку `Host` отдаёт страницу Decka; общие стиль, компоненты и деплой (`pnpm deploy`) остаются. Шаблон на будущее: каждый продукт — `<продукт>.madiseit.com`.
+  - Язык: `decka.madiseit.com/` — сам по правилам сайта (cookie → страна → `Accept-Language` → en), без редиректа, URL остаётся чистым; явные адреса `decka.madiseit.com/ru` и `/en` существуют для поиска (`hreflang`) и переключателя языка. Делиться — ссылкой без языка.
+  - `madiseit.com/decka` и `madiseit.com/:lang/decka` → 301 на `decka.madiseit.com`. Если у Decka появится свой домен — 301 на него.
 - **Технология:** React-страница сайта (не отдельная статика). Для поиска и превью в соцсетях Worker подставляет мета-теги в HTML (`HTMLRewriter`) для `/:lang/decka`.
 - **Языки:** en и ru — как весь сайт. Другие языки — когда их получит сайт.
 - **Стиль — madiseit.com:** токены `src/styles/tailwind.css` (primary — красный бренда `#c1272d`, neutral, шрифт Inter), компоненты сайта (`SectionHeading`, кнопки, карточки как `ProjectCard`), светлая и тёмная тема (`.dark`). Фиолетовый Decka `#7c5cff` — только в логотипе Decka и на снимках экрана, не в оформлении страницы.
@@ -29,7 +31,7 @@
 - Worker: `GET /api/decka/latest` → `https://api.github.com/repos/iqonkz/decka/releases/latest`, кэш 1 ч (Cache API), ответ `{ version, date, exe: {url, size}, apk: {url, size} }` (ассеты `Decka-Setup-<v>.exe`, `Decka-<v>.apk`). При ошибке — кнопки ведут на `https://github.com/iqonkz/decka/releases/latest`.
 
 ## SEO и превью
-- Для `/en/decka` и `/ru/decka` Worker ставит `<title>` (`Decka — your old phone as a PC control deck` / `Decka — старый телефон как пульт для ПК`), `description`, `canonical`, `hreflang` en/ru/x-default, `og:title`, `og:description`, `og:image` = `/decka/og.png` (1200×630: логотип, заголовок, снимок телефона; в стиле сайта).
+- Для `decka.madiseit.com/`, `/en`, `/ru` Worker ставит (canonical: `/en` и `/ru`; `x-default` — корень) `<title>` (`Decka — your old phone as a PC control deck` / `Decka — старый телефон как пульт для ПК`), `description`, `canonical`, `hreflang` en/ru/x-default, `og:title`, `og:description`, `og:image` = `/decka/og.png` (1200×630: логотип, заголовок, снимок телефона; в стиле сайта).
 - Если у сайта есть sitemap — добавить обе страницы.
 - Decka — в список проектов сайта, карточка ведёт на `/:lang/decka`.
 
