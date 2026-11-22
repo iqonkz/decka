@@ -33,6 +33,7 @@ const base = `http://127.0.0.1:${server.address().port}/index.html`;
 
 const PILL = { w: 360, h: 160, scale: 3 };
 const PHONE = { w: 800, h: 360, scale: 2 };
+const DECK = { w: 1280, h: 600, scale: 1 };
 const SHOTS = {
   "pill-listening": [PILL, "scene=pill&state=listening"],
   "pill-thinking": [PILL, "scene=pill&state=thinking&heard=open+calculator"],
@@ -40,6 +41,11 @@ const SHOTS = {
   "pill-confirm": [PILL, "scene=pill&state=confirm&heard=lock+my+pc"],
   "pill-error": [PILL, "scene=pill&state=error&heard=blah&reply=Didn%27t+get+that"],
   "pill-done-ru": [PILL, "scene=pill&state=done&lang=ru&heard=%D0%BE%D1%82%D0%BA%D1%80%D0%BE%D0%B9+%D0%BA%D0%B0%D0%BB%D1%8C%D0%BA%D1%83%D0%BB%D1%8F%D1%82%D0%BE%D1%80&reply=Done"],
+  "theme-amoled": [DECK, "scene=deck&theme=amoled"],
+  "theme-studio": [DECK, "scene=deck&theme=studio"],
+  "theme-material": [DECK, "scene=deck&theme=material"],
+  "theme-glass": [DECK, "scene=deck&theme=glass"],
+  settings: [{ w: 1100, h: 700, scale: 1 }, "scene=settings&theme=studio"],
   "phone-idle": [PHONE, "scene=phone&state=idle"],
   "phone-listening": [PHONE, "scene=phone&state=listening"],
   "phone-done": [PHONE, "scene=phone&state=done&heard=turn+the+volume+up&reply=Done"],
@@ -51,7 +57,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function shoot(name, [size, query]) {
   const profile = mkdtempSync(join(tmpdir(), "decka-voiceshots-"));
   const port = 9340 + Math.floor(Math.random() * 400);
-  const chrome = spawn(CHROME, ["--headless=new", `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`, `--window-size=${size.w},${size.h}`, "about:blank"], { stdio: "ignore" });
+  const chrome = spawn(CHROME, ["--headless=new", `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`, "--lang=en-US", `--window-size=${size.w},${size.h}`, "about:blank"], { stdio: "ignore" });
   try {
     let target;
     for (let i = 0; i < 50 && !target; i++) {

@@ -25,7 +25,9 @@ The `Hash` column must equal the hash on the line of the same file in `SHA256SUM
 
 Decka turns an old Android phone into a desk panel for a Windows PC: a 5x3 grid of buttons that launch programs, send hotkeys, open URLs and control media, plus live widgets for PC state, service statuses and webhook notifications. A small agent runs in the Windows tray; the phone shows the panel and only ever tells the agent *which button* was pressed.
 
-<!-- Screenshot: docs/img/hero.png -->
+![Decka on a phone: the Glass look with widgets and keys](docs/img/hero.png)
+
+![The Decka settings window, Deck tab](docs/img/settings.png)
 
 ## Why
 
@@ -68,7 +70,11 @@ Pick the look of the deck in **Appearance**; the phone changes within a second o
 - **Material**: tonal colours generated from your accent colour, with a rounder shape that morphs on press.
 - **Glass**: frosted glass over a wallpaper (aurora, sunset, ocean, graphite, or the cover of the current track). If the phone is too slow it drops to a lighter version by itself; **Reduce effects** in the phone menu switches it by hand.
 
-Screenshots will go to `docs/img/theme-amoled.png`, `theme-studio.png`, `theme-material.png` and `theme-glass.png`.
+| AMOLED | Studio |
+|---|---|
+| ![AMOLED look](docs/img/theme-amoled.png) | ![Studio look](docs/img/theme-studio.png) |
+| **Material** | **Glass** |
+| ![Material look](docs/img/theme-material.png) | ![Glass look](docs/img/theme-glass.png) |
 
 A long press (1.2 s) on an empty spot of the phone screen opens the phone menu: the connection, **Reduce effects**, **Haptics**, **Reload** and **Unpair**. Keys can also give a short vibration; it is on by default and kept per phone.
 
@@ -77,6 +83,8 @@ In **Layout** the preview is the real deck in the chosen look: drag a program, a
 ## Voice control
 
 Say what you want: *turn the volume down*, *open Spotify*, *switch to Chrome*, *move this window to the other monitor*, *search YouTube for lofi*, *set a timer for 10 minutes*, *lock the PC*. Start it with **Ctrl+Alt+Space** on the PC (press again to finish, **Esc** cancels) or with the round microphone button on the phone (hold to talk, drag to move).
+
+![The voice pill with an answer](docs/img/voice.png)
 
 - **Off until you turn it on.** **More → Voice → Turn on voice control** downloads the speech and language models once (about 3.2 GB; 1.8 GB with the light model for PCs with little memory), each file checked against a fixed SHA-256, to `%LOCALAPPDATA%\Decka\ai`. **Remove voice control** deletes them.
 - **Everything runs on this PC.** Speech recognition (whisper.cpp) and the language model (llama.cpp with Qwen3.5) run as hidden local programs on `127.0.0.1`; what you say is never sent anywhere and never written to the log.
