@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+﻿import { describe, expect, test } from "vitest";
 import { chunkRms, Endpointer, LevelSmoother, type Verdict } from "./endpoint";
 
 const QUIET = 0.002;
@@ -53,4 +53,11 @@ describe("end of the phrase (same constants as the PC)", () => {
     expect(chunkRms(new Int16Array(1600))).toBe(0);
     expect(chunkRms(new Int16Array(1600).fill(16384))).toBeCloseTo(0.5, 5);
   });
-});
+
+  test("speech from the first chunk still ends two seconds after it", () => {
+    expect(run([...rep(SPEECH, 10), ...rep(QUIET, 30)])).toEqual([30, "end"]);
+  });
+
+  test("a microphone that raises its gain in the pause still ends the phrase", () => {
+    expect(run([...rep(QUIET, 3), ...rep(SPEECH, 10), ...rep(0.02, 30)])?.[1]).toBe("end");
+  });});
