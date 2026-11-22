@@ -1,5 +1,15 @@
 # Лендинг Decka на madiseit.com (решение архитектора 2026-11-22)
 
+> **Пересмотр 2026-11-22 — главный раздел, важнее всего ниже.** Живой сайт — репозиторий **`iqonkz/madiseit`**, клон `C:\DEV\madiseit` (не `C:\DEV\madiseit.com` — это старая брошенная копия на Ncmaz; ветка `decka-landing` там — черновик, только как источник текстов и разметки разделов).
+> - Стек живого сайта: **Cloudflare Pages + Pages Functions** (`functions/_middleware.ts`, `functions/api/*`), React 18, TypeScript, Tailwind 3, Vite 6, D1, админка `/admin`. Деплой — `npm run deploy` (`wrangler pages deploy dist`) — делает владелец.
+> - Стиль: `src/styles/tokens.css`, `glass.css`, `index.css`; шрифт Google Sans (локально); тёмная тема, зелёный акцент, крупные скруглённые карточки, цветные секции, стекло (`components/glass`), `Header`/`Footer`/`Layout`, `ProjectCard`, `Icon`. Никаких красных токенов и Inter из старой копии.
+> - Поддомен: Pages → Custom domains → `decka.madiseit.com` (владелец, в панели). В `functions/_middleware.ts` — по `Host` отдать страницу Decka и мета-теги (там же, где сайт уже ставит серверные meta); `madiseit.com/decka` и `/:lang/decka` → 301 на поддомен.
+> - API: `functions/api/decka/latest.ts` (GitHub latest release, кэш 1 ч).
+> - Проект Decka в списке проектов — через админку (владелец) или миграцию `migrations/000N_decka.sql` по правилу README.
+> - Языки — как у сайта (RU/EN), словари — `src/lib/i18n.ts`.
+> - Локальный запуск — по README (`npm run preview` → http://localhost:8788; meta и выбор языка работают только там). Проверка поддомена локально: `http://decka.localhost:8788/`.
+> Ниже «Решения» про Worker/`wrangler.jsonc` относятся к старой копии и **не применяются**; структура страницы, тексты, SEO-набор и FAQ — в силе.
+
 ## Решения
 - **Адрес (пересмотр владельца 2026-11-22: `/ru/decka` выглядит громоздко):** `decka.madiseit.com` — поддомен, который обслуживает **тот же Worker и тот же код** сайта (репозиторий `C:\DEV\madiseit.com`; в `wrangler.jsonc` — второй custom domain). Worker по заголовку `Host` отдаёт страницу Decka; общие стиль, компоненты и деплой (`pnpm deploy`) остаются. У других продуктов владельца свои домены (eventa.kz, tempa.kz, senda.kz); Decka — международная, свой домен (`.com`/`.app`) — когда владелец купит, тогда 301 с поддомена. madiseit.com остаётся витриной: в проектах — Eventa, Tempa, Senda (внешние ссылки) и Decka.
   - Язык: `decka.madiseit.com/` — сам по правилам сайта (cookie → страна → `Accept-Language` → en), без редиректа, URL остаётся чистым; явные адреса `decka.madiseit.com/ru` и `/en` существуют для поиска (`hreflang`) и переключателя языка. Делиться — ссылкой без языка.
