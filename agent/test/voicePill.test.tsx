@@ -1,8 +1,21 @@
 import { describe, expect, test } from "vitest";
 import { renderToString } from "react-dom/server";
-import VoicePill from "../src/VoicePill";
+import VoicePill, { waveHeights } from "../src/VoicePill";
 
 describe("VoicePill component", () => {
+  test("the wave follows the level: middle tallest, silence lies at 4 px", () => {
+    expect(waveHeights(0)).toEqual([4, 4, 4, 4, 4]);
+    expect(waveHeights(1)).toEqual([14, 20, 24, 20, 14]);
+    expect(waveHeights(NaN)).toEqual([4, 4, 4, 4, 4]);
+    expect(waveHeights(5)).toEqual(waveHeights(1));
+  });
+
+  test("the stop button is only there while listening", () => {
+    expect(renderToString(<VoicePill initialData={{ state: "listening" }} />)).toContain("voice-stop");
+    expect(renderToString(<VoicePill initialData={{ state: "thinking" }} />)).not.toContain("voice-stop");
+    expect(renderToString(<VoicePill initialData={{ state: "done", reply: "ok" }} />)).not.toContain("voice-stop");
+  });
+
   test("renders listening state", () => {
     const html = renderToString(<VoicePill initialData={{ state: "listening", level: 0.5 }} />);
     expect(html).toContain("voice-pill");

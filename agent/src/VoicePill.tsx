@@ -10,8 +10,18 @@ export interface VoicePillProps {
 
 const DEFAULT_EVENT: VoicePillEvent = {
   state: "listening",
-  level: 0.2,
+  level: 0,
 };
+
+/** Heights of the 5 bars of the wave: the middle one is the tallest, a quiet room leaves them lying at 4 px (DESIGN.md 4.12). */
+export const WAVE_COEFFICIENTS = [0.6, 0.85, 1, 0.85, 0.6];
+export const WAVE_MAX_PX = 24;
+export const WAVE_MIN_PX = 4;
+
+export function waveHeights(level: number): number[] {
+  const l = Math.max(0, Math.min(1, Number.isFinite(level) ? level : 0));
+  return WAVE_COEFFICIENTS.map((c) => Math.max(WAVE_MIN_PX, Math.round(l * WAVE_MAX_PX * c)));
+}
 
 /**
  * Floating Voice Pill window component for PC (DESIGN.md §4.12, DATA_MODEL.md §12.6).
@@ -70,20 +80,27 @@ export default function VoicePill({ initialData, onConfirm }: VoicePillProps) {
 
   const reply = tVoice(data.replyKey, data.replyArgs, data.reply);
   const confirmText = tVoice(data.confirm?.key, data.confirm?.args, data.confirm?.text);
-  const level = Math.max(0, Math.min(1, data.level ?? (data.state === "listening" ? 0.3 : 0.05)));
+  const barHeights = waveHeights(data.level ?? 0);
+  const listening = data.state === "listening";
 
-  // Waveform 5 bars scaled by level
-  const barHeights = [
-    Math.max(4, Math.round(level * 16 * 0.5)),
-    Math.max(4, Math.round(level * 20 * 0.8)),
-    Math.max(4, Math.round(level * 22 * 1.0)),
-    Math.max(4, Math.round(level * 20 * 0.75)),
-    Math.max(4, Math.round(level * 16 * 0.45)),
-  ];
+  // The click on the stop button, or anywhere on the pill while it listens, ends the recording (DATA_MODEL.md 12.6a).
+  async function handleStop() {
+    if (!listening) return;
+    try {
+      await call("voice_stop", {});
+    } catch {
+      // the pill is closing or the agent is gone
+    }
+  }
 
   return (
     <div className="voice-pill-container">
-      <div className="voice-pill" role="status" aria-live="polite">
+      <div
+        className={`voice-pill${listening ? " voice-pill-listening" : ""}`}
+        role="status"
+        aria-live="polite"
+        onClick={listening ? () => void handleStop() : undefined}
+      >
         <img src={logoUrl} width={20} height={20} alt="Decka" className="voice-pill-logo" />
 
         {/* 5 live waveform bars */}
@@ -137,6 +154,24 @@ export default function VoicePill({ initialData, onConfirm }: VoicePillProps) {
             <span className="voice-status-text">{t("voice.loading")}</span>
           )}
         </div>
+
+        {listening && (
+          <button
+            type="button"
+            className="voice-stop"
+            title={t("voice.stop_hint")}
+            aria-label={t("voice.stop_hint")}
+            onClick={(e) => {
+              e.stopPropagation();
+              void handleStop();
+            }}
+          >
+            {/* Phosphor "stop" (fill) */}
+            <svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">
+              <path d="M208,32H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32Z" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Confirmation sheet expansion (DESIGN.md §4.12) */}
