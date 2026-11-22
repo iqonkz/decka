@@ -1,4 +1,11 @@
+/**
+ * The voice API of the phone (M21, TASKS T21.5b/T21.5): what the button, the bubble and the confirmation sheet use.
+ * The sound goes to the PC as `voice_*` messages (session.ts); the state comes back in the `voice` section.
+ */
+import { sendVoice } from "../app/controller";
 import { getState, useAppState } from "../store/store";
+import { startAudioCapture } from "./capture";
+import { newVoiceId, VoiceSession } from "./session";
 
 export interface VoiceInfo {
   state: "idle" | "listening" | "loading" | "thinking" | "confirm" | "done" | "error";
@@ -11,20 +18,32 @@ export interface VoiceInfo {
   replyArgs?: Record<string, string>;
 }
 
-export async function startVoice(): Promise<void> {
-  throw new Error("voice: not implemented");
+const session = new VoiceSession({
+  send: sendVoice,
+  startCapture: (onChunk) => startAudioCapture({ onChunk }),
+  newId: () => newVoiceId(),
+  setTimeout: (fn, ms) => window.setTimeout(fn, ms),
+  clearTimeout: (h) => window.clearTimeout(h as number),
+});
+
+/** Starts recording. Rejects when the PC is not reachable or the microphone is refused (the UI shows a hint). */
+export function startVoice(): Promise<void> {
+  return session.start();
 }
 
+/** The end of speech (release, second tap). */
 export function stopVoice(): void {
-  throw new Error("voice: not implemented");
+  session.stop();
 }
 
 export function cancelVoice(): void {
-  throw new Error("voice: not implemented");
+  session.cancel();
 }
 
-export function confirmVoice(_yes: boolean): void {
-  throw new Error("voice: not implemented");
+/** Yes or No to the question of the PC; only the request of this phone can be answered. */
+export function confirmVoice(yes: boolean): void {
+  const v = getState().state?.voice;
+  if (v?.state === "confirm" && v.id) session.confirm(v.id, yes);
 }
 
 export function useVoiceState(): VoiceInfo | null {

@@ -1,4 +1,4 @@
-import type { ApkChunkMsg, ClientInfo, ErrorCode, PairedMsg, PatchMsg, PressResultMsg, ServerMsg, WelcomeMsg } from "@decka/shared";
+import type { ApkChunkMsg, ClientInfo, ErrorCode, PairedMsg, PatchMsg, PressResultMsg, ServerMsg, VoiceCancelMsg, VoiceChunkMsg, VoiceConfirmMsg, VoiceEndMsg, VoiceStartMsg, WelcomeMsg } from "@decka/shared";
 import { PROTOCOL_VERSION } from "@decka/shared";
 import { Opener, Sealer, deriveKeys, fromB64u, kDev, mac, macEquals, randomBytes, sCode, toB64u, type Keys } from "./secure";
 
@@ -166,6 +166,16 @@ export class Connection {
   /** The answer to a permission question of Claude Code (DATA_MODEL.md 6.8). */
   permAnswer(reqId: string, decision: "allow" | "allow_always" | "deny" | "pc" | "reply", reply?: number): void {
     if (this.ws && this.welcomed) this.sendMsg({ t: "perm_answer", reqId, decision, ...(reply !== undefined ? { reply } : {}) });
+  }
+
+  /**
+   * M21: one `voice_*` message (audio of the microphone or the answer to a confirmation). Data only: the PC decides what to do.
+   * `false` when there is no live channel (the recording is then pointless).
+   */
+  sendVoice(msg: VoiceStartMsg | VoiceChunkMsg | VoiceEndMsg | VoiceCancelMsg | VoiceConfirmMsg): boolean {
+    if (!this.ws || !this.welcomed) return false;
+    this.sendMsg({ ...msg });
+    return true;
   }
 
   /** After the handshake every message goes out as an encrypted binary frame; never as plain text. */

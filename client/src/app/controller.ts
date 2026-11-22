@@ -8,6 +8,7 @@ import { clientInfo, isNative } from "../platform/native";
 import { applyPatch, applyWelcome, getState, markPermAnswered, navigateManually, setState } from "../store/store";
 import { ApkAssembler, ApkError } from "../update/apkAssembler";
 import { clearConn, loadConn, saveConn } from "../store/storage";
+import { installVoiceGoto } from "../voice/goto";
 
 /** Where the next pairing attempt goes; null when not pairing. */
 let pairTarget: { hosts: string[]; port: number } | null = null;
@@ -103,6 +104,11 @@ export function openNotification(notifId: string): void {
   conn().openNotification(notifId);
 }
 
+/** M21: a `voice_*` message to the PC; `false` when there is no live channel. */
+export function sendVoice(msg: Parameters<Connection["sendVoice"]>[0]): boolean {
+  return conn().sendVoice(msg);
+}
+
 /** Answers a permission question; the sheet closes at once, without waiting for the new `ai` section. */
 export function answerPerm(reqId: string, decision: "allow" | "allow_always" | "deny" | "pc" | "reply", reply?: number): void {
   markPermAnswered(reqId);
@@ -144,6 +150,7 @@ export function setPage(pageIndex: number): void {
 }
 
 export function init(): void {
+  installVoiceGoto();
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") conn().wake();
   });
