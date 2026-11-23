@@ -338,6 +338,11 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
             let mut s = s;
             s.heard = Some(text.clone());
             if env.dictate {
+                // Long text goes through the clipboard (a call of the model could never name this: it is not in the white list).
+                if let super::dictation::Insert::Paste(text) = super::dictation::insert_plan(&text) {
+                    s.phase = Phase::Executing;
+                    return (s, vec![Effect::Execute(ToolCall::PasteText { text })]);
+                }
                 let args = serde_json::json!({ "text": text });
                 return resolve(s, &RawCall { tool: "type_text".into(), args }, now_ms, env, false);
             }
@@ -674,6 +679,18 @@ mod tests {
         let (s, fx) = step(&s, said("volume up"), 3, &env);
         assert_eq!(s.phase, Phase::Executing);
         assert_eq!(fx, [Effect::Execute(ToolCall::TypeText { text: "volume up".into() })]);
+    }
+
+    #[test]
+    fn a_long_dictation_is_pasted_through_the_clipboard() {
+        let (t, c) = (table(), ctx());
+        let env = Env { table: &t, ctx: &c, confirm_ms: CONFIRM_TIMEOUT_MS, dictate: true };
+        let (s, _) = step(&State::idle(), start(Source::Pc), 1, &env);
+        let (s, _) = step(&s, Event::AudioEnd, 2, &env);
+        let long = "word ".repeat(80);
+        let (s, fx) = step(&s, said(long.trim()), 3, &env);
+        assert_eq!(s.phase, Phase::Executing);
+        assert_eq!(fx, [Effect::Execute(ToolCall::PasteText { text: long.trim().to_string() })]);
     }
 
     #[test]

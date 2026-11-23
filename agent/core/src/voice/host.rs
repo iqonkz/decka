@@ -10,6 +10,7 @@ use std::time::{Duration, Instant};
 
 use serde_json::{json, Value};
 
+use super::dictation::{self, DictationSettings, Mode, Trigger};
 use super::endpoint::Verdict;
 use super::hotkey::{self, Pressed, Plan, Tracker};
 use super::matcher::Table;
@@ -148,6 +149,18 @@ pub fn dictation_waiting(until: Option<Instant>, now: Instant) -> bool {
     until.is_some_and(|u| now < u)
 }
 
+/// A long dictation goes in through the clipboard; the old text of the clipboard comes back after a second (13.1).
+#[cfg(windows)]
+fn paste_system(text: &str) -> Result<String, String> {
+    use super::clipboard::{paste_text, SystemClipboard, SystemKeys};
+    paste_text(&SystemClipboard, &SystemKeys, text, None, dictation::CLIPBOARD_RESTORE, &std::thread::sleep).map(|_| String::new())
+}
+
+#[cfg(not(windows))]
+fn paste_system(_: &str) -> Result<String, String> {
+    Err("unsupported platform".into())
+}
+
 /// The value of the variable `voice.goto`: the page and a counter, so going to the same page twice is a new value.
 /// The phones watch the variable and navigate (they never send the page back).
 pub fn goto_value(page_id: &str, seq: u64) -> String {
@@ -222,6 +235,13 @@ struct Inner {
     installed: Mutex<Vec<InstalledApp>>,
     sink_on: AtomicBool,
     tracker: Mutex<Tracker>,
+    /// Dictation (DATA_MODEL.md 13.1): the settings and whether the running request is a dictation.
+    dictation: Mutex<DictationSettings>,
+    dictation_request: AtomicBool,
+    /// The chord of dictation that is registered now.
+    dictation_chord: Mutex<Option<hotkey::Chord>>,
+    #[cfg(windows)]
+    ctrl_hook: Mutex<Option<super::winkeys::CtrlHook>>,
     #[cfg(windows)]
     hotkeys: Mutex<Option<hotkey::Hotkeys>>,
     #[cfg(windows)]
@@ -241,6 +261,7 @@ pub struct Host {
 
 impl Host {
     pub fn new(handle: tokio::runtime::Handle, agent: Agent, service: VoiceService, pill: PillHook) -> Host {
+        let dictation = DictationSettings::load(agent.config_dir());
         let inner = Arc::new(Inner {
             handle: handle.clone(),
             dictate_until: Arc::new(Mutex::new(None)),
@@ -254,6 +275,11 @@ impl Host {
             installed: Mutex::new(Vec::new()),
             sink_on: AtomicBool::new(false),
             tracker: Mutex::new(Tracker::default()),
+            dictation: Mutex::new(dictation),
+            dictation_request: AtomicBool::new(false),
+            dictation_chord: Mutex::new(None),
+            #[cfg(windows)]
+            ctrl_hook: Mutex::new(None),
             #[cfg(windows)]
             hotkeys: Mutex::new(None),
             #[cfg(windows)]
@@ -308,7 +334,68 @@ impl Host {
             }
         }
         self.register_hotkey(on.then_some(status.hotkey.as_slice()));
+        self.register_dictation(on);
     }
+
+    /// The settings of dictation as they are now.
+    pub fn dictation_settings(&self) -> DictationSettings {
+        self.inner.dictation.lock().unwrap().clone()
+    }
+
+    /// Saves new settings of dictation and applies them (the trigger is registered or removed at once).
+    pub fn set_dictation_settings(&self, mut settings: DictationSettings) -> Result<(), String> {
+        settings.dictionary = dictation::normalize_dictionary(&settings.dictionary);
+        if let Trigger::Chord { keys } = &settings.trigger {
+            hotkey::parse_chord(keys)?;
+        }
+        settings.save(self.inner.agent.config_dir())?;
+        *self.inner.dictation.lock().unwrap() = settings;
+        self.register_dictation(is_on(&self.inner.service.status()));
+        Ok(())
+    }
+
+    /// The trigger of dictation: the keyboard hook of the double Ctrl, or a chord, only while voice control is on.
+    #[cfg(windows)]
+    fn register_dictation(&self, on: bool) {
+        let inner = &self.inner;
+        let trigger = inner.dictation.lock().unwrap().trigger.clone();
+        {
+            let mut slot = inner.ctrl_hook.lock().unwrap();
+            let want = on && trigger == Trigger::DoubleCtrl;
+            if want && slot.is_none() {
+                let weak: Weak<Inner> = Arc::downgrade(inner);
+                match super::winkeys::CtrlHook::start(Arc::new(move |c| {
+                    if let Some(inner) = weak.upgrade() {
+                        inner.ctrl_pressed(c);
+                    }
+                })) {
+                    Ok(h) => *slot = Some(h),
+                    Err(e) => tracing::warn!("dictation keyboard hook: {e}"),
+                }
+            } else if !want && slot.is_some() {
+                *slot = None;
+            }
+        }
+        let chord = match (&trigger, on) {
+            (Trigger::Chord { keys }, true) => hotkey::parse_chord(keys).ok(),
+            _ => None,
+        };
+        let mut current = inner.dictation_chord.lock().unwrap();
+        if *current != chord {
+            let shown = match &trigger {
+                Trigger::Chord { keys } => keys.clone(),
+                _ => Vec::new(),
+            };
+            let result = self.hotkeys().and_then(|h| h.as_ref().map_or(Ok(()), |h| h.set_dictation(chord, &shown)));
+            if let Err(e) = result {
+                tracing::warn!("dictation hotkey: {e}");
+            }
+            *current = chord;
+        }
+    }
+
+    #[cfg(not(windows))]
+    fn register_dictation(&self, _on: bool) {}
 
     #[cfg(windows)]
     fn register_hotkey(&self, wanted: Option<&[String]>) {
@@ -386,13 +473,44 @@ impl Inner {
             .clone()
     }
 
+    /// The double Ctrl starts a dictation; a single tap of Ctrl ends the one that is listening.
+    #[cfg(windows)]
+    fn ctrl_pressed(&self, c: super::winkeys::Ctrl) {
+        use super::winkeys::Ctrl;
+        let state = self.driver().state();
+        let listening_dictation = state.phase == Phase::Listening && state.source == Some(Source::Pc) && self.dictation_request.load(Ordering::SeqCst);
+        match c {
+            Ctrl::Double if !listening_dictation => self.start_dictation(),
+            Ctrl::Tap if listening_dictation && !too_early() => self.driver().handle_event(Event::AudioEnd),
+            _ => {}
+        }
+    }
+
+    /// Starts a request of the PC whose phrase is typed as it is (after the `clean` pass), whatever it sounds like.
+    fn start_dictation(&self) {
+        let state = self.driver().state();
+        match (&state.phase, state.source) {
+            (Phase::Idle | Phase::Done(_) | Phase::Failed(_), _) => {
+                self.dictation_request.store(true, Ordering::SeqCst);
+                self.pressed(Pressed::Main);
+            }
+            // A dictation that is listening ends with the next press of its chord.
+            (Phase::Listening, Some(Source::Pc)) if self.dictation_request.load(Ordering::SeqCst) => self.pressed(Pressed::Main),
+            _ => {}
+        }
+    }
+
     fn pressed(&self, p: Pressed) {
+        if p == Pressed::Dictate {
+            return self.start_dictation();
+        }
         let state = self.driver().state();
         mic::log_line(&format!("hotkey {p:?} phase={:?}", std::mem::discriminant(&state.phase)));
         let event = match p {
             Pressed::Main => press_event(&state, format!("{:016x}", rand::random::<u64>())),
             Pressed::Esc => esc_event(&state),
             Pressed::Enter => enter_event(&state),
+            Pressed::Dictate => None,
         };
         if let Some(e) = event {
             if e == Event::AudioEnd && too_early() {
@@ -445,11 +563,14 @@ impl Ports for Inner {
     }
 
     fn dictating(&self) -> bool {
-        dictation_waiting(*self.dictate_until.lock().unwrap(), Instant::now())
+        self.dictation_request.load(Ordering::SeqCst) || dictation_waiting(*self.dictate_until.lock().unwrap(), Instant::now())
     }
 
     fn transcribe(&self, pcm: Vec<u8>) -> BoxFut<Result<String, String>> {
         let (sup, lang, driver) = (self.service.supervisor().clone(), self.language(), self.driver().clone());
+        // A dictation spells the words of the dictionary and, in `clean` mode, goes through the model (13.1).
+        let dictating = self.dictating();
+        let settings = self.dictation.lock().unwrap().clone();
         Box::pin(async move {
             // Less than a tenth of a second is a key click, not speech.
             if pcm.len() < super::MAX_CHUNK_BYTES / 2 {
@@ -459,7 +580,16 @@ impl Ports for Inner {
             if sup.state() == SupState::Loading {
                 driver.handle_event(Event::ModelLoading);
             }
-            sup.transcribe(&pcm, lang).await
+            if !dictating {
+                return sup.transcribe(&pcm, lang).await;
+            }
+            let prompt = dictation::whisper_prompt(&settings.dictionary);
+            let raw = sup.transcribe_prompted(&pcm, lang, prompt.as_deref()).await?;
+            if settings.mode == Mode::Clean && !raw.is_empty() {
+                Ok(super::assist::clean_dictation(&sup, lang, &raw, &settings.dictionary).await)
+            } else {
+                Ok(raw)
+            }
         })
     }
 
@@ -502,6 +632,13 @@ impl Ports for Inner {
                     *dictate.lock().unwrap() = None;
                     let text = text.clone();
                     return tokio::task::spawn_blocking(move || winops::type_text(&text).map(|_| String::new()))
+                        .await
+                        .map_err(|e| format!("The action did not finish: {e}"))?;
+                }
+                ToolCall::PasteText { text } => {
+                    *dictate.lock().unwrap() = None;
+                    let text = text.clone();
+                    return tokio::task::spawn_blocking(move || paste_system(&text))
                         .await
                         .map_err(|e| format!("The action did not finish: {e}"))?;
                 }
@@ -672,6 +809,10 @@ impl Ports for Inner {
                     mic::log_line(&format!("warm-up failed: {e}"));
                 }
             });
+        }
+        if matches!(info.state, "idle" | "done" | "error") {
+            // The request that was a dictation is over.
+            self.dictation_request.store(false, Ordering::SeqCst);
         }
         self.agent.store().set("voice", serde_json::to_value(&info).unwrap_or(Value::Null));
         let shown = Instant::now();

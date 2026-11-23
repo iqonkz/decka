@@ -4,7 +4,10 @@
 //! The phone sends audio and answers; it never says what to run. Every message passes `VoiceHub`, which checks the shape
 //! and the limits, and only then reaches the pipeline (ARCHITECTURE.md S24).
 
+pub mod assist;
 pub mod audio;
+pub mod clipboard;
+pub mod dictation;
 pub mod endpoint;
 pub mod host;
 pub mod hotkey;
@@ -13,6 +16,7 @@ pub mod matcher;
 pub mod mic;
 pub mod pipeline;
 pub mod tools;
+pub mod winkeys;
 pub mod winops;
 
 use std::collections::{HashMap, VecDeque};

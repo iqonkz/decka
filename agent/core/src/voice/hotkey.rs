@@ -137,6 +137,8 @@ pub enum Pressed {
     Main,
     Esc,
     Enter,
+    /// The chord of dictation (a chord instead of the double Ctrl).
+    Dictate,
 }
 
 // ---- The thin layer over Windows --------------------------------------------------------------------------------
@@ -156,6 +158,7 @@ mod win {
     const ID_MAIN: i32 = 1;
     const ID_ESC: i32 = 2;
     const ID_ENTER: i32 = 3;
+    const ID_DICT: i32 = 4;
     const WAKE: u32 = WM_APP;
     const QUIT: u32 = WM_APP + 1;
     /// A hotkey that does not repeat while it is held.
@@ -165,6 +168,7 @@ mod win {
 
     enum Cmd {
         Main(Option<Chord>, Sender<Result<(), String>>),
+        Dict(Option<Chord>, Sender<Result<(), String>>),
         Aux { esc: bool, enter: bool },
     }
 
@@ -186,7 +190,7 @@ mod win {
     }
 
     fn run(rx: Receiver<Cmd>, on_press: Arc<dyn Fn(Pressed) + Send + Sync>) {
-        let (mut main, mut esc, mut enter) = (false, false, false);
+        let (mut main, mut esc, mut enter, mut dict) = (false, false, false, false);
         let mut msg = MSG::default();
         loop {
             // SAFETY: `msg` is a valid MSG; a failure (-1) or WM_QUIT (0) ends the loop.
@@ -199,6 +203,7 @@ mod win {
                     ID_MAIN => on_press(Pressed::Main),
                     ID_ESC => on_press(Pressed::Esc),
                     ID_ENTER => on_press(Pressed::Enter),
+                    ID_DICT => on_press(Pressed::Dictate),
                     _ => {}
                 },
                 WAKE => {
@@ -212,6 +217,19 @@ mod win {
                                 let result = match chord {
                                     None => Ok(()),
                                     Some(c) => register(ID_MAIN, c.mods, c.vk).map(|_| main = true).map_err(|e| {
+                                        if e.code().0 & 0xffff == TAKEN { String::from("taken") } else { e.to_string() }
+                                    }),
+                                };
+                                let _ = reply.send(result);
+                            }
+                            Cmd::Dict(chord, reply) => {
+                                if dict {
+                                    unregister(ID_DICT);
+                                    dict = false;
+                                }
+                                let result = match chord {
+                                    None => Ok(()),
+                                    Some(c) => register(ID_DICT, c.mods, c.vk).map(|_| dict = true).map_err(|e| {
                                         if e.code().0 & 0xffff == TAKEN { String::from("taken") } else { e.to_string() }
                                     }),
                                 };
@@ -231,7 +249,7 @@ mod win {
                 _ => {}
             }
         }
-        for (on, id) in [(main, ID_MAIN), (esc, ID_ESC), (enter, ID_ENTER)] {
+        for (on, id) in [(main, ID_MAIN), (esc, ID_ESC), (enter, ID_ENTER), (dict, ID_DICT)] {
             if on {
                 unregister(id);
             }
@@ -266,6 +284,18 @@ mod win {
         pub fn set_main(&self, chord: Option<Chord>, shown: &[String]) -> Result<(), String> {
             let (reply_tx, reply_rx) = mpsc::channel();
             self.tx.send(Cmd::Main(chord, reply_tx)).map_err(|_| "The hotkey thread stopped".to_string())?;
+            self.wake(WAKE);
+            match reply_rx.recv_timeout(std::time::Duration::from_secs(2)) {
+                Ok(Err(e)) if e == "taken" => Err(super::taken_text(shown)),
+                Ok(r) => r,
+                Err(_) => Err("The hotkey thread did not answer".to_string()),
+            }
+        }
+
+        /// Registers the chord of dictation (replacing the old one) or removes it (None).
+        pub fn set_dictation(&self, chord: Option<Chord>, shown: &[String]) -> Result<(), String> {
+            let (reply_tx, reply_rx) = mpsc::channel();
+            self.tx.send(Cmd::Dict(chord, reply_tx)).map_err(|_| "The hotkey thread stopped".to_string())?;
             self.wake(WAKE);
             match reply_rx.recv_timeout(std::time::Duration::from_secs(2)) {
                 Ok(Err(e)) if e == "taken" => Err(super::taken_text(shown)),

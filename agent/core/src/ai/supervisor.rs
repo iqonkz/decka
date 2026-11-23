@@ -1,4 +1,4 @@
-﻿//! Supervisor of the two local servers behind voice control (DATA_MODEL.md 12.3): `llama-server` and `whisper-server`
+//! Supervisor of the two local servers behind voice control (DATA_MODEL.md 12.3): `llama-server` and `whisper-server`
 //! as hidden child processes inside a Job Object (they die with the agent), on free 127.0.0.1 ports, `llama-server`
 //! behind a random key per launch. Lazy start, unload after idle, restart with back-off, stop after repeated crashes.
 //!
@@ -506,6 +506,11 @@ pub fn physical_cores() -> usize {
 /// The `multipart/form-data` body of `POST /inference` (DATA_MODEL.md 12.4 item 2): `file` (WAV), the forced `language`,
 /// `response_format=json`, `temperature=0`.
 pub fn whisper_multipart(boundary: &str, wav: &[u8], language: &str, audio_ctx: u32) -> Vec<u8> {
+    whisper_multipart_prompted(boundary, wav, language, audio_ctx, None)
+}
+
+/// `whisper_multipart` with the `prompt` of whisper (the personal dictionary, DATA_MODEL.md 13.1): words it should spell this way.
+pub fn whisper_multipart_prompted(boundary: &str, wav: &[u8], language: &str, audio_ctx: u32, prompt: Option<&str>) -> Vec<u8> {
     let mut body = Vec::with_capacity(wav.len() + 512);
     let field = |body: &mut Vec<u8>, name: &str, value: &str| {
         body.extend_from_slice(format!("--{boundary}\r\nContent-Disposition: form-data; name=\"{name}\"\r\n\r\n{value}\r\n").as_bytes());
@@ -523,6 +528,9 @@ pub fn whisper_multipart(boundary: &str, wav: &[u8], language: &str, audio_ctx: 
     field(&mut body, "best_of", "1");
     field(&mut body, "no_timestamps", "true");
     field(&mut body, "audio_ctx", &audio_ctx.to_string());
+    if let Some(p) = prompt.filter(|p| !p.trim().is_empty()) {
+        field(&mut body, "prompt", p);
+    }
     body.extend_from_slice(format!("--{boundary}--\r\n").as_bytes());
     body
 }
@@ -557,11 +565,16 @@ async fn warm_whisper(port: u16) {
 impl Supervisor {
     /// Recognises 16 kHz mono PCM16 with `whisper-server` (started lazily; the first call waits for the models).
     pub async fn transcribe(&self, pcm: &[u8], language: &str) -> Result<String, String> {
+        self.transcribe_prompted(pcm, language, None).await
+    }
+
+    /// `transcribe` with a prompt for whisper (the dictionary of a dictation).
+    pub async fn transcribe_prompted(&self, pcm: &[u8], language: &str, prompt: Option<&str>) -> Result<String, String> {
         let endpoints = self.ensure_started().await?;
         let samples: Vec<i16> = pcm.chunks_exact(2).map(|b| i16::from_le_bytes([b[0], b[1]])).collect();
         let wav = crate::voice::audio::encode_wav_pcm16(&samples, 16_000);
         let boundary = format!("decka{}", new_key());
-        let body = whisper_multipart(&boundary, &wav, language, audio_ctx(samples.len() as f64 / 16_000.0));
+        let body = whisper_multipart_prompted(&boundary, &wav, language, audio_ctx(samples.len() as f64 / 16_000.0), prompt);
         let client = reqwest::Client::builder().timeout(stt_timeout(endpoints.whisper_gpu, samples.len() as f64 / 16_000.0)).build().map_err(|e| e.to_string())?;
         let url = format!("http://127.0.0.1:{}/inference", endpoints.whisper_port);
         let answer = client
@@ -600,6 +613,15 @@ mod tests {
         assert_eq!(stt_timeout(false, 30.0).as_secs(), 60);
         assert_eq!(audio_ctx(2.0), 300);
         assert_eq!(audio_ctx(30.0), 1500);
+    }
+
+    #[test]
+    fn the_dictionary_goes_to_whisper_as_a_prompt_only_when_there_is_one() {
+        let with = String::from_utf8_lossy(&whisper_multipart_prompted("B", b"W", "ru", 400, Some("Decka, Qwen"))).to_string();
+        assert!(with.contains("name=\"prompt\"\r\n\r\nDecka, Qwen\r\n"));
+        let without = String::from_utf8_lossy(&whisper_multipart_prompted("B", b"W", "ru", 400, Some("  "))).to_string();
+        assert!(!without.contains("prompt"));
+        assert_eq!(whisper_multipart("B", b"W", "ru", 400), whisper_multipart_prompted("B", b"W", "ru", 400, None));
     }
 
     #[test]

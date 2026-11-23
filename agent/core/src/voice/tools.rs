@@ -87,6 +87,8 @@ pub enum ToolCall {
     GoPage { page_id: String, name: String },
     OpenUrl { url: String },
     TypeText { text: String },
+    /// A long dictation, pasted through the clipboard. Never named by the model: only the pipeline makes it (DATA_MODEL.md 13.1).
+    PasteText { text: String },
     Dictate,
     Timer { minutes: u32, label: Option<String> },
     System(SystemOp),
