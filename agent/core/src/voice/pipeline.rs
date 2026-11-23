@@ -399,6 +399,10 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
                     None => finish_key(s, Phase::Failed(msg::DIDNT_GET.into()), ReplyKey::plain(key::DIDNT_GET)),
                 }
             }
+            // The model may remember something only when the user asked for it in so many words (13.6).
+            Some((raw, _)) if raw.tool == "memory_add" && !s.heard.as_deref().is_some_and(super::memory::asks_to_remember) => {
+                finish_key(s, Phase::Failed(msg::DIDNT_GET.into()), ReplyKey::plain(key::DIDNT_GET))
+            }
             Some((raw, say)) => {
                 let mut s = s;
                 s.say = say.filter(|t| !t.trim().is_empty());
@@ -709,6 +713,23 @@ mod tests {
         s.phase = Phase::Executing;
         let (s, _) = step(&s, Event::Executed(Err("something else".into())), 5, &env);
         assert_eq!(s.info().reply_key, None, "free text has no key");
+    }
+
+    #[test]
+    fn the_model_may_remember_a_fact_only_after_an_explicit_phrase() {
+        let (t, c) = (table(), ctx());
+        let env = Env { table: &t, ctx: &c, confirm_ms: CONFIRM_TIMEOUT_MS, dictate: false };
+        let ask = |heard: &str| {
+            let mut s = State::idle();
+            s.phase = Phase::Thinking;
+            s.heard = Some(heard.into());
+            let call = RawCall { tool: "memory_add".into(), args: serde_json::json!({ "text": "Aigerim is my wife" }) };
+            step(&s, Event::LlmAnswer(Some((call, None))), 5, &env)
+        };
+        let (s, fx) = ask("remember that Aigerim is my wife");
+        assert_eq!((s.phase, fx), (Phase::Executing, vec![Effect::Execute(ToolCall::MemoryAdd { text: "Aigerim is my wife".into() })]));
+        let (s, fx) = ask("Aigerim called me yesterday");
+        assert_eq!((s.phase, fx.is_empty()), (Phase::Failed(msg::DIDNT_GET.into()), true), "no cue: the model learns nothing by itself");
     }
 
     #[test]

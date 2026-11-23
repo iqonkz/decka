@@ -905,6 +905,7 @@ export const en = {
   "voice.confirm.sleep": "Put the computer to sleep",
   "voice.confirm.screen_pack": "Download the Screen help package (about 0.7 GB)?",
   "voice.confirm.run": "Run {name}",
+  "voice.confirm.forget": "Forget: {text}",
   "voice.confirm.list_delete": "Delete the list {name}?",
   "voice.hotkey": "Hotkey",
   "voice.mic": "Microphone",

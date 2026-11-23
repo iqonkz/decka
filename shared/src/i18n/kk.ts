@@ -903,6 +903,7 @@ export const kk: Dictionary = {
   "voice.confirm.sleep": "Компьютерді ұйқы режиміне жіберу",
   "voice.confirm.screen_pack": "«Экран бойынша көмек» пакетін жүктеу (шамамен 0,7 ГБ)?",
   "voice.confirm.run": "{name} орындау",
+  "voice.confirm.forget": "Ұмыту: {text}",
   "voice.confirm.list_delete": "«{name}» тізімін жою керек пе?",
   "voice.hotkey": "Жылдам перне",
   "voice.mic": "Микрофон",

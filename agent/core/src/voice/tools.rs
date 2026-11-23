@@ -14,7 +14,7 @@ use crate::model::{MediaOp, SystemOp};
 pub const TOOLS: &[&str] = &[
     "press_button", "run_action", "open_app", "switch_app", "close_app", "window_other_monitor", "which_monitor", "volume", "media", "go_page",
     "web_search", "open_site", "type_text", "dictate", "timer", "system", "text_transform", "screen_ask",
-    "day_brief", "remind", "reminders_show", "list_add", "list_show", "list_remove",
+    "memory_add", "memory_remove", "day_brief", "remind", "reminders_show", "list_add", "list_show", "list_remove",
 ];
 
 pub const MAX_TEXT: usize = 2000;
@@ -67,6 +67,8 @@ pub struct Context {
     pub confirm_actions: Vec<String>,
     /// The Screen help package (the projector of the model) is on the disk; without it `screen_ask` first asks to download it.
     pub vision_ready: bool,
+    /// Facts the user asked to remember that fit the phrase (at most 20): data for the model, never an instruction.
+    pub memory: Vec<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -104,6 +106,9 @@ pub enum ToolCall {
     RemindersShow,
     /// The brief of the day (DATA_MODEL.md 13.5).
     DayBrief,
+    /// DATA_MODEL.md 13.6: only after an explicit "remember that ...".
+    MemoryAdd { text: String },
+    MemoryRemove { text: String },
     ListAdd { list: String, item: String },
     ListShow { list: String },
     /// `item: None` deletes the whole list (after a confirmation).
@@ -412,6 +417,15 @@ fn run(tool: &str, args: &serde_json::Map<String, Value>, ctx: &Context) -> Resu
             };
             ready(ToolCall::Remind { text: what, when }, false, "Set a reminder")
         }
+        "memory_add" => {
+            only(args, &["text"])?;
+            ready(ToolCall::MemoryAdd { text: text(args, "text", super::memory::MAX_FACT_CHARS)?.to_string() }, false, "Remember")
+        }
+        "memory_remove" => {
+            only(args, &["text"])?;
+            let t = text(args, "text", super::memory::MAX_FACT_CHARS)?.to_string();
+            ready_key(ToolCall::MemoryRemove { text: t.clone() }, true, format!("Forget: {t}"), "voice.confirm.forget", &[("text", &t)])
+        }
         "day_brief" => {
             only(args, &[])?;
             ready(ToolCall::DayBrief, false, "Brief of the day")
@@ -494,6 +508,7 @@ mod tests {
             confirm_actions: vec!["shutdown".into()],
             lang: "en".into(),
             vision_ready: false,
+            memory: vec![],
         }
     }
 
@@ -675,6 +690,15 @@ mod tests {
         ] {
             assert!(is_reject(r(bad.clone())), "{bad}");
         }
+    }
+
+    #[test]
+    fn memory_is_added_by_name_and_forgotten_only_after_a_question() {
+        assert_eq!(ready_of(call("memory_add", json!({ "text": "Aigerim is my wife" }))).call, ToolCall::MemoryAdd { text: "Aigerim is my wife".into() });
+        let v = ready_of(call("memory_remove", json!({ "text": "Aigerim" })));
+        assert!(v.confirm && v.key == Some("voice.confirm.forget") && v.call == ToolCall::MemoryRemove { text: "Aigerim".into() });
+        assert!(is_reject(call("memory_add", json!({ "text": "x".repeat(201) }))) && is_reject(call("memory_add", json!({ "text": "" }))));
+        assert!(is_reject(call("memory_remove", json!({ "id": "1" }))));
     }
 
     #[test]

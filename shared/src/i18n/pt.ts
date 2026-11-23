@@ -896,6 +896,7 @@ export const pt: Dictionary = {
   "voice.confirm.sleep": "Suspender o computador",
   "voice.confirm.screen_pack": "Baixar o pacote «Ajuda com a tela» (cerca de 0,7 GB)?",
   "voice.confirm.run": "Executar {name}",
+  "voice.confirm.forget": "Esquecer: {text}",
   "voice.confirm.list_delete": "Excluir a lista «{name}»?",
   "voice.hotkey": "Tecla de atalho",
   "voice.mic": "Microfone",

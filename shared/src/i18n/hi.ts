@@ -896,6 +896,7 @@ export const hi: Dictionary = {
   "voice.confirm.sleep": "कंप्यूटर को स्लीप में भेजें",
   "voice.confirm.screen_pack": "“स्क्रीन सहायता” पैकेज डाउनलोड करें (लगभग 0.7 GB)?",
   "voice.confirm.run": "{name} चलाएँ",
+  "voice.confirm.forget": "भूल जाएँ: {text}",
   "voice.confirm.list_delete": "सूची “{name}” हटाएँ?",
   "voice.hotkey": "हॉटकी",
   "voice.mic": "माइक्रोफ़ोन",

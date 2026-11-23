@@ -14,6 +14,7 @@ pub mod host;
 pub mod hotkey;
 pub mod llm;
 pub mod matcher;
+pub mod memory;
 pub mod mic;
 pub mod pipeline;
 pub mod screen;

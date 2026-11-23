@@ -233,6 +233,7 @@ pub fn build_context(lang: &str, actions: &ActionsFile, layout: &LayoutFile, ins
     }
     Context {
         vision_ready: false,
+        memory: Vec::new(),
         lang: lang.to_string(),
         actions: actions.actions.iter().map(|(id, a)| ActionRef { id: id.clone(), name: a.name().to_string() }).collect(),
         buttons,
@@ -657,8 +658,10 @@ impl Ports for Inner {
         })
     }
 
-    fn ask_llm(&self, text: String, ctx: Context) -> BoxFut<Option<(RawCall, Option<String>)>> {
+    fn ask_llm(&self, text: String, mut ctx: Context) -> BoxFut<Option<(RawCall, Option<String>)>> {
         let (sup, lang) = (self.service.supervisor().clone(), self.language());
+        // Up to 20 facts that fit the phrase go with it (13.6); the phrase itself is not stored.
+        ctx.memory = self.agent.memory().for_phrase(&text);
         Box::pin(async move { super::llm::ask(&sup, lang, &text, &ctx).await })
     }
 
@@ -699,6 +702,13 @@ impl Ports for Inner {
                     return tokio::task::spawn_blocking(move || winops::type_text(&text).map(|_| String::new()))
                         .await
                         .map_err(|e| format!("The action did not finish: {e}"))?;
+                }
+                ToolCall::MemoryAdd { text } => {
+                    let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0);
+                    return agent.memory().add(text, now).map(|f| format!("Remembered: {}", f.text));
+                }
+                ToolCall::MemoryRemove { text } => {
+                    return agent.memory().remove_matching(text).map(|f| format!("Forgot: {}", f.text));
                 }
                 ToolCall::DayBrief => {
                     return day_brief(&agent, &sup, lang).await;
