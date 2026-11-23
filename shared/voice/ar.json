@@ -1,24 +1,358 @@
 {
   "lang": "ar",
-  "yes": ["نعم", "أجل", "تأكيد", "موافق", "بالتأكيد"],
-  "no": ["لا", "إلغاء", "توقف", "كلا"],
+  "yes": [
+    "نعم",
+    "أجل",
+    "تأكيد",
+    "موافق",
+    "بالتأكيد"
+  ],
+  "no": [
+    "لا",
+    "إلغاء",
+    "توقف",
+    "كلا"
+  ],
   "intents": [
-    { "tool": "volume", "args": { "op": "up" }, "patterns": ["ارفع الصوت", "زيادة الصوت", "صوت أعلى", "برفع مستوى الصوت", "رفع مستوى الصوت"] },
-    { "tool": "volume", "args": { "op": "down" }, "patterns": ["اخفض الصوت", "تقليل الصوت", "صوت أخفض", "خفض الصوت قليلا", "خفض الصوت"] },
-    { "tool": "volume", "args": { "op": "mute" }, "patterns": ["كتم الصوت", "صامت", "إلغاء الكتم", "اكتم الصوت تماما", "اكتم الصوت"] },
-    { "tool": "media", "args": { "op": "play_pause" }, "patterns": ["تشغيل", "إيقاف مؤقت", "استئناف"] },
-    { "tool": "media", "args": { "op": "next" }, "patterns": ["المقطع التالي", "الأغنية التالية", "تخطي"] },
-    { "tool": "media", "args": { "op": "prev" }, "patterns": ["المقطع السابق", "الأغنية السابقة"] },
-    { "tool": "open_app", "patterns": ["افتح {app}", "شغل {app}", "فتح تطبيق الآلة {app}", "فتح تطبيق {app}", "فتح {app}"] },
-    { "tool": "close_app", "patterns": ["أغلق {app}", "إنهاء {app}"] },
-    { "tool": "switch_app", "patterns": ["انتقل إلى {app}", "التبديل إلى {app}"] },
-    { "tool": "go_page", "patterns": ["انتقل إلى صفحة {name}", "صفحة {name}"] },
-    { "tool": "press_button", "patterns": ["اضغط زر {label}", "اضغط {label}"] },
-    { "tool": "web_search", "args": { "site": "web" }, "patterns": ["ابحث عن {query}", "بحث في الويب عن {query}"] },
-    { "tool": "web_search", "args": { "site": "youtube" }, "patterns": ["ابحث في يوتيوب عن {query}", "يوتيوب {query}"] },
-    { "tool": "timer", "args": { "minutes": 5 }, "patterns": ["اضبط مؤقتا لخمس دقائق", "مؤقت لخمس دقائق"] },
-    { "tool": "timer", "patterns": ["مؤقت لمدة {n} دقيقة", "اضبط مؤقت {n} دقائق", "اضبط مؤقتا ل {n} دقائق", "اضبط مؤقتا ل {n} دقيقة"] },
-    { "tool": "system", "args": { "op": "lock" }, "patterns": ["قفل الحاسوب", "قفل الشاشة", "بقفل شاشة الكمبيوتر", "قفل شاشة الكمبيوتر"] },
-    { "tool": "system", "args": { "op": "sleep" }, "patterns": ["إسبات الحاسوب", "وضع السكون"] }
+    {
+      "tool": "volume",
+      "args": {
+        "op": "up"
+      },
+      "patterns": [
+        "ارفع الصوت",
+        "زيادة الصوت",
+        "صوت أعلى",
+        "برفع مستوى الصوت",
+        "رفع مستوى الصوت"
+      ]
+    },
+    {
+      "tool": "volume",
+      "args": {
+        "op": "down"
+      },
+      "patterns": [
+        "اخفض الصوت",
+        "تقليل الصوت",
+        "صوت أخفض",
+        "خفض الصوت قليلا",
+        "خفض الصوت"
+      ]
+    },
+    {
+      "tool": "volume",
+      "args": {
+        "op": "mute"
+      },
+      "patterns": [
+        "كتم الصوت",
+        "صامت",
+        "إلغاء الكتم",
+        "اكتم الصوت تماما",
+        "اكتم الصوت"
+      ]
+    },
+    {
+      "tool": "media",
+      "args": {
+        "op": "play_pause"
+      },
+      "patterns": [
+        "تشغيل",
+        "إيقاف مؤقت",
+        "استئناف"
+      ]
+    },
+    {
+      "tool": "media",
+      "args": {
+        "op": "next"
+      },
+      "patterns": [
+        "المقطع التالي",
+        "الأغنية التالية",
+        "تخطي"
+      ]
+    },
+    {
+      "tool": "media",
+      "args": {
+        "op": "prev"
+      },
+      "patterns": [
+        "المقطع السابق",
+        "الأغنية السابقة"
+      ]
+    },
+    {
+      "tool": "open_app",
+      "patterns": [
+        "افتح {app}",
+        "شغل {app}",
+        "فتح تطبيق الآلة {app}",
+        "فتح تطبيق {app}",
+        "فتح {app}"
+      ]
+    },
+    {
+      "tool": "close_app",
+      "patterns": [
+        "أغلق {app}",
+        "إنهاء {app}"
+      ]
+    },
+    {
+      "tool": "switch_app",
+      "patterns": [
+        "انتقل إلى {app}",
+        "التبديل إلى {app}"
+      ]
+    },
+    {
+      "tool": "go_page",
+      "patterns": [
+        "انتقل إلى صفحة {name}",
+        "صفحة {name}"
+      ]
+    },
+    {
+      "tool": "press_button",
+      "patterns": [
+        "اضغط زر {label}",
+        "اضغط {label}"
+      ]
+    },
+    {
+      "tool": "web_search",
+      "args": {
+        "site": "web"
+      },
+      "patterns": [
+        "ابحث عن {query}",
+        "بحث في الويب عن {query}"
+      ]
+    },
+    {
+      "tool": "web_search",
+      "args": {
+        "site": "youtube"
+      },
+      "patterns": [
+        "ابحث في يوتيوب عن {query}",
+        "يوتيوب {query}"
+      ]
+    },
+    {
+      "tool": "timer",
+      "args": {
+        "minutes": 5
+      },
+      "patterns": [
+        "اضبط مؤقتا لخمس دقائق",
+        "مؤقت لخمس دقائق"
+      ]
+    },
+    {
+      "tool": "timer",
+      "patterns": [
+        "مؤقت لمدة {n} دقيقة",
+        "اضبط مؤقت {n} دقائق",
+        "اضبط مؤقتا ل {n} دقائق",
+        "اضبط مؤقتا ل {n} دقيقة"
+      ]
+    },
+    {
+      "tool": "system",
+      "args": {
+        "op": "lock"
+      },
+      "patterns": [
+        "قفل الحاسوب",
+        "قفل الشاشة",
+        "بقفل شاشة الكمبيوتر",
+        "قفل شاشة الكمبيوتر"
+      ]
+    },
+    {
+      "tool": "system",
+      "args": {
+        "op": "sleep"
+      },
+      "patterns": [
+        "إسبات الحاسوب",
+        "وضع السكون"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "polite"
+      },
+      "patterns": [
+        "اجعله أكثر تأدبا",
+        "اكتب بأدب أكثر",
+        "بشكل مهذب"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "shorter"
+      },
+      "patterns": [
+        "اجعله أقصر",
+        "اختصر النص",
+        "اختصر هذا",
+        "أقصر"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "fix"
+      },
+      "patterns": [
+        "صحح الأخطاء",
+        "صلح الأخطاء",
+        "صحح القواعد",
+        "صلح هذا النص"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "formal"
+      },
+      "patterns": [
+        "اجعله رسميا",
+        "أسلوب رسمي",
+        "اكتب بشكل رسمي"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "casual"
+      },
+      "patterns": [
+        "اجعله غير رسمي",
+        "أسلوب بسيط",
+        "اكتب بعفوية"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "summarize"
+      },
+      "patterns": [
+        "لخص هذا",
+        "لخص النص",
+        "أعطني ملخصا",
+        "تلخيص"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "explain"
+      },
+      "patterns": [
+        "اشرح هذا",
+        "اشرح النص",
+        "ماذا يعني هذا",
+        "فسر هذا"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "translate"
+      },
+      "patterns": [
+        "ترجم إلى {lang}",
+        "ترجم للغة {lang}",
+        "ترجم الى {lang}"
+      ]
+    },
+    {
+      "tool": "screen_ask",
+      "patterns": [
+        "ماذا يوجد في الشاشة",
+        "اشرح الشاشة",
+        "ماذا اضغط هنا",
+        "اشرح هذا الخطأ",
+        "شاشة {text}"
+      ]
+    },
+    {
+      "tool": "remind",
+      "patterns": [
+        "ذكرني بـ {text} بعد {n} دقائق",
+        "ذكرني بعد {n} دقائق بـ {text}",
+        "ذكرني بـ {text} في {time}",
+        "ذكرني {text}"
+      ]
+    },
+    {
+      "tool": "reminders_show",
+      "patterns": [
+        "أظهر التذكيرات",
+        "تذكيراتي",
+        "افتح التذكيرات",
+        "قائمة التذكيرات"
+      ]
+    },
+    {
+      "tool": "list_add",
+      "patterns": [
+        "أضف {item} إلى قائمة {list}",
+        "أضف {item} في {list}",
+        "سجل {item} في {list}"
+      ]
+    },
+    {
+      "tool": "list_show",
+      "patterns": [
+        "أظهر قائمة {list}",
+        "افتح قائمة {list}",
+        "قائمة {list}",
+        "أظهر {list}"
+      ]
+    },
+    {
+      "tool": "list_remove",
+      "patterns": [
+        "احذف {item} من قائمة {list}",
+        "أزل {item} من قائمة {list}",
+        "احذف {item} من {list}"
+      ]
+    },
+    {
+      "tool": "day_brief",
+      "patterns": [
+        "صباح الخير",
+        "ملخص اليوم",
+        "ماذا لدي اليوم",
+        "موجز اليوم"
+      ]
+    },
+    {
+      "tool": "memory_add",
+      "patterns": [
+        "تذكر أن {text}",
+        "احفظ في الذاكرة أن {text}",
+        "تذكر {text}"
+      ]
+    },
+    {
+      "tool": "memory_remove",
+      "patterns": [
+        "انس أن {text}",
+        "انس {text}",
+        "احذف من الذاكرة {text}"
+      ]
+    }
   ]
 }

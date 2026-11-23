@@ -1,24 +1,366 @@
 {
   "lang": "fr",
-  "yes": ["oui", "ouais", "d'accord", "confirmer", "bien sûr"],
-  "no": ["non", "annuler", "arrêter", "pas question"],
+  "yes": [
+    "oui",
+    "ouais",
+    "d'accord",
+    "confirmer",
+    "bien sûr"
+  ],
+  "no": [
+    "non",
+    "annuler",
+    "arrêter",
+    "pas question"
+  ],
   "intents": [
-    { "tool": "volume", "args": { "op": "up" }, "patterns": ["monte le son", "plus fort", "augmente le volume", "monter le volume", "monte le volume"] },
-    { "tool": "volume", "args": { "op": "down" }, "patterns": ["baisse le son", "moins fort", "diminue le volume", "baisse un peu le son", "baisser le son"] },
-    { "tool": "volume", "args": { "op": "mute" }, "patterns": ["coupe le son", "silence", "activer le son"] },
-    { "tool": "media", "args": { "op": "play_pause" }, "patterns": ["lecture", "pause", "reprendre", "arrêter"] },
-    { "tool": "media", "args": { "op": "next" }, "patterns": ["piste suivante", "morceau suivant", "chanson suivante"] },
-    { "tool": "media", "args": { "op": "prev" }, "patterns": ["piste précédente", "morceau précédent"] },
-    { "tool": "open_app", "patterns": ["ouvre {app}", "ouvrir {app}", "lance {app}", "ouvre la {app}", "ouvrir la {app}", "ouvre l' {app}"] },
-    { "tool": "close_app", "patterns": ["ferme {app}", "fermer {app}", "quitte {app}"] },
-    { "tool": "switch_app", "patterns": ["passe à {app}", "bascule vers {app}"] },
-    { "tool": "go_page", "patterns": ["aller à la page {name}", "ouvre la page {name}", "page {name}"] },
-    { "tool": "press_button", "patterns": ["appuie sur la touche {label}", "clique sur {label}"] },
-    { "tool": "web_search", "args": { "site": "web" }, "patterns": ["recherche {query}", "cherche sur le web {query}"] },
-    { "tool": "web_search", "args": { "site": "youtube" }, "patterns": ["cherche sur youtube {query}", "recherche youtube {query}"] },
-    { "tool": "timer", "args": { "minutes": 10 }, "patterns": ["minuteur de dix minutes", "programme un minuteur de dix minutes"] },
-    { "tool": "timer", "patterns": ["minuteur de {n} minutes", "mets un minuteur de {n} minutes", "programme un minuteur de {n} minutes"] },
-    { "tool": "system", "args": { "op": "lock" }, "patterns": ["verrouille le pc", "verrouille l'ordinateur", "verrouiller l'écran"] },
-    { "tool": "system", "args": { "op": "sleep" }, "patterns": ["mets en veille le pc", "veille ordinateur", "mets le pc en veille maintenant", "mets le pc en veille"] }
+    {
+      "tool": "volume",
+      "args": {
+        "op": "up"
+      },
+      "patterns": [
+        "monte le son",
+        "plus fort",
+        "augmente le volume",
+        "monter le volume",
+        "monte le volume"
+      ]
+    },
+    {
+      "tool": "volume",
+      "args": {
+        "op": "down"
+      },
+      "patterns": [
+        "baisse le son",
+        "moins fort",
+        "diminue le volume",
+        "baisse un peu le son",
+        "baisser le son"
+      ]
+    },
+    {
+      "tool": "volume",
+      "args": {
+        "op": "mute"
+      },
+      "patterns": [
+        "coupe le son",
+        "silence",
+        "activer le son"
+      ]
+    },
+    {
+      "tool": "media",
+      "args": {
+        "op": "play_pause"
+      },
+      "patterns": [
+        "lecture",
+        "pause",
+        "reprendre",
+        "arrêter"
+      ]
+    },
+    {
+      "tool": "media",
+      "args": {
+        "op": "next"
+      },
+      "patterns": [
+        "piste suivante",
+        "morceau suivant",
+        "chanson suivante"
+      ]
+    },
+    {
+      "tool": "media",
+      "args": {
+        "op": "prev"
+      },
+      "patterns": [
+        "piste précédente",
+        "morceau précédent"
+      ]
+    },
+    {
+      "tool": "open_app",
+      "patterns": [
+        "ouvre {app}",
+        "ouvrir {app}",
+        "lance {app}",
+        "ouvre la {app}",
+        "ouvrir la {app}",
+        "ouvre l' {app}"
+      ]
+    },
+    {
+      "tool": "close_app",
+      "patterns": [
+        "ferme {app}",
+        "fermer {app}",
+        "quitte {app}"
+      ]
+    },
+    {
+      "tool": "switch_app",
+      "patterns": [
+        "passe à {app}",
+        "bascule vers {app}"
+      ]
+    },
+    {
+      "tool": "go_page",
+      "patterns": [
+        "aller à la page {name}",
+        "ouvre la page {name}",
+        "page {name}"
+      ]
+    },
+    {
+      "tool": "press_button",
+      "patterns": [
+        "appuie sur la touche {label}",
+        "clique sur {label}"
+      ]
+    },
+    {
+      "tool": "web_search",
+      "args": {
+        "site": "web"
+      },
+      "patterns": [
+        "recherche {query}",
+        "cherche sur le web {query}"
+      ]
+    },
+    {
+      "tool": "web_search",
+      "args": {
+        "site": "youtube"
+      },
+      "patterns": [
+        "cherche sur youtube {query}",
+        "recherche youtube {query}"
+      ]
+    },
+    {
+      "tool": "timer",
+      "args": {
+        "minutes": 10
+      },
+      "patterns": [
+        "minuteur de dix minutes",
+        "programme un minuteur de dix minutes"
+      ]
+    },
+    {
+      "tool": "timer",
+      "patterns": [
+        "minuteur de {n} minutes",
+        "mets un minuteur de {n} minutes",
+        "programme un minuteur de {n} minutes"
+      ]
+    },
+    {
+      "tool": "system",
+      "args": {
+        "op": "lock"
+      },
+      "patterns": [
+        "verrouille le pc",
+        "verrouille l'ordinateur",
+        "verrouiller l'écran"
+      ]
+    },
+    {
+      "tool": "system",
+      "args": {
+        "op": "sleep"
+      },
+      "patterns": [
+        "mets en veille le pc",
+        "veille ordinateur",
+        "mets le pc en veille maintenant",
+        "mets le pc en veille"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "polite"
+      },
+      "patterns": [
+        "rends-le plus poli",
+        "plus poli",
+        "écris plus poliment",
+        "reformule poliment"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "shorter"
+      },
+      "patterns": [
+        "rends-le plus court",
+        "plus court",
+        "raccourcis le texte",
+        "plus concis"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "fix"
+      },
+      "patterns": [
+        "corrige les fautes",
+        "corrige les erreurs",
+        "corrige la grammaire",
+        "corrige ce texte"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "formal"
+      },
+      "patterns": [
+        "rends-le plus formel",
+        "plus formel",
+        "style formel",
+        "écris formellement"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "casual"
+      },
+      "patterns": [
+        "rends-le plus familier",
+        "plus décontracté",
+        "style informel",
+        "écris plus simplement"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "summarize"
+      },
+      "patterns": [
+        "résume ceci",
+        "fais un résumé",
+        "résume le texte",
+        "résumé court"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "explain"
+      },
+      "patterns": [
+        "explique ceci",
+        "explique le texte",
+        "qu'est-ce que cela veut dire",
+        "explique-moi"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "translate"
+      },
+      "patterns": [
+        "traduis en {lang}",
+        "traduire en {lang}",
+        "traduis vers le {lang}"
+      ]
+    },
+    {
+      "tool": "screen_ask",
+      "patterns": [
+        "qu'y a-t-il à l'écran",
+        "explique l'écran",
+        "sur quoi cliquer ici",
+        "explique cette erreur",
+        "écran {text}"
+      ]
+    },
+    {
+      "tool": "remind",
+      "patterns": [
+        "rappelle-moi {text} dans {n} minutes",
+        "dans {n} minutes rappelle-moi {text}",
+        "rappelle-moi {text} à {time}",
+        "à {time} rappelle-moi {text}",
+        "rappelle-moi {text}"
+      ]
+    },
+    {
+      "tool": "reminders_show",
+      "patterns": [
+        "affiche les rappels",
+        "mes rappels",
+        "ouvre les rappels",
+        "liste des rappels"
+      ]
+    },
+    {
+      "tool": "list_add",
+      "patterns": [
+        "ajoute {item} à la liste {list}",
+        "ajoute {item} à {list}",
+        "mets {item} sur la liste {list}"
+      ]
+    },
+    {
+      "tool": "list_show",
+      "patterns": [
+        "affiche la liste {list}",
+        "ouvre la liste {list}",
+        "montre {list}",
+        "ouvre {list}"
+      ]
+    },
+    {
+      "tool": "list_remove",
+      "patterns": [
+        "supprime {item} de la liste {list}",
+        "enlève {item} de la liste {list}",
+        "supprime {item} de {list}"
+      ]
+    },
+    {
+      "tool": "day_brief",
+      "patterns": [
+        "bonjour",
+        "résumé du jour",
+        "qu'ai-je aujourd'hui",
+        "briefing du jour",
+        "ma journée"
+      ]
+    },
+    {
+      "tool": "memory_add",
+      "patterns": [
+        "souviens-toi que {text}",
+        "retiens que {text}",
+        "garde en mémoire que {text}",
+        "mémorise {text}"
+      ]
+    },
+    {
+      "tool": "memory_remove",
+      "patterns": [
+        "oublie que {text}",
+        "oublie {text}",
+        "efface de la mémoire {text}"
+      ]
+    }
   ]
 }

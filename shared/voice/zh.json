@@ -1,24 +1,359 @@
 {
   "lang": "zh",
-  "yes": ["是", "好的", "确认", "对", "行"],
-  "no": ["不", "取消", "不要", "停止", "算了"],
+  "yes": [
+    "是",
+    "好的",
+    "确认",
+    "对",
+    "行"
+  ],
+  "no": [
+    "不",
+    "取消",
+    "不要",
+    "停止",
+    "算了"
+  ],
   "intents": [
-    { "tool": "volume", "args": { "op": "up" }, "patterns": ["大点声", "增大音量", "调大音量", "声音大一点"] },
-    { "tool": "volume", "args": { "op": "down" }, "patterns": ["小点声", "减小音量", "调小音量", "声音小一点"] },
-    { "tool": "volume", "args": { "op": "mute" }, "patterns": ["静音", "关闭声音", "恢复声音"] },
-    { "tool": "media", "args": { "op": "play_pause" }, "patterns": ["播放", "暂停", "继续播放", "停止播放", "暂停当前播放", "暂停播放"] },
-    { "tool": "media", "args": { "op": "next" }, "patterns": ["下一首", "下一曲", "切歌"] },
-    { "tool": "media", "args": { "op": "prev" }, "patterns": ["上一首", "上一曲"] },
-    { "tool": "open_app", "patterns": ["打开{app}", "启动{app}"] },
-    { "tool": "close_app", "patterns": ["关闭{app}", "退出{app}"] },
-    { "tool": "switch_app", "patterns": ["切换到{app}", "转到{app}"] },
-    { "tool": "go_page", "patterns": ["切换到页面{name}", "打开页面{name}", "页面{name}"] },
-    { "tool": "press_button", "patterns": ["按键{label}", "点击{label}", "按下{label}"] },
-    { "tool": "web_search", "args": { "site": "web" }, "patterns": ["搜索{query}", "在网上搜索{query}"] },
-    { "tool": "web_search", "args": { "site": "youtube" }, "patterns": ["在youtube上搜索{query}", "在youtube查找{query}"] },
-    { "tool": "timer", "args": { "minutes": 10 }, "patterns": ["设置十分钟计时器", "十分钟计时器", "十分钟倒计时"] },
-    { "tool": "timer", "patterns": ["设置{n}分钟计时器", "{n}分钟倒计时"] },
-    { "tool": "system", "args": { "op": "lock" }, "patterns": ["锁定电脑", "锁屏", "锁定屏幕"] },
-    { "tool": "system", "args": { "op": "sleep" }, "patterns": ["电脑睡眠", "进入睡眠模式", "睡眠模式"] }
+    {
+      "tool": "volume",
+      "args": {
+        "op": "up"
+      },
+      "patterns": [
+        "大点声",
+        "增大音量",
+        "调大音量",
+        "声音大一点"
+      ]
+    },
+    {
+      "tool": "volume",
+      "args": {
+        "op": "down"
+      },
+      "patterns": [
+        "小点声",
+        "减小音量",
+        "调小音量",
+        "声音小一点"
+      ]
+    },
+    {
+      "tool": "volume",
+      "args": {
+        "op": "mute"
+      },
+      "patterns": [
+        "静音",
+        "关闭声音",
+        "恢复声音"
+      ]
+    },
+    {
+      "tool": "media",
+      "args": {
+        "op": "play_pause"
+      },
+      "patterns": [
+        "播放",
+        "暂停",
+        "继续播放",
+        "停止播放",
+        "暂停当前播放",
+        "暂停播放"
+      ]
+    },
+    {
+      "tool": "media",
+      "args": {
+        "op": "next"
+      },
+      "patterns": [
+        "下一首",
+        "下一曲",
+        "切歌"
+      ]
+    },
+    {
+      "tool": "media",
+      "args": {
+        "op": "prev"
+      },
+      "patterns": [
+        "上一首",
+        "上一曲"
+      ]
+    },
+    {
+      "tool": "open_app",
+      "patterns": [
+        "打开{app}",
+        "启动{app}"
+      ]
+    },
+    {
+      "tool": "close_app",
+      "patterns": [
+        "关闭{app}",
+        "退出{app}"
+      ]
+    },
+    {
+      "tool": "switch_app",
+      "patterns": [
+        "切换到{app}",
+        "转到{app}"
+      ]
+    },
+    {
+      "tool": "go_page",
+      "patterns": [
+        "切换到页面{name}",
+        "打开页面{name}",
+        "页面{name}"
+      ]
+    },
+    {
+      "tool": "press_button",
+      "patterns": [
+        "按键{label}",
+        "点击{label}",
+        "按下{label}"
+      ]
+    },
+    {
+      "tool": "web_search",
+      "args": {
+        "site": "web"
+      },
+      "patterns": [
+        "搜索{query}",
+        "在网上搜索{query}"
+      ]
+    },
+    {
+      "tool": "web_search",
+      "args": {
+        "site": "youtube"
+      },
+      "patterns": [
+        "在youtube上搜索{query}",
+        "在youtube查找{query}"
+      ]
+    },
+    {
+      "tool": "timer",
+      "args": {
+        "minutes": 10
+      },
+      "patterns": [
+        "设置十分钟计时器",
+        "十分钟计时器",
+        "十分钟倒计时"
+      ]
+    },
+    {
+      "tool": "timer",
+      "patterns": [
+        "设置{n}分钟计时器",
+        "{n}分钟倒计时"
+      ]
+    },
+    {
+      "tool": "system",
+      "args": {
+        "op": "lock"
+      },
+      "patterns": [
+        "锁定电脑",
+        "锁屏",
+        "锁定屏幕"
+      ]
+    },
+    {
+      "tool": "system",
+      "args": {
+        "op": "sleep"
+      },
+      "patterns": [
+        "电脑睡眠",
+        "进入睡眠模式",
+        "睡眠模式"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "polite"
+      },
+      "patterns": [
+        "更礼貌一些",
+        "写得更客气",
+        "更礼貌地改写",
+        "客气一点"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "shorter"
+      },
+      "patterns": [
+        "简短一点",
+        "缩短内容",
+        "精简文字",
+        "更简洁一点"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "fix"
+      },
+      "patterns": [
+        "纠正错误",
+        "修改错别字",
+        "修改语病",
+        "检查修正"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "formal"
+      },
+      "patterns": [
+        "更正式一点",
+        "写得正式些",
+        "改写为公文风",
+        "更正式"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "casual"
+      },
+      "patterns": [
+        "更随和一点",
+        "写得通俗些",
+        "更口语化",
+        "改写得随和一点"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "summarize"
+      },
+      "patterns": [
+        "总结一下",
+        "概括这段文字",
+        "提取要点",
+        "生成摘要"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "explain"
+      },
+      "patterns": [
+        "解释一下",
+        "这是什么意思",
+        "解释这段文字",
+        "说明一下"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "translate"
+      },
+      "patterns": [
+        "翻译成{lang}",
+        "翻译为{lang}",
+        "译成{lang}"
+      ]
+    },
+    {
+      "tool": "screen_ask",
+      "patterns": [
+        "屏幕上有什么",
+        "解释屏幕内容",
+        "这里该点什么",
+        "解释这个错误",
+        "屏幕 {text}"
+      ]
+    },
+    {
+      "tool": "remind",
+      "patterns": [
+        "{n}分钟后提醒我{text}",
+        "在{time}提醒我{text}",
+        "提醒我{text}"
+      ]
+    },
+    {
+      "tool": "reminders_show",
+      "patterns": [
+        "显示提醒",
+        "查看我的提醒",
+        "打开提醒",
+        "提醒列表"
+      ]
+    },
+    {
+      "tool": "list_add",
+      "patterns": [
+        "把{item}添加到{list}列表",
+        "向{list}添加{item}",
+        "在{list}中加入{item}"
+      ]
+    },
+    {
+      "tool": "list_show",
+      "patterns": [
+        "显示{list}列表",
+        "打开{list}列表",
+        "查看{list}列表",
+        "显示{list}"
+      ]
+    },
+    {
+      "tool": "list_remove",
+      "patterns": [
+        "从{list}列表中删除{item}",
+        "在{list}中移除{item}",
+        "删除{list}里的{item}"
+      ]
+    },
+    {
+      "tool": "day_brief",
+      "patterns": [
+        "早上好",
+        "今日简报",
+        "今天有什么安排",
+        "今日日程",
+        "今天的事"
+      ]
+    },
+    {
+      "tool": "memory_add",
+      "patterns": [
+        "记住{text}",
+        "把{text}记下来",
+        "记住这件事情{text}"
+      ]
+    },
+    {
+      "tool": "memory_remove",
+      "patterns": [
+        "忘记{text}",
+        "把{text}从记忆中删除",
+        "不要记住{text}"
+      ]
+    }
   ]
 }
