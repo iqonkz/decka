@@ -16,6 +16,7 @@ export interface AgentStatus {
   focusApp: string | null;                            // M11: the active app on the PC (Status tab)
   listening: { bind: string; port: number } | null;   // null = port busy / server did not start
   listenError?: string;
+  listenBusy?: { port: number; app?: string };         // T21.16: another program holds the port
   lanIps: string[];
   clients: { deviceId: Id; name: string; remote: string; connectedAt: number }[];
   usb: { enabled: boolean; adbFound: boolean; devices: { serial: string; reversed: boolean }[]; lastError?: string };

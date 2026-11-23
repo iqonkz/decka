@@ -202,6 +202,8 @@ export const hi: Dictionary = {
   "phone.waiting": "आपके फ़ोन की प्रतीक्षा",
   "phone.connected": "जुड़ा हुआ",
   "phone.restart": "रीस्टार्ट",
+  "phone.port_busy": "पोर्ट {port} का उपयोग {app} कर रहा है। उसे बंद करें या सेटिंग → कनेक्शन में पोर्ट बदलें",
+  "phone.port_busy_unknown": "पोर्ट {port} व्यस्त है। इसे इस्तेमाल करने वाला प्रोग्राम बंद करें या सेटिंग → कनेक्शन में पोर्ट बदलें",
   "perm.always": "हमेशा अनुमति दें: {what}",
   "hist.title": "हाल के सवाल",
   "hist.empty": "अभी कोई सवाल नहीं",

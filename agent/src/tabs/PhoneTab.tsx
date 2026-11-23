@@ -64,8 +64,16 @@ export default function PhoneTab() {
         <strong>{summary.text}</strong>
         {!status.listening && (
           <>
-            <span className="muted">{status.listenError ?? ""}</span>
-            <Button onClick={() => call("restart_server").then(setStatus, (e) => setError(String(e)))}>{t("phone.restart")}</Button>
+            <span className="muted">
+              {status.listenBusy
+                ? status.listenBusy.app
+                  ? t("phone.port_busy", { port: status.listenBusy.port, app: status.listenBusy.app })
+                  : t("phone.port_busy_unknown", { port: status.listenBusy.port })
+                : (status.listenError ?? "")}
+            </span>
+            <Button onClick={() => call("restart_server").then(setStatus, (e) => setError(String(e)))}>
+              {status.listenBusy ? t("link.try_again") : t("phone.restart")}
+            </Button>
           </>
         )}
       </section>

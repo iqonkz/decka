@@ -202,6 +202,8 @@ export const ar: Dictionary = {
   "phone.waiting": "في انتظار هاتفك",
   "phone.connected": "متصل",
   "phone.restart": "إعادة التشغيل",
+  "phone.port_busy": "المنفذ {port} تستخدمه {app}. أغلقه أو غيّر المنفذ من الإعدادات ← الاتصال",
+  "phone.port_busy_unknown": "المنفذ {port} مشغول. أغلق البرنامج الذي يستخدمه أو غيّر المنفذ من الإعدادات ← الاتصال",
   "perm.always": "السماح دائمًا: {what}",
   "hist.title": "الأسئلة الأخيرة",
   "hist.empty": "لا توجد أسئلة بعد",

@@ -71,6 +71,34 @@ pub struct UsbStatus {
     pub last_error: Option<String>,
 }
 
+/// Who keeps the port of the agent busy.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ListenBusy {
+    pub port: u16,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub app: Option<String>,
+}
+
+/// The port is retried for this long when it is busy (the old copy of the agent may still be closing after an update).
+pub const BIND_RETRY_TOTAL: Duration = Duration::from_secs(15);
+
+/// Binds `addr`; while the address is in use, tries again after `first`, twice as long, ... (at most 2 s) until `total` has passed.
+pub async fn bind_retrying(addr: SocketAddr, total: Duration, first: Duration) -> std::io::Result<TcpListener> {
+    let started = std::time::Instant::now();
+    let mut delay = first;
+    loop {
+        match TcpListener::bind(addr).await {
+            Ok(l) => return Ok(l),
+            Err(e) if e.kind() == std::io::ErrorKind::AddrInUse && started.elapsed() + delay <= total => {
+                tokio::time::sleep(delay).await;
+                delay = (delay * 2).min(Duration::from_secs(2));
+            }
+            Err(e) => return Err(e),
+        }
+    }
+}
+
 /// Mirrors `AgentStatus` in shared/src/ipc.ts.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -79,6 +107,9 @@ pub struct AgentStatus {
     pub listening: Option<Listening>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub listen_error: Option<String>,
+    /// The port is held by another program (T21.16): the name of its exe when it is known.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub listen_busy: Option<ListenBusy>,
     pub lan_ips: Vec<String>,
     pub clients: Vec<ClientStatus>,
     pub usb: UsbStatus,
@@ -309,6 +340,9 @@ struct Inner {
     conn_counter: AtomicU64,
     listening: Mutex<Option<Listening>>,
     listen_error: Mutex<Option<String>>,
+    listen_busy: Mutex<Option<ListenBusy>>,
+    /// The task that keeps trying to bind a busy port.
+    bind_task: Mutex<Option<JoinHandle<()>>>,
     server: tokio::sync::Mutex<Option<ServerHandle>>,
     /// Last content of each watched file that the agent applied or wrote itself.
     applied: Mutex<HashMap<&'static str, String>>,
@@ -426,6 +460,8 @@ impl Agent {
                 conn_counter: AtomicU64::new(1),
                 listening: Mutex::new(None),
                 listen_error: Mutex::new(None),
+                listen_busy: Mutex::new(None),
+                bind_task: Mutex::new(None),
                 server: tokio::sync::Mutex::new(None),
                 applied: Mutex::new(HashMap::new()),
                 watcher: Mutex::new(None),
@@ -2415,6 +2451,7 @@ impl Agent {
             version: crate::VERSION.to_string(),
             listening: self.inner.listening.lock().unwrap().clone(),
             listen_error: self.inner.listen_error.lock().unwrap().clone(),
+            listen_busy: self.inner.listen_busy.lock().unwrap().clone(),
             lan_ips: lan_ips(),
             clients: self
                 .inner
@@ -2485,38 +2522,67 @@ impl Agent {
         let config = self.config();
         let port = self.inner.opts.port_override.unwrap_or(config.port as u16);
         let ip: IpAddr = config.bind.parse().expect("bind validated at start");
-        match TcpListener::bind(SocketAddr::new(ip, port)).await {
-            Ok(listener) => {
-                let local = listener.local_addr().expect("bound socket has an address");
-                *self.inner.listening.lock().unwrap() = Some(Listening { bind: config.bind.clone(), port: local.port() });
-                *self.inner.listen_error.lock().unwrap() = None;
-
-                let app = crate::server::router(self.clone(), self.inner.opts.client_dist.clone());
-                let agent = self.clone();
-                let (tx, rx) = oneshot::channel::<()>();
-                let join = tokio::spawn(async move {
-                    let listener = crate::netpolicy::PolicyListener { inner: listener, agent };
-                    let serve = axum::serve(listener, app.into_make_service_with_connect_info::<crate::netpolicy::ConnInfo>())
-                        .with_graceful_shutdown(async move {
-                            let _ = rx.await;
-                        });
-                    if let Err(e) = serve.await {
-                        tracing::error!("server stopped: {e}");
+        let addr = SocketAddr::new(ip, port);
+        match TcpListener::bind(addr).await {
+            Ok(listener) => self.serve(listener, &config.bind),
+            Err(e) if e.kind() == std::io::ErrorKind::AddrInUse => {
+                // The port is busy: say who holds it and keep trying for a while (after an update the old copy may still be closing).
+                tracing::warn!("port {port} is busy, trying again for {} s", BIND_RETRY_TOTAL.as_secs());
+                *self.inner.listening.lock().unwrap() = None;
+                *self.inner.listen_error.lock().unwrap() = Some(e.to_string());
+                *self.inner.listen_busy.lock().unwrap() = Some(ListenBusy { port, app: crate::portowner::port_owner(port) });
+                let (agent, bind) = (self.clone(), config.bind.clone());
+                let task = tokio::spawn(async move {
+                    match bind_retrying(addr, BIND_RETRY_TOTAL, Duration::from_millis(500)).await {
+                        Ok(listener) => agent.serve(listener, &bind),
+                        Err(e) => {
+                            tracing::error!("cannot listen on {bind}:{port}: {e}");
+                            *agent.inner.listen_error.lock().unwrap() = Some(e.to_string());
+                            *agent.inner.listen_busy.lock().unwrap() =
+                                (e.kind() == std::io::ErrorKind::AddrInUse).then(|| ListenBusy { port, app: crate::portowner::port_owner(port) });
+                        }
                     }
+                    agent.publish_status();
                 });
-                *self.inner.server.lock().await = Some(ServerHandle { shutdown: tx, join });
-                tracing::info!("listening on {}:{}", config.bind, local.port());
+                *self.inner.bind_task.lock().unwrap() = Some(task);
             }
             Err(e) => {
                 *self.inner.listening.lock().unwrap() = None;
                 *self.inner.listen_error.lock().unwrap() = Some(e.to_string());
+                *self.inner.listen_busy.lock().unwrap() = None;
                 tracing::error!("cannot listen on {}:{}: {e}", config.bind, port);
             }
         }
         self.publish_status();
     }
 
+    /// Starts serving on a bound listener.
+    fn serve(&self, listener: TcpListener, bind: &str) {
+        let local = listener.local_addr().expect("bound socket has an address");
+        *self.inner.listening.lock().unwrap() = Some(Listening { bind: bind.to_string(), port: local.port() });
+        *self.inner.listen_error.lock().unwrap() = None;
+        *self.inner.listen_busy.lock().unwrap() = None;
+
+        let app = crate::server::router(self.clone(), self.inner.opts.client_dist.clone());
+        let agent = self.clone();
+        let (tx, rx) = oneshot::channel::<()>();
+        let join = tokio::spawn(async move {
+            let listener = crate::netpolicy::PolicyListener { inner: listener, agent };
+            let serve = axum::serve(listener, app.into_make_service_with_connect_info::<crate::netpolicy::ConnInfo>())
+                .with_graceful_shutdown(async move {
+                    let _ = rx.await;
+                });
+            if let Err(e) = serve.await {
+                tracing::error!("server stopped: {e}");
+            }
+        });
+        *self.inner.server.try_lock().expect("the server slot is free while it starts") = Some(ServerHandle { shutdown: tx, join });
+        tracing::info!("listening on {bind}:{}", local.port());
+    }
     async fn stop_server(&self) {
+        if let Some(task) = self.inner.bind_task.lock().unwrap().take() {
+            task.abort();
+        }
         if let Some(handle) = self.inner.server.lock().await.take() {
             let _ = handle.shutdown.send(());
             let _ = handle.join.await;
@@ -2551,6 +2617,7 @@ fn blank_status(config_dir: &std::path::Path) -> AgentStatus {
         version: crate::VERSION.to_string(),
         listening: None,
         listen_error: None,
+        listen_busy: None,
         lan_ips: Vec::new(),
         clients: Vec::new(),
         usb: UsbStatus { enabled: false, adb_found: false, devices: Vec::new(), last_error: None },

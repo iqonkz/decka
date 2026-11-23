@@ -204,6 +204,8 @@ export const en = {
   "phone.waiting": "Waiting for your phone",
   "phone.connected": "Connected",
   "phone.restart": "Restart",
+  "phone.port_busy": "Port {port} is used by {app}. Close it or change the port in Settings → Connection",
+  "phone.port_busy_unknown": "Port {port} is busy. Close the program that uses it or change the port in Settings → Connection",
   "perm.always": "Always allow: {what}",
   "hist.title": "Recent questions",
   "hist.empty": "No questions yet",

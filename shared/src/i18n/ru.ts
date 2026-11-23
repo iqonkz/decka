@@ -206,6 +206,8 @@ export const ru: Record<Base | ExtraPlural, string> = {
   "phone.waiting": "Ожидаем телефон",
   "phone.connected": "Подключено",
   "phone.restart": "Перезапустить",
+  "phone.port_busy": "Порт {port} занят программой {app}. Закройте её или смените порт в Настройки → Подключение",
+  "phone.port_busy_unknown": "Порт {port} занят. Закройте программу, которая его использует, или смените порт в Настройки → Подключение",
   "perm.always": "Всегда разрешать: {what}",
   "hist.title": "Недавние запросы",
   "hist.empty": "Запросов пока не было",

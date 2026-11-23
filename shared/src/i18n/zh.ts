@@ -202,6 +202,8 @@ export const zh: Dictionary = {
   "phone.waiting": "正在等待手机",
   "phone.connected": "已连接",
   "phone.restart": "重启",
+  "phone.port_busy": "端口 {port} 被 {app} 占用。请关闭它，或在“设置 → 连接”中更改端口",
+  "phone.port_busy_unknown": "端口 {port} 已被占用。请关闭占用它的程序，或在“设置 → 连接”中更改端口",
   "perm.always": "始终允许：{what}",
   "hist.title": "最近的提问",
   "hist.empty": "还没有提问",

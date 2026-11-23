@@ -194,6 +194,7 @@ mod tests {
             version: String::new(),
             listening,
             listen_error: None,
+            listen_busy: None,
             lan_ips: ips.iter().map(|s| s.to_string()).collect(),
             clients: Vec::new(),
             usb: crate::agent::UsbStatus { enabled: false, adb_found: false, devices: Vec::new(), last_error: None },

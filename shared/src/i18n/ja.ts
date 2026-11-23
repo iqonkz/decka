@@ -202,6 +202,8 @@ export const ja: Dictionary = {
   "phone.waiting": "スマートフォンを待っています",
   "phone.connected": "接続済み",
   "phone.restart": "再起動",
+  "phone.port_busy": "ポート {port} は {app} が使用しています。閉じるか、「設定 → 接続」でポートを変更してください",
+  "phone.port_busy_unknown": "ポート {port} は使用中です。使用しているプログラムを閉じるか、「設定 → 接続」でポートを変更してください",
   "perm.always": "常に許可: {what}",
   "hist.title": "最近の質問",
   "hist.empty": "まだ質問はありません",

@@ -202,6 +202,8 @@ export const es: Dictionary = {
   "phone.waiting": "Esperando tu teléfono",
   "phone.connected": "Conectado",
   "phone.restart": "Reiniciar",
+  "phone.port_busy": "El puerto {port} lo usa {app}. Ciérralo o cambia el puerto en Ajustes → Conexión",
+  "phone.port_busy_unknown": "El puerto {port} está ocupado. Cierra el programa que lo usa o cambia el puerto en Ajustes → Conexión",
   "perm.always": "Permitir siempre: {what}",
   "hist.title": "Preguntas recientes",
   "hist.empty": "Aún no hay preguntas",
