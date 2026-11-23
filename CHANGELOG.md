@@ -4,6 +4,9 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+### Fixed
+- **Phone microphone**: `RECORD_AUDIO` and `MODIFY_AUDIO_SETTINGS` were missing from the APK of 0.20.5 (the manifest change of T21.17 was not committed), so the voice button could not use the microphone. Both permissions are declared now, and `release:apk` checks the built APK (`aapt dump permissions`: RECORD_AUDIO, CAMERA, INTERNET) and fails if one is missing.
+
 ## 0.20.5 — 2026-11-23
 
 ### Fixed
