@@ -108,7 +108,7 @@ async fn start(dir: &std::path::Path, port: u16) -> Agent {
     actions.actions.insert("obs-scene".into(), obs(ObsOp::Scene, Some("Talk")));
     actions.actions.insert("obs-missing".into(), obs(ObsOp::Scene, Some("Missing")));
     save_json_atomic(&dir.join("actions.json"), &actions).unwrap();
-    Agent::start(AgentOptions { config_dir: Some(dir.to_path_buf()), client_dist: None, port_override: Some(0), runner: Arc::new(DryRunner), fixed_pair_code: None }).await.unwrap()
+    Agent::start(AgentOptions { bind_override: Some("127.0.0.1".to_string()), config_dir: Some(dir.to_path_buf()), client_dist: None, port_override: Some(0), runner: Arc::new(DryRunner), fixed_pair_code: None }).await.unwrap()
 }
 
 async fn until(secs: u64, mut done: impl FnMut() -> bool) -> bool {

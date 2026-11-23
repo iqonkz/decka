@@ -31,6 +31,9 @@ pub struct AgentOptions {
     pub runner: Arc<dyn ActionRunner>,
     /// Headless/tests only: a pairing code that stays valid and is never consumed.
     pub fixed_pair_code: Option<String>,
+    /// Tests only: listen on this address instead of the `bind` of the configuration (the tests use `127.0.0.1`, so that
+    /// Windows does not ask the owner to allow every test program through the firewall).
+    pub bind_override: Option<String>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -404,7 +407,10 @@ pub struct Agent {
 impl Agent {
     pub async fn start(opts: AgentOptions) -> Result<Agent, StartError> {
         let config_dir = crate::paths::config_dir(opts.config_dir.clone());
-        let Loaded { config, actions, layout, devices, issues } = config::load_or_init(&config_dir);
+        let Loaded { mut config, actions, layout, devices, issues } = config::load_or_init(&config_dir);
+        if let Some(b) = &opts.bind_override {
+            config.bind = b.clone();
+        }
         if config.bind.parse::<IpAddr>().is_err() {
             return Err(StartError::BadBind(config.bind));
         }

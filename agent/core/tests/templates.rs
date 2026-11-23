@@ -13,7 +13,7 @@ async fn start(dir: &std::path::Path, edit: impl FnOnce(&mut LayoutFile, &mut Ac
     edit(&mut layout, &mut actions);
     save_json_atomic(&dir.join("layout.json"), &layout).unwrap();
     save_json_atomic(&dir.join("actions.json"), &actions).unwrap();
-    Agent::start(AgentOptions {
+    Agent::start(AgentOptions { bind_override: Some("127.0.0.1".to_string()),
         config_dir: Some(dir.to_path_buf()),
         client_dist: None,
         port_override: Some(0),

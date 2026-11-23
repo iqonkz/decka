@@ -35,7 +35,7 @@ async fn start_with(dir: &std::path::Path, edit: impl FnOnce(&mut decka_core::mo
     config.collectors.sys.interval_sec = 1;
     edit(&mut config);
     save_json_atomic(&dir.join("config.json"), &config).unwrap();
-    Agent::start(AgentOptions {
+    Agent::start(AgentOptions { bind_override: Some("127.0.0.1".to_string()),
         config_dir: Some(dir.to_path_buf()),
         client_dist: None,
         port_override: Some(0),

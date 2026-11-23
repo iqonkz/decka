@@ -33,7 +33,7 @@ async fn env(allow_public: Option<bool>, category: Category) -> Env {
     config.collectors.media = Some(decka_core::model::SwitchConfig { enabled: false });
     config.network = allow_public.map(|allow_public| decka_core::model::NetworkConfig { allow_public });
     decka_core::config::save_json_atomic(&dir.path().join("config.json"), &config).unwrap();
-    let agent = Agent::start(AgentOptions {
+    let agent = Agent::start(AgentOptions { bind_override: Some("127.0.0.1".to_string()),
         config_dir: Some(dir.path().to_path_buf()),
         client_dist: None,
         port_override: Some(0),

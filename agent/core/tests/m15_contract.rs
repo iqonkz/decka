@@ -220,7 +220,7 @@ async fn start(dir: &std::path::Path, mut config: ConfigFile) -> Agent {
         *switch = Some(SwitchConfig { enabled: false });
     }
     save_json_atomic(&dir.join("config.json"), &config).unwrap();
-    Agent::start(AgentOptions { config_dir: Some(dir.to_path_buf()), client_dist: None, port_override: Some(0), runner: Arc::new(DryRunner), fixed_pair_code: None })
+    Agent::start(AgentOptions { bind_override: Some("127.0.0.1".to_string()), config_dir: Some(dir.to_path_buf()), client_dist: None, port_override: Some(0), runner: Arc::new(DryRunner), fixed_pair_code: None })
         .await
         .unwrap()
 }

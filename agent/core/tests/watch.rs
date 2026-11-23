@@ -6,7 +6,7 @@ use decka_core::{Agent, AgentOptions, SaveResult};
 use serde_json::Value;
 
 async fn start(dir: &std::path::Path) -> Agent {
-    Agent::start(AgentOptions {
+    Agent::start(AgentOptions { bind_override: Some("127.0.0.1".to_string()),
         config_dir: Some(dir.to_path_buf()),
         client_dist: None,
         port_override: Some(0),

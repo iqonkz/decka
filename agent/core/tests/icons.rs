@@ -14,7 +14,7 @@ async fn start(dir: &std::path::Path) -> Agent {
     save_json_atomic(&dir.join("config.json"), &config).unwrap();
     save_json_atomic(&dir.join("layout.json"), &default_layout()).unwrap();
     save_json_atomic(&dir.join("actions.json"), &default_actions()).unwrap();
-    Agent::start(AgentOptions { config_dir: Some(dir.to_path_buf()), client_dist: None, port_override: Some(0), runner: Arc::new(DryRunner), fixed_pair_code: None })
+    Agent::start(AgentOptions { bind_override: Some("127.0.0.1".to_string()), config_dir: Some(dir.to_path_buf()), client_dist: None, port_override: Some(0), runner: Arc::new(DryRunner), fixed_pair_code: None })
         .await
         .unwrap()
 }
@@ -89,7 +89,7 @@ async fn the_section_is_filled_at_start() {
     button.icon = Some(icon);
     save_json_atomic(&dir.path().join("layout.json"), &layout).unwrap();
     save_json_atomic(&dir.path().join("actions.json"), &default_actions()).unwrap();
-    let agent = Agent::start(AgentOptions { config_dir: Some(dir.path().to_path_buf()), client_dist: None, port_override: Some(0), runner: Arc::new(DryRunner), fixed_pair_code: None })
+    let agent = Agent::start(AgentOptions { bind_override: Some("127.0.0.1".to_string()), config_dir: Some(dir.path().to_path_buf()), client_dist: None, port_override: Some(0), runner: Arc::new(DryRunner), fixed_pair_code: None })
         .await
         .unwrap();
     assert!(agent.store().get("icons").get(&hash).is_some());

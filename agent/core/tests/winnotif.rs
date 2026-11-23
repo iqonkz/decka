@@ -17,7 +17,7 @@ async fn start(dir: &std::path::Path, runner: Arc<RecordingRunner>, exclude: &[&
     // The switch stays off: the reader thread is not started, the test hands toasts over itself.
     config.windows_notifications = Some(WindowsNotificationsConfig { enabled: false, exclude: exclude.iter().map(|s| s.to_string()).collect(), privacy });
     save_json_atomic(&dir.join("config.json"), &config).unwrap();
-    Agent::start(AgentOptions { config_dir: Some(dir.to_path_buf()), client_dist: None, port_override: Some(0), runner, fixed_pair_code: None }).await.unwrap()
+    Agent::start(AgentOptions { bind_override: Some("127.0.0.1".to_string()), config_dir: Some(dir.to_path_buf()), client_dist: None, port_override: Some(0), runner, fixed_pair_code: None }).await.unwrap()
 }
 
 fn toast(id: u32, app: &str, aumid: &str) -> WinToast {

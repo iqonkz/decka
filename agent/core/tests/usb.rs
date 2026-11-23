@@ -25,7 +25,7 @@ async fn start(dir: &std::path::Path, adb: &str) -> Agent {
     config.usb.enabled = true;
     config.usb.adb_path = adb.to_string();
     save_json_atomic(&dir.join("config.json"), &config).unwrap();
-    Agent::start(AgentOptions {
+    Agent::start(AgentOptions { bind_override: Some("127.0.0.1".to_string()),
         config_dir: Some(dir.to_path_buf()),
         client_dist: None,
         port_override: Some(0),

@@ -31,7 +31,7 @@ async fn env(runner: Arc<RecordingRunner>) -> Env {
     config.collectors.audio = Some(SwitchConfig { enabled: false });
     config.collectors.media = Some(SwitchConfig { enabled: false });
     save_json_atomic(&dir.path().join("config.json"), &config).unwrap();
-    let agent = Agent::start(AgentOptions {
+    let agent = Agent::start(AgentOptions { bind_override: Some("127.0.0.1".to_string()),
         config_dir: Some(dir.path().to_path_buf()),
         client_dist: None,
         port_override: Some(0),

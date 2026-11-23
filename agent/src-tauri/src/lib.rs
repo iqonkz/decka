@@ -118,6 +118,7 @@ pub fn run() {
             // The bundled web client; without it the server still runs and `/` answers "client not bundled".
             let client_dist = app.path().resolve("client", BaseDirectory::Resource).ok().filter(|p| p.exists());
             let opts = AgentOptions {
+        bind_override: None,
                 config_dir: None,
                 client_dist,
                 port_override: None,

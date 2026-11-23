@@ -24,6 +24,7 @@ fn log_level() -> tracing::Level {
 async fn main() {
     let mut args = std::env::args().skip(1);
     let mut opts = AgentOptions {
+        bind_override: None,
         config_dir: None,
         client_dist: None,
         port_override: None,

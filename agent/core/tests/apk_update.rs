@@ -137,7 +137,7 @@ fn one_download_per_device_at_a_time() {
 #[tokio::test]
 async fn the_agent_offers_only_a_verified_apk_and_serves_it_in_pieces() {
     let dir = tempfile::tempdir().unwrap();
-    let agent = Agent::start(AgentOptions { config_dir: Some(dir.path().to_path_buf()), client_dist: None, port_override: Some(0), runner: Arc::new(DryRunner), fixed_pair_code: None }).await.unwrap();
+    let agent = Agent::start(AgentOptions { bind_override: Some("127.0.0.1".to_string()), config_dir: Some(dir.path().to_path_buf()), client_dist: None, port_override: Some(0), runner: Arc::new(DryRunner), fixed_pair_code: None }).await.unwrap();
     assert!(matches!(agent.apk_chunk("dev", "c1", 0), Err(ApkGetError::NoUpdate)));
     assert_eq!(agent.store().get("update"), serde_json::Value::Null);
 

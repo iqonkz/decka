@@ -1,4 +1,4 @@
-﻿//! The app strip (DATA_MODEL.md 10.5): `tpl-*` keys run only while the strip of their template is the one shown.
+//! The app strip (DATA_MODEL.md 10.5): `tpl-*` keys run only while the strip of their template is the one shown.
 
 use std::sync::Arc;
 
@@ -14,7 +14,7 @@ async fn start(dir: &std::path::Path, runner: Arc<RecordingRunner>) -> Agent {
         *switch = Some(SwitchConfig { enabled: false });
     }
     save_json_atomic(&dir.join("config.json"), &config).unwrap();
-    Agent::start(AgentOptions { config_dir: Some(dir.to_path_buf()), client_dist: None, port_override: Some(0), runner, fixed_pair_code: None }).await.unwrap()
+    Agent::start(AgentOptions { bind_override: Some("127.0.0.1".to_string()), config_dir: Some(dir.to_path_buf()), client_dist: None, port_override: Some(0), runner, fixed_pair_code: None }).await.unwrap()
 }
 
 #[tokio::test]

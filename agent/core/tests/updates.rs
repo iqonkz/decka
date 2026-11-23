@@ -1,4 +1,4 @@
-﻿//! The update check against a local stand-in for GitHub (no network): a newer release is offered, a failed check keeps
+//! The update check against a local stand-in for GitHub (no network): a newer release is offered, a failed check keeps
 //! what was known, and the answer reaches subscribers. ARCHITECTURE.md 8a.
 
 use std::sync::Arc;
@@ -35,7 +35,7 @@ async fn fake_github(status: u16, body: &'static str) -> (String, Arc<std::sync:
 }
 
 async fn start(dir: &std::path::Path) -> Agent {
-    Agent::start(AgentOptions { config_dir: Some(dir.to_path_buf()), client_dist: None, port_override: Some(0), runner: Arc::new(DryRunner), fixed_pair_code: None }).await.unwrap()
+    Agent::start(AgentOptions { bind_override: Some("127.0.0.1".to_string()), config_dir: Some(dir.to_path_buf()), client_dist: None, port_override: Some(0), runner: Arc::new(DryRunner), fixed_pair_code: None }).await.unwrap()
 }
 
 #[tokio::test]

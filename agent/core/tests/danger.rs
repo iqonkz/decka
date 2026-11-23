@@ -22,7 +22,7 @@ async fn start(dir: &std::path::Path, runner: Arc<RecordingRunner>) -> Agent {
         "lock": { "type": "system", "name": "Lock", "op": "lock" },
     } });
     std::fs::write(dir.join("actions.json"), actions.to_string()).unwrap();
-    Agent::start(AgentOptions { config_dir: Some(dir.to_path_buf()), client_dist: None, port_override: Some(0), runner, fixed_pair_code: None }).await.unwrap()
+    Agent::start(AgentOptions { bind_override: Some("127.0.0.1".to_string()), config_dir: Some(dir.to_path_buf()), client_dist: None, port_override: Some(0), runner, fixed_pair_code: None }).await.unwrap()
 }
 
 fn phone(seconds: u64) -> PhoneCtx {

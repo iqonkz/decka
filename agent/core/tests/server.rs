@@ -5,7 +5,7 @@ use decka_core::{Agent, AgentOptions};
 use serde_json::{json, Value};
 
 async fn start(dir: &std::path::Path, port: u16) -> Agent {
-    Agent::start(AgentOptions {
+    Agent::start(AgentOptions { bind_override: Some("127.0.0.1".to_string()),
         config_dir: Some(dir.to_path_buf()),
         client_dist: None,
         port_override: Some(port),
@@ -51,7 +51,7 @@ async fn static_client_is_served_with_spa_fallback() {
     let dir = tempfile::tempdir().unwrap();
     let dist = tempfile::tempdir().unwrap();
     std::fs::write(dist.path().join("index.html"), "<html>decka</html>").unwrap();
-    let agent = Agent::start(AgentOptions {
+    let agent = Agent::start(AgentOptions { bind_override: Some("127.0.0.1".to_string()),
         config_dir: Some(dir.path().to_path_buf()),
         client_dist: Some(dist.path().to_path_buf()),
         port_override: Some(0),

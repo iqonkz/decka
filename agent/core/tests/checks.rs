@@ -46,7 +46,7 @@ async fn agent_with(checks: Vec<HttpCheck>, dir: &std::path::Path) -> Agent {
     config.collectors.sys.enabled = false;
     config.collectors.checks = checks;
     save_json_atomic(&dir.join("config.json"), &config).unwrap();
-    Agent::start(AgentOptions {
+    Agent::start(AgentOptions { bind_override: Some("127.0.0.1".to_string()),
         config_dir: Some(dir.to_path_buf()),
         client_dist: None,
         port_override: Some(0),

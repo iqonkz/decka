@@ -57,7 +57,7 @@ async fn pairing_login_permissions_obs_and_mail_leave_no_secret_in_the_log() {
     config.obs = Some(serde_json::from_value(json!({ "enabled": true, "port": 1999 })).unwrap());
     config.mail = Some(serde_json::from_value(json!({ "accounts": [{ "id": "m1", "name": "Mail", "host": "localhost", "port": 1, "user": "me@example.org" }] })).unwrap());
     decka_core::config::save_json_atomic(&dir.path().join("config.json"), &config).unwrap();
-    let agent = Agent::start(AgentOptions {
+    let agent = Agent::start(AgentOptions { bind_override: Some("127.0.0.1".to_string()),
         config_dir: Some(dir.path().to_path_buf()),
         client_dist: None,
         port_override: Some(0),
