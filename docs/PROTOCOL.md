@@ -60,6 +60,8 @@ export interface PingMsg  { t: "ping"; ts: number; }
 export interface PermAnswerMsg { t: "perm_answer"; reqId: string; decision: "allow" | "deny" | "pc"; } // reqId ^[0-9a-f]{16}$
 // M17: открыть программу уведомления Windows (DATA_MODEL.md §10.4). Только id, выданный агентом.
 export interface NotifOpenMsg { t: "notif_open"; notifId: string; }
+// M22 (DATA_MODEL.md §13.4): отметить пункт списка на телефоне. Не команда: оба id выданы агентом, неизвестные — молча игнорируются.
+export interface ListToggleMsg { t: "list_toggle"; listId: string; itemId: string; } // id ^[0-9a-f]{16}$
 // M21 (DATA_MODEL.md §12): голос с телефона. Только внутри канала v2. Звук — данные; что делать, решает ПК (S24).
 export interface VoiceStartMsg  { t: "voice_start"; id: string; }                        // id — 16 hex от клиента, одна активная запись на устройство
 export interface VoiceChunkMsg  { t: "voice_chunk"; id: string; seq: number; data: string; } // base64 PCM16 16 кГц моно, ≤ 3200 байт (100 мс)
