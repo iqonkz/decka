@@ -4,6 +4,8 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+## 0.21.0 — 2026-11-23
+
 ### Added
 - **Smart dictation (T22.10)**: press Ctrl twice quickly (left or right; `Ctrl+C`, `Ctrl+V` and other chords do not count) and speak; the text goes through the local model (`clean`: punctuation and capitals, fillers removed, self-corrections applied, spoken lists as lines, nothing added; a guard falls back to the raw text when the answer is much longer or shorter, brings new words or takes more than 3 s). A personal dictionary (up to 500 words) is handed to speech recognition and to the model. Up to 300 characters are typed, longer text is pasted through the clipboard and your clipboard text comes back after a second. One tap of Ctrl or a pause of 2 s ends it, `Esc` cancels. Settings (trigger, mode, dictionary) are read from `dictation.json`; the controls in the window follow later.
 - **Selected text (T22.11)**: `polite`, `shorter`, `fix`, `translate` (11 languages), `formal`, `casual` replace the selection (Ctrl+Z undoes it); `summarize` and `explain` show the answer on the pill and the phone. Nothing selected: `Select text first`; more than 6000 characters: `The text is too long` (11 languages).
