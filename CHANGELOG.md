@@ -4,6 +4,11 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+### Fixed
+- **Phone: a way out of "no link" (T21.15)**: the phone retries by itself (at once, then after 1, 2, 5 and 10 s, then every 10 s, and at once when the app comes back or the network returns). After 8 s without a link a card appears over the dimmed layout: `Can't reach {pc}` with the reason (the PC does not answer / the PC does not know this phone any more) and the buttons `Try again`, `Connect again`, `Use another PC`, plus a folded `Why?`. A rejected key stops the background attempts and keeps the saved PC until a new connection has succeeded. `More → Connect again` is always there; scanning the QR of the same PC again updates its record instead of adding a second one (11 languages).
+- **Agent: "not listening, os error 10048" (T21.16)**: a busy port is retried for 15 s (0.5, 1, 2 s), so the old copy still closing after an update no longer leaves the agent deaf. If another program keeps the port, the Phone tab names it (`Port 9247 is used by {app}…`) and `Try again` binds again without restarting the agent.
+- **Phone voice button (T21.17)**: the app now asks for the microphone (`RECORD_AUDIO` was missing, so every tap was cancelled after 0.1 s); a refusal says `Allow the microphone for Decka in Android settings`. Releasing the button before the microphone has opened ends the request instead of cancelling it. A long press no longer opens the system context menu.
+
 ## 0.20.4 — 2026-11-22
 
 ### Changed
