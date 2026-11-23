@@ -28,6 +28,8 @@ fn context(lang: &str) -> Context {
         apps: ["Calculator", "Spotify", "Discord", "Google Chrome", "Notepad", "Steam", "Telegram"].iter().map(|n| app(n)).collect(),
         pages: ["Main", "Streaming", "Media"].iter().map(|n| PageRef { id: n.to_lowercase(), name: (*n).into() }).collect(),
         confirm_actions: vec![],
+        vision_ready: false,
+        memory: vec![],
     }
 }
 

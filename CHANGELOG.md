@@ -4,6 +4,14 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+### Added
+- **Smart dictation (T22.10)**: press Ctrl twice quickly (left or right; `Ctrl+C`, `Ctrl+V` and other chords do not count) and speak; the text goes through the local model (`clean`: punctuation and capitals, fillers removed, self-corrections applied, spoken lists as lines, nothing added; a guard falls back to the raw text when the answer is much longer or shorter, brings new words or takes more than 3 s). A personal dictionary (up to 500 words) is handed to speech recognition and to the model. Up to 300 characters are typed, longer text is pasted through the clipboard and your clipboard text comes back after a second. One tap of Ctrl or a pause of 2 s ends it, `Esc` cancels. Settings (trigger, mode, dictionary) are read from `dictation.json`; the controls in the window follow later.
+- **Selected text (T22.11)**: `polite`, `shorter`, `fix`, `translate` (11 languages), `formal`, `casual` replace the selection (Ctrl+Z undoes it); `summarize` and `explain` show the answer on the pill and the phone. Nothing selected: `Select text first`; more than 6000 characters: `The text is too long` (11 languages).
+- **Help with the screen (T22.12)**: `what does this error mean` looks at the active window only (in memory, scaled to 1280 px, never saved or logged). The optional `Screen help` package (the projector of Qwen3.5, Apache-2.0, about 0.67 GB) is downloaded after you agree; the model server restarts with it.
+- **Reminders and lists (T22.13)**: `remind me in 10 minutes ...`, `... tomorrow at nine ...`, `... on Friday at 8:15 ...`; `what are my reminders`; `add milk to the shopping list`, `what is on the list`, `remove milk`, `delete the list` (asks first). A reminder arrives as a Windows and phone notification; what was missed while the PC was off comes once as `Missed: ...`. The phone message `list_toggle` is accepted (only ids the agent issued); the widgets follow later.
+- **Brief of the day (T22.14)**: `good morning` / `what do I have today` tells 3-5 sentences from the weather, unread mail, today's reminders, open lists and the limits of Claude and Codex; a number or name that is not in that data is refused and the plain facts are shown.
+- **Memory (T22.15)**: `remember that Aigerim is my wife` (only after such a phrase), `forget Aigerim` (asks first); up to 20 fitting facts go to the model with each request. Nothing is learned by itself and no phrase is recorded.
+
 ## 0.20.6 — 2026-11-23
 
 ### Fixed
