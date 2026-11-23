@@ -14,7 +14,7 @@ use crate::model::{MediaOp, SystemOp};
 pub const TOOLS: &[&str] = &[
     "press_button", "run_action", "open_app", "switch_app", "close_app", "window_other_monitor", "which_monitor", "volume", "media", "go_page",
     "web_search", "open_site", "type_text", "dictate", "timer", "system", "text_transform", "screen_ask",
-    "remind", "reminders_show", "list_add", "list_show", "list_remove",
+    "day_brief", "remind", "reminders_show", "list_add", "list_show", "list_remove",
 ];
 
 pub const MAX_TEXT: usize = 2000;
@@ -102,6 +102,8 @@ pub enum ToolCall {
     /// A reminder (DATA_MODEL.md 13.4); the moment is worked out by the agent from `when`, never by the model.
     Remind { text: String, when: crate::assistant::When },
     RemindersShow,
+    /// The brief of the day (DATA_MODEL.md 13.5).
+    DayBrief,
     ListAdd { list: String, item: String },
     ListShow { list: String },
     /// `item: None` deletes the whole list (after a confirmation).
@@ -410,6 +412,10 @@ fn run(tool: &str, args: &serde_json::Map<String, Value>, ctx: &Context) -> Resu
             };
             ready(ToolCall::Remind { text: what, when }, false, "Set a reminder")
         }
+        "day_brief" => {
+            only(args, &[])?;
+            ready(ToolCall::DayBrief, false, "Brief of the day")
+        }
         "reminders_show" => {
             only(args, &[])?;
             ready(ToolCall::RemindersShow, false, "Show reminders")
@@ -669,6 +675,12 @@ mod tests {
         ] {
             assert!(is_reject(r(bad.clone())), "{bad}");
         }
+    }
+
+    #[test]
+    fn the_day_brief_takes_nothing() {
+        assert_eq!(ready_of(call("day_brief", json!({}))).call, ToolCall::DayBrief);
+        assert!(is_reject(call("day_brief", json!({ "city": "Almaty" }))));
     }
 
     #[test]

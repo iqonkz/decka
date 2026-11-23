@@ -161,6 +161,19 @@ fn paste_system(_: &str) -> Result<String, String> {
     Err("unsupported platform".into())
 }
 
+/// `day_brief` (13.5): the facts the agent already has, put into words by the model; the plain facts when the model fails the check.
+async fn day_brief(agent: &Agent, sup: &crate::ai::supervisor::Supervisor, lang: &str) -> Result<String, String> {
+    use super::brief;
+    let store = agent.store();
+    let (assistant, now) = (agent.assistant(), crate::assistant::Local::now());
+    let lists = assistant.lists();
+    let facts = brief::facts(&store.get("weather"), &store.get("mail"), &store.get("ai"), &assistant.upcoming(50), &lists, &now);
+    let Some(facts) = facts else { return Ok(brief::NOTHING.into()) };
+    let body = brief::request_body(&facts, lang);
+    let answer = super::assist::chat_text(sup, &body, brief::BRIEF_TIMEOUT).await;
+    Ok(answer.and_then(|a| brief::check_brief(&facts, &a)).unwrap_or_else(|| brief::facts_text(&facts, &lists)))
+}
+
 /// `screen_ask` (13.3): the Screen help package (downloaded once, with the consent given in the confirmation), a picture of the
 /// active window in memory, one question to the model on this PC.
 async fn screen_ask(service: &VoiceService, sup: &crate::ai::supervisor::Supervisor, lang: &str, question: &str) -> Result<String, String> {
@@ -686,6 +699,9 @@ impl Ports for Inner {
                     return tokio::task::spawn_blocking(move || winops::type_text(&text).map(|_| String::new()))
                         .await
                         .map_err(|e| format!("The action did not finish: {e}"))?;
+                }
+                ToolCall::DayBrief => {
+                    return day_brief(&agent, &sup, lang).await;
                 }
                 ToolCall::Remind { text, when } => {
                     let now = crate::assistant::Local::now();
