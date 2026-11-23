@@ -903,6 +903,7 @@ export const en = {
   "voice.stop_hint": "Click to finish",
   "voice.confirm.lock": "Lock the computer",
   "voice.confirm.sleep": "Put the computer to sleep",
+  "voice.confirm.screen_pack": "Download the Screen help package (about 0.7 GB)?",
   "voice.confirm.run": "Run {name}",
   "voice.hotkey": "Hotkey",
   "voice.mic": "Microphone",

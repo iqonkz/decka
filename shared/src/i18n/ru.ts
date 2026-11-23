@@ -925,6 +925,7 @@ export const ru: Record<Base | ExtraPlural, string> = {
   "voice.stop_hint": "Нажмите, чтобы закончить",
   "voice.confirm.lock": "Заблокировать компьютер",
   "voice.confirm.sleep": "Перевести компьютер в спящий режим",
+  "voice.confirm.screen_pack": "Скачать пакет «Помощь по экрану» (около 0,7 ГБ)?",
   "voice.confirm.run": "Выполнить: {name}",
   "voice.hotkey": "Горячая клавиша",
   "voice.mic": "Микрофон",

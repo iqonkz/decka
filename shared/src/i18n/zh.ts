@@ -894,6 +894,7 @@ export const zh: Dictionary = {
   "voice.stop_hint": "点击结束",
   "voice.confirm.lock": "锁定电脑",
   "voice.confirm.sleep": "让电脑进入睡眠",
+  "voice.confirm.screen_pack": "下载“屏幕帮助”组件（约 0.7 GB）？",
   "voice.confirm.run": "运行 {name}",
   "voice.hotkey": "热键",
   "voice.mic": "麦克风",

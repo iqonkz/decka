@@ -161,6 +161,20 @@ fn paste_system(_: &str) -> Result<String, String> {
     Err("unsupported platform".into())
 }
 
+/// `screen_ask` (13.3): the Screen help package (downloaded once, with the consent given in the confirmation), a picture of the
+/// active window in memory, one question to the model on this PC.
+async fn screen_ask(service: &VoiceService, sup: &crate::ai::supervisor::Supervisor, lang: &str, question: &str) -> Result<String, String> {
+    if !service.vision_installed() {
+        service.install_vision().await?;
+    }
+    // The picture is taken after the download and the restart of the server, so that it is the window the user is looking at now.
+    let data_url = tokio::task::spawn_blocking(super::screen::capture_data_url).await.map_err(|e| format!("The action did not finish: {e}"))??;
+    let body = super::screen::request_body(question, lang, &data_url);
+    drop(data_url);
+    let answer = super::assist::chat_text(sup, &body, super::screen::ASK_TIMEOUT).await;
+    answer.as_deref().and_then(super::screen::accept_answer).ok_or_else(|| super::textops::NO_ANSWER.to_string())
+}
+
 /// `text_transform` (13.2): the selection of the focused program is taken, rewritten by the model and pasted back (or shown).
 #[cfg(windows)]
 async fn transform_selection(sup: &crate::ai::supervisor::Supervisor, lang: &str, op: super::textops::Op, target: Option<&str>) -> Result<String, String> {
@@ -205,6 +219,7 @@ pub fn build_context(lang: &str, actions: &ActionsFile, layout: &LayoutFile, ins
         }
     }
     Context {
+        vision_ready: false,
         lang: lang.to_string(),
         actions: actions.actions.iter().map(|(id, a)| ActionRef { id: id.clone(), name: a.name().to_string() }).collect(),
         buttons,
@@ -578,7 +593,8 @@ impl Inner {
 impl Ports for Inner {
     fn env(&self) -> (Arc<Table>, Context) {
         let lang = self.language();
-        let ctx = build_context(lang, &self.agent.actions(), &self.agent.layout(), &self.installed.lock().unwrap());
+        let mut ctx = build_context(lang, &self.agent.actions(), &self.agent.layout(), &self.installed.lock().unwrap());
+        ctx.vision_ready = self.service.vision_installed();
         (self.table(lang), ctx)
     }
 
@@ -622,7 +638,7 @@ impl Ports for Inner {
         let agent = self.agent.clone();
         let (dictate, timers, goto_seq) = (self.dictate_until.clone(), self.timers.clone(), self.goto_seq.clone());
         let handle = self.handle.clone();
-        let (sup, lang) = (self.service.supervisor().clone(), self.language());
+        let (sup, lang, service) = (self.service.supervisor().clone(), self.language(), self.service.clone());
         Box::pin(async move {
             if let ToolCall::RunAction { action_id } = &call {
                 return agent.execute(action_id).await.map(|_| String::new()).map_err(|(_, m)| m);
@@ -655,6 +671,9 @@ impl Ports for Inner {
                     return tokio::task::spawn_blocking(move || winops::type_text(&text).map(|_| String::new()))
                         .await
                         .map_err(|e| format!("The action did not finish: {e}"))?;
+                }
+                ToolCall::ScreenAsk { question } => {
+                    return screen_ask(&service, &sup, lang, question).await;
                 }
                 ToolCall::TextTransform { op, lang: target } => {
                     return transform_selection(&sup, lang, *op, target.as_deref()).await;

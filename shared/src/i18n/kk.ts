@@ -901,6 +901,7 @@ export const kk: Dictionary = {
   "voice.stop_hint": "Аяқтау үшін басыңыз",
   "voice.confirm.lock": "Компьютерді құлыптау",
   "voice.confirm.sleep": "Компьютерді ұйқы режиміне жіберу",
+  "voice.confirm.screen_pack": "«Экран бойынша көмек» пакетін жүктеу (шамамен 0,7 ГБ)?",
   "voice.confirm.run": "{name} орындау",
   "voice.hotkey": "Жылдам перне",
   "voice.mic": "Микрофон",

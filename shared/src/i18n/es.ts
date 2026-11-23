@@ -894,6 +894,7 @@ export const es: Dictionary = {
   "voice.stop_hint": "Haz clic para terminar",
   "voice.confirm.lock": "Bloquear el ordenador",
   "voice.confirm.sleep": "Suspender el ordenador",
+  "voice.confirm.screen_pack": "¿Descargar el paquete «Ayuda con la pantalla» (unos 0,7 GB)?",
   "voice.confirm.run": "Ejecutar {name}",
   "voice.hotkey": "Tecla de acceso rápido",
   "voice.mic": "Micrófono",

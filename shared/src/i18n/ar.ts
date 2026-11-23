@@ -934,6 +934,7 @@ export const ar: Dictionary = {
   "voice.stop_hint": "انقر للإنهاء",
   "voice.confirm.lock": "قفل الكمبيوتر",
   "voice.confirm.sleep": "وضع الكمبيوتر في وضع السكون",
+  "voice.confirm.screen_pack": "هل تريد تنزيل حزمة «مساعدة الشاشة» (نحو 0.7 جيجابايت)؟",
   "voice.confirm.run": "تشغيل {name}",
   "voice.hotkey": "مفتاح اختصار",
   "voice.mic": "الميكروفون",

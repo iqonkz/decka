@@ -15,6 +15,7 @@ pub mod llm;
 pub mod matcher;
 pub mod mic;
 pub mod pipeline;
+pub mod screen;
 pub mod textops;
 pub mod tools;
 pub mod winkeys;

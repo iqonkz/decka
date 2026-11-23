@@ -42,6 +42,22 @@
       "license": "Apache-2.0"
     },
     {
+      "id": "mmproj-standard",
+      "kind": "vision",
+      "url": "https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/main/mmproj-F16.gguf",
+      "sha256": "cd88edcf8d031894960bb0c9c5b9b7e1fea6ebee02b9f7ce925a00d12891f864",
+      "size": 672423616,
+      "license": "Apache-2.0"
+    },
+    {
+      "id": "mmproj-light",
+      "kind": "vision",
+      "url": "https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/mmproj-F16.gguf",
+      "sha256": "7035e9cb8d7c6a9681d07eef9a364783e86ea4cd73faab2eabb4f43a101830c7",
+      "size": 668227264,
+      "license": "Apache-2.0"
+    },
+    {
       "id": "stt",
       "kind": "stt",
       "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q5_0.bin",

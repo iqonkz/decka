@@ -138,7 +138,10 @@ fn is_archive(e: &ManifestEntry) -> bool {
 
 /// Where a finished entry lives: a runtime folder or a model file.
 fn target_of(root: &Path, e: &ManifestEntry) -> PathBuf {
-    if is_archive(e) {
+    if e.kind == "vision" {
+        // Both projectors are called `mmproj-F16.gguf` upstream: the id keeps them apart.
+        root.join("models").join(format!("{}-{}", e.id, url_file_name(&e.url)))
+    } else if is_archive(e) {
         root.join("runtime").join(format!("{}-{}", e.id, &e.sha256[..8.min(e.sha256.len())].to_ascii_lowercase()))
     } else {
         root.join("models").join(url_file_name(&e.url))
@@ -296,11 +299,40 @@ impl VoiceService {
         Some(SupervisorConfig {
             llama_exe,
             llama_model: target_of(root, files[2]),
+            mmproj: self.vision_entry().filter(|e| is_present(root, e)).map(|e| target_of(root, e)),
             whisper_exe,
             whisper_model: target_of(root, files[3]),
             keep_loaded,
             whisper_gpu: files[1].id == "whisper-runtime-cuda",
         })
+    }
+
+    /// The projector of the optional Screen help package for the chosen model (DATA_MODEL.md 13.3).
+    pub fn vision_entry(&self) -> Option<&ManifestEntry> {
+        let id = match self.model() {
+            ModelChoice::Standard => "mmproj-standard",
+            ModelChoice::Light => "mmproj-light",
+        };
+        self.inner.manifest.iter().find(|e| e.id == id)
+    }
+
+    /// Whether the Screen help package is on the disk.
+    pub fn vision_installed(&self) -> bool {
+        self.vision_entry().is_some_and(|e| is_present(&self.inner.root, e))
+    }
+
+    /// Downloads the Screen help package (after the user agreed to it) and restarts the model server with it.
+    pub async fn install_vision(&self) -> Result<(), String> {
+        let entry = self.vision_entry().cloned().ok_or("The Screen help package is not available")?;
+        if !is_present(&self.inner.root, &entry) {
+            let dest = target_of(&self.inner.root, &entry);
+            let cancel = AtomicBool::new(false);
+            self.inner.downloader.fetch(&entry, &dest, &cancel, &mut |_| {}).await.map_err(|e| e.to_string())?;
+        }
+        // The server loads the projector at its start: the running one is stopped, the next request starts it again.
+        self.configure_supervisor();
+        self.inner.supervisor.stop().await;
+        Ok(())
     }
 
     pub fn status(&self) -> VoiceStatus {
@@ -617,6 +649,24 @@ mod tests {
         assert!(nvidia(8.0).whisper_gpu() && nvidia(2.0).whisper_gpu() && !nvidia(1.0).whisper_gpu());
         assert!(!hw(Some(8.0), 16.0).whisper_gpu(), "only NVIDIA has a ready GPU build");
         assert!(!hw(None, 16.0).whisper_gpu());
+    }
+
+    #[test]
+    fn the_real_manifest_has_the_two_optional_projectors_under_apache_and_the_base_plan_does_not_take_them() {
+        let m = crate::ai::download::parse_manifest(include_str!("../../../../shared/ai/manifest.json")).unwrap();
+        let root = Path::new("root");
+        let targets: Vec<PathBuf> = ["mmproj-standard", "mmproj-light"]
+            .iter()
+            .map(|id| {
+                let e = m.iter().find(|e| e.id == *id).expect("projector in the manifest");
+                assert!((e.kind.as_str(), e.license.as_str(), e.sha256.len()) == ("vision", "Apache-2.0", 64), "{id}");
+                target_of(root, e)
+            })
+            .collect();
+        assert_ne!(targets[0], targets[1], "same upstream file name, different files");
+        for choice in [ModelChoice::Standard, ModelChoice::Light] {
+            assert!(plan(&m, choice, false).iter().all(|e| e.kind != "vision"), "the Screen help package is never part of the base install");
+        }
     }
 
     #[test]

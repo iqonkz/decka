@@ -41,9 +41,14 @@ pub fn idle_expired(last_used_ms: u64, now_ms: u64, keep_loaded: bool, running: 
     running && !keep_loaded && now_ms.saturating_sub(last_used_ms) >= IDLE_MS
 }
 
-pub fn llama_args(model: &Path, port: u16, key: &str) -> Vec<String> {
+pub fn llama_args(model: &Path, mmproj: Option<&Path>, port: u16, key: &str) -> Vec<String> {
     let mut a: Vec<String> = ["-m"].iter().map(|s| s.to_string()).collect();
     a.push(model.display().to_string());
+    // The optional Screen help package (DATA_MODEL.md 13.3): the projector that lets the model read an image.
+    if let Some(p) = mmproj {
+        a.push("--mmproj".into());
+        a.push(p.display().to_string());
+    }
     for s in ["-c", "4096", "-ngl", "99", "--jinja", "--no-webui", "--host", "127.0.0.1", "--port"] {
         a.push(s.to_string());
     }
@@ -173,6 +178,8 @@ pub enum SupState {
 pub struct SupervisorConfig {
     pub llama_exe: PathBuf,
     pub llama_model: PathBuf,
+    /// The projector of the Screen help package, when it is installed.
+    pub mmproj: Option<PathBuf>,
     pub whisper_exe: PathBuf,
     pub whisper_model: PathBuf,
     pub keep_loaded: bool,
@@ -286,7 +293,7 @@ impl Supervisor {
         let llama = Spec {
             name: "llama-server",
             exe: cfg.llama_exe.clone(),
-            args: llama_args(&cfg.llama_model, endpoints.llama_port, &endpoints.llama_key),
+            args: llama_args(&cfg.llama_model, cfg.mmproj.as_deref(), endpoints.llama_port, &endpoints.llama_key),
             port: endpoints.llama_port,
             health: "/health",
         };
@@ -669,11 +676,13 @@ mod tests {
 
     #[test]
     fn server_arguments_follow_section_12_3() {
-        let a = llama_args(Path::new("m.gguf"), 5555, "k");
+        let a = llama_args(Path::new("m.gguf"), None, 5555, "k");
         assert_eq!(
             a.join(" "),
             "-m m.gguf -c 4096 -ngl 99 --jinja --no-webui --host 127.0.0.1 --port 5555 --api-key k"
         );
+        let with = llama_args(Path::new("m.gguf"), Some(Path::new("p.gguf")), 5555, "k");
+        assert_eq!(with.join(" "), "-m m.gguf --mmproj p.gguf -c 4096 -ngl 99 --jinja --no-webui --host 127.0.0.1 --port 5555 --api-key k");
         assert_eq!(whisper_args(Path::new("w.bin"), 6000, 4).join(" "), "-m w.bin --host 127.0.0.1 --port 6000 -t 4");
         assert_eq!(whisper_args(Path::new("w.bin"), 6000, 1).last().unwrap(), "1", "at least one thread");
     }
@@ -723,6 +732,7 @@ mod tests {
         sup.configure(Some(SupervisorConfig {
             llama_exe: PathBuf::from("Z:\\nope\\llama-server.exe"),
             llama_model: PathBuf::from("m"),
+        mmproj: None,
             whisper_exe: PathBuf::from("Z:\\nope\\whisper-server.exe"),
             whisper_model: PathBuf::from("w"),
             keep_loaded: false,

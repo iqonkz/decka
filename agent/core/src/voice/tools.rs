@@ -13,7 +13,7 @@ use crate::model::{MediaOp, SystemOp};
 /// The whole white list (12.5 without the later stages: write, notes, screen help, files, calendar, chains).
 pub const TOOLS: &[&str] = &[
     "press_button", "run_action", "open_app", "switch_app", "close_app", "window_other_monitor", "which_monitor", "volume", "media", "go_page",
-    "web_search", "open_site", "type_text", "dictate", "timer", "system", "text_transform",
+    "web_search", "open_site", "type_text", "dictate", "timer", "system", "text_transform", "screen_ask",
 ];
 
 pub const MAX_TEXT: usize = 2000;
@@ -64,6 +64,8 @@ pub struct Context {
     pub pages: Vec<PageRef>,
     /// Action ids that need a confirmation (layout buttons with `confirm`).
     pub confirm_actions: Vec<String>,
+    /// The Screen help package (the projector of the model) is on the disk; without it `screen_ask` first asks to download it.
+    pub vision_ready: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -94,6 +96,8 @@ pub enum ToolCall {
     System(SystemOp),
     /// Work on the selected text (DATA_MODEL.md 13.2); `lang` is the target of `translate`.
     TextTransform { op: super::textops::Op, lang: Option<String> },
+    /// A question about the active window (DATA_MODEL.md 13.3).
+    ScreenAsk { question: String },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -374,6 +378,16 @@ fn run(tool: &str, args: &serde_json::Map<String, Value>, ctx: &Context) -> Resu
             }
             ready(ToolCall::TextTransform { op, lang }, false, format!("Text: {}", op.name()))
         }
+        "screen_ask" => {
+            only(args, &["question"])?;
+            let question = text(args, "question", super::screen::MAX_QUESTION)?.to_string();
+            if ctx.vision_ready {
+                ready(ToolCall::ScreenAsk { question }, false, "Look at the screen")
+            } else {
+                // The package is optional and big: the user agrees to the download first (the answer to the question follows it).
+                ready_key(ToolCall::ScreenAsk { question }, true, "Download the Screen help package (about 0.7 GB)?", "voice.confirm.screen_pack", &[])
+            }
+        }
         "system" => {
             only(args, &["op"])?;
             // Only the harmless pair; shutdown, restart and the like are not voice tools.
@@ -417,6 +431,7 @@ mod tests {
             pages: vec![PageRef { id: "main".into(), name: "Main".into() }, PageRef { id: "media".into(), name: "Media".into() }],
             confirm_actions: vec!["shutdown".into()],
             lang: "en".into(),
+            vision_ready: false,
         }
     }
 
@@ -573,6 +588,23 @@ mod tests {
         for op in ["shutdown", "restart", "signout", "hibernate", "display_off", ""] {
             assert!(is_reject(call("system", json!({ "op": op }))), "{op}");
         }
+    }
+
+    #[test]
+    fn screen_ask_asks_for_the_package_first_and_looks_at_the_window_only_when_it_is_there() {
+        let with = |ready: bool, args: Value| {
+            let mut c = ctx();
+            c.vision_ready = ready;
+            validate(&RawCall { tool: "screen_ask".into(), args }, &c)
+        };
+        let v = ready_of(with(false, json!({ "question": "what is this error" })));
+        assert!(v.confirm && v.key == Some("voice.confirm.screen_pack"), "the download needs the consent of the user");
+        let v = ready_of(with(true, json!({ "question": "what is this error" })));
+        assert!(!v.confirm);
+        assert_eq!(v.call, ToolCall::ScreenAsk { question: "what is this error".into() });
+        assert!(is_reject(with(true, json!({ "question": "" }))));
+        assert!(is_reject(with(true, json!({ "question": "x".repeat(301) }))));
+        assert!(is_reject(with(true, json!({ "question": "a", "window": "b" }))), "no field to choose a window");
     }
 
     #[test]
