@@ -887,6 +887,7 @@ export const fr: Dictionary = {
   "voice.reply.no_speech": "Je n'ai rien entendu",
   "voice.reply.wrong": "Une erreur s'est produite, réessayez",
   "voice.reply.mic_unavailable": "Le microphone est indisponible",
+  "voice.reply.mic_denied": "Autorisez le microphone pour Decka dans les réglages Android",
   "voice.reply.no_sound": "Le microphone ne donne aucun son : choisissez-le dans Plus → Voix",
   "voice.stop_hint": "Cliquez pour terminer",
   "voice.confirm.lock": "Verrouiller l'ordinateur",

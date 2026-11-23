@@ -35,6 +35,7 @@ function setLocal(l: number, r: boolean): void {
 }
 
 export const VOICE_NO_SPEECH_EVENT = "decka:voice:nospeech";
+export const VOICE_MIC_DENIED_EVENT = "decka:voice:micdenied";
 
 const session = new VoiceSession({
   send: sendVoice,
@@ -45,6 +46,7 @@ const session = new VoiceSession({
   onLevel: (l) => setLocal(l, recording),
   onActive: (a) => setLocal(a ? level : 0, a),
   onNoSpeech: () => window.dispatchEvent(new Event(VOICE_NO_SPEECH_EVENT)),
+  onMicDenied: () => window.dispatchEvent(new Event(VOICE_MIC_DENIED_EVENT)),
 });
 
 /** The level of the microphone for the ring of the button (0 when not recording). */

@@ -918,6 +918,7 @@ export const ru: Record<Base | ExtraPlural, string> = {
   "voice.reply.no_speech": "Ничего не услышал",
   "voice.reply.wrong": "Что-то пошло не так, попробуйте ещё раз",
   "voice.reply.mic_unavailable": "Микрофон недоступен",
+  "voice.reply.mic_denied": "Разрешите Decka микрофон в настройках Android",
   "voice.reply.no_sound": "Микрофон не даёт звука — выберите его в «Ещё → Голос»",
   "voice.stop_hint": "Нажмите, чтобы закончить",
   "voice.confirm.lock": "Заблокировать компьютер",

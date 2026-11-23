@@ -29,6 +29,14 @@ export interface VoiceDeps {
   onActive?(active: boolean): void;
   /** Nothing was said for 5 s: the request was cancelled and no sound went to the PC for recognition. */
   onNoSpeech?(): void;
+  /** The microphone was refused by Android or the WebView: the button says how to allow it. */
+  onMicDenied?(): void;
+}
+
+/** The error of getUserMedia when the permission is missing or refused. */
+export function isMicDenied(e: unknown): boolean {
+  const name = (e as { name?: string } | null)?.name ?? "";
+  return name === "NotAllowedError" || name === "SecurityError" || name === "PermissionDeniedError";
 }
 
 interface Current {
@@ -41,6 +49,8 @@ interface Current {
   smoother: LevelSmoother;
   /** The silence rule fired (once). */
   decided: boolean;
+  /** A release or a second tap came while the microphone was still opening: the recording ends as soon as it is open. */
+  stopRequested: boolean;
 }
 
 /** Base64 of the little-endian bytes of the samples (PCM16). */
@@ -75,7 +85,7 @@ export class VoiceSession {
   async start(mode: VoiceMode = "tap"): Promise<void> {
     if (this.cur) return;
     const id = this.d.newId();
-    const cur: Current = { id, seq: 0, capture: null, timer: null, mode, endpointer: new Endpointer(), smoother: new LevelSmoother(), decided: false };
+    const cur: Current = { id, seq: 0, capture: null, timer: null, mode, endpointer: new Endpointer(), smoother: new LevelSmoother(), decided: false, stopRequested: false };
     if (!this.d.send({ t: "voice_start", id })) throw new Error("voice: offline");
     this.cur = cur;
     this.d.onActive?.(true);
@@ -88,6 +98,7 @@ export class VoiceSession {
         this.d.onActive?.(false);
         this.d.send({ t: "voice_cancel", id });
       }
+      if (isMicDenied(e)) this.d.onMicDenied?.();
       throw e;
     }
     if (this.cur !== cur) {
@@ -97,6 +108,7 @@ export class VoiceSession {
     }
     cur.capture = capture;
     cur.timer = this.d.setTimeout(() => this.stop(), MAX_RECORDING_MS);
+    if (cur.stopRequested) this.stop();
   }
 
   /** The end of speech: the rest of the sound goes out, then `voice_end`. */
@@ -104,8 +116,9 @@ export class VoiceSession {
     const cur = this.cur;
     if (!cur) return;
     if (!cur.capture) {
-      // Nothing was recorded yet: a tap shorter than the microphone needs to open.
-      this.cancel();
+      // The microphone is still opening (the permission question, a slow start): the end waits for it. A short tap never gets here;
+      // only a release of the walkie-talkie or a second tap does, and neither one cancels the request (DATA_MODEL.md 12.6).
+      cur.stopRequested = true;
       return;
     }
     this.d.clearTimeout(cur.timer);

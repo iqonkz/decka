@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chunkToBase64, MAX_RECORDING_MS, newVoiceId, VoiceSession, type VoiceDeps, type VoiceMsg } from "./session";
+import { chunkToBase64, isMicDenied, MAX_RECORDING_MS, newVoiceId, VoiceSession, type VoiceDeps, type VoiceMsg } from "./session";
 import { pageIndexOf, parseGoto } from "./gotoMath";
 
 function rig(opts: { online?: boolean; micFails?: boolean; extra?: Partial<VoiceDeps> } = {}) {
@@ -64,15 +64,46 @@ describe("voice session", () => {
     expect(r.sent.at(-1)).toEqual({ t: "voice_end", id: "0011223344556677" });
   });
 
-  it("a tap shorter than the microphone needs to open is cancelled, and a late microphone is closed", async () => {
+  it("a tap (down and up within 100 ms) keeps recording: no voice_cancel, no voice_end", async () => {
+    const r = rig();
+    const p = r.s.start("tap"); // the button only starts on a tap; the release does not call stop()
+    r.open();
+    await p;
+    r.feed(new Int16Array(1600));
+    expect(r.s.active).toBe(true);
+    expect(r.sent.map((m) => m.t)).toEqual(["voice_start", "voice_chunk"]);
+  });
+
+  it("a hold released before the microphone is open ends the request when it opens (voice_end, not voice_cancel)", async () => {
+    const r = rig();
+    const p = r.s.start("hold");
+    r.s.stop();
+    expect(r.sent.map((m) => m.t)).toEqual(["voice_start"]);
+    r.open();
+    await p;
+    expect(r.sent.map((m) => m.t)).toEqual(["voice_start", "voice_chunk", "voice_end"]);
+    expect(r.s.active).toBe(false);
+  });
+
+  it("a hold of 400 ms released with the microphone open sends voice_end", async () => {
+    const r = rig();
+    const p = r.s.start("hold");
+    r.open();
+    await p;
+    r.feed(new Int16Array(1600));
+    r.s.stop();
+    expect(r.sent.at(-1)).toEqual({ t: "voice_end", id: "0011223344556677" });
+    expect(r.sent.some((m) => m.t === "voice_cancel")).toBe(false);
+  });
+
+  it("a cancel while the microphone is opening still closes the late microphone", async () => {
     const r = rig();
     const p = r.s.start();
-    r.s.stop();
-    expect(r.sent.map((m) => m.t)).toEqual(["voice_start", "voice_cancel"]);
+    r.s.cancel();
     r.open();
     await p;
     expect(r.stopped()).toBe(1);
-    expect(r.sent).toHaveLength(2);
+    expect(r.sent.map((m) => m.t)).toEqual(["voice_start", "voice_cancel"]);
   });
 
   it("a refused microphone cancels the request on the PC and rejects", async () => {
@@ -80,6 +111,27 @@ describe("voice session", () => {
     await expect(r.s.start()).rejects.toThrow("denied");
     expect(r.sent.map((m) => m.t)).toEqual(["voice_start", "voice_cancel"]);
     expect(r.s.active).toBe(false);
+  });
+
+  it("a refused permission tells the button (and the PC is told to forget the request)", async () => {
+    let denied = 0;
+    const r = rig({ micFails: true, extra: { onMicDenied: () => denied++ } });
+    await expect(r.s.start()).rejects.toThrow();
+    expect(denied).toBe(0); // the rig rejects with a plain Error: not a permission problem
+    expect(isMicDenied(Object.assign(new Error("x"), { name: "NotAllowedError" }))).toBe(true);
+    expect(isMicDenied(Object.assign(new Error("x"), { name: "NotFoundError" }))).toBe(false);
+    const sent: string[] = [];
+    const s = new VoiceSession({
+      send: (m) => (sent.push(m.t), true),
+      startCapture: () => Promise.reject(Object.assign(new Error("no"), { name: "NotAllowedError" })),
+      newId: () => "0011223344556677",
+      setTimeout: () => 0,
+      clearTimeout: () => {},
+      onMicDenied: () => denied++,
+    });
+    await expect(s.start()).rejects.toThrow();
+    expect(denied).toBe(1);
+    expect(sent).toEqual(["voice_start", "voice_cancel"]);
   });
 
   it("offline: nothing starts", async () => {

@@ -887,6 +887,7 @@ export const ja: Dictionary = {
   "voice.reply.no_speech": "何も聞こえませんでした",
   "voice.reply.wrong": "問題が発生しました。もう一度お試しください",
   "voice.reply.mic_unavailable": "マイクを使用できません",
+  "voice.reply.mic_denied": "Android の設定で Decka にマイクを許可してください",
   "voice.reply.no_sound": "マイクから音が出ません。「その他 → 音声」で選択してください",
   "voice.stop_hint": "クリックして終了",
   "voice.confirm.lock": "コンピューターをロック",

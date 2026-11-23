@@ -7,6 +7,7 @@ import {
   useVoiceRecording,
   useVoiceState,
   voiceReady,
+  VOICE_MIC_DENIED_EVENT,
   VOICE_NO_SPEECH_EVENT,
   type VoiceInfo,
 } from "./api";
@@ -103,9 +104,17 @@ export default function VoiceFab() {
       window.clearTimeout(timer);
       timer = window.setTimeout(() => setNotice(null), 4500);
     };
+    // The microphone was refused: the bubble says where to allow it (not a silent disappearance).
+    const onDenied = () => {
+      setNotice({ state: "error", replyKey: "voice.reply.mic_denied" });
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => setNotice(null), 6000);
+    };
     window.addEventListener(VOICE_NO_SPEECH_EVENT, onNoSpeech);
+    window.addEventListener(VOICE_MIC_DENIED_EVENT, onDenied);
     return () => {
       window.removeEventListener(VOICE_NO_SPEECH_EVENT, onNoSpeech);
+      window.removeEventListener(VOICE_MIC_DENIED_EVENT, onDenied);
       window.clearTimeout(timer);
     };
   }, []);
@@ -115,6 +124,15 @@ export default function VoiceFab() {
   const holdTimer = useRef<number | null>(null);
   const gestureState = useRef<"talk" | "drag" | "pending">("pending");
   const wasRecording = useRef(false);
+  // 	ouchstart must be a non-passive native listener to be allowed to preventDefault (React's own one is passive): it keeps
+  // the long press from opening the context menu or selecting text.
+  const [fabEl, setFabEl] = useState<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!fabEl) return;
+    const stop = (e: TouchEvent) => e.preventDefault();
+    fabEl.addEventListener("touchstart", stop, { passive: false });
+    return () => fabEl.removeEventListener("touchstart", stop);
+  }, [fabEl]);
 
   const clearHold = () => {
     if (holdTimer.current !== null) {
@@ -196,6 +214,7 @@ export default function VoiceFab() {
     <>
       <VoiceBubble state={notice ?? voiceState} fabPos={pos} />
       <div
+        ref={setFabEl}
         className={`voice-fab ${isGlass ? "glass" : ""} ${isListening ? "listening" : ""} ${isDragging ? "dragging" : ""}`}
         style={{
           position: "fixed",
