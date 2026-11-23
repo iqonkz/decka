@@ -926,6 +926,8 @@ export const ar: Dictionary = {
   "voice.reply.no_mic": "لم يتم العثور على ميكروفون",
   "voice.reply.no_speech": "لم أسمع شيئًا",
   "voice.reply.wrong": "حدث خطأ، حاول مرة أخرى",
+  "voice.reply.select_text": "حدّد نصًا أولًا",
+  "voice.reply.text_too_long": "النص طويل جدًا",
   "voice.reply.mic_unavailable": "الميكروفون غير متاح",
   "voice.reply.mic_denied": "اسمح لـ Decka باستخدام الميكروفون في إعدادات Android",
   "voice.reply.no_sound": "الميكروفون لا يعطي صوتًا — اخترْه من «المزيد ← الصوت»",

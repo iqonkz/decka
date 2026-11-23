@@ -11,9 +11,9 @@ use super::matcher::{strip_suffix, tokens, trigram_sim, FUZZY_THRESHOLD};
 use crate::model::{MediaOp, SystemOp};
 
 /// The whole white list (12.5 without the later stages: write, notes, screen help, files, calendar, chains).
-pub const TOOLS: [&str; 16] = [
+pub const TOOLS: &[&str] = &[
     "press_button", "run_action", "open_app", "switch_app", "close_app", "window_other_monitor", "which_monitor", "volume", "media", "go_page",
-    "web_search", "open_site", "type_text", "dictate", "timer", "system",
+    "web_search", "open_site", "type_text", "dictate", "timer", "system", "text_transform",
 ];
 
 pub const MAX_TEXT: usize = 2000;
@@ -92,6 +92,8 @@ pub enum ToolCall {
     Dictate,
     Timer { minutes: u32, label: Option<String> },
     System(SystemOp),
+    /// Work on the selected text (DATA_MODEL.md 13.2); `lang` is the target of `translate`.
+    TextTransform { op: super::textops::Op, lang: Option<String> },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -357,6 +359,21 @@ fn run(tool: &str, args: &serde_json::Map<String, Value>, ctx: &Context) -> Resu
             };
             ready(ToolCall::Timer { minutes, label }, false, format!("Timer for {minutes} min"))
         }
+        "text_transform" => {
+            only(args, &["op", "lang"])?;
+            let op = super::textops::Op::parse(args.get("op").and_then(Value::as_str).unwrap_or_default()).ok_or_else(|| reject("unknown text operation"))?;
+            let lang = match args.get("lang") {
+                None | Some(Value::Null) => None,
+                Some(v) => Some(v.as_str().filter(|l| super::textops::LANGS.contains(l)).ok_or_else(|| reject("unknown language"))?.to_string()),
+            };
+            if op == super::textops::Op::Translate && lang.is_none() {
+                return Err(reject("translate needs a language"));
+            }
+            if op != super::textops::Op::Translate && lang.is_some() {
+                return Err(reject("only translate takes a language"));
+            }
+            ready(ToolCall::TextTransform { op, lang }, false, format!("Text: {}", op.name()))
+        }
         "system" => {
             only(args, &["op"])?;
             // Only the harmless pair; shutdown, restart and the like are not voice tools.
@@ -440,7 +457,8 @@ mod tests {
 
     #[test]
     fn the_white_list_is_exactly_the_stage_one_tools() {
-        assert_eq!(TOOLS.len(), 16);
+        // The white list only grows with a task of the roadmap (DATA_MODEL.md 12.5, 13): never with a tool that runs a command.
+        assert!(TOOLS.len() >= 16 && TOOLS.contains(&"text_transform"));
         for t in ["write", "shell", "run", "exec", "open_url", "launch", "hotkey"] {
             assert!(is_reject(call(t, json!({}))), "{t}");
         }
@@ -555,6 +573,21 @@ mod tests {
         for op in ["shutdown", "restart", "signout", "hibernate", "display_off", ""] {
             assert!(is_reject(call("system", json!({ "op": op }))), "{op}");
         }
+    }
+
+    #[test]
+    fn text_transform_takes_one_of_eight_operations_and_a_language_only_for_translate() {
+        use crate::voice::textops::Op;
+        for op in ["polite", "shorter", "fix", "formal", "casual", "summarize", "explain"] {
+            let r = ready_of(call("text_transform", json!({ "op": op })));
+            assert!(matches!(r.call, ToolCall::TextTransform { lang: None, .. }) && !r.confirm, "{op}");
+        }
+        assert_eq!(ready_of(call("text_transform", json!({ "op": "translate", "lang": "de" }))).call, ToolCall::TextTransform { op: Op::Translate, lang: Some("de".into()) });
+        assert!(is_reject(call("text_transform", json!({ "op": "translate" }))), "translate needs a language");
+        assert!(is_reject(call("text_transform", json!({ "op": "fix", "lang": "de" }))));
+        assert!(is_reject(call("text_transform", json!({ "op": "translate", "lang": "xx" }))));
+        assert!(is_reject(call("text_transform", json!({ "op": "delete" }))));
+        assert!(is_reject(call("text_transform", json!({ "op": "fix", "extra": 1 }))));
     }
 
     #[test]

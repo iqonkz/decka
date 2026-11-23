@@ -895,6 +895,8 @@ export const en = {
   "voice.reply.no_mic": "No microphone found",
   "voice.reply.no_speech": "Didn't hear anything",
   "voice.reply.wrong": "Something went wrong, try again",
+  "voice.reply.select_text": "Select text first",
+  "voice.reply.text_too_long": "The text is too long",
   "voice.reply.mic_unavailable": "Microphone is unavailable",
   "voice.reply.mic_denied": "Allow the microphone for Decka in Android settings",
   "voice.reply.no_sound": "Microphone gives no sound — choose it in More → Voice",

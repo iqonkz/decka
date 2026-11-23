@@ -28,6 +28,7 @@ pub mod msg {
     pub const NO_SPEECH: &str = "Didn't hear anything";
     pub const NO_SOUND: &str = crate::voice::mic::NO_SOUND;
     pub const WRONG: &str = "Something went wrong, try again";
+    pub use crate::voice::textops::{NO_ANSWER, SELECT_FIRST, TOO_LONG};
 }
 
 /// i18n keys of the fixed phrases (`shared/src/i18n`, `voice.reply.*`); the English text of `msg` is their fallback.
@@ -43,6 +44,18 @@ pub mod key {
     pub const NO_SPEECH: &str = "voice.reply.no_speech";
     pub const NO_SOUND: &str = "voice.reply.no_sound";
     pub const WRONG: &str = "voice.reply.wrong";
+    pub const SELECT_FIRST: &str = "voice.reply.select_text";
+    pub const TOO_LONG: &str = "voice.reply.text_too_long";
+}
+
+/// The i18n key of a fixed failure text of an executor (the English text is its fallback).
+fn executor_key(text: &str) -> Option<&'static str> {
+    match text {
+        msg::SELECT_FIRST => Some(key::SELECT_FIRST),
+        msg::TOO_LONG => Some(key::TOO_LONG),
+        msg::NO_ANSWER => Some(key::DIDNT_GET),
+        _ => None,
+    }
 }
 
 /// A fixed phrase as an i18n key with its arguments (PROTOCOL.md 3: `replyKey` / `replyArgs`).
@@ -423,7 +436,10 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
                 (None, false) => finish(s, Phase::Done(reply)),
             }
         }
-        (Phase::Executing, Event::Executed(Err(e))) => finish(s, Phase::Failed(e)),
+        (Phase::Executing, Event::Executed(Err(e))) => match executor_key(&e) {
+            Some(k) => finish_key(s, Phase::Failed(e), ReplyKey::plain(k)),
+            None => finish(s, Phase::Failed(e)),
+        },
         _ => (s, Vec::new()),
     }
 }
@@ -679,6 +695,20 @@ mod tests {
         let (s, fx) = step(&s, said("volume up"), 3, &env);
         assert_eq!(s.phase, Phase::Executing);
         assert_eq!(fx, [Effect::Execute(ToolCall::TypeText { text: "volume up".into() })]);
+    }
+
+    #[test]
+    fn the_fixed_failures_of_the_text_tools_carry_their_i18n_keys() {
+        let (t, c) = (table(), ctx());
+        let env = Env { table: &t, ctx: &c, confirm_ms: CONFIRM_TIMEOUT_MS, dictate: false };
+        let mut s = State::idle();
+        s.phase = Phase::Executing;
+        let (s, _) = step(&s, Event::Executed(Err(msg::SELECT_FIRST.into())), 5, &env);
+        assert_eq!((s.phase.clone(), s.info().reply_key), (Phase::Failed("Select text first".into()), Some("voice.reply.select_text")));
+        let mut s = State::idle();
+        s.phase = Phase::Executing;
+        let (s, _) = step(&s, Event::Executed(Err("something else".into())), 5, &env);
+        assert_eq!(s.info().reply_key, None, "free text has no key");
     }
 
     #[test]

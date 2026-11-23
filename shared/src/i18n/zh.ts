@@ -886,6 +886,8 @@ export const zh: Dictionary = {
   "voice.reply.no_mic": "未找到麦克风",
   "voice.reply.no_speech": "没有听到任何声音",
   "voice.reply.wrong": "出了点问题，请重试",
+  "voice.reply.select_text": "请先选中文本",
+  "voice.reply.text_too_long": "文本太长",
   "voice.reply.mic_unavailable": "麦克风不可用",
   "voice.reply.mic_denied": "请在 Android 设置中允许 Decka 使用麦克风",
   "voice.reply.no_sound": "麦克风没有声音——请在“更多 → 语音”中选择麦克风",

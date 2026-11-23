@@ -161,6 +161,26 @@ fn paste_system(_: &str) -> Result<String, String> {
     Err("unsupported platform".into())
 }
 
+/// `text_transform` (13.2): the selection of the focused program is taken, rewritten by the model and pasted back (or shown).
+#[cfg(windows)]
+async fn transform_selection(sup: &crate::ai::supervisor::Supervisor, lang: &str, op: super::textops::Op, target: Option<&str>) -> Result<String, String> {
+    use super::clipboard::{SystemClipboard, SystemKeys};
+    use super::textops;
+    let grabbed = tokio::task::spawn_blocking(|| textops::take_selection(&SystemClipboard, &SystemKeys, &std::thread::sleep))
+        .await
+        .map_err(|e| format!("The action did not finish: {e}"))??;
+    let body = textops::request_body(op, target, lang, &grabbed.text);
+    let answer = super::assist::chat_text(sup, &body, textops::TRANSFORM_TIMEOUT).await;
+    tokio::task::spawn_blocking(move || textops::finish(&SystemClipboard, &SystemKeys, op, &grabbed, answer.as_deref(), &std::thread::sleep))
+        .await
+        .map_err(|e| format!("The action did not finish: {e}"))?
+}
+
+#[cfg(not(windows))]
+async fn transform_selection(_: &crate::ai::supervisor::Supervisor, _: &str, _: super::textops::Op, _: Option<&str>) -> Result<String, String> {
+    Err("unsupported platform".into())
+}
+
 /// The value of the variable `voice.goto`: the page and a counter, so going to the same page twice is a new value.
 /// The phones watch the variable and navigate (they never send the page back).
 pub fn goto_value(page_id: &str, seq: u64) -> String {
@@ -602,6 +622,7 @@ impl Ports for Inner {
         let agent = self.agent.clone();
         let (dictate, timers, goto_seq) = (self.dictate_until.clone(), self.timers.clone(), self.goto_seq.clone());
         let handle = self.handle.clone();
+        let (sup, lang) = (self.service.supervisor().clone(), self.language());
         Box::pin(async move {
             if let ToolCall::RunAction { action_id } = &call {
                 return agent.execute(action_id).await.map(|_| String::new()).map_err(|(_, m)| m);
@@ -634,6 +655,9 @@ impl Ports for Inner {
                     return tokio::task::spawn_blocking(move || winops::type_text(&text).map(|_| String::new()))
                         .await
                         .map_err(|e| format!("The action did not finish: {e}"))?;
+                }
+                ToolCall::TextTransform { op, lang: target } => {
+                    return transform_selection(&sup, lang, *op, target.as_deref()).await;
                 }
                 ToolCall::PasteText { text } => {
                     *dictate.lock().unwrap() = None;

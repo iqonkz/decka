@@ -886,6 +886,8 @@ export const pt: Dictionary = {
   "voice.reply.no_mic": "Nenhum microfone encontrado",
   "voice.reply.no_speech": "Não ouvi nada",
   "voice.reply.wrong": "Algo deu errado, tente novamente",
+  "voice.reply.select_text": "Selecione um texto primeiro",
+  "voice.reply.text_too_long": "O texto é muito longo",
   "voice.reply.mic_unavailable": "O microfone não está disponível",
   "voice.reply.mic_denied": "Permita o microfone para o Decka nas configurações do Android",
   "voice.reply.no_sound": "O microfone não dá som: escolha-o em Mais → Voz",
