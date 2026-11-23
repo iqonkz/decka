@@ -1,27 +1,302 @@
 [
-  { "say": "aumenta o som do computador", "tool": "volume", "args": { "op": "up" } },
-  { "say": "abaixa o som um pouco", "tool": "volume", "args": { "op": "down" } },
-  { "say": "silencia todo o som", "tool": "volume", "args": { "op": "mute" } },
-  { "say": "definir o volume para 50 por cento", "tool": "volume", "args": { "op": "set", "value": 50 } },
-  { "say": "pausar a música agora", "tool": "media", "args": { "op": "play_pause" } },
-  { "say": "pula para a próxima faixa", "tool": "media", "args": { "op": "next" } },
-  { "say": "tocar a música anterior", "tool": "media", "args": { "op": "prev" } },
-  { "say": "abrir a calculadora", "tool": "open_app", "args": { "name": "calculator" } },
-  { "say": "iniciar o spotify", "tool": "open_app", "args": { "name": "spotify" } },
-  { "say": "fechar o discord", "tool": "close_app", "args": { "name": "discord" } },
-  { "say": "mudar para o navegador chrome", "tool": "switch_app", "args": { "name": "chrome" } },
-  { "say": "mover janela para o outro monitor", "tool": "window_other_monitor", "args": {} },
-  { "say": "qual monitor é este", "tool": "which_monitor", "args": {} },
-  { "say": "ir para a página streaming", "tool": "go_page", "args": { "name": "streaming" } },
-  { "say": "abrir a página principal", "tool": "go_page", "args": { "name": "main" } },
-  { "say": "pressionar tecla mutar microfone", "tool": "press_button", "args": { "label": "mute mic" } },
-  { "say": "pesquisar na web previsão do tempo", "tool": "web_search", "args": { "site": "web", "query": "previsão do tempo" } },
-  { "say": "buscar no youtube lofi hip hop", "tool": "web_search", "args": { "site": "youtube", "query": "lofi hip hop" } },
-  { "say": "procurar cafeterias próximas no mapa", "tool": "web_search", "args": { "site": "maps", "query": "cafeterias próximas" } },
-  { "say": "abrir o site github.com", "tool": "open_site", "args": { "domain": "github.com" } },
-  { "say": "digitar Olá mundo", "tool": "type_text", "args": { "text": "Olá mundo" } },
-  { "say": "iniciar o ditado", "tool": "dictate", "args": {} },
-  { "say": "definir temporizador de 10 minutos", "tool": "timer", "args": { "minutes": 10 } },
-  { "say": "bloquear a tela do pc", "tool": "system", "args": { "op": "lock" } },
-  { "say": "suspender o computador", "tool": "system", "args": { "op": "sleep" } }
+  {
+    "say": "aumenta o som do computador",
+    "tool": "volume",
+    "args": {
+      "op": "up"
+    }
+  },
+  {
+    "say": "abaixa o som um pouco",
+    "tool": "volume",
+    "args": {
+      "op": "down"
+    }
+  },
+  {
+    "say": "silencia todo o som",
+    "tool": "volume",
+    "args": {
+      "op": "mute"
+    }
+  },
+  {
+    "say": "definir o volume para 50 por cento",
+    "tool": "volume",
+    "args": {
+      "op": "set",
+      "value": 50
+    }
+  },
+  {
+    "say": "pausar a música agora",
+    "tool": "media",
+    "args": {
+      "op": "play_pause"
+    }
+  },
+  {
+    "say": "pula para a próxima faixa",
+    "tool": "media",
+    "args": {
+      "op": "next"
+    }
+  },
+  {
+    "say": "tocar a música anterior",
+    "tool": "media",
+    "args": {
+      "op": "prev"
+    }
+  },
+  {
+    "say": "abrir a calculadora",
+    "tool": "open_app",
+    "args": {
+      "name": "calculator"
+    }
+  },
+  {
+    "say": "iniciar o spotify",
+    "tool": "open_app",
+    "args": {
+      "name": "spotify"
+    }
+  },
+  {
+    "say": "fechar o discord",
+    "tool": "close_app",
+    "args": {
+      "name": "discord"
+    }
+  },
+  {
+    "say": "mudar para o navegador chrome",
+    "tool": "switch_app",
+    "args": {
+      "name": "chrome"
+    }
+  },
+  {
+    "say": "mover janela para o outro monitor",
+    "tool": "window_other_monitor",
+    "args": {}
+  },
+  {
+    "say": "qual monitor é este",
+    "tool": "which_monitor",
+    "args": {}
+  },
+  {
+    "say": "ir para a página streaming",
+    "tool": "go_page",
+    "args": {
+      "name": "streaming"
+    }
+  },
+  {
+    "say": "abrir a página principal",
+    "tool": "go_page",
+    "args": {
+      "name": "main"
+    }
+  },
+  {
+    "say": "pressionar tecla mutar microfone",
+    "tool": "press_button",
+    "args": {
+      "label": "mute mic"
+    }
+  },
+  {
+    "say": "pesquisar na web previsão do tempo",
+    "tool": "web_search",
+    "args": {
+      "site": "web",
+      "query": "previsão do tempo"
+    }
+  },
+  {
+    "say": "buscar no youtube lofi hip hop",
+    "tool": "web_search",
+    "args": {
+      "site": "youtube",
+      "query": "lofi hip hop"
+    }
+  },
+  {
+    "say": "procurar cafeterias próximas no mapa",
+    "tool": "web_search",
+    "args": {
+      "site": "maps",
+      "query": "cafeterias próximas"
+    }
+  },
+  {
+    "say": "abrir o site github.com",
+    "tool": "open_site",
+    "args": {
+      "domain": "github.com"
+    }
+  },
+  {
+    "say": "digitar Olá mundo",
+    "tool": "type_text",
+    "args": {
+      "text": "Olá mundo"
+    }
+  },
+  {
+    "say": "iniciar o ditado",
+    "tool": "dictate",
+    "args": {}
+  },
+  {
+    "say": "definir temporizador de 10 minutos",
+    "tool": "timer",
+    "args": {
+      "minutes": 10
+    }
+  },
+  {
+    "say": "bloquear a tela do pc",
+    "tool": "system",
+    "args": {
+      "op": "lock"
+    }
+  },
+  {
+    "say": "suspender o computador",
+    "tool": "system",
+    "args": {
+      "op": "sleep"
+    }
+  },
+  {
+    "say": "você poderia reescrever esta mensagem com mais gentileza",
+    "tool": "text_transform",
+    "args": {
+      "op": "polite"
+    }
+  },
+  {
+    "say": "enxugue este parágrafo deixando apenas o essencial",
+    "tool": "text_transform",
+    "args": {
+      "op": "shorter"
+    }
+  },
+  {
+    "say": "faça uma revisão de concordância e pontuação neste trecho",
+    "tool": "text_transform",
+    "args": {
+      "op": "fix"
+    }
+  },
+  {
+    "say": "passe este texto para uma redação corporativa formal",
+    "tool": "text_transform",
+    "args": {
+      "op": "formal"
+    }
+  },
+  {
+    "say": "deixe essa frase soar descontraída como um bate-papo",
+    "tool": "text_transform",
+    "args": {
+      "op": "casual"
+    }
+  },
+  {
+    "say": "destaque os pontos principais desta publicação",
+    "tool": "text_transform",
+    "args": {
+      "op": "summarize"
+    }
+  },
+  {
+    "say": "esclareça o significado deste termo selecionado",
+    "tool": "text_transform",
+    "args": {
+      "op": "explain"
+    }
+  },
+  {
+    "say": "passe este trecho para o idioma inglês por favor",
+    "tool": "text_transform",
+    "args": {
+      "op": "translate",
+      "lang": "en"
+    }
+  },
+  {
+    "say": "veja a janela do terminal e me diga por que deu erro",
+    "tool": "screen_ask",
+    "args": {
+      "question": "por que deu erro no terminal"
+    }
+  },
+  {
+    "say": "dê um aviso para enviar o relatório daqui a trinta e cinco minutos",
+    "tool": "remind",
+    "args": {
+      "text": "enviar o relatório",
+      "inMinutes": 35
+    }
+  },
+  {
+    "say": "crie um alerta para a reunião de alinhamento às 10:15",
+    "tool": "remind",
+    "args": {
+      "text": "reunião de alinhamento",
+      "at": "10:15"
+    }
+  },
+  {
+    "say": "apresente a relação completa de todos os meus lembretes",
+    "tool": "reminders_show",
+    "args": {}
+  },
+  {
+    "say": "coloque bananas maduras na minha lista do mercado",
+    "tool": "list_add",
+    "args": {
+      "list": "mercado",
+      "item": "bananas maduras"
+    }
+  },
+  {
+    "say": "exiba todos os itens catalogados nas metas da semana",
+    "tool": "list_show",
+    "args": {
+      "list": "metas da semana"
+    }
+  },
+  {
+    "say": "descarte papel toalha das coisas para comprar",
+    "tool": "list_remove",
+    "args": {
+      "list": "coisas para comprar",
+      "item": "papel toalha"
+    }
+  },
+  {
+    "say": "apresente um panorama dos meus compromissos de hoje",
+    "tool": "day_brief",
+    "args": {}
+  },
+  {
+    "say": "memorize que a placa do meu carro é abc1234",
+    "tool": "memory_add",
+    "args": {
+      "text": "placa do meu carro é abc1234"
+    }
+  },
+  {
+    "say": "apague a anotação referente à senha antiga do alarme",
+    "tool": "memory_remove",
+    "args": {
+      "text": "senha antiga do alarme"
+    }
+  }
 ]

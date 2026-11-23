@@ -1,27 +1,302 @@
 [
-  { "say": "sube el volumen del sonido", "tool": "volume", "args": { "op": "up" } },
-  { "say": "baja un poco el volumen", "tool": "volume", "args": { "op": "down" } },
-  { "say": "silencia el audio", "tool": "volume", "args": { "op": "mute" } },
-  { "say": "ajusta el volumen al cincuenta por ciento", "tool": "volume", "args": { "op": "set", "value": 50 } },
-  { "say": "pausa la música actual", "tool": "media", "args": { "op": "play_pause" } },
-  { "say": "salta a la siguiente pista", "tool": "media", "args": { "op": "next" } },
-  { "say": "reproduce la canción anterior", "tool": "media", "args": { "op": "prev" } },
-  { "say": "abre la calculadora", "tool": "open_app", "args": { "name": "calculator" } },
-  { "say": "inicia la app spotify", "tool": "open_app", "args": { "name": "spotify" } },
-  { "say": "cierra la ventana de discord", "tool": "close_app", "args": { "name": "discord" } },
-  { "say": "cambia al navegador chrome", "tool": "switch_app", "args": { "name": "chrome" } },
-  { "say": "mueve esta ventana al otro monitor", "tool": "window_other_monitor", "args": {} },
-  { "say": "qué monitor es este", "tool": "which_monitor", "args": {} },
-  { "say": "ve a la página streaming", "tool": "go_page", "args": { "name": "streaming" } },
-  { "say": "abre la página principal", "tool": "go_page", "args": { "name": "main" } },
-  { "say": "pulsa el botón silenciar micrófono", "tool": "press_button", "args": { "label": "mute mic" } },
-  { "say": "busca en internet previsión del tiempo", "tool": "web_search", "args": { "site": "web", "query": "previsión del tiempo" } },
-  { "say": "busca en youtube música lofi", "tool": "web_search", "args": { "site": "youtube", "query": "lofi hip hop" } },
-  { "say": "busca cafeterías cercanas en maps", "tool": "web_search", "args": { "site": "maps", "query": "cafeterías cercanas" } },
-  { "say": "abre el sitio github.com", "tool": "open_site", "args": { "domain": "github.com" } },
-  { "say": "escribe Hola mundo", "tool": "type_text", "args": { "text": "Hola mundo" } },
-  { "say": "iniciar dictado por voz", "tool": "dictate", "args": {} },
-  { "say": "pon un temporizador de 10 minutos", "tool": "timer", "args": { "minutes": 10 } },
-  { "say": "bloquea el equipo", "tool": "system", "args": { "op": "lock" } },
-  { "say": "suspende la computadora", "tool": "system", "args": { "op": "sleep" } }
+  {
+    "say": "sube el volumen del sonido",
+    "tool": "volume",
+    "args": {
+      "op": "up"
+    }
+  },
+  {
+    "say": "baja un poco el volumen",
+    "tool": "volume",
+    "args": {
+      "op": "down"
+    }
+  },
+  {
+    "say": "silencia el audio",
+    "tool": "volume",
+    "args": {
+      "op": "mute"
+    }
+  },
+  {
+    "say": "ajusta el volumen al cincuenta por ciento",
+    "tool": "volume",
+    "args": {
+      "op": "set",
+      "value": 50
+    }
+  },
+  {
+    "say": "pausa la música actual",
+    "tool": "media",
+    "args": {
+      "op": "play_pause"
+    }
+  },
+  {
+    "say": "salta a la siguiente pista",
+    "tool": "media",
+    "args": {
+      "op": "next"
+    }
+  },
+  {
+    "say": "reproduce la canción anterior",
+    "tool": "media",
+    "args": {
+      "op": "prev"
+    }
+  },
+  {
+    "say": "abre la calculadora",
+    "tool": "open_app",
+    "args": {
+      "name": "calculator"
+    }
+  },
+  {
+    "say": "inicia la app spotify",
+    "tool": "open_app",
+    "args": {
+      "name": "spotify"
+    }
+  },
+  {
+    "say": "cierra la ventana de discord",
+    "tool": "close_app",
+    "args": {
+      "name": "discord"
+    }
+  },
+  {
+    "say": "cambia al navegador chrome",
+    "tool": "switch_app",
+    "args": {
+      "name": "chrome"
+    }
+  },
+  {
+    "say": "mueve esta ventana al otro monitor",
+    "tool": "window_other_monitor",
+    "args": {}
+  },
+  {
+    "say": "qué monitor es este",
+    "tool": "which_monitor",
+    "args": {}
+  },
+  {
+    "say": "ve a la página streaming",
+    "tool": "go_page",
+    "args": {
+      "name": "streaming"
+    }
+  },
+  {
+    "say": "abre la página principal",
+    "tool": "go_page",
+    "args": {
+      "name": "main"
+    }
+  },
+  {
+    "say": "pulsa el botón silenciar micrófono",
+    "tool": "press_button",
+    "args": {
+      "label": "mute mic"
+    }
+  },
+  {
+    "say": "busca en internet previsión del tiempo",
+    "tool": "web_search",
+    "args": {
+      "site": "web",
+      "query": "previsión del tiempo"
+    }
+  },
+  {
+    "say": "busca en youtube música lofi",
+    "tool": "web_search",
+    "args": {
+      "site": "youtube",
+      "query": "lofi hip hop"
+    }
+  },
+  {
+    "say": "busca cafeterías cercanas en maps",
+    "tool": "web_search",
+    "args": {
+      "site": "maps",
+      "query": "cafeterías cercanas"
+    }
+  },
+  {
+    "say": "abre el sitio github.com",
+    "tool": "open_site",
+    "args": {
+      "domain": "github.com"
+    }
+  },
+  {
+    "say": "escribe Hola mundo",
+    "tool": "type_text",
+    "args": {
+      "text": "Hola mundo"
+    }
+  },
+  {
+    "say": "iniciar dictado por voz",
+    "tool": "dictate",
+    "args": {}
+  },
+  {
+    "say": "pon un temporizador de 10 minutos",
+    "tool": "timer",
+    "args": {
+      "minutes": 10
+    }
+  },
+  {
+    "say": "bloquea el equipo",
+    "tool": "system",
+    "args": {
+      "op": "lock"
+    }
+  },
+  {
+    "say": "suspende la computadora",
+    "tool": "system",
+    "args": {
+      "op": "sleep"
+    }
+  },
+  {
+    "say": "podrías reescribir este correo con un tono más cortés",
+    "tool": "text_transform",
+    "args": {
+      "op": "polite"
+    }
+  },
+  {
+    "say": "sintetiza este texto quitando lo innecesario",
+    "tool": "text_transform",
+    "args": {
+      "op": "shorter"
+    }
+  },
+  {
+    "say": "revisa la ortografía y puntuación de este fragmento",
+    "tool": "text_transform",
+    "args": {
+      "op": "fix"
+    }
+  },
+  {
+    "say": "adapta este borrador a un formato corporativo serio",
+    "tool": "text_transform",
+    "args": {
+      "op": "formal"
+    }
+  },
+  {
+    "say": "haz que suene natural como un mensaje de whatsapp",
+    "tool": "text_transform",
+    "args": {
+      "op": "casual"
+    }
+  },
+  {
+    "say": "extrae los puntos esenciales de esta lectura",
+    "tool": "text_transform",
+    "args": {
+      "op": "summarize"
+    }
+  },
+  {
+    "say": "dime qué quiere decir exactamente este párrafo",
+    "tool": "text_transform",
+    "args": {
+      "op": "explain"
+    }
+  },
+  {
+    "say": "pasa estas líneas al idioma italiano por favor",
+    "tool": "text_transform",
+    "args": {
+      "op": "translate",
+      "lang": "it"
+    }
+  },
+  {
+    "say": "analiza la ventana actual y dime qué falló en el código",
+    "tool": "screen_ask",
+    "args": {
+      "question": "analiza la ventana actual y dime qué falló en el código"
+    }
+  },
+  {
+    "say": "avísame para tomar agua dentro de treinta minutos",
+    "tool": "remind",
+    "args": {
+      "text": "tomar agua",
+      "inMinutes": 30
+    }
+  },
+  {
+    "say": "programa una alerta para la videollamada a las 17:15",
+    "tool": "remind",
+    "args": {
+      "text": "videollamada",
+      "at": "17:15"
+    }
+  },
+  {
+    "say": "déjame ver todas las alertas pendientes para hoy",
+    "tool": "reminders_show",
+    "args": {}
+  },
+  {
+    "say": "pon aceite de oliva en mi lista del supermercado",
+    "tool": "list_add",
+    "args": {
+      "list": "supermercado",
+      "item": "aceite de oliva"
+    }
+  },
+  {
+    "say": "despliega el contenido de la lista de pendientes",
+    "tool": "list_show",
+    "args": {
+      "list": "pendientes"
+    }
+  },
+  {
+    "say": "marca como completado comprar pan en las compras",
+    "tool": "list_remove",
+    "args": {
+      "list": "compras",
+      "item": "comprar pan"
+    }
+  },
+  {
+    "say": "dame un informe completo con mis planes y el clima hoy",
+    "tool": "day_brief",
+    "args": {}
+  },
+  {
+    "say": "guarda el dato de que el cumpleaños de mi hermano es el diez de agosto",
+    "tool": "memory_add",
+    "args": {
+      "text": "cumpleaños de mi hermano es el diez de agosto"
+    }
+  },
+  {
+    "say": "borra de tus notas la clave del casillero viejo",
+    "tool": "memory_remove",
+    "args": {
+      "text": "clave del casillero viejo"
+    }
+  }
 ]

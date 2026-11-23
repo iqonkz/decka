@@ -1,27 +1,302 @@
 [
-  { "say": "monte un peu le volume", "tool": "volume", "args": { "op": "up" } },
-  { "say": "baisse un peu le volume", "tool": "volume", "args": { "op": "down" } },
-  { "say": "désactive le son", "tool": "volume", "args": { "op": "mute" } },
-  { "say": "règle le volume à cinquante pour cent", "tool": "volume", "args": { "op": "set", "value": 50 } },
-  { "say": "mets la musique en pause", "tool": "media", "args": { "op": "play_pause" } },
-  { "say": "passe au morceau suivant", "tool": "media", "args": { "op": "next" } },
-  { "say": "reviens à la chanson précédente", "tool": "media", "args": { "op": "prev" } },
-  { "say": "ouvre la calculatrice", "tool": "open_app", "args": { "name": "calculator" } },
-  { "say": "lance spotify", "tool": "open_app", "args": { "name": "spotify" } },
-  { "say": "ferme l'application discord", "tool": "close_app", "args": { "name": "discord" } },
-  { "say": "bascule sur chrome", "tool": "switch_app", "args": { "name": "chrome" } },
-  { "say": "déplace la fenêtre sur l'autre écran", "tool": "window_other_monitor", "args": {} },
-  { "say": "sur quel écran suis-je", "tool": "which_monitor", "args": {} },
-  { "say": "va sur la page streaming", "tool": "go_page", "args": { "name": "streaming" } },
-  { "say": "ouvre la page principale", "tool": "go_page", "args": { "name": "main" } },
-  { "say": "appuie sur la touche couper micro", "tool": "press_button", "args": { "label": "mute mic" } },
-  { "say": "cherche sur le web la météo", "tool": "web_search", "args": { "site": "web", "query": "météo" } },
-  { "say": "recherche sur youtube lofi hip hop", "tool": "web_search", "args": { "site": "youtube", "query": "lofi hip hop" } },
-  { "say": "cherche des cafés à proximité sur maps", "tool": "web_search", "args": { "site": "maps", "query": "cafés à proximité" } },
-  { "say": "ouvre le site github.com", "tool": "open_site", "args": { "domain": "github.com" } },
-  { "say": "écris Bonjour le monde", "tool": "type_text", "args": { "text": "Bonjour le monde" } },
-  { "say": "commence la dictée", "tool": "dictate", "args": {} },
-  { "say": "mets un minuteur de 10 minutes", "tool": "timer", "args": { "minutes": 10 } },
-  { "say": "verrouille le pc", "tool": "system", "args": { "op": "lock" } },
-  { "say": "mets le pc en veille", "tool": "system", "args": { "op": "sleep" } }
+  {
+    "say": "monte un peu le volume",
+    "tool": "volume",
+    "args": {
+      "op": "up"
+    }
+  },
+  {
+    "say": "baisse un peu le volume",
+    "tool": "volume",
+    "args": {
+      "op": "down"
+    }
+  },
+  {
+    "say": "désactive le son",
+    "tool": "volume",
+    "args": {
+      "op": "mute"
+    }
+  },
+  {
+    "say": "règle le volume à cinquante pour cent",
+    "tool": "volume",
+    "args": {
+      "op": "set",
+      "value": 50
+    }
+  },
+  {
+    "say": "mets la musique en pause",
+    "tool": "media",
+    "args": {
+      "op": "play_pause"
+    }
+  },
+  {
+    "say": "passe au morceau suivant",
+    "tool": "media",
+    "args": {
+      "op": "next"
+    }
+  },
+  {
+    "say": "reviens à la chanson précédente",
+    "tool": "media",
+    "args": {
+      "op": "prev"
+    }
+  },
+  {
+    "say": "ouvre la calculatrice",
+    "tool": "open_app",
+    "args": {
+      "name": "calculator"
+    }
+  },
+  {
+    "say": "lance spotify",
+    "tool": "open_app",
+    "args": {
+      "name": "spotify"
+    }
+  },
+  {
+    "say": "ferme l'application discord",
+    "tool": "close_app",
+    "args": {
+      "name": "discord"
+    }
+  },
+  {
+    "say": "bascule sur chrome",
+    "tool": "switch_app",
+    "args": {
+      "name": "chrome"
+    }
+  },
+  {
+    "say": "déplace la fenêtre sur l'autre écran",
+    "tool": "window_other_monitor",
+    "args": {}
+  },
+  {
+    "say": "sur quel écran suis-je",
+    "tool": "which_monitor",
+    "args": {}
+  },
+  {
+    "say": "va sur la page streaming",
+    "tool": "go_page",
+    "args": {
+      "name": "streaming"
+    }
+  },
+  {
+    "say": "ouvre la page principale",
+    "tool": "go_page",
+    "args": {
+      "name": "main"
+    }
+  },
+  {
+    "say": "appuie sur la touche couper micro",
+    "tool": "press_button",
+    "args": {
+      "label": "mute mic"
+    }
+  },
+  {
+    "say": "cherche sur le web la météo",
+    "tool": "web_search",
+    "args": {
+      "site": "web",
+      "query": "météo"
+    }
+  },
+  {
+    "say": "recherche sur youtube lofi hip hop",
+    "tool": "web_search",
+    "args": {
+      "site": "youtube",
+      "query": "lofi hip hop"
+    }
+  },
+  {
+    "say": "cherche des cafés à proximité sur maps",
+    "tool": "web_search",
+    "args": {
+      "site": "maps",
+      "query": "cafés à proximité"
+    }
+  },
+  {
+    "say": "ouvre le site github.com",
+    "tool": "open_site",
+    "args": {
+      "domain": "github.com"
+    }
+  },
+  {
+    "say": "écris Bonjour le monde",
+    "tool": "type_text",
+    "args": {
+      "text": "Bonjour le monde"
+    }
+  },
+  {
+    "say": "commence la dictée",
+    "tool": "dictate",
+    "args": {}
+  },
+  {
+    "say": "mets un minuteur de 10 minutes",
+    "tool": "timer",
+    "args": {
+      "minutes": 10
+    }
+  },
+  {
+    "say": "verrouille le pc",
+    "tool": "system",
+    "args": {
+      "op": "lock"
+    }
+  },
+  {
+    "say": "mets le pc en veille",
+    "tool": "system",
+    "args": {
+      "op": "sleep"
+    }
+  },
+  {
+    "say": "pourrais-tu reformuler cet email de manière plus chaleureuse",
+    "tool": "text_transform",
+    "args": {
+      "op": "polite"
+    }
+  },
+  {
+    "say": "élague ce paragraphe pour aller droit au but",
+    "tool": "text_transform",
+    "args": {
+      "op": "shorter"
+    }
+  },
+  {
+    "say": "vérifie l'orthographe et la grammaire de ce message sélectionné",
+    "tool": "text_transform",
+    "args": {
+      "op": "fix"
+    }
+  },
+  {
+    "say": "adapte ce brouillon au registre d'une communication d'entreprise",
+    "tool": "text_transform",
+    "args": {
+      "op": "formal"
+    }
+  },
+  {
+    "say": "tourne cette phrase comme une discussion informelle entre collègues",
+    "tool": "text_transform",
+    "args": {
+      "op": "casual"
+    }
+  },
+  {
+    "say": "dégage les idées directrices de ce long article",
+    "tool": "text_transform",
+    "args": {
+      "op": "summarize"
+    }
+  },
+  {
+    "say": "peux-tu m'éclairer sur la signification de ce passage",
+    "tool": "text_transform",
+    "args": {
+      "op": "explain"
+    }
+  },
+  {
+    "say": "bascule ce texte vers l'espagnol s'il te plaît",
+    "tool": "text_transform",
+    "args": {
+      "op": "translate",
+      "lang": "es"
+    }
+  },
+  {
+    "say": "regarde l'écran et dis-moi pourquoi le script a échoué",
+    "tool": "screen_ask",
+    "args": {
+      "question": "pourquoi le script a échoué"
+    }
+  },
+  {
+    "say": "pense à me dire de sortir le plat du four dans vingt minutes",
+    "tool": "remind",
+    "args": {
+      "text": "sortir le plat du four",
+      "inMinutes": 20
+    }
+  },
+  {
+    "say": "programme une alerte pour mon appel avec le client à 14:45",
+    "tool": "remind",
+    "args": {
+      "text": "appel avec le client",
+      "at": "14:45"
+    }
+  },
+  {
+    "say": "donne-moi la liste de toutes les alertes programmées",
+    "tool": "reminders_show",
+    "args": {}
+  },
+  {
+    "say": "inscris du pain complet sur mon calepin de courses",
+    "tool": "list_add",
+    "args": {
+      "list": "courses",
+      "item": "pain complet"
+    }
+  },
+  {
+    "say": "fais apparaître le tableau de mes projets en cours",
+    "tool": "list_show",
+    "args": {
+      "list": "projets en cours"
+    }
+  },
+  {
+    "say": "coche et retire le fromage râpé de mes provisions",
+    "tool": "list_remove",
+    "args": {
+      "list": "provisions",
+      "item": "fromage râpé"
+    }
+  },
+  {
+    "say": "fais-moi un point rapide sur ma journée et mes notifications",
+    "tool": "day_brief",
+    "args": {}
+  },
+  {
+    "say": "garde en note que ma pointure de chaussures est quarante-deux",
+    "tool": "memory_add",
+    "args": {
+      "text": "pointure de chaussures est quarante-deux"
+    }
+  },
+  {
+    "say": "supprime de tes souvenirs l'ancien code du portail",
+    "tool": "memory_remove",
+    "args": {
+      "text": "ancien code du portail"
+    }
+  }
 ]
