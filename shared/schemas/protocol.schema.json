@@ -23,7 +23,9 @@
     "PingMsg": { "type": "object", "required": ["t","ts"], "properties": { "t": { "const": "ping" }, "ts": { "type": "number" } } },
     "PermAnswerMsg": { "type": "object", "required": ["t","reqId","decision"],
       "properties": { "t": { "const": "perm_answer" }, "reqId": { "type": "string", "pattern": "^[0-9a-f]{16}$" }, "decision": { "enum": ["allow","allow_always","deny","pc","reply"] }, "reply": { "type": "integer", "minimum": 0, "maximum": 3 } } },
-    "ClientMsg": { "oneOf": [ { "$ref": "#/$defs/PairMsg" }, { "$ref": "#/$defs/HelloMsg" }, { "$ref": "#/$defs/PressMsg" }, { "$ref": "#/$defs/NotifDismissMsg" }, { "$ref": "#/$defs/PingMsg" }, { "$ref": "#/$defs/PermAnswerMsg" }, { "$ref": "#/$defs/NotifOpenMsg" } ] },
+    "ListToggleMsg": { "type": "object", "required": ["t","listId","itemId"], "additionalProperties": false,
+      "properties": { "t": { "const": "list_toggle" }, "listId": { "type": "string", "pattern": "^[0-9a-f]{16}$" }, "itemId": { "type": "string", "pattern": "^[0-9a-f]{16}$" } } },
+    "ClientMsg": { "oneOf": [ { "$ref": "#/$defs/PairMsg" }, { "$ref": "#/$defs/HelloMsg" }, { "$ref": "#/$defs/PressMsg" }, { "$ref": "#/$defs/NotifDismissMsg" }, { "$ref": "#/$defs/PingMsg" }, { "$ref": "#/$defs/PermAnswerMsg" }, { "$ref": "#/$defs/NotifOpenMsg" }, { "$ref": "#/$defs/ListToggleMsg" } ] },
 
     "SysStats": { "type": "object", "required": ["cpu","mem","disks","net","uptimeSec"],
       "properties": {

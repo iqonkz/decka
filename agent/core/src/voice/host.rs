@@ -339,6 +339,21 @@ impl Host {
                 *inner.installed.lock().unwrap() = apps;
             }
         });
+        // Reminders (13.4): what is due is announced every 20 s; what was missed while the PC was off, once at the start.
+        let weak = Arc::downgrade(&host.inner);
+        handle.spawn(async move {
+            let mut on_start = true;
+            loop {
+                let Some(inner) = weak.upgrade() else { break };
+                let due = inner.agent.assistant().take_due(&crate::assistant::Local::now());
+                if let Some((title, body)) = crate::assistant::due_notice(&due, on_start) {
+                    inner.agent.push_notification(crate::proto::NotifyReq { title, body: Some(body), level: Some(crate::model::NotifLevel::Info), source: Some("reminder".into()) });
+                }
+                on_start = false;
+                drop(inner);
+                tokio::time::sleep(Duration::from_secs(20)).await;
+            }
+        });
         // "The model is loading" reaches the pipeline from the supervisor.
         let weak = Arc::downgrade(&host.inner);
         let mut rx = host.inner.service.supervisor().subscribe();
@@ -671,6 +686,27 @@ impl Ports for Inner {
                     return tokio::task::spawn_blocking(move || winops::type_text(&text).map(|_| String::new()))
                         .await
                         .map_err(|e| format!("The action did not finish: {e}"))?;
+                }
+                ToolCall::Remind { text, when } => {
+                    let now = crate::assistant::Local::now();
+                    let r = agent.assistant().add_reminder(text, when, &now)?;
+                    return Ok(format!("Reminder set: {}", crate::assistant::reminders_text(&[r], &now)));
+                }
+                ToolCall::RemindersShow => {
+                    let now = crate::assistant::Local::now();
+                    return Ok(crate::assistant::reminders_text(&agent.assistant().upcoming(5), &now));
+                }
+                ToolCall::ListAdd { list, item } => {
+                    return agent.assistant().list_add(list, item).map(|name| format!("Added to {name}"));
+                }
+                ToolCall::ListShow { list } => {
+                    return agent.assistant().list_show(list).map(|l| crate::assistant::list_text(&l));
+                }
+                ToolCall::ListRemove { list, item: Some(item) } => {
+                    return agent.assistant().list_remove_item(list, item).map(|(name, gone)| format!("Removed {gone} from {name}"));
+                }
+                ToolCall::ListRemove { list, item: None } => {
+                    return agent.assistant().list_delete(list).map(|name| format!("Deleted the list {name}"));
                 }
                 ToolCall::ScreenAsk { question } => {
                     return screen_ask(&service, &sup, lang, question).await;

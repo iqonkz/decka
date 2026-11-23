@@ -14,6 +14,7 @@ use crate::model::{MediaOp, SystemOp};
 pub const TOOLS: &[&str] = &[
     "press_button", "run_action", "open_app", "switch_app", "close_app", "window_other_monitor", "which_monitor", "volume", "media", "go_page",
     "web_search", "open_site", "type_text", "dictate", "timer", "system", "text_transform", "screen_ask",
+    "remind", "reminders_show", "list_add", "list_show", "list_remove",
 ];
 
 pub const MAX_TEXT: usize = 2000;
@@ -98,6 +99,13 @@ pub enum ToolCall {
     TextTransform { op: super::textops::Op, lang: Option<String> },
     /// A question about the active window (DATA_MODEL.md 13.3).
     ScreenAsk { question: String },
+    /// A reminder (DATA_MODEL.md 13.4); the moment is worked out by the agent from `when`, never by the model.
+    Remind { text: String, when: crate::assistant::When },
+    RemindersShow,
+    ListAdd { list: String, item: String },
+    ListShow { list: String },
+    /// `item: None` deletes the whole list (after a confirmation).
+    ListRemove { list: String, item: Option<String> },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -378,6 +386,54 @@ fn run(tool: &str, args: &serde_json::Map<String, Value>, ctx: &Context) -> Resu
             }
             ready(ToolCall::TextTransform { op, lang }, false, format!("Text: {}", op.name()))
         }
+        "remind" => {
+            use crate::assistant::{Day, Local, When};
+            only(args, &["text", "inMinutes", "day", "time", "at"])?;
+            let what = text(args, "text", crate::assistant::MAX_TEXT)?.to_string();
+            let clock = |s: &str| -> Option<(u32, u32)> {
+                let (h, m) = s.trim().split_once(':')?;
+                let (h, m) = (h.parse::<u32>().ok()?, m.parse::<u32>().ok()?);
+                (h < 24 && m < 60).then_some((h, m))
+            };
+            let when = match (args.get("inMinutes"), args.get("day"), args.get("time"), args.get("at")) {
+                (Some(m), None, None, None) => {
+                    let m = m.as_u64().filter(|m| (1..=crate::assistant::MAX_AHEAD_MINUTES as u64).contains(m)).ok_or_else(|| reject("inMinutes must be 1..525600"))?;
+                    When::InMinutes(m as u32)
+                }
+                (None, Some(d), Some(t), None) => {
+                    let day = d.as_str().and_then(Day::parse).ok_or_else(|| reject("unknown day"))?;
+                    let (hour, minute) = t.as_str().and_then(clock).ok_or_else(|| reject("time must be HH:MM"))?;
+                    When::Day { day, hour, minute }
+                }
+                (None, None, None, Some(a)) => When::At(a.as_str().and_then(Local::parse_iso).ok_or_else(|| reject("at must be a local time YYYY-MM-DDTHH:MM"))?),
+                _ => return Err(reject("a reminder needs exactly one of: inMinutes, day with time, at")),
+            };
+            ready(ToolCall::Remind { text: what, when }, false, "Set a reminder")
+        }
+        "reminders_show" => {
+            only(args, &[])?;
+            ready(ToolCall::RemindersShow, false, "Show reminders")
+        }
+        "list_add" => {
+            only(args, &["list", "item"])?;
+            let (list, item) = (text(args, "list", crate::assistant::MAX_TEXT)?.to_string(), text(args, "item", crate::assistant::MAX_TEXT)?.to_string());
+            ready(ToolCall::ListAdd { list, item }, false, "Add to a list")
+        }
+        "list_show" => {
+            only(args, &["list"])?;
+            ready(ToolCall::ListShow { list: text(args, "list", crate::assistant::MAX_TEXT)?.to_string() }, false, "Show a list")
+        }
+        "list_remove" => {
+            only(args, &["list", "item"])?;
+            let list = text(args, "list", crate::assistant::MAX_TEXT)?.to_string();
+            match args.get("item") {
+                None | Some(Value::Null) => {
+                    let summary = format!("Delete the list {list}");
+                    ready_key(ToolCall::ListRemove { list: list.clone(), item: None }, true, summary, "voice.confirm.list_delete", &[("name", &list)])
+                }
+                Some(_) => ready(ToolCall::ListRemove { list, item: Some(text(args, "item", crate::assistant::MAX_TEXT)?.to_string()) }, false, "Remove from a list"),
+            }
+        }
         "screen_ask" => {
             only(args, &["question"])?;
             let question = text(args, "question", super::screen::MAX_QUESTION)?.to_string();
@@ -588,6 +644,45 @@ mod tests {
         for op in ["shutdown", "restart", "signout", "hibernate", "display_off", ""] {
             assert!(is_reject(call("system", json!({ "op": op }))), "{op}");
         }
+    }
+
+    #[test]
+    fn a_reminder_states_its_time_in_exactly_one_way_and_the_model_does_no_date_arithmetic() {
+        use crate::assistant::{Day, When};
+        let r = |args: Value| call("remind", args);
+        assert_eq!(ready_of(r(json!({ "text": "call mom", "inMinutes": 15 }))).call, ToolCall::Remind { text: "call mom".into(), when: When::InMinutes(15) });
+        assert_eq!(ready_of(r(json!({ "text": "x", "day": "fri", "time": "08:15" }))).call, ToolCall::Remind { text: "x".into(), when: When::Day { day: Day::Weekday(4), hour: 8, minute: 15 } });
+        assert!(matches!(ready_of(r(json!({ "text": "x", "at": "2026-12-01T09:00" }))).call, ToolCall::Remind { when: When::At(_), .. }));
+        for bad in [
+            json!({ "text": "x" }),
+            json!({ "text": "x", "inMinutes": 0 }),
+            json!({ "text": "x", "inMinutes": 525_601 }),
+            json!({ "text": "x", "inMinutes": 5, "day": "today", "time": "10:00" }),
+            json!({ "text": "x", "day": "today" }),
+            json!({ "text": "x", "day": "someday", "time": "10:00" }),
+            json!({ "text": "x", "day": "today", "time": "25:00" }),
+            json!({ "text": "x", "at": "tomorrow" }),
+            json!({ "text": "x", "at": "2026-12-01T09:00Z" }),
+            json!({ "text": "", "inMinutes": 5 }),
+            json!({ "text": "x".repeat(201), "inMinutes": 5 }),
+            json!({ "text": "x", "inMinutes": 5, "extra": 1 }),
+        ] {
+            assert!(is_reject(r(bad.clone())), "{bad}");
+        }
+    }
+
+    #[test]
+    fn list_tools_take_names_and_only_deleting_a_whole_list_asks() {
+        assert_eq!(ready_of(call("list_add", json!({ "list": "shopping", "item": "milk" }))).call, ToolCall::ListAdd { list: "shopping".into(), item: "milk".into() });
+        assert_eq!(ready_of(call("list_show", json!({ "list": "shopping" }))).call, ToolCall::ListShow { list: "shopping".into() });
+        let one = ready_of(call("list_remove", json!({ "list": "shopping", "item": "milk" })));
+        assert!(!one.confirm && one.call == ToolCall::ListRemove { list: "shopping".into(), item: Some("milk".into()) });
+        let all = ready_of(call("list_remove", json!({ "list": "shopping" })));
+        assert!(all.confirm && all.key == Some("voice.confirm.list_delete") && all.call == ToolCall::ListRemove { list: "shopping".into(), item: None });
+        assert_eq!(ready_of(call("reminders_show", json!({}))).call, ToolCall::RemindersShow);
+        assert!(is_reject(call("list_add", json!({ "list": "shopping" }))));
+        assert!(is_reject(call("list_show", json!({ "list": "shopping", "id": "1" }))), "ids are the agent's, never named by the model");
+        assert!(is_reject(call("reminders_show", json!({ "all": true }))));
     }
 
     #[test]

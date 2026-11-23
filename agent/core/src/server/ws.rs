@@ -460,6 +460,13 @@ async fn handle_text(
                 Err(e) => link.send(&error_msg(e.code(), &e.message())).await,
             }
         }
+        Ok(ClientMsg::ListToggle { list_id, item_id }) => {
+            // Data, not a command: the agent marks or unmarks an item of its own list; unknown ids change nothing.
+            if agent.assistant().toggle(&list_id, &item_id) {
+                tracing::info!("list_toggle device={}", who.device_id);
+            }
+            true
+        }
         Ok(ClientMsg::NotifOpen { notif_id }) => {
             // Only the id of the notification comes from the phone (ARCHITECTURE.md S21); the program is the agent's own record.
             tracing::info!("notif_open {notif_id} device={}", who.device_id);

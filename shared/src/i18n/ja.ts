@@ -896,6 +896,7 @@ export const ja: Dictionary = {
   "voice.confirm.sleep": "コンピューターをスリープ",
   "voice.confirm.screen_pack": "「画面ヘルプ」パッケージ（約 0.7 GB）をダウンロードしますか？",
   "voice.confirm.run": "{name} を実行",
+  "voice.confirm.list_delete": "リスト「{name}」を削除しますか？",
   "voice.hotkey": "ホットキー",
   "voice.mic": "マイク",
   "voice.mic_default": "既定のマイク",

@@ -33,6 +33,8 @@ export interface PingMsg  { t: "ping"; ts: number; }
 export interface PermAnswerMsg { t: "perm_answer"; reqId: string; decision: "allow" | "allow_always" | "deny" | "pc" | "reply"; reply?: number; }   // reply: the number of a ready answer (with decision "reply")   // reqId ^[0-9a-f]{16}$
 /** M17 (DATA_MODEL.md 10.4): open the program a Windows notification came from. Only the id of the notification travels. */
 export interface NotifOpenMsg { t: "notif_open"; notifId: string; }
+/** T22.13 (DATA_MODEL.md 13.4): a tap on an item of a list widget. Data, not a command: the ids were issued by the agent, others are ignored. */
+export interface ListToggleMsg { t: "list_toggle"; listId: string; itemId: string; }   // ids ^[0-9a-f]{16}$
 /** M20 (T20.4): the next piece of the new APK; `offset` is a multiple of 3000. Only inside the encrypted channel. */
 export interface ApkGetMsg { t: "apk_get"; offset: number; }
 // M21 (DATA_MODEL.md 12.6): voice from the phone, only inside the v2 channel. `seq` counts from 0 and grows by exactly 1.
@@ -48,7 +50,7 @@ export interface VoiceInfo {
   /** i18n key (`voice.reply.*`) of a fixed agent phrase; `reply` is the free text or the fallback. */
   replyKey?: string; replyArgs?: Record<string, string>;
 }
-export type ClientMsg = Hello2Msg | AuthMsg | PairMsg | HelloMsg | PressMsg | NotifDismissMsg | PingMsg | PermAnswerMsg | NotifOpenMsg | ApkGetMsg
+export type ClientMsg = Hello2Msg | AuthMsg | PairMsg | HelloMsg | PressMsg | NotifDismissMsg | PingMsg | PermAnswerMsg | NotifOpenMsg | ListToggleMsg | ApkGetMsg
   | VoiceStartMsg | VoiceChunkMsg | VoiceEndMsg | VoiceCancelMsg | VoiceConfirmMsg;
 
 // ===== Server -> Client (WS) =====

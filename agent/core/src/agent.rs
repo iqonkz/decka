@@ -362,6 +362,8 @@ struct Inner {
     ai: Arc<crate::ai::AiHub>,
     /// M21: the entrance of the `voice_*` messages of the phones (a pipeline is attached when voice control is on).
     voice: crate::voice::VoiceHub,
+    /// Reminders and lists of the voice assistant (DATA_MODEL.md 13.4).
+    assistant: crate::assistant::Assistant,
     ai_task: Mutex<Option<JoinHandle<()>>>,
     /// Twitch: the polling loop, the sign-in in progress (and its error), the last error and the last good numbers.
     twitch_task: Mutex<Option<JoinHandle<()>>>,
@@ -418,6 +420,7 @@ impl Agent {
                 statuses: crate::statuses::Statuses::new(store.clone()),
                 ai: crate::ai::AiHub::new(store.clone()),
                 voice: crate::voice::VoiceHub::new(),
+                assistant: crate::assistant::Assistant::load(&config_dir),
                 ai_task: Mutex::new(None),
                 twitch_task: Mutex::new(None),
                 twitch_login_task: Mutex::new(None),
@@ -530,6 +533,10 @@ impl Agent {
     }
 
     /// M21: where `voice_*` messages of the phones arrive; `set_sink` connects the pipeline.
+    pub fn assistant(&self) -> &crate::assistant::Assistant {
+        &self.inner.assistant
+    }
+
     pub fn voice(&self) -> &crate::voice::VoiceHub {
         &self.inner.voice
     }

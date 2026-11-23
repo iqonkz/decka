@@ -108,6 +108,15 @@ describe("invalid inputs are rejected", () => {
   });
   const button = { id: "b", kind: "button", x: 0, y: 0, w: 1, h: 1, actionId: "lock" };
 
+  test("list_toggle carries two ids issued by the agent and nothing else", () => {
+    const ok = { t: "list_toggle", listId: "0123456789abcdef", itemId: "fedcba9876543210" };
+    expect(valid(proto("ListToggleMsg"), ok)).toBe(true);
+    expect(valid(proto("ClientMsg"), ok)).toBe(true);
+    expect(valid(proto("ListToggleMsg"), { ...ok, text: "buy milk" })).toBe(false);
+    expect(valid(proto("ListToggleMsg"), { ...ok, itemId: "../x" })).toBe(false);
+    expect(valid(proto("ListToggleMsg"), { t: "list_toggle", listId: "0123456789abcdef" })).toBe(false);
+  });
+
   test("notif_open carries nothing but the id of a notification", () => {
     expect(valid(proto("NotifOpenMsg"), { t: "notif_open", notifId: "12" })).toBe(true);
     expect(valid(proto("NotifOpenMsg"), { t: "notif_open", notifId: "12", aumid: "x" })).toBe(false);

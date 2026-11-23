@@ -53,6 +53,8 @@ pub enum ClientMsg {
     NotifDismiss { notif_id: String },
     /// M17: the phone asks to open the program a Windows notification came from; only the id of the notification is sent.
     NotifOpen { notif_id: String },
+    /// T22.13 (PROTOCOL.md 3): a tap on an item of a list widget; only the ids the agent issued are taken.
+    ListToggle { list_id: String, item_id: String },
     Ping { ts: i64 },
     /// T20.4: the next piece of the new APK (`offset` is a multiple of 3000). Only inside the encrypted channel.
     ApkGet { offset: u64 },

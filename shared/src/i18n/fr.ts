@@ -896,6 +896,7 @@ export const fr: Dictionary = {
   "voice.confirm.sleep": "Mettre l'ordinateur en veille",
   "voice.confirm.screen_pack": "Télécharger le module « Aide sur l'écran » (environ 0,7 Go) ?",
   "voice.confirm.run": "Exécuter {name}",
+  "voice.confirm.list_delete": "Supprimer la liste « {name} » ?",
   "voice.hotkey": "Raccourci clavier",
   "voice.mic": "Microphone",
   "voice.mic_default": "Microphone par défaut",
