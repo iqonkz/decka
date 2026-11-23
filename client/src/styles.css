@@ -287,3 +287,11 @@ input { user-select: text; touch-action: manipulation; }
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* T21.15: no link to the PC (DESIGN.md 4.13) */
+.link-backdrop { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.6); }
+.link-card { display: flex; flex-direction: column; align-items: center; gap: 2vmin; max-width: 90vw; padding: 4vmin; border-radius: 3vmin; background: #1f2937; color: #f3f4f6; text-align: center; }
+.link-card h2 { margin: 0; font-size: 4vmin; }
+.link-card p { margin: 0; color: #9ca3af; font-size: 2.8vmin; }
+.link-buttons { display: flex; flex-wrap: wrap; gap: 2vmin; justify-content: center; }
+.link-small { background: none; border: 0; color: #9ca3af; font-size: 2.4vmin; text-decoration: underline; }

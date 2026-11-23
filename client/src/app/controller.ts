@@ -13,6 +13,8 @@ import { installVoiceGoto } from "../voice/goto";
 /** Where the next pairing attempt goes; null when not pairing. */
 let pairTarget: { hosts: string[]; port: number } | null = null;
 let connection: Connection | null = null;
+/** The first-connection screen was opened from "Connect again" (a saved PC exists). */
+let repairing = false;
 
 function candidates(): string[] {
   const env = { native: isNative(), devHost: import.meta.env.VITE_DEV_HOST, locationHost: location.host };
@@ -41,7 +43,9 @@ function conn(): Connection {
     onFatal: (code: FatalCode) => {
       if (code === "SERVER_MISMATCH") setState({ conn: pairTarget ? "unpaired" : "not_your_pc" });
       else if (code === "PROTOCOL_VERSION") setState({ conn: "update_required" });
-      else unpair(); // UNAUTHORIZED / DEVICE_REVOKED: the saved pairing is no longer valid
+      // UNAUTHORIZED / DEVICE_REVOKED: the PC does not know this phone. No background attempts; the card offers the way out and
+      // the saved PC stays until a new connection has succeeded (DESIGN.md 4.13).
+      else setState({ conn: "rejected" });
     },
   });
   return connection;
@@ -70,22 +74,40 @@ export async function pairWith(hosts: string[], port: number, code: string, agen
     saveConn({ token: paired.token, deviceId: paired.deviceId, hosts, port, agentName });
   } catch (e) {
     pairTarget = null;
-    if (loadConn()) c.start();
+    // The saved PC is kept. From "Connect again" the screen stays up (the user decides); at start-up the old link goes on.
+    if (repairing) setState({ conn: "repair" });
+    else if (loadConn()) c.start();
     else setState({ conn: "unpaired" });
     throw e;
   }
   pairTarget = null;
+  repairing = false;
   setState({ conn: "connecting", lastError: null });
   c.start(); // the pairing socket is closed; continue as a device with the saved token
 }
 
-/** The "Retry" of the screen "This is not your PC": one new attempt with the saved pairing. */
+/** The "Retry" of the screen "This is not your PC" and "Try again" of the card: one new attempt with the saved pairing. */
 export function retryConnection(): void {
+  repairing = false;
   setState({ conn: "connecting" });
   conn().start();
 }
 
+/** "Connect again": the first-connection screen (QR, code). The saved PC is not touched until the new pairing has succeeded. */
+export function connectAgain(): void {
+  repairing = true;
+  conn().stop();
+  setState({ conn: "repair", lastError: null });
+}
+
+/** Back from "Connect again" to the saved PC. */
+export function cancelConnectAgain(): void {
+  if (loadConn()) retryConnection();
+  else unpair();
+}
+
 export function unpair(): void {
+  repairing = false;
   clearConn();
   conn().stop();
   setState({ conn: "unpaired", via: null, agentName: null, agentVersion: null, state: null, rev: 0, pageIndex: 0, homePageIndex: 0, autoPageId: null, hint: null, popup: null, lastError: null });
@@ -154,6 +176,7 @@ export function init(): void {
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") conn().wake();
   });
+  window.addEventListener("online", () => conn().wake());
 
   if (location.hash.includes("c=")) {
     const parsed = parsePairUrl(location.href);

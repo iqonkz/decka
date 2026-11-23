@@ -5,7 +5,7 @@ import { recordAi, recordSys, resetAiHistory, resetSysHistory } from "@decka/ui"
 import { popBack, pushBack } from "../deck/backStack";
 import { decideContextPage } from "../deck/context";
 
-export type ConnState = "unpaired" | "connecting" | "online" | "offline" | "update_required" | "not_your_pc";
+export type ConnState = "unpaired" | "connecting" | "online" | "offline" | "update_required" | "not_your_pc" | "rejected" | "repair";
 
 export interface Toast {
   id: number;

@@ -1,5 +1,6 @@
 import type { ApkChunkMsg, ClientInfo, ErrorCode, PairedMsg, PatchMsg, PressResultMsg, ServerMsg, VoiceCancelMsg, VoiceChunkMsg, VoiceConfirmMsg, VoiceEndMsg, VoiceStartMsg, WelcomeMsg } from "@decka/shared";
 import { PROTOCOL_VERSION } from "@decka/shared";
+import { retryDelayMs } from "./linkState";
 import { Opener, Sealer, deriveKeys, fromB64u, kDev, mac, macEquals, randomBytes, sCode, toB64u, type Keys } from "./secure";
 
 /** The subset of WebSocket that Connection uses (also implemented by test fakes). */
@@ -54,7 +55,6 @@ const ATTEMPT_MS = 1500;
 const PING_MS = 10_000;
 const SILENCE_MS = 25_000;
 const PRESS_TIMEOUT_MS = 5000;
-const RETRY_SECONDS = [1, 2, 4, 8, 15];
 const FATAL: readonly ErrorCode[] = ["UNAUTHORIZED", "DEVICE_REVOKED", "PROTOCOL_VERSION"];
 
 interface PendingPress {
@@ -301,12 +301,12 @@ export class Connection {
   }
 
   private scheduleRetry(): void {
-    const seconds = RETRY_SECONDS[Math.min(this.delayIdx, RETRY_SECONDS.length - 1)] ?? 15;
+    const ms = retryDelayMs(this.delayIdx);
     this.delayIdx++;
     this.retryTimer = this.d.setTimeout(() => {
       this.retryTimer = null;
       if (this.running) this.startCycle();
-    }, seconds * 1000);
+    }, ms);
   }
 
   private socketClosed(): void {

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { sameMinor, t } from "@decka/shared";
-import { startAppUpdate } from "../app/controller";
+import { connectAgain, startAppUpdate } from "../app/controller";
 import { isNewerVersion } from "../update/apkAssembler";
 import { hiddenStripApps, setStripMode, useStripModes } from "../deck/stripMode";
 import { applyTurn } from "../platform/orientation";
@@ -106,6 +106,9 @@ export default function PhoneMenu({ reduced, onToggleReduced, haptics, onToggleH
         )}
         <button type="button" className="menu-row menu-button" onClick={() => location.reload()}>
           {t("menu.reload")}
+        </button>
+        <button type="button" className="menu-row menu-button" onClick={connectAgain}>
+          {t("link.connect_again")}
         </button>
         <button type="button" className="menu-row menu-button danger" onClick={onUnpair}>
           {t("menu.unpair")}

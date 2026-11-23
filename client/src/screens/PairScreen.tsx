@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import logoUrl from "../../../docs/assets/decka-logo.svg";
 import { normalizeCode, parseHostInput, parsePairUrl, t } from "@decka/shared";
-import { pairErrorText, pairWith } from "../app/controller";
+import { cancelConnectAgain, pairErrorText, pairWith } from "../app/controller";
 import { isNative } from "../platform/native";
 import { scanQr } from "../platform/scan";
 import { useAppState } from "../store/store";
@@ -10,6 +10,7 @@ import type { ConnFailure } from "../net/connection";
 export default function PairScreen() {
   const native = isNative();
   const initialError = useAppState((s) => s.lastError);
+  const conn = useAppState((s) => s.conn);
   // In the browser the page is served by the PC itself, so the address is known and hidden.
   const [address, setAddress] = useState(native ? "" : location.host);
   const [code, setCode] = useState("");
@@ -82,6 +83,11 @@ export default function PairScreen() {
       <button className="primary" type="submit" disabled={busy}>
         {busy ? t("pair.busy") : t("pair.submit")}
       </button>
+      {conn === "repair" && (
+        <button type="button" disabled={busy} onClick={cancelConnectAgain}>
+          {t("link.cancel")}
+        </button>
+      )}
     </form>
   );
 }

@@ -236,10 +236,10 @@ describe("Connection", () => {
     expect(b.statuses).toEqual(["connecting:-", "online:lan"]);
   });
 
-  test("retry delays are 1, 2, 4, 8, 15, 15 seconds and reset after a welcome", () => {
+  test("retry delays are 1, 2, 5, 10, 10, 10 seconds and reset after a welcome", () => {
     const { conn, statuses } = setup();
     conn.start();
-    const delays = [1, 2, 4, 8, 15, 15];
+    const delays = [1, 2, 5, 10, 10, 10];
     for (const [i, s] of delays.entries()) {
       expect(FakeWS.instances).toHaveLength(i + 1);
       last().serverClose();
