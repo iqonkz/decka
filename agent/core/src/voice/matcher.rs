@@ -75,6 +75,8 @@ pub struct Table {
     patterns: Vec<Compiled>,
     /// Lead-ins of the `calc` templates ("calculate", "сколько будет", or empty for a bare expression).
     calc_leads: Vec<String>,
+    /// Lead-ins of the `remind` templates ("напомни мне", "remind me to"), as words.
+    remind_leads: Vec<Vec<String>>,
 }
 
 // ---- Normalisation ----------------------------------------------------------------------------------------------
@@ -359,6 +361,7 @@ impl Table {
         let mut patterns = Vec::new();
         let mut intents = Vec::new();
         let mut calc_leads = Vec::new();
+        let mut remind_leads: Vec<Vec<String>> = Vec::new();
         for (i, def) in raw.intents.into_iter().enumerate() {
             if def.tool == "calc" {
                 // Arithmetic keeps its symbols, which the tokens below would lose: its templates are only lead-ins before `{expr}`.
@@ -370,12 +373,21 @@ impl Table {
                 continue;
             }
             for p in &def.patterns {
-                patterns.push(compile(p, i).ok_or_else(|| format!("bad pattern: {p}"))?);
+                let compiled = compile(p, i).ok_or_else(|| format!("bad pattern: {p}"))?;
+                // "напомни мне {text} ...": the words in front of the text are the lead-in the time of a reminder is looked for after.
+                if def.tool == "remind" {
+                    if let [Piece::Lit(lead), Piece::Slot(slot), ..] = compiled.pieces.as_slice() {
+                        if slot == "text" && !remind_leads.contains(lead) {
+                            remind_leads.push(lead.clone());
+                        }
+                    }
+                }
+                patterns.push(compiled);
             }
             intents.push((def.tool, def.args));
         }
         let words = |v: Vec<String>| v.iter().map(|s| tokens(s)).filter(|t| !t.is_empty()).collect();
-        Ok(Table { lang: raw.lang, yes: words(raw.yes), no: words(raw.no), intents, patterns, calc_leads })
+        Ok(Table { lang: raw.lang, yes: words(raw.yes), no: words(raw.no), intents, patterns, calc_leads, remind_leads })
     }
 
     fn intent(&self, idx: usize, slots: &[(String, Vec<String>)]) -> Option<Intent> {
@@ -404,9 +416,18 @@ impl Table {
 
     /// Matches a recognised phrase.
     pub fn matches(&self, phrase: &str) -> Match {
+        self.matches_at(phrase, &crate::assistant::Local::now())
+    }
+
+    /// `matches` with the clock given: a time of the day without a day is the next such time after `now`.
+    pub fn matches_at(&self, phrase: &str, now: &crate::assistant::Local) -> Match {
         let toks = tokens(phrase);
         if toks.is_empty() {
             return Match::None;
+        }
+        // A reminder with a time said in any order ("напомни в 2215 сделать X"): the time is worked out here, not guessed by the model.
+        if let Some(intent) = super::timephrase::remind_intent(phrase, &self.remind_leads, now) {
+            return Match::Hit(intent);
         }
         // Arithmetic first: its phrase has digits and signs, nothing else in the table looks like it.
         if let Some(expr) = super::calc::extract(phrase, &self.calc_leads) {
@@ -527,6 +548,26 @@ mod tests {
         // A real search request still searches.
         let i = hit(&en, "search for cat videos");
         assert_eq!((i.tool.as_str(), i.args["query"].as_str()), ("web_search", Some("cat videos")));
+    }
+
+    /// T23.B: the phrases of the owner report go through the real tables, 21:00 on a Tuesday.
+    #[test]
+    fn reminder_times_of_the_report_come_from_the_table_not_the_model() {
+        let now = crate::assistant::Local::new(2026, 11, 24, 21, 0).unwrap();
+        let ru = Table::parse(include_str!("../../../../shared/voice/ru.json")).unwrap();
+        let get = |t: &Table, say: &str| match t.matches_at(say, &now) {
+            Match::Hit(i) => (i.tool, i.args["text"].as_str().unwrap().to_string(), i.args.get("time").and_then(|v| v.as_str()).map(String::from), i.args.get("inMinutes").and_then(|v| v.as_u64())),
+            other => panic!("{say:?} -> {other:?}"),
+        };
+        let rem = |text: &str, time: Option<&str>, m: Option<u64>| ("remind".to_string(), text.to_string(), time.map(String::from), m);
+        assert_eq!(get(&ru, "Напомни мне в 2215 сделать дюзен"), rem("сделать дюзен", Some("22:15"), None));
+        assert_eq!(get(&ru, "напомни в 22.14 сделать дизайн"), rem("сделать дизайн", Some("22:14"), None));
+        assert_eq!(get(&ru, "напомни мне в 22:14 сделать дизайн"), rem("сделать дизайн", Some("22:14"), None));
+        assert_eq!(get(&ru, "напомни мне в 10 вечера позвонить"), rem("позвонить", Some("22:00"), None));
+        assert_eq!(get(&ru, "напомни мне через 5 минут проверить чайник"), rem("проверить чайник", None, Some(5)));
+        assert_eq!(get(&en(), "remind me to call mom in 5 minutes"), rem("call mom", None, Some(5)));
+        // Without a time the table leaves a reminder to the model, as before.
+        assert_eq!(ru.matches_at("напомни мне купить хлеб", &now), Match::None);
     }
 
     #[test]
