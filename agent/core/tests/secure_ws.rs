@@ -248,9 +248,11 @@ async fn v1_works_from_loopback_and_is_refused_from_the_network() {
     assert_eq!(recv_text(&mut ws).await["t"], "paired");
     assert_eq!(recv_text(&mut ws).await["t"], "welcome");
 
-    // From another address of this PC the same message gets 4426 and the supported list.
+    // From another address of this PC the same message gets 4426 and the supported list. The agent of this test listens on
+    // 127.0.0.1 only (no firewall prompt on a developer PC), so the address of the network card refuses the connection: the
+    // refusal of v1 from the network is then covered by `netpolicy.rs`, which fakes the category of the connection.
     let Some(ip) = decka_core::agent::lan_ips().into_iter().next() else { return e.agent.shutdown().await };
-    let mut ws = connect_async(format!("ws://{ip}:{}/ws", e.port)).await.unwrap().0;
+    let Ok((mut ws, _)) = connect_async(format!("ws://{ip}:{}/ws", e.port)).await else { return e.agent.shutdown().await };
     ws.send(Message::text(json!({ "t": "hello", "v": 1, "token": "x".repeat(43), "client": client() }).to_string())).await.unwrap();
     let err = recv_text(&mut ws).await;
     assert_eq!((err["code"].as_str(), err["supported"].clone()), (Some("PROTOCOL_VERSION"), json!([2])));

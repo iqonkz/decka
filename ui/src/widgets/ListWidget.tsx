@@ -35,7 +35,7 @@ export default function ListWidget({ item }: { item: ListItem }) {
       {rows.length === 0 ? (
         <div className="rem-none">{t("lists.empty")}</div>
       ) : (
-        rows.slice(0, Math.max(1, item.h * 2 - 1)).map((r) => (
+        rows.slice(0, item.h * 3 - 1).map((r) => (
           <div className={r.done ? "rem-row list-done" : "rem-row"} key={r.id} onClick={() => toggle(r.id, r.done)}>
             <span className="list-mark">{r.done ? <Icon icon="lucide:check" size={14} /> : null}</span>
             <span className="rem-text">{r.text}</span>

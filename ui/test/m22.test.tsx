@@ -56,8 +56,8 @@ describe("reminders widget", () => {
   test("a 2x1 widget shows fewer rows than a 2x2 one, each text on one line (ellipsis in CSS)", () => {
     const many: RemindersSection = { items: Array.from({ length: 5 }, (_, i) => ({ id: `000000000000000${i}`, text: `r${i}`, at: "2026-11-25T18:30" })) };
     const rows = (html: string) => (html.match(/class="rem-row"/g) ?? []).length;
-    expect(rows(render(at("reminders", 2, 1), { reminders: many }))).toBe(1);
-    expect(rows(render(at("reminders", 2, 2), { reminders: many }))).toBe(3);
+    expect(rows(render(at("reminders", 2, 1), { reminders: many }))).toBe(2);
+    expect(rows(render(at("reminders", 2, 2), { reminders: many }))).toBe(5);
     expect(rows(render(at("reminders", 4, 4), { reminders: many }))).toBe(5);
   });
 });

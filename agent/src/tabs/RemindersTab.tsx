@@ -4,6 +4,7 @@ import { call } from "../ipc";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
 import ConfirmButton from "../ui/ConfirmButton";
+import PhIcon from "../ui/PhIcon";
 import { editItems, isLocalTime, nextHour, visibleReminders } from "./remindersModel";
 
 type View = "reminders" | "lists";
@@ -60,7 +61,7 @@ function RemindersView({ onError }: { onError: (e: unknown) => void }) {
           <InlineText value={r.text} label={t("rem.text")} done={r.done} onSave={(next) => void run(call("reminder_upsert", { id: r.id, text: next, at: r.at }))} />
           <span className="grow" />
           <Button className="btn-icon" aria-label={t("common.delete")} title={t("common.delete")} onClick={() => void run(call("reminder_delete", { id: r.id }))}>
-            🗑
+            <PhIcon name="trash" size={16} />
           </Button>
         </div>
       ))}
@@ -112,10 +113,10 @@ function ListsView({ onError }: { onError: (e: unknown) => void }) {
         {lists.length === 0 && <p className="muted">{t("rem.lists_empty")}</p>}
         {lists.map((l) => (
           <div className={l.id === list?.id ? "row rem-name on" : "row rem-name"} key={l.id}>
-            <button type="button" className="link grow" onClick={() => setCurrent(l.id)}>
+            <button type="button" className="link rem-edit grow" onClick={() => setCurrent(l.id)}>
               {l.name}
             </button>
-            <ConfirmButton icon label="🗑" question={t("rem.confirm_delete_list", { name: l.name })} onConfirm={() => void run(call("list_delete", { id: l.id }))} />
+            <ConfirmButton icon label={<PhIcon name="trash" size={16} />} title={t("common.delete")} question={t("rem.confirm_delete_list", { name: l.name })} onConfirm={() => void run(call("list_delete", { id: l.id }))} />
           </div>
         ))}
         <div className="row rem-add">
@@ -138,7 +139,7 @@ function ListsView({ onError }: { onError: (e: unknown) => void }) {
                 <InlineText value={i.text} label={t("rem.text")} done={i.done} onSave={(text) => void save(list, { id: i.id, text })} />
                 <span className="grow" />
                 <Button className="btn-icon" aria-label={t("common.delete")} title={t("common.delete")} onClick={() => void save(list, { id: i.id, text: null })}>
-                  🗑
+                  <PhIcon name="trash" size={16} />
                 </Button>
               </div>
             ))}

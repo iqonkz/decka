@@ -4,6 +4,7 @@ import { call } from "../ipc";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
 import ConfirmButton from "../ui/ConfirmButton";
+import PhIcon from "../ui/PhIcon";
 
 const MAX_FACTS = 200;
 
@@ -50,7 +51,7 @@ export default function MemoryBlock() {
             </button>
           )}
           <Button className="btn-icon" aria-label={t("common.delete")} title={t("common.delete")} onClick={() => void run(call("memory_delete", { id: f.id }))}>
-            🗑
+            <PhIcon name="trash" size={16} />
           </Button>
         </div>
       ))}

@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env node
+#!/usr/bin/env node
 // Pictures of the voice pill (PC) and of the voice button, bubble and confirmation sheet (phone) for visual acceptance (T21.S).
 // Builds tools/voice-shots with Vite, serves it, drives headless Chrome/Edge with the DevTools protocol.
 //   node tools/voice-shots.mjs [outDir]      writes pill-*.png (360x160 css px, x3) and phone-*.png (800x360 css px, x2)
@@ -50,6 +50,14 @@ const SHOTS = {
   // Landing pictures (T22.3): `click` selects an item of the editor before the shot.
   "pc-editor": [{ w: 1600, h: 1000, scale: 1 }, "scene=settings&theme=studio", ".editor-item::6"],
   "pc-voice": [{ w: 1600, h: 900, scale: 1 }, "scene=pill&state=done&heard=open+calculator&reply=Opened+Calculator&desk=1"],
+  // M22 (T22.S): the new widgets, the windows and the pill labels.
+  "m22-widgets": [DECK, "scene=deck&m22=1&theme=glass"],
+  "m22-widgets-amoled": [DECK, "scene=deck&m22=1&theme=amoled"],
+  "m22-reminders-window": [{ w: 1100, h: 700, scale: 1 }, "scene=settings&theme=studio&go=reminders"],
+  "m22-lists-window": [{ w: 1100, h: 700, scale: 1 }, "scene=settings&theme=studio&go=reminders", ".seg button::1"],
+  "m22-voice-window": [{ w: 1100, h: 1300, scale: 1 }, "scene=settings&theme=studio&go=voice"],
+  "m22-pill-dictating": [PILL, "scene=pill&state=listening&activity=dictate"],
+  "m22-pill-looking": [PILL, "scene=pill&state=thinking&activity=screen&heard=what+is+on+screen"],
   "phone-idle": [PHONE, "scene=phone&state=idle"],
   "phone-listening": [PHONE, "scene=phone&state=listening"],
   "phone-done": [PHONE, "scene=phone&state=done&heard=turn+the+volume+up&reply=Done"],

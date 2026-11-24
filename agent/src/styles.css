@@ -482,8 +482,11 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="color"]), select, te
 .rem-add { gap: 8px; align-items: center; margin-top: 8px; }
 .rem-edit { text-align: start; color: inherit; text-decoration: none; cursor: text; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 .rem-edit-done { opacity: 0.55; text-decoration: line-through; }
-.rem-lists { display: grid; grid-template-columns: minmax(180px, 1fr) 2fr; gap: 12px; align-items: start; }
+.rem-lists { display: grid; grid-template-columns: minmax(250px, 1fr) 2fr; gap: 12px; align-items: start; }
+.rem-line input[type="checkbox"] { flex: none; }
+.rem-add .btn { flex: none; }
 .rem-name.on { background: color-mix(in srgb, var(--accent) 16%, transparent); border-radius: 8px; }
 .confirm-inline { display: inline-flex; align-items: center; gap: 6px; }
 .btn-icon { padding: 2px 8px; min-width: 0; }
 textarea { width: 100%; box-sizing: border-box; font: inherit; }
+.rem-add input { min-width: 0; }

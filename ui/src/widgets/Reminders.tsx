@@ -10,7 +10,7 @@ export default function Reminders({ item }: { item: RemindersItem }) {
   const { reminders } = useDeckEnv();
   const items = reminders?.items ?? [];
   const now = new Date();
-  const rows = Math.max(1, item.h * 2 - 1);
+  const rows = item.h * 3 - 1;
   return (
     <div className="rem">
       <div className="rem-title">{t("reminders.title")}</div>
