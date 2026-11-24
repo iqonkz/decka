@@ -173,7 +173,17 @@ async fn store_changes_arrive_as_patches_and_duplicates_do_not() {
     assert_eq!(patch["value"], json!({ "mic.muted": true }));
 
     assert!(!e.agent.store().set("vars", json!({ "mic.muted": true })));
-    assert!(timeout(Duration::from_millis(300), ws.next()).await.is_err(), "unexpected frame after a no-op set");
+    // Background sources (live system state) may legitimately patch other
+    // sections or other vars keys; only a re-send of the same value is a bug.
+    let deadline = tokio::time::Instant::now() + Duration::from_millis(300);
+    while let Ok(Some(Ok(frame))) = tokio::time::timeout_at(deadline, ws.next()).await {
+        let text = frame.into_text().map(|t| t.to_string()).unwrap_or_default();
+        let v: serde_json::Value = serde_json::from_str(&text).unwrap_or_default();
+        assert!(
+            !(v["t"] == "patch" && v["section"] == "vars" && v["value"] == json!({ "mic.muted": true })),
+            "duplicate vars patch after a no-op set: {text}"
+        );
+    }
     e.agent.shutdown().await;
 }
 
