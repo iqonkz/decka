@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { t, tn } from "@decka/shared";
 import { gridLimits, type Orientation } from "@decka/shared";
 
@@ -14,6 +14,14 @@ interface Props {
 export default function GridPicker({ cols, rows, orientation, onPick }: Props) {
   const [open, setOpen] = useState(false);
   const [hover, setHover] = useState<{ c: number; r: number } | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
   const shown = hover ?? { c: cols, r: rows };
   const limits = gridLimits(orientation);
   const [minC, maxC] = limits.cols;

@@ -14,6 +14,9 @@ import TwitchSection from "./TwitchSection";
 import YoutubeSection from "./YoutubeSection";
 import MailSection from "./MailSection";
 import WinNotifSection from "./WinNotifSection";
+import LyricsSection from "./LyricsSection";
+import { lyricsGet, lyricsSet } from "./lyricsIpc";
+import Switch from "../ui/Switch";
 import {
   filterIntegrations,
   type IntegrationCategory,
@@ -69,14 +72,29 @@ export default function IntegrationsTab() {
   const [activeIntegration, setActiveIntegration] = useState<string | null>(null);
   const [filterChip, setFilterChip] = useState<IntegrationFilterChip>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [lyricsEnabled, setLyricsEnabled] = useState(false);
 
   const load = useCallback(async () => {
     const c = await call("get_config");
     const s = await call("get_status");
+    const lyr = await lyricsGet();
     setConfig(c);
     setChecks(c.collectors.checks);
     setPort(s.listening?.port ?? c.port);
+    setLyricsEnabled(lyr);
   }, []);
+
+  const toggleLyrics = useCallback(async (next: boolean) => {
+    const prev = lyricsEnabled;
+    setLyricsEnabled(next);
+    try {
+      await lyricsSet(next);
+      setMessage(t("common.saved"));
+    } catch (e) {
+      setLyricsEnabled(prev);
+      setError(String(e));
+    }
+  }, [lyricsEnabled]);
 
   useEffect(() => {
     load().catch((e) => setError(String(e)));
@@ -166,6 +184,17 @@ export default function IntegrationsTab() {
         keywords: ["ai", "claude", "codex", "llm", "limits"],
       },
       {
+        id: "lyrics",
+        name: t("integ.item_lyrics_name"),
+        titleKey: "integ.item_lyrics_name",
+        descKey: "integ.item_lyrics_desc",
+        category: "data",
+        icon: "music-notes",
+        connected: lyricsEnabled,
+        toggle: true,
+        keywords: ["lyrics", "lrclib", "songs", "music", "synced", "текст", "песни"],
+      },
+      {
         id: "api_token",
         name: t("integ.api_token"),
         titleKey: "integ.api_token",
@@ -176,7 +205,7 @@ export default function IntegrationsTab() {
         keywords: ["api", "token", "auth", "developer", "key", "curl", "powershell", "examples", "webhook"],
       },
     ];
-  }, [config, checks.length]);
+  }, [config, checks.length, lyricsEnabled]);
 
   const filteredIntegrations = useMemo(() => {
     return filterIntegrations(integrationsList, filterChip, searchQuery);
@@ -243,6 +272,7 @@ export default function IntegrationsTab() {
         {activeIntegration === "winnotif" && <WinNotifSection config={config} onSaved={load} />}
         {activeIntegration === "weather" && <WeatherSection config={config} onSaved={load} />}
         {activeIntegration === "ai" && <AiSection config={config} onSaved={load} />}
+        {activeIntegration === "lyrics" && <LyricsSection enabled={lyricsEnabled} onToggle={(v) => void toggleLyrics(v)} />}
 
         {activeIntegration === "api_token" && (
           <div>
@@ -485,7 +515,15 @@ export default function IntegrationsTab() {
                 </div>
               </div>
               <div className="integration-card-action">
-                {item.connected ? (
+                {item.toggle ? (
+                  <span onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+                    <Switch
+                      checked={item.connected}
+                      onChange={(next) => void toggleLyrics(next)}
+                      aria-label={item.name}
+                    />
+                  </span>
+                ) : item.connected ? (
                   <span className="integration-connected-badge">
                     <span className="check-icon">
                       <PhIcon name="check" size={14} />

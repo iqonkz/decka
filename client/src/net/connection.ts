@@ -183,6 +183,11 @@ export class Connection {
     return true;
   }
 
+  /** M24 (DATA_MODEL.md 14): adjusts per-track synced lyrics timing by -500 or +500 ms. */
+  lyricsOffset(trackKey: string, deltaMs: -500 | 500): void {
+    if (this.ws && this.welcomed) this.sendMsg({ t: "lyrics_offset", trackKey, deltaMs });
+  }
+
   /** After the handshake every message goes out as an encrypted binary frame; never as plain text. */
   private sendMsg(msg: Record<string, unknown>): void {
     const ws = this.ws;

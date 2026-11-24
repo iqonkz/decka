@@ -50,7 +50,7 @@ export interface AppState {
 
 export type AppUpdatePhase = { phase: "idle" } | { phase: "downloading"; pct: number } | { phase: "verifying" } | { phase: "error"; kind: "bad" | "failed" };
 
-const SECTIONS: readonly string[] = ["layout", "sys", "statuses", "notifications", "vars", "focus", "media", "icons", "weather", "obs", "ai", "twitch", "youtube", "strip", "battery", "mail", "update", "reminders", "lists"];
+const SECTIONS: readonly string[] = ["layout", "sys", "statuses", "notifications", "vars", "focus", "media", "lyrics", "icons", "weather", "obs", "ai", "twitch", "youtube", "strip", "battery", "mail", "update", "reminders", "lists"];
 const MAX_TOASTS = 3;
 const DEFAULT_TOAST_MS = 8000;
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { getLanguage, pickText, t, type Answer, type CatalogItem, type Page } from "@decka/shared";
 import Button from "../ui/Button";
 import { actionFromUrl } from "./addButton";
@@ -25,6 +25,13 @@ export default function AskDialog({ item, pages, currentPageId, obs, onConfirm, 
   const [text, setText] = useState("");
   const [choice, setChoice] = useState("");
   const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   const options =
     item.ask === "obs_scene" ? (obs?.scenes ?? []).map((s) => ({ id: s, label: s }))

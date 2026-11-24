@@ -806,7 +806,7 @@ export default function LayoutTab() {
         <div className="editor-main" ref={mainRef} style={{ position: "relative" }}>
           <div className="preview-bar">
             {narrow && (
-              <button type="button" className="icon-btn library-toggle" aria-expanded={libraryOpen} onClick={() => setLibraryOpen((v) => !v)}>
+              <button type="button" className="icon-btn library-toggle" aria-label={t("layout.library")} aria-expanded={libraryOpen} onClick={() => setLibraryOpen((v) => !v)}>
                 <PhIcon name="squares-four" size={16} /> {t("layout.library")}
               </button>
             )}

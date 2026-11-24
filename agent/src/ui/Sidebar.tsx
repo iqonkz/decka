@@ -167,8 +167,15 @@ export default function Sidebar({ activePage, onNavigate, updateAvailable }: Sid
         setShowDropdown(false);
       }
     };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowDropdown(false);
+    };
     window.addEventListener("pointerdown", onPointerDown);
-    return () => window.removeEventListener("pointerdown", onPointerDown);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("keydown", onKey);
+    };
   }, []);
 
   const groups = sidebarGroups(updateAvailable);
@@ -190,6 +197,7 @@ export default function Sidebar({ activePage, onNavigate, updateAvailable }: Sid
           <button
             type="button"
             className="sidebar-search-btn-collapsed"
+            aria-label={t("sidebar.search")}
             title={t("sidebar.search")}
             onClick={() => {
               setCollapsed(false);
@@ -219,7 +227,7 @@ export default function Sidebar({ activePage, onNavigate, updateAvailable }: Sid
               <button
                 type="button"
                 className="sidebar-search-clear"
-                aria-label={t("sidebar.nothing_found")}
+                aria-label={t("item.clear")}
                 onClick={() => onSearchChange("")}
               >
                 <PhIcon name="x" size={14} />

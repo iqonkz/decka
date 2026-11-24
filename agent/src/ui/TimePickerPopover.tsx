@@ -169,11 +169,11 @@ export default function TimePickerPopover({ value, onChange, onClose }: TimePick
       {/* Month Calendar Grid */}
       <div className="rem-calendar">
         <div className="rem-calendar-nav">
-          <button type="button" className="rem-cal-nav-btn" onClick={prevMonth} aria-label="Previous month">
+          <button type="button" className="rem-cal-nav-btn" onClick={prevMonth} aria-label={t("rem.prev_month")}>
             <PhIcon name="caret-left" size={14} />
           </button>
           <span className="rem-cal-month-title">{monthTitle}</span>
-          <button type="button" className="rem-cal-nav-btn" onClick={nextMonth} aria-label="Next month">
+          <button type="button" className="rem-cal-nav-btn" onClick={nextMonth} aria-label={t("rem.next_month")}>
             <PhIcon name="caret-right" size={14} />
           </button>
         </div>

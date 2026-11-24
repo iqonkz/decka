@@ -43,6 +43,17 @@ const SAMPLE_INTEGRATIONS: IntegrationDef[] = [
     keywords: ["weather", "temperature", "forecast"],
   },
   {
+    id: "lyrics",
+    name: "Lyrics",
+    titleKey: "integ.item_lyrics_name",
+    descKey: "integ.item_lyrics_desc",
+    category: "data",
+    icon: "music-notes",
+    connected: false,
+    toggle: true,
+    keywords: ["lyrics", "lrclib", "songs", "music"],
+  },
+  {
     id: "api_token",
     name: "API Token",
     titleKey: "integ.api_token",
@@ -57,7 +68,7 @@ const SAMPLE_INTEGRATIONS: IntegrationDef[] = [
 describe("filterIntegrations", () => {
   test("chip 'all' returns all items when query is empty", () => {
     const result = filterIntegrations(SAMPLE_INTEGRATIONS, "all", "");
-    expect(result.map((i) => i.id)).toEqual(["obs", "twitch", "mail", "weather", "api_token"]);
+    expect(result.map((i) => i.id)).toEqual(["obs", "twitch", "mail", "weather", "lyrics", "api_token"]);
   });
 
   test("chip 'connected' returns only connected integrations", () => {
@@ -73,7 +84,10 @@ describe("filterIntegrations", () => {
     expect(notifications.map((i) => i.id)).toEqual(["mail"]);
 
     const data = filterIntegrations(SAMPLE_INTEGRATIONS, "data", "");
-    expect(data.map((i) => i.id)).toEqual(["weather"]);
+    expect(data.map((i) => i.id)).toEqual(["weather", "lyrics"]);
+
+    const lrclib = filterIntegrations(SAMPLE_INTEGRATIONS, "data", "lrclib");
+    expect(lrclib.map((i) => i.id)).toEqual(["lyrics"]);
 
     const developers = filterIntegrations(SAMPLE_INTEGRATIONS, "developers", "");
     expect(developers.map((i) => i.id)).toEqual(["api_token"]);

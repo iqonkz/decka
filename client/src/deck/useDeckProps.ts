@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { t, BACK_PAGE } from "@decka/shared";
 import { EMPTY_DATA, pressErrorTitle, type DeckCallbacks, type DeckData } from "@decka/ui";
-import { dismiss, openNotification, press, toggleListItem } from "../app/controller";
+import { dismiss, openNotification, press, sendLyricsOffset, toggleListItem } from "../app/controller";
 import { lastTouchWokeScreen } from "../display/idle";
 import { hapticEvent } from "../platform/haptics";
 import { getState, goBack, navigateManually, openPopup, pushToast, openPermHistory, reopenPerm, signalAttention, useAppState } from "../store/store";
@@ -17,6 +17,7 @@ export function useDeckProps(): { data: DeckData } & Required<DeckCallbacks> {
   const statuses = useAppState((s) => s.state?.statuses);
   const notifications = useAppState((s) => s.state?.notifications);
   const media = useAppState((s) => s.state?.media);
+  const lyrics = useAppState((s) => s.state?.lyrics);
   const weather = useAppState((s) => s.state?.weather);
   const obs = useAppState((s) => s.state?.obs);
   const ai = useAppState((s) => s.state?.ai);
@@ -42,6 +43,7 @@ export function useDeckProps(): { data: DeckData } & Required<DeckCallbacks> {
       statuses: statuses ?? EMPTY_DATA.statuses,
       notifications: notifications ?? EMPTY_DATA.notifications,
       media: media ?? null,
+      lyrics: lyrics ?? null,
       weather: weather ?? null,
       obs: obs ?? null,
       ai: ai ?? null,
@@ -57,7 +59,7 @@ export function useDeckProps(): { data: DeckData } & Required<DeckCallbacks> {
       ...(keyFace !== undefined ? { keyFace } : {}),
       ...(keyLabels !== undefined ? { keyLabels } : {}),
     }),
-    [online, vars, sys, statuses, notifications, media, weather, obs, ai, twitch, youtube, battery, mail, reminders, lists, icons, appPages, focusApp, keyFace, keyLabels],
+    [online, vars, sys, statuses, notifications, media, lyrics, weather, obs, ai, twitch, youtube, battery, mail, reminders, lists, icons, appPages, focusApp, keyFace, keyLabels],
   );
 
   const onPressError = useCallback((e: { code: string; message?: string }) => {
@@ -88,5 +90,5 @@ export function useDeckProps(): { data: DeckData } & Required<DeckCallbacks> {
     openPopup(popupId, anchor);
   }, []);
 
-  return { data, onPress: press, onPressError, onNavigate, onDismiss: dismiss, onOpenNotification: openNotification, onOpenPopup, onFeedback, onTimerDone, onOpenPerm: reopenPerm, onOpenPermHistory: openPermHistory, onToggleListItem: toggleListItem };
+  return { data, onPress: press, onPressError, onNavigate, onDismiss: dismiss, onOpenNotification: openNotification, onOpenPopup, onFeedback, onTimerDone, onOpenPerm: reopenPerm, onOpenPermHistory: openPermHistory, onToggleListItem: toggleListItem, onLyricsOffset: sendLyricsOffset };
 }

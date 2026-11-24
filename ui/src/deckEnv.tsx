@@ -1,5 +1,6 @@
 import { createContext, useContext } from "react";
 import type { AiInfo, BatteryInfo, ListsSection, MailInfo, MediaInfo, Notification, Page, RemindersSection, ObsInfo, StatusItem, SysStats, TwitchInfo, VarValue, WeatherInfo, YoutubeInfo } from "@decka/shared";
+import type { LyricsInfo } from "@decka/shared";
 
 /** What the deck shows: the live sections of the agent's state. No connection, store or socket in here. */
 export interface DeckData {
@@ -27,6 +28,8 @@ export interface DeckData {
   /** M22 (DATA_MODEL.md 13.7): the next reminders and the lists (null = nothing yet). */
   reminders?: RemindersSection | null;
   lists?: ListsSection | null;
+  /** M24 (DATA_MODEL.md 14): synced/plain lyrics of current track (null = off or none). */
+  lyrics?: LyricsInfo | null;
   /** The pages that follow an app (`apps` set) and the app in front on the PC: what the `context` widget shows. */
   pages?: Page[];
   focusApp?: string | null;
@@ -63,6 +66,8 @@ export interface DeckCallbacks {
   onOpenPermHistory?: () => void;
   /** An item of the `list` widget was tapped: the PC marks or unmarks it (`list_toggle`). */
   onToggleListItem?: (listId: string, itemId: string) => void;
+  /** M24: user tapped `-0.5 s` / `+0.5 s` in lyrics overlay (`lyrics_offset`). */
+  onLyricsOffset?: (trackKey: string, deltaMs: -500 | 500) => void;
 }
 
 export type DeckEnv = DeckData & DeckCallbacks;

@@ -1,15 +1,20 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { t, type MediaItem } from "@decka/shared";
+import { t, type MediaInfo, type MediaItem } from "@decka/shared";
 import { useDeckEnv } from "../deckEnv";
 import Icon from "../Icon";
 import Key from "../Key";
 import { useDeckMetrics } from "../metricsContext";
 import { coverGradient, sampleImageColor } from "./coverColor";
+import { effectiveMediaPositionMs, formatOffsetSeconds, selectActiveLyricIndex } from "./lyricsLogic";
+import type { LyricsInfo } from "@decka/shared";
 import { mediaKeySet } from "./mediaKeys";
 import { currentPosition, formatTime } from "./mediaPos";
 import WidgetEmpty from "./WidgetEmpty";
 
 const CONTROL_SIDE = 40;
+const LYRICS_HOLD_MS = 400;
+const LYRICS_BAR_MS = 4000;
+const MOVE_CANCEL_PX = 8;
 
 /** Width and height in px of the element behind the returned ref; follows resizes. */
 function useSize(): [React.RefObject<HTMLDivElement | null>, { width: number; height: number }] {
@@ -51,7 +56,6 @@ function WavyProgress({ progress, playing, posText, totalText, durationSec, posi
 }) {
   const clipId = useId();
   const pct = Math.min(100, Math.max(0, progress * 100));
-  // Repeating period of 16 px; height 8 px with center at y=4 and amplitude +/- 2 px.
   const segments = 18;
   let d = "M 0 4";
   for (let i = 0; i < segments; i++) {
@@ -86,13 +90,175 @@ function WavyProgress({ progress, playing, posText, totalText, durationSec, posi
   );
 }
 
-/** "Now playing" (DATA_MODEL.md 6.2, DESIGN.md 4.16): cover gradient, wavy progress, 40 px controls. */
+/** Right-side lyrics panel for `media` widget L (DESIGN.md 4.17): synced / plain view + long-press offset pills. */
+function LyricsPanel({
+  lyrics,
+  media,
+  now,
+  onOffset,
+}: {
+  lyrics: LyricsInfo;
+  media: MediaInfo;
+  now: number;
+  onOffset?: (trackKey: string, deltaMs: -500 | 500) => void;
+}) {
+  const [optimistic, setOptimistic] = useState<{ trackKey: string; baseOffset: number; delta: number }>({
+    trackKey: lyrics.trackKey,
+    baseOffset: lyrics.offsetMs,
+    delta: 0,
+  });
+  const localDelta =
+    optimistic.trackKey === lyrics.trackKey && optimistic.baseOffset === lyrics.offsetMs
+      ? optimistic.delta
+      : 0;
+  const effectiveOffset = lyrics.offsetMs + localDelta;
+
+  const [showOffset, setShowOffset] = useState(false);
+  const holdTimer = useRef<number | null>(null);
+  const hideTimer = useRef<number | null>(null);
+  const pressOrigin = useRef<{ x: number; y: number } | null>(null);
+
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const lineRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const [shiftY, setShiftY] = useState(0);
+
+  const effectiveMs = effectiveMediaPositionMs(media, now, effectiveOffset);
+  const activeIdx = lyrics.synced ? selectActiveLyricIndex(lyrics.lines, effectiveMs) : -1;
+
+  // Center the active synced line around 40% of viewport height (DESIGN.md 4.17).
+  useEffect(() => {
+    if (!lyrics.synced) return;
+    const vp = viewportRef.current;
+    if (!vp) return;
+    const anchor = vp.clientHeight * 0.4;
+    if (activeIdx < 0) {
+      setShiftY(Math.max(0, Math.round(anchor - 14)));
+      return;
+    }
+    const lineEl = lineRefs.current[activeIdx];
+    if (!lineEl) return;
+    setShiftY(Math.round(anchor - (lineEl.offsetTop + lineEl.offsetHeight / 2)));
+  }, [lyrics.synced, lyrics.trackKey, lyrics.lines.length, activeIdx]);
+
+  useEffect(() => {
+    return () => {
+      if (holdTimer.current !== null) window.clearTimeout(holdTimer.current);
+      if (hideTimer.current !== null) window.clearTimeout(hideTimer.current);
+    };
+  }, []);
+
+  const scheduleHideBar = () => {
+    if (hideTimer.current !== null) window.clearTimeout(hideTimer.current);
+    hideTimer.current = window.setTimeout(() => setShowOffset(false), LYRICS_BAR_MS);
+  };
+
+  const clearHold = () => {
+    if (holdTimer.current !== null) {
+      window.clearTimeout(holdTimer.current);
+      holdTimer.current = null;
+    }
+    pressOrigin.current = null;
+  };
+
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if ((e.target as HTMLElement).closest(".media-lyrics-offset")) return;
+    pressOrigin.current = { x: e.clientX, y: e.clientY };
+    clearHold();
+    pressOrigin.current = { x: e.clientX, y: e.clientY };
+    holdTimer.current = window.setTimeout(() => {
+      holdTimer.current = null;
+      setShowOffset(true);
+      scheduleHideBar();
+    }, LYRICS_HOLD_MS);
+  };
+
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const start = pressOrigin.current;
+    if (!start || holdTimer.current === null) return;
+    if (Math.hypot(e.clientX - start.x, e.clientY - start.y) > MOVE_CANCEL_PX) {
+      clearHold();
+    }
+  };
+
+  const applyDelta = (deltaMs: -500 | 500) => {
+    setOptimistic({
+      trackKey: lyrics.trackKey,
+      baseOffset: lyrics.offsetMs,
+      delta: localDelta + deltaMs,
+    });
+    onOffset?.(lyrics.trackKey, deltaMs);
+    scheduleHideBar();
+  };
+
+  return (
+    <div
+      className="media-lyrics w-l"
+      aria-label={t("lyrics.region")}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={clearHold}
+      onPointerCancel={clearHold}
+      onPointerLeave={clearHold}
+    >
+      {lyrics.synced ? (
+        <div ref={viewportRef} className="media-lyrics-viewport media-lyrics-masked">
+          <div className="media-lyrics-track" style={{ transform: `translateY(${shiftY}px)` }}>
+            {lyrics.lines.map((line, i) => (
+              <div
+                key={`${i}-${line.t ?? "x"}`}
+                ref={(el) => {
+                  lineRefs.current[i] = el;
+                }}
+                className={i === activeIdx ? "media-lyric-line active" : "media-lyric-line"}
+              >
+                {line.text || "\u00A0"}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="media-lyrics-plain media-lyrics-masked">
+          {lyrics.lines.map((line, i) => (
+            <div key={i} className="media-lyric-plain-line">
+              {line.text || "\u00A0"}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showOffset && (
+        <div className="media-lyrics-offset" onPointerDown={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            className="media-offset-pill"
+            aria-label={t("lyrics.earlier")}
+            onClick={() => applyDelta(-500)}
+          >
+            {t("lyrics.step_minus")}
+          </button>
+          <span className="media-offset-value">{t("lyrics.offset_sec", { val: formatOffsetSeconds(effectiveOffset) })}</span>
+          <button
+            type="button"
+            className="media-offset-pill"
+            aria-label={t("lyrics.later")}
+            onClick={() => applyDelta(500)}
+          >
+            {t("lyrics.step_plus")}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** "Now playing" (DATA_MODEL.md 6.2, DESIGN.md 4.16, 4.17): cover gradient, wavy progress, 40 px controls, L lyrics. */
 export default function Media({ item }: { item: MediaItem }) {
-  const { media } = useDeckEnv();
+  const { media, lyrics, onLyricsOffset } = useDeckEnv();
   const { side, gap } = useDeckMetrics();
   const [ref, size] = useSize();
   const stacked = isStacked(item);
   const playing = media?.playing === true;
+  const hasLyrics = Boolean(lyrics && lyrics.lines.length > 0 && item.w >= 4 && item.h >= 2);
   const [coverBg, setCoverBg] = useState<string | null>(null);
 
   useEffect(() => {
@@ -108,20 +274,21 @@ export default function Media({ item }: { item: MediaItem }) {
     return () => { live = false; };
   }, [media?.art]);
 
-  // The position is calculated here; once a second, and only while playing.
+  // Fast 250 ms tick when synced lyrics play; 1000 ms otherwise; stopped when paused.
   const [now, setNow] = useState(() => Date.now());
+  const syncedPlaying = playing && hasLyrics && lyrics?.synced === true;
   useEffect(() => {
     setNow(Date.now());
     if (!playing) return;
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    const timer = window.setInterval(() => setNow(Date.now()), syncedPlaying ? 250 : 1000);
     return () => window.clearInterval(timer);
-  }, [playing, media]);
+  }, [playing, syncedPlaying, media]);
 
   if (!media) {
     return <WidgetEmpty icon="lucide:music" text={t("widget.nothing_playing")} />;
   }
 
-  const cover = coverSide(stacked, size);
+  const cover = hasLyrics ? Math.min(48, Math.max(36, Math.round(size.height * 0.34))) : coverSide(stacked, size);
   const position = currentPosition(media, now);
   const progress = media.durationSec && position !== null ? Math.min(1, position / media.durationSec) : null;
   const posText = formatTime(position ?? 0);
@@ -146,38 +313,86 @@ export default function Media({ item }: { item: MediaItem }) {
   return (
     <>
       {coverBg && <div className="media-bg" style={{ background: coverBg }} aria-hidden="true" />}
-      <div ref={ref} className={[stacked ? "media stacked" : "media", coverBg ? "has-cover-bg" : ""].filter(Boolean).join(" ")}>
-        {cover > 0 &&
-          (media.art ? (
-            <img className="media-art" src={media.art} alt="" style={{ width: cover, height: cover }} draggable={false} />
-          ) : (
-            <div className="media-art media-art-empty" style={{ width: cover, height: cover }}>
-              <Icon icon="lucide:music" size={Math.round(0.45 * cover)} />
-            </div>
-          ))}
-        <div className="media-text">
-          <div className={below ? "media-title two-lines" : "media-title"}>{media.title}</div>
-          {media.artist && <div className="media-artist w-m">{media.artist}</div>}
-          {media.album && <div className="media-album w-l">{media.album}</div>}
-          {progress !== null && (
-            <>
-              <WavyProgress
-                progress={progress}
-                playing={playing}
-                posText={posText}
-                totalText={totalText}
-                durationSec={media.durationSec}
-                positionSec={position ?? 0}
-              />
-              <div className="media-times w-l">
-                <span>{posText}</span>
-                <span>{totalText}</span>
+      <div
+        ref={ref}
+        className={[
+          stacked && !hasLyrics ? "media stacked" : "media",
+          hasLyrics ? "has-lyrics" : "",
+          coverBg ? "has-cover-bg" : "",
+        ].filter(Boolean).join(" ")}
+      >
+        {hasLyrics && lyrics ? (
+          <>
+            <div className="media-player">
+              <div className="media-player-top">
+                {cover > 0 &&
+                  (media.art ? (
+                    <img className="media-art" src={media.art} alt="" style={{ width: cover, height: cover }} draggable={false} />
+                  ) : (
+                    <div className="media-art media-art-empty" style={{ width: cover, height: cover }}>
+                      <Icon icon="lucide:music" size={Math.round(0.45 * cover)} />
+                    </div>
+                  ))}
+                <div className="media-text">
+                  <div className="media-title two-lines">{media.title}</div>
+                  {media.artist && <div className="media-artist">{media.artist}</div>}
+                </div>
               </div>
-            </>
-          )}
-          {below && controls}
-        </div>
-        {!below && controls}
+              {progress !== null && (
+                <>
+                  <WavyProgress
+                    progress={progress}
+                    playing={playing}
+                    posText={posText}
+                    totalText={totalText}
+                    durationSec={media.durationSec}
+                    positionSec={position ?? 0}
+                  />
+                  <div className="media-times w-l">
+                    <span>{posText}</span>
+                    <span>{totalText}</span>
+                  </div>
+                </>
+              )}
+              {controls}
+            </div>
+            <LyricsPanel lyrics={lyrics} media={media} now={now} onOffset={onLyricsOffset} />
+          </>
+        ) : (
+          <>
+            {cover > 0 &&
+              (media.art ? (
+                <img className="media-art" src={media.art} alt="" style={{ width: cover, height: cover }} draggable={false} />
+              ) : (
+                <div className="media-art media-art-empty" style={{ width: cover, height: cover }}>
+                  <Icon icon="lucide:music" size={Math.round(0.45 * cover)} />
+                </div>
+              ))}
+            <div className="media-text">
+              <div className={below ? "media-title two-lines" : "media-title"}>{media.title}</div>
+              {media.artist && <div className="media-artist w-m">{media.artist}</div>}
+              {media.album && <div className="media-album w-l">{media.album}</div>}
+              {progress !== null && (
+                <>
+                  <WavyProgress
+                    progress={progress}
+                    playing={playing}
+                    posText={posText}
+                    totalText={totalText}
+                    durationSec={media.durationSec}
+                    positionSec={position ?? 0}
+                  />
+                  <div className="media-times w-l">
+                    <span>{posText}</span>
+                    <span>{totalText}</span>
+                  </div>
+                </>
+              )}
+              {below && controls}
+            </div>
+            {!below && controls}
+          </>
+        )}
       </div>
     </>
   );
