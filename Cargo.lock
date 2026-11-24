@@ -982,7 +982,7 @@ dependencies = [
 
 [[package]]
 name = "decka-agent"
-version = "0.21.0"
+version = "0.22.0"
 dependencies = [
  "decka-core",
  "serde",
@@ -1001,7 +1001,7 @@ dependencies = [
 
 [[package]]
 name = "decka-core"
-version = "0.21.0"
+version = "0.22.0"
 dependencies = [
  "axum",
  "base64 0.23.1",
