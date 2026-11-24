@@ -472,6 +472,15 @@
         "borra de la memoria {text}",
         "elimina del recuerdo {text}"
       ]
+    },
+    {
+      "tool": "calc",
+      "patterns": [
+        "calcula {expr}",
+        "cuánto es {expr}",
+        "cuanto es {expr}",
+        "{expr}"
+      ]
     }
   ]
 }

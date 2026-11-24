@@ -14,7 +14,7 @@ use crate::model::{MediaOp, SystemOp};
 pub const TOOLS: &[&str] = &[
     "press_button", "run_action", "open_app", "switch_app", "close_app", "window_other_monitor", "which_monitor", "volume", "media", "go_page",
     "web_search", "open_site", "type_text", "dictate", "timer", "system", "text_transform", "screen_ask",
-    "memory_add", "memory_remove", "day_brief", "remind", "reminders_show", "list_add", "list_show", "list_remove",
+    "memory_add", "memory_remove", "day_brief", "remind", "reminders_show", "list_add", "list_show", "list_remove", "calc", "ask",
 ];
 
 pub const MAX_TEXT: usize = 2000;
@@ -101,6 +101,10 @@ pub enum ToolCall {
     TextTransform { op: super::textops::Op, lang: Option<String> },
     /// A question about the active window (DATA_MODEL.md 13.3).
     ScreenAsk { question: String },
+    /// Arithmetic worked out on the PC by `calc.rs` (DATA_MODEL.md 12.5): never by the model.
+    Calc { expr: String },
+    /// A short answer of the model to a question that is not a command (DATA_MODEL.md 12.5).
+    Ask { question: String },
     /// A reminder (DATA_MODEL.md 13.4); the moment is worked out by the agent from `when`, never by the model.
     Remind { text: String, when: crate::assistant::When },
     RemindersShow,
@@ -454,6 +458,18 @@ fn run(tool: &str, args: &serde_json::Map<String, Value>, ctx: &Context) -> Resu
                 Some(_) => ready(ToolCall::ListRemove { list, item: Some(text(args, "item", crate::assistant::MAX_TEXT)?.to_string()) }, false, "Remove from a list"),
             }
         }
+        "calc" => {
+            only(args, &["expr"])?;
+            let expr = text(args, "expr", super::calc::MAX_EXPR)?.to_string();
+            if !super::calc::is_expression(&expr) {
+                return Err(reject("that is not arithmetic"));
+            }
+            ready(ToolCall::Calc { expr }, false, "Calculate")
+        }
+        "ask" => {
+            only(args, &["question"])?;
+            ready(ToolCall::Ask { question: text(args, "question", super::ask::MAX_QUESTION)?.to_string() }, false, "Answer a question")
+        }
         "screen_ask" => {
             only(args, &["question"])?;
             let question = text(args, "question", super::screen::MAX_QUESTION)?.to_string();
@@ -699,6 +715,19 @@ mod tests {
         assert!(v.confirm && v.key == Some("voice.confirm.forget") && v.call == ToolCall::MemoryRemove { text: "Aigerim".into() });
         assert!(is_reject(call("memory_add", json!({ "text": "x".repeat(201) }))) && is_reject(call("memory_add", json!({ "text": "" }))));
         assert!(is_reject(call("memory_remove", json!({ "id": "1" }))));
+    }
+
+    #[test]
+    fn calc_and_ask_take_one_text_and_calc_only_arithmetic() {
+        assert_eq!(ready_of(call("calc", json!({ "expr": "54 times 114" }))).call, ToolCall::Calc { expr: "54 times 114".into() });
+        assert_eq!(ready_of(call("calc", json!({ "expr": "5 / 0" }))).call, ToolCall::Calc { expr: "5 / 0".into() }, "the answer says what is wrong");
+        assert!(is_reject(call("calc", json!({ "expr": "open the calculator" }))));
+        assert!(is_reject(call("calc", json!({ "expr": "1+1", "x": 1 }))));
+        assert!(is_reject(call("calc", json!({ "expr": "1+".repeat(101) }))));
+        let v = ready_of(call("ask", json!({ "question": "why is the sky blue" })));
+        assert!(!v.confirm && v.call == ToolCall::Ask { question: "why is the sky blue".into() });
+        assert!(is_reject(call("ask", json!({ "question": "x".repeat(301) }))));
+        assert!(is_reject(call("ask", json!({}))));
     }
 
     #[test]

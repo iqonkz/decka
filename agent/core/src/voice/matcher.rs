@@ -73,6 +73,8 @@ pub struct Table {
     no: Vec<Vec<String>>,
     intents: Vec<(String, Map<String, Value>)>,
     patterns: Vec<Compiled>,
+    /// Lead-ins of the `calc` templates ("calculate", "сколько будет", or empty for a bare expression).
+    calc_leads: Vec<String>,
 }
 
 // ---- Normalisation ----------------------------------------------------------------------------------------------
@@ -157,7 +159,7 @@ fn tens(w: &str) -> Option<u32> {
     })
 }
 
-fn number_words(toks: Vec<String>) -> Vec<String> {
+pub(super) fn number_words(toks: Vec<String>) -> Vec<String> {
     let mut out = Vec::with_capacity(toks.len());
     let mut i = 0;
     while i < toks.len() {
@@ -356,14 +358,24 @@ impl Table {
         let raw: RawTable = serde_json::from_str(text).map_err(|e| e.to_string())?;
         let mut patterns = Vec::new();
         let mut intents = Vec::new();
+        let mut calc_leads = Vec::new();
         for (i, def) in raw.intents.into_iter().enumerate() {
+            if def.tool == "calc" {
+                // Arithmetic keeps its symbols, which the tokens below would lose: its templates are only lead-ins before `{expr}`.
+                for p in &def.patterns {
+                    let lead = p.split("{expr}").next().unwrap_or_default();
+                    calc_leads.push(lead.chars().filter(|c| !matches!(c, '\'' | '\u{2019}')).flat_map(char::to_lowercase).collect::<String>().trim().to_string());
+                }
+                intents.push((def.tool, def.args));
+                continue;
+            }
             for p in &def.patterns {
                 patterns.push(compile(p, i).ok_or_else(|| format!("bad pattern: {p}"))?);
             }
             intents.push((def.tool, def.args));
         }
         let words = |v: Vec<String>| v.iter().map(|s| tokens(s)).filter(|t| !t.is_empty()).collect();
-        Ok(Table { lang: raw.lang, yes: words(raw.yes), no: words(raw.no), intents, patterns })
+        Ok(Table { lang: raw.lang, yes: words(raw.yes), no: words(raw.no), intents, patterns, calc_leads })
     }
 
     fn intent(&self, idx: usize, slots: &[(String, Vec<String>)]) -> Option<Intent> {
@@ -395,6 +407,10 @@ impl Table {
         let toks = tokens(phrase);
         if toks.is_empty() {
             return Match::None;
+        }
+        // Arithmetic first: its phrase has digits and signs, nothing else in the table looks like it.
+        if let Some(expr) = super::calc::extract(phrase, &self.calc_leads) {
+            return Match::Hit(Intent { tool: "calc".into(), args: Map::from_iter([("expr".to_string(), json!(expr))]) });
         }
         // Exact templates, skipping up to MAX_LEAD filler words in front.
         let mut hits: Vec<(usize, usize, Intent)> = Vec::new(); // (weight, lead, intent)
@@ -488,6 +504,29 @@ mod tests {
             Match::Hit(i) => i,
             other => panic!("{say:?} -> {other:?}"),
         }
+    }
+
+    /// T23.B: arithmetic is the fast path; a question is for the model (`ask`), never the web; a search stays a search.
+    #[test]
+    fn ten_phrases_in_two_languages_go_to_calc_ask_or_search() {
+        let ru = Table::parse(include_str!("../../../../shared/voice/ru.json")).unwrap();
+        let en = en();
+        let calc = |t: &Table, say: &str, expr: &str| {
+            let i = hit(t, say);
+            assert_eq!((i.tool.as_str(), i.args["expr"].as_str()), ("calc", Some(expr)), "{say}");
+        };
+        calc(&ru, "54 умножить на 114", "54 умножить на 114");
+        calc(&ru, "Сколько будет 15 процентов от 200?", "15 процентов от 200");
+        calc(&ru, "посчитай корень из 144", "корень из 144");
+        calc(&en, "calculate 54 times 114", "54 times 114");
+        calc(&en, "What is 2 plus 2?", "2 plus 2");
+        // Questions are not commands of the table: the model answers them with `ask`.
+        for (t, say) in [(&ru, "сколько дней в високосном году"), (&ru, "почему небо голубое"), (&en, "how many days are in a leap year"), (&en, "what is the capital of France")] {
+            assert_eq!(t.matches(say), Match::None, "{say}");
+        }
+        // A real search request still searches.
+        let i = hit(&en, "search for cat videos");
+        assert_eq!((i.tool.as_str(), i.args["query"].as_str()), ("web_search", Some("cat videos")));
     }
 
     #[test]

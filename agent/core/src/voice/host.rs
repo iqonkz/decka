@@ -786,6 +786,17 @@ impl Ports for Inner {
                 ToolCall::ListRemove { list, item: None } => {
                     return agent.assistant().list_delete(list).map(|name| format!("Deleted the list {name}"));
                 }
+                ToolCall::Calc { expr } => {
+                    return super::calc::answer(expr).map_err(|e| super::calc::error_text(&e).to_string());
+                }
+                ToolCall::Ask { question } => {
+                    let body = super::ask::request_body(question, lang);
+                    return match super::assist::chat_text(&sup, &body, super::ask::ASK_TIMEOUT).await.as_deref().and_then(super::ask::accept) {
+                        Some(super::ask::Answer::Text(t)) => Ok(t),
+                        Some(super::ask::Answer::Unknown) => Ok(super::ask::web_reply(question)),
+                        None => Err(super::textops::NO_ANSWER.to_string()),
+                    };
+                }
                 ToolCall::ScreenAsk { question } => {
                     return screen_ask(&service, &sup, lang, question).await;
                 }

@@ -352,6 +352,14 @@
         "把{text}从记忆中删除",
         "不要记住{text}"
       ]
+    },
+    {
+      "tool": "calc",
+      "patterns": [
+        "计算 {expr}",
+        "算一下 {expr}",
+        "{expr}"
+      ]
     }
   ]
 }

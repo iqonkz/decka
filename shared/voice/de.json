@@ -350,6 +350,15 @@
         "vergiss {text}",
         "lösche aus dem gedächtnis {text}"
       ]
+    },
+    {
+      "tool": "calc",
+      "patterns": [
+        "berechne {expr}",
+        "wie viel ist {expr}",
+        "was ist {expr}",
+        "{expr}"
+      ]
     }
   ]
 }

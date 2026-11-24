@@ -372,6 +372,17 @@
         "remove from memory {text}",
         "erase memory {text}"
       ]
+    },
+    {
+      "tool": "calc",
+      "patterns": [
+        "calculate {expr}",
+        "compute {expr}",
+        "what is {expr}",
+        "whats {expr}",
+        "how much is {expr}",
+        "{expr}"
+      ]
     }
   ]
 }

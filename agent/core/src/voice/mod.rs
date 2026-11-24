@@ -6,7 +6,9 @@
 
 pub mod assist;
 pub mod audio;
+pub mod ask;
 pub mod brief;
+pub mod calc;
 pub mod clipboard;
 pub mod dictation;
 pub mod endpoint;

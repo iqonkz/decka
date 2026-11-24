@@ -28,6 +28,8 @@ pub mod msg {
     pub const NO_SPEECH: &str = "Didn't hear anything";
     pub const NO_SOUND: &str = crate::voice::mic::NO_SOUND;
     pub const WRONG: &str = "Something went wrong, try again";
+    pub const ASK_WEB: &str = "I can't know that offline, search the web?";
+    pub use crate::voice::calc::{DIV_ZERO, NOT_NUMBER};
     pub use crate::voice::textops::{NO_ANSWER, SELECT_FIRST, TOO_LONG};
 }
 
@@ -46,6 +48,10 @@ pub mod key {
     pub const WRONG: &str = "voice.reply.wrong";
     pub const SELECT_FIRST: &str = "voice.reply.select_text";
     pub const TOO_LONG: &str = "voice.reply.text_too_long";
+    pub const DIV_ZERO: &str = "voice.reply.div_zero";
+    pub const NOT_NUMBER: &str = "voice.reply.calc_failed";
+    /// A confirmation, not a reply: the question "search the web?" after an `ask` the model could not answer.
+    pub const ASK_WEB: &str = "voice.confirm.ask_web";
 }
 
 /// The i18n key of a fixed failure text of an executor (the English text is its fallback).
@@ -54,6 +60,8 @@ fn executor_key(text: &str) -> Option<&'static str> {
         msg::SELECT_FIRST => Some(key::SELECT_FIRST),
         msg::TOO_LONG => Some(key::TOO_LONG),
         msg::NO_ANSWER => Some(key::DIDNT_GET),
+        msg::DIV_ZERO => Some(key::DIV_ZERO),
+        msg::NOT_NUMBER => Some(key::NOT_NUMBER),
         _ => None,
     }
 }
@@ -274,6 +282,10 @@ fn executing(mut s: State, call: ToolCall) -> (State, Vec<Effect>) {
     if matches!(call, ToolCall::ScreenAsk { .. }) {
         s.activity = Some("screen");
     }
+    // The result of arithmetic and of a question is the answer itself, not the few words the model said with the call.
+    if matches!(call, ToolCall::Calc { .. } | ToolCall::Ask { .. }) {
+        s.say = None;
+    }
     (s, vec![Effect::Execute(call)])
 }
 
@@ -436,6 +448,24 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
         }
         (Phase::Confirming { deadline_ms, .. }, Event::Tick { now_ms }) if now_ms >= *deadline_ms => {
             finish_key(s, Phase::Done(msg::CANCELLED.into()), ReplyKey::plain(key::CANCELLED))
+        }
+        // The model cannot know the answer offline: the pill asks, and only a yes searches the web (DATA_MODEL.md 12.5).
+        (Phase::Executing, Event::Executed(Ok(reply))) if super::ask::web_question(&reply).is_some() => {
+            let query = super::ask::web_question(&reply).unwrap_or_default();
+            let raw = RawCall { tool: "web_search".into(), args: serde_json::json!({ "query": query, "site": "web" }) };
+            match validate(&raw, env.ctx) {
+                Resolved::Ready(mut v) => {
+                    v.confirm = true;
+                    v.summary = msg::ASK_WEB.into();
+                    v.key = Some(key::ASK_WEB);
+                    v.args.clear();
+                    let mut s = s;
+                    s.say = None;
+                    s.phase = Phase::Confirming { call: v, deadline_ms: now_ms + env.confirm_ms };
+                    (s, vec![Effect::ScheduleTick(env.confirm_ms)])
+                }
+                _ => finish_key(s, Phase::Failed(msg::DIDNT_GET.into()), ReplyKey::plain(key::DIDNT_GET)),
+            }
         }
         (Phase::Executing, Event::Executed(Ok(reply))) => {
             match (s.say.clone(), reply.is_empty()) {
@@ -646,6 +676,42 @@ mod tests {
 
     fn said(text: &str) -> Event {
         Event::Transcript(Ok(text.into()))
+    }
+
+    /// T23.B: a question the model cannot answer offline asks "search the web?"; the search opens only after a yes.
+    #[test]
+    fn an_unknown_answer_asks_before_the_web_and_a_calc_reply_is_shown_as_it_is() {
+        let ask = RawCall { tool: "ask".into(), args: serde_json::json!({ "question": "bitcoin price today" }) };
+        let base = vec![start(Source::Phone), Event::AudioEnd, said("bitcoin price today"), Event::LlmAnswer(Some((ask.clone(), Some("hmm".into()))))];
+        let (s, fx) = run(base.clone());
+        assert_eq!((s.phase.clone(), fx.last().cloned()), (Phase::Executing, Some(Effect::Execute(ToolCall::Ask { question: "bitcoin price today".into() }))));
+        assert_eq!(s.say, None, "the answer is the reply, not the words said with the call");
+
+        let mut asked = base.clone();
+        asked.push(Event::Executed(Ok(super::super::ask::web_reply("bitcoin price today"))));
+        let (s, _) = run(asked.clone());
+        let Phase::Confirming { call, .. } = &s.phase else { panic!("{:?}", s.phase) };
+        assert!(call.confirm && call.key == Some("voice.confirm.ask_web"));
+        assert!(matches!(&call.call, ToolCall::OpenUrl { url } if url.starts_with("https://www.google.com/search?q=bitcoin")));
+        assert_eq!(s.info().state, "confirm");
+
+        let mut no = asked.clone();
+        no.push(Event::Confirm { id: "00112233aabbccdd".into(), yes: false });
+        assert_eq!(run(no).0.phase, Phase::Done(msg::CANCELLED.into()), "no search without a yes");
+        let mut yes = asked;
+        yes.push(Event::Confirm { id: "00112233aabbccdd".into(), yes: true });
+        let (s, fx) = run(yes);
+        assert_eq!(s.phase, Phase::Executing);
+        assert!(matches!(fx.last(), Some(Effect::Execute(ToolCall::OpenUrl { .. }))));
+
+        // The result of arithmetic and a division by zero.
+        let sum = RawCall { tool: "calc".into(), args: serde_json::json!({ "expr": "54 умножить на 114" }) };
+        let events = vec![start(Source::Phone), Event::AudioEnd, said("hm"), Event::LlmAnswer(Some((sum, Some("hmm".into())))), Event::Executed(Ok("54 × 114 = 6156".into()))];
+        assert_eq!(run(events).0.phase, Phase::Done("54 × 114 = 6156".into()));
+        let zero = RawCall { tool: "calc".into(), args: serde_json::json!({ "expr": "5 / 0" }) };
+        let events = vec![start(Source::Phone), Event::AudioEnd, said("hm"), Event::LlmAnswer(Some((zero, None))), Event::Executed(Err(msg::DIV_ZERO.into()))];
+        let (s, _) = run(events);
+        assert_eq!((s.phase.clone(), s.info().reply_key), (Phase::Failed(msg::DIV_ZERO.into()), Some("voice.reply.div_zero")));
     }
 
     #[test]

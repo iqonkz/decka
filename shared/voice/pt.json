@@ -363,6 +363,15 @@
         "apague da memória {text}",
         "remova da memória {text}"
       ]
+    },
+    {
+      "tool": "calc",
+      "patterns": [
+        "calcule {expr}",
+        "quanto é {expr}",
+        "quanto e {expr}",
+        "{expr}"
+      ]
     }
   ]
 }

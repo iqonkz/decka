@@ -358,6 +358,15 @@
         "oublie {text}",
         "efface de la mémoire {text}"
       ]
+    },
+    {
+      "tool": "calc",
+      "patterns": [
+        "calcule {expr}",
+        "combien font {expr}",
+        "combien fait {expr}",
+        "{expr}"
+      ]
     }
   ]
 }
