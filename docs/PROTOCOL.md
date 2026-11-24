@@ -118,6 +118,9 @@ export interface FullState {
 }
 
 // M17 (DATA_MODEL.md §10). Имена секций добавляются в SectionName: "strip" | "battery" | "mail".
+// M22 (DATA_MODEL.md §13.7). Ещё две секции: "reminders" | "lists".
+export interface RemindersSection { items: { id: string; text: string; at: string }[] } // ближайшие 5 несделанных, at — локальное ISO
+export interface ListsSection { lists: { id: string; name: string; items: { id: string; text: string; done: boolean }[] }[] } // ≤ 50 пунктов в списке
 export interface StripInfo { app: string; template: string; name: string; icon?: string /* T17.6: "img:<hash16>" */; keys: { actionId: Id; label: string; icon?: string }[]; } // keys <= 16
 export interface BatteryInfo { devices: { name: string; pct: number; kind: "pc" | "bt"; charging?: boolean }[]; updatedAt: number; } // <= 8
 export interface MailInfo { accounts: { id: Id; name: string; unread: number | null; error?: "auth" | "network"; openActionId?: Id }[]; updatedAt: number; } // <= 3; openActionId — id действия для тапа (принято 2026-11-19)
