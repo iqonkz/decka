@@ -118,7 +118,7 @@ export interface FullState {
 }
 
 // M17 (DATA_MODEL.md §10). Имена секций добавляются в SectionName: "strip" | "battery" | "mail".
-// M22 (DATA_MODEL.md §13.7). Ещё две секции: "reminders" | "lists".
+// M22 (DATA_MODEL.md §13.7). Ещё две секции: "reminders" | "lists". M24 (§14): секция "lyrics" (LyricsInfo | null).
 export interface RemindersSection { items: { id: string; text: string; at: string }[] } // ближайшие 5 несделанных, at — локальное ISO
 export interface ListsSection { lists: { id: string; name: string; items: { id: string; text: string; done: boolean }[] }[] } // ≤ 50 пунктов в списке
 export interface StripInfo { app: string; template: string; name: string; icon?: string /* T17.6: "img:<hash16>" */; keys: { actionId: Id; label: string; icon?: string }[]; } // keys <= 16
@@ -166,7 +166,18 @@ export interface WeatherInfo {
   updatedAt: number;               // ts получения данных
   current: { temp: number; code: number; isDay: boolean; wind: number };   // temp — целое °C/°F; code — WMO; wind — целое км/ч или mph
   daily: { date: string; min: number; max: number; code: number }[];      // ровно 3 дня, date "YYYY-MM-DD", начиная с сегодня
+  hourly?: { time: string; temp: number; code: number; isDay: boolean }[]; // 0.23 (DESIGN §4.16): 6 часов начиная со следующего, time "HH:mm" локальное
 }
+
+// M24 (DATA_MODEL.md §14): текст текущей песни. Секция "lyrics"; null = выключено, ничего не играет или текста нет.
+export interface LyricsInfo {
+  trackKey: string;                // ^[0-9a-f]{16}$ — хеш (исполнитель|название|длительность), выдан ПК
+  synced: boolean;                 // true — строки с временем; false — обычный текст без подсветки
+  lines: { t?: number; text: string }[]; // t — мс от начала трека (только synced); ≤ 300 строк × ≤ 200 символов
+  offsetMs: number;                // сдвиг пользователя для этого трека, −30000..30000, шаг 500
+}
+// Телефон → ПК. Не команда: trackKey выдан ПК, неизвестный — молча игнорируется; delta только ±500.
+export interface LyricsOffsetMsg { t: "lyrics_offset"; trackKey: string; deltaMs: -500 | 500; }
 
 // M15: OBS Studio (DATA_MODEL.md §6.4). Только состояние; пароль OBS никогда не попадает в протокол.
 export interface ObsInfo {
