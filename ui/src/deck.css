@@ -338,6 +338,13 @@
 .weather-day { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 0; }
 .weather-dow { font-size: 11px; opacity: 0.6; text-transform: capitalize; }
 .weather-day-temp { font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.weather-hourly { display: none; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 6px; width: 100%; }
+@container tile ((min-width: 220px) and (min-height: 140px)) or ((min-height: 220px) and (min-width: 140px)) {
+  .weather-hourly.w-l { display: grid; }
+}
+.weather-hour { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 0; }
+.weather-hour-time { font-size: 11px; opacity: 0.6; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.weather-hour-temp { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 /* ===== OBS (DATA_MODEL.md 6.4) ===== */
 .obs { display: flex; align-items: center; gap: 8px; width: 100%; height: 100%; padding: 0 4px; box-sizing: border-box; min-width: 0; }
