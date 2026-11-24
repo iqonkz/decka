@@ -298,5 +298,89 @@
     "args": {
       "text": "old office door code"
     }
+  },
+  {
+    "say": "what is 54 multiplied by 114",
+    "tool": "calc",
+    "args": {
+      "expr": "54 * 114"
+    }
+  },
+  {
+    "say": "calculate three hundred fifty plus eight hundred twenty",
+    "tool": "calc",
+    "args": {
+      "expr": "350 + 820"
+    }
+  },
+  {
+    "say": "subtract 175 from 600",
+    "tool": "calc",
+    "args": {
+      "expr": "600 - 175"
+    }
+  },
+  {
+    "say": "divide nine hundred sixty by eight",
+    "tool": "calc",
+    "args": {
+      "expr": "960 / 8"
+    }
+  },
+  {
+    "say": "what is 15 percent of 240",
+    "tool": "calc",
+    "args": {
+      "expr": "15% * 240"
+    }
+  },
+  {
+    "say": "why is the sky blue during the day",
+    "tool": "ask",
+    "args": {
+      "question": "why is the sky blue during the day"
+    }
+  },
+  {
+    "say": "how many days are there in a leap year",
+    "tool": "ask",
+    "args": {
+      "question": "how many days are there in a leap year"
+    }
+  },
+  {
+    "say": "what is the boiling point of water in celsius",
+    "tool": "ask",
+    "args": {
+      "question": "what is the boiling point of water in celsius"
+    }
+  },
+  {
+    "say": "who was the author of the tragedy hamlet",
+    "tool": "ask",
+    "args": {
+      "question": "who was the author of the tragedy hamlet"
+    }
+  },
+  {
+    "say": "what is the capital city of australia",
+    "tool": "ask",
+    "args": {
+      "question": "what is the capital city of australia"
+    }
+  },
+  {
+    "say": "what are the latest world news headlines today",
+    "tool": "ask",
+    "args": {
+      "question": "what are the latest world news headlines today"
+    }
+  },
+  {
+    "say": "current exchange rate of us dollar to euro",
+    "tool": "ask",
+    "args": {
+      "question": "current exchange rate of us dollar to euro"
+    }
   }
 ]

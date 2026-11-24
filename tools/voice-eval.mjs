@@ -37,6 +37,19 @@ export const VALID_TOOLS = new Set([
   "dictate",
   "timer",
   "system",
+  // Later stages (DATA_MODEL.md 12.5): text work, screen help, reminders, lists, brief, memory, calc, ask.
+  "text_transform",
+  "screen_ask",
+  "remind",
+  "reminders_show",
+  "list_add",
+  "list_show",
+  "list_remove",
+  "day_brief",
+  "memory_add",
+  "memory_remove",
+  "calc",
+  "ask",
 ]);
 
 // Accuracy targets per DATA_MODEL.md §12.8:

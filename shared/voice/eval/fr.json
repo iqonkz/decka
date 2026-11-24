@@ -298,5 +298,89 @@
     "args": {
       "text": "ancien code du portail"
     }
+  },
+  {
+    "say": "combien font 54 multiplié par 114",
+    "tool": "calc",
+    "args": {
+      "expr": "54 * 114"
+    }
+  },
+  {
+    "say": "calcule trois cent cinquante plus huit cent vingt",
+    "tool": "calc",
+    "args": {
+      "expr": "350 + 820"
+    }
+  },
+  {
+    "say": "soustrais 175 de 600",
+    "tool": "calc",
+    "args": {
+      "expr": "600 - 175"
+    }
+  },
+  {
+    "say": "divise neuf cent soixante par huit",
+    "tool": "calc",
+    "args": {
+      "expr": "960 / 8"
+    }
+  },
+  {
+    "say": "combien font 15 pour cent de 240",
+    "tool": "calc",
+    "args": {
+      "expr": "15% * 240"
+    }
+  },
+  {
+    "say": "pourquoi le ciel est-il bleu pendant la journée",
+    "tool": "ask",
+    "args": {
+      "question": "pourquoi le ciel est-il bleu pendant la journée"
+    }
+  },
+  {
+    "say": "combien de jours compte une année bissextile",
+    "tool": "ask",
+    "args": {
+      "question": "combien de jours compte une année bissextile"
+    }
+  },
+  {
+    "say": "à quelle température en degrés celsius l'eau bout-elle",
+    "tool": "ask",
+    "args": {
+      "question": "à quelle température en degrés celsius l'eau bout-elle"
+    }
+  },
+  {
+    "say": "qui a écrit la pièce hamlet",
+    "tool": "ask",
+    "args": {
+      "question": "qui a écrit la pièce hamlet"
+    }
+  },
+  {
+    "say": "quelle est la capitale de l'australie",
+    "tool": "ask",
+    "args": {
+      "question": "quelle est la capitale de l'australie"
+    }
+  },
+  {
+    "say": "quelles sont les dernières actualités du jour",
+    "tool": "ask",
+    "args": {
+      "question": "quelles sont les dernières actualités du jour"
+    }
+  },
+  {
+    "say": "quel est le cours actuel de l'euro par rapport au dollar",
+    "tool": "ask",
+    "args": {
+      "question": "quel est le cours actuel de l'euro par rapport au dollar"
+    }
   }
 ]
