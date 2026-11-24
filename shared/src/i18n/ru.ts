@@ -1057,5 +1057,11 @@ export const ru: Record<Base | ExtraPlural, string> = {
   "phone.update_title": "Требуется обновление",
   "phone.not_your_pc_title": "ПК не распознан",
   "pair.qr_hint": "Наведите рамку на QR-код",
+  "lyrics.region": "Текст песни",
+  "lyrics.earlier": "Раньше (−0.5 с)",
+  "lyrics.later": "Позже (+0.5 с)",
+  "lyrics.step_minus": "−0.5 с",
+  "lyrics.step_plus": "+0.5 с",
+  "lyrics.offset_sec": "{val} с",
   // @@END
 };

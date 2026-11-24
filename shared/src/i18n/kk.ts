@@ -1033,4 +1033,10 @@ export const kk: Dictionary = {
   "phone.update_title": "Жаңарту қажет",
   "phone.not_your_pc_title": "ДК танылмады",
   "pair.qr_hint": "QR-кодты жақтау ішіне туралаңыз",
+  "lyrics.region": "Ән мәтіні",
+  "lyrics.earlier": "Ертерек (−0.5 с)",
+  "lyrics.later": "Кешірек (+0.5 с)",
+  "lyrics.step_minus": "−0.5 с",
+  "lyrics.step_plus": "+0.5 с",
+  "lyrics.offset_sec": "{val} с",
 };

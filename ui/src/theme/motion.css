@@ -7,6 +7,7 @@
   .skeleton::after { animation: none !important; display: none; }
   .media-progress-wave { display: none !important; }
   .media-progress-straight { display: block !important; }
+  .media-lyrics-track, .media-lyric-line { transition: none !important; }
 }
 [data-reduced="1"] .key,
 [data-reduced="1"][data-theme="glass"] .key,
@@ -22,3 +23,5 @@
 [data-reduced="1"] .skeleton::after { animation: none !important; display: none; }
 [data-reduced="1"] .media-progress-wave { display: none !important; }
 [data-reduced="1"] .media-progress-straight { display: block !important; }
+[data-reduced="1"] .media-lyrics-track,
+[data-reduced="1"] .media-lyric-line { transition: none !important; }

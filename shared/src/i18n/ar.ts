@@ -1066,4 +1066,10 @@ export const ar: Dictionary = {
   "phone.update_title": "التحديث مطلوب",
   "phone.not_your_pc_title": "تعذّر التعرّف على الكمبيوتر",
   "pair.qr_hint": "ضع رمز QR داخل الإطار",
+  "lyrics.region": "كلمات الأغنية",
+  "lyrics.earlier": "تقديم (−0.5 ث)",
+  "lyrics.later": "تأخير (+0.5 ث)",
+  "lyrics.step_minus": "−0.5 ث",
+  "lyrics.step_plus": "+0.5 ث",
+  "lyrics.offset_sec": "{val} ث",
 };

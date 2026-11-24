@@ -1026,4 +1026,10 @@ export const hi: Dictionary = {
   "phone.update_title": "अपडेट आवश्यक",
   "phone.not_your_pc_title": "PC पहचाना नहीं गया",
   "pair.qr_hint": "QR कोड को फ़्रेम के अंदर रखें",
+  "lyrics.region": "बोल",
+  "lyrics.earlier": "पहले (−0.5 से)",
+  "lyrics.later": "बाद में (+0.5 से)",
+  "lyrics.step_minus": "−0.5 से",
+  "lyrics.step_plus": "+0.5 से",
+  "lyrics.offset_sec": "{val} से",
 };

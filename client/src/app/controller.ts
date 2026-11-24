@@ -126,6 +126,11 @@ export function toggleListItem(listId: string, itemId: string): void {
   conn().toggleListItem(listId, itemId);
 }
 
+/** M24 (DATA_MODEL.md 14): adjusts per-track synced lyrics offset on PC (`lyrics_offset`). */
+export function sendLyricsOffset(trackKey: string, deltaMs: -500 | 500): void {
+  conn().lyricsOffset(trackKey, deltaMs);
+}
+
 export function openNotification(notifId: string): void {
   conn().openNotification(notifId);
 }

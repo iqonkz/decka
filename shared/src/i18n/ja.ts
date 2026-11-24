@@ -1026,4 +1026,10 @@ export const ja: Dictionary = {
   "phone.update_title": "アップデートが必要",
   "phone.not_your_pc_title": "PCを認識できません",
   "pair.qr_hint": "枠内にQRコードを合わせてください",
+  "lyrics.region": "歌詞",
+  "lyrics.earlier": "早める (−0.5 秒)",
+  "lyrics.later": "遅らせる (+0.5 秒)",
+  "lyrics.step_minus": "−0.5 秒",
+  "lyrics.step_plus": "+0.5 秒",
+  "lyrics.offset_sec": "{val} 秒",
 };

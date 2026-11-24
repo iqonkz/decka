@@ -1026,4 +1026,10 @@ export const zh: Dictionary = {
   "phone.update_title": "需要更新",
   "phone.not_your_pc_title": "无法识别此电脑",
   "pair.qr_hint": "将二维码对准框内",
+  "lyrics.region": "歌词",
+  "lyrics.earlier": "提前 (−0.5 秒)",
+  "lyrics.later": "延后 (+0.5 秒)",
+  "lyrics.step_minus": "−0.5 秒",
+  "lyrics.step_plus": "+0.5 秒",
+  "lyrics.offset_sec": "{val} 秒",
 };

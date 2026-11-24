@@ -1035,5 +1035,11 @@ export const en = {
   "phone.update_title": "Update required",
   "phone.not_your_pc_title": "PC not recognized",
   "pair.qr_hint": "Align the QR code inside the frame",
+  "lyrics.region": "Lyrics",
+  "lyrics.earlier": "Shift earlier (−0.5 s)",
+  "lyrics.later": "Shift later (+0.5 s)",
+  "lyrics.step_minus": "−0.5 s",
+  "lyrics.step_plus": "+0.5 s",
+  "lyrics.offset_sec": "{val} s",
   // @@END
 } as const;

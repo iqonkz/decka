@@ -4,7 +4,8 @@ import type { LayoutItem, WeatherInfo } from "@decka/shared";
 import { DeckEnvContext, EMPTY_DATA, type DeckData, type DeckEnv } from "../src/deckEnv";
 import { DeckMetricsContext } from "../src/metricsContext";
 import Tile from "../src/Tile";
-import type { WeatherInfoWithHourly } from "../src/widgets/m24Types";
+import { effectiveMediaPositionMs, formatOffsetSeconds, selectActiveLyricIndex } from "../src/widgets/lyricsLogic";
+import type { LyricsInfo, WeatherInfoWithHourly } from "../src/widgets/m24Types";
 
 const NOOP = () => {};
 
@@ -64,5 +65,70 @@ describe("weather L hourly forecast (DESIGN 4.17)", () => {
     expect(html).toContain("13:00");
     expect(html).toContain("18:00");
     expect(html).not.toContain("19:00");
+  });
+});
+
+describe("media L lyrics & sync (DESIGN 4.17, DATA_MODEL 14)", () => {
+  const sampleLines = [
+    { t: 1000, text: "First line" },
+    { t: 5000, text: "Second line" },
+    { t: 9000, text: "Third line" },
+  ];
+
+  test("effectiveMediaPositionMs accounts for elapsed playback + offsetMs, and freezes when paused", () => {
+    const playingMedia = { playing: true, positionSec: 4, positionAt: 10_000 };
+    expect(effectiveMediaPositionMs(playingMedia, 11_500, 0)).toBe(5500);
+    expect(effectiveMediaPositionMs(playingMedia, 11_500, -1000)).toBe(4500);
+    expect(effectiveMediaPositionMs(playingMedia, 11_500, 3500)).toBe(9000);
+
+    const pausedMedia = { playing: false, positionSec: 4, positionAt: 10_000 };
+    expect(effectiveMediaPositionMs(pausedMedia, 19_000, 0)).toBe(4000);
+    expect(effectiveMediaPositionMs(pausedMedia, 19_000, 1500)).toBe(5500);
+    expect(effectiveMediaPositionMs(pausedMedia, 19_000, -500)).toBe(3500);
+  });
+
+  test("selectActiveLyricIndex picks the last line with t <= effectivePositionMs", () => {
+    expect(selectActiveLyricIndex(sampleLines, 999)).toBe(-1);
+    expect(selectActiveLyricIndex(sampleLines, 1000)).toBe(0);
+    expect(selectActiveLyricIndex(sampleLines, 4999)).toBe(0);
+    expect(selectActiveLyricIndex(sampleLines, 5000)).toBe(1);
+    expect(selectActiveLyricIndex(sampleLines, 9000)).toBe(2);
+    expect(selectActiveLyricIndex([{ text: "No timestamp" }], 5000)).toBe(-1);
+  });
+
+  test("formatOffsetSeconds formats positive, zero, and negative offsets", () => {
+    expect(formatOffsetSeconds(1000)).toBe("+1.0");
+    expect(formatOffsetSeconds(0)).toBe("0.0");
+    expect(formatOffsetSeconds(-500)).toBe("−0.5");
+  });
+
+  test("Media widget renders synced or plain lyrics only in L (w >= 4, h >= 2)", () => {
+    const media = {
+      source: "spotify",
+      title: "Midnight City",
+      artist: "M83",
+      playing: false,
+      positionSec: 5,
+      durationSec: 244,
+      positionAt: 10_000,
+    };
+    const syncedLyrics: LyricsInfo = { trackKey: "0123456789abcdef", synced: true, lines: sampleLines, offsetMs: 0 };
+    const plainLyrics: LyricsInfo = { trackKey: "0123456789abcdef", synced: false, lines: sampleLines.map((l) => ({ text: l.text })), offsetMs: 0 };
+
+    const small = { id: "m1", kind: "media", x: 0, y: 0, w: 3, h: 1 } as LayoutItem;
+    expect(renderTile(small, { media, lyrics: syncedLyrics })).not.toContain("media-lyrics");
+
+    const medium = { id: "m2", kind: "media", x: 0, y: 0, w: 2, h: 2 } as LayoutItem;
+    expect(renderTile(medium, { media, lyrics: syncedLyrics })).not.toContain("media-lyrics");
+
+    const large = { id: "m3", kind: "media", x: 0, y: 0, w: 4, h: 2 } as LayoutItem;
+    const syncedHtml = renderTile(large, { media, lyrics: syncedLyrics });
+    expect(syncedHtml).toContain("media-lyrics");
+    expect(syncedHtml).toContain("media-lyric-line active");
+    expect(syncedHtml).not.toContain("media-lyrics-plain");
+
+    const plainHtml = renderTile(large, { media, lyrics: plainLyrics });
+    expect(plainHtml).toContain("media-lyrics-plain");
+    expect(plainHtml).not.toContain("media-lyric-line active");
   });
 });

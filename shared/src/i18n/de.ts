@@ -1026,4 +1026,10 @@ export const de: Dictionary = {
   "phone.update_title": "Update erforderlich",
   "phone.not_your_pc_title": "PC nicht erkannt",
   "pair.qr_hint": "QR-Code im Rahmen ausrichten",
+  "lyrics.region": "Liedtext",
+  "lyrics.earlier": "Früher (−0.5 s)",
+  "lyrics.later": "Später (+0.5 s)",
+  "lyrics.step_minus": "−0.5 s",
+  "lyrics.step_plus": "+0.5 s",
+  "lyrics.offset_sec": "{val} s",
 };

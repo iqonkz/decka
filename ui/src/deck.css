@@ -206,6 +206,71 @@
 .media-progress-fill { height: 100%; background: #ffffff; opacity: 0.85; }
 .media-keys { display: flex; align-items: center; gap: 6px; flex: none; }
 .media-keys .key { border-radius: 50%; }
+/* Lyrics split view inside media L (DESIGN.md 4.17) */
+.media.has-lyrics { align-items: stretch; gap: 12px; }
+.media-player { flex: 0 0 45%; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 6px; }
+.media-player-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.media-lyrics {
+  position: relative;
+  flex: 1 1 55%;
+  min-width: 0;
+  height: 100%;
+  border-inline-start: 1px solid rgba(255, 255, 255, 0.15);
+  padding-inline-start: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  user-select: none;
+}
+.media:not(.has-cover-bg) .media-lyrics {
+  border-inline-start-color: color-mix(in srgb, currentColor 15%, transparent);
+}
+.media-lyrics-viewport { position: relative; flex: 1; width: 100%; min-height: 0; overflow: hidden; }
+.media-lyrics-track { display: flex; flex-direction: column; gap: 8px; transition: transform 300ms cubic-bezier(0.2, 0.8, 0.2, 1); will-change: transform; }
+.media-lyric-line { font-size: 15px; font-weight: 500; line-height: 1.3; opacity: 0.45; transition: opacity 220ms ease; }
+.media-lyric-line.active { font-size: 17px; font-weight: 600; opacity: 1; color: #ffffff; }
+.media:not(.has-cover-bg) .media-lyric-line.active { color: inherit; }
+.media-lyrics-plain { flex: 1; min-height: 0; overflow-y: auto; touch-action: pan-y; font-size: 14px; line-height: 1.45; opacity: 0.7; display: flex; flex-direction: column; gap: 6px; padding-block: 12px; box-sizing: border-box; scrollbar-width: none; }
+.media-lyrics-plain::-webkit-scrollbar { display: none; }
+.media-lyrics-masked {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
+}
+.media-lyrics-offset {
+  position: absolute;
+  left: 12px;
+  right: 0;
+  bottom: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.62);
+  backdrop-filter: blur(8px);
+}
+.media-offset-pill {
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.media-offset-value {
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: #ffffff;
+  min-width: 44px;
+  text-align: center;
+}
 .status-key-dot { display: block; border-radius: 50%; }
 
 /* Confirm-by-holding: a progress line runs round the key's outline. */
