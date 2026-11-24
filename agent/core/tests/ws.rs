@@ -240,6 +240,81 @@ async fn lyrics_offset_changes_nothing_it_was_not_given_a_key_for() {
     e.agent.shutdown().await;
 }
 
+/// T24.S: the messages of the phone that are data (not commands) take only the ids the agent issued; a malformed id is ignored
+/// quietly (no error, no effect, nothing of it in the log) and the socket stays usable.
+#[tokio::test]
+async fn data_messages_ignore_malformed_and_unknown_ids() {
+    let e = env().await;
+    let (mut ws, _) = pair(&e).await;
+    let long = "9".repeat(3000);
+    let bad = [
+        json!({ "t": "list_toggle", "listId": "../../x", "itemId": "0123456789abcdef" }),
+        json!({ "t": "list_toggle", "listId": "0123456789abcdef", "itemId": "FEDCBA9876543210" }),
+        json!({ "t": "list_toggle", "listId": long, "itemId": long }),
+        json!({ "t": "notif_open", "notifId": "abc" }),
+        json!({ "t": "notif_open", "notifId": long }),
+        json!({ "t": "notif_open", "notifId": "99999" }),
+        json!({ "t": "notif_dismiss", "notifId": "../1" }),
+        json!({ "t": "perm_answer", "reqId": "zz", "decision": "allow" }),
+        json!({ "t": "perm_answer", "reqId": "0123456789abcdef", "decision": "allow" }),
+        json!({ "t": "lyrics_offset", "trackKey": long, "deltaMs": 500 }),
+        json!({ "t": "lyrics_offset", "trackKey": "0123456789abcdef", "deltaMs": 99999 }),
+    ];
+    for msg in bad {
+        // A frame over 4096 bytes is refused by the size limit of the socket, the others are ignored: either way no effect.
+        let text = msg.to_string();
+        if text.len() > 4000 {
+            continue;
+        }
+        send(&mut ws, msg).await;
+    }
+    send(&mut ws, json!({ "t": "ping", "ts": 11 })).await;
+    loop {
+        let frame = recv(&mut ws).await;
+        assert_ne!(frame["t"], "error", "{frame}");
+        if frame["t"] == "pong" {
+            break;
+        }
+    }
+    e.agent.shutdown().await;
+}
+
+/// T24.S: every message of the phone has a limit per second on the socket (20, as a press): list_toggle, notif_open,
+/// notif_dismiss, perm_answer and lyrics_offset answer `RATE_LIMITED` (not fatal) beyond it.
+#[tokio::test]
+async fn data_messages_have_a_rate_limit() {
+    let e = env().await;
+    let (mut ws, _) = pair(&e).await;
+    let kinds = [
+        json!({ "t": "list_toggle", "listId": "0123456789abcdef", "itemId": "0123456789abcdef" }),
+        json!({ "t": "notif_open", "notifId": "1" }),
+        json!({ "t": "notif_dismiss", "notifId": "1" }),
+        json!({ "t": "perm_answer", "reqId": "0123456789abcdef", "decision": "deny" }),
+        json!({ "t": "lyrics_offset", "trackKey": "0123456789abcdef", "deltaMs": 500 }),
+    ];
+    for msg in &kinds {
+        // 60 in a row (one second window): the first 20 pass, the rest are refused.
+        for _ in 0..60 {
+            send(&mut ws, msg.clone()).await;
+        }
+    }
+    send(&mut ws, json!({ "t": "ping", "ts": 12 })).await;
+    let mut limited = 0;
+    loop {
+        let frame = recv(&mut ws).await;
+        if frame["t"] == "error" {
+            assert_eq!((frame["code"].as_str(), frame["fatal"].as_bool()), (Some("RATE_LIMITED"), Some(false)), "{frame}");
+            limited += 1;
+        }
+        if frame["t"] == "pong" {
+            break;
+        }
+    }
+    // 5 kinds x 40 refused each (the window may roll once on a slow machine: at least half of them).
+    assert!(limited >= 100, "{limited} refusals");
+    e.agent.shutdown().await;
+}
+
 #[tokio::test]
 async fn ping_gets_pong_with_same_ts() {
     let e = env().await;

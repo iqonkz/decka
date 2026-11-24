@@ -407,6 +407,16 @@ async fn session(
     }
 }
 
+/// `^[0-9a-f]{16}$`: the ids the agent issues for lists, items and permission requests.
+fn is_hex_id(s: &str) -> bool {
+    s.len() == 16 && s.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+}
+
+/// `^[0-9]{1,20}$`: the ids of notifications.
+fn is_notif_id(s: &str) -> bool {
+    (1..=20).contains(&s.len()) && s.bytes().all(|b| b.is_ascii_digit())
+}
+
 /// Handles one authorized message. Returns false if the socket is gone.
 async fn handle_text(
     agent: &Agent,
@@ -419,7 +429,13 @@ async fn handle_text(
     match serde_json::from_str::<ClientMsg>(text) {
         Ok(ClientMsg::Ping { ts }) => link.send(&ServerMsg::Pong { ts }).await,
         Ok(ClientMsg::NotifDismiss { notif_id }) => {
-            agent.store().update_notifications(|list: &mut Vec<Notification>| list.retain(|n| n.id != notif_id));
+            if !press_limiter.check("notif_dismiss") {
+                return link.send(&error_msg(ErrorCode::RateLimited, "too many requests")).await;
+            }
+            // Ids are the ones the agent issued (digits); anything else changes nothing.
+            if is_notif_id(&notif_id) {
+                agent.store().update_notifications(|list: &mut Vec<Notification>| list.retain(|n| n.id != notif_id));
+            }
             true
         }
         Ok(ClientMsg::ApkGet { offset }) => {
@@ -470,8 +486,11 @@ async fn handle_text(
             }
         }
         Ok(ClientMsg::ListToggle { list_id, item_id }) => {
+            if !press_limiter.check("list_toggle") {
+                return link.send(&error_msg(ErrorCode::RateLimited, "too many requests")).await;
+            }
             // Data, not a command: the agent marks or unmarks an item of its own list; unknown ids change nothing.
-            if agent.assistant().toggle(&list_id, &item_id) {
+            if is_hex_id(&list_id) && is_hex_id(&item_id) && agent.assistant().toggle(&list_id, &item_id) {
                 tracing::info!("list_toggle device={}", who.device_id);
             }
             true
@@ -489,13 +508,23 @@ async fn handle_text(
         }
         Ok(ClientMsg::NotifOpen { notif_id }) => {
             // Only the id of the notification comes from the phone (ARCHITECTURE.md S21); the program is the agent's own record.
-            tracing::info!("notif_open {notif_id} device={}", who.device_id);
-            agent.notif_open(&notif_id).await;
+            if !press_limiter.check("notif_open") {
+                return link.send(&error_msg(ErrorCode::RateLimited, "too many requests")).await;
+            }
+            if is_notif_id(&notif_id) {
+                tracing::info!("notif_open {notif_id} device={}", who.device_id);
+                agent.notif_open(&notif_id).await;
+            }
             true
         }
         Ok(ClientMsg::PermAnswer { req_id, decision, reply }) => {
-            tracing::info!("perm_answer {req_id} {decision:?} device={}", who.device_id);
-            agent.answer_permission(&who.device_id, &req_id, decision, reply.map(usize::from));
+            if !press_limiter.check("perm_answer") {
+                return link.send(&error_msg(ErrorCode::RateLimited, "too many requests")).await;
+            }
+            if is_hex_id(&req_id) {
+                tracing::info!("perm_answer {req_id} {decision:?} device={}", who.device_id);
+                agent.answer_permission(&who.device_id, &req_id, decision, reply.map(usize::from));
+            }
             true
         }
         Ok(ClientMsg::Press { id, action_id }) => {
