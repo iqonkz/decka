@@ -584,6 +584,201 @@ select.settings-select,
   cursor: pointer;
 }
 
+/* =========================================================================
+   DESIGN.md §4.14: Integrations Catalog
+   ========================================================================= */
+
+.integrations-status-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--hover);
+  cursor: pointer;
+  margin-bottom: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  border: none;
+  transition: background-color 120ms ease;
+}
+
+.integrations-status-bar:hover {
+  background: color-mix(in srgb, var(--hover) 80%, var(--text) 8%);
+}
+
+.integrations-overlapping-icons {
+  display: flex;
+  align-items: center;
+}
+
+.integrations-overlap-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--panel);
+  border: 2px solid var(--hover);
+  margin-inline-end: -6px;
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
+.integrations-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  border-radius: 20px;
+  background: var(--hover);
+  padding: 0 16px;
+  margin-bottom: 16px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.integrations-search input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+  padding: 0;
+}
+
+.integrations-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.integrations-chip {
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: none;
+  background: var(--hover);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.integrations-chip:hover:not(.active) {
+  color: var(--text);
+  background: color-mix(in srgb, var(--hover) 85%, var(--text) 8%);
+}
+
+.integrations-chip.active {
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.integrations-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 640px) {
+  .integrations-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.integration-card {
+  border-radius: 14px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 16px 20px;
+  min-height: 88px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+  text-align: start;
+  width: 100%;
+  font: inherit;
+  color: inherit;
+}
+
+.integration-card:hover {
+  border-color: var(--border-strong);
+}
+
+.integration-badge {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
+.integration-card-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.integration-card-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.integration-card-desc {
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.integration-card-action {
+  flex-shrink: 0;
+}
+
+.integration-connected-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.integration-connected-badge .check-icon {
+  color: var(--ok);
+}
+
+.integrations-detail-header {
+  margin-bottom: 24px;
+}
+
 .stack { display: flex; flex-direction: column; gap: 14px; }
 .card { padding: 14px 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel); }
 .card p { margin: 0 0 8px; }
