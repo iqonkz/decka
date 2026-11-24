@@ -342,6 +342,101 @@ impl Assistant {
         r
     }
 
+    // ---- The Reminders window (DATA_MODEL.md 13.7); ids are the ones the agent issued, anything else is refused ----
+
+    /// Every reminder, finished ones too, soonest first.
+    pub fn reminders_all(&self) -> Vec<Reminder> {
+        let mut v = self.inner.lock().unwrap().0.reminders.clone();
+        v.sort_by(|a, b| a.at.cmp(&b.at));
+        v
+    }
+
+    /// Adds a reminder (`id` = None) or changes the text and the time of one. A time that is new must lie in the future, within a
+    /// year; the same time as before is kept whatever it is. Changing the time of a finished reminder makes it open again.
+    pub fn reminder_upsert(&self, id: Option<&str>, text: &str, at_iso: &str, now: &Local) -> Result<Reminder, String> {
+        let text = clean_text(text, "reminder")?;
+        let at = Local::parse_iso(at_iso).ok_or("The time must be YYYY-MM-DDTHH:MM")?;
+        let mut g = self.inner.lock().unwrap();
+        let Some(id) = id else {
+            drop(g);
+            return self.add_reminder(&text, &When::At(at), now);
+        };
+        let Some(i) = g.0.reminders.iter().position(|r| r.id == id) else { return Err("There is no such reminder".into()) };
+        if g.0.reminders[i].at != at.iso() {
+            resolve(&When::At(at.clone()), now).map_err(String::from)?;
+            g.0.reminders[i].done = false;
+        }
+        g.0.reminders[i].text = text;
+        g.0.reminders[i].at = at.iso();
+        let r = g.0.reminders[i].clone();
+        self.save_reminders(&g.0)?;
+        Ok(r)
+    }
+
+    /// Deletes a reminder; false for an id the agent did not issue.
+    pub fn reminder_delete(&self, id: &str) -> bool {
+        self.delete_reminder(id)
+    }
+
+    /// Creates a list (`id` = None) or replaces the name and the items of one. Items with an id must belong to the list (a foreign
+    /// id is an error); items without an id are new. The order of `items` is the order of the list.
+    pub fn list_upsert(&self, id: Option<&str>, name: &str, items: &[(Option<String>, String, bool)]) -> Result<ListView, String> {
+        let name = clean_text(name, "list name")?;
+        if items.len() > MAX_ITEMS {
+            return Err("The list is full".into());
+        }
+        let mut g = self.inner.lock().unwrap();
+        let existing = match id {
+            Some(id) => Some(g.1.lists.iter().position(|l| l.id == id).ok_or("There is no such list")?),
+            None => None,
+        };
+        if existing.is_none() && g.1.lists.len() >= MAX_LISTS {
+            return Err("There are too many lists".into());
+        }
+        // Everything is checked before anything changes.
+        let mut new_items: Vec<Item> = Vec::new();
+        for (item_id, text, done) in items {
+            let text = clean_text(text, "item")?;
+            let item_id = match item_id {
+                Some(i) => {
+                    if !existing.is_some_and(|at| g.1.lists[at].items.iter().any(|x| &x.id == i)) {
+                        return Err("There is no such item".into());
+                    }
+                    if new_items.iter().any(|x| &x.id == i) {
+                        return Err("An item is there twice".into());
+                    }
+                    i.clone()
+                }
+                None => new_id(),
+            };
+            new_items.push(Item { id: item_id, text, done: *done });
+        }
+        let at = match existing {
+            Some(at) => at,
+            None => {
+                g.1.lists.push(List { id: new_id(), name: name.clone(), items: Vec::new() });
+                g.1.lists.len() - 1
+            }
+        };
+        g.1.lists[at].name = name;
+        g.1.lists[at].items = new_items;        let l = &g.1.lists[at];
+        let view = ListView { id: l.id.clone(), name: l.name.clone(), items: l.items.clone() };
+        self.save_lists(&g.1)?;
+        Ok(view)
+    }
+
+    /// Deletes a list by id; false for an id the agent did not issue.
+    pub fn list_delete_id(&self, id: &str) -> bool {
+        let mut g = self.inner.lock().unwrap();
+        let before = g.1.lists.len();
+        g.1.lists.retain(|l| l.id != id);
+        let removed = g.1.lists.len() != before;
+        if removed {
+            let _ = self.save_lists(&g.1);
+        }
+        removed
+    }
+
     /// Every list with all its items, as the IPC command `lists_get` returns them.
     pub fn lists_json(&self) -> serde_json::Value {
         serde_json::json!(self.lists().iter().map(|l| serde_json::json!({
@@ -732,5 +827,47 @@ mod tests {
         assert!(a.upcoming(10).is_empty());
         std::fs::write(dir.path().join("reminders.json"), serde_json::to_string(&RemindersFile { reminders: big }).unwrap()).unwrap();
         assert_eq!(Assistant::load(dir.path()).upcoming(1000).len(), MAX_REMINDERS);
+    }
+
+    #[test]
+    fn the_window_edits_reminders_and_lists_by_issued_ids_only() {
+        let (_d, a) = {
+            let d = tempfile::tempdir().unwrap();
+            let a = Assistant::load(d.path());
+            (d, a)
+        };
+        let r = a.reminder_upsert(None, "  call   mom ", "2026-11-25T18:30", &now()).unwrap();
+        assert_eq!((r.text.as_str(), r.at.as_str(), r.done), ("call mom", "2026-11-25T18:30", false));
+        assert!(a.reminder_upsert(None, "x", "2026-11-25T09:00", &now()).is_err(), "a new time must be in the future");
+        assert!(a.reminder_upsert(None, "x", "2028-01-01T09:00", &now()).is_err(), "at most a year ahead");
+        assert!(a.reminder_upsert(None, "", "2026-11-26T09:00", &now()).is_err() && a.reminder_upsert(None, "x", "tomorrow", &now()).is_err());
+        assert!(a.reminder_upsert(None, &"y".repeat(201), "2026-11-26T09:00", &now()).is_err());
+        let edited = a.reminder_upsert(Some(&r.id), "call dad", "2026-11-25T18:30", &now()).unwrap();
+        assert_eq!((edited.text.as_str(), edited.id.as_str()), ("call dad", r.id.as_str()), "the text changes, the time is kept");
+        assert_eq!(a.reminder_upsert(Some("0000000000000000"), "x", "2026-11-26T09:00", &now()).unwrap_err(), "There is no such reminder");
+        assert!(!a.reminder_delete("0000000000000000") && a.reminder_delete(&r.id));
+        assert!(a.reminders_all().is_empty());
+
+        let l = a.list_upsert(None, "Shopping", &[(None, "milk".into(), false), (None, "bread".into(), true)]).unwrap();
+        assert_eq!((l.items.len(), l.items[1].done), (2, true));
+        let (milk, bread) = (l.items[0].id.clone(), l.items[1].id.clone());
+        let l2 = a.list_upsert(Some(&l.id), "Groceries", &[(Some(bread.clone()), "bread".into(), false), (Some(milk.clone()), "milk 2l".into(), false), (None, "eggs".into(), false)]).unwrap();
+        assert_eq!((l2.name.as_str(), l2.items.iter().map(|i| i.text.as_str()).collect::<Vec<_>>()), ("Groceries", vec!["bread", "milk 2l", "eggs"]));
+        assert_eq!((l2.items[0].id.as_str(), l2.items[1].id.as_str()), (bread.as_str(), milk.as_str()), "kept ids");
+        // Foreign ids and broken input change nothing.
+        assert_eq!(a.list_upsert(Some("0000000000000000"), "x", &[]).unwrap_err(), "There is no such list");
+        assert_eq!(a.list_upsert(Some(&l.id), "x", &[(Some("0000000000000000".into()), "x".into(), false)]).unwrap_err(), "There is no such item");
+        assert_eq!(a.list_upsert(None, "New", &[(Some(milk.clone()), "x".into(), false)]).unwrap_err(), "There is no such item", "an id of another list");
+        assert_eq!(a.list_upsert(Some(&l.id), "x", &[(Some(milk.clone()), "a".into(), false), (Some(milk.clone()), "b".into(), false)]).unwrap_err(), "An item is there twice");
+        assert!(a.list_upsert(None, "Bad", &[(None, "".into(), false)]).is_err());
+        assert_eq!(a.lists().len(), 1, "no half-made list is left");
+        assert_eq!(a.lists()[0].name, "Groceries");
+        let too_many: Vec<(Option<String>, String, bool)> = (0..=MAX_ITEMS).map(|i| (None, format!("i{i}"), false)).collect();
+        assert_eq!(a.list_upsert(None, "Big", &too_many).unwrap_err(), "The list is full");
+        for i in 0..MAX_LISTS - 1 {
+            a.list_upsert(None, &format!("list {i}"), &[]).unwrap();
+        }
+        assert_eq!(a.list_upsert(None, "one more", &[]).unwrap_err(), "There are too many lists");
+        assert!(!a.list_delete_id("0000000000000000") && a.list_delete_id(&l.id));
     }
 }

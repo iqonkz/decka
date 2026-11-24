@@ -49,6 +49,8 @@ export interface VoiceInfo {
   id?: string; source?: "pc" | "phone"; heard?: string; reply?: string; confirm?: { text: string; key?: string; args?: Record<string, string> };
   /** i18n key (`voice.reply.*`) of a fixed agent phrase; `reply` is the free text or the fallback. */
   replyKey?: string; replyArgs?: Record<string, string>;
+  /** M22 (DATA_MODEL.md 13.7): what the running request is, for the label of the pill. */
+  activity?: "dictate" | "screen";
 }
 export type ClientMsg = Hello2Msg | AuthMsg | PairMsg | HelloMsg | PressMsg | NotifDismissMsg | PingMsg | PermAnswerMsg | NotifOpenMsg | ListToggleMsg | ApkGetMsg
   | VoiceStartMsg | VoiceChunkMsg | VoiceEndMsg | VoiceCancelMsg | VoiceConfirmMsg;

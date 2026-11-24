@@ -472,3 +472,18 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="color"]), select, te
 .voice-btn { border: 0; border-radius: 8px; padding: 6px 14px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; color: #ffffff; background: #262626; display: inline-flex; align-items: center; gap: 6px; }
 .voice-btn-yes { background: var(--accent); }
 .voice-btn-key { font-size: 11px; opacity: 0.75; font-weight: 400; }
+
+/* M22: the label of a dictation / a look at the screen in the pill (DATA_MODEL.md 13.7) */
+.voice-activity { display: inline-flex; align-items: center; gap: 6px; }
+.voice-activity-icon { flex: none; }
+
+/* M22: the Reminders window, the Dictation and Memory blocks (DATA_MODEL.md 13.7) */
+.rem-line { gap: 8px; align-items: center; padding: 2px 0; }
+.rem-add { gap: 8px; align-items: center; margin-top: 8px; }
+.rem-edit { text-align: start; color: inherit; text-decoration: none; cursor: text; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.rem-edit-done { opacity: 0.55; text-decoration: line-through; }
+.rem-lists { display: grid; grid-template-columns: minmax(180px, 1fr) 2fr; gap: 12px; align-items: start; }
+.rem-name.on { background: color-mix(in srgb, var(--accent) 16%, transparent); border-radius: 8px; }
+.confirm-inline { display: inline-flex; align-items: center; gap: 6px; }
+.btn-icon { padding: 2px 8px; min-width: 0; }
+textarea { width: 100%; box-sizing: border-box; font: inherit; }

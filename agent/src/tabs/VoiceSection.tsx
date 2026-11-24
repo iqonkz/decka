@@ -7,6 +7,8 @@ import Field from "../ui/Field";
 import ChordField from "../editor/ChordField";
 import { formatChord } from "../editor/addButton";
 import VoiceHelp from "./VoiceHelp";
+import DictationBlock from "./DictationBlock";
+import MemoryBlock from "./MemoryBlock";
 
 const DEFAULT_STATUS: VoiceStatus = {
   state: "off",
@@ -237,6 +239,8 @@ export default function VoiceSection() {
           </div>
         </section>
       )}
+      <DictationBlock />
+      <MemoryBlock />
       <VoiceHelp />
     </div>
   );

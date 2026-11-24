@@ -361,6 +361,7 @@ impl Host {
                 let Some(inner) = weak.upgrade() else { break };
                 let due = inner.agent.assistant().take_due(&crate::assistant::Local::now());
                 if let Some((title, body)) = crate::assistant::due_notice(&due, on_start) {
+                    inner.remind_plate(&body);
                     inner.agent.push_notification(crate::proto::NotifyReq { title, body: Some(body), level: Some(crate::model::NotifLevel::Info), source: Some("reminder".into()) });
                 }
                 on_start = false;
@@ -596,6 +597,35 @@ impl Inner {
         }
         #[cfg(not(windows))]
         let _ = state;
+    }
+
+    /// The plate of a reminder (DATA_MODEL.md 13.7): the pill shows its text for 5 s, unless a voice request is running.
+    fn remind_plate(self: &Arc<Self>, text: &str) {
+        if self.driver().state().phase != Phase::Idle {
+            return;
+        }
+        let info = |state: &'static str, reply: Option<String>| VoiceInfo {
+            state,
+            id: reply.is_some().then(|| "0000000000000000".to_string()),
+            source: reply.is_some().then_some(Source::Pc),
+            heard: None,
+            reply,
+            reply_key: None,
+            reply_args: Default::default(),
+            confirm: None,
+            activity: None,
+        };
+        self.show(&info("done", Some(text.chars().take(200).collect())), 0.0);
+        let weak = Arc::downgrade(self);
+        self.handle.spawn(async move {
+            tokio::time::sleep(Duration::from_secs(5)).await;
+            if let Some(inner) = weak.upgrade() {
+                // A voice request that started meanwhile owns the pill now.
+                if inner.driver().state().phase == Phase::Idle {
+                    inner.show(&info("idle", None), 0.0);
+                }
+            }
+        });
     }
 
     fn show(&self, info: &VoiceInfo, level: f32) {
@@ -966,11 +996,11 @@ mod tests {
     use crate::model::SystemOp;
 
     fn state(phase: Phase, source: Source) -> State {
-        State { phase, id: Some("0011223344556677".into()), source: Some(source), heard: None, say: None, reply_key: None }
+        State { phase, id: Some("0011223344556677".into()), source: Some(source), heard: None, say: None, reply_key: None, activity: None }
     }
 
     fn info(state: &'static str, source: Option<Source>) -> VoiceInfo {
-        VoiceInfo { state, id: Some("x".into()), source, heard: None, reply: None, reply_key: None, reply_args: Default::default(), confirm: None }
+        VoiceInfo { state, id: Some("x".into()), source, heard: None, reply: None, reply_key: None, reply_args: Default::default(), confirm: None, activity: None }
     }
 
     #[test]

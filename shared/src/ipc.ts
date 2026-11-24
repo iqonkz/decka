@@ -88,6 +88,31 @@ export interface VoiceStatus {
   mics: string[];
   error?: string;
 }
+/** M22 (DATA_MODEL.md 13.7): the rows of the Reminders window. */
+export interface ReminderRow {
+  id: string;
+  text: string;
+  at: string;
+  done: boolean;
+}
+export interface ListRow {
+  id: string;
+  name: string;
+  items: { id: string; text: string; done: boolean }[];
+}
+export interface MemoryFact {
+  id: string;
+  text: string;
+  createdAt: number;
+}
+/** `dictation.json`: what starts a dictation, whether the text is tidied, and the words whisper should know (at most 500 of 60 characters). */
+export type DictationTrigger = { kind: "doubleCtrl" } | { kind: "chord"; keys: string[] } | { kind: "off" };
+export interface DictationSettings {
+  trigger: DictationTrigger;
+  mode: "clean" | "raw";
+  dictionary: string[];
+}
+
 export interface VoiceSetArgs {
   model?: "standard" | "light";
   hotkey?: string[];
@@ -155,7 +180,18 @@ export interface IpcCommands {
   refresh_weather(): WeatherInfo | { error: string };           // M15: update now (button in the window)
   set_obs_password(args: { password: string }): void;           // M15: encrypts with DPAPI and saves; "" removes the password
   set_mail_password(args: { accountId: Id; password: string }): void; // M17: encrypts with DPAPI and saves for that mailbox; "" removes it
-  lists_get(): { id: string; name: string; items: { id: string; text: string; done: boolean }[] }[]; // M22: every list with all its items, for the editor and the Reminders window
+  lists_get(): ListRow[];                                       // M22 (DATA_MODEL.md 13.7): every list with all its items, for the editor and the Reminders window
+  reminders_get(): ReminderRow[];                               // every reminder, finished ones too, soonest first
+  reminder_upsert(args: { id?: string; text: string; at: string }): ReminderRow; // no id = new; at: local YYYY-MM-DDTHH:MM; only ids the PC issued
+  reminder_delete(args: { id: string }): void;
+  list_upsert(args: { id?: string; name: string; items: { id?: string; text: string; done: boolean }[] }): ListRow; // no id = new list; items replace the old ones
+  list_delete(args: { id: string }): void;
+  memory_get(): MemoryFact[];                                   // the facts of More -> Voice -> Memory
+  memory_update(args: { id: string; text: string }): MemoryFact;
+  memory_delete(args: { id: string }): void;
+  memory_clear(): void;                                         // Forget all
+  voice_dictation_get(): DictationSettings;
+  voice_dictation_set(args: DictationSettings): DictationSettings; // an invalid shortcut is an error string; the answer is what was saved
   mail_check_now(): void;                                       // M17: looks at the mailboxes at once
   network_status(): NetworkStatus;                             // M18: usb / private / public and the allowPublic switch
   windows_notifications_status(): WindowsNotificationsStatus;   // M17: the switch, what Windows says about the access, the apps seen so far

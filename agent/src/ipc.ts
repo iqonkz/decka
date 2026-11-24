@@ -23,6 +23,8 @@ export interface VoicePillEvent {
   confirm?: { text: string; key?: string; args?: Record<string, string> };
   replyKey?: string;
   replyArgs?: Record<string, string>;
+  /** `dictate`: the pill says `Dictating...` with a microphone; `screen`: `Looking at the screen` with an eye. */
+  activity?: "dictate" | "screen";
   /** The chord shown by the idle state, e.g. `Ctrl+Alt+Space`. */
   hotkey?: string;
   level?: number;

@@ -107,11 +107,13 @@ pub struct State {
     pub say: Option<String>,
     /// The key of the fixed phrase in `Done` / `Failed`; `None` for free text (the model's answer, an executor's result).
     pub reply_key: Option<ReplyKey>,
+    /// What the request is, for the label of the pill (DATA_MODEL.md 13.7): `dictate` (a dictation) or `screen` (the screen is being looked at).
+    pub activity: Option<&'static str>,
 }
 
 impl State {
     pub fn idle() -> State {
-        State { phase: Phase::Idle, id: None, source: None, heard: None, say: None, reply_key: None }
+        State { phase: Phase::Idle, id: None, source: None, heard: None, say: None, reply_key: None, activity: None }
     }
 }
 
@@ -133,6 +135,9 @@ pub struct VoiceInfo {
     pub reply_args: BTreeMap<String, String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub confirm: Option<ConfirmInfo>,
+    /// `dictate` or `screen` while the request runs: the pill says `Dictating...` or `Looking at the screen`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub activity: Option<&'static str>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -173,6 +178,7 @@ impl State {
             reply_key: self.reply_key.as_ref().filter(|_| matches!(state, "done" | "error")).map(|k| k.key),
             reply_args: self.reply_key.as_ref().filter(|_| matches!(state, "done" | "error")).map(|k| k.args.clone()).unwrap_or_default(),
             confirm,
+            activity: self.activity.filter(|_| matches!(state, "listening" | "recognizing" | "thinking" | "loading")),
         }
     }
 }
@@ -262,6 +268,15 @@ fn describe(i: &Intent) -> String {
     if arg.is_empty() { i.tool.replace('_', " ") } else { format!("{} {arg}", i.tool.replace('_', " ")) }
 }
 
+/// Starts a call; the pill says what is going on while it runs.
+fn executing(mut s: State, call: ToolCall) -> (State, Vec<Effect>) {
+    s.phase = Phase::Executing;
+    if matches!(call, ToolCall::ScreenAsk { .. }) {
+        s.activity = Some("screen");
+    }
+    (s, vec![Effect::Execute(call)])
+}
+
 fn finish(mut s: State, phase: Phase) -> (State, Vec<Effect>) {
     s.phase = phase;
     s.reply_key = None;
@@ -283,10 +298,7 @@ fn resolve(mut s: State, raw: &RawCall, now_ms: u64, env: &Env, from_model: bool
             s.phase = Phase::Confirming { call: v, deadline_ms };
             (s, vec![Effect::ScheduleTick(env.confirm_ms)])
         }
-        Resolved::Ready(v) => {
-            s.phase = Phase::Executing;
-            (s, vec![Effect::Execute(v.call)])
-        }
+        Resolved::Ready(v) => executing(s, v.call),
         Resolved::Ask { question, options } => finish_key(s, Phase::Done(question), ReplyKey::with(key::WHICH, "options", &options.iter().take(3).cloned().collect::<Vec<_>>().join(" / "))),
         Resolved::Reject(_) if from_model => finish_key(s, Phase::Failed(msg::DIDNT_GET.into()), ReplyKey::plain(key::DIDNT_GET)),
         Resolved::Reject(why) => finish_key(s, Phase::Failed(format!("Can't do that: {why}")), ReplyKey::with(key::CANT, "why", &why)),
@@ -299,7 +311,7 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
     match (&state.phase, event) {
         (Phase::Idle | Phase::Done(_) | Phase::Failed(_), Event::Start { id, source }) => {
             let effects = if source == Source::Pc { vec![Effect::StartCapture] } else { Vec::new() };
-            (State { phase: Phase::Listening, id: Some(id), source: Some(source), heard: None, say: None, reply_key: None }, effects)
+            (State { phase: Phase::Listening, id: Some(id), source: Some(source), heard: None, say: None, reply_key: None, activity: env.dictate.then_some("dictate") }, effects)
         }
         (Phase::Idle, Event::Cancel) => (s, Vec::new()),
         (Phase::Listening, Event::CaptureFailed(e)) if e == msg::NO_SOUND => {
@@ -411,21 +423,13 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
         },
         // A spoken yes or no while a confirmation is open.
         (Phase::Confirming { call, .. }, Event::Transcript(Ok(text))) => match env.table.answer(&text) {
-            Some(true) => {
-                let call = call.call.clone();
-                let mut s = s;
-                s.phase = Phase::Executing;
-                (s, vec![Effect::Execute(call)])
-            }
+            Some(true) => executing(s, call.call.clone()),
             Some(false) => finish_key(s, Phase::Done(msg::CANCELLED.into()), ReplyKey::plain(key::CANCELLED)),
             None => (s, Vec::new()),
         },
         (Phase::Confirming { call, .. }, Event::Confirm { id, yes }) if state.id.as_deref() == Some(id.as_str()) => {
             if yes {
-                let call = call.call.clone();
-                let mut s = s;
-                s.phase = Phase::Executing;
-                (s, vec![Effect::Execute(call)])
+                executing(s, call.call.clone())
             } else {
                 finish_key(s, Phase::Done(msg::CANCELLED.into()), ReplyKey::plain(key::CANCELLED))
             }
@@ -699,6 +703,29 @@ mod tests {
         let (s, fx) = step(&s, said("volume up"), 3, &env);
         assert_eq!(s.phase, Phase::Executing);
         assert_eq!(fx, [Effect::Execute(ToolCall::TypeText { text: "volume up".into() })]);
+    }
+
+    #[test]
+    fn the_pill_knows_a_dictation_and_a_look_at_the_screen_while_they_run() {
+        let (t, c) = (table(), ctx());
+        let dictating = Env { table: &t, ctx: &c, confirm_ms: CONFIRM_TIMEOUT_MS, dictate: true };
+        let (s, _) = step(&State::idle(), start(Source::Pc), 1, &dictating);
+        assert_eq!(s.info().activity, Some("dictate"));
+        let (s, _) = step(&s, Event::AudioEnd, 2, &dictating);
+        let (s, _) = step(&s, said("hello there"), 3, &dictating);
+        assert_eq!(s.phase, Phase::Executing, "typed");
+        let (s, _) = step(&s, Event::Executed(Ok(String::new())), 4, &dictating);
+        assert_eq!((s.info().state, s.info().activity), ("done", None), "the label goes with the end of the request");
+        let ordinary = Env { table: &t, ctx: &c, confirm_ms: CONFIRM_TIMEOUT_MS, dictate: false };
+        assert_eq!(step(&State::idle(), start(Source::Pc), 1, &ordinary).0.info().activity, None);
+        // The screen: the call that looks at it marks the request, any other call does not.
+        let (s, fx) = executing(State::idle(), ToolCall::ScreenAsk { question: "what is this".into() });
+        assert_eq!((s.phase.clone(), s.info().state, s.info().activity), (Phase::Executing, "thinking", Some("screen")));
+        assert_eq!(fx.len(), 1);
+        assert_eq!(executing(State::idle(), ToolCall::DayBrief).0.info().activity, None);
+        // It is part of the section the phone gets only while it runs.
+        assert_eq!(serde_json::to_value(s.info()).unwrap()["activity"], "screen");
+        assert!(serde_json::to_value(State::idle().info()).unwrap().get("activity").is_none());
     }
 
     #[test]

@@ -144,6 +144,27 @@ impl Memory {
         Ok(fact)
     }
 
+    /// The Memory window: changes the text of one fact. An id the agent did not issue is an error; the limits are those of `add`.
+    pub fn update(&self, id: &str, text: &str) -> Result<Fact, String> {
+        let text = normalize(text)?;
+        let mut g = self.inner.lock().unwrap();
+        let Some(i) = g.facts.iter().position(|f| f.id == id) else { return Err("I do not remember that".into()) };
+        if g.facts.iter().enumerate().any(|(j, f)| j != i && f.text.to_lowercase() == text.to_lowercase()) {
+            return Err("That fact is already there".into());
+        }
+        g.facts[i].text = text;
+        let fact = g.facts[i].clone();
+        self.save(&g)?;
+        Ok(fact)
+    }
+
+    /// `Forget all`.
+    pub fn clear(&self) -> Result<(), String> {
+        let mut g = self.inner.lock().unwrap();
+        g.facts.clear();
+        self.save(&g)
+    }
+
     pub fn remove_id(&self, id: &str) -> bool {
         let mut g = self.inner.lock().unwrap();
         let before = g.facts.len();
@@ -254,5 +275,19 @@ mod tests {
         std::fs::write(d.path().join("memory.json"), serde_json::to_string(&big).unwrap()).unwrap();
         let m = Memory::load(d.path());
         assert_eq!((m.all().len(), m.all()[0].text.chars().count()), (MAX_FACTS, MAX_FACT_CHARS));
+    }
+
+    #[test]
+    fn the_window_changes_facts_only_by_ids_the_agent_issued() {
+        let (dir, m) = mem();
+        let a = m.add("Aigerim is my wife", 1).unwrap();
+        let b = m.add("My project is on drive D", 2).unwrap();
+        assert_eq!(m.update(&a.id, "  Aigerim is my   sister ").unwrap().text, "Aigerim is my sister");
+        assert_eq!(m.update("0000000000000000", "x").unwrap_err(), "I do not remember that", "a foreign id");
+        assert!(m.update(&a.id, "").is_err() && m.update(&a.id, &"x".repeat(201)).is_err(), "the limits of add");
+        assert_eq!(m.update(&b.id, "aigerim is my sister").unwrap_err(), "That fact is already there");
+        assert_eq!(Memory::load(dir.path()).all()[0].text, "Aigerim is my sister", "saved");
+        m.clear().unwrap();
+        assert!(m.all().is_empty() && Memory::load(dir.path()).all().is_empty());
     }
 }

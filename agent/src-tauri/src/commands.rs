@@ -93,6 +93,105 @@ pub fn lists_get(app: AppHandle) -> Result<serde_json::Value, String> {
     Ok(agent(&app)?.assistant().lists_json())
 }
 
+/// One reminder as the Reminders window gets it.
+fn reminder_json(r: &decka_core::assistant::Reminder) -> serde_json::Value {
+    serde_json::json!({ "id": r.id, "text": r.text, "at": r.at, "done": r.done })
+}
+
+/// M22 (DATA_MODEL.md 13.7): every reminder, finished ones too.
+#[tauri::command]
+pub fn reminders_get(app: AppHandle) -> Result<serde_json::Value, String> {
+    Ok(serde_json::Value::Array(agent(&app)?.assistant().reminders_all().iter().map(reminder_json).collect()))
+}
+
+/// Adds a reminder (no `id`) or changes the text and the time of one; only ids the agent issued are accepted.
+#[tauri::command]
+pub fn reminder_upsert(app: AppHandle, id: Option<String>, text: String, at: String) -> Result<serde_json::Value, String> {
+    let r = agent(&app)?.assistant().reminder_upsert(id.as_deref(), &text, &at, &decka_core::assistant::Local::now())?;
+    Ok(reminder_json(&r))
+}
+
+#[tauri::command]
+pub fn reminder_delete(app: AppHandle, id: String) -> Result<(), String> {
+    if agent(&app)?.assistant().reminder_delete(&id) {
+        Ok(())
+    } else {
+        Err("There is no such reminder".into())
+    }
+}
+
+/// One item of `list_upsert`: `id` is absent for a new item.
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ListItemArg {
+    pub id: Option<String>,
+    pub text: String,
+    pub done: bool,
+}
+
+/// Creates a list (no `id`) or replaces the name and the items of one.
+#[tauri::command]
+pub fn list_upsert(app: AppHandle, id: Option<String>, name: String, items: Vec<ListItemArg>) -> Result<serde_json::Value, String> {
+    let items: Vec<(Option<String>, String, bool)> = items.into_iter().map(|i| (i.id, i.text, i.done)).collect();
+    let l = agent(&app)?.assistant().list_upsert(id.as_deref(), &name, &items)?;
+    Ok(serde_json::json!({ "id": l.id, "name": l.name, "items": l.items.iter().map(|i| serde_json::json!({ "id": i.id, "text": i.text, "done": i.done })).collect::<Vec<_>>() }))
+}
+
+#[tauri::command]
+pub fn list_delete(app: AppHandle, id: String) -> Result<(), String> {
+    if agent(&app)?.assistant().list_delete_id(&id) {
+        Ok(())
+    } else {
+        Err("There is no such list".into())
+    }
+}
+
+/// The facts of `More -> Voice -> Memory`.
+#[tauri::command]
+pub fn memory_get(app: AppHandle) -> Result<Vec<decka_core::voice::memory::Fact>, String> {
+    Ok(agent(&app)?.memory().all())
+}
+
+#[tauri::command]
+pub fn memory_update(app: AppHandle, id: String, text: String) -> Result<decka_core::voice::memory::Fact, String> {
+    agent(&app)?.memory().update(&id, &text)
+}
+
+#[tauri::command]
+pub fn memory_delete(app: AppHandle, id: String) -> Result<(), String> {
+    if agent(&app)?.memory().remove_id(&id) {
+        Ok(())
+    } else {
+        Err("I do not remember that".into())
+    }
+}
+
+/// `Forget all`.
+#[tauri::command]
+pub fn memory_clear(app: AppHandle) -> Result<(), String> {
+    agent(&app)?.memory().clear()
+}
+
+/// The settings of dictation (`dictation.json`).
+#[tauri::command]
+pub fn voice_dictation_get(app: AppHandle) -> Result<decka_core::voice::dictation::DictationSettings, String> {
+    let host = app.try_state::<decka_core::voice::host::Host>().ok_or_else(|| "voice control did not start".to_string())?;
+    Ok(host.dictation_settings())
+}
+
+/// Saves the settings of dictation; an invalid shortcut is an error string. The answer is what was saved (the dictionary is tidied).
+#[tauri::command]
+pub fn voice_dictation_set(
+    app: AppHandle,
+    trigger: decka_core::voice::dictation::Trigger,
+    mode: decka_core::voice::dictation::Mode,
+    dictionary: Vec<String>,
+) -> Result<decka_core::voice::dictation::DictationSettings, String> {
+    let host = app.try_state::<decka_core::voice::host::Host>().ok_or_else(|| "voice control did not start".to_string())?;
+    host.set_dictation_settings(decka_core::voice::dictation::DictationSettings { trigger, mode, dictionary })?;
+    Ok(host.dictation_settings())
+}
+
 /// `Check now`: looks at the mailboxes at once.
 #[tauri::command]
 pub fn mail_check_now(app: AppHandle) -> Result<(), String> {
