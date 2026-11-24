@@ -6,6 +6,7 @@ import Button from "../ui/Button";
 import DiagSection from "./DiagSection";
 import NetworkLine from "./NetworkLine";
 import PairingTab from "./PairingTab";
+import { Group, PageHeader, Row, SectionHeader } from "../ui/SettingsGroup";
 
 /** The firewall hint appears when, a minute after this page was opened, no phone has connected (also when the first pairing fails). */
 export const FIREWALL_WAIT_MS = 60_000;
@@ -56,107 +57,127 @@ export default function PhoneTab() {
   const firewallProblem = status.listening?.bind === "0.0.0.0" && waited && !everConnected.current;
 
   return (
-    <div className="stack">
-      <h2>{t("tab.phone")}</h2>
+    <div className="page-container">
+      <PageHeader title={t("tab.phone")} />
 
-      <section className="card phone-card">
-        <span className={`status-dot ${summary.dot}`} aria-hidden="true" />
-        <strong>{summary.text}</strong>
-        {!status.listening && (
-          <>
-            <span className="muted">
-              {status.listenBusy
-                ? status.listenBusy.app
-                  ? t("phone.port_busy", { port: status.listenBusy.port, app: status.listenBusy.app })
-                  : t("phone.port_busy_unknown", { port: status.listenBusy.port })
-                : (status.listenError ?? "")}
-            </span>
-            <Button onClick={() => call("restart_server").then(setStatus, (e) => setError(String(e)))}>
-              {status.listenBusy ? t("link.try_again") : t("phone.restart")}
-            </Button>
-          </>
-        )}
-      </section>
+      <Group id="phone-status">
+        <div className="phone-card" style={{ padding: "14px 0", display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+          <span className={`status-dot ${summary.dot}`} aria-hidden="true" />
+          <strong>{summary.text}</strong>
+          {!status.listening && (
+            <>
+              <span className="muted">
+                {status.listenBusy
+                  ? status.listenBusy.app
+                    ? t("phone.port_busy", { port: status.listenBusy.port, app: status.listenBusy.app })
+                    : t("phone.port_busy_unknown", { port: status.listenBusy.port })
+                  : (status.listenError ?? "")}
+              </span>
+              <Button onClick={() => call("restart_server").then(setStatus, (e) => setError(String(e)))}>
+                {status.listenBusy ? t("link.try_again") : t("phone.restart")}
+              </Button>
+            </>
+          )}
+        </div>
+      </Group>
 
       <NetworkLine />
 
-      <PairingTab embedded />
+      <div id="phone-pairing" style={{ marginTop: 24 }}>
+        <PairingTab embedded />
+      </div>
 
-      <DiagSection />
+      <div id="phone-diag" style={{ marginTop: 24 }}>
+        <DiagSection />
+      </div>
 
       {firewallProblem && (
-        <section className="card">
-          <h3>{t("phone.firewall_title")}</h3>
-          <p>{t("phone.firewall_text")}</p>
-          <div className="row">
-            <input className="mono" readOnly value={firewallCommand} onFocus={(e) => e.currentTarget.select()} />
-            <Button
-              onClick={() => {
-                void navigator.clipboard.writeText(firewallCommand).then(() => {
-                  setCopied(true);
-                  window.setTimeout(() => setCopied(false), 1500);
-                });
-              }}
-            >
-              {copied ? t("common.copied") : t("common.copy")}
-            </Button>
-          </div>
-        </section>
+        <div id="phone-firewall" style={{ marginTop: 24 }}>
+          <SectionHeader title={t("phone.firewall_title")} />
+          <Group>
+            <div style={{ padding: "14px 0" }}>
+              <p>{t("phone.firewall_text")}</p>
+              <div className="row">
+                <input className="mono" readOnly value={firewallCommand} onFocus={(e) => e.currentTarget.select()} />
+                <Button
+                  onClick={() => {
+                    void navigator.clipboard.writeText(firewallCommand).then(() => {
+                      setCopied(true);
+                      window.setTimeout(() => setCopied(false), 1500);
+                    });
+                  }}
+                >
+                  {copied ? t("common.copied") : t("common.copy")}
+                </Button>
+              </div>
+            </div>
+          </Group>
+        </div>
       )}
 
-      <details className="advanced">
-        <summary>{t("common.more_options")}</summary>
-        <section className="card">
-          <h3>{t("phone.addresses")}</h3>
-          {status.listening && (
-            <p className="muted">
-              {t("phone.listening", { where: `${status.listening.bind}:${status.listening.port}` })}
-            </p>
-          )}
-          {status.lanIps.length === 0 ? (
-            <p className="muted">{t("phone.no_address")}</p>
-          ) : (
-            <ul>
-              {status.lanIps.map((ip) => (
-                <li key={ip}>
-                  <code>{`http://${ip}:${port}`}</code>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-        <section className="card">
-          <h3>USB</h3>
-          {!status.usb.enabled ? (
-            <p className="muted">{t("phone.usb_off")}</p>
-          ) : !status.usb.adbFound ? (
-            <p className="warn-text">{t("phone.adb_not_found")}{status.usb.lastError ? `: ${status.usb.lastError}` : ""}</p>
-          ) : status.usb.devices.length === 0 ? (
-            <p className="muted">{t("phone.no_usb_phones")}</p>
-          ) : (
-            <ul>
-              {status.usb.devices.map((d) => (
-                <li key={d.serial}>
-                  {d.serial} {d.reversed && <span className="tag">{t("phone.usb_ready")}</span>}
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-        <section className="card">
-          <h3>{t("phone.active_app")}</h3>
-          <p>{status.focusApp ?? "—"}</p>
-        </section>
-        <section className="card">
-          <h3>{t("phone.config_folder")}</h3>
-          <p>
-            <code>{status.configDir}</code>
-          </p>
-          <div className="row">
-            <Button onClick={() => call("open_config_dir")}>{t("common.open")}</Button>
-            <Button onClick={() => call("open_logs_dir")}>{t("phone.open_logs")}</Button>
-          </div>
-        </section>
+      <details className="advanced" style={{ marginTop: 32 }}>
+        <summary style={{ cursor: "pointer", fontWeight: 600 }}>{t("common.more_options")}</summary>
+        <div style={{ marginTop: 12 }}>
+          <SectionHeader title={t("phone.addresses")} />
+          <Group>
+            <div style={{ padding: "14px 0" }}>
+              {status.listening && (
+                <p className="muted" style={{ margin: "0 0 8px" }}>
+                  {t("phone.listening", { where: `${status.listening.bind}:${status.listening.port}` })}
+                </p>
+              )}
+              {status.lanIps.length === 0 ? (
+                <p className="muted" style={{ margin: 0 }}>{t("phone.no_address")}</p>
+              ) : (
+                <ul style={{ margin: 0, paddingInlineStart: 20 }}>
+                  {status.lanIps.map((ip) => (
+                    <li key={ip}>
+                      <code>{`http://${ip}:${port}`}</code>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </Group>
+
+          <SectionHeader title="USB" />
+          <Group>
+            <div style={{ padding: "14px 0" }}>
+              {!status.usb.enabled ? (
+                <p className="muted" style={{ margin: 0 }}>{t("phone.usb_off")}</p>
+              ) : !status.usb.adbFound ? (
+                <p className="warn-text" style={{ margin: 0 }}>{t("phone.adb_not_found")}{status.usb.lastError ? `: ${status.usb.lastError}` : ""}</p>
+              ) : status.usb.devices.length === 0 ? (
+                <p className="muted" style={{ margin: 0 }}>{t("phone.no_usb_phones")}</p>
+              ) : (
+                <ul style={{ margin: 0, paddingInlineStart: 20 }}>
+                  {status.usb.devices.map((d) => (
+                    <li key={d.serial}>
+                      {d.serial} {d.reversed && <span className="tag">{t("phone.usb_ready")}</span>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </Group>
+
+          <SectionHeader title={t("phone.active_app")} />
+          <Group>
+            <Row title={t("phone.active_app")}>
+              <span>{status.focusApp ?? "—"}</span>
+            </Row>
+          </Group>
+
+          <SectionHeader title={t("phone.config_folder")} />
+          <Group>
+            <Row title={<code>{status.configDir}</code>}>
+              <div className="row">
+                <Button onClick={() => call("open_config_dir")}>{t("common.open")}</Button>
+                <Button onClick={() => call("open_logs_dir")}>{t("phone.open_logs")}</Button>
+              </div>
+            </Row>
+          </Group>
+        </div>
       </details>
     </div>
   );

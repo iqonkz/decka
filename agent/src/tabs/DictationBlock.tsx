@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { t, type DictationSettings, type DictationTrigger } from "@decka/shared";
 import { call } from "../ipc";
 import Banner from "../ui/Banner";
-import Field from "../ui/Field";
 import ChordField from "../editor/ChordField";
+import { Group, Row, SectionHeader } from "../ui/SettingsGroup";
+import Segmented from "../ui/Segmented";
 
 const DEFAULT_CHORD = ["ctrl", "alt", "d"];
 
@@ -44,28 +45,42 @@ export default function DictationBlock() {
   };
   const lines = fromLines(dictionary);
   return (
-    <section className="card" id="dictation">
-      <h3>{t("dict.title")}</h3>
+    <div id="voice-dictation" style={{ marginTop: 24 }}>
+      <SectionHeader title={t("dict.title")} />
       {error && <Banner kind="error">{error}</Banner>}
-      <div className="stack" style={{ gap: 12 }}>
-        <Field label={t("dict.trigger")}>
-          <select value={kind} onChange={(e) => setTrigger(e.target.value as DictationTrigger["kind"])}>
+      <Group>
+        <Row title={t("dict.trigger")}>
+          <select className="settings-select" value={kind} onChange={(e) => setTrigger(e.target.value as DictationTrigger["kind"])}>
             <option value="doubleCtrl">{t("dict.trigger_double")}</option>
             <option value="chord">{t("dict.trigger_chord")}</option>
             <option value="off">{t("dict.trigger_off")}</option>
           </select>
-        </Field>
-        {settings.trigger.kind === "chord" && <ChordField keys={settings.trigger.keys} onChange={(keys) => void save({ ...settings, trigger: { kind: "chord", keys } })} />}
-        <Field label={t("dict.mode")} hint={t(settings.mode === "clean" ? "dict.mode_clean_hint" : "dict.mode_raw_hint")}>
-          <select value={settings.mode} onChange={(e) => void save({ ...settings, mode: e.target.value as "clean" | "raw" })}>
-            <option value="clean">{t("dict.mode_clean")}</option>
-            <option value="raw">{t("dict.mode_raw")}</option>
-          </select>
-        </Field>
-        <Field label={t("dict.dictionary")} hint={t("dict.dictionary_hint", { n: lines.length })}>
+        </Row>
+        {settings.trigger.kind === "chord" && (
+          <Row title={t("dict.trigger_chord")}>
+            <ChordField keys={settings.trigger.keys} onChange={(keys) => void save({ ...settings, trigger: { kind: "chord", keys } })} />
+          </Row>
+        )}
+        <Row title={t("dict.mode")} description={t(settings.mode === "clean" ? "dict.mode_clean_hint" : "dict.mode_raw_hint")}>
+          <Segmented
+            options={[
+              { value: "clean", label: t("dict.mode_clean") },
+              { value: "raw", label: t("dict.mode_raw") },
+            ]}
+            value={settings.mode}
+            onChange={(val) => void save({ ...settings, mode: val })}
+          />
+        </Row>
+        <div style={{ padding: "14px 0" }}>
+          <div style={{ marginBottom: 6 }}>
+            <span className="settings-row-title">{t("dict.dictionary")}</span>
+            <span className="muted" style={{ display: "block", fontSize: 13, marginTop: 2 }}>
+              {t("dict.dictionary_hint", { n: lines.length })}
+            </span>
+          </div>
           <textarea rows={5} spellCheck={false} value={dictionary} onChange={(e) => setDictionary(e.target.value)} onBlur={() => lines.join("\n") !== settings.dictionary.join("\n") && void save({ ...settings, dictionary: lines })} />
-        </Field>
-      </div>
-    </section>
+        </div>
+      </Group>
+    </div>
   );
 }

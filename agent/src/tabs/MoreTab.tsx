@@ -10,6 +10,8 @@ import SettingsTab from "./SettingsTab";
 import VoiceSection from "./VoiceSection";
 import RemindersTab from "./RemindersTab";
 import Button from "../ui/Button";
+import { Group, PageHeader, Row, SectionHeader } from "../ui/SettingsGroup";
+import Switch from "../ui/Switch";
 
 type Updates = ReturnType<typeof useUpdates>;
 
@@ -53,38 +55,47 @@ function About({ updates }: { updates: Updates }) {
 
   const checked = status?.checkedAt != null ? t("about.last_check", { time: new Date(status.checkedAt).toLocaleString(locale()) }) : t("about.never_checked");
   return (
-    <div className="stack">
-      <h2>{t("more.about")}</h2>
-      <section className="card">
-        <img className="logo-about" src={logoUrl} width={64} height={64} alt="Decka" />
-        <p>
-          <strong>{version ? t("about.version", { version }) : "Decka"}</strong>{" "}
-          {version && (
-            <button type="button" className="link" onClick={() => void call("open_release", { url: releasePageOf(version) })}>
-              {t("about.changelog")}
-            </button>
-          )}
-        </p>
-        <p>{t("about.text")}</p>
-        <p className="muted">{t("about.licence")}</p>
-        <Button onClick={() => window.dispatchEvent(new CustomEvent("decka:run-setup", { detail: { step: 0 } }))}>{t("about.run_setup")}</Button>
-      </section>
-      <section className="card">
-        <h3>{t("about.updates")}</h3>
-        <label className="check">
-          <input type="checkbox" checked={enabled} onChange={(e) => void toggle(e.target.checked)} /> {t("about.updates_toggle")}
-        </label>
-        <p className="muted">{t("about.updates_hint")}</p>
-        <div className="row">
+    <div className="page-container">
+      <PageHeader title={t("more.about")} />
+
+      <Group id="about-version">
+        <div style={{ padding: "16px 0", display: "flex", gap: 16, alignItems: "center" }}>
+          <img className="logo-about" src={logoUrl} width={64} height={64} alt="Decka" />
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <strong>{version ? t("about.version", { version }) : "Decka"}</strong>
+              {version && (
+                <button type="button" className="link" onClick={() => void call("open_release", { url: releasePageOf(version) })}>
+                  {t("about.changelog")}
+                </button>
+              )}
+            </div>
+            <p style={{ margin: 0, fontSize: 13 }}>{t("about.text")}</p>
+            <p className="muted" style={{ margin: 0, fontSize: 12 }}>{t("about.licence")}</p>
+          </div>
+        </div>
+        <Row title={t("about.run_setup")}>
+          <Button onClick={() => window.dispatchEvent(new CustomEvent("decka:run-setup", { detail: { step: 0 } }))}>
+            {t("about.run_setup")}
+          </Button>
+        </Row>
+      </Group>
+
+      <SectionHeader id="about-updates" title={t("about.updates")} />
+      <Group>
+        <Row title={t("about.updates_toggle")} description={t("about.updates_hint")}>
+          <Switch checked={enabled} onChange={(val) => void toggle(val)} />
+        </Row>
+        <Row title={t("about.check_now")} description={checked}>
           <Button disabled={checking} onClick={() => void check()}>
             {checking ? t("about.checking") : t("about.check_now")}
           </Button>
-          <span className="muted">{checked}</span>
-        </div>
-        {status?.failed && <p className="warn-text">{t("about.check_failed")}</p>}
-        {status && !status.failed && status.checkedAt != null && !status.available && <p className="ok-text">{t("about.up_to_date")}</p>}
-        <UpdateBanner status={status} />
-      </section>
+        </Row>
+      </Group>
+
+      {status?.failed && <p className="warn-text">{t("about.check_failed")}</p>}
+      {status && !status.failed && status.checkedAt != null && !status.available && <p className="ok-text">{t("about.up_to_date")}</p>}
+      <UpdateBanner status={status} />
     </div>
   );
 }

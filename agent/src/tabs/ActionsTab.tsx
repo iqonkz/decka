@@ -6,6 +6,7 @@ import Button from "../ui/Button";
 import { makeActionId } from "../editor/addButton";
 import { describeAction } from "../editor/describeAction";
 import ActionForm, { emptyDraft, fromDraft, toDraft, type Draft } from "./actionForm";
+import { PageHeader } from "../ui/SettingsGroup";
 
 const NEW = "";
 
@@ -94,65 +95,68 @@ export default function ActionsTab() {
 
   const users = isNew ? [] : usedBy(selected);
   return (
-    <div className="split">
-      <div className="list-pane">
-        <Button variant="primary" onClick={() => select(NEW)}>
-          {t("actions.new")}
-        </Button>
-        <ul className="plain-list">
-          {list.map(([id, a]) => (
-            <li key={id}>
-              <button className={id === selected ? "list-item active" : "list-item"} onClick={() => select(id)}>
-                <strong>{a.name}</strong>
-                <span className="muted">{describeAction(a)}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <div className="form-pane">
-        <h2>{isNew ? t("actions.new") : draft.name || t("actions.action")}</h2>
-        <ActionForm draft={draft} isNew={isNew} onChange={setDraft} />
-
-        {issues.length > 0 && (
-          <Banner kind="error">
-            <ul>
-              {issues.map((i, n) => (
-                <li key={n}>{i.message}</li>
-              ))}
-            </ul>
-          </Banner>
-        )}
-        {message && <Banner kind="success">{message}</Banner>}
-
-        <div className="row">
-          <Button variant="primary" onClick={() => void save()}>
-            {t("common.save")}
+    <div className="page-container" style={{ maxWidth: 960 }}>
+      <PageHeader title={t("more.actions")} />
+      <div className="split">
+        <div id="actions-list" className="list-pane">
+          <Button id="actions-new" variant="primary" onClick={() => select(NEW)}>
+            {t("actions.new")}
           </Button>
-          <Button disabled={isNew} onClick={() => void test()}>
-            {t("actions.test")}
-          </Button>
-          <Button variant="danger" disabled={isNew} onClick={() => setConfirmDelete(true)}>
-            {t("common.delete")}
-          </Button>
-          {testResult && <span className={testResult === t("common.ok") ? "ok-text" : "warn-text"}>{testResult}</span>}
+          <ul className="plain-list">
+            {list.map(([id, a]) => (
+              <li key={id}>
+                <button className={id === selected ? "list-item active" : "list-item"} onClick={() => select(id)}>
+                  <strong>{a.name}</strong>
+                  <span className="muted">{describeAction(a)}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
         </div>
 
-        {confirmDelete && (
-          <Banner kind="warning">
-            <span>
-              {t("actions.delete_confirm", { name: draft.name || t("actions.this_action") })}
-              {users.length > 0 ? ` ${tn("actions.used_by", users.length)}` : ""}
-            </span>
-            <span className="row">
-              <Button variant="danger" onClick={() => void remove()}>
-                {t("common.delete")}
-              </Button>
-              <Button onClick={() => setConfirmDelete(false)}>{t("common.cancel")}</Button>
-            </span>
-          </Banner>
-        )}
+        <div className="form-pane">
+          <h3 style={{ margin: "0 0 12px", fontSize: 18, fontWeight: 600 }}>{isNew ? t("actions.new") : draft.name || t("actions.action")}</h3>
+          <ActionForm draft={draft} isNew={isNew} onChange={setDraft} />
+
+          {issues.length > 0 && (
+            <Banner kind="error">
+              <ul>
+                {issues.map((i, n) => (
+                  <li key={n}>{i.message}</li>
+                ))}
+              </ul>
+            </Banner>
+          )}
+          {message && <Banner kind="success">{message}</Banner>}
+
+          <div className="row" style={{ marginTop: 12 }}>
+            <Button variant="primary" onClick={() => void save()}>
+              {t("common.save")}
+            </Button>
+            <Button disabled={isNew} onClick={() => void test()}>
+              {t("actions.test")}
+            </Button>
+            <Button variant="danger" disabled={isNew} onClick={() => setConfirmDelete(true)}>
+              {t("common.delete")}
+            </Button>
+            {testResult && <span className={testResult === t("common.ok") ? "ok-text" : "warn-text"}>{testResult}</span>}
+          </div>
+
+          {confirmDelete && (
+            <Banner kind="warning">
+              <span>
+                {t("actions.delete_confirm", { name: draft.name || t("actions.this_action") })}
+                {users.length > 0 ? ` ${tn("actions.used_by", users.length)}` : ""}
+              </span>
+              <span className="row">
+                <Button variant="danger" onClick={() => void remove()}>
+                  {t("common.delete")}
+                </Button>
+                <Button onClick={() => setConfirmDelete(false)}>{t("common.cancel")}</Button>
+              </span>
+            </Banner>
+          )}
+        </div>
       </div>
     </div>
   );

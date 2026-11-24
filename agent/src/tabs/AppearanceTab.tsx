@@ -8,6 +8,9 @@ import KeyPreview from "./KeyPreview";
 import { applyScreenPreset, fracToPercent, minToSec, percentToFrac, presetLabel, screenPreset, secToMin, type ScreenPreset } from "../editor/screenPreset";
 import OrientationSection from "./OrientationSection";
 import ThemeCards from "./ThemeCards";
+import { Group, PageHeader, Row, SectionHeader } from "../ui/SettingsGroup";
+import Switch from "../ui/Switch";
+import Segmented from "../ui/Segmented";
 
 /** A sample key for the style cards (the label is in the language of the window). */
 const sampleKey = () => ({ id: "sample", kind: "button", x: 0, y: 0, w: 1, h: 1, label: t("look.sample_key"), icon: "lucide:music", actionId: "sample" }) as const;
@@ -65,29 +68,35 @@ export default function AppearanceTab() {
     }
   }
 
+  const screenPresets: ScreenPreset[] = ["off", "balanced", "maximum", "custom"];
+
   return (
-    <div className="stack">
-      <h2>{t("tab.look")}</h2>
+    <div className="page-container">
+      <PageHeader title={t("tab.look")} />
 
-      <section className="card">
-        <h3>{t("look.theme")}</h3>
-        <ThemeCards value={display.theme ?? "amoled"} display={display} onPick={(theme) => set({ theme })} />
-      </section>
+      <SectionHeader id="look-theme" title={t("look.theme")} />
+      <Group>
+        <div style={{ padding: "14px 0" }}>
+          <ThemeCards value={display.theme ?? "amoled"} display={display} onPick={(theme) => set({ theme })} />
+        </div>
+      </Group>
 
-      <section className="card">
-        <h3>{t("orientation.title")}</h3>
-        <OrientationSection
-          orientation={display.orientation ?? "landscape"}
-          onChanged={(layout) => {
-            setDisplay(layout.display);
-            setSaved(JSON.stringify(layout.display));
-          }}
-        />
-      </section>
+      <SectionHeader title={t("orientation.title")} />
+      <Group>
+        <div style={{ padding: "14px 0" }}>
+          <OrientationSection
+            orientation={display.orientation ?? "landscape"}
+            onChanged={(layout) => {
+              setDisplay(layout.display);
+              setSaved(JSON.stringify(layout.display));
+            }}
+          />
+        </div>
+      </Group>
 
-      <section className="card">
-        <h3>{t("look.key_style")}</h3>
-        <div className="style-cards">
+      <SectionHeader id="look-key-style" title={t("look.key_style")} />
+      <Group>
+        <div className="style-cards" style={{ padding: "14px 0 0" }}>
           {(["standard", "full"] as const).map((face) => (
             <button key={face} type="button" className={(display.keyFace ?? "standard") === face ? "style-card selected" : "style-card"} onClick={() => set({ keyFace: face })}>
               <KeyPreview item={sampleKey()} display={{ ...display, keyFace: face }} />
@@ -96,12 +105,11 @@ export default function AppearanceTab() {
             </button>
           ))}
         </div>
-        <label className="check">
-          <input type="checkbox" checked={display.keyLabels !== false} onChange={(e) => set({ keyLabels: e.target.checked })} /> {t("look.show_names")}
-        </label>
+        <Row title={t("look.show_names")}>
+          <Switch checked={display.keyLabels !== false} onChange={(checked) => set({ keyLabels: checked })} />
+        </Row>
         {lowres > 0 && (
-          <div className="row">
-            <span className="muted">{t("look.lowres")}</span>
+          <Row title={t("look.lowres")}>
             <Button
               onClick={() =>
                 void call("refresh_program_icons").then(async (r) => {
@@ -112,85 +120,92 @@ export default function AppearanceTab() {
             >
               {t("look.sharpen")}
             </Button>
-          </div>
+          </Row>
         )}
-      </section>
+      </Group>
 
-      <section className="card">
-        <h3>{t("look.accent")}</h3>
-        <p className="muted">{t("look.accent_hint")}</p>
-        <div className="row wrap">
+      <SectionHeader id="look-accent" title={t("look.accent")} subtitle={t("look.accent_hint")} />
+      <Group>
+        <div className="row wrap" style={{ padding: "14px 0" }}>
           {ACCENTS.map((c) => (
             <button key={c} type="button" className={accent.toLowerCase() === c ? "swatch selected" : "swatch"} style={{ background: c }} aria-label={t("look.accent_swatch", { c })} onClick={() => set({ accent: c })} />
           ))}
-          <label className="check">
+          <label className="check" style={{ margin: 0 }}>
             <input type="color" value={accent} onChange={(e) => set({ accent: e.target.value })} aria-label={t("look.custom_accent")} /> {t("look.custom")}
           </label>
         </div>
-      </section>
+      </Group>
 
       {display.theme === "glass" && (
-        <section className="card">
-          <h3>{t("look.wallpaper")}</h3>
-          <p className="muted">{t("look.wallpaper_hint")}</p>
-          <div className="row wrap">
-            {WALLPAPERS.map((w) => (
-              <label key={w} className="check">
-                <input type="radio" name="wallpaper" checked={(display.wallpaper ?? "aurora") === w} onChange={() => set({ wallpaper: w })} /> {t(`wallpaper.${w}`)}
-              </label>
-            ))}
-          </div>
-        </section>
+        <>
+          <SectionHeader title={t("look.wallpaper")} subtitle={t("look.wallpaper_hint")} />
+          <Group>
+            <div className="row wrap" style={{ padding: "14px 0" }}>
+              {WALLPAPERS.map((w) => (
+                <label key={w} className="check" style={{ margin: 0 }}>
+                  <input type="radio" name="wallpaper" checked={(display.wallpaper ?? "aurora") === w} onChange={() => set({ wallpaper: w })} /> {t(`wallpaper.${w}`)}
+                </label>
+              ))}
+            </div>
+          </Group>
+        </>
       )}
 
-      <section className="card">
-        <h3>{t("look.pages")}</h3>
-        <label className="check">
-          <input type="checkbox" checked={display.contextPages !== false} onChange={(e) => set({ contextPages: e.target.checked })} /> {t("look.context_pages")}
-        </label>
-        <p className="muted">{t("look.context_hint")}</p>
-      </section>
+      <SectionHeader id="look-pages" title={t("look.pages")} />
+      <Group>
+        <Row title={t("look.context_pages")} description={t("look.context_hint")}>
+          <Switch checked={display.contextPages !== false} onChange={(checked) => set({ contextPages: checked })} />
+        </Row>
+      </Group>
 
-      <section className="card">
-        <h3>{t("look.screen_saving")}</h3>
-        <div className="seg" role="group" aria-label={t("look.screen_saving")}>
-          {(["off", "balanced", "maximum", "custom"] as ScreenPreset[]).map((p) => (
-            <button key={p} type="button" className={(custom ? "custom" : preset) === p ? "on" : ""} onClick={() => (p === "custom" ? setCustom(true) : (setCustom(false), set(applyScreenPreset(display, p))))}>
-              {presetLabel(p)}
-            </button>
-          ))}
+      <SectionHeader id="look-screen-saving" title={t("look.screen_saving")} />
+      <Group>
+        <div style={{ padding: "14px 0 8px" }}>
+          <Segmented
+            options={screenPresets.map((p) => ({ value: p, label: presetLabel(p) }))}
+            value={custom ? "custom" : preset}
+            onChange={(val) => {
+              if (val === "custom") {
+                setCustom(true);
+              } else {
+                setCustom(false);
+                set(applyScreenPreset(display, val));
+              }
+            }}
+          />
+          <p className="muted" style={{ margin: "10px 0 0" }}>
+            {preset === "balanced" && !custom && t("look.preset_balanced")}
+            {preset === "maximum" && !custom && t("look.preset_maximum")}
+            {preset === "off" && !custom && t("look.preset_off")}
+            {(custom || preset === "custom") && t("look.preset_custom")}
+          </p>
+          {(custom || preset === "custom") && (
+            <div className="grid-4" style={{ marginTop: 12 }}>
+              <Field label={t("look.dim_after")} hint={t("look.zero_never")}>
+                <input type="number" min={0} step={0.5} value={secToMin(display.dimAfterSec)} onChange={(e) => set({ dimAfterSec: minToSec(Number(e.target.value)) })} />
+              </Field>
+              <Field label={t("look.brightness")} hint={t("look.brightness_hint")}>
+                <input type="number" min={5} max={100} value={fracToPercent(display.dimLevel)} onChange={(e) => set({ dimLevel: percentToFrac(Number(e.target.value)) })} />
+              </Field>
+              <Field label={t("look.saver_after")} hint={t("look.zero_never")}>
+                <input type="number" min={0} step={0.5} value={secToMin(display.sleepAfterSec)} onChange={(e) => set({ sleepAfterSec: minToSec(Number(e.target.value)) })} />
+              </Field>
+            </div>
+          )}
         </div>
-        <p className="muted">
-          {preset === "balanced" && !custom && t("look.preset_balanced")}
-          {preset === "maximum" && !custom && t("look.preset_maximum")}
-          {preset === "off" && !custom && t("look.preset_off")}
-          {(custom || preset === "custom") && t("look.preset_custom")}
-        </p>
-        {(custom || preset === "custom") && (
-          <div className="grid-4">
-            <Field label={t("look.dim_after")} hint={t("look.zero_never")}>
-              <input type="number" min={0} step={0.5} value={secToMin(display.dimAfterSec)} onChange={(e) => set({ dimAfterSec: minToSec(Number(e.target.value)) })} />
-            </Field>
-            <Field label={t("look.brightness")} hint={t("look.brightness_hint")}>
-              <input type="number" min={5} max={100} value={fracToPercent(display.dimLevel)} onChange={(e) => set({ dimLevel: percentToFrac(Number(e.target.value)) })} />
-            </Field>
-            <Field label={t("look.saver_after")} hint={t("look.zero_never")}>
-              <input type="number" min={0} step={0.5} value={secToMin(display.sleepAfterSec)} onChange={(e) => set({ sleepAfterSec: minToSec(Number(e.target.value)) })} />
-            </Field>
+        <Row title={t("look.pixel_shift")}>
+          <Switch checked={display.pixelShift} onChange={(checked) => set({ pixelShift: checked })} />
+        </Row>
+        <Row title={t("look.night")}>
+          <div className="row">
+            <Switch checked={display.night.enabled} onChange={(checked) => set({ night: { ...display.night, enabled: checked } })} />
+            <input type="time" aria-label={t("look.night_from")} value={display.night.from} onChange={(e) => set({ night: { ...display.night, from: e.target.value } })} />
+            <span>{t("look.night_to_word")}</span>
+            <input type="time" aria-label={t("look.night_to")} value={display.night.to} onChange={(e) => set({ night: { ...display.night, to: e.target.value } })} />
           </div>
-        )}
-        <label className="check">
-          <input type="checkbox" checked={display.pixelShift} onChange={(e) => set({ pixelShift: e.target.checked })} /> {t("look.pixel_shift")}
-        </label>
-        <div className="row">
-          <label className="check">
-            <input type="checkbox" checked={display.night.enabled} onChange={(e) => set({ night: { ...display.night, enabled: e.target.checked } })} /> {t("look.night")}
-          </label>
-          <input type="time" aria-label={t("look.night_from")} value={display.night.from} onChange={(e) => set({ night: { ...display.night, from: e.target.value } })} />
-          <span>{t("look.night_to_word")}</span>
-          <input type="time" aria-label={t("look.night_to")} value={display.night.to} onChange={(e) => set({ night: { ...display.night, to: e.target.value } })} />
-        </div>
-      </section>
+        </Row>
+      </Group>
+
       {issues.length > 0 && (
         <Banner kind="error">
           <ul>
@@ -201,7 +216,7 @@ export default function AppearanceTab() {
         </Banner>
       )}
       {message && <Banner kind="success">{message}</Banner>}
-      <div className="row">
+      <div className="row" style={{ marginTop: 24 }}>
         <Button variant="primary" disabled={!dirty} onClick={() => void save()}>
           {t("common.save")}
         </Button>
