@@ -167,22 +167,40 @@ async fn store_changes_arrive_as_patches_and_duplicates_do_not() {
     let (mut ws, _) = pair(&e).await;
 
     assert!(e.agent.store().set("vars", json!({ "mic.muted": true })));
-    let patch = recv(&mut ws).await;
-    assert_eq!((patch["t"].as_str(), patch["section"].as_str()), (Some("patch"), Some("vars")));
+    // Background sources (live system state) patch other sections, and other `vars` keys, at any moment: wait for the patch
+    // of OUR value; every other frame goes to stderr, so a failure shows what arrived (section and value).
+    let ours = json!({ "mic.muted": true });
+    let mut seen = Vec::new();
+    // The last value of every section the phone was sent: a section sent twice with the same value is a bug of the dedupe.
+    let mut last: std::collections::HashMap<String, serde_json::Value> = std::collections::HashMap::new();
+    let mut resent = |frame: &serde_json::Value| {
+        if frame["t"] == "patch" {
+            let section = frame["section"].as_str().unwrap_or_default().to_string();
+            assert!(last.get(&section) != Some(&frame["value"]), "section {section} was re-sent unchanged: {}", frame["value"]);
+            last.insert(section, frame["value"].clone());
+        }
+    };
+    let patch = loop {
+        let frame = recv(&mut ws).await;
+        resent(&frame);
+        if frame["t"] == "patch" && frame["section"] == "vars" && frame["value"] == ours {
+            break frame;
+        }
+        eprintln!("unexpected frame before our patch: t={} section={} value={}", frame["t"], frame["section"], frame["value"]);
+        seen.push(frame);
+        assert!(seen.len() < 20, "too many frames before our patch: {seen:?}");
+    };
     assert!(patch["rev"].as_u64().unwrap() >= 1);
-    assert_eq!(patch["value"], json!({ "mic.muted": true }));
 
     assert!(!e.agent.store().set("vars", json!({ "mic.muted": true })));
-    // Background sources (live system state) may legitimately patch other
-    // sections or other vars keys; only a re-send of the same value is a bug.
+    // Only a re-send of the same value of the same section is a bug.
     let deadline = tokio::time::Instant::now() + Duration::from_millis(300);
     while let Ok(Some(Ok(frame))) = tokio::time::timeout_at(deadline, ws.next()).await {
         let text = frame.into_text().map(|t| t.to_string()).unwrap_or_default();
         let v: serde_json::Value = serde_json::from_str(&text).unwrap_or_default();
-        assert!(
-            !(v["t"] == "patch" && v["section"] == "vars" && v["value"] == json!({ "mic.muted": true })),
-            "duplicate vars patch after a no-op set: {text}"
-        );
+        eprintln!("frame after the no-op set: section={} value={}", v["section"], v["value"]);
+        resent(&v);
+        assert!(!(v["t"] == "patch" && v["section"] == "vars" && v["value"] == ours), "duplicate vars patch after a no-op set: {text}");
     }
     e.agent.shutdown().await;
 }
