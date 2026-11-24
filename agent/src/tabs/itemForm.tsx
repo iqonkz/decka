@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { t, type ActionsFile, type ButtonItem, type ButtonLook, type LayoutItem, type Page } from "@decka/shared";
 import { call, navigate } from "../ipc";
 import IconField from "./IconField";
@@ -19,6 +20,31 @@ function NumberSelect({ label, value, options, onChange }: { label: string; valu
         {list.map((n) => (
           <option key={n} value={n}>
             {n}
+          </option>
+        ))}
+      </select>
+    </Field>
+  );
+}
+
+/** The `list` widget's choice (DATA_MODEL.md 13.7): a drop-down of the names of the lists the PC has. */
+function ListPicker({ value, onChange }: { value: string | undefined; onChange: (id: string | undefined) => void }) {
+  const [lists, setLists] = useState<{ id: string; name: string }[]>([]);
+  useEffect(() => {
+    let alive = true;
+    call("lists_get").then((l) => alive && setLists(l.map(({ id, name }) => ({ id, name })))).catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return (
+    <Field label={t("item.list")}>
+      <select value={value ?? ""} onChange={(e) => onChange(e.target.value || undefined)}>
+        <option value="">{t("item.list_first")}</option>
+        {value !== undefined && !lists.some((l) => l.id === value) && <option value={value}>{t("item.missing", { id: value })}</option>}
+        {lists.map((l) => (
+          <option key={l.id} value={l.id}>
+            {l.name}
           </option>
         ))}
       </select>
@@ -132,6 +158,7 @@ export default function ItemForm({ item, display, page, pages, grid, actions, on
           </select>
         </Field>
       )}
+      {item.kind === "list" && <ListPicker value={item.listId} onChange={(listId) => patch({ listId })} />}
       {item.kind === "status" && (
         <Field label={t("item.status_id")}>
           <input value={item.statusId} onChange={(e) => patch({ statusId: e.target.value })} />

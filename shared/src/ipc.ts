@@ -155,6 +155,7 @@ export interface IpcCommands {
   refresh_weather(): WeatherInfo | { error: string };           // M15: update now (button in the window)
   set_obs_password(args: { password: string }): void;           // M15: encrypts with DPAPI and saves; "" removes the password
   set_mail_password(args: { accountId: Id; password: string }): void; // M17: encrypts with DPAPI and saves for that mailbox; "" removes it
+  lists_get(): { id: string; name: string; items: { id: string; text: string; done: boolean }[] }[]; // M22: every list with all its items, for the editor and the Reminders window
   mail_check_now(): void;                                       // M17: looks at the mailboxes at once
   network_status(): NetworkStatus;                             // M18: usb / private / public and the allowPublic switch
   windows_notifications_status(): WindowsNotificationsStatus;   // M17: the switch, what Windows says about the access, the apps seen so far

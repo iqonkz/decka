@@ -44,6 +44,8 @@
     "widget.media": { "label": "Плеер", "name": "Қазір ойнап тұр" },
     "widget.twitch": { "label": "Twitch", "name": "Twitch арнасы" },
     "widget.battery": { "label": "Батарея", "name": "Құрылғы батареясы" },
+    "widget.reminders": { "label": "Еске салулар", "name": "Алдағы еске салулар" },
+    "widget.list": { "label": "Тізім", "name": "Белгілері бар тізім" },
     "widget.mail": { "label": "Пошта", "name": "Оқылмаған пошта" },
     "widget.youtube": { "label": "YouTube", "name": "YouTube арнасы" },
     "widget.ai": { "label": "ЖИ лимит", "name": "ЖИ лимиттері (Claude, Codex)" },

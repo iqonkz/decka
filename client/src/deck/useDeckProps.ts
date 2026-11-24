@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { t, BACK_PAGE } from "@decka/shared";
 import { EMPTY_DATA, pressErrorTitle, type DeckCallbacks, type DeckData } from "@decka/ui";
-import { dismiss, openNotification, press } from "../app/controller";
+import { dismiss, openNotification, press, toggleListItem } from "../app/controller";
 import { lastTouchWokeScreen } from "../display/idle";
 import { hapticEvent } from "../platform/haptics";
 import { getState, goBack, navigateManually, openPopup, pushToast, openPermHistory, reopenPerm, signalAttention, useAppState } from "../store/store";
@@ -24,6 +24,8 @@ export function useDeckProps(): { data: DeckData } & Required<DeckCallbacks> {
   const youtube = useAppState((s) => s.state?.youtube);
   const battery = useAppState((s) => s.state?.battery);
   const mail = useAppState((s) => s.state?.mail);
+  const reminders = useAppState((s) => s.state?.reminders);
+  const lists = useAppState((s) => s.state?.lists);
   const icons = useAppState((s) => s.state?.icons);
   const allPages = useAppState((s) => s.state?.layout.pages);
   const focusApp = useAppState((s) => s.state?.focus?.app);
@@ -47,13 +49,15 @@ export function useDeckProps(): { data: DeckData } & Required<DeckCallbacks> {
       youtube: youtube ?? null,
       battery: battery ?? null,
       mail: mail ?? null,
+      reminders: reminders ?? null,
+      lists: lists ?? null,
       icons: icons ?? NO_ICONS,
       ...(appPages !== undefined ? { pages: appPages } : {}),
       ...(focusApp !== undefined ? { focusApp } : {}),
       ...(keyFace !== undefined ? { keyFace } : {}),
       ...(keyLabels !== undefined ? { keyLabels } : {}),
     }),
-    [online, vars, sys, statuses, notifications, media, weather, obs, ai, twitch, youtube, battery, mail, icons, appPages, focusApp, keyFace, keyLabels],
+    [online, vars, sys, statuses, notifications, media, weather, obs, ai, twitch, youtube, battery, mail, reminders, lists, icons, appPages, focusApp, keyFace, keyLabels],
   );
 
   const onPressError = useCallback((e: { code: string; message?: string }) => {
@@ -84,5 +88,5 @@ export function useDeckProps(): { data: DeckData } & Required<DeckCallbacks> {
     openPopup(popupId, anchor);
   }, []);
 
-  return { data, onPress: press, onPressError, onNavigate, onDismiss: dismiss, onOpenNotification: openNotification, onOpenPopup, onFeedback, onTimerDone, onOpenPerm: reopenPerm, onOpenPermHistory: openPermHistory };
+  return { data, onPress: press, onPressError, onNavigate, onDismiss: dismiss, onOpenNotification: openNotification, onOpenPopup, onFeedback, onTimerDone, onOpenPerm: reopenPerm, onOpenPermHistory: openPermHistory, onToggleListItem: toggleListItem };
 }

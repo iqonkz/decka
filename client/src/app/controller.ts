@@ -122,6 +122,10 @@ export function dismiss(notifId: string): void {
 }
 
 /** A tap on a notification of Windows: the PC opens its program (DATA_MODEL.md 10.4). */
+export function toggleListItem(listId: string, itemId: string): void {
+  conn().toggleListItem(listId, itemId);
+}
+
 export function openNotification(notifId: string): void {
   conn().openNotification(notifId);
 }

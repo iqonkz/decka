@@ -44,6 +44,8 @@
     "widget.media": { "label": "Lecteur", "name": "En lecture" },
     "widget.twitch": { "label": "Twitch", "name": "Chaîne Twitch" },
     "widget.battery": { "label": "Batterie", "name": "Batterie des appareils" },
+    "widget.reminders": { "label": "Rappels", "name": "Prochains rappels" },
+    "widget.list": { "label": "Liste", "name": "Liste avec coches" },
     "widget.mail": { "label": "Messagerie", "name": "Messages non lus" },
     "widget.youtube": { "label": "YouTube", "name": "Chaîne YouTube" },
     "widget.ai": { "label": "Limites IA", "name": "Limites d'IA (Claude, Codex)" },

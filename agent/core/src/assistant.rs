@@ -11,6 +11,9 @@ pub const MAX_REMINDERS: usize = 500;
 pub const MAX_LISTS: usize = 50;
 pub const MAX_ITEMS: usize = 200;
 pub const MAX_TEXT: usize = 200;
+/// What the phone sections carry (DATA_MODEL.md 13.7).
+pub const PHONE_REMINDERS: usize = 5;
+pub const PHONE_ITEMS: usize = 50;
 /// A reminder may be set at most this far ahead.
 pub const MAX_AHEAD_MINUTES: i64 = 365 * 24 * 60;
 
@@ -292,6 +295,8 @@ fn edit_distance(a: &str, b: &str) -> usize {
 pub struct Assistant {
     dir: PathBuf,
     inner: Mutex<(RemindersFile, ListsFile)>,
+    /// Counts the saved changes; the agent publishes the phone sections when it moves (DATA_MODEL.md 13.7).
+    changed: tokio::sync::watch::Sender<u64>,
 }
 
 fn read<T: Default + for<'de> Deserialize<'de>>(path: &Path) -> T {
@@ -322,15 +327,43 @@ impl Assistant {
         for l in &mut lists.lists {
             l.items.truncate(MAX_ITEMS);
         }
-        Assistant { dir: dir.to_path_buf(), inner: Mutex::new((rem, lists)) }
+        Assistant { dir: dir.to_path_buf(), inner: Mutex::new((rem, lists)), changed: tokio::sync::watch::channel(0).0 }
     }
 
     fn save_reminders(&self, f: &RemindersFile) -> Result<(), String> {
-        write(&self.dir.join("reminders.json"), f)
+        let r = write(&self.dir.join("reminders.json"), f);
+        self.changed.send_modify(|n| *n += 1);
+        r
     }
 
     fn save_lists(&self, f: &ListsFile) -> Result<(), String> {
-        write(&self.dir.join("lists.json"), f)
+        let r = write(&self.dir.join("lists.json"), f);
+        self.changed.send_modify(|n| *n += 1);
+        r
+    }
+
+    /// Every list with all its items, as the IPC command `lists_get` returns them.
+    pub fn lists_json(&self) -> serde_json::Value {
+        serde_json::json!(self.lists().iter().map(|l| serde_json::json!({
+            "id": l.id, "name": l.name,
+            "items": l.items.iter().map(|i| serde_json::json!({ "id": i.id, "text": i.text, "done": i.done })).collect::<Vec<_>>(),
+        })).collect::<Vec<_>>())
+    }
+
+    /// Wakes when a reminder or a list was saved.
+    pub fn subscribe(&self) -> tokio::sync::watch::Receiver<u64> {
+        self.changed.subscribe()
+    }
+
+    /// The `reminders` and `lists` sections of the phone state (DATA_MODEL.md 13.7): the next 5 reminders and every list with
+    /// its first 50 items.
+    pub fn sections(&self) -> (serde_json::Value, serde_json::Value) {
+        let reminders = serde_json::json!({ "items": self.upcoming(PHONE_REMINDERS).iter().map(|r| serde_json::json!({ "id": r.id, "text": r.text, "at": r.at })).collect::<Vec<_>>() });
+        let lists = serde_json::json!({ "lists": self.lists().iter().map(|l| serde_json::json!({
+            "id": l.id, "name": l.name,
+            "items": l.items.iter().take(PHONE_ITEMS).map(|i| serde_json::json!({ "id": i.id, "text": i.text, "done": i.done })).collect::<Vec<_>>(),
+        })).collect::<Vec<_>>() });
+        (reminders, lists)
     }
 
     // ---- Reminders ----

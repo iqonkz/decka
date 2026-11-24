@@ -75,7 +75,7 @@ export interface ApkChunkMsg { t: "apk_chunk"; offset: number; data: string; tot
 export type ServerMsg = ChallengeMsg | AuthOkMsg | PairedMsg | WelcomeMsg | PatchMsg | PressResultMsg | PongMsg | ApkChunkMsg | ErrorMsg;
 
 // ===== State (sections) =====
-export type SectionName = "layout" | "sys" | "statuses" | "notifications" | "vars" | "focus" | "media" | "icons" | "weather" | "obs" | "ai" | "twitch" | "youtube" | "strip" | "battery" | "mail" | "update" | "voice"; // weather, obs: M15; ai: M16; strip, battery, mail: M17; update: M20; voice: M21
+export type SectionName = "layout" | "sys" | "statuses" | "notifications" | "vars" | "focus" | "media" | "icons" | "weather" | "obs" | "ai" | "twitch" | "youtube" | "strip" | "battery" | "mail" | "update" | "voice" | "reminders" | "lists"; // reminders, lists: M22; weather, obs: M15; ai: M16; strip, battery, mail: M17; update: M20; voice: M21
 export interface FullState {
   layout: ClientLayout;
   sys: SysStats | null;            // null = collector disabled
@@ -95,7 +95,12 @@ export interface FullState {
   mail?: MailInfo | null;          // M17 (10.7); null = no mailboxes
   update?: UpdateInfo2 | null;     // M20 (T20.4); null = no new app for the phone
   voice?: VoiceInfo | null;        // M21
+  reminders?: RemindersSection;    // M22 (DATA_MODEL.md 13.7): the next 5 reminders
+  lists?: ListsSection;            // M22: every list, the first 50 items of each
 }
+
+export interface RemindersSection { items: { id: string; text: string; at: string }[] } // soonest first, at: local time YYYY-MM-DDTHH:MM
+export interface ListsSection { lists: { id: string; name: string; items: { id: string; text: string; done: boolean }[] }[] } // at most 50 items per list
 
 /** A newer app, downloaded and verified by the agent: the phone fetches it with `apk_get`. */
 export interface UpdateInfo2 { app?: { version: string; size: number; sha256: string } }

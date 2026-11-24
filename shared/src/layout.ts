@@ -85,8 +85,13 @@ export interface ContextItem extends ItemBase { kind: "context"; }
 /** M21: 1x1 voice button in the grid with a microphone. */
 export interface VoiceItem extends ItemBase { kind: "voice"; label?: string; }
 
+/** M22 (DATA_MODEL.md 13.7): the next reminders; sizes 2x1 and up, 2x2 by default. */
+export interface RemindersItem extends ItemBase { kind: "reminders"; }
+/** M22 (DATA_MODEL.md 13.7): one list with tick marks; `listId` is the id of a list of the PC (16 hex characters). */
+export interface ListItem extends ItemBase { kind: "list"; listId?: string; }
+
 export type LayoutItem = ButtonItem | ClockItem | SysItem | StatusesItem | StatusItemTile | NotificationsItem | MediaItem
-  | VolumeItem | TimerItem | WeatherItem | ObsItem | AiItem | TwitchItem | YoutubeItem | BatteryItem | MailItem | ContextItem | VoiceItem;
+  | VolumeItem | TimerItem | WeatherItem | ObsItem | AiItem | TwitchItem | YoutubeItem | BatteryItem | MailItem | ContextItem | VoiceItem | RemindersItem | ListItem;
 
 /** `navigate` value of a button that goes back to the page the user came from (DATA_MODEL.md 3.8). */
 export const BACK_PAGE = "$back";

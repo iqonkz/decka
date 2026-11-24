@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import type { AiInfo, BatteryInfo, MailInfo, MediaInfo, Notification, Page, ObsInfo, StatusItem, SysStats, TwitchInfo, VarValue, WeatherInfo, YoutubeInfo } from "@decka/shared";
+import type { AiInfo, BatteryInfo, ListsSection, MailInfo, MediaInfo, Notification, Page, RemindersSection, ObsInfo, StatusItem, SysStats, TwitchInfo, VarValue, WeatherInfo, YoutubeInfo } from "@decka/shared";
 
 /** What the deck shows: the live sections of the agent's state. No connection, store or socket in here. */
 export interface DeckData {
@@ -24,6 +24,9 @@ export interface DeckData {
   /** M17: the charge of the PC and Bluetooth devices, and unread mail (absent or null = nothing to show). */
   battery?: BatteryInfo | null;
   mail?: MailInfo | null;
+  /** M22 (DATA_MODEL.md 13.7): the next reminders and the lists (null = nothing yet). */
+  reminders?: RemindersSection | null;
+  lists?: ListsSection | null;
   /** The pages that follow an app (`apps` set) and the app in front on the PC: what the `context` widget shows. */
   pages?: Page[];
   focusApp?: string | null;
@@ -58,6 +61,8 @@ export interface DeckCallbacks {
   onOpenPerm?: () => void;
   /** The `ai` widget was tapped: show the list of answered questions. */
   onOpenPermHistory?: () => void;
+  /** An item of the `list` widget was tapped: the PC marks or unmarks it (`list_toggle`). */
+  onToggleListItem?: (listId: string, itemId: string) => void;
 }
 
 export type DeckEnv = DeckData & DeckCallbacks;

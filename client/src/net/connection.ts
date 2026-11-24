@@ -149,6 +149,11 @@ export class Connection {
     if (this.ws && this.welcomed) this.sendMsg({ t: "notif_open", notifId });
   }
 
+  /** A tick mark of the `list` widget (DATA_MODEL.md 13.7); only the two ids the PC issued are sent. */
+  toggleListItem(listId: string, itemId: string): void {
+    if (this.ws && this.welcomed) this.sendMsg({ t: "list_toggle", listId, itemId });
+  }
+
   /** Asks the PC for the piece of the new APK at `offset` (T20.4); one request at a time. Rejects with a ConnFailure. */
   apkGet(offset: number): Promise<ApkChunkMsg> {
     if (!this.ws || !this.welcomed) return Promise.reject<ApkChunkMsg>({ code: "OFFLINE" } satisfies ConnFailure);

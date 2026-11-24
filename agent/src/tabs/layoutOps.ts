@@ -30,6 +30,8 @@ export const DEFAULT_SIZE: Record<Kind, { w: number; h: number }> = {
   mail: { w: 2, h: 1 },
   context: { w: 3, h: 2 },
   voice: { w: 1, h: 1 },
+  reminders: { w: 2, h: 2 },
+  list: { w: 2, h: 2 },
 };
 
 /** Allowed sizes per kind (DATA_MODEL.md 3.2 item 4): [minW, maxW, minH, maxH]; list widgets may fill the grid. */
@@ -46,6 +48,8 @@ export function sizeRange(kind: Kind, grid: Grid): [number, number, number, numb
     case "statuses":
     case "notifications":
     case "context":
+    case "reminders":
+    case "list":
       return [2, grid.cols, 1, grid.rows];
     case "media":
       return [2, grid.cols, 1, 2];
@@ -171,6 +175,8 @@ export function makeItem(kind: Kind, x: number, y: number, id = newItemId(kind))
     case "battery":
     case "mail":
     case "context":
+    case "reminders":
+    case "list":
       return { ...base, kind };
   }
 }

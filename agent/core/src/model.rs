@@ -500,6 +500,19 @@ pub struct VoiceItem {
     pub label: Option<String>,
 }
 
+/// M22: one list on the phone (DATA_MODEL.md 13.7); `list_id` is the id of a list the agent issued.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ListWidgetItem {
+    pub id: String,
+    pub x: i32,
+    pub y: i32,
+    pub w: i32,
+    pub h: i32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub list_id: Option<String>,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum LayoutItem {
@@ -524,6 +537,10 @@ pub enum LayoutItem {
     /// The keys of the page of the app in front, shown inside a widget.
     Context(PlainItem),
     Voice(VoiceItem),
+    /// M22: the next reminders (DATA_MODEL.md 13.7).
+    Reminders(PlainItem),
+    /// M22: one list with tick marks (DATA_MODEL.md 13.7).
+    List(ListWidgetItem),
 }
 
 impl LayoutItem {
@@ -542,6 +559,8 @@ impl LayoutItem {
             LayoutItem::Timer(i) => (&i.id, i.x, i.y, i.w, i.h),
             LayoutItem::Weather(i) | LayoutItem::Obs(i) | LayoutItem::Twitch(i) | LayoutItem::Youtube(i) | LayoutItem::Context(i) | LayoutItem::Battery(i) | LayoutItem::Mail(i) => (&i.id, i.x, i.y, i.w, i.h),
             LayoutItem::Ai(i) => (&i.id, i.x, i.y, i.w, i.h),
+            LayoutItem::Reminders(i) => (&i.id, i.x, i.y, i.w, i.h),
+            LayoutItem::List(i) => (&i.id, i.x, i.y, i.w, i.h),
         }
     }
 
@@ -560,6 +579,8 @@ impl LayoutItem {
             LayoutItem::Timer(i) => (i.x, i.y) = (x, y),
             LayoutItem::Weather(i) | LayoutItem::Obs(i) | LayoutItem::Twitch(i) | LayoutItem::Youtube(i) | LayoutItem::Context(i) | LayoutItem::Battery(i) | LayoutItem::Mail(i) => (i.x, i.y) = (x, y),
             LayoutItem::Ai(i) => (i.x, i.y) = (x, y),
+            LayoutItem::Reminders(i) => (i.x, i.y) = (x, y),
+            LayoutItem::List(i) => (i.x, i.y) = (x, y),
         }
     }
 
@@ -583,6 +604,8 @@ impl LayoutItem {
             LayoutItem::Mail(_) => "mail",
             LayoutItem::Context(_) => "context",
             LayoutItem::Voice(_) => "voice",
+            LayoutItem::Reminders(_) => "reminders",
+            LayoutItem::List(_) => "list",
         }
     }
 }

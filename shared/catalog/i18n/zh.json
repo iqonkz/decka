@@ -44,6 +44,8 @@
     "widget.media": { "label": "播放器", "name": "正在播放" },
     "widget.twitch": { "label": "Twitch", "name": "Twitch 频道" },
     "widget.battery": { "label": "电池", "name": "设备电池" },
+    "widget.reminders": { "label": "提醒", "name": "接下来的提醒" },
+    "widget.list": { "label": "清单", "name": "带勾选的清单" },
     "widget.mail": { "label": "邮件", "name": "未读邮件" },
     "widget.youtube": { "label": "YouTube", "name": "YouTube 频道" },
     "widget.ai": { "label": "AI 额度", "name": "AI 额度（Claude、Codex）" },

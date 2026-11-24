@@ -117,6 +117,20 @@ describe("invalid inputs are rejected", () => {
     expect(valid(proto("ListToggleMsg"), { t: "list_toggle", listId: "0123456789abcdef" })).toBe(false);
   });
 
+  test("M22: the reminders and lists sections and the two widgets (DATA_MODEL.md 13.7)", () => {
+    const state = `${ID}/protocol.schema.json#/$defs/FullState`;
+    const base = state_m15 as Record<string, unknown>;
+    const id = "0123456789abcdef";
+    const ok = { ...base, reminders: { items: [{ id, text: "Call mom", at: "2026-11-25T18:30" }] }, lists: { lists: [{ id, name: "Shopping", items: [{ id, text: "milk", done: false }] }] } };
+    expect(valid(state, ok)).toBe(true);
+    expect(valid(state, { ...base, reminders: { items: Array.from({ length: 6 }, () => ({ id, text: "x", at: "2026-11-25T18:30" })) } })).toBe(false); // at most 5
+    expect(valid(state, { ...base, lists: { lists: [{ id, name: "x", items: Array.from({ length: 51 }, () => ({ id, text: "x", done: false })) }] } })).toBe(false); // at most 50
+    expect(valid(state, { ...base, reminders: { items: [{ id, text: "x", at: "tomorrow" }] } })).toBe(false);
+    expect(valid(layoutRef, layoutWith({ id: "w", kind: "reminders", x: 0, y: 0, w: 2, h: 2 }))).toBe(true);
+    expect(valid(layoutRef, layoutWith({ id: "w", kind: "list", x: 0, y: 0, w: 2, h: 2, listId: id }))).toBe(true);
+    expect(valid(layoutRef, layoutWith({ id: "w", kind: "list", x: 0, y: 0, w: 2, h: 2, listId: "../x" }))).toBe(false);
+  });
+
   test("notif_open carries nothing but the id of a notification", () => {
     expect(valid(proto("NotifOpenMsg"), { t: "notif_open", notifId: "12" })).toBe(true);
     expect(valid(proto("NotifOpenMsg"), { t: "notif_open", notifId: "12", aumid: "x" })).toBe(false);

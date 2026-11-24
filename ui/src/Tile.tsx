@@ -3,6 +3,8 @@ import Button from "./Button";
 import Ai from "./widgets/Ai";
 import Battery from "./widgets/Battery";
 import Mail from "./widgets/Mail";
+import ListWidget from "./widgets/ListWidget";
+import Reminders from "./widgets/Reminders";
 import VoiceKey from "./widgets/VoiceKey";
 import Twitch from "./widgets/Twitch";
 import Youtube from "./widgets/Youtube";
@@ -77,6 +79,12 @@ export default function Tile({ item }: { item: LayoutItem }) {
       break;
     case "voice":
       content = <VoiceKey item={item} />;
+      break;
+    case "reminders":
+      content = <Reminders item={item} />;
+      break;
+    case "list":
+      content = <ListWidget item={item} />;
       break;
     default:
       content = <div className="tile-body">?</div>;

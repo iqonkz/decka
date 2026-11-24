@@ -31,6 +31,8 @@ export function sizeLimits(kind: string, grid: LayoutFile["grid"], graph = false
     case "statuses":
     case "notifications":
     case "context":
+    case "reminders":
+    case "list":
       return [2, grid.cols, 1, grid.rows];
     case "media":
       return [2, grid.cols, 1, 2];
@@ -166,6 +168,7 @@ export function validateLayout(layout: LayoutFile, actions: ActionsFile): Valida
           if (id !== undefined && !Object.hasOwn(actions.actions, id)) add(path, `unknown ${field} '${id}'`);
         }
       }
+      if (item.kind === "list" && item.listId !== undefined && !/^[0-9a-f]{16}$/.test(item.listId)) add(`${path}/listId`, "listId must be 16 hex characters");
       if (item.kind === "timer" && item.presets !== undefined) {
         const p = item.presets;
         if (!Array.isArray(p) || p.length < 1 || p.length > 4 || p.some((m) => !Number.isInteger(m) || m < 1 || m > 180)) {

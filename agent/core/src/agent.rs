@@ -531,6 +531,22 @@ impl Agent {
             });
             agent.inner.background.lock().unwrap().push(ticker);
         }
+        // DATA_MODEL.md 13.7: the phone sections of reminders and lists follow the files.
+        {
+            let for_task = agent.clone();
+            let mut rx = agent.inner.assistant.subscribe();
+            let publisher = tokio::spawn(async move {
+                loop {
+                    let (reminders, lists) = for_task.inner.assistant.sections();
+                    for_task.inner.store.set("reminders", reminders);
+                    for_task.inner.store.set("lists", lists);
+                    if rx.changed().await.is_err() {
+                        break;
+                    }
+                }
+            });
+            agent.inner.background.lock().unwrap().push(publisher);
+        }
         agent.restart_collectors();
         agent.start_server().await;
         agent.restart_usb();

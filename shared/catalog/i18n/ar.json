@@ -44,6 +44,8 @@
     "widget.media": { "label": "المشغل", "name": "قيد التشغيل" },
     "widget.twitch": { "label": "Twitch", "name": "قناة Twitch" },
     "widget.battery": { "label": "البطارية", "name": "بطارية الأجهزة" },
+    "widget.reminders": { "label": "التذكيرات", "name": "التذكيرات القادمة" },
+    "widget.list": { "label": "قائمة", "name": "قائمة مع علامات" },
     "widget.mail": { "label": "البريد", "name": "البريد غير المقروء" },
     "widget.youtube": { "label": "YouTube", "name": "قناة YouTube" },
     "widget.ai": { "label": "حدود AI", "name": "حدود الذكاء الاصطناعي (Claude وCodex)" },

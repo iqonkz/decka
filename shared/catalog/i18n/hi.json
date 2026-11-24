@@ -44,6 +44,8 @@
     "widget.media": { "label": "प्लेयर", "name": "अभी चल रहा है" },
     "widget.twitch": { "label": "Twitch", "name": "Twitch चैनल" },
     "widget.battery": { "label": "बैटरी", "name": "डिवाइस की बैटरी" },
+    "widget.reminders": { "label": "रिमाइंडर", "name": "अगले रिमाइंडर" },
+    "widget.list": { "label": "सूची", "name": "टिक वाली सूची" },
     "widget.mail": { "label": "मेल", "name": "अपठित मेल" },
     "widget.youtube": { "label": "YouTube", "name": "YouTube चैनल" },
     "widget.ai": { "label": "AI सीमाएँ", "name": "AI सीमाएँ (Claude, Codex)" },

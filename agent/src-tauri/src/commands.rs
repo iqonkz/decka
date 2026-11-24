@@ -87,6 +87,12 @@ pub async fn network_status(app: AppHandle) -> Result<decka_core::agent::Network
     tauri::async_runtime::spawn_blocking(move || agent.network_status()).await.map_err(|e| e.to_string())
 }
 
+/// M22: every list with all its items (the `list` widget picks one of them by id).
+#[tauri::command]
+pub fn lists_get(app: AppHandle) -> Result<serde_json::Value, String> {
+    Ok(agent(&app)?.assistant().lists_json())
+}
+
 /// `Check now`: looks at the mailboxes at once.
 #[tauri::command]
 pub fn mail_check_now(app: AppHandle) -> Result<(), String> {

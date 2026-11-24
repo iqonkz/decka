@@ -480,7 +480,12 @@ pub fn validate_layout(layout: &LayoutFile, actions: &ActionsFile) -> Vec<Valida
                         out.push(issue(format!("{path}/show"), "show must be both, claude or codex"));
                     }
                 }
-                LayoutItem::Clock(_) | LayoutItem::Sys(_) | LayoutItem::Notifications(_) | LayoutItem::Weather(_) | LayoutItem::Obs(_) | LayoutItem::Twitch(_) | LayoutItem::Youtube(_) | LayoutItem::Context(_) | LayoutItem::Voice(_) | LayoutItem::Battery(_) | LayoutItem::Mail(_) => {}
+                LayoutItem::List(l) => {
+                    if l.list_id.as_deref().is_some_and(|id| id.len() != 16 || !id.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))) {
+                        out.push(issue(format!("{path}/listId"), "listId must be 16 hex characters"));
+                    }
+                }
+                LayoutItem::Clock(_) | LayoutItem::Sys(_) | LayoutItem::Notifications(_) | LayoutItem::Weather(_) | LayoutItem::Obs(_) | LayoutItem::Twitch(_) | LayoutItem::Youtube(_) | LayoutItem::Context(_) | LayoutItem::Voice(_) | LayoutItem::Battery(_) | LayoutItem::Mail(_) | LayoutItem::Reminders(_) => {}
             }
         }
     }

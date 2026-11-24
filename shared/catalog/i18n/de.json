@@ -44,6 +44,8 @@
     "widget.media": { "label": "Player", "name": "Aktuelle Wiedergabe" },
     "widget.twitch": { "label": "Twitch", "name": "Twitch-Kanal" },
     "widget.battery": { "label": "Akku", "name": "Geräte-Akku" },
+    "widget.reminders": { "label": "Erinnerungen", "name": "Nächste Erinnerungen" },
+    "widget.list": { "label": "Liste", "name": "Liste mit Häkchen" },
     "widget.mail": { "label": "E-Mail", "name": "Ungelesene E-Mails" },
     "widget.youtube": { "label": "YouTube", "name": "YouTube-Kanal" },
     "widget.ai": { "label": "KI-Limits", "name": "KI-Limits (Claude, Codex)" },

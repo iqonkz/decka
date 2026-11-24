@@ -44,6 +44,8 @@
     "widget.media": { "label": "プレーヤー", "name": "再生中" },
     "widget.twitch": { "label": "Twitch", "name": "Twitch チャンネル" },
     "widget.battery": { "label": "バッテリー", "name": "デバイスのバッテリー" },
+    "widget.reminders": { "label": "リマインダー", "name": "次のリマインダー" },
+    "widget.list": { "label": "リスト", "name": "チェック付きリスト" },
     "widget.mail": { "label": "メール", "name": "未読メール" },
     "widget.youtube": { "label": "YouTube", "name": "YouTube チャンネル" },
     "widget.ai": { "label": "AI 上限", "name": "AI の上限（Claude、Codex）" },
