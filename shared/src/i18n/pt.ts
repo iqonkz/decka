@@ -1032,4 +1032,7 @@ export const pt: Dictionary = {
   "lyrics.step_minus": "−0.5 s",
   "lyrics.step_plus": "+0.5 s",
   "lyrics.offset_sec": "{val} s",
+  "integ.item_lyrics_name": "Letras",
+  "integ.item_lyrics_desc": "O título e o artista são enviados para lrclib.net para buscar a letra",
+  "integ.lyrics_toggle": "Mostrar letras das faixas em reprodução",
 };

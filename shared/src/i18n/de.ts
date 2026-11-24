@@ -1032,4 +1032,7 @@ export const de: Dictionary = {
   "lyrics.step_minus": "−0.5 s",
   "lyrics.step_plus": "+0.5 s",
   "lyrics.offset_sec": "{val} s",
+  "integ.item_lyrics_name": "Liedtexte",
+  "integ.item_lyrics_desc": "Titel und Interpret werden zum Suchen von Liedtexten an lrclib.net gesendet",
+  "integ.lyrics_toggle": "Liedtexte für laufende Titel anzeigen",
 };

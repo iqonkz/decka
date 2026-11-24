@@ -11,6 +11,7 @@ export interface IntegrationDef {
   category: IntegrationCategory;
   icon: string;
   connected: boolean;
+  toggle?: boolean;
   keywords?: string[];
 }
 

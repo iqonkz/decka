@@ -1072,4 +1072,7 @@ export const ar: Dictionary = {
   "lyrics.step_minus": "−0.5 ث",
   "lyrics.step_plus": "+0.5 ث",
   "lyrics.offset_sec": "{val} ث",
+  "integ.item_lyrics_name": "كلمات الأغاني",
+  "integ.item_lyrics_desc": "يتم إرسال عنوان الأغنية والفنان إلى lrclib.net للبحث عن الكلمات",
+  "integ.lyrics_toggle": "عرض كلمات الأغنية الحالية",
 };

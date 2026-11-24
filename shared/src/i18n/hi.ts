@@ -1032,4 +1032,7 @@ export const hi: Dictionary = {
   "lyrics.step_minus": "−0.5 से",
   "lyrics.step_plus": "+0.5 से",
   "lyrics.offset_sec": "{val} से",
+  "integ.item_lyrics_name": "गाने के बोल",
+  "integ.item_lyrics_desc": "बोल खोजने के लिए गीत का शीर्षक और कलाकार lrclib.net पर भेजे जाते हैं",
+  "integ.lyrics_toggle": "चल रहे ट्रैक के बोल दिखाएं",
 };

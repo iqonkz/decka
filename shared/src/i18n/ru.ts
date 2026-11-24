@@ -1063,5 +1063,8 @@ export const ru: Record<Base | ExtraPlural, string> = {
   "lyrics.step_minus": "−0.5 с",
   "lyrics.step_plus": "+0.5 с",
   "lyrics.offset_sec": "{val} с",
+  "integ.item_lyrics_name": "Тексты песен",
+  "integ.item_lyrics_desc": "Название и исполнитель песни отправляются на lrclib.net для поиска текста",
+  "integ.lyrics_toggle": "Показывать текст играющей песни",
   // @@END
 };

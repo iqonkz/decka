@@ -1032,4 +1032,7 @@ export const fr: Dictionary = {
   "lyrics.step_minus": "−0.5 s",
   "lyrics.step_plus": "+0.5 s",
   "lyrics.offset_sec": "{val} s",
+  "integ.item_lyrics_name": "Paroles",
+  "integ.item_lyrics_desc": "Le titre et l'artiste sont envoyés à lrclib.net pour trouver les paroles",
+  "integ.lyrics_toggle": "Afficher les paroles des morceaux en cours",
 };

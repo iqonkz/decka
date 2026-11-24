@@ -62,6 +62,7 @@ export const SEARCH_REGISTRY: SearchEntry[] = [
   { id: "voice-memory", page: "voice", anchor: "voice-memory", titleKey: "mem.title" },
   { id: "integrations-mail", page: "integrations", anchor: "integrations-mail", titleKey: "integ.item_mail_name" },
   { id: "integrations-weather", page: "integrations", anchor: "integrations-weather", titleKey: "weather.title" },
+  { id: "integrations-lyrics", page: "integrations", anchor: "integrations-lyrics", titleKey: "integ.item_lyrics_name", keywords: ["lyrics", "lrclib", "music"] },
   { id: "integrations-obs", page: "integrations", anchor: "integrations-obs", titleKey: "obsset.title" },
   { id: "integrations-twitch", page: "integrations", anchor: "integrations-twitch", titleKey: "twitchset.title" },
   { id: "integrations-youtube", page: "integrations", anchor: "integrations-youtube", titleKey: "youtubeset.title" },

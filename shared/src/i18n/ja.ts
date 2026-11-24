@@ -1032,4 +1032,7 @@ export const ja: Dictionary = {
   "lyrics.step_minus": "−0.5 秒",
   "lyrics.step_plus": "+0.5 秒",
   "lyrics.offset_sec": "{val} 秒",
+  "integ.item_lyrics_name": "歌詞",
+  "integ.item_lyrics_desc": "歌詞検索のため曲名とアーティスト名が lrclib.net に送信されます",
+  "integ.lyrics_toggle": "再生中の曲の歌詞を表示する",
 };

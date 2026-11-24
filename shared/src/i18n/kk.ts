@@ -1039,4 +1039,7 @@ export const kk: Dictionary = {
   "lyrics.step_minus": "−0.5 с",
   "lyrics.step_plus": "+0.5 с",
   "lyrics.offset_sec": "{val} с",
+  "integ.item_lyrics_name": "Ән мәтіндері",
+  "integ.item_lyrics_desc": "Мәтінді іздеу үшін ән атауы мен орындаушысы lrclib.net сайтына жіберіледі",
+  "integ.lyrics_toggle": "Ойнап тұрған әндердің мәтінін көрсету",
 };

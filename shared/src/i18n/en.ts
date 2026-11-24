@@ -1041,5 +1041,8 @@ export const en = {
   "lyrics.step_minus": "−0.5 s",
   "lyrics.step_plus": "+0.5 s",
   "lyrics.offset_sec": "{val} s",
+  "integ.item_lyrics_name": "Lyrics",
+  "integ.item_lyrics_desc": "Song title and artist are sent to lrclib.net to find lyrics",
+  "integ.lyrics_toggle": "Show lyrics for playing tracks",
   // @@END
 } as const;

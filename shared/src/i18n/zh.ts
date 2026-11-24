@@ -1032,4 +1032,7 @@ export const zh: Dictionary = {
   "lyrics.step_minus": "−0.5 秒",
   "lyrics.step_plus": "+0.5 秒",
   "lyrics.offset_sec": "{val} 秒",
+  "integ.item_lyrics_name": "歌词",
+  "integ.item_lyrics_desc": "歌曲标题和歌手将发送至 lrclib.net 以查找歌词",
+  "integ.lyrics_toggle": "为正在播放的曲目显示歌词",
 };
