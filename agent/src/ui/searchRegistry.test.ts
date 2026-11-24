@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { searchRegistry, targetForPage, type SearchEntry } from "./searchRegistry";
+import { SEARCH_REGISTRY, searchRegistry, targetForPage, type SearchEntry } from "./searchRegistry";
+import { TABLES } from "../../../shared/src/i18n";
 import { en } from "../../../shared/src/i18n/en";
 import { ru } from "../../../shared/src/i18n/ru";
 
@@ -28,6 +29,38 @@ describe("searchRegistry (T23.1b)", () => {
 
     const resRem = searchRegistry("напом", undefined, ruTranslate);
     expect(resRem.some((r) => r.id === "reminders")).toBe(true);
+  });
+
+  it("finds the settings by the words of the window language (T23.B)", () => {
+    const pages = (q: string) => searchRegistry(q, undefined, ruTranslate).map((r) => r.page);
+    expect(pages("микрофон")).toContain("voice");
+    expect(pages("тема")).toContain("look");
+    expect(pages("порт")).toContain("settings");
+    expect(searchRegistry("почта", undefined, ruTranslate).some((r) => r.id === "integrations-mail" && r.page === "integrations")).toBe(true);
+    // The row of the setting comes before the page that holds it.
+    expect(searchRegistry("микрофон", undefined, ruTranslate)[0]?.id).toBe("voice-mic");
+    expect(searchRegistry("microphone", undefined, enTranslate)[0]?.id).toBe("voice-mic");
+    // A name of a setting finds the page even when it has no row of its own.
+    expect(pages("язык")).toContain("settings");
+    expect(pages("напоминания")).toContain("reminders");
+  });
+
+  it("has a name for every row and every searched setting in all 11 languages", () => {
+    const tables = TABLES as Record<string, Record<string, string>>;
+    expect(Object.keys(tables)).toHaveLength(11);
+    for (const [lang, table] of Object.entries(tables)) {
+      for (const entry of SEARCH_REGISTRY) {
+        for (const key of [entry.titleKey, ...(entry.keyKeys ?? [])]) {
+          expect(table[key], `${lang}: ${key}`).toBeTruthy();
+        }
+      }
+      // Every page is found by its own name in its own language.
+      const translate = (key: string) => table[key] ?? key;
+      for (const entry of SEARCH_REGISTRY.filter((e) => e.id === e.page || e.id === "keys")) {
+        const name = translate(entry.titleKey);
+        expect(searchRegistry(name, undefined, translate).some((r) => r.id === entry.id), `${lang}: ${name}`).toBe(true);
+      }
+    }
   });
 
   it("limits results to at most 8 items", () => {
