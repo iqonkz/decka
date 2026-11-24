@@ -3,7 +3,7 @@ import { burnEta, locale, t, type AiItem, type AiProvider, type AiWindow } from 
 import { useDeckEnv } from "../deckEnv";
 import { useDeckMetrics } from "../metricsContext";
 import { ProviderMark } from "./aiMarks";
-import { aiMode, closestWindow, formatReset, levelOf, MIN_TEXT, ringGeometry, rowsFit, textWidth, windowLabel, type Level } from "./aiModel";
+import { aiMode, closestWindow, compactFit, formatReset, levelOf, MIN_TEXT, ringGeometry, rowsFit, textWidth, windowLabel, type Level } from "./aiModel";
 import { burnKey, useAiHistory, type AiHistory } from "./aiHistory";
 import { LEVEL_COLOR } from "./statusOrder";
 
@@ -66,20 +66,44 @@ function ringCenter(d: number, stroke: number, rings: number, text: string, big:
   return null;
 }
 
-function RingCell({ entry, width, height, mode, now, history }: { entry: Entry; width: number; height: number; mode: "rings1" | "rings2"; now: number; history: AiHistory }) {
+/** 2x1: both limits of a provider (5h and weekly) as two small bars under its mark. */
+function CompactCell({ entry, width, height }: { entry: Entry; width: number; height: number }) {
   const { provider, data } = entry;
-  const windows = data ? (mode === "rings1" ? data.windows.slice(0, 1) : data.windows) : [];
-  const stroke = mode === "rings1" ? 4 : 6;
+  const units = { d: t("ai.unit_d"), h: t("ai.unit_h"), m: t("ai.unit_m") };
+  const all = data ? data.windows.slice(0, 2) : [];
+  const fit = compactFit(height, all.length);
+  const windows = all.slice(0, fit.windows);
+  return (
+    <div className="ai-cell ai-compact" style={{ width }}>
+      {fit.mark && <ProviderMark provider={provider} size={14} dim={data === null} />}
+      {windows.length === 0 && <span className="ai-pct ai-dash">—</span>}
+      {windows.map((w) => (
+        <div key={w.label} className="ai-cwin" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(w.pct)}>
+          <span className="ai-cwin-head">
+            <span className="ai-label">{windowLabel(w.label, units)}</span>
+            <span className="ai-cwin-pct">{Math.round(w.pct)}%</span>
+          </span>
+          <span className="ai-bar"><span className="ai-fill" style={{ width: `${Math.min(100, Math.max(0, w.pct))}%`, background: levelColor(w.pct) }} /></span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function RingCell({ entry, width, height, now, history }: { entry: Entry; width: number; height: number; now: number; history: AiHistory }) {
+  const { provider, data } = entry;
+  const windows = data ? data.windows : [];
+  const stroke = 6;
   const rings = windows.length > 1 ? 2 : 1;
   const closest = closestWindow(windows);
   const text = closest ? `${Math.round(closest.pct)}%` : "—";
-  const markSize = mode === "rings1" ? 12 : 14;
+  const markSize = 14;
   const rowH = markSize + 4;
   const withRow = height - rowH >= 36;
   const d = Math.max(0, Math.min(width - 4, withRow ? height - rowH : height));
-  const big = mode === "rings1" ? 15 : 18;
+  const big = 18;
   const centre = ringCenter(d, stroke, rings, text, big);
-  const line = mode === "rings2" && data ? resetLine(provider, data, now, history) : null;
+  const line = data ? resetLine(provider, data, now, history) : null;
   const lineFits = line !== null && markSize + 4 + textWidth(line.text, 12) <= width;
   return (
     <div className="ai-cell" style={{ width }}>
@@ -175,7 +199,13 @@ export default function Ai({ item }: { item: AiItem }) {
     const cellW = Math.floor((innerW - 6 * (entries.length - 1)) / entries.length);
     body = (
       <div className="ai-rings" style={{ gap: 6 }}>
-        {entries.map((e) => <RingCell key={e.provider} entry={e} width={cellW} height={innerH} mode={mode} now={now} history={history} />)}
+        {entries.map((e) =>
+          mode === "compact" ? (
+            <CompactCell key={e.provider} entry={e} width={cellW} height={innerH} />
+          ) : (
+            <RingCell key={e.provider} entry={e} width={cellW} height={innerH} now={now} history={history} />
+          ),
+        )}
       </div>
     );
   }

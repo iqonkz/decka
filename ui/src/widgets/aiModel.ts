@@ -33,12 +33,25 @@ export function closestWindow(windows: readonly AiWindow[]): AiWindow | null {
   return best;
 }
 
-export type AiMode = "rings1" | "rings2" | "rows";
+export type AiMode = "compact" | "rings2" | "rows";
 
-/** 2x1 (and any single row narrower than 3): rings side by side; 2x2: concentric rings; from 3x2: a row per provider with two bars. */
+/** One row high: a compact column per provider with both limits (5h and weekly) as two small bars; 2x2: concentric rings; from 3x2: a row per provider with two bars. */
 export function aiMode(w: number, h: number): AiMode {
-  if (h < 2) return "rings1";
+  if (h < 2) return "compact";
   return w >= 3 ? "rows" : "rings2";
+}
+
+/** One window of the compact column: label and percent over a bar of 6 px (11 px text, DESIGN.md 4.11). */
+export const COMPACT_WINDOW_H = 11 + 3 + 6;
+const COMPACT_GAP = 4;
+const COMPACT_MARK_H = 14 + 4;
+
+/** What the compact column of one provider shows in `height` px: how many windows (at least one) and whether the brand mark fits above them. */
+export function compactFit(height: number, windows: number): { windows: number; mark: boolean } {
+  let n = Math.max(1, windows);
+  const need = (k: number) => k * COMPACT_WINDOW_H + (k - 1) * COMPACT_GAP;
+  while (n > 1 && need(n) > height) n--;
+  return { windows: n, mark: height >= need(n) + COMPACT_MARK_H };
 }
 
 /** Narrowest text of the widget, px (DESIGN.md 4.11: not smaller than 11). */

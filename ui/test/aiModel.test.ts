@@ -1,9 +1,25 @@
 import { describe, expect, test } from "vitest";
 import { TABLES, type Language } from "@decka/shared";
-import { aiMode, closestWindow, formatReset, levelOf, MIN_TEXT, rowsFit, textWidth, windowLabel } from "../src/widgets/aiModel";
+import { aiMode, closestWindow, compactFit, formatReset, levelOf, MIN_TEXT, rowsFit, textWidth, windowLabel } from "../src/widgets/aiModel";
 
 const units = (lang: Language) => ({ d: TABLES[lang]["ai.unit_d"] as string, h: TABLES[lang]["ai.unit_h"] as string, m: TABLES[lang]["ai.unit_m"] as string });
 const MIN = 60_000;
+
+describe("AI widget 2x1: both limits as two compact bars (T23.B)", () => {
+  test("a one-row widget is compact, whatever its width", () => {
+    expect(aiMode(2, 1)).toBe("compact");
+    expect(aiMode(3, 1)).toBe("compact");
+  });
+
+  test("both windows and the mark fit a normal tile; a low tile drops the mark first, then the second window", () => {
+    expect(compactFit(66, 2)).toEqual({ windows: 2, mark: true });
+    expect(compactFit(50, 2)).toEqual({ windows: 2, mark: false });
+    expect(compactFit(30, 2)).toEqual({ windows: 1, mark: false });
+    expect(compactFit(20, 1)).toEqual({ windows: 1, mark: false });
+    expect(compactFit(10, 2)).toEqual({ windows: 1, mark: false });
+    expect(compactFit(66, 0)).toEqual({ windows: 1, mark: true });
+  });
+});
 
 describe("AI widget: the time to a reset (DESIGN.md 4.11)", () => {
   test("2h 14m, 3d, 14m in English", () => {
@@ -52,8 +68,8 @@ describe("AI widget: level and window", () => {
 
 describe("AI widget: modes and what fits", () => {
   test("2x1 rings, 2x2 concentric rings, from 3x2 rows", () => {
-    expect(aiMode(2, 1)).toBe("rings1");
-    expect(aiMode(4, 1)).toBe("rings1");
+    expect(aiMode(2, 1)).toBe("compact");
+    expect(aiMode(4, 1)).toBe("compact");
     expect(aiMode(2, 2)).toBe("rings2");
     expect(aiMode(3, 2)).toBe("rows");
     expect(aiMode(4, 2)).toBe("rows");
