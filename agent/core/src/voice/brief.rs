@@ -28,6 +28,18 @@ pub fn weather_word(code: i64) -> &'static str {
     }
 }
 
+/// The first hour of the next six with rain, snow, a thunderstorm or drizzle: `{ "kind": "rain", "around": "17:00" }`. Only from the
+/// hourly data of the weather section; nothing when the hours are not there or the sky stays dry.
+fn precipitation(weather: &Value) -> Option<Value> {
+    let hours = weather.get("hourly")?.as_array()?;
+    hours.iter().find_map(|h| {
+        let code = h.get("code")?.as_i64()?;
+        let wet = matches!(code, 51..=67 | 71..=77 | 80..=86 | 95..=99);
+        let time = h.get("time")?.as_str()?;
+        wet.then(|| json!({ "kind": weather_word(code), "around": time }))
+    })
+}
+
 fn limits(ai: &Value) -> Vec<Value> {
     let mut out = Vec::new();
     for (key, name) in [("claude", "Claude"), ("codex", "Codex")] {
@@ -46,17 +58,19 @@ pub fn facts(weather: &Value, mail: &Value, ai: &Value, reminders: &[Reminder], 
     if let (Some(place), Some(cur)) = (weather.get("place").and_then(Value::as_str), weather.get("current")) {
         let today = weather.pointer("/daily/0");
         let unit = if weather.get("units").and_then(Value::as_str) == Some("imperial") { "F" } else { "C" };
-        f.insert(
-            "weather".into(),
-            json!({
-                "place": place,
-                "temperatureNow": cur.get("temp").cloned().unwrap_or(Value::Null),
-                "unit": unit,
-                "now": weather_word(cur.get("code").and_then(Value::as_i64).unwrap_or(-1)),
-                "todayMin": today.and_then(|d| d.get("min")).cloned().unwrap_or(Value::Null),
-                "todayMax": today.and_then(|d| d.get("max")).cloned().unwrap_or(Value::Null),
-            }),
-        );
+        let mut w = json!({
+            "place": place,
+            "temperatureNow": cur.get("temp").cloned().unwrap_or(Value::Null),
+            "unit": unit,
+            "now": weather_word(cur.get("code").and_then(Value::as_i64).unwrap_or(-1)),
+            "todayMin": today.and_then(|d| d.get("min")).cloned().unwrap_or(Value::Null),
+            "todayMax": today.and_then(|d| d.get("max")).cloned().unwrap_or(Value::Null),
+        });
+        // "Rain expected around 17:00" (T24.5): a fact only when the next six hours show it, and the same check applies to it.
+        if let Some(p) = precipitation(weather) {
+            w["precipitationExpected"] = p;
+        }
+        f.insert("weather".into(), w);
     }
     let unread: Vec<Value> = mail
         .get("accounts")
@@ -174,6 +188,14 @@ pub fn facts_text(facts: &Value, lists: &[ListView]) -> String {
             w["todayMin"],
             w["todayMax"]
         ));
+        if let Some(p) = w.get("precipitationExpected") {
+            let kind = p["kind"].as_str().unwrap_or("");
+            let mut kind = kind.to_string();
+            if let Some(first) = kind.get_mut(..1) {
+                first.make_ascii_uppercase();
+            }
+            parts.push(format!("{kind} expected around {}.", p["around"].as_str().unwrap_or("")));
+        }
     }
     for m in facts.get("unreadMail").and_then(Value::as_array).into_iter().flatten() {
         parts.push(format!("{}: {} unread.", m["mailbox"].as_str().unwrap_or(""), m["unread"]));
@@ -189,6 +211,54 @@ pub fn facts_text(facts: &Value, lists: &[ListView]) -> String {
         parts.push(format!("{} {}: {}% used.", l["provider"].as_str().unwrap_or(""), l["window"].as_str().unwrap_or(""), l["usedPercent"]));
     }
     super::textops::fit_reply(&parts.join(" ")).chars().take(MAX_ANSWER).collect()
+}
+
+#[cfg(test)]
+mod hourly_tests {
+    use super::*;
+
+    const FORECAST: &str = include_str!("../../../../shared/fixtures/openmeteo-forecast.json");
+
+    /// The weather section of the recorded Open-Meteo answer (current time 14:00, hours 15:00-20:00 follow), with `code` at 17:00.
+    fn weather_with(code: Option<u32>) -> Value {
+        let body = match code {
+            Some(c) => {
+                let mut v: Value = serde_json::from_str(FORECAST).unwrap();
+                v["hourly"]["weather_code"][17] = json!(c);
+                v.to_string()
+            }
+            None => FORECAST.to_string(),
+        };
+        serde_json::to_value(crate::weather::parse_forecast(&body, "Almaty", "metric", 0).unwrap()).unwrap()
+    }
+
+    fn brief(weather: &Value) -> Option<Value> {
+        facts(weather, &Value::Null, &Value::Null, &[], &[], &Local::new(2026, 11, 16, 14, 0).unwrap())
+    }
+
+    #[test]
+    fn rain_in_the_next_hours_is_a_fact_with_its_time() {
+        let f = brief(&weather_with(Some(61))).unwrap();
+        assert_eq!(f["weather"]["precipitationExpected"], json!({ "kind": "rain", "around": "17:00" }));
+        assert!(facts_text(&f, &[]).contains("Rain expected around 17:00."));
+        // The model may say it: the number and the time are in the facts.
+        assert!(check_brief(&f, "Rain is expected around 17:00 in Almaty.").is_some());
+        assert!(check_brief(&f, "Rain is expected around 18:00 in Almaty.").is_none(), "a time that is not in the facts is refused");
+        assert_eq!(brief(&weather_with(Some(73))).unwrap()["weather"]["precipitationExpected"]["kind"], "snow");
+        assert_eq!(brief(&weather_with(Some(95))).unwrap()["weather"]["precipitationExpected"]["kind"], "thunderstorm");
+    }
+
+    #[test]
+    fn a_dry_sky_or_no_hours_leave_the_fact_out() {
+        let dry = brief(&weather_with(None)).unwrap();
+        assert!(dry["weather"].get("precipitationExpected").is_none());
+        assert!(!facts_text(&dry, &[]).contains("expected"));
+        let mut no_hours = weather_with(Some(61));
+        no_hours.as_object_mut().unwrap().remove("hourly");
+        assert!(brief(&no_hours).unwrap()["weather"].get("precipitationExpected").is_none());
+        // Cloud and fog are not precipitation.
+        assert!(brief(&weather_with(Some(45))).unwrap()["weather"].get("precipitationExpected").is_none());
+    }
 }
 
 #[cfg(test)]
