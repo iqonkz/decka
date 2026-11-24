@@ -450,9 +450,18 @@ async fn handle_text(
             let result = match msg {
                 ClientMsg::VoiceStart { id } => voice.start(device, &id),
                 ClientMsg::VoiceChunk { id, seq, data } => voice.chunk(device, &id, seq, &data, std::time::Instant::now()),
-                ClientMsg::VoiceEnd { id } => Ok(voice.end(device, &id)),
-                ClientMsg::VoiceCancel { id } => Ok(voice.cancel(device, &id)),
-                ClientMsg::VoiceConfirm { id, yes } => Ok(voice.confirm(device, &id, yes)),
+                ClientMsg::VoiceEnd { id } => {
+                    voice.end(device, &id);
+                    Ok(())
+                },
+                ClientMsg::VoiceCancel { id } => {
+                    voice.cancel(device, &id);
+                    Ok(())
+                },
+                ClientMsg::VoiceConfirm { id, yes } => {
+                    voice.confirm(device, &id, yes);
+                    Ok(())
+                },
                 _ => Ok(()),
             };
             match result {

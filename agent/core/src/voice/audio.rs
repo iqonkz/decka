@@ -56,7 +56,7 @@ pub fn resample_pcm16(input: &[i16], from_rate: u32, to_rate: u32) -> Vec<i16> {
     }
 
     // Fast path for exact integer downsampling (e.g. 48 kHz -> 16 kHz, ratio 3)
-    if from_rate > to_rate && from_rate % to_rate == 0 {
+    if from_rate > to_rate && from_rate.is_multiple_of(to_rate) {
         let ratio = (from_rate / to_rate) as usize;
         let out_len = input.len() / ratio;
         let mut out = Vec::with_capacity(out_len);

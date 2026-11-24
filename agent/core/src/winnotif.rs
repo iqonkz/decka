@@ -135,11 +135,11 @@ pub fn access_status() -> &'static str {
     #[cfg(windows)]
     {
         use windows::UI::Notifications::Management::{UserNotificationListener, UserNotificationListenerAccessStatus};
-        return match UserNotificationListener::Current().and_then(|l| l.GetAccessStatus()) {
+        match UserNotificationListener::Current().and_then(|l| l.GetAccessStatus()) {
             Ok(s) if s == UserNotificationListenerAccessStatus::Allowed => "allowed",
             Ok(s) if s == UserNotificationListenerAccessStatus::Denied => "denied",
             _ => "unknown",
-        };
+        }
     }
     #[cfg(not(windows))]
     "unknown"

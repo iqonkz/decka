@@ -1,3 +1,7 @@
+// Design lints that would need a different error type across the crate (an `axum::Response` as the error of a guard, `()` for
+// a failed decryption, a boxed callback in a static): the behaviour is deliberate, so they are allowed here, once.
+#![allow(clippy::result_large_err, clippy::result_unit_err, clippy::type_complexity)]
+
 pub mod actions;
 pub mod agent;
 pub mod apk_update;

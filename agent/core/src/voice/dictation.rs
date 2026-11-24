@@ -304,7 +304,7 @@ mod tests {
         // The pair takes 450 ms from the first press to the second release.
         assert!(run(&[(Key::Ctrl, true, 0), (Key::Ctrl, false, 100), (Key::Ctrl, true, 350), (Key::Ctrl, false, 450)]).iter().all(|f| !f));
         // Exactly on the edge still counts.
-        assert_eq!(run(&[(Key::Ctrl, true, 0), (Key::Ctrl, false, 100), (Key::Ctrl, true, 300), (Key::Ctrl, false, 400)])[3], true);
+        assert!(run(&[(Key::Ctrl, true, 0), (Key::Ctrl, false, 100), (Key::Ctrl, true, 300), (Key::Ctrl, false, 400)])[3]);
     }
 
     #[test]

@@ -1,3 +1,4 @@
+#![allow(clippy::result_large_err)] // the error of a tungstenite handshake callback is a whole HTTP response
 //! OBS against a stand-in for obs-websocket 5 (no OBS needed): the handshake with a password, an action and its event,
 //! a wrong password (close 4009, no tries after it), OBS not running.
 

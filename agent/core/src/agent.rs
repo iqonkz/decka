@@ -1224,7 +1224,7 @@ impl Agent {
         let task = self.inner.runtime.spawn(async move {
             let mut ticks = 0u64;
             loop {
-                if account_on && ticks % crate::ai::ACCOUNT_POLL.as_secs() == 0 {
+                if account_on && ticks.is_multiple_of(crate::ai::ACCOUNT_POLL.as_secs()) {
                     if let Some(home) = crate::ai::home_dir() {
                         let now = crate::auth::now_ms();
                         match crate::ai::fetch_account_limits(&crate::ai::credentials_path(&home), crate::ai::ACCOUNT_USAGE_URL, now).await {
@@ -1234,7 +1234,7 @@ impl Agent {
                         }
                     }
                 }
-                if ticks % 60 == 0 {
+                if ticks.is_multiple_of(60) {
                     hub.prune(crate::auth::now_ms());
                     if codex_on {
                         let found = tokio::task::spawn_blocking(|| crate::ai::home_dir().and_then(|h| crate::ai::read_codex(&h))).await.ok().flatten();

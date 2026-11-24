@@ -578,7 +578,7 @@ impl Supervisor {
     /// `transcribe` with a prompt for whisper (the dictionary of a dictation).
     pub async fn transcribe_prompted(&self, pcm: &[u8], language: &str, prompt: Option<&str>) -> Result<String, String> {
         let endpoints = self.ensure_started().await?;
-        let samples: Vec<i16> = pcm.chunks_exact(2).map(|b| i16::from_le_bytes([b[0], b[1]])).collect();
+        let samples: Vec<i16> = pcm.as_chunks::<2>().0.iter().map(|b| i16::from_le_bytes([b[0], b[1]])).collect();
         let wav = crate::voice::audio::encode_wav_pcm16(&samples, 16_000);
         let boundary = format!("decka{}", new_key());
         let body = whisper_multipart_prompted(&boundary, &wav, language, audio_ctx(samples.len() as f64 / 16_000.0), prompt);

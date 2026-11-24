@@ -173,7 +173,7 @@ fn finish(version: &str, target: PathBuf, sha256: String, dir: &Path) -> Result<
 
 /// The chunk at `offset` (a multiple of `CHUNK`, inside the file); `None` otherwise.
 pub fn read_chunk(update: &AppUpdate, offset: u64) -> Option<Vec<u8>> {
-    if offset % CHUNK as u64 != 0 || offset >= update.size {
+    if !offset.is_multiple_of(CHUNK as u64) || offset >= update.size {
         return None;
     }
     let mut file = std::fs::File::open(&update.path).ok()?;

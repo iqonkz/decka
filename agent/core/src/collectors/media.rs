@@ -213,7 +213,7 @@ fn run(store: Store, stop: Arc<AtomicBool>) {
 
 #[cfg(windows)]
 fn warn_once_a_minute(last: &mut Option<Instant>, message: &str) {
-    if last.map_or(true, |t| t.elapsed() >= Duration::from_secs(60)) {
+    if last.is_none_or(|t| t.elapsed() >= Duration::from_secs(60)) {
         tracing::warn!("media collector: {message}");
         *last = Some(Instant::now());
     }
@@ -352,7 +352,7 @@ mod winrt {
     /// A solid-colour PNG, for tests.
     #[cfg(test)]
     pub fn solid_png(width: u32, height: u32) -> windows::core::Result<Vec<u8>> {
-        let pixels: Vec<u8> = std::iter::repeat([200u8, 100, 50, 255]).take((width * height) as usize).flatten().collect();
+        let pixels: Vec<u8> = std::iter::repeat_n([200u8, 100, 50, 255], (width * height) as usize).flatten().collect();
         imaging::encode_png(&pixels, width, height)
     }
 
@@ -500,7 +500,7 @@ mod tests {
         assert!(cover_data_uri(&[0xFF, 0xD8, 0xFF, 0xE0]).unwrap().starts_with("data:image/jpeg;base64,"));
         assert_eq!(cover_data_uri(b"GIF89a"), None);
         let mut big = vec![0xFF, 0xD8, 0xFF];
-        big.extend(std::iter::repeat(0u8).take(60_000));
+        big.extend(std::iter::repeat_n(0u8, 60_000));
         assert_eq!(cover_data_uri(&big), None);
     }
 }

@@ -459,19 +459,19 @@ impl Assistant {
             // A series starts at its first moment on or after the chosen one (weekdays skip a weekend).
             let first = match wanted {
                 Some(r) => {
-                    resolve(&When::At(at.clone()), now).map_err(String::from)?;
+                    resolve(&When::At(at), now).map_err(String::from)?;
                     occurrence_after(&at, r, now, true)
                 }
                 None => at,
             };
-            return self.add_reminder_repeat(&text, &When::At(first.clone()), None, now).and_then(|r| match wanted {
+            return self.add_reminder_repeat(&text, &When::At(first), None, now).and_then(|r| match wanted {
                 Some(rep) => self.set_repeat(&r.id, Some(rep)).ok_or_else(|| "There is no such reminder".to_string()),
                 None => Ok(r),
             });
         };
         let Some(i) = g.0.reminders.iter().position(|r| r.id == id) else { return Err("There is no such reminder".into()) };
         if g.0.reminders[i].at != at.iso() {
-            resolve(&When::At(at.clone()), now).map_err(String::from)?;
+            resolve(&When::At(at), now).map_err(String::from)?;
             g.0.reminders[i].done = false;
         }
         g.0.reminders[i].text = text;

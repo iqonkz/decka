@@ -940,15 +940,15 @@ pub struct SwitchConfig {
 
 impl Collectors {
     pub fn audio_enabled(&self) -> bool {
-        self.audio.as_ref().map_or(true, |c| c.enabled)
+        self.audio.as_ref().is_none_or(|c| c.enabled)
     }
 
     pub fn focus_enabled(&self) -> bool {
-        self.focus.as_ref().map_or(true, |c| c.enabled)
+        self.focus.as_ref().is_none_or(|c| c.enabled)
     }
 
     pub fn media_enabled(&self) -> bool {
-        self.media.as_ref().map_or(true, |c| c.enabled)
+        self.media.as_ref().is_none_or(|c| c.enabled)
     }
 }
 

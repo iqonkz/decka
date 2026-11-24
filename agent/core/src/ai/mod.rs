@@ -606,7 +606,7 @@ impl AiHub {
                     Some(old) => *old = session,
                     None => d.sessions.push(session),
                 }
-                d.sessions.sort_by(|a, b| b.last_seen.cmp(&a.last_seen));
+                d.sessions.sort_by_key(|s| std::cmp::Reverse(s.last_seen));
                 d.sessions.truncate(MAX_SESSIONS);
             }
             self.flush(&mut d, false);
@@ -1077,7 +1077,7 @@ pub fn uninstall_codex_from(home: &Path) -> Result<(), String> {
     let Some(mut hooks) = read_settings(&path)? else { return Ok(()) };
     apply_uninstall(&mut hooks);
     // A file that only held our hook is removed; otherwise the rest stays as it was.
-    if hooks.as_object().is_some_and(|o| o.is_empty()) && backup_path(&path).exists() == false {
+    if hooks.as_object().is_some_and(|o| o.is_empty()) && !backup_path(&path).exists() {
         std::fs::remove_file(&path).map_err(|e| format!("cannot write hooks.json: {e}"))
     } else {
         write_settings(&path, &hooks)

@@ -205,7 +205,7 @@ fn detect_windows(local: IpAddr) -> Option<Category> {
             if connections.Next(&mut item, Some(&mut fetched)).is_err() || fetched == 0 {
                 return None;
             }
-            let Some(connection) = item[0].take() else { return None };
+            let connection = item[0].take()?;
             if connection.GetAdapterId().ok()? == adapter {
                 let category = connection.GetNetwork().ok()?.GetCategory().ok()?;
                 return Some(if category == NLM_NETWORK_CATEGORY_PRIVATE || category == NLM_NETWORK_CATEGORY_DOMAIN_AUTHENTICATED {

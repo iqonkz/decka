@@ -67,7 +67,7 @@ fn day_part(hour: u32, part: &str) -> Option<u32> {
             if hour < 12 { hour + 12 } else { hour }
         }
         "дня" | "днем" | "днём" => {
-            if hour < 12 && hour >= 1 { hour + 12 } else { hour }
+            if (1..12).contains(&hour) { hour + 12 } else { hour }
         }
         "ночи" | "ночью" => match hour {
             12 => 0,
@@ -148,9 +148,8 @@ fn find(words: &[String]) -> Option<(Found, Vec<usize>)> {
             Some(hm)
         } else if let (true, Some(h), Some(m)) = (prep, number(w).filter(|_| digits(w) && w.len() <= 2), words.get(i + 1).filter(|m| digits(m) && m.len() == 2).and_then(|m| m.parse::<u32>().ok())) {
             // "в 22 14": the hour and the minutes as two numbers.
-            clock(h, m).map(|hm| {
+            clock(h, m).inspect(|_| {
                 used.push(i + 1);
-                hm
             })
         } else {
             // "в 10 вечера", "в десять часов", "at 5 pm".

@@ -552,8 +552,8 @@ pub(crate) mod win {
 
     /// Icons without an alpha channel come back fully transparent: make them opaque.
     fn opaque_if_no_alpha(pixels: &mut [u8]) {
-        if pixels.chunks_exact(4).all(|p| p[3] == 0) {
-            pixels.chunks_exact_mut(4).for_each(|p| p[3] = 255);
+        if pixels.as_chunks::<4>().0.iter().all(|p| p[3] == 0) {
+            pixels.as_chunks_mut::<4>().0.iter_mut().for_each(|p| p[3] = 255);
         }
     }
 
@@ -593,11 +593,11 @@ pub(crate) mod win {
             let color = read_bitmap(info.hbmColor);
             let mask = if info.hbmMask.is_invalid() { None } else { read_bitmap(info.hbmMask).ok() };
             let (mut pixels, w, h) = color.ok()?;
-            if pixels.chunks_exact(4).all(|p| p[3] == 0) {
+            if pixels.as_chunks::<4>().0.iter().all(|p| p[3] == 0) {
                 // An icon without alpha: the AND mask says which pixels are drawn (black = drawn).
                 match mask {
                     Some((m, mw, mh)) if mw == w && mh == h => {
-                        for (p, q) in pixels.chunks_exact_mut(4).zip(m.chunks_exact(4)) {
+                        for (p, q) in pixels.as_chunks_mut::<4>().0.iter_mut().zip(m.as_chunks::<4>().0.iter()) {
                             p[3] = if q[0] < 128 { 255 } else { 0 };
                         }
                     }
@@ -874,7 +874,7 @@ mod tests {
     #[test]
     fn a_large_picture_becomes_a_256_px_icon() {
         let dir = tempfile::tempdir().unwrap();
-        let pixels: Vec<u8> = std::iter::repeat([200u8, 100, 50, 255]).take(600 * 300).flatten().collect();
+        let pixels: Vec<u8> = std::iter::repeat_n([200u8, 100, 50, 255], 600 * 300).flatten().collect();
         let png = crate::sta::run(move || crate::imaging::encode_png(&pixels, 600, 300).unwrap()).unwrap();
         let file = dir.path().join("wide.png");
         std::fs::write(&file, &png).unwrap();
@@ -911,7 +911,7 @@ mod tests {
             tried.push(side);
             let mut png = fake_png(side, side);
             if side > 128 {
-                png.extend(std::iter::repeat(7u8).take(100_000)); // base64 of it is > 131 072 characters
+                png.extend(std::iter::repeat_n(7u8, 100_000)); // base64 of it is > 131 072 characters
             }
             Ok(png)
         })
@@ -979,7 +979,7 @@ mod tests {
             let (out, w, h) = refine_icon(framed(thickness), 256, 256, true);
             assert_eq!((w, h), (48 - 2 * thickness, 48 - 2 * thickness), "frame {thickness}");
             // Only the mark's own colour is left.
-            assert!(out.chunks_exact(4).all(|p| p[..3] == [40, 160, 220]), "frame {thickness}");
+            assert!(out.as_chunks::<4>().0.iter().all(|p| p[..3] == [40, 160, 220]), "frame {thickness}");
             // A program's own icon keeps its frame.
             assert_eq!(refine_icon(framed(thickness), 256, 256, false).1, 48);
         }

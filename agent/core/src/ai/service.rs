@@ -120,7 +120,7 @@ pub fn recommend(hw: &HardwareInfo) -> ModelChoice {
 // ---- Plan of files ----------------------------------------------------------------------------------------------
 
 /// The manifest entries one install needs: both runtimes, the chosen model, the speech model.
-pub fn plan<'a>(manifest: &'a [ManifestEntry], model: ModelChoice, gpu: bool) -> Vec<&'a ManifestEntry> {
+pub fn plan(manifest: &[ManifestEntry], model: ModelChoice, gpu: bool) -> Vec<&ManifestEntry> {
     let llm = match model {
         ModelChoice::Standard => "llm-standard",
         ModelChoice::Light => "llm-light",
@@ -142,7 +142,7 @@ fn target_of(root: &Path, e: &ManifestEntry) -> PathBuf {
         // Both projectors are called `mmproj-F16.gguf` upstream: the id keeps them apart.
         root.join("models").join(format!("{}-{}", e.id, url_file_name(&e.url)))
     } else if is_archive(e) {
-        root.join("runtime").join(format!("{}-{}", e.id, &e.sha256[..8.min(e.sha256.len())].to_ascii_lowercase()))
+        root.join("runtime").join(format!("{}-{}", e.id, e.sha256[..8.min(e.sha256.len())].to_ascii_lowercase()))
     } else {
         root.join("models").join(url_file_name(&e.url))
     }

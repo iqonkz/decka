@@ -265,6 +265,7 @@ mod device {
     }
 
     /// The name of the device that is used when nothing is chosen.
+    #[allow(dead_code)]
     fn default_name(host: &cpal::Host) -> Option<String> {
         host.default_input_device().and_then(|d| d.description().ok().map(|x| x.name().to_string()))
     }

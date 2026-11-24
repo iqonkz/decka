@@ -148,7 +148,7 @@ fn read_bluetooth() -> Vec<(String, u32)> {
             if SetupDiGetDevicePropertyW(set, &data, &DEVPKEY_Device_FriendlyName, &mut name_kind, Some(&mut name_buf), None, 0).is_err() {
                 continue;
             }
-            let units: Vec<u16> = name_buf.chunks_exact(2).map(|c| u16::from_le_bytes([c[0], c[1]])).take_while(|u| *u != 0).collect();
+            let units: Vec<u16> = name_buf.as_chunks::<2>().0.iter().map(|c| u16::from_le_bytes([c[0], c[1]])).take_while(|u| *u != 0).collect();
             found.push((String::from_utf16_lossy(&units), u32::from(charge[0])));
         }
         let _ = SetupDiDestroyDeviceInfoList(set);

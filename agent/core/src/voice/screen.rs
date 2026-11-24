@@ -124,8 +124,10 @@ pub fn capture_active_window() -> Result<(Vec<u8>, u32, u32), String> {
             // The window refuses to draw itself into a bitmap: copy what is on the screen there.
             let _ = BitBlt(mem, 0, 0, w, h, Some(screen), r.left, r.top, SRCCOPY);
         }
-        let mut info = BITMAPINFO::default();
-        info.bmiHeader = BITMAPINFOHEADER { biSize: std::mem::size_of::<BITMAPINFOHEADER>() as u32, biWidth: w, biHeight: -h, biPlanes: 1, biBitCount: 32, ..Default::default() };
+        let mut info = BITMAPINFO {
+            bmiHeader: BITMAPINFOHEADER { biSize: std::mem::size_of::<BITMAPINFOHEADER>() as u32, biWidth: w, biHeight: -h, biPlanes: 1, biBitCount: 32, ..Default::default() },
+            ..Default::default()
+        };
         let mut px = vec![0u8; w as usize * h as usize * 4];
         let rows = GetDIBits(mem, bmp, 0, h as u32, Some(px.as_mut_ptr() as *mut c_void), &mut info, DIB_RGB_COLORS);
         SelectObject(mem, old);
@@ -135,7 +137,7 @@ pub fn capture_active_window() -> Result<(Vec<u8>, u32, u32), String> {
         if rows == 0 {
             return Err("The screen could not be read".into());
         }
-        for p in px.chunks_exact_mut(4) {
+        for p in px.as_chunks_mut::<4>().0 {
             p[3] = 255; // GDI leaves the alpha at 0
         }
         Ok((px, w as u32, h as u32))
@@ -181,7 +183,7 @@ mod tests {
         }
         let out = downscale(&src, 4, 2, 2, 1);
         assert_eq!(out.len(), 8);
-        assert_eq!(out[0], ((100u32 + 200 + 0 + 100) / 4) as u8);
+        assert_eq!(out[0], ((100u32 + 200 + 100) / 4) as u8);
         assert_eq!(downscale(&src, 4, 2, 4, 2), src, "same size: unchanged");
     }
 
