@@ -56,7 +56,7 @@ function About({ updates }: { updates: Updates }) {
   const checked = status?.checkedAt != null ? t("about.last_check", { time: new Date(status.checkedAt).toLocaleString(locale()) }) : t("about.never_checked");
   return (
     <div className="page-container">
-      <PageHeader title={t("more.about")} />
+      <PageHeader icon="info" title={t("more.about")} />
 
       <Group id="about-version">
         <div style={{ padding: "16px 0", display: "flex", gap: 16, alignItems: "center" }}>

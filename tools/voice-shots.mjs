@@ -19,7 +19,22 @@ if (!CHROME) throw new Error("Chrome or Edge not found: set CHROME_PATH");
 const require = createRequire(join(root, "client", "package.json"));
 const { build } = await import(pathToFileURL(require.resolve("vite")).href);
 const react = (await import(pathToFileURL(require.resolve("@vitejs/plugin-react")).href)).default;
-await build({ root: join(root, "tools", "voice-shots"), configFile: false, logLevel: "warn", plugins: [react()], base: "./", build: { outDir: dist, emptyOutDir: true, target: "chrome100" } });
+await build({
+  root: join(root, "tools", "voice-shots"),
+  resolve: {
+    alias: {
+      "@decka/shared": join(root, "shared", "src", "index.ts"),
+      "@decka/ui": join(root, "ui", "src", "index.ts"),
+      "@decka/client": join(root, "client", "src", "index.ts"),
+      "@decka/agent": join(root, "agent", "src", "index.ts"),
+    },
+  },
+  configFile: false,
+  logLevel: "warn",
+  plugins: [react()],
+  base: "./",
+  build: { outDir: dist, emptyOutDir: true, target: "chrome100" },
+});
 
 const MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".woff2": "font/woff2" };
 const server = createServer((req, res) => {
@@ -36,16 +51,25 @@ const base = `http://127.0.0.1:${server.address().port}/index.html`;
 const PILL = { w: 360, h: 160, scale: 3 };
 const PHONE = { w: 800, h: 360, scale: 2 };
 const DECK = { w: 1280, h: 600, scale: 1 };
-// T23.R: the settings window (Russian) in both colour schemes: pages, a search with results and the minimum window width.
+// T23: the settings window (Russian) in both colour schemes: pages, a search with results and the minimum window width.
 function settingsShots() {
   const out = {};
-  const pages = { look: [1100, 760], voice: [1100, 1500], reminders: [1100, 760], integrations: [1100, 900] };
+  const pages = ["look", "phone", "voice", "reminders", "integrations", "actions", "settings", "about"];
   for (const scheme of ["light", "dark"]) {
     const base = `scene=settings&theme=studio&lang=ru&scheme=${scheme}`;
-    for (const [page, [w, h]] of Object.entries(pages)) out[`t23-${page}-${scheme}`] = [{ w, h, scale: 1 }, `${base}&go=${page}`];
+    for (const page of ["look", "voice", "reminders", "integrations"]) {
+      const h = page === "voice" ? 1500 : page === "integrations" ? 900 : 760;
+      out[`t23-${page}-${scheme}`] = [{ w: 1100, h, scale: 1 }, `${base}&go=${page}`];
+    }
     out[`t23-search-${scheme}`] = [{ w: 1100, h: 760, scale: 1 }, `${base}&go=look&type=%D0%B3%D0%BE%D0%BB%D0%BE%D1%81`];
     out[`t23-minwidth-${scheme}`] = [{ w: 820, h: 760, scale: 1 }, `${base}&go=settings`];
     out[`t23-minwidth-voice-${scheme}`] = [{ w: 820, h: 1500, scale: 1 }, `${base}&go=voice`];
+    for (const w of [1280, 2560]) {
+      for (const page of pages) {
+        const h = page === "voice" ? 1400 : 900;
+        out[`t23-${page}-${w}-${scheme}`] = [{ w, h, scale: 1 }, `${base}&go=${page}`];
+      }
+    }
   }
   return out;
 }

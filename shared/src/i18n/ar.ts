@@ -1038,4 +1038,22 @@ export const ar: Dictionary = {
   "voice.hw_summary": "هذا الكمبيوتر: {details} — نموذج {model}",
   "voice.model_standard_short": "قياسي",
   "voice.model_light_short": "خفيف",
+
+  // ----- Polish (DESIGN.md 4.15) -----
+  "look.window_theme": "سمة النافذة",
+  "theme.system": "النظام",
+  "theme.light": "فاتح",
+  "theme.dark": "داكن",
+  "common.saved_toast": "تم الحفظ",
+  "common.save_failed": "فشل الحفظ",
+  "common.done": "تم",
+  "rem.in_one_hour": "خلال ساعة",
+  "rem.tomorrow_morning": "غداً 9:00",
+  "rem.today_at": "اليوم {time}",
+  "rem.tomorrow_at": "غداً {time}",
+  "rem.overdue": "متأخر",
+  "mailset.err_user": "اسم المستخدم مطلوب",
+  "mailset.err_host": "المضيف مطلوب",
+  "mailset.err_port": "يجب أن يكون المنفذ 1..65535",
+  "mailset.save_account": "حفظ",
 };

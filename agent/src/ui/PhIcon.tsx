@@ -1,16 +1,37 @@
-/** A Phosphor icon (regular, 20 px by default) from the copy of the library that ships with the window; follows the text colour. */
-export default function PhIcon({ name, size = 20 }: { name: string; size?: number }) {
-  const mask = `url("phosphor/regular/${name}.svg")`;
+import type { CSSProperties } from "react";
+
+export interface PhIconProps {
+  name: string;
+  size?: number;
+  weight?: "regular" | "fill" | "bold" | "light" | "thin" | "duotone" | string;
+  color?: string;
+  style?: CSSProperties;
+  className?: string;
+  title?: string;
+}
+
+/** A Phosphor icon from the copy of the library that ships with the window; follows the text colour by default. */
+export default function PhIcon({
+  name,
+  size = 20,
+  weight = "regular",
+  color,
+  style,
+  className,
+  title,
+}: PhIconProps) {
+  const mask = `url("phosphor/${weight}/${name}.svg")`;
   return (
     <span
-      aria-hidden="true"
-      className="ph-icon"
+      aria-hidden={title ? undefined : "true"}
+      title={title}
+      className={`ph-icon${className ? ` ${className}` : ""}`}
       style={{
         display: "inline-block",
         flex: "none",
         width: size,
         height: size,
-        backgroundColor: "currentColor",
+        backgroundColor: color ?? "currentColor",
         WebkitMaskImage: mask,
         maskImage: mask,
         WebkitMaskSize: "contain",
@@ -19,6 +40,7 @@ export default function PhIcon({ name, size = 20 }: { name: string; size?: numbe
         maskRepeat: "no-repeat",
         WebkitMaskPosition: "center",
         maskPosition: "center",
+        ...style,
       }}
     />
   );

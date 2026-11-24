@@ -1,7 +1,13 @@
 {
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+    "paths": {
+      "@decka/shared": ["../shared/src/index.ts"],
+      "@decka/shared/*": ["../shared/src/*"],
+      "@decka/ui": ["../ui/src/index.ts"],
+      "@decka/ui/*": ["../ui/src/*"]
+    }
   },
   "include": ["src", "test"]
 }

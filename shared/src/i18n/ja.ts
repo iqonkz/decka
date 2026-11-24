@@ -998,4 +998,22 @@ export const ja: Dictionary = {
   "voice.hw_summary": "このPC: {details} — {model}モデル",
   "voice.model_standard_short": "標準",
   "voice.model_light_short": "軽量",
+
+  // ----- Polish (DESIGN.md 4.15) -----
+  "look.window_theme": "ウィンドウテーマ",
+  "theme.system": "システム",
+  "theme.light": "ライト",
+  "theme.dark": "ダーク",
+  "common.saved_toast": "保存しました",
+  "common.save_failed": "保存に失敗しました",
+  "common.done": "完了",
+  "rem.in_one_hour": "1時間後",
+  "rem.tomorrow_morning": "明日 9:00",
+  "rem.today_at": "今日 {time}",
+  "rem.tomorrow_at": "明日 {time}",
+  "rem.overdue": "期限超過",
+  "mailset.err_user": "ユーザー名は必須です",
+  "mailset.err_host": "ホストは必須です",
+  "mailset.err_port": "ポートは1〜65535である必要があります",
+  "mailset.save_account": "保存",
 };

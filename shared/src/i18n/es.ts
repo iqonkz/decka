@@ -998,4 +998,22 @@ export const es: Dictionary = {
   "voice.hw_summary": "Este PC: {details} — modelo {model}",
   "voice.model_standard_short": "estándar",
   "voice.model_light_short": "ligera",
+
+  // ----- Polish (DESIGN.md 4.15) -----
+  "look.window_theme": "Tema de la ventana",
+  "theme.system": "Sistema",
+  "theme.light": "Claro",
+  "theme.dark": "Oscuro",
+  "common.saved_toast": "Guardado",
+  "common.save_failed": "Error al guardar",
+  "common.done": "Listo",
+  "rem.in_one_hour": "En 1 hora",
+  "rem.tomorrow_morning": "Mañana 9:00",
+  "rem.today_at": "Hoy {time}",
+  "rem.tomorrow_at": "Mañana {time}",
+  "rem.overdue": "Vencido",
+  "mailset.err_user": "Nombre de usuario requerido",
+  "mailset.err_host": "Host requerido",
+  "mailset.err_port": "El puerto debe ser 1..65535",
+  "mailset.save_account": "Guardar",
 };

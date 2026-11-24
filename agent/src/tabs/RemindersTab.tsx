@@ -9,6 +9,7 @@ import { editItems, isLocalTime, nextHour, visibleReminders } from "./remindersM
 import { Group, PageHeader, Row, SettingsEmpty } from "../ui/SettingsGroup";
 import Switch from "../ui/Switch";
 import Segmented from "../ui/Segmented";
+import TimePickerPopover, { formatReminderLabel, isOverdue } from "../ui/TimePickerPopover";
 
 type View = "reminders" | "lists";
 
@@ -30,11 +31,111 @@ function InlineText({ value, label, done, onSave }: { value: string; label: stri
   return <input autoFocus className="grow" maxLength={200} aria-label={label} value={text} onChange={(e) => setText(e.target.value)} onBlur={() => finish(true)} onKeyDown={(e) => (e.key === "Enter" ? finish(true) : e.key === "Escape" ? finish(false) : undefined)} />;
 }
 
+function ReminderRowItem({
+  reminder,
+  onSave,
+  onDelete,
+}: {
+  reminder: ReminderRow;
+  onSave: (patch: { text?: string; at?: string }) => void;
+  onDelete: () => void;
+}) {
+  const [showPicker, setShowPicker] = useState(false);
+  const overdue = !reminder.done && isOverdue(reminder.at);
+
+  return (
+    <Row
+      key={reminder.id}
+      title={
+        <div className="rem-row-info">
+          <InlineText
+            value={reminder.text}
+            label={t("rem.text")}
+            done={reminder.done}
+            onSave={(next) => onSave({ text: next })}
+          />
+          <div className="rem-pill-wrap">
+            <button
+              type="button"
+              className={`rem-time-pill ${overdue ? "overdue" : ""}`}
+              onClick={() => setShowPicker(!showPicker)}
+            >
+              <PhIcon name="clock" size={13} />
+              <span>{formatReminderLabel(reminder.at)}</span>
+            </button>
+            {showPicker && (
+              <TimePickerPopover
+                value={reminder.at}
+                onChange={(nextAt) => onSave({ at: nextAt })}
+                onClose={() => setShowPicker(false)}
+              />
+            )}
+          </div>
+        </div>
+      }
+    >
+      <Button
+        className="btn-icon"
+        aria-label={t("common.delete")}
+        title={t("common.delete")}
+        onClick={onDelete}
+      >
+        <PhIcon name="trash" size={16} />
+      </Button>
+    </Row>
+  );
+}
+
+function ReminderAddRow({ onAdd }: { onAdd: (text: string, at: string) => void }) {
+  const [text, setText] = useState("");
+  const [at, setAt] = useState(() => nextHour(new Date()));
+  const [showPicker, setShowPicker] = useState(false);
+
+  const add = () => {
+    if (text.trim() === "" || !isLocalTime(at)) return;
+    onAdd(text.trim(), at);
+    setText("");
+    setAt(nextHour(new Date()));
+  };
+
+  return (
+    <div className="rem-add-row" style={{ padding: "14px 0" }}>
+      <input
+        className="rem-add-text grow"
+        maxLength={200}
+        placeholder={t("rem.add")}
+        aria-label={t("rem.add")}
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && add()}
+      />
+      <div className="rem-pill-wrap">
+        <button
+          type="button"
+          className="rem-time-pill"
+          onClick={() => setShowPicker(!showPicker)}
+        >
+          <PhIcon name="clock" size={13} />
+          <span>{formatReminderLabel(at)}</span>
+        </button>
+        {showPicker && (
+          <TimePickerPopover
+            value={at}
+            onChange={(nextAt) => setAt(nextAt)}
+            onClose={() => setShowPicker(false)}
+          />
+        )}
+      </div>
+      <Button variant="primary" disabled={text.trim() === "" || !isLocalTime(at)} onClick={add}>
+        {t("rem.add_button")}
+      </Button>
+    </div>
+  );
+}
+
 function RemindersView({ onError }: { onError: (e: unknown) => void }) {
   const [rows, setRows] = useState<ReminderRow[]>([]);
   const [showDone, setShowDone] = useState(false);
-  const [text, setText] = useState("");
-  const [at, setAt] = useState(() => nextHour(new Date()));
   const load = useCallback(() => call("reminders_get").then(setRows, onError), [onError]);
   useEffect(() => {
     void load();
@@ -46,10 +147,6 @@ function RemindersView({ onError }: { onError: (e: unknown) => void }) {
       onError(e);
     }
     await load();
-  };
-  const add = () => {
-    if (text.trim() === "" || !isLocalTime(at)) return;
-    void run(call("reminder_upsert", { text: text.trim(), at }).then(() => setText("")));
   };
   const shown = visibleReminders(rows, showDone);
   return (
@@ -64,28 +161,17 @@ function RemindersView({ onError }: { onError: (e: unknown) => void }) {
           </div>
         ) : (
           shown.map((r) => (
-            <Row
+            <ReminderRowItem
               key={r.id}
-              title={
-                <div className="row" style={{ flexWrap: "wrap" }}>
-                  <input type="datetime-local" aria-label={t("rem.when")} value={r.at} onChange={(e) => isLocalTime(e.target.value) && void run(call("reminder_upsert", { id: r.id, text: r.text, at: e.target.value }))} />
-                  <InlineText value={r.text} label={t("rem.text")} done={r.done} onSave={(next) => void run(call("reminder_upsert", { id: r.id, text: next, at: r.at }))} />
-                </div>
+              reminder={r}
+              onSave={(patch) =>
+                void run(call("reminder_upsert", { id: r.id, text: patch.text ?? r.text, at: patch.at ?? r.at }))
               }
-            >
-              <Button className="btn-icon" aria-label={t("common.delete")} title={t("common.delete")} onClick={() => void run(call("reminder_delete", { id: r.id }))}>
-                <PhIcon name="trash" size={16} />
-              </Button>
-            </Row>
+              onDelete={() => void run(call("reminder_delete", { id: r.id }))}
+            />
           ))
         )}
-        <div className="row rem-add" style={{ padding: "14px 0" }}>
-          <input type="datetime-local" aria-label={t("rem.when")} value={at} onChange={(e) => setAt(e.target.value)} />
-          <input className="grow" maxLength={200} placeholder={t("rem.add")} aria-label={t("rem.add")} value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} />
-          <Button variant="primary" disabled={text.trim() === "" || !isLocalTime(at)} onClick={add}>
-            {t("rem.add_button")}
-          </Button>
-        </div>
+        <ReminderAddRow onAdd={(addText, addAt) => void run(call("reminder_upsert", { text: addText, at: addAt }))} />
       </Group>
     </div>
   );
@@ -192,7 +278,7 @@ export default function RemindersTab() {
   const onError = useCallback((e: unknown) => setError(String(e)), []);
   return (
     <div className="page-container">
-      <PageHeader title={t("more.reminders")} />
+      <PageHeader icon="bell" title={t("more.reminders")} />
       {error && <Banner kind="error">{error}</Banner>}
       <Segmented
         options={[

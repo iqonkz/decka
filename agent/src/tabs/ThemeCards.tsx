@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { t, type DisplaySettings, type Page, type ThemeId } from "@decka/shared";
 import { EMPTY_DATA, GlassLayer, Grid, resolveTheme } from "@decka/ui";
 import PhoneFrame from "./PhoneFrame";
+import PhIcon from "../ui/PhIcon";
 
 /** The names of the four looks are product names and are not translated. */
 const THEME_NAMES: Record<ThemeId, string> = { amoled: "AMOLED", studio: "Studio", material: "Material", glass: "Glass" };
@@ -45,13 +46,28 @@ function Preview({ theme, display }: { theme: ThemeId; display: DisplaySettings 
 export default function ThemeCards({ value, display, onPick }: { value: ThemeId; display: DisplaySettings; onPick: (theme: ThemeId) => void }) {
   return (
     <div className="theme-cards" role="radiogroup" aria-label={t("tab.look")}>
-      {THEME_IDS.map((id) => (
-        <button key={id} type="button" role="radio" aria-checked={value === id} className={value === id ? "theme-card selected" : "theme-card"} onClick={() => onPick(id)}>
-          <Preview theme={id} display={display} />
-          <strong>{THEME_NAMES[id]}</strong>
-          <small className="muted">{themeHint(id)}</small>
-        </button>
-      ))}
+      {THEME_IDS.map((id) => {
+        const isSelected = value === id;
+        return (
+          <button
+            key={id}
+            type="button"
+            role="radio"
+            aria-checked={isSelected}
+            className={isSelected ? "theme-card selected" : "theme-card"}
+            onClick={() => onPick(id)}
+          >
+            {isSelected && (
+              <span className="selection-badge">
+                <PhIcon name="check-circle" size={20} weight="fill" color="var(--accent)" />
+              </span>
+            )}
+            <Preview theme={id} display={display} />
+            <strong>{THEME_NAMES[id]}</strong>
+            <small className="muted">{themeHint(id)}</small>
+          </button>
+        );
+      })}
     </div>
   );
 }

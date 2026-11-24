@@ -96,7 +96,7 @@ export default function VoiceSection() {
 
   return (
     <div className="page-container">
-      <PageHeader title={t("more.voice")} />
+      <PageHeader icon="microphone" title={t("more.voice")} />
       {error && <Banner kind="error">{error}</Banner>}
 
       <SectionHeader id="voice-status" title={t("voice.title")} />

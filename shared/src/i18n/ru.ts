@@ -1029,5 +1029,23 @@ export const ru: Record<Base | ExtraPlural, string> = {
   "voice.hw_summary": "Этот ПК: {details} — {model} модель",
   "voice.model_standard_short": "стандартная",
   "voice.model_light_short": "лёгкая",
+  
+  // ----- Polish (DESIGN.md 4.15) -----
+  "look.window_theme": "Тема окна",
+  "theme.system": "Системная",
+  "theme.light": "Светлая",
+  "theme.dark": "Тёмная",
+  "common.saved_toast": "Сохранено",
+  "common.save_failed": "Не удалось сохранить",
+  "common.done": "Готово",
+  "rem.in_one_hour": "Через час",
+  "rem.tomorrow_morning": "Завтра 9:00",
+  "rem.today_at": "Сегодня {time}",
+  "rem.tomorrow_at": "Завтра {time}",
+  "rem.overdue": "Просрочено",
+  "mailset.err_user": "Укажите имя пользователя",
+  "mailset.err_host": "Укажите адрес сервера",
+  "mailset.err_port": "Порт должен быть 1..65535",
+  "mailset.save_account": "Сохранить",
   // @@END
 };

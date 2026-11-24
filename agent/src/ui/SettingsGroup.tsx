@@ -1,17 +1,26 @@
 import type { CSSProperties, ReactNode } from "react";
+import PhIcon from "./PhIcon";
 
 export interface PageHeaderProps {
+  icon?: string;
   title: string;
   subtitle?: string;
   className?: string;
   style?: CSSProperties;
 }
 
-export function PageHeader({ title, subtitle, className, style }: PageHeaderProps) {
+export function PageHeader({ icon, title, subtitle, className, style }: PageHeaderProps) {
   return (
     <header className={`settings-page-header${className ? ` ${className}` : ""}`} style={style}>
-      <h2 className="settings-page-title">{title}</h2>
-      {subtitle && <p className="settings-page-subtitle">{subtitle}</p>}
+      {icon && (
+        <div className="settings-page-header-badge">
+          <PhIcon name={icon} size={22} color="var(--accent)" />
+        </div>
+      )}
+      <div className="settings-page-header-text">
+        <h2 className="settings-page-title">{title}</h2>
+        {subtitle && <p className="settings-page-subtitle">{subtitle}</p>}
+      </div>
     </header>
   );
 }

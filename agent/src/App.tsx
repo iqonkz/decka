@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { t, type LanguageSetting } from "@decka/shared";
+import { t, type LanguageSetting, type WindowTheme } from "@decka/shared";
 import { useApplyLanguage } from "@decka/ui";
 import { call, onNavigate } from "./ipc";
 import { LANGUAGE_EVENT } from "./language";
+import { useApplyWindowTheme, WINDOW_THEME_EVENT } from "./windowTheme";
+import ToastContainer from "./ui/Toast";
 import UpdateBanner from "./tabs/UpdateBanner";
 import { useUpdates } from "./updates";
 import AppearanceTab from "./tabs/AppearanceTab";
@@ -93,16 +95,25 @@ export default function App() {
   // The language comes from the same layout (`display.language`; `auto` = the system language of this window).
   const [languageSetting, setLanguageSetting] = useState<LanguageSetting | undefined>(undefined);
   useApplyLanguage(languageSetting, navigator.language);
+  const [windowTheme, setWindowTheme] = useState<WindowTheme | undefined>(undefined);
+  useApplyWindowTheme(windowTheme);
+
   useEffect(() => {
     const changed = (e: Event) => setLanguageSetting((e as CustomEvent<{ language: LanguageSetting }>).detail.language);
+    const themeChanged = (e: Event) => setWindowTheme((e as CustomEvent<{ theme: WindowTheme }>).detail.theme);
     window.addEventListener(LANGUAGE_EVENT, changed);
-    return () => window.removeEventListener(LANGUAGE_EVENT, changed);
+    window.addEventListener(WINDOW_THEME_EVENT, themeChanged);
+    return () => {
+      window.removeEventListener(LANGUAGE_EVENT, changed);
+      window.removeEventListener(WINDOW_THEME_EVENT, themeChanged);
+    };
   }, []);
   const refreshAccent = useCallback(() => {
     call("get_layout").then(
       (l) => {
         document.documentElement.style.setProperty("--accent", l.display.accent ?? "#7c5cff");
         setLanguageSetting(l.display.language);
+        setWindowTheme(l.display.windowTheme);
       },
       () => {},
     );
@@ -145,6 +156,7 @@ export default function App() {
         <UpdateBanner status={updates.status} />
         <TabBody tab={tab} section={section} updates={updates} />
       </main>
+      <ToastContainer />
       {firstRun && (
         <FirstRun
           key={wizardStep}

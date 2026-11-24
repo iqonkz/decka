@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { t, type TranslationKey } from "@decka/shared";
 import logoUrl from "../../../docs/assets/decka-logo.svg";
+import { call } from "../ipc";
 import PhIcon from "./PhIcon";
 import { searchRegistry, targetForPage, type SearchEntry, type SearchTargetPage } from "./searchRegistry";
 
@@ -77,6 +78,11 @@ export default function Sidebar({ activePage, onNavigate, updateAvailable }: Sid
   });
 
   const [query, setQuery] = useState("");
+  const [version, setVersion] = useState<string | null>(null);
+
+  useEffect(() => {
+    call("get_status").then((s) => setVersion(s.version), () => {});
+  }, []);
   const [results, setResults] = useState<SearchEntry[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -174,7 +180,10 @@ export default function Sidebar({ activePage, onNavigate, updateAvailable }: Sid
       {/* Brand header */}
       <div className="sidebar-header">
         <img src={logoUrl} width={24} height={24} alt="" />
-        <span className="sidebar-brand-name">Decka</span>
+        <div className="sidebar-brand-info">
+          <span className="sidebar-brand-name">Decka</span>
+          {version && <span className="sidebar-version">{version}</span>}
+        </div>
       </div>
 
       {/* Search box */}

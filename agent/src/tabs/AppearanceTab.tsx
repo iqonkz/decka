@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { t, tn, type DisplaySettings, type LayoutFile, type ValidationIssue } from "@decka/shared";
+import { t, tn, type DisplaySettings, type LayoutFile, type ValidationIssue, type WindowTheme } from "@decka/shared";
 import { call } from "../ipc";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
@@ -11,6 +11,10 @@ import ThemeCards from "./ThemeCards";
 import { Group, PageHeader, Row, SectionHeader } from "../ui/SettingsGroup";
 import Switch from "../ui/Switch";
 import Segmented from "../ui/Segmented";
+import PhIcon from "../ui/PhIcon";
+import ColorPicker from "../ui/ColorPicker";
+import { useAutosave } from "../ui/useAutosave";
+import { applyWindowTheme } from "../windowTheme";
 
 /** A sample key for the style cards (the label is in the language of the window). */
 const sampleKey = () => ({ id: "sample", kind: "button", x: 0, y: 0, w: 1, h: 1, label: t("look.sample_key"), icon: "lucide:music", actionId: "sample" }) as const;
@@ -42,6 +46,27 @@ export default function AppearanceTab() {
     );
   }, []);
 
+  useAutosave({
+    value: display,
+    enabled: display !== null && saved !== "",
+    debounceMs: 400,
+    onSave: async (currentDisplay) => {
+      if (!currentDisplay) return { ok: true };
+      const fresh: LayoutFile = await call("get_layout");
+      const result = await call("save_layout", { layout: { ...fresh, display: currentDisplay } });
+      if (result && result.ok) {
+        setSaved(JSON.stringify(currentDisplay));
+        setIssues([]);
+        return { ok: true };
+      }
+      setIssues(result?.issues ?? []);
+      return { ok: false, error: result?.issues?.[0]?.message };
+    },
+    onRollback: (savedDisplay) => {
+      if (savedDisplay) setDisplay(savedDisplay);
+    },
+  });
+
   if (error) return <Banner kind="error">{error}</Banner>;
   if (!display) return <p>{t("common.loading")}</p>;
 
@@ -50,29 +75,33 @@ export default function AppearanceTab() {
     setMessage(null);
     setIssues([]);
   };
-  const dirty = JSON.stringify(display) !== saved;
   const preset = screenPreset(display);
   const accent = display.accent ?? "#7c5cff";
-
-  async function save() {
-    // The layout may have been edited in the Layout tab meanwhile: only the display part is replaced.
-    const fresh: LayoutFile = await call("get_layout");
-    const result = await call("save_layout", { layout: { ...fresh, display: display! } });
-    if (result.ok) {
-      setSaved(JSON.stringify(display));
-      setMessage(t("look.saved"));
-      setIssues([]);
-    } else {
-      setIssues(result.issues);
-      setMessage(null);
-    }
-  }
 
   const screenPresets: ScreenPreset[] = ["off", "balanced", "maximum", "custom"];
 
   return (
     <div className="page-container">
-      <PageHeader title={t("tab.look")} />
+      <PageHeader icon="palette" title={t("tab.look")} />
+
+      <SectionHeader id="look-window-theme" title={t("look.window_theme")} />
+      <Group>
+        <Row title={t("look.window_theme")}>
+          <Segmented
+            options={[
+              { value: "system", label: t("theme.system") },
+              { value: "light", label: t("theme.light") },
+              { value: "dark", label: t("theme.dark") },
+            ]}
+            value={display.windowTheme ?? "system"}
+            onChange={(val) => {
+              const next = val as WindowTheme;
+              set({ windowTheme: next });
+              applyWindowTheme(next);
+            }}
+          />
+        </Row>
+      </Group>
 
       <SectionHeader id="look-theme" title={t("look.theme")} />
       <Group>
@@ -97,13 +126,26 @@ export default function AppearanceTab() {
       <SectionHeader id="look-key-style" title={t("look.key_style")} />
       <Group>
         <div className="style-cards" style={{ padding: "14px 0 0" }}>
-          {(["standard", "full"] as const).map((face) => (
-            <button key={face} type="button" className={(display.keyFace ?? "standard") === face ? "style-card selected" : "style-card"} onClick={() => set({ keyFace: face })}>
-              <KeyPreview item={sampleKey()} display={{ ...display, keyFace: face }} />
-              <strong>{face === "standard" ? t("look.standard") : t("menu_item.big_icon")}</strong>
-              <small className="muted">{face === "standard" ? t("look.standard_hint") : t("look.big_hint")}</small>
-            </button>
-          ))}
+          {(["standard", "full"] as const).map((face) => {
+            const isSelected = (display.keyFace ?? "standard") === face;
+            return (
+              <button
+                key={face}
+                type="button"
+                className={isSelected ? "style-card selected" : "style-card"}
+                onClick={() => set({ keyFace: face })}
+              >
+                {isSelected && (
+                  <span className="selection-badge">
+                    <PhIcon name="check-circle" size={20} weight="fill" color="var(--accent)" />
+                  </span>
+                )}
+                <KeyPreview item={sampleKey()} display={{ ...display, keyFace: face }} />
+                <strong>{face === "standard" ? t("look.standard") : t("menu_item.big_icon")}</strong>
+                <small className="muted">{face === "standard" ? t("look.standard_hint") : t("look.big_hint")}</small>
+              </button>
+            );
+          })}
         </div>
         <Row title={t("look.show_names")}>
           <Switch checked={display.keyLabels !== false} onChange={(checked) => set({ keyLabels: checked })} />
@@ -126,13 +168,8 @@ export default function AppearanceTab() {
 
       <SectionHeader id="look-accent" title={t("look.accent")} subtitle={t("look.accent_hint")} />
       <Group>
-        <div className="row wrap" style={{ padding: "14px 0" }}>
-          {ACCENTS.map((c) => (
-            <button key={c} type="button" className={accent.toLowerCase() === c ? "swatch selected" : "swatch"} style={{ background: c }} aria-label={t("look.accent_swatch", { c })} onClick={() => set({ accent: c })} />
-          ))}
-          <label className="check" style={{ margin: 0 }}>
-            <input type="color" value={accent} onChange={(e) => set({ accent: e.target.value })} aria-label={t("look.custom_accent")} /> {t("look.custom")}
-          </label>
+        <div style={{ padding: "14px 0" }}>
+          <ColorPicker value={accent} onChange={(nextAccent) => set({ accent: nextAccent })} />
         </div>
       </Group>
 
@@ -216,12 +253,6 @@ export default function AppearanceTab() {
         </Banner>
       )}
       {message && <Banner kind="success">{message}</Banner>}
-      <div className="row" style={{ marginTop: 24 }}>
-        <Button variant="primary" disabled={!dirty} onClick={() => void save()}>
-          {t("common.save")}
-        </Button>
-        {dirty && <span className="unsaved">{t("common.unsaved")}</span>}
-      </div>
     </div>
   );
 }

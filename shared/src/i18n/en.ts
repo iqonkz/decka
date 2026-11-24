@@ -1007,5 +1007,23 @@ export const en = {
   "voice.hw_summary": "This PC: {details} — {model} model",
   "voice.model_standard_short": "standard",
   "voice.model_light_short": "light",
+  
+  // ----- Polish (DESIGN.md 4.15) -----
+  "look.window_theme": "Window theme",
+  "theme.system": "System",
+  "theme.light": "Light",
+  "theme.dark": "Dark",
+  "common.saved_toast": "Saved",
+  "common.save_failed": "Failed to save",
+  "common.done": "Done",
+  "rem.in_one_hour": "In 1 hour",
+  "rem.tomorrow_morning": "Tomorrow 9:00",
+  "rem.today_at": "Today {time}",
+  "rem.tomorrow_at": "Tomorrow {time}",
+  "rem.overdue": "Overdue",
+  "mailset.err_user": "Username is required",
+  "mailset.err_host": "Host is required",
+  "mailset.err_port": "Port must be 1..65535",
+  "mailset.save_account": "Save",
   // @@END
 } as const;

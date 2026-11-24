@@ -18,7 +18,13 @@
         "minWidth": 820,
         "minHeight": 560,
         "visible": false,
-        "create": false
+        "create": false,
+        "transparent": true,
+        "windowEffects": {
+          "effects": [
+            "mica"
+          ]
+        }
       }
     ],
     "security": {

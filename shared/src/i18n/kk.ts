@@ -1005,4 +1005,22 @@ export const kk: Dictionary = {
   "voice.hw_summary": "Бұл ДК: {details} — {model} үлгісі",
   "voice.model_standard_short": "стандартты",
   "voice.model_light_short": "жеңіл",
+
+  // ----- Polish (DESIGN.md 4.15) -----
+  "look.window_theme": "Терезе тақырыбы",
+  "theme.system": "Жүйелік",
+  "theme.light": "Ашық",
+  "theme.dark": "Күңгірт",
+  "common.saved_toast": "Сақталды",
+  "common.save_failed": "Сақтау сәтсіз аяқталды",
+  "common.done": "Дайын",
+  "rem.in_one_hour": "1 сағаттан кейін",
+  "rem.tomorrow_morning": "Ертең 9:00",
+  "rem.today_at": "Бүгін {time}",
+  "rem.tomorrow_at": "Ертең {time}",
+  "rem.overdue": "Мерзімі өтті",
+  "mailset.err_user": "Пайдаланушы атын көрсетіңіз",
+  "mailset.err_host": "Сервер мекенжайын көрсетіңіз",
+  "mailset.err_port": "Порт 1..65535 аралығында болуы керек",
+  "mailset.save_account": "Сақтау",
 };
