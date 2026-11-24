@@ -7,10 +7,19 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 ## 0.22.0 — 2026-11-24
 
 ### Added
-- **New settings window (T23)**: one sidebar menu for everything, a search box that finds a setting by its name (for example `микрофон` leads to Voice), settings as rows with switches and controls, and an integrations catalog with cards.
+- **New settings window (T23)**: one sidebar menu for everything; a search box that finds a setting by its name in the language of the window and jumps to it (for example `микрофон` scrolls to the microphone row in Voice and highlights it); settings as rows with switches and controls; an integrations catalog with cards; window theme System / Light / Dark with Mica; autosave (400 ms, rolls back on an error); a colour picker; a new reminders list with a time picker (a new reminder defaults to an hour ahead, :00 or :30).
+- **Calculator by voice**: `54 умножить на 114` answers `54 × 114 = 6156` (our own parser, no model; `+ − × ÷ ^ %`, brackets, square root, `20 percent of 150`, in 11 languages). Division by zero is answered, not guessed.
+- **Short answers by voice**: a question that is not a command (`how many days in a leap year`) is answered by the local model in at most 60 words. When it cannot know offline (news, rates), the pill asks `search the web?` and opens the search only after a yes.
+- **Reminder times by voice**: `в 22.14`, `в 2215`, `22:14`, `в 10 вечера`, `через 5 минут` are read exactly and cut from the text of the reminder (they were saved at the wrong minute before).
 
 ### Fixed
 - Text contrast in the settings window and the integration cards.
+- **Voice pill stuck in `Listening…`** after several commands in a row: a late microphone-level update re-created the pill after it was closed; all pill commands now go through one ordered queue.
+- **Settings search** found nothing for words like `микрофон`: every page and setting is now searchable in all 11 languages.
+- **Keys page in a narrow window**: the preview keeps its width and the library becomes a button below 1100 px.
+- **Claude / Codex widget 2×1** shows both limits (5 h and weekly) as two small bars.
+- **Mail form**: errors are shown in the language of the window.
+- **Window theme** is kept when the layout is saved.
 
 ## 0.21.0 — 2026-11-23
 
