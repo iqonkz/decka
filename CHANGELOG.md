@@ -4,6 +4,12 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+### Added
+- **New settings window (T23)**: one sidebar menu for everything, a search box that finds a setting by its name (for example `микрофон` leads to Voice), settings as rows with switches and controls, and an integrations catalog with cards.
+
+### Fixed
+- Text contrast in the settings window and the integration cards.
+
 ## 0.21.0 — 2026-11-23
 
 ### Added
