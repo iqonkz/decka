@@ -13,7 +13,8 @@ try { $env:DECKA_KEYSTORE_PASS = [Runtime.InteropServices.Marshal]::PtrToStringB
 $env:DECKA_KEYSTORE = $jks
 Push-Location (Join-Path $PSScriptRoot "..\client\android")
 try {
-  & .\gradlew.bat assembleRelease
+  # --no-daemon: a daemon left running keeps the output pipe of the caller open, and the script (with the permission check below) never ends.
+  & .\gradlew.bat assembleRelease --no-daemon
   if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
   # Guard (0.20.5 shipped without RECORD_AUDIO): the built APK must declare these permissions, else the build fails.
   $apk = Join-Path (Get-Location) "app\build\outputs\apk\release\app-release.apk"
