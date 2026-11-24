@@ -52,6 +52,7 @@ if (scene === "deck" || scene === "settings") {
   const [stateFx, actionsFx] = await Promise.all([import("../../shared/fixtures/state.m15.json"), import("../../shared/fixtures/actions.default.json")]);
   const fx = JSON.parse(JSON.stringify(stateFx.default)) as { layout: { display: Record<string, unknown>; pages: { items: unknown[] }[] }; [k: string]: unknown };
   fx.layout.display = { ...fx.layout.display, theme: q.get("theme") ?? "glass", wallpaper: q.get("wallpaper") ?? "aurora", orientation: "landscape" };
+  if (q.get("lang")) fx.layout.display = { ...fx.layout.display, language: q.get("lang") };
   if (q.get("m22")) {
     // The phone widgets of T22.16 on a page of their own: reminders, two lists, the weather.
     fx.layout.pages[0]!.items = [

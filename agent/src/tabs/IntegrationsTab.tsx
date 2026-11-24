@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { t, type ConfigFile, type HttpCheck, type ValidationIssue } from "@decka/shared";
 import { call } from "../ipc";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
 import Field from "../ui/Field";
+import PhIcon from "../ui/PhIcon";
+import { Group, PageHeader, Row, SectionHeader } from "../ui/SettingsGroup";
 import { makeActionId } from "../editor/addButton";
 import WeatherSection from "./WeatherSection";
 import ObsSection from "./ObsSection";
@@ -12,6 +14,12 @@ import TwitchSection from "./TwitchSection";
 import YoutubeSection from "./YoutubeSection";
 import MailSection from "./MailSection";
 import WinNotifSection from "./WinNotifSection";
+import {
+  filterIntegrations,
+  type IntegrationCategory,
+  type IntegrationDef,
+  type IntegrationFilterChip,
+} from "./integrationsCatalog";
 
 function CopyButton({ text }: { text: string }) {
   const [done, setDone] = useState(false);
@@ -31,7 +39,7 @@ function CopyButton({ text }: { text: string }) {
 
 function CommandBox({ title, command }: { title: string; command: string }) {
   return (
-    <div className="command-box">
+    <div className="command-box" style={{ marginBottom: 12 }}>
       <div className="row between">
         <strong>{title}</strong>
         <CopyButton text={command} />
@@ -57,6 +65,11 @@ export default function IntegrationsTab() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Catalog UI state
+  const [activeIntegration, setActiveIntegration] = useState<string | null>(null);
+  const [filterChip, setFilterChip] = useState<IntegrationFilterChip>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+
   const load = useCallback(async () => {
     const c = await call("get_config");
     const s = await call("get_status");
@@ -68,6 +81,120 @@ export default function IntegrationsTab() {
   useEffect(() => {
     load().catch((e) => setError(String(e)));
   }, [load]);
+
+  const integrationsList: IntegrationDef[] = useMemo(() => {
+    if (!config) return [];
+    return [
+      {
+        id: "obs",
+        name: "OBS Studio",
+        titleKey: "integ.catalog_title",
+        descKey: "integ.item_obs_desc",
+        category: "streaming",
+        icon: "broadcast",
+        connected: Boolean(config.obs?.enabled),
+        keywords: ["obs", "stream", "scenes", "recording", "broadcast"],
+      },
+      {
+        id: "twitch",
+        name: "Twitch",
+        titleKey: "integ.catalog_title",
+        descKey: "integ.item_twitch_desc",
+        category: "streaming",
+        icon: "chat-circle-text",
+        connected: Boolean(config.twitch?.enabled),
+        keywords: ["twitch", "stream", "chat", "live"],
+      },
+      {
+        id: "youtube",
+        name: "YouTube",
+        titleKey: "integ.catalog_title",
+        descKey: "integ.item_youtube_desc",
+        category: "streaming",
+        icon: "play-circle",
+        connected: Boolean(config.youtube?.enabled),
+        keywords: ["youtube", "video", "broadcast", "subscribers"],
+      },
+      {
+        id: "mail",
+        name: "Mail",
+        titleKey: "integ.catalog_title",
+        descKey: "integ.item_mail_desc",
+        category: "notifications",
+        icon: "envelope",
+        connected: Boolean(config.mail?.accounts && config.mail.accounts.length > 0),
+        keywords: ["email", "mail", "gmail", "imap", "unread"],
+      },
+      {
+        id: "winnotif",
+        name: t("winnotif.title"),
+        titleKey: "winnotif.title",
+        descKey: "integ.item_winnotif_desc",
+        category: "notifications",
+        icon: "bell",
+        connected: Boolean(config.windowsNotifications?.enabled),
+        keywords: ["windows", "notifications", "alerts", "toasts"],
+      },
+      {
+        id: "weather",
+        name: t("weather.title"),
+        titleKey: "weather.title",
+        descKey: "integ.item_weather_desc",
+        category: "data",
+        icon: "cloud-sun",
+        connected: Boolean(config.weather?.enabled && config.weather?.place),
+        keywords: ["weather", "temperature", "forecast", "city"],
+      },
+      {
+        id: "checks",
+        name: t("integ.checks"),
+        titleKey: "integ.checks",
+        descKey: "integ.item_checks_desc",
+        category: "data",
+        icon: "pulse",
+        connected: Boolean(checks.length > 0),
+        keywords: ["checks", "http", "uptime", "server", "ping"],
+      },
+      {
+        id: "ai",
+        name: "AI Coding",
+        titleKey: "integ.catalog_title",
+        descKey: "integ.item_ai_desc",
+        category: "data",
+        icon: "brain",
+        connected: Boolean(config.ai?.claude?.enabled || config.ai?.codex?.enabled),
+        keywords: ["ai", "claude", "codex", "llm", "limits"],
+      },
+      {
+        id: "api_token",
+        name: t("integ.api_token"),
+        titleKey: "integ.api_token",
+        descKey: "integ.item_api_desc",
+        category: "developers",
+        icon: "key",
+        connected: Boolean(config.apiToken),
+        keywords: ["api", "token", "auth", "developer", "key"],
+      },
+      {
+        id: "examples",
+        name: t("integ.show_examples"),
+        titleKey: "integ.show_examples",
+        descKey: "integ.item_examples_desc",
+        category: "developers",
+        icon: "terminal-window",
+        connected: Boolean(config.apiToken),
+        keywords: ["curl", "powershell", "examples", "webhook", "test"],
+      },
+    ];
+  }, [config, checks.length]);
+
+  const filteredIntegrations = useMemo(() => {
+    return filterIntegrations(integrationsList, filterChip, searchQuery);
+  }, [integrationsList, filterChip, searchQuery]);
+
+  const connectedList = useMemo(() => {
+    return integrationsList.filter((i) => i.connected);
+  }, [integrationsList]);
 
   if (error) return <Banner kind="error">{error}</Banner>;
   if (!config) return <p>{t("common.loading")}</p>;
@@ -106,146 +233,282 @@ export default function IntegrationsTab() {
     }
   }
 
-  return (
-    <div className="stack">
-      <h2>{t("more.integrations")}</h2>
-
-      <section className="card">
-        <h3>{t("integ.api_token")}</h3>
-        <div className="row">
-          <input className="mono grow" readOnly type={showToken ? "text" : "password"} value={token} aria-label={t("integ.api_token")} />
-          <Button onClick={() => setShowToken(!showToken)}>{showToken ? t("integ.hide") : t("integ.show")}</Button>
-          <CopyButton text={token} />
-          <Button variant="danger" onClick={() => setConfirmRegen(true)}>
-            {t("integ.regenerate")}
-          </Button>
-        </div>
-        {confirmRegen && (
-          <Banner kind="warning">
-            <span>{t("integ.regenerate_warning")}</span>
-            <span className="row">
-              <Button variant="danger" onClick={() => void regenerate()}>
-                {t("integ.regenerate")}
-              </Button>
-              <Button onClick={() => setConfirmRegen(false)}>{t("common.cancel")}</Button>
+  // If a detail section is opened
+  if (activeIntegration !== null) {
+    return (
+      <div className="page-container">
+        <div className="integrations-detail-header">
+          <Button variant="secondary" onClick={() => setActiveIntegration(null)}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <PhIcon name="arrow-left" size={16} />
+              {t("integ.back_to_catalog")}
             </span>
-          </Banner>
-        )}
-      </section>
-
-      <ObsSection config={config} onSaved={load} />
-
-      <WeatherSection config={config} onSaved={load} />
-
-      <TwitchSection config={config} onSaved={load} />
-
-      <YoutubeSection config={config} onSaved={load} />
-
-      <MailSection config={config} onSaved={load} />
-
-      <WinNotifSection config={config} onSaved={load} />
-
-      <AiSection config={config} onSaved={load} />
-
-      <details className="advanced">
-        <summary>{t("integ.show_examples")}</summary>
-      <section className="card">
-        <h3>{t("integ.send_notification")}</h3>
-        <div className="stack">
-          <CommandBox title="curl.exe (JSON)" command={curlJson} />
-          <CommandBox title={t("integ.curl_plain")} command={curlText} />
-          <CommandBox title="PowerShell" command={powershell} />
-          <div>
-            <Button onClick={() => void call("send_test_notification")}>{t("integ.send_test")}</Button>
-          </div>
-        </div>
-      </section>
-
-      <section className="card">
-        <h3>{t("integ.update_status")}</h3>
-        <CommandBox title="curl.exe" command={curlStatus} />
-      </section>
-      </details>
-
-      <section className="card">
-        <h3>{t("integ.checks")}</h3>
-        <p className="muted">{t("integ.checks_hint")}</p>
-        {checks.length === 0 && <p className="muted">{t("integ.no_checks")}</p>}
-        <ul className="plain-list">
-          {checks.map((c, i) => (
-            <li key={i} className="check-row">
-              <span className="status-dot wait" aria-hidden="true" />
-              <strong>{c.label}</strong>
-              <span className="muted grow">{c.url}</span>
-              <Button onClick={() => setEditing({ index: i, check: c })}>{t("integ.edit")}</Button>
-              <Button onClick={() => void saveChecks(checks.filter((_, n) => n !== i))}>{t("integ.remove")}</Button>
-            </li>
-          ))}
-        </ul>
-        {issues.length > 0 && (
-          <Banner kind="error">
-            <ul>
-              {issues.map((i, n) => (
-                <li key={n}>{i.message}</li>
-              ))}
-            </ul>
-          </Banner>
-        )}
-        {message && <Banner kind="success">{message}</Banner>}
-        <div className="row">
-          <Button variant="primary" disabled={checks.length >= 20} onClick={() => setEditing({ index: -1, check: newCheck(checks.length + 1) })}>
-            {t("integ.add_check")}
           </Button>
         </div>
-      </section>
 
-      {editing && (
-        <div className="dialog-backdrop">
-          <div className="dialog" role="dialog" aria-label={t("integ.check")}>
-            <h2>{editing.index < 0 ? t("integ.add_check") : t("integ.edit_check")}</h2>
-            <Field label={t("integ.check_name")}>
-              <input autoFocus value={editing.check.label} onChange={(e) => setEditing({ ...editing, check: { ...editing.check, label: e.target.value } })} />
-            </Field>
-            <Field label={t("integ.check_address")}>
-              <input value={editing.check.url} onChange={(e) => setEditing({ ...editing, check: { ...editing.check, url: e.target.value } })} />
-            </Field>
-            <details className="advanced">
-              <summary>{t("common.more_options")}</summary>
-              <div className="grid-4">
-                <Field label={t("integ.check_every")}>
-                  <input type="number" value={editing.check.intervalSec} onChange={(e) => setEditing({ ...editing, check: { ...editing.check, intervalSec: Number(e.target.value) } })} />
-                </Field>
-                <Field label={t("integ.give_up")}>
-                  <input type="number" value={editing.check.timeoutSec} onChange={(e) => setEditing({ ...editing, check: { ...editing.check, timeoutSec: Number(e.target.value) } })} />
-                </Field>
-                <Field label={t("integ.expected")} hint={t("integ.expected_hint")}>
-                  <input
-                    type="number"
-                    placeholder="200"
-                    value={editing.check.expectStatus ?? ""}
-                    onChange={(e) => setEditing({ ...editing, check: { ...editing.check, expectStatus: e.target.value === "" ? undefined : Number(e.target.value) } })}
-                  />
-                </Field>
-                <Field label={t("integ.group")}>
-                  <input value={editing.check.group ?? ""} onChange={(e) => setEditing({ ...editing, check: { ...editing.check, group: e.target.value || undefined } })} />
-                </Field>
+        {activeIntegration === "obs" && <ObsSection config={config} onSaved={load} />}
+        {activeIntegration === "twitch" && <TwitchSection config={config} onSaved={load} />}
+        {activeIntegration === "youtube" && <YoutubeSection config={config} onSaved={load} />}
+        {activeIntegration === "mail" && <MailSection config={config} onSaved={load} />}
+        {activeIntegration === "winnotif" && <WinNotifSection config={config} onSaved={load} />}
+        {activeIntegration === "weather" && <WeatherSection config={config} onSaved={load} />}
+        {activeIntegration === "ai" && <AiSection config={config} onSaved={load} />}
+
+        {activeIntegration === "api_token" && (
+          <div>
+            <PageHeader title={t("integ.api_token")} />
+            <Group>
+              <div style={{ padding: "14px 0" }}>
+                <div className="row">
+                  <input className="mono grow" readOnly type={showToken ? "text" : "password"} value={token} aria-label={t("integ.api_token")} />
+                  <Button onClick={() => setShowToken(!showToken)}>{showToken ? t("integ.hide") : t("integ.show")}</Button>
+                  <CopyButton text={token} />
+                  <Button variant="danger" onClick={() => setConfirmRegen(true)}>
+                    {t("integ.regenerate")}
+                  </Button>
+                </div>
+                {confirmRegen && (
+                  <div style={{ marginTop: 12 }}>
+                    <Banner kind="warning">
+                      <span>{t("integ.regenerate_warning")}</span>
+                      <span className="row">
+                        <Button variant="danger" onClick={() => void regenerate()}>
+                          {t("integ.regenerate")}
+                        </Button>
+                        <Button onClick={() => setConfirmRegen(false)}>{t("common.cancel")}</Button>
+                      </span>
+                    </Banner>
+                  </div>
+                )}
               </div>
-            </details>
-            <div className="row">
-              <Button
-                variant="primary"
-                onClick={() => {
-                  const next = editing.index < 0 ? [...checks, { ...editing.check, id: checkId(editing.check.label, checks) }] : checks.map((c, n) => (n === editing.index ? editing.check : c));
-                  setEditing(null);
-                  void saveChecks(next);
-                }}
-              >
-                {t("common.save")}
-              </Button>
-              <Button onClick={() => setEditing(null)}>{t("common.cancel")}</Button>
-            </div>
+            </Group>
           </div>
+        )}
+
+        {activeIntegration === "checks" && (
+          <div>
+            <PageHeader title={t("integ.checks")} subtitle={t("integ.checks_hint")} />
+            <Group>
+              <div style={{ padding: "14px 0" }}>
+                {checks.length === 0 && <p className="muted">{t("integ.no_checks")}</p>}
+                <ul className="plain-list" style={{ marginBottom: 12 }}>
+                  {checks.map((c, i) => (
+                    <li key={i} className="check-row" style={{ display: "flex", gap: 10, alignItems: "center", padding: "8px 0" }}>
+                      <span className="status-dot wait" aria-hidden="true" />
+                      <strong>{c.label}</strong>
+                      <span className="muted grow">{c.url}</span>
+                      <Button onClick={() => setEditing({ index: i, check: c })}>{t("integ.edit")}</Button>
+                      <Button onClick={() => void saveChecks(checks.filter((_, n) => n !== i))}>{t("integ.remove")}</Button>
+                    </li>
+                  ))}
+                </ul>
+                {issues.length > 0 && (
+                  <div style={{ marginBottom: 12 }}>
+                    <Banner kind="error">
+                      <ul>
+                        {issues.map((iss, n) => (
+                          <li key={n}>{iss.message}</li>
+                        ))}
+                      </ul>
+                    </Banner>
+                  </div>
+                )}
+                {message && (
+                  <div style={{ marginBottom: 12 }}>
+                    <Banner kind="success">{message}</Banner>
+                  </div>
+                )}
+                <div className="row">
+                  <Button variant="primary" disabled={checks.length >= 20} onClick={() => setEditing({ index: -1, check: newCheck(checks.length + 1) })}>
+                    {t("integ.add_check")}
+                  </Button>
+                </div>
+              </div>
+            </Group>
+
+            {editing && (
+              <div className="dialog-backdrop">
+                <div className="dialog" role="dialog" aria-label={t("integ.check")}>
+                  <h2>{editing.index < 0 ? t("integ.add_check") : t("integ.edit_check")}</h2>
+                  <Field label={t("integ.check_name")}>
+                    <input autoFocus value={editing.check.label} onChange={(e) => setEditing({ ...editing, check: { ...editing.check, label: e.target.value } })} />
+                  </Field>
+                  <Field label={t("integ.check_address")}>
+                    <input value={editing.check.url} onChange={(e) => setEditing({ ...editing, check: { ...editing.check, url: e.target.value } })} />
+                  </Field>
+                  <details className="advanced">
+                    <summary>{t("common.more_options")}</summary>
+                    <div className="grid-4">
+                      <Field label={t("integ.check_every")}>
+                        <input type="number" value={editing.check.intervalSec} onChange={(e) => setEditing({ ...editing, check: { ...editing.check, intervalSec: Number(e.target.value) } })} />
+                      </Field>
+                      <Field label={t("integ.give_up")}>
+                        <input type="number" value={editing.check.timeoutSec} onChange={(e) => setEditing({ ...editing, check: { ...editing.check, timeoutSec: Number(e.target.value) } })} />
+                      </Field>
+                      <Field label={t("integ.expected")} hint={t("integ.expected_hint")}>
+                        <input
+                          type="number"
+                          placeholder="200"
+                          value={editing.check.expectStatus ?? ""}
+                          onChange={(e) => setEditing({ ...editing, check: { ...editing.check, expectStatus: e.target.value === "" ? undefined : Number(e.target.value) } })}
+                        />
+                      </Field>
+                      <Field label={t("integ.group")}>
+                        <input value={editing.check.group ?? ""} onChange={(e) => setEditing({ ...editing, check: { ...editing.check, group: e.target.value || undefined } })} />
+                      </Field>
+                    </div>
+                  </details>
+                  <div className="row">
+                    <Button
+                      variant="primary"
+                      onClick={() => {
+                        const next = editing.index < 0 ? [...checks, { ...editing.check, id: checkId(editing.check.label, checks) }] : checks.map((c, n) => (n === editing.index ? editing.check : c));
+                        setEditing(null);
+                        void saveChecks(next);
+                      }}
+                    >
+                      {t("common.save")}
+                    </Button>
+                    <Button onClick={() => setEditing(null)}>{t("common.cancel")}</Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeIntegration === "examples" && (
+          <div>
+            <PageHeader title={t("integ.show_examples")} />
+            <SectionHeader title={t("integ.send_notification")} />
+            <Group>
+              <div style={{ padding: "14px 0" }}>
+                <CommandBox title="curl.exe (JSON)" command={curlJson} />
+                <CommandBox title={t("integ.curl_plain")} command={curlText} />
+                <CommandBox title="PowerShell" command={powershell} />
+                <div>
+                  <Button onClick={() => void call("send_test_notification")}>{t("integ.send_test")}</Button>
+                </div>
+              </div>
+            </Group>
+
+            <SectionHeader title={t("integ.update_status")} />
+            <Group>
+              <div style={{ padding: "14px 0" }}>
+                <CommandBox title="curl.exe" command={curlStatus} />
+              </div>
+            </Group>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Catalog View
+  return (
+    <div className="page-container">
+      <PageHeader title={t("integ.catalog_title")} />
+
+      {/* Top Status Bar: up to 4 overlapping connected icons and N connected with caret-right */}
+      <button
+        type="button"
+        className="integrations-status-bar"
+        onClick={() => setFilterChip("connected")}
+        title={t("integ.filter_connected")}
+      >
+        <div className="integrations-overlapping-icons">
+          {connectedList.slice(0, 4).map((item) => (
+            <span key={item.id} className="integrations-overlap-icon">
+              <PhIcon name={item.icon} size={14} />
+            </span>
+          ))}
         </div>
-      )}    </div>
+        <span>{t("integ.connected_count", { n: connectedList.length })}</span>
+        <PhIcon name="caret-right" size={14} />
+      </button>
+
+      {/* Search Bar */}
+      <div className="integrations-search">
+        <PhIcon name="magnifying-glass" size={16} />
+        <input
+          type="search"
+          placeholder={t("sidebar.search")}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+      </div>
+
+      {/* Filter Chips */}
+      <div className="integrations-chips" role="radiogroup">
+        {(
+          [
+            { id: "all", label: t("integ.filter_all") },
+            { id: "connected", label: t("integ.filter_connected") },
+            { id: "streaming", label: t("integ.filter_streaming") },
+            { id: "notifications", label: t("integ.filter_notifications") },
+            { id: "data", label: t("integ.filter_data") },
+            { id: "developers", label: t("integ.filter_developers") },
+          ] as const
+        ).map((chip) => (
+          <button
+            key={chip.id}
+            type="button"
+            className={`integrations-chip${filterChip === chip.id ? " active" : ""}`}
+            onClick={() => setFilterChip(chip.id)}
+          >
+            {chip.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Cards Grid: 2 columns, gap 12 */}
+      <div className="integrations-grid">
+        {filteredIntegrations.map((item) => {
+          const desc = t(item.descKey);
+          return (
+            <div
+              key={item.id}
+              className="integration-card"
+              onClick={() => setActiveIntegration(item.id)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setActiveIntegration(item.id);
+                }
+              }}
+            >
+              <div className="integration-badge">
+                <PhIcon name={item.icon} size={22} />
+              </div>
+              <div className="integration-card-content">
+                <div className="integration-card-name">{item.name}</div>
+                <div className="integration-card-desc" title={desc}>
+                  {desc}
+                </div>
+              </div>
+              <div className="integration-card-action">
+                {item.connected ? (
+                  <span className="integration-connected-badge">
+                    <span className="check-icon">
+                      <PhIcon name="check" size={14} />
+                    </span>
+                    {t("integ.connected")}
+                  </span>
+                ) : (
+                  <Button variant="primary" onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveIntegration(item.id);
+                  }}>
+                    {t("integ.set_up")}
+                  </Button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }

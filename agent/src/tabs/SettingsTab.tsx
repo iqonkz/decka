@@ -5,7 +5,9 @@ import { saveLanguage } from "../language";
 import LanguageOptions from "./LanguageOptions";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
-import Field from "../ui/Field";
+import { Group, PageHeader, Row, SectionHeader } from "../ui/SettingsGroup";
+import Switch from "../ui/Switch";
+import Segmented from "../ui/Segmented";
 
 export default function SettingsTab() {
   const [config, setConfig] = useState<ConfigFile | null>(null);
@@ -54,11 +56,13 @@ export default function SettingsTab() {
   }
 
   return (
-    <div className="stack">
-      <h2>{t("more.settings")}</h2>
-      <section className="card">
-        <Field label={t("settings.language")}>
+    <div className="page-container">
+      <PageHeader title={t("more.settings")} />
+
+      <Group>
+        <Row id="settings-language" title={t("settings.language")}>
           <select
+            className="settings-select"
             value={language}
             onChange={(e) => {
               const next = e.target.value as LanguageSetting;
@@ -68,85 +72,93 @@ export default function SettingsTab() {
           >
             <LanguageOptions />
           </select>
-        </Field>
-        <Field label={t("settings.pc_name")} hint={t("settings.pc_name_hint")}>
+        </Row>
+        <Row id="settings-pc-name" title={t("settings.pc_name")} description={t("settings.pc_name_hint")}>
           <input value={config.agentName} maxLength={40} onChange={(e) => edit({ agentName: e.target.value })} />
-        </Field>
-        <label className="check">
-          <input type="checkbox" checked={config.autostart} onChange={(e) => edit({ autostart: e.target.checked })} /> {t("settings.autostart")}
-        </label>
-        <label className="check">
-          <input type="checkbox" checked={config.usb.enabled} onChange={(e) => edit({ usb: { ...config.usb, enabled: e.target.checked } })} /> {t("settings.usb")}
-        </label>
-        <p className="muted">{t("settings.usb_hint")}</p>
+        </Row>
+        <Row id="settings-autostart" title={t("settings.autostart")}>
+          <Switch checked={config.autostart} onChange={(checked) => edit({ autostart: checked })} />
+        </Row>
+        <Row id="settings-usb" title={t("settings.usb")} description={t("settings.usb_hint")}>
+          <Switch checked={config.usb.enabled} onChange={(checked) => edit({ usb: { ...config.usb, enabled: checked } })} />
+        </Row>
         {config.usb.enabled && adbMissing && (
-          <Field label={t("settings.adb")} hint={t("settings.adb_missing_hint")}>
+          <Row title={t("settings.adb")} description={t("settings.adb_missing_hint")}>
             <input value={config.usb.adbPath} onChange={(e) => edit({ usb: { ...config.usb, adbPath: e.target.value } })} />
-          </Field>
+          </Row>
         )}
-      </section>
+      </Group>
 
-      <details className="advanced">
-        <summary>{t("common.more_options")}</summary>
-        <section className="card">
-          <Field label={t("settings.port")} hint={t("settings.port_hint")}>
-            <input type="number" value={config.port} onChange={(e) => edit({ port: Number(e.target.value) })} />
-          </Field>
-
-          <fieldset className="radio-group">
-            <legend>{t("settings.who_connects")}</legend>
-            <label>
-              <input type="radio" name="bind" checked={config.bind === "0.0.0.0"} onChange={() => edit({ bind: "0.0.0.0" })} /> {t("settings.bind_all")}
-            </label>
-            <label>
-              <input type="radio" name="bind" checked={config.bind === "127.0.0.1"} onChange={() => edit({ bind: "127.0.0.1" })} /> {t("settings.bind_usb")}
-            </label>
-          </fieldset>
-
-          <div className="row">
-            <label className="check">
-              <input
-                type="checkbox"
-                checked={config.collectors.sys.enabled}
-                onChange={(e) => edit({ collectors: { ...config.collectors, sys: { ...config.collectors.sys, enabled: e.target.checked } } })}
-              />{" "}
-              {t("settings.sys")}
-            </label>
-            <Field label={t("settings.refresh")}>
-              <input
-                type="number"
-                value={config.collectors.sys.intervalSec}
-                onChange={(e) => edit({ collectors: { ...config.collectors, sys: { ...config.collectors.sys, intervalSec: Number(e.target.value) } } })}
+      <details className="advanced" style={{ marginTop: 24 }}>
+        <summary style={{ cursor: "pointer", fontWeight: 600 }}>{t("common.more_options")}</summary>
+        <div id="settings-network" style={{ marginTop: 12 }}>
+          <SectionHeader title={t("settings.port")} />
+          <Group>
+            <Row id="settings-port" title={t("settings.port")} description={t("settings.port_hint")}>
+              <input type="number" value={config.port} onChange={(e) => edit({ port: Number(e.target.value) })} />
+            </Row>
+            <Row title={t("settings.who_connects")}>
+              <Segmented
+                options={[
+                  { value: "0.0.0.0", label: t("settings.bind_all") },
+                  { value: "127.0.0.1", label: t("settings.bind_usb") },
+                ]}
+                value={config.bind}
+                onChange={(val) => edit({ bind: val })}
               />
-            </Field>
-          </div>
-          <Field label={t("settings.adb")} hint={t("settings.adb_hint")}>
-            <input value={config.usb.adbPath} onChange={(e) => edit({ usb: { ...config.usb, adbPath: e.target.value } })} />
-          </Field>
-        </section>
+            </Row>
+            <Row title={t("settings.sys")}>
+              <div className="row">
+                <Switch
+                  checked={config.collectors.sys.enabled}
+                  onChange={(checked) => edit({ collectors: { ...config.collectors, sys: { ...config.collectors.sys, enabled: checked } } })}
+                />
+                <span className="muted">{t("settings.refresh")}</span>
+                <input
+                  type="number"
+                  style={{ width: 80 }}
+                  value={config.collectors.sys.intervalSec}
+                  onChange={(e) => edit({ collectors: { ...config.collectors, sys: { ...config.collectors.sys, intervalSec: Number(e.target.value) } } })}
+                />
+              </div>
+            </Row>
+            <Row title={t("settings.adb")} description={t("settings.adb_hint")}>
+              <input value={config.usb.adbPath} onChange={(e) => edit({ usb: { ...config.usb, adbPath: e.target.value } })} />
+            </Row>
+          </Group>
+        </div>
       </details>
+
       {issues.length > 0 && (
-        <Banner kind="error">
-          <ul>
-            {issues.map((i, n) => (
-              <li key={n}>
-                <code>{i.path || "/"}</code>: {i.message}
-              </li>
-            ))}
-          </ul>
-        </Banner>
+        <div style={{ marginTop: 16 }}>
+          <Banner kind="error">
+            <ul>
+              {issues.map((i, n) => (
+                <li key={n}>
+                  <code>{i.path || "/"}</code>: {i.message}
+                </li>
+              ))}
+            </ul>
+          </Banner>
+        </div>
       )}
-      {message && <Banner kind="success">{message}</Banner>}
+      {message && (
+        <div style={{ marginTop: 16 }}>
+          <Banner kind="success">{message}</Banner>
+        </div>
+      )}
       {needsRestart && (
-        <Banner kind="warning">
-          <span>{t("settings.restart_needed")}</span>
-          <Button variant="primary" onClick={() => void restart()}>
-            {t("settings.restart_now")}
-          </Button>
-        </Banner>
+        <div style={{ marginTop: 16 }}>
+          <Banner kind="warning">
+            <span>{t("settings.restart_needed")}</span>
+            <Button variant="primary" onClick={() => void restart()}>
+              {t("settings.restart_now")}
+            </Button>
+          </Banner>
+        </div>
       )}
 
-      <div className="row">
+      <div className="row" style={{ marginTop: 24 }}>
         <Button variant="primary" onClick={() => void save()}>
           {t("common.save")}
         </Button>

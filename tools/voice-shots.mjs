@@ -24,8 +24,10 @@ await build({ root: join(root, "tools", "voice-shots"), configFile: false, logLe
 const MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".woff2": "font/woff2" };
 const server = createServer((req, res) => {
   const path = normalize(decodeURIComponent((req.url ?? "/").split("?")[0])).replace(/^[\\/]+/, "") || "index.html";
-  const file = join(dist, path);
-  if (!file.startsWith(dist) || !existsSync(file)) return res.writeHead(404).end();
+  let file = join(dist, path);
+  // The settings window loads Phosphor icons from /phosphor (copied by agent/scripts/copy-phosphor.mjs, not in git).
+  if (!existsSync(file) && path.startsWith("phosphor")) file = join(root, "agent", "public", path);
+  if (!(file.startsWith(dist) || file.startsWith(join(root, "agent", "public"))) || !existsSync(file)) return res.writeHead(404).end();
   res.writeHead(200, { "content-type": MIME[extname(file)] ?? "application/octet-stream" }).end(readFileSync(file));
 });
 await new Promise((r) => server.listen(0, "127.0.0.1", r));
@@ -34,6 +36,19 @@ const base = `http://127.0.0.1:${server.address().port}/index.html`;
 const PILL = { w: 360, h: 160, scale: 3 };
 const PHONE = { w: 800, h: 360, scale: 2 };
 const DECK = { w: 1280, h: 600, scale: 1 };
+// T23.R: the settings window (Russian) in both colour schemes: pages, a search with results and the minimum window width.
+function settingsShots() {
+  const out = {};
+  const pages = { look: [1100, 760], voice: [1100, 1500], reminders: [1100, 760], integrations: [1100, 900] };
+  for (const scheme of ["light", "dark"]) {
+    const base = `scene=settings&theme=studio&lang=ru&scheme=${scheme}`;
+    for (const [page, [w, h]] of Object.entries(pages)) out[`t23-${page}-${scheme}`] = [{ w, h, scale: 1 }, `${base}&go=${page}`];
+    out[`t23-search-${scheme}`] = [{ w: 1100, h: 760, scale: 1 }, `${base}&go=look&type=%D0%B3%D0%BE%D0%BB%D0%BE%D1%81`];
+    out[`t23-minwidth-${scheme}`] = [{ w: 820, h: 760, scale: 1 }, `${base}&go=settings`];
+    out[`t23-minwidth-voice-${scheme}`] = [{ w: 820, h: 1500, scale: 1 }, `${base}&go=voice`];
+  }
+  return out;
+}
 const SHOTS = {
   "pill-listening": [PILL, "scene=pill&state=listening"],
   "pill-thinking": [PILL, "scene=pill&state=thinking&heard=open+calculator"],
@@ -58,6 +73,7 @@ const SHOTS = {
   "m22-voice-window": [{ w: 1100, h: 1300, scale: 1 }, "scene=settings&theme=studio&go=voice"],
   "m22-pill-dictating": [PILL, "scene=pill&state=listening&activity=dictate"],
   "m22-pill-looking": [PILL, "scene=pill&state=thinking&activity=screen&heard=what+is+on+screen"],
+  ...settingsShots(),
   "phone-idle": [PHONE, "scene=phone&state=idle"],
   "phone-listening": [PHONE, "scene=phone&state=listening"],
   "phone-done": [PHONE, "scene=phone&state=done&heard=turn+the+volume+up&reply=Done"],
@@ -100,6 +116,18 @@ async function shoot(name, [size, query, click]) {
     await send("Emulation.setDeviceMetricsOverride", { width: size.w, height: size.h, deviceScaleFactor: size.scale, mobile: false });
     await send("Page.navigate", { url: `${base}?${query}` });
     await sleep(1200);
+    const scheme = new URLSearchParams(query).get("scheme");
+    if (scheme) {
+      await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: scheme }] });
+      await sleep(300);
+    }
+    const typed = new URLSearchParams(query).get("type");
+    if (typed) {
+      // Type into the sidebar search: the results list opens under the field.
+      await send("Runtime.evaluate", { expression: "document.querySelector('.sidebar-search-box input')?.focus()" });
+      await send("Input.insertText", { text: typed });
+      await sleep(500);
+    }
     if (click) {
       const r = await send("Runtime.evaluate", { expression: `(() => { const [sel, txt] = ${JSON.stringify(click)}.split("::"); const e = [...document.querySelectorAll(sel)][Number(txt) || 0]; if (!e) return null; const b = e.getBoundingClientRect(); return JSON.stringify([b.x + b.width / 2, b.y + b.height / 2]); })()`, returnByValue: true });
       if (!r.result.value) throw new Error(`${name}: nothing matches ${click}`);
