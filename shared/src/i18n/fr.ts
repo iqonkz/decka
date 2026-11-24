@@ -1021,4 +1021,9 @@ export const fr: Dictionary = {
   "mailset.err_host": "Hôte requis",
   "mailset.err_port": "Le port doit être 1..65535",
   "mailset.save_account": "Enregistrer",
+  "widget.no_data": "Aucune donnée",
+  "widget.not_set_up": "Non configuré",
+  "phone.update_title": "Mise à jour requise",
+  "phone.not_your_pc_title": "PC non reconnu",
+  "pair.qr_hint": "Alignez le code QR dans le cadre",
 };

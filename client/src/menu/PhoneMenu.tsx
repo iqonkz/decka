@@ -8,6 +8,8 @@ import { isNative } from "../platform/native";
 import { loadTurn, type Turn } from "../platform/turn";
 import { loadVoiceButtonEnabled, saveVoiceButtonEnabled } from "../voice/voiceFabMath";
 import { useAppState } from "../store/store";
+import PhIcon, { type PhIconName } from "../ui/PhIcon";
+import PhoneSwitch from "../ui/PhoneSwitch";
 import { statusLine, versionLine } from "./menuModel";
 
 interface Props {
@@ -19,7 +21,7 @@ interface Props {
   onClose: () => void;
 }
 
-/** The phone menu (DESIGN.md 4.3): a sheet from the bottom with the connection, two switches, Reload and Unpair. */
+/** The phone menu (DESIGN.md 4.3, 4.16): bottom sheet styled after the PC settings window (4.14). */
 export default function PhoneMenu({ reduced, onToggleReduced, haptics, onToggleHaptics, onUnpair, onClose }: Props) {
   const conn = useAppState((s) => s.conn);
   const via = useAppState((s) => s.via);
@@ -27,96 +29,127 @@ export default function PhoneMenu({ reduced, onToggleReduced, haptics, onToggleH
   const agentVersion = useAppState((s) => s.agentVersion);
   const offered = useAppState((s) => s.state?.update?.app);
   const appUpdate = useAppState((s) => s.appUpdate);
+  const appVer = import.meta.env.VITE_APP_VERSION || "0.22.0";
   // A new app is offered only on the phone (the system installer), and only when it is newer than this one.
-  const newApp = isNative() && offered && isNewerVersion(offered.version, import.meta.env.VITE_APP_VERSION) ? offered : null;
+  const newApp = isNative() && offered && isNewerVersion(offered.version, appVer) ? offered : null;
   const [turn, setTurn] = useState<Turn>(() => loadTurn());
   const [voiceButton, setVoiceButton] = useState(() => loadVoiceButtonEnabled());
   const hidden = hiddenStripApps(useStripModes());
 
+  const statusIcon: PhIconName = conn !== "online" ? "wifi-slash" : via === "usb" ? "usb" : "wifi-high";
+
   return (
     <div className="menu-backdrop" onPointerDown={onClose}>
       <div className="menu-sheet" role="dialog" aria-label={t("menu.label")} onPointerDown={(e) => e.stopPropagation()}>
-        <div className="menu-status">{statusLine(conn, via, agentName)}</div>
-        {newApp && (
-          <button type="button" className="menu-row menu-button menu-update" disabled={appUpdate.phase === "downloading" || appUpdate.phase === "verifying"} onClick={() => void startAppUpdate()}>
-            {appUpdate.phase === "downloading"
-              ? t("update.downloading", { pct: appUpdate.pct })
-              : appUpdate.phase === "verifying"
-                ? t("update.app_verifying")
-                : appUpdate.phase === "error"
-                  ? appUpdate.kind === "bad"
-                    ? t("update.app_bad")
-                    : t("update.app_failed")
-                  : t("update.app_banner", { version: newApp.version })}
-          </button>
-        )}
-        <label className="menu-row">
-          <span>{t("menu.reduce_effects")}</span>
-          <input type="checkbox" checked={reduced} onChange={(e) => onToggleReduced(e.target.checked)} />
-        </label>
-        <label className="menu-row">
-          <span>{t("menu.haptics")}</span>
-          <input type="checkbox" checked={haptics} onChange={(e) => onToggleHaptics(e.target.checked)} />
-        </label>
-        <label className="menu-row">
-          <span>{t("menu.voice_button")}</span>
-          <input
-            type="checkbox"
-            checked={voiceButton}
-            onChange={(e) => {
-              const val = e.target.checked;
-              setVoiceButton(val);
-              saveVoiceButtonEnabled(val);
-              window.dispatchEvent(new CustomEvent("decka:voice:enabled"));
-            }}
-          />
-        </label>
-        {isNative() && (
-          <div className="menu-row menu-turn">
-            <span>{t("menu.turn")}</span>
-            <span className="menu-seg">
-              {(["auto", "normal", "flipped"] as const).map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  className={turn === value ? "on" : ""}
-                  onClick={() => {
-                    setTurn(value);
-                    applyTurn(value);
-                  }}
-                >
-                  {t(`turn.${value}`)}
-                </button>
-              ))}
-            </span>
+        <div className="sheet-handle" aria-hidden="true" />
+        <div className="sheet-scroll">
+          <div className="phone-group">
+            <div className="phone-row menu-status-row">
+              <PhIcon name={statusIcon} size={20} className="phone-row-icon" />
+              <span className="phone-row-label">{statusLine(conn, via, agentName)}</span>
+            </div>
+            {newApp && (
+              <button type="button" className="phone-row menu-button menu-update" disabled={appUpdate.phase === "downloading" || appUpdate.phase === "verifying"} onClick={() => void startAppUpdate()}>
+                <PhIcon name="download-simple" size={20} className="phone-row-icon accent" />
+                <span className="phone-row-label">
+                  {appUpdate.phase === "downloading"
+                    ? t("update.downloading", { pct: appUpdate.pct })
+                    : appUpdate.phase === "verifying"
+                      ? t("update.app_verifying")
+                      : appUpdate.phase === "error"
+                        ? appUpdate.kind === "bad"
+                          ? t("update.app_bad")
+                          : t("update.app_failed")
+                        : t("update.app_banner", { version: newApp.version })}
+                </span>
+              </button>
+            )}
           </div>
-        )}
-        {hidden.length > 0 && (
-          <div className="menu-strips">
-            <div className="menu-sub">{t("menu.app_strips")}</div>
-            {hidden.map((app) => (
-              <div key={app} className="menu-row">
-                <span>{app}</span>
-                <button type="button" className="menu-link" onClick={() => setStripMode(app, "auto")}>
-                  {t("strip.show_again")}
-                </button>
+
+          <div className="phone-group">
+            <div className="phone-row">
+              <PhIcon name="sparkle" size={20} className="phone-row-icon" />
+              <span className="phone-row-label">{t("menu.reduce_effects")}</span>
+              <PhoneSwitch checked={reduced} onChange={onToggleReduced} label={t("menu.reduce_effects")} />
+            </div>
+            <div className="phone-row">
+              <PhIcon name="vibrate" size={20} className="phone-row-icon" />
+              <span className="phone-row-label">{t("menu.haptics")}</span>
+              <PhoneSwitch checked={haptics} onChange={onToggleHaptics} label={t("menu.haptics")} />
+            </div>
+            <div className="phone-row">
+              <PhIcon name="microphone" size={20} className="phone-row-icon" />
+              <span className="phone-row-label">{t("menu.voice_button")}</span>
+              <PhoneSwitch
+                checked={voiceButton}
+                label={t("menu.voice_button")}
+                onChange={(val) => {
+                  setVoiceButton(val);
+                  saveVoiceButtonEnabled(val);
+                  window.dispatchEvent(new CustomEvent("decka:voice:enabled"));
+                }}
+              />
+            </div>
+            {isNative() && (
+              <div className="phone-row">
+                <PhIcon name="device-mobile" size={20} className="phone-row-icon" />
+                <span className="phone-row-label">{t("menu.turn")}</span>
+                <span className="phone-seg">
+                  {(["auto", "normal", "flipped"] as const).map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      className={turn === value ? "on" : ""}
+                      onClick={() => {
+                        setTurn(value);
+                        applyTurn(value);
+                      }}
+                    >
+                      {t(`turn.${value}`)}
+                    </button>
+                  ))}
+                </span>
               </div>
-            ))}
+            )}
           </div>
-        )}
-        <button type="button" className="menu-row menu-button" onClick={() => location.reload()}>
-          {t("menu.reload")}
-        </button>
-        <button type="button" className="menu-row menu-button" onClick={connectAgain}>
-          {t("link.connect_again")}
-        </button>
-        <button type="button" className="menu-row menu-button danger" onClick={onUnpair}>
-          {t("menu.unpair")}
-        </button>
-        <div className="menu-version">{versionLine(import.meta.env.VITE_APP_VERSION, agentVersion)}</div>
-        {agentVersion !== null && !sameMinor(import.meta.env.VITE_APP_VERSION, agentVersion) && (
-          <div className="menu-version warn">{t("menu.pc_version", { version: agentVersion })}</div>
-        )}
+
+          {hidden.length > 0 && (
+            <>
+              <div className="phone-group-title">{t("menu.app_strips")}</div>
+              <div className="phone-group">
+                {hidden.map((app) => (
+                  <div key={app} className="phone-row">
+                    <PhIcon name="squares-four" size={20} className="phone-row-icon" />
+                    <span className="phone-row-label">{app}</span>
+                    <button type="button" className="menu-link" onClick={() => setStripMode(app, "auto")}>
+                      {t("strip.show_again")}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          <div className="phone-group">
+            <button type="button" className="phone-row menu-button" onClick={() => location.reload()}>
+              <PhIcon name="arrows-clockwise" size={20} className="phone-row-icon" />
+              <span className="phone-row-label">{t("menu.reload")}</span>
+            </button>
+            <button type="button" className="phone-row menu-button" onClick={connectAgain}>
+              <PhIcon name="qr-code" size={20} className="phone-row-icon" />
+              <span className="phone-row-label">{t("link.connect_again")}</span>
+            </button>
+            <button type="button" className="phone-row menu-button danger" onClick={onUnpair}>
+              <PhIcon name="link-break" size={20} className="phone-row-icon" />
+              <span className="phone-row-label">{t("menu.unpair")}</span>
+            </button>
+          </div>
+
+          <div className="menu-version">{versionLine(appVer, agentVersion)}</div>
+          {agentVersion !== null && !sameMinor(appVer, agentVersion) && (
+            <div className="menu-version warn">{t("menu.pc_version", { version: agentVersion })}</div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -1030,5 +1030,10 @@ export const en = {
   "mailset.err_host": "Host is required",
   "mailset.err_port": "Port must be 1..65535",
   "mailset.save_account": "Save",
+  "widget.no_data": "No data",
+  "widget.not_set_up": "Not set up",
+  "phone.update_title": "Update required",
+  "phone.not_your_pc_title": "PC not recognized",
+  "pair.qr_hint": "Align the QR code inside the frame",
   // @@END
 } as const;

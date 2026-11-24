@@ -1052,5 +1052,10 @@ export const ru: Record<Base | ExtraPlural, string> = {
   "mailset.err_host": "Укажите адрес сервера",
   "mailset.err_port": "Порт должен быть 1..65535",
   "mailset.save_account": "Сохранить",
+  "widget.no_data": "Нет данных",
+  "widget.not_set_up": "Не настроено",
+  "phone.update_title": "Требуется обновление",
+  "phone.not_your_pc_title": "ПК не распознан",
+  "pair.qr_hint": "Наведите рамку на QR-код",
   // @@END
 };

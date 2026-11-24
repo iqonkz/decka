@@ -3,11 +3,10 @@ import { t, type ListItem } from "@decka/shared";
 import { useDeckEnv } from "../deckEnv";
 import Icon from "../Icon";
 import { activeGuesses, listRows, NO_GUESS, tapped } from "./listLogic";
+import WidgetEmpty from "./WidgetEmpty";
 
 /**
- * One list with tick marks (DATA_MODEL.md 13.7): a ring with a tick and the text; done items are struck through, half
- * transparent and last. A tap sends `list_toggle` and shows the new mark at once; the next patch of the `lists` section
- * replaces the guess (so a refused toggle rolls back by itself).
+ * One list with tick marks (DATA_MODEL.md 13.7, DESIGN.md 4.16).
  */
 export default function ListWidget({ item }: { item: ListItem }) {
   const { lists, onToggleListItem, online } = useDeckEnv();
@@ -18,8 +17,7 @@ export default function ListWidget({ item }: { item: ListItem }) {
   if (list === undefined) {
     return (
       <div className="rem">
-        <div className="rem-title">{t("lists.title")}</div>
-        <div className="rem-none">{item.listId === undefined ? t("lists.empty") : t("lists.not_found")}</div>
+        <WidgetEmpty icon="lucide:check" text={item.listId === undefined ? t("lists.empty") : t("lists.not_found")} />
       </div>
     );
   }
@@ -31,9 +29,8 @@ export default function ListWidget({ item }: { item: ListItem }) {
   };
   return (
     <div className="rem">
-      <div className="rem-title">{list.name}</div>
       {rows.length === 0 ? (
-        <div className="rem-none">{t("lists.empty")}</div>
+        <WidgetEmpty icon="lucide:check" text={t("lists.empty")} />
       ) : (
         rows.slice(0, item.h * 3 - 1).map((r) => (
           <div className={r.done ? "rem-row list-done" : "rem-row"} key={r.id} onClick={() => toggle(r.id, r.done)}>

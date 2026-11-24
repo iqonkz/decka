@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { t, type ObsItem } from "@decka/shared";
 import { useDeckEnv } from "../deckEnv";
 import { obsElapsed } from "./obsTime";
+import WidgetEmpty from "./WidgetEmpty";
 
-/** The OBS widget (DATA_MODEL.md 6.4): connection dot, `REC hh:mm:ss`, `LIVE hh:mm:ss`, the scene. Timers are counted here from the start times. */
+/** The OBS widget (DATA_MODEL.md 6.4, DESIGN.md 4.16). */
 export default function Obs({ item }: { item: ObsItem }) {
   const { obs } = useDeckEnv();
   const running = obs?.connected === true && (obs.recording || obs.streaming);
@@ -18,12 +19,7 @@ export default function Obs({ item }: { item: ObsItem }) {
   }, [running]);
 
   if (!obs || !obs.connected) {
-    return (
-      <div className="obs obs-empty">
-        <span className="obs-dot off" />
-        <span className="obs-text">{obs ? t("obs.not_connected") : t("obs.off")}</span>
-      </div>
-    );
+    return <WidgetEmpty icon="lucide:video-off" text={obs ? t("obs.not_connected") : t("obs.off")} />;
   }
 
   const rec = obs.recording ? (
@@ -42,7 +38,7 @@ export default function Obs({ item }: { item: ObsItem }) {
   ) : (
     <span className="obs-line">{t("obs.offline")}</span>
   );
-  const scene = obs.scene && item.w >= 3 && <span className="obs-scene">{obs.scene}</span>;
+  const scene = obs.scene && <span className="obs-scene w-m">{obs.scene}</span>;
   return (
     <div className={item.h >= 2 ? "obs big" : "obs"}>
       <span className="obs-dot on" />

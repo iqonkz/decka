@@ -1,4 +1,6 @@
-import type { LayoutItem } from "@decka/shared";
+import { t, type LayoutItem } from "@decka/shared";
+import { useDeckEnv } from "./deckEnv";
+import Icon from "./Icon";
 import Button from "./Button";
 import Ai from "./widgets/Ai";
 import Battery from "./widgets/Battery";
@@ -19,9 +21,31 @@ import Weather from "./widgets/Weather";
 import Statuses from "./widgets/Statuses";
 import StatusTile from "./widgets/StatusTile";
 import Sys from "./widgets/Sys";
+import { hasWidgetHeader } from "./widgets/density";
+
+const WIDGET_ICONS: Record<string, string> = {
+  clock: "lucide:clock",
+  sys: "lucide:cpu",
+  statuses: "lucide:activity",
+  status: "lucide:circle",
+  notifications: "lucide:bell",
+  media: "lucide:music",
+  volume: "lucide:volume-2",
+  timer: "lucide:timer",
+  weather: "lucide:sun",
+  obs: "lucide:video",
+  ai: "lucide:terminal",
+  twitch: "lucide:video",
+  youtube: "lucide:play",
+  battery: "lucide:bluetooth",
+  mail: "lucide:mail",
+  reminders: "lucide:calendar",
+  list: "lucide:check",
+};
 
 /** Common tile container; the content depends on `kind`. */
 export default function Tile({ item }: { item: LayoutItem }) {
+  const { lists } = useDeckEnv();
   // `kind` comes from the PC and may be newer than this client: unknown kinds render as "?".
   const kind: string = item.kind;
   let content;
@@ -91,10 +115,31 @@ export default function Tile({ item }: { item: LayoutItem }) {
   }
   // Keys draw their own face; every widget is a panel whose face the theme defines.
   // The context widget is a bare grid of keys (its empty hint draws its own frame).
-  const panel = item.kind !== "button" && item.kind !== "context" && item.kind !== "voice";
+  const panel = kind !== "button" && kind !== "context" && kind !== "voice";
+  const showHeader = panel && hasWidgetHeader(item);
+  let headerTitle = "";
+  if (showHeader) {
+    if (item.kind === "statuses" && item.title) {
+      headerTitle = item.title;
+    } else if (item.kind === "list") {
+      const all = lists?.lists ?? [];
+      const found = item.listId === undefined ? all[0] : all.find((l) => l.id === item.listId);
+      headerTitle = found?.name ?? t("widget_name.list");
+    } else if (kind in WIDGET_ICONS) {
+      headerTitle = t(`widget_name.${kind}` as Parameters<typeof t>[0]);
+    }
+  }
+  const headerIcon = WIDGET_ICONS[kind] ?? "lucide:square";
+
   return (
     <div className={panel ? "tile panel" : "tile"} data-tile-id={item.id} style={{ gridColumn: `${item.x + 1} / span ${item.w}`, gridRow: `${item.y + 1} / span ${item.h}` }}>
-      {content}
+      {showHeader && (
+        <div className="tile-head">
+          <Icon icon={headerIcon} size={14} />
+          <span className="tile-head-title">{headerTitle}</span>
+        </div>
+      )}
+      {panel ? <div className="tile-content">{content}</div> : content}
     </div>
   );
 }

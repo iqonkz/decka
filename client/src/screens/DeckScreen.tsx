@@ -22,6 +22,7 @@ import PermSheet from "../deck/PermSheet";
 import VoiceFab from "../voice/VoiceFab";
 import VoiceConfirmSheet from "../voice/VoiceConfirmSheet";
 import { noteTouch, runContext, useAppState } from "../store/store";
+import ServiceCard from "../ui/ServiceCard";
 
 const CONTEXT_TICK_MS = 1000;
 
@@ -133,15 +134,12 @@ export default function DeckScreen() {
       <VoiceFab />
       <VoiceConfirmSheet />
       {confirmUnpair && (
-        <div className="dialog-backdrop">
-          <div className="dialog" role="dialog" aria-label={t("unpair.title")}>
-            <h2>{t("unpair.title")}</h2>
-            <div className="dialog-actions">
-              <button className="secondary" onClick={() => setConfirmUnpair(false)}>
-                {t("unpair.cancel")}
-              </button>
+        <div className="dialog-backdrop" onPointerDown={() => setConfirmUnpair(false)}>
+          <ServiceCard role="dialog" icon="link-break" title={t("unpair.title")}>
+            <div className="service-actions">
               <button
-                className="primary danger"
+                className="pill-btn danger-soft"
+                type="button"
                 onClick={() => {
                   setConfirmUnpair(false);
                   unpair();
@@ -149,8 +147,11 @@ export default function DeckScreen() {
               >
                 {t("unpair.confirm")}
               </button>
+              <button className="pill-btn secondary" type="button" onClick={() => setConfirmUnpair(false)}>
+                {t("unpair.cancel")}
+              </button>
             </div>
-          </div>
+          </ServiceCard>
         </div>
       )}
     </>

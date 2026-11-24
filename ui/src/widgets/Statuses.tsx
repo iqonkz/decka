@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { t, type StatusesItem } from "@decka/shared";
 import { useDeckEnv } from "../deckEnv";
+import { hasWidgetHeader } from "./density";
 import { sortStatuses, STATE_COLOR } from "./statusOrder";
+import WidgetEmpty from "./WidgetEmpty";
 
-const ROW_VMIN = 5;
+const ROW_PX = 28;
 
 export default function Statuses({ item }: { item: StatusesItem }) {
   const { statuses } = useDeckEnv();
@@ -11,14 +13,12 @@ export default function Statuses({ item }: { item: StatusesItem }) {
   const titleEl = useRef<HTMLDivElement>(null);
   const [capacity, setCapacity] = useState(3);
 
-  // How many 5vmin rows fit under the title.
   useEffect(() => {
     const el = box.current;
     if (!el) return;
     const measure = () => {
-      const rowPx = (Math.min(window.innerWidth, window.innerHeight) * ROW_VMIN) / 100;
       const free = el.clientHeight - (titleEl.current?.offsetHeight ?? 0);
-      setCapacity(Math.max(1, Math.floor(free / rowPx)));
+      setCapacity(Math.max(1, Math.floor(free / ROW_PX)));
     };
     measure();
     const observer = new ResizeObserver(measure);
@@ -32,20 +32,25 @@ export default function Statuses({ item }: { item: StatusesItem }) {
 
   return (
     <div className="statuses" ref={box}>
-      {item.title && (
+      {!hasWidgetHeader(item) && item.title && (
         <div className="statuses-title" ref={titleEl}>
           {item.title}
         </div>
       )}
-      {list.length === 0 && <div className="statuses-empty">{t("widget.no_statuses")}</div>}
-      {shown.map((s) => (
-        <div className="status-row" key={s.id}>
-          <span className={s.state === "running" ? "status-dot pulse" : "status-dot"} style={{ background: STATE_COLOR[s.state] }} />
-          <span className="status-label">{s.label}</span>
-          {s.text && <span className="status-text">{s.text}</span>}
-        </div>
-      ))}
-      {overflow && <div className="status-more">{t("widget.more", { n: list.length - shown.length })}</div>}
+      {list.length === 0 ? (
+        <WidgetEmpty icon="lucide:activity" text={t("widget.no_statuses")} />
+      ) : (
+        <>
+          {shown.map((s) => (
+            <div className="status-row" key={s.id}>
+              <span className={s.state === "running" ? "status-dot pulse" : "status-dot"} style={{ background: STATE_COLOR[s.state] }} />
+              <span className="status-label">{s.label}</span>
+              {s.text && <span className="status-text">{s.text}</span>}
+            </div>
+          ))}
+          {overflow && <div className="status-more">{t("widget.more", { n: list.length - shown.length })}</div>}
+        </>
+      )}
     </div>
   );
 }

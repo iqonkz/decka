@@ -1061,4 +1061,9 @@ export const ar: Dictionary = {
   "mailset.err_host": "المضيف مطلوب",
   "mailset.err_port": "يجب أن يكون المنفذ 1..65535",
   "mailset.save_account": "حفظ",
+  "widget.no_data": "لا توجد بيانات",
+  "widget.not_set_up": "غير مُعدّ",
+  "phone.update_title": "التحديث مطلوب",
+  "phone.not_your_pc_title": "تعذّر التعرّف على الكمبيوتر",
+  "pair.qr_hint": "ضع رمز QR داخل الإطار",
 };

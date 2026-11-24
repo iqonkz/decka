@@ -1028,4 +1028,9 @@ export const kk: Dictionary = {
   "mailset.err_host": "Сервер мекенжайын көрсетіңіз",
   "mailset.err_port": "Порт 1..65535 аралығында болуы керек",
   "mailset.save_account": "Сақтау",
+  "widget.no_data": "Деректер жоқ",
+  "widget.not_set_up": "Бапталмаған",
+  "phone.update_title": "Жаңарту қажет",
+  "phone.not_your_pc_title": "ДК танылмады",
+  "pair.qr_hint": "QR-кодты жақтау ішіне туралаңыз",
 };

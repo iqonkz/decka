@@ -1,10 +1,10 @@
 import { locale, t, type RemindersItem } from "@decka/shared";
 import { useDeckEnv } from "../deckEnv";
 import { formatReminderTime } from "./remindersTime";
+import WidgetEmpty from "./WidgetEmpty";
 
 /**
- * The next reminders (DATA_MODEL.md 13.7): the time on the left (`HH:mm`, or the weekday for another day), the text on the right,
- * one line each. The PC sends at most 5; the widget shows as many as fit its height.
+ * The next reminders (DATA_MODEL.md 13.7, DESIGN.md 4.16).
  */
 export default function Reminders({ item }: { item: RemindersItem }) {
   const { reminders } = useDeckEnv();
@@ -13,9 +13,8 @@ export default function Reminders({ item }: { item: RemindersItem }) {
   const rows = item.h * 3 - 1;
   return (
     <div className="rem">
-      <div className="rem-title">{t("reminders.title")}</div>
       {items.length === 0 ? (
-        <div className="rem-none">{t("reminders.none")}</div>
+        <WidgetEmpty icon="lucide:bell" text={t("reminders.none")} />
       ) : (
         items.slice(0, rows).map((r) => (
           <div className="rem-row" key={r.id}>

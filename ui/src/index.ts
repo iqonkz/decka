@@ -11,6 +11,7 @@ export { default as Grid, type GridProps } from "./Grid";
 export { default as PageDots } from "./PageDots";
 export { default as Key, type KeyProps } from "./Key";
 export { default as Icon } from "./Icon";
+export { default as Skeleton } from "./Skeleton";
 export { default as GlassLayer } from "./GlassLayer";
 export { useFrost } from "./useFrost";
 export { useLanguage, useApplyLanguage } from "./useLanguage";
@@ -31,3 +32,6 @@ export { recordAi, resetAiHistory, useAiHistory, burnKey } from "./widgets/aiHis
 export { ProviderMark } from "./widgets/aiMarks";
 export { levelColor } from "./widgets/Ai";
 export { closestWindow, formatReset, windowLabel } from "./widgets/aiModel";
+export { containerDensity, widgetDensityByCells, hasWidgetHeader, type WidgetDensity } from "./widgets/density";
+export { averageRgbFromPixels, coverGradient, darkenCoverColor, rgbToHex, rgbToHsl, hslToRgb, sampleImageColor, COVER_MAX_LIGHTNESS } from "./widgets/coverColor";
+export { default as WidgetEmpty } from "./widgets/WidgetEmpty";
