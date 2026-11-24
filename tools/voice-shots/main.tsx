@@ -88,13 +88,28 @@ if (scene === "deck" || scene === "settings") {
     localStorage.setItem("decka.wizard.done.v1", "1");
     localStorage.setItem("decka.editor.tips.v1", "1");
     const layout = { version: 1, ...fx.layout };
-    const answers: Record<string, unknown> = { get_layout: layout, get_actions: demoActions(actionsFx.default as { version: number; actions: Record<string, unknown> }), get_update_status: { state: "idle" }, get_status: { version: "0.20.1", focusApp: null, listening: { bind: "0.0.0.0", port: 9247 }, lanIps: ["192.168.1.20"], clients: [{ deviceId: "demo", name: "Phone", remote: "192.168.1.31", connectedAt: Date.now() }], usb: { enabled: false, adbFound: false, devices: [] }, configDir: "C:\\Users\\demo\\AppData\\Roaming\\Decka" }, list_window_apps: ["code.exe", "chrome.exe"], get_templates: [], get_config: (await import("../../shared/fixtures/config.example.json")).default,
+    const answers: Record<string, unknown> = {
+      get_layout: layout,
+      save_layout: { ok: true, issues: [] },
+      save_config: { ok: true, issues: [] },
+      list_devices: [],
+      start_pairing: { token: "123456", expiresAt: Date.now() + 60000, qr: "data:image/svg+xml;utf8,<svg></svg>" },
+      cancel_pairing: null,
+      get_actions: demoActions(actionsFx.default as { version: number; actions: Record<string, unknown> }),
+      get_update_status: { state: "idle" },
+      get_status: { version: "0.20.1", focusApp: null, listening: { bind: "0.0.0.0", port: 9247 }, lanIps: ["192.168.1.20"], clients: [{ deviceId: "demo", name: "Phone", remote: "192.168.1.31", connectedAt: Date.now() }], usb: { enabled: false, adbFound: false, devices: [] }, configDir: "C:\\Users\\demo\\AppData\\Roaming\\Decka" },
+      list_window_apps: ["code.exe", "chrome.exe"],
+      get_templates: [],
+      get_config: (await import("../../shared/fixtures/config.example.json")).default,
       // M22 windows: Reminders, Dictation and Memory.
       reminders_get: M22_REMINDERS.map((r, i) => ({ ...r, done: i === 99 })).concat([{ id: "3000000000000009", text: "Old one", at: "2026-11-24T09:00", done: true }]),
       lists_get: M22_LISTS,
       memory_get: [{ id: "4000000000000001", text: "Aigerim is my wife", createdAt: 1 }, { id: "4000000000000002", text: "My project folder is on drive D", createdAt: 2 }],
       voice_dictation_get: { trigger: { kind: "doubleCtrl" }, mode: "clean", dictionary: ["Decka", "Qwen", "Almaty"] },
       voice_status: { state: "ready", hardware: { ramGb: 32 }, model: "standard", downloadGb: 3.2, hotkey: ["ctrl", "alt", "space"], keepLoaded: false, speak: false, phoneButton: true, mics: ["Microphone (USB)"] } };
+    (window as never as { __TAURI_EVENT_PLUGIN_INTERNALS__: unknown }).__TAURI_EVENT_PLUGIN_INTERNALS__ = {
+      unregisterListener: () => {},
+    };
     (window as never as { __TAURI_INTERNALS__: unknown }).__TAURI_INTERNALS__ = {
       invoke: async (cmd: string) => {
         if (cmd in answers) return answers[cmd];

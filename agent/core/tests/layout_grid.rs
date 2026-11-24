@@ -68,6 +68,21 @@ fn orientation_must_be_landscape_or_portrait() {
     assert!(p.contains(&"/display/orientation".to_string()), "{p:?}");
 }
 
+/// T23.R2: the theme of the settings window is kept by a save (the model used to drop the field) and checked.
+#[test]
+fn window_theme_survives_a_round_trip_and_is_validated() {
+    let mut l = layout(4, 7, json!([])).unwrap();
+    assert_eq!(l.display.window_theme, None, "absent = system");
+    l.display.window_theme = Some("dark".into());
+    let back: decka_core::model::LayoutFile = serde_json::from_value(serde_json::to_value(&l).unwrap()).unwrap();
+    assert_eq!(back.display.window_theme.as_deref(), Some("dark"));
+    assert_eq!(serde_json::to_value(&l).unwrap()["display"]["windowTheme"], "dark");
+    assert!(!validate_layout(&back, &default_actions()).iter().any(|i| i.path == "/display/windowTheme"));
+    l.display.window_theme = Some("neon".into());
+    let p: Vec<String> = validate_layout(&l, &default_actions()).into_iter().map(|i| i.path).collect();
+    assert!(p.contains(&"/display/windowTheme".to_string()), "{p:?}");
+}
+
 #[test]
 fn an_item_at_x_6_fits_seven_columns_but_not_six() {
     assert!(paths(7, 4, button(6, 0)).is_empty());

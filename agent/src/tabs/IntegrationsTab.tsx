@@ -402,7 +402,7 @@ export default function IntegrationsTab() {
   // Catalog View
   return (
     <div className="page-container">
-      <PageHeader title={t("integ.catalog_title")} />
+      <PageHeader icon="plugs-connected" title={t("integ.catalog_title")} />
 
       {/* Top Status Bar: up to 4 overlapping connected icons and N connected with caret-right */}
       <button
@@ -463,6 +463,7 @@ export default function IntegrationsTab() {
           return (
             <div
               key={item.id}
+              id={`section-integrations-${item.id}`}
               className="integration-card"
               onClick={() => setActiveIntegration(item.id)}
               role="button"

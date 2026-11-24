@@ -47,7 +47,7 @@ export default function DictationBlock() {
   const lines = fromLines(dictionary);
   return (
     <div id="voice-dictation" style={{ marginTop: 24 }}>
-      <SectionHeader title={t("dict.title")} />
+      <SectionHeader id="section-voice-dictation" title={t("dict.title")} />
       {error && <Banner kind="error">{error}</Banner>}
       <Group>
         <Row title={t("dict.trigger")}>

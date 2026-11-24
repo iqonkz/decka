@@ -96,7 +96,7 @@ export default function VoiceSection() {
 
   return (
     <div className="page-container">
-      <PageHeader title={t("more.voice")} />
+      <PageHeader icon="microphone" title={t("more.voice")} />
       {error && <Banner kind="error">{error}</Banner>}
 
       <SectionHeader id="voice-status" title={t("voice.title")} />
@@ -171,11 +171,11 @@ export default function VoiceSection() {
       {status.state === "ready" && (
         <>
           <Group>
-            <Row id="voice-hotkey" title={t("voice.hotkey")} description={t("voice.ready", { hotkey: formatChord(status.hotkey) })}>
+            <Row id="section-voice-hotkey" title={t("voice.hotkey")} description={t("voice.ready", { hotkey: formatChord(status.hotkey) })}>
               <ChordField compact keys={status.hotkey}onChange={(keys) => void setConfig({ hotkey: keys })} />
             </Row>
 
-            <Row title={t("voice.mic")}>
+            <Row id="section-voice-mic" title={t("voice.mic")}>
               <select className="settings-select" value={status.mic ?? ""} onChange={(e) => void setConfig({ mic: e.target.value })}>
                 <option value="">{t("voice.mic_default")}</option>
                 {status.mics.map((m) => (

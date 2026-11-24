@@ -8,18 +8,21 @@ import Button from "../ui/Button";
 import { Group, PageHeader, Row, SectionHeader } from "../ui/SettingsGroup";
 import Switch from "../ui/Switch";
 import Segmented from "../ui/Segmented";
+import { useAutosave } from "../ui/useAutosave";
 
 export default function SettingsTab() {
   const [config, setConfig] = useState<ConfigFile | null>(null);
+  const [savedConfig, setSavedConfig] = useState<ConfigFile | null>(null);
   const [issues, setIssues] = useState<ValidationIssue[]>([]);
-  const [message, setMessage] = useState<string | null>(null);
   const [needsRestart, setNeedsRestart] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [adbMissing, setAdbMissing] = useState(false);
   const [language, setLanguage] = useState<LanguageSetting>("auto");
 
   const load = useCallback(async () => {
-    setConfig(await call("get_config"));
+    const fresh = await call("get_config");
+    setConfig(fresh);
+    setSavedConfig(fresh);
     call("get_status").then((s) => setAdbMissing(!s.usb.adbFound), () => {});
     call("get_layout").then((l) => setLanguage(l.display.language ?? "auto"), () => {});
   }, []);
@@ -28,27 +31,38 @@ export default function SettingsTab() {
     load().catch((e) => setError(String(e)));
   }, [load]);
 
+  useAutosave({
+    value: config,
+    enabled: config !== null && savedConfig !== null,
+    debounceMs: 400,
+    onSave: async (currentConfig) => {
+      if (!currentConfig) return { ok: true };
+      const result = await call("save_config", { config: currentConfig });
+      if (!result || !result.ok) {
+        setIssues(result?.issues ?? []);
+        return { ok: false, error: result?.issues?.[0]?.message };
+      }
+      setIssues([]);
+      setSavedConfig(currentConfig);
+      const status = await call("get_status");
+      setNeedsRestart(
+        status.listening === null ||
+          status.listening.port !== currentConfig.port ||
+          status.listening.bind !== currentConfig.bind,
+      );
+      return { ok: true };
+    },
+    onRollback: (prevConfig) => {
+      if (prevConfig) setConfig(prevConfig);
+    },
+  });
+
   if (error) return <Banner kind="error">{error}</Banner>;
   if (!config) return <p>{t("common.loading")}</p>;
 
   const edit = (patch: Partial<ConfigFile>) => {
     setConfig({ ...config, ...patch });
-    setMessage(null);
   };
-
-  async function save() {
-    const result = await call("save_config", { config: config! });
-    if (!result.ok) {
-      setIssues(result.issues);
-      setMessage(null);
-      return;
-    }
-    setIssues([]);
-    setMessage(t("common.saved"));
-    // Port and bind only apply after a restart: compare with what the server is really doing.
-    const status = await call("get_status");
-    setNeedsRestart(status.listening === null || status.listening.port !== config!.port || status.listening.bind !== config!.bind);
-  }
 
   async function restart() {
     await call("restart_server");
@@ -57,10 +71,10 @@ export default function SettingsTab() {
 
   return (
     <div className="page-container">
-      <PageHeader title={t("more.settings")} />
+      <PageHeader icon="gear-six" title={t("more.settings")} />
 
       <Group>
-        <Row id="settings-language" title={t("settings.language")}>
+        <Row id="section-settings-language" title={t("settings.language")}>
           <select
             className="settings-select"
             value={language}
@@ -76,10 +90,10 @@ export default function SettingsTab() {
         <Row id="settings-pc-name" title={t("settings.pc_name")} description={t("settings.pc_name_hint")}>
           <input value={config.agentName} maxLength={40} onChange={(e) => edit({ agentName: e.target.value })} />
         </Row>
-        <Row id="settings-autostart" title={t("settings.autostart")}>
+        <Row id="section-settings-autostart" title={t("settings.autostart")}>
           <Switch checked={config.autostart} onChange={(checked) => edit({ autostart: checked })} />
         </Row>
-        <Row id="settings-usb" title={t("settings.usb")} description={t("settings.usb_hint")}>
+        <Row id="section-settings-usb" title={t("settings.usb")} description={t("settings.usb_hint")}>
           <Switch checked={config.usb.enabled} onChange={(checked) => edit({ usb: { ...config.usb, enabled: checked } })} />
         </Row>
         {config.usb.enabled && adbMissing && (
@@ -94,7 +108,7 @@ export default function SettingsTab() {
         <div id="settings-network" style={{ marginTop: 12 }}>
           <SectionHeader title={t("settings.port")} />
           <Group>
-            <Row id="settings-port" title={t("settings.port")} description={t("settings.port_hint")}>
+            <Row id="section-settings-port" title={t("settings.port")} description={t("settings.port_hint")}>
               <input type="number" value={config.port} onChange={(e) => edit({ port: Number(e.target.value) })} />
             </Row>
             <Row title={t("settings.who_connects")}>
@@ -142,11 +156,6 @@ export default function SettingsTab() {
           </Banner>
         </div>
       )}
-      {message && (
-        <div style={{ marginTop: 16 }}>
-          <Banner kind="success">{message}</Banner>
-        </div>
-      )}
       {needsRestart && (
         <div style={{ marginTop: 16 }}>
           <Banner kind="warning">
@@ -157,13 +166,6 @@ export default function SettingsTab() {
           </Banner>
         </div>
       )}
-
-      <div className="row" style={{ marginTop: 24 }}>
-        <Button variant="primary" onClick={() => void save()}>
-          {t("common.save")}
-        </Button>
-        <Button onClick={() => void load()}>{t("common.revert")}</Button>
-      </div>
     </div>
   );
 }

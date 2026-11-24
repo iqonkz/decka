@@ -22,9 +22,12 @@ export function editItems(list: ListRow, change: { id?: string; text?: string | 
   });
 }
 
-/** The default time of a new reminder: the next full hour, as `datetime-local` wants it. */
+/** The default time of a new reminder: an hour from now, rounded up to :00 or :30, as `datetime-local` wants it. */
 export function nextHour(now: Date): string {
   const d = new Date(now.getTime() + 3_600_000);
+  d.setSeconds(0, 0);
+  const m = d.getMinutes();
+  if (m !== 0 && m !== 30) d.setMinutes(m < 30 ? 30 : 60);
   const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:00`;
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
 }

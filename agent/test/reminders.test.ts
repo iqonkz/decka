@@ -28,8 +28,11 @@ describe("Reminders window model (DATA_MODEL.md 13.7)", () => {
     expect(isLocalTime("2026-11-25T18:30")).toBe(true);
     expect(isLocalTime("2026-11-25 18:30")).toBe(false);
     expect(isLocalTime("")).toBe(false);
-    expect(nextHour(new Date(2026, 10, 25, 14, 20))).toBe("2026-11-25T15:00");
-    expect(nextHour(new Date(2026, 11, 31, 23, 40))).toBe("2027-01-01T00:00");
+    // An hour ahead, rounded up to :00 or :30.
+    expect(nextHour(new Date(2026, 10, 25, 14, 20))).toBe("2026-11-25T15:30");
+    expect(nextHour(new Date(2026, 10, 25, 14, 0))).toBe("2026-11-25T15:00");
+    expect(nextHour(new Date(2026, 10, 25, 14, 40))).toBe("2026-11-25T16:00");
+    expect(nextHour(new Date(2026, 11, 31, 23, 40))).toBe("2027-01-01T01:00");
   });
 
   test("the dictionary is one phrase per line", () => {

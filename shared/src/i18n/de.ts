@@ -1002,4 +1002,23 @@ export const de: Dictionary = {
   "voice.hw_summary": "Dieser PC: {details} — Modell: {model}",
   "voice.model_standard_short": "Standard",
   "voice.model_light_short": "leicht",
+
+  // ----- Polish (DESIGN.md 4.15) -----
+  "look.window_theme": "Fensterdesign",
+  "look.window_theme_row": "Darstellung",
+  "theme.system": "System",
+  "theme.light": "Hell",
+  "theme.dark": "Dunkel",
+  "common.saved_toast": "Gespeichert",
+  "common.save_failed": "Speichern fehlgeschlagen",
+  "common.done": "Fertig",
+  "rem.in_one_hour": "In 1 Stunde",
+  "rem.tomorrow_morning": "Morgen 9:00",
+  "rem.today_at": "Heute {time}",
+  "rem.tomorrow_at": "Morgen {time}",
+  "rem.overdue": "Überfällig",
+  "mailset.err_user": "Benutzername erforderlich",
+  "mailset.err_host": "Host erforderlich",
+  "mailset.err_port": "Port muss 1..65535 sein",
+  "mailset.save_account": "Speichern",
 };

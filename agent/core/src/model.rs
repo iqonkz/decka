@@ -317,6 +317,9 @@ pub struct DisplaySettings {
     /// M14: `landscape` | `portrait` (DATA_MODEL.md 3.7); absent = landscape.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub orientation: Option<String>,
+    /// DESIGN.md 4.15: theme of the settings window `system` | `light` | `dark`; absent = system.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub window_theme: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

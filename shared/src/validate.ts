@@ -99,6 +99,8 @@ export function validateLayout(layout: LayoutFile, actions: ActionsFile): Valida
   }
   const orientation: unknown = layout.display?.orientation;
   if (orientation !== undefined && orientation !== "landscape" && orientation !== "portrait") add("/display/orientation", "orientation must be landscape or portrait");
+  const windowTheme: unknown = layout.display?.windowTheme;
+  if (windowTheme !== undefined && windowTheme !== "system" && windowTheme !== "light" && windowTheme !== "dark") add("/display/windowTheme", "windowTheme must be system, light or dark");
 
   if (layout.display?.keyFace !== undefined && layout.display.keyFace !== "standard" && layout.display.keyFace !== "full") add("/display/keyFace", "keyFace must be standard or full");
   const language: unknown = layout.display?.language;

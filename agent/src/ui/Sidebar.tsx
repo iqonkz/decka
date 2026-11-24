@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { t, type TranslationKey } from "@decka/shared";
 import logoUrl from "../../../docs/assets/decka-logo.svg";
+import { call } from "../ipc";
 import PhIcon from "./PhIcon";
-import { searchRegistry, targetForPage, type SearchEntry, type SearchTargetPage } from "./searchRegistry";
+import { revealAnchor, searchRegistry, targetForPage, type SearchEntry, type SearchTargetPage } from "./searchRegistry";
 
 export interface SidebarGroupDef {
   id: string;
@@ -77,6 +78,11 @@ export default function Sidebar({ activePage, onNavigate, updateAvailable }: Sid
   });
 
   const [query, setQuery] = useState("");
+  const [version, setVersion] = useState<string | null>(null);
+
+  useEffect(() => {
+    call("get_status").then((s) => setVersion(s.version), () => {});
+  }, []);
   const [results, setResults] = useState<SearchEntry[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -123,14 +129,12 @@ export default function Sidebar({ activePage, onNavigate, updateAvailable }: Sid
     onNavigate(targetForPage(entry.page));
 
     if (entry.anchor) {
-      setTimeout(() => {
-        const el = document.getElementById(entry.anchor!);
-        if (el) {
-          el.scrollIntoView({ behavior: "smooth", block: "center" });
-          el.classList.add("search-highlight");
-          setTimeout(() => el.classList.remove("search-highlight"), 1200);
-        }
-      }, 100);
+      // The page is mounted (and may load its data) after the click: look for the element for up to 2 s.
+      let tries = 0;
+      const look = () => {
+        if (!revealAnchor(entry) && ++tries < 20) setTimeout(look, 100);
+      };
+      setTimeout(look, 100);
     }
   };
 
@@ -174,7 +178,10 @@ export default function Sidebar({ activePage, onNavigate, updateAvailable }: Sid
       {/* Brand header */}
       <div className="sidebar-header">
         <img src={logoUrl} width={24} height={24} alt="" />
-        <span className="sidebar-brand-name">Decka</span>
+        <div className="sidebar-brand-info">
+          <span className="sidebar-brand-name">Decka</span>
+          {version && <span className="sidebar-version">{version}</span>}
+        </div>
       </div>
 
       {/* Search box */}

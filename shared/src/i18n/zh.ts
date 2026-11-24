@@ -1002,4 +1002,23 @@ export const zh: Dictionary = {
   "voice.hw_summary": "此电脑: {details} — {model} 模型",
   "voice.model_standard_short": "标准",
   "voice.model_light_short": "轻量",
+
+  // ----- Polish (DESIGN.md 4.15) -----
+  "look.window_theme": "窗口主题",
+  "look.window_theme_row": "外观",
+  "theme.system": "系统",
+  "theme.light": "浅色",
+  "theme.dark": "深色",
+  "common.saved_toast": "已保存",
+  "common.save_failed": "保存失败",
+  "common.done": "完成",
+  "rem.in_one_hour": "1小时后",
+  "rem.tomorrow_morning": "明天 9:00",
+  "rem.today_at": "今天 {time}",
+  "rem.tomorrow_at": "明天 {time}",
+  "rem.overdue": "逾期",
+  "mailset.err_user": "用户名必填",
+  "mailset.err_host": "服务器地址必填",
+  "mailset.err_port": "端口必须为 1..65535",
+  "mailset.save_account": "保存",
 };

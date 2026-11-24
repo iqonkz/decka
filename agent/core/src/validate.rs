@@ -285,6 +285,9 @@ pub fn validate_layout(layout: &LayoutFile, actions: &ActionsFile) -> Vec<Valida
     if layout.display.orientation.as_deref().is_some_and(|o| o != "landscape" && o != "portrait") {
         out.push(issue("/display/orientation", "orientation must be landscape or portrait"));
     }
+    if layout.display.window_theme.as_deref().is_some_and(|o| !matches!(o, "system" | "light" | "dark")) {
+        out.push(issue("/display/windowTheme", "windowTheme must be system, light or dark"));
+    }
     let (cols, rows) = (i32::from(layout.grid.cols), i32::from(layout.grid.rows));
     if !(1..=10).contains(&layout.pages.len()) {
         out.push(issue("/pages", "pages must contain 1..10 entries"));

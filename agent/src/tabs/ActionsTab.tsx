@@ -96,7 +96,7 @@ export default function ActionsTab() {
   const users = isNew ? [] : usedBy(selected);
   return (
     <div className="page-container" style={{ maxWidth: 960 }}>
-      <PageHeader title={t("more.actions")} />
+      <PageHeader icon="lightning" title={t("more.actions")} />
       <div className="split">
         <div id="actions-list" className="list-pane">
           <Button id="actions-new" variant="primary" onClick={() => select(NEW)}>

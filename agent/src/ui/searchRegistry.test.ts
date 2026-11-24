@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SEARCH_REGISTRY, searchRegistry, targetForPage, type SearchEntry } from "./searchRegistry";
+import { SEARCH_REGISTRY, anchorId, revealAnchor, searchRegistry, targetForPage, type SearchEntry } from "./searchRegistry";
 import { TABLES } from "../../../shared/src/i18n";
 import { en } from "../../../shared/src/i18n/en";
 import { ru } from "../../../shared/src/i18n/ru";
@@ -61,6 +61,35 @@ describe("searchRegistry (T23.1b)", () => {
         expect(searchRegistry(name, undefined, translate).some((r) => r.id === entry.id), `${lang}: ${name}`).toBe(true);
       }
     }
+  });
+
+  it("scrolls to and highlights the microphone row for «микрофон» (T23.R2)", () => {
+    const top = searchRegistry("микрофон", undefined, ruTranslate)[0]!;
+    expect([top.id, top.page]).toEqual(["voice-mic", "voice"]);
+    expect(anchorId(top)).toBe("section-voice-mic");
+    const classes = new Set<string>();
+    const scrolled: unknown[] = [];
+    const row = {
+      scrollIntoView: (o: unknown) => scrolled.push(o),
+      classList: { add: (c: string) => classes.add(c), remove: (c: string) => classes.delete(c) },
+    };
+    const doc = { getElementById: (id: string) => (id === "section-voice-mic" ? row : null) } as unknown as Document;
+    expect(revealAnchor(top, doc, 5)).toBe(true);
+    expect(scrolled).toEqual([{ behavior: "smooth", block: "center" }]);
+    expect(classes.has("search-highlight")).toBe(true);
+    return new Promise<void>((done) => setTimeout(() => { expect(classes.size).toBe(0); done(); }, 30));
+  });
+
+  it("every anchor of the registry is an id on its page", () => {
+    const files = import.meta.glob("../tabs/*.tsx", { query: "?raw", import: "default", eager: true }) as Record<string, string>;
+    const source = Object.values(files).join("\n");
+    for (const entry of SEARCH_REGISTRY.filter((e) => e.anchor)) {
+      const id = anchorId(entry)!;
+      const dynamic = id.startsWith("section-integrations-") ? "section-integrations-${item.id}" : null;
+      expect(source.includes(`id="${id}"`) || (dynamic !== null && source.includes(dynamic)), id).toBe(true);
+    }
+    const empty = { getElementById: () => null } as unknown as Document;
+    expect(revealAnchor({ id: "x", page: "about", titleKey: "sidebar.item.about" }, empty)).toBe(false);
   });
 
   it("limits results to at most 8 items", () => {

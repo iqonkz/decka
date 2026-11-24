@@ -33,7 +33,7 @@ export default function PhoneTab() {
     let off: (() => void) | null = null;
     let disposed = false;
     call("get_status").then(setStatus, (e) => setError(String(e)));
-    call("list_devices").then((d) => setPaired(d.length), () => {});
+    call("list_devices").then((d) => setPaired(d ? d.length : 0), () => {});
     onStatus(setStatus).then((unlisten) => {
       if (disposed) unlisten();
       else off = unlisten;
@@ -58,7 +58,7 @@ export default function PhoneTab() {
 
   return (
     <div className="page-container">
-      <PageHeader title={t("tab.phone")} />
+      <PageHeader icon="device-mobile" title={t("tab.phone")} />
 
       <Group id="phone-status">
         <div className="phone-card" style={{ padding: "14px 0", display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
@@ -83,7 +83,7 @@ export default function PhoneTab() {
 
       <NetworkLine />
 
-      <div id="phone-pairing" style={{ marginTop: 24 }}>
+      <div id="section-phone-pairing" style={{ marginTop: 24 }}>
         <PairingTab embedded />
       </div>
 

@@ -1002,4 +1002,23 @@ export const hi: Dictionary = {
   "voice.hw_summary": "यह PC: {details} — {model} मॉडल",
   "voice.model_standard_short": "मानक",
   "voice.model_light_short": "हल्का",
+
+  // ----- Polish (DESIGN.md 4.15) -----
+  "look.window_theme": "विंडो थीम",
+  "look.window_theme_row": "दिखावट",
+  "theme.system": "सिस्टम",
+  "theme.light": "लाइट",
+  "theme.dark": "डार्क",
+  "common.saved_toast": "सहेजा गया",
+  "common.save_failed": "सहेजने में विफल",
+  "common.done": "हो गया",
+  "rem.in_one_hour": "1 घंटे में",
+  "rem.tomorrow_morning": "कल 9:00",
+  "rem.today_at": "आज {time}",
+  "rem.tomorrow_at": "कल {time}",
+  "rem.overdue": "अतिदेय",
+  "mailset.err_user": "उपयोगकर्ता नाम आवश्यक है",
+  "mailset.err_host": "होस्ट आवश्यक है",
+  "mailset.err_port": "पोर्ट 1..65535 होना चाहिए",
+  "mailset.save_account": "सहेजें",
 };

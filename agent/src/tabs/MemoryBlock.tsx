@@ -35,7 +35,7 @@ export default function MemoryBlock() {
   };
   return (
     <div id="voice-memory" style={{ marginTop: 24 }}>
-      <SectionHeader title={t("mem.title")} subtitle={`${facts.length} / ${MAX_FACTS} · ${t("mem.hint")}`} />
+      <SectionHeader id="section-voice-memory" title={t("mem.title")} subtitle={`${facts.length} / ${MAX_FACTS} · ${t("mem.hint")}`} />
       {error && <Banner kind="error">{error}</Banner>}
       {facts.length === 0 ? (
         <SettingsEmpty>{t("mem.empty")}</SettingsEmpty>

@@ -49,28 +49,27 @@ export const SEARCH_REGISTRY: SearchEntry[] = [
   },
   { id: "about", page: "about", titleKey: "sidebar.item.about", keywords: ["version", "changelog"], keyKeys: ["about.updates", "about.licence"] },
 
-  // Settings inside pages (the anchors are optional: a page without one is opened at its top).
-  { id: "look-theme", page: "look", anchor: "section-theme", titleKey: "look.theme" },
-  { id: "look-accent", page: "look", anchor: "section-accent", titleKey: "look.accent" },
-  { id: "look-wallpaper", page: "look", titleKey: "look.wallpaper" },
-  { id: "look-night", page: "look", titleKey: "look.night" },
-  { id: "phone-pair", page: "phone", anchor: "section-pairing", titleKey: "pair.title" },
-  { id: "phone-saver", page: "phone", anchor: "section-screen-saving", titleKey: "look.screen_saving" },
-  { id: "voice-mic", page: "voice", titleKey: "voice.mic" },
-  { id: "voice-hotkey", page: "voice", titleKey: "voice.hotkey" },
-  { id: "voice-dictation", page: "voice", anchor: "section-dictation", titleKey: "dict.title" },
-  { id: "voice-memory", page: "voice", anchor: "section-memory", titleKey: "mem.title" },
-  { id: "integrations-mail", page: "integrations", titleKey: "integ.item_mail_name" },
-  { id: "integrations-weather", page: "integrations", titleKey: "weather.title" },
-  { id: "integrations-obs", page: "integrations", titleKey: "obsset.title" },
-  { id: "integrations-twitch", page: "integrations", titleKey: "twitchset.title" },
-  { id: "integrations-youtube", page: "integrations", titleKey: "youtubeset.title" },
-  { id: "settings-lang", page: "settings", anchor: "section-language", titleKey: "settings.language" },
-  { id: "settings-net", page: "settings", anchor: "section-network", titleKey: "settings.port" },
-  { id: "settings-autostart", page: "settings", titleKey: "settings.autostart" },
-  { id: "settings-usb", page: "settings", titleKey: "settings.usb" },
-  { id: "about-updates", page: "about", anchor: "section-updates", titleKey: "about.updates" },
-];
+  // Settings inside pages: `anchor` is the id of the element on the page without its `section-` prefix (see `anchorId`).
+  { id: "look-theme", page: "look", anchor: "look-theme", titleKey: "look.theme" },
+  { id: "look-accent", page: "look", anchor: "look-accent", titleKey: "look.accent" },
+  { id: "look-wallpaper", page: "look", anchor: "look-wallpaper", titleKey: "look.wallpaper" },
+  { id: "look-night", page: "look", anchor: "look-night", titleKey: "look.night" },
+  { id: "phone-pair", page: "phone", anchor: "phone-pairing", titleKey: "pair.title" },
+  { id: "phone-saver", page: "look", anchor: "look-screen-saving", titleKey: "look.screen_saving" },
+  { id: "voice-mic", page: "voice", anchor: "voice-mic", titleKey: "voice.mic" },
+  { id: "voice-hotkey", page: "voice", anchor: "voice-hotkey", titleKey: "voice.hotkey" },
+  { id: "voice-dictation", page: "voice", anchor: "voice-dictation", titleKey: "dict.title" },
+  { id: "voice-memory", page: "voice", anchor: "voice-memory", titleKey: "mem.title" },
+  { id: "integrations-mail", page: "integrations", anchor: "integrations-mail", titleKey: "integ.item_mail_name" },
+  { id: "integrations-weather", page: "integrations", anchor: "integrations-weather", titleKey: "weather.title" },
+  { id: "integrations-obs", page: "integrations", anchor: "integrations-obs", titleKey: "obsset.title" },
+  { id: "integrations-twitch", page: "integrations", anchor: "integrations-twitch", titleKey: "twitchset.title" },
+  { id: "integrations-youtube", page: "integrations", anchor: "integrations-youtube", titleKey: "youtubeset.title" },
+  { id: "settings-lang", page: "settings", anchor: "settings-language", titleKey: "settings.language" },
+  { id: "settings-net", page: "settings", anchor: "settings-port", titleKey: "settings.port" },
+  { id: "settings-autostart", page: "settings", anchor: "settings-autostart", titleKey: "settings.autostart" },
+  { id: "settings-usb", page: "settings", anchor: "settings-usb", titleKey: "settings.usb" },
+  { id: "about-updates", page: "about", anchor: "about-updates", titleKey: "about.updates" },];
 
 /** Search registry entries matching a query against localized title, keywords and id. */
 export function searchRegistry(
@@ -117,4 +116,20 @@ export function targetForPage(page: SearchTargetPage): { tab: "deck" | "look" | 
     default:
       return { tab: "more", section: page };
   }
+}
+
+/** The id of the element of a registry entry on its page. */
+export function anchorId(entry: SearchEntry): string | null {
+  return entry.anchor ? `section-${entry.anchor}` : null;
+}
+
+/** Scrolls the element of the entry into view and highlights it for 1.2 s (accent 10 %, DESIGN.md 4.14); false when the page has no such element. */
+export function revealAnchor(entry: SearchEntry, root: Document = document, hold = 1200): boolean {
+  const id = anchorId(entry);
+  const el = id ? root.getElementById(id) : null;
+  if (!el) return false;
+  el.scrollIntoView({ behavior: "smooth", block: "center" });
+  el.classList.add("search-highlight");
+  setTimeout(() => el.classList.remove("search-highlight"), hold);
+  return true;
 }

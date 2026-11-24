@@ -4,6 +4,7 @@ import { EMPTY_DATA, GlassLayer, Grid, resolveTheme } from "@decka/ui";
 import { call } from "../ipc";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
+import PhIcon from "../ui/PhIcon";
 import PhoneFrame from "./PhoneFrame";
 
 const DATA = { ...EMPTY_DATA, online: true, preview: true };
@@ -97,6 +98,11 @@ export default function OrientationSection({ orientation, onChanged }: Props) {
       <div className="orientation-cards" role="radiogroup" aria-label={t("orientation.title")}>
         {(["landscape", "portrait"] as const).map((o) => (
           <button key={o} type="button" role="radio" aria-checked={orientation === o} className={orientation === o ? "style-card selected" : "style-card"} onClick={() => void choose(o)}>
+            {orientation === o && (
+              <span className="selection-badge">
+                <PhIcon name="check-circle" size={20} weight="fill" color="var(--accent)" />
+              </span>
+            )}
             <Silhouette orientation={o} />
             <strong>{t(`orientation.${o}`)}</strong>
             <small className="muted">{t(`orientation.${o}_hint`)}</small>

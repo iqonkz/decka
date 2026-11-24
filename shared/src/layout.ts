@@ -29,7 +29,9 @@ export interface DisplaySettings {
   keyLabels?: boolean;     // M14: show the labels of keys by default; absent = true
   language?: LanguageSetting; // M14: interface language, DESIGN.md 6; absent = "auto"
   orientation?: Orientation;  // M14: the phone's orientation, DATA_MODEL.md 3.7; absent = "landscape"
+  windowTheme?: WindowTheme;  // DESIGN.md 4.15: "system" | "light" | "dark"; absent = "system"
 }
+export type WindowTheme = "system" | "light" | "dark";
 export type Orientation = "landscape" | "portrait";
 export type LanguageSetting = "auto" | Language;
 export type KeyFace = "standard" | "full";
