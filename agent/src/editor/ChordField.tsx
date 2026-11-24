@@ -11,7 +11,7 @@ const MODIFIER_LABELS: Record<Modifier, string> = { ctrl: "Ctrl", alt: "Alt", sh
  * (DESIGN.md 4.9): four modifier switches and a searchable key, for the shortcuts Windows takes before the window sees them.
  * `keys` is the chord (DATA_MODEL.md 2.2 names); an unsupported key gives the hint `This key is not supported`.
  */
-export default function ChordField({ keys, onChange }: { keys: string[]; onChange: (keys: string[]) => void }) {
+export default function ChordField({ keys, onChange, compact = false }: { keys: string[]; onChange: (keys: string[]) => void; compact?: boolean }) {
   const [hint, setHint] = useState<string | null>(null);
   const [recording, setRecording] = useState(false);
   const [draft, setDraft] = useState<ChordState>(() => chordToState(keys));
@@ -46,7 +46,7 @@ export default function ChordField({ keys, onChange }: { keys: string[]; onChang
 
   return (
     <div>
-      <button
+      {!compact && <button
         type="button"
         className={`chord-field${recording ? " recording" : ""}`}
         onFocus={() => setRecording(true)}
@@ -61,7 +61,7 @@ export default function ChordField({ keys, onChange }: { keys: string[]; onChang
         }}
       >
         {keys.length > 0 ? formatChord(keys) : recording ? t("chord.recording") : t("chord.idle")}
-      </button>
+      </button>}
       <div className="chord-manual">
         {MODIFIERS.map((m) => (
           <button key={m} type="button" className={`chord-mod${draft[m] ? " on" : ""}`} aria-pressed={draft[m]} onClick={() => apply({ ...draft, [m]: !draft[m] })}>
@@ -107,7 +107,7 @@ export default function ChordField({ keys, onChange }: { keys: string[]; onChang
         </div>
       </div>
       <small className="muted">{t("chord.hint")}</small>
-      {total.ok && total.keys.length > 0 && <div className="chord-total">{formatChord(total.keys)}</div>}
+      {!compact && total.ok && total.keys.length > 0 && <div className="chord-total">{formatChord(total.keys)}</div>}
       {hint && <small className="warn-text">{hint}</small>}
     </div>
   );

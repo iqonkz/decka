@@ -172,7 +172,7 @@ export default function VoiceSection() {
         <>
           <Group>
             <Row id="voice-hotkey" title={t("voice.hotkey")} description={t("voice.ready", { hotkey: formatChord(status.hotkey) })}>
-              <ChordField keys={status.hotkey} onChange={(keys) => void setConfig({ hotkey: keys })} />
+              <ChordField compact keys={status.hotkey}onChange={(keys) => void setConfig({ hotkey: keys })} />
             </Row>
 
             <Row title={t("voice.mic")}>

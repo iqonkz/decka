@@ -391,6 +391,8 @@ export const ru: Record<Base | ExtraPlural, string> = {
   "integ.item_weather_desc": "Прогноз погоды от Open-Meteo",
   "integ.item_checks_desc": "Проверка доступности сайтов и серверов",
   "integ.item_ai_desc": "Лимиты Claude Code и OpenAI Codex",
+  "integ.item_ai_name": "ИИ-кодинг",
+  "integ.item_mail_name": "Почта",
   "integ.item_api_desc": "Локальный HTTP API и вебхуки",
   "integ.item_examples_desc": "Примеры curl и PowerShell",
 

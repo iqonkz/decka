@@ -3,6 +3,7 @@ import { t, type DictationSettings, type DictationTrigger } from "@decka/shared"
 import { call } from "../ipc";
 import Banner from "../ui/Banner";
 import ChordField from "../editor/ChordField";
+import { formatChord } from "../editor/addButton";
 import { Group, Row, SectionHeader } from "../ui/SettingsGroup";
 import Segmented from "../ui/Segmented";
 
@@ -57,8 +58,8 @@ export default function DictationBlock() {
           </select>
         </Row>
         {settings.trigger.kind === "chord" && (
-          <Row title={t("dict.trigger_chord")}>
-            <ChordField keys={settings.trigger.keys} onChange={(keys) => void save({ ...settings, trigger: { kind: "chord", keys } })} />
+          <Row title={t("dict.trigger_chord")} description={formatChord(settings.trigger.keys)}>
+            <ChordField compact keys={settings.trigger.keys} onChange={(keys) => void save({ ...settings, trigger: { kind: "chord", keys } })} />
           </Row>
         )}
         <Row title={t("dict.mode")} description={t(settings.mode === "clean" ? "dict.mode_clean_hint" : "dict.mode_raw_hint")}>

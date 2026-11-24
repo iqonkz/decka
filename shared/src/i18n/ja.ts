@@ -387,6 +387,8 @@ export const ja: Dictionary = {
   "integ.item_weather_desc": "Open-Meteo 天気予報",
   "integ.item_checks_desc": "Webサイトとサーバーの稼働状況を監視",
   "integ.item_ai_desc": "Claude Code と OpenAI Codex の上限確認",
+  "integ.item_ai_name": "AI コーディング",
+  "integ.item_mail_name": "メール",
   "integ.item_api_desc": "ローカル HTTP API と Webhook",
   "integ.item_examples_desc": "curl と PowerShell のサンプル",
 

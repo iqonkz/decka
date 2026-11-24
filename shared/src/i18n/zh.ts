@@ -387,6 +387,8 @@ export const zh: Dictionary = {
   "integ.item_weather_desc": "Open-Meteo 天气预报",
   "integ.item_checks_desc": "监控网站与服务器可用性",
   "integ.item_ai_desc": "Claude Code 与 OpenAI Codex 配额",
+  "integ.item_ai_name": "AI 编程",
+  "integ.item_mail_name": "邮件",
   "integ.item_api_desc": "本地 HTTP API 与 Webhook",
   "integ.item_examples_desc": "curl 与 PowerShell 示例",
 

@@ -389,6 +389,8 @@ export const en = {
   "integ.item_weather_desc": "Weather forecast from Open-Meteo",
   "integ.item_checks_desc": "Monitor website and server uptime",
   "integ.item_ai_desc": "Claude Code and OpenAI Codex limits",
+  "integ.item_ai_name": "AI Coding",
+  "integ.item_mail_name": "Mail",
   "integ.item_api_desc": "Local HTTP API and webhook commands",
   "integ.item_examples_desc": "Curl and PowerShell examples",
 

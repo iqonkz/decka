@@ -117,7 +117,7 @@ export default function IntegrationsTab() {
       },
       {
         id: "mail",
-        name: "Mail",
+        name: t("integ.item_mail_name"),
         titleKey: "integ.catalog_title",
         descKey: "integ.item_mail_desc",
         category: "notifications",
@@ -157,7 +157,7 @@ export default function IntegrationsTab() {
       },
       {
         id: "ai",
-        name: "AI Coding",
+        name: t("integ.item_ai_name"),
         titleKey: "integ.catalog_title",
         descKey: "integ.item_ai_desc",
         category: "data",
@@ -173,17 +173,7 @@ export default function IntegrationsTab() {
         category: "developers",
         icon: "key",
         connected: Boolean(config.apiToken),
-        keywords: ["api", "token", "auth", "developer", "key"],
-      },
-      {
-        id: "examples",
-        name: t("integ.show_examples"),
-        titleKey: "integ.show_examples",
-        descKey: "integ.item_examples_desc",
-        category: "developers",
-        icon: "terminal-window",
-        connected: Boolean(config.apiToken),
-        keywords: ["curl", "powershell", "examples", "webhook", "test"],
+        keywords: ["api", "token", "auth", "developer", "key", "curl", "powershell", "examples", "webhook"],
       },
     ];
   }, [config, checks.length]);
@@ -280,6 +270,11 @@ export default function IntegrationsTab() {
                     </Banner>
                   </div>
                 )}
+                <div style={{ marginTop: 12 }}>
+                  <Button variant="secondary" onClick={() => setActiveIntegration("examples")}>
+                    {t("integ.show_examples")}
+                  </Button>
+                </div>
               </div>
             </Group>
           </div>

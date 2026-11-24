@@ -387,6 +387,8 @@ export const hi: Dictionary = {
   "integ.item_weather_desc": "Open-Meteo मौसम पूर्वानुमान",
   "integ.item_checks_desc": "वेबसाइट और सर्वर अपटाइम की निगरानी करें",
   "integ.item_ai_desc": "Claude Code और OpenAI Codex सीमाएँ",
+  "integ.item_ai_name": "AI कोडिंग",
+  "integ.item_mail_name": "मेल",
   "integ.item_api_desc": "स्थानीय HTTP API और वेबहुक कमांड",
   "integ.item_examples_desc": "curl और PowerShell उदाहरण",
 

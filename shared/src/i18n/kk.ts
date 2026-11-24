@@ -387,6 +387,8 @@ export const kk: Dictionary = {
   "integ.item_weather_desc": "Open-Meteo ауа райы болжамы",
   "integ.item_checks_desc": "Сайттар мен серверлердің қолжетімділігін тексеру",
   "integ.item_ai_desc": "Claude Code және OpenAI Codex лимиттері",
+  "integ.item_ai_name": "AI кодтау",
+  "integ.item_mail_name": "Пошта",
   "integ.item_api_desc": "Жергілікті HTTP API және вебхуктер",
   "integ.item_examples_desc": "curl және PowerShell мысалдары",
 
