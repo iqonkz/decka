@@ -190,7 +190,9 @@ export interface WeatherInfo {
   updatedAt: number;               // ts the data was received
   current: { temp: number; code: number; isDay: boolean; wind: number };   // temp: whole degrees C/F; code: WMO; wind: whole km/h or mph
   daily: { date: string; min: number; max: number; code: number }[];      // exactly 3 days, date "YYYY-MM-DD", starting today
+  hourly?: WeatherHour[];          // 0.23 (DESIGN 4.16): 6 hours starting with the next one; absent when the answer had none
 }
+export interface WeatherHour { time: string; temp: number; code: number; isDay: boolean } // time: local "HH:mm"
 
 // M15: OBS Studio (DATA_MODEL.md 6.4). State only; the OBS password never reaches the protocol.
 export interface ObsInfo {

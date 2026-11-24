@@ -108,6 +108,17 @@ describe("invalid inputs are rejected", () => {
   });
   const button = { id: "b", kind: "button", x: 0, y: 0, w: 1, h: 1, actionId: "lock" };
 
+  test("T24.1: weather hourly is six hours with a local HH:mm, or absent", () => {
+    const base = { place: "x", units: "metric", updatedAt: 1, current: { temp: 1, code: 0, isDay: true, wind: 1 }, daily: [0, 1, 2].map((d) => ({ date: `2026-11-1${6 + d}`, min: 0, max: 1, code: 0 })) };
+    const hour = (h: number) => ({ time: `${String(h).padStart(2, "0")}:00`, temp: 3, code: 3, isDay: h > 6 && h < 18 });
+    const weather = proto("WeatherInfo");
+    expect(valid(weather, base)).toBe(true);
+    expect(valid(weather, { ...base, hourly: [15, 16, 17, 18, 19, 20].map(hour) })).toBe(true);
+    expect(valid(weather, { ...base, hourly: [15, 16, 17, 18, 19].map(hour) })).toBe(false);
+    expect(valid(weather, { ...base, hourly: [15, 16, 17, 18, 19, 20].map((h) => ({ ...hour(h), time: "2026-11-16T15:00" })) })).toBe(false);
+    expect(valid(weather, { ...base, hourly: [15, 16, 17, 18, 19, 20].map((h) => ({ ...hour(h), isDay: 1 })) })).toBe(false);
+  });
+
   test("list_toggle carries two ids issued by the agent and nothing else", () => {
     const ok = { t: "list_toggle", listId: "0123456789abcdef", itemId: "fedcba9876543210" };
     expect(valid(proto("ListToggleMsg"), ok)).toBe(true);

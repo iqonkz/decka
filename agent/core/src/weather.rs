@@ -7,7 +7,7 @@ use std::time::Duration;
 use serde::Serialize;
 use serde_json::Value;
 
-use crate::model::{WeatherDay, WeatherInfo, WeatherNow};
+use crate::model::{WeatherDay, WeatherHour, WeatherInfo, WeatherNow};
 
 pub const FORECAST_URL: &str = "https://api.open-meteo.com/v1/forecast";
 pub const GEOCODING_URL: &str = "https://geocoding-api.open-meteo.com/v1/search";
@@ -42,6 +42,7 @@ pub fn forecast_url(base: &str, lat: f64, lon: f64, units: &str) -> String {
         q.append_pair("longitude", &format!("{}", round_coord(lon)));
         q.append_pair("current", "temperature_2m,weather_code,is_day,wind_speed_10m");
         q.append_pair("daily", "weather_code,temperature_2m_max,temperature_2m_min");
+        q.append_pair("hourly", "temperature_2m,weather_code,is_day");
         q.append_pair("forecast_days", "3");
         q.append_pair("timezone", "auto");
         if units == "imperial" {
@@ -94,7 +95,33 @@ pub fn parse_forecast(body: &str, place: &str, units: &str, now_ms: u64) -> Opti
         updated_at: now_ms,
         current,
         daily: days,
+        hourly: parse_hourly(&v, cur.get("time").and_then(|t| t.as_str())),
     })
+}
+
+/// How many hours the widget shows.
+pub const HOURS: usize = 6;
+
+/// The six hours that follow `now` (the `current.time`, local `YYYY-MM-DDTHH:MM`): the first hour after it and five more.
+/// `None` when the answer has no hours, a broken one, or fewer than six after `now`; the rest of the forecast stays useful.
+fn parse_hourly(v: &Value, now: Option<&str>) -> Option<Vec<WeatherHour>> {
+    let now = now?;
+    let h = v.get("hourly")?;
+    let list = |key: &str| h.get(key).and_then(|a| a.as_array());
+    let (times, temps, codes, days) = (list("time")?, list("temperature_2m")?, list("weather_code")?, list("is_day")?);
+    // Local ISO times compare as text; an hour that is not after `now` is in the past.
+    let first = times.iter().position(|t| t.as_str().is_some_and(|t| t.len() == 16 && t > now))?;
+    let mut out = Vec::with_capacity(HOURS);
+    for i in first..first + HOURS {
+        let time = times.get(i)?.as_str()?;
+        out.push(WeatherHour {
+            time: time.get(11..16)?.to_string(),
+            temp: whole(temps.get(i)?)?,
+            code: u32::try_from(codes.get(i)?.as_i64()?).ok().filter(|c| *c <= 99)?,
+            is_day: days.get(i).and_then(|d| d.as_i64().map(|n| n != 0).or_else(|| d.as_bool()))?,
+        });
+    }
+    Some(out)
 }
 
 /// The answer of the place search: up to 5 places with a name and a position (a place without a country keeps an empty one).
@@ -181,8 +208,48 @@ mod tests {
                 { "date": "2026-11-16", "min": 2, "max": 9, "code": 3 },
                 { "date": "2026-11-17", "min": 1, "max": 6, "code": 61 },
                 { "date": "2026-11-18", "min": -1, "max": 4, "code": 71 }
+            ],
+            "hourly": [
+                { "time": "15:00", "temp": 8, "code": 3, "isDay": true },
+                { "time": "16:00", "temp": 8, "code": 3, "isDay": true },
+                { "time": "17:00", "temp": 9, "code": 3, "isDay": true },
+                { "time": "18:00", "temp": 8, "code": 3, "isDay": false },
+                { "time": "19:00", "temp": 8, "code": 3, "isDay": false },
+                { "time": "20:00", "temp": 8, "code": 3, "isDay": false }
             ]
         }));
+    }
+
+    #[test]
+    fn six_hours_start_with_the_next_one_in_local_time() {
+        let hours = parse_forecast(FORECAST, "x", "metric", 0).unwrap().hourly.unwrap();
+        assert_eq!(hours.len(), HOURS);
+        // `current.time` is 14:00: 14:00 itself is not "next".
+        assert_eq!((hours[0].time.as_str(), hours[5].time.as_str()), ("15:00", "20:00"));
+        // 23:00 -> the next hours are of the next day, the clock text still reads HH:mm.
+        let late = FORECAST.replace("\"time\": \"2026-11-16T14:00\"", "\"time\": \"2026-11-16T23:20\"");
+        let hours = parse_forecast(&late, "x", "metric", 0).unwrap().hourly.unwrap();
+        assert_eq!((hours[0].time.as_str(), hours[5].time.as_str()), ("00:00", "05:00"));
+        // The request asks for them.
+        assert!(forecast_url(FORECAST_URL, 1.0, 2.0, "metric").contains("hourly=temperature_2m%2Cweather_code%2Cis_day"));
+    }
+
+    #[test]
+    fn missing_or_short_hours_leave_the_rest_of_the_forecast() {
+        let mut value: Value = serde_json::from_str(FORECAST).unwrap();
+        value.as_object_mut().unwrap().remove("hourly");
+        let info = parse_forecast(&value.to_string(), "x", "metric", 0).unwrap();
+        assert_eq!(info.hourly, None);
+        assert!(serde_json::to_value(&info).unwrap().get("hourly").is_none(), "absent, not null");
+        // Fewer than six hours after now (the answer ends): nothing is made up.
+        let end = FORECAST.replace("\"time\": \"2026-11-16T14:00\"", "\"time\": \"2026-11-18T21:00\"");
+        let info = parse_forecast(&end, "x", "metric", 0).unwrap();
+        assert_eq!((info.hourly, info.daily.len()), (None, 3));
+        // One broken hour makes the hours void, not the forecast.
+        let odd = FORECAST.replacen("\"weather_code\": [3, 3,", "\"weather_code\": [3, 300,", 1);
+        let mut v: Value = serde_json::from_str(&odd).unwrap();
+        v["hourly"]["temperature_2m"][16] = Value::String("x".into());
+        assert_eq!(parse_forecast(&v.to_string(), "x", "metric", 0).unwrap().hourly, None);
     }
 
     #[test]

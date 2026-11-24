@@ -1004,6 +1004,18 @@ pub struct WeatherInfo {
     pub updated_at: u64,
     pub current: WeatherNow,
     pub daily: Vec<WeatherDay>,
+    /// 0.23 (PROTOCOL.md WeatherInfo): the next 6 hours, `time` is the local `HH:mm`; absent when the answer has no hours.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hourly: Option<Vec<WeatherHour>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WeatherHour {
+    pub time: String,
+    pub temp: i64,
+    pub code: u32,
+    pub is_day: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
