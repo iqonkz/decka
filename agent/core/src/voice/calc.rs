@@ -117,8 +117,77 @@ fn replace_phrase(s: &str, phrase: &str, with: &str) -> String {
 
 // ---- Lexer ------------------------------------------------------------------------------------------------------
 
+/// A number said in words (0..999): hundreds in Russian (`сто`..`девятьсот`) and English (`three hundred`), the rest through
+/// the number words of the phrase tables (units, tens). `None` for anything that is not one number.
+fn words_value(run: Vec<String>) -> Option<u32> {
+    let hundreds = |w: &str| -> Option<u32> {
+        Some(match w {
+            "сто" => 100,
+            "двести" => 200,
+            "триста" => 300,
+            "четыреста" => 400,
+            "пятьсот" => 500,
+            "шестьсот" => 600,
+            "семьсот" => 700,
+            "восемьсот" => 800,
+            "девятьсот" => 900,
+            _ => return None,
+        })
+    };
+    let (mut total, mut rest, mut i) = (0u32, Vec::new(), 0);
+    while i < run.len() {
+        if let Some(h) = hundreds(&run[i]) {
+            total += h;
+            i += 1;
+        } else if run.get(i + 1).is_some_and(|w| w == "hundred") && number_words(vec![run[i].clone()]).first().is_some_and(|n| n.len() == 1 && n != "0") {
+            total += number_words(vec![run[i].clone()])[0].parse::<u32>().ok()? * 100;
+            i += 2;
+        } else if run[i] == "and" {
+            i += 1;
+        } else {
+            rest.push(run[i].clone());
+            i += 1;
+        }
+    }
+    if !rest.is_empty() {
+        let parsed = number_words(rest);
+        // Digits only: "nan" and "inf" parse as numbers, they are not.
+        match parsed.as_slice() {
+            [n] if n.chars().all(|c| c.is_ascii_digit()) => total += n.parse::<u32>().ok()?,
+            _ => return None,
+        }
+    }
+    (total > 0 || run_is_zero(&run)).then_some(total)
+}
+
+fn run_is_zero(run: &[String]) -> bool {
+    matches!(run, [w] if w == "zero" || w == "ноль")
+}
+
+/// "subtract 175 from 600" is 600 - 175; "divide 960 by 8" and "multiply 6 by 7" read straight; the same in Russian.
+fn rewrite(s: &str) -> String {
+    let s = s.trim();
+    for (verb, join, swap, op) in [
+        ("subtract ", " from ", true, "-"),
+        ("вычти ", " из ", true, "-"),
+        ("divide ", " by ", false, "/"),
+        ("раздели ", " на ", false, "/"),
+        ("multiply ", " by ", false, "*"),
+        ("умножь ", " на ", false, "*"),
+    ] {
+        if let Some(rest) = s.strip_prefix(verb) {
+            if let Some((a, b)) = rest.split_once(join) {
+                let (a, b) = if swap { (b.trim(), a.trim()) } else { (a.trim(), b.trim()) };
+                return format!("{a} {op} {b}");
+            }
+        }
+    }
+    s.to_string()
+}
+
 fn lex(text: &str) -> Result<Vec<Tok>, CalcError> {
-    let mut s: String = text.chars().filter(|c| !matches!(c, '\'' | '\u{2019}')).flat_map(char::to_lowercase).collect();
+    let lowered: String = text.chars().filter(|c| !matches!(c, '\'' | '\u{2019}')).flat_map(char::to_lowercase).collect();
+    let mut s = rewrite(&lowered);
     // Longest phrases first, so "умножить на" wins over "умножить".
     let mut words: Vec<&(&str, &str)> = WORDS.iter().collect();
     words.sort_by_key(|(p, _)| std::cmp::Reverse(p.chars().count()));
@@ -132,13 +201,9 @@ fn lex(text: &str) -> Result<Vec<Tok>, CalcError> {
         if run.is_empty() {
             return Ok(());
         }
-        // "fifty four" -> one number; anything else left over is not arithmetic.
-        let parsed = number_words(std::mem::take(run));
-        match parsed.as_slice() {
-            // Digits only: "nan" and "inf" parse as numbers, they are not.
-            [n] if n.chars().all(|c| c.is_ascii_digit()) => toks.push(Tok::Num(n.parse::<f64>().map_err(|_| CalcError::Syntax)?)),
-            _ => return Err(CalcError::Syntax),
-        }
+        // "fifty four", "three hundred fifty", "восемьсот двадцать" -> one number; anything else left over is not arithmetic.
+        let n = words_value(std::mem::take(run)).ok_or(CalcError::Syntax)?;
+        toks.push(Tok::Num(n as f64));
         Ok(())
     };
     let mut i = 0;
@@ -554,6 +619,16 @@ mod tests {
         assert_eq!(eval("6 mal 7"), Ok(42.0));
         assert_eq!(eval("6乘以7"), Ok(42.0));
         assert_eq!(eval("2,5 + 2.5"), Ok(5.0));
+        // Hundreds, and the verbs that name the operands (T23.B eval phrases).
+        assert_eq!(eval("three hundred fifty plus eight hundred twenty"), Ok(1170.0));
+        assert_eq!(eval("триста пятьдесят плюс восемьсот двадцать"), Ok(1170.0));
+        assert_eq!(eval("subtract 175 from 600"), Ok(425.0));
+        assert_eq!(eval("вычти 175 из 600"), Ok(425.0));
+        assert_eq!(eval("divide nine hundred sixty by eight"), Ok(120.0));
+        assert_eq!(eval("раздели девятьсот шестьдесят на восемь"), Ok(120.0));
+        assert_eq!(eval("multiply 6 by 7"), Ok(42.0));
+        assert_eq!(eval("умножь 6 на 7"), Ok(42.0));
+        assert_eq!(eval("subtract 5"), Err(CalcError::Syntax));
     }
 
     #[test]

@@ -383,6 +383,45 @@
         "how much is {expr}",
         "{expr}"
       ]
+    },
+    {
+      "tool": "open_site",
+      "patterns": [
+        "open site {domain}",
+        "open website {domain}",
+        "go to {domain}",
+        "open {domain}",
+        "visit {domain}"
+      ]
+    },
+    {
+      "tool": "web_search",
+      "args": {
+        "site": "maps"
+      },
+      "patterns": [
+        "search maps for {query}",
+        "search google maps for {query}",
+        "find on maps {query}",
+        "maps {query}"
+      ]
+    },
+    {
+      "tool": "dictate",
+      "patterns": [
+        "start dictation",
+        "begin dictation",
+        "dictation mode",
+        "dictate"
+      ]
+    },
+    {
+      "tool": "go_page",
+      "patterns": [
+        "open {name} page",
+        "go to {name} page",
+        "switch to {name} page"
+      ]
     }
   ]
 }

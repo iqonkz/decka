@@ -316,6 +316,9 @@ fn match_pieces(pieces: &[Piece], toks: &[String]) -> Option<Vec<(String, Vec<St
     }
 }
 
+/// Last words of a spoken web address.
+const TLDS: &[&str] = &["com", "org", "net", "ru", "kz", "io", "dev", "app", "tv", "me", "info", "edu", "gov", "co", "uk", "de", "fr", "es", "ua", "by", "ai"];
+
 /// Template slot -> argument name of the tool (DATA_MODEL.md 12.5).
 fn arg_name(tool: &str, slot: &str) -> &'static str {
     match (slot, tool) {
@@ -395,6 +398,18 @@ impl Table {
         let mut args = base.clone();
         for (slot, toks) in slots {
             let name = arg_name(tool, slot);
+            // A web address is spoken "github dot com" or written "github.com" (the tokens lose the dot): only an open_site takes it.
+            let domain = toks.len() >= 2 && toks.last().is_some_and(|t| TLDS.contains(&t.as_str()));
+            if matches!(tool.as_str(), "open_app" | "close_app" | "switch_app") && name == "name" && domain {
+                return None;
+            }
+            if name == "domain" {
+                if !domain {
+                    return None;
+                }
+                args.insert(name.into(), json!(toks[toks.len() - 2..].join(".")));
+                continue;
+            }
             if name == "lang" {
                 // A language said by name ("Russian", "русский") becomes its code; an unknown one is left to the model.
                 args.insert(name.into(), json!(lang_code(&join(toks))?));
@@ -525,6 +540,83 @@ mod tests {
             Match::Hit(i) => i,
             other => panic!("{say:?} -> {other:?}"),
         }
+    }
+
+    /// The eval phrases (`shared/voice/eval`) through the phrase tables, without a model: what the fast path answers right, what
+    /// it answers wrong (a template that swallowed a phrase of another tool) and what it leaves to the model. A wrong answer of
+    /// the fast path is a bug of the table (the model never gets a say). `cargo test -p decka-core eval_phrases -- --nocapture`.
+    #[test]
+    fn eval_phrases_through_the_tables() {
+        use std::collections::BTreeMap;
+        let sets: [(&str, &str, &str); 11] = [
+            ("en", include_str!("../../../../shared/voice/en.json"), include_str!("../../../../shared/voice/eval/en.json")),
+            ("zh", include_str!("../../../../shared/voice/zh.json"), include_str!("../../../../shared/voice/eval/zh.json")),
+            ("hi", include_str!("../../../../shared/voice/hi.json"), include_str!("../../../../shared/voice/eval/hi.json")),
+            ("es", include_str!("../../../../shared/voice/es.json"), include_str!("../../../../shared/voice/eval/es.json")),
+            ("ar", include_str!("../../../../shared/voice/ar.json"), include_str!("../../../../shared/voice/eval/ar.json")),
+            ("fr", include_str!("../../../../shared/voice/fr.json"), include_str!("../../../../shared/voice/eval/fr.json")),
+            ("pt", include_str!("../../../../shared/voice/pt.json"), include_str!("../../../../shared/voice/eval/pt.json")),
+            ("ru", include_str!("../../../../shared/voice/ru.json"), include_str!("../../../../shared/voice/eval/ru.json")),
+            ("de", include_str!("../../../../shared/voice/de.json"), include_str!("../../../../shared/voice/eval/de.json")),
+            ("ja", include_str!("../../../../shared/voice/ja.json"), include_str!("../../../../shared/voice/eval/ja.json")),
+            ("kk", include_str!("../../../../shared/voice/kk.json"), include_str!("../../../../shared/voice/eval/kk.json")),
+        ];
+        let now = crate::assistant::Local::new(2026, 11, 25, 14, 30).unwrap();
+        // Expected arguments must be among the answered ones (strings without case), as `tools/voice-eval.mjs` compares. Names
+        // of programs, pages, buttons and the words to search come as spoken (the tools resolve them against the PC), so only
+        // the fixed arguments are compared; arithmetic is compared by its value.
+        let args_ok = |tool: &str, want: &Map<String, Value>, got: &Map<String, Value>| {
+            if tool == "calc" {
+                let (a, b) = (want.get("expr").and_then(|v| v.as_str()), got.get("expr").and_then(|v| v.as_str()));
+                return matches!((a, b), (Some(a), Some(b)) if super::super::calc::eval(a).is_ok() && super::super::calc::eval(a) == super::super::calc::eval(b));
+            }
+            let spoken = |k: &str| {
+                matches!(
+                    (tool, k),
+                    ("open_app" | "close_app" | "switch_app" | "go_page" | "press_button" | "open_site" | "type_text" | "list_add" | "list_show" | "list_remove" | "remind" | "memory_add" | "memory_remove" | "ask" | "screen_ask", _)
+                        | ("web_search", "query")
+                        | ("text_transform", "lang")
+                )
+            };
+            want.iter().filter(|(k, _)| !spoken(k)).all(|(k, v)| got.get(k).is_some_and(|g| g == v || g.to_string().trim_matches('"').to_lowercase() == v.to_string().trim_matches('"').to_lowercase()))
+        };
+        let mut per_tool: BTreeMap<String, (u32, u32, u32)> = BTreeMap::new();
+        let mut wrong: Vec<String> = Vec::new();
+        for (lang, table, eval) in sets {
+            let table = Table::parse(table).unwrap();
+            let items: Vec<Value> = serde_json::from_str(eval).unwrap();
+            let (mut ok, mut bad, mut miss) = (0, 0, 0);
+            for item in &items {
+                let (say, tool) = (item["say"].as_str().unwrap(), item["tool"].as_str().unwrap());
+                let want = item.get("args").and_then(|a| a.as_object()).cloned().unwrap_or_default();
+                let slot = per_tool.entry(tool.to_string()).or_default();
+                match table.matches_at(say, &now) {
+                    Match::Hit(i) if i.tool == tool && args_ok(tool, &want, &i.args) => {
+                        ok += 1;
+                        slot.0 += 1;
+                    }
+                    // The fast path gave an answer that is not the one of the set (another tool, or other fixed arguments).
+                    Match::Hit(i) => {
+                        bad += 1;
+                        slot.1 += 1;
+                        wrong.push(format!("{lang}: {say:?} -> {} {:?}, wanted {tool} {want:?}", i.tool, i.args));
+                    }
+                    _ => {
+                        miss += 1;
+                        slot.2 += 1;
+                    }
+                }
+            }
+            println!("eval {lang}: {} phrases, fast path right {ok}, wrong {bad}, left to the model {miss}", items.len());
+        }
+        println!("per tool (right / wrong / model): {per_tool:?}");
+        for w in &wrong {
+            println!("WRONG {w}");
+        }
+        // Arithmetic is understood by the table, and no phrase of ru or en is answered wrongly.
+        assert!(per_tool["calc"].0 >= 7, "calc fast path: {:?}", per_tool["calc"]);
+        let bad_ru_en: Vec<&String> = wrong.iter().filter(|w| w.starts_with("ru:") || w.starts_with("en:")).collect();
+        assert!(bad_ru_en.is_empty(), "{bad_ru_en:#?}");
     }
 
     /// T23.B: arithmetic is the fast path; a question is for the model (`ask`), never the web; a search stays a search.
