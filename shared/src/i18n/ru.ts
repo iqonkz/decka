@@ -549,6 +549,7 @@ export const ru: Record<Base | ExtraPlural, string> = {
   "layout.group_stay_open": "Не закрывать группу после нажатия кнопки",
   "layout.problems": "Кнопки с проблемами перечислены ниже.",
   "layout.undo": "Отменить",
+  "layout.library": "Библиотека",
   "layout.redo": "Повторить",
   "layout.empty_title": "Эта страница пуста",
   "layout.add_apps": "Добавить программы",

@@ -551,6 +551,7 @@ export const ar: Dictionary = {
   "layout.group_stay_open": "إبقاء المجموعة مفتوحة بعد الضغط على زر",
   "layout.problems": "الأزرار التي بها مشكلات مدرجة أدناه.",
   "layout.undo": "تراجع",
+  "layout.library": "المكتبة",
   "layout.redo": "إعادة",
   "layout.empty_title": "هذه الصفحة فارغة",
   "layout.add_apps": "إضافة برامج",

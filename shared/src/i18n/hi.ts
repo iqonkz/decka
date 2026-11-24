@@ -539,6 +539,7 @@ export const hi: Dictionary = {
   "layout.group_stay_open": "कुंजी दबाने के बाद समूह खुला रखें",
   "layout.problems": "समस्या वाली कुंजियाँ नीचे सूचीबद्ध हैं।",
   "layout.undo": "पूर्ववत करें",
+  "layout.library": "लाइब्रेरी",
   "layout.redo": "फिर से करें",
   "layout.empty_title": "यह पेज खाली है",
   "layout.add_apps": "ऐप जोड़ें",

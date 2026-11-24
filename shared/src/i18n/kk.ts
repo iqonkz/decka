@@ -539,6 +539,7 @@ export const kk: Dictionary = {
   "layout.group_stay_open": "Батырма басылғаннан кейін топты ашық ұстау",
   "layout.problems": "Мәселелері бар батырмалар төменде көрсетілген.",
   "layout.undo": "Болдырмау",
+  "layout.library": "Кітапхана",
   "layout.redo": "Қайталау",
   "layout.empty_title": "Бұл бет бос",
   "layout.add_apps": "Бағдарламаларды қосу",

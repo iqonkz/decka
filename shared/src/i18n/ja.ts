@@ -539,6 +539,7 @@ export const ja: Dictionary = {
   "layout.group_stay_open": "キーを押した後もグループを開いたままにする",
   "layout.problems": "問題のあるキーは下に一覧表示されます。",
   "layout.undo": "元に戻す",
+  "layout.library": "ライブラリ",
   "layout.redo": "やり直す",
   "layout.empty_title": "このページは空です",
   "layout.add_apps": "プログラムを追加",

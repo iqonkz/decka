@@ -1,0 +1,6 @@
+/* Keys page in a narrow window (T23.B): the preview keeps a usable width, the library becomes a button. */
+.editor { min-width: 0; }
+.editor-main { min-width: min(100%, 480px); }
+.editor.narrow { grid-template-columns: minmax(0, 1fr); overflow-x: auto; }
+.editor.narrow .library { max-height: 380px; }
+.library-toggle { flex: none; }

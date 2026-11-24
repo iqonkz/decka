@@ -30,6 +30,8 @@ import { overflowItems, resizeGridMoving } from "../editor/gridResize";
 import PhIcon from "../ui/PhIcon";
 import TemplateHint from "./TemplateHint";
 import TemplatesDialog from "./TemplatesDialog";
+import { libraryCollapsed } from "./editorWidth";
+import "./keysNarrow.css";
 
 const sameLayout = (a: LayoutFile, b: LayoutFile) => JSON.stringify(a) === JSON.stringify(b);
 
@@ -126,8 +128,22 @@ export default function LayoutTab() {
     load().catch((e) => setError(String(e)));
   }, [load]);
 
-  // The preview takes the width of its column.
+  // The library is a column only while the content is wide enough; narrower, it opens from a button above the preview.
   const loaded = layout !== null;
+  const editorRef = useRef<HTMLDivElement>(null);
+  const [narrow, setNarrow] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  useEffect(() => {
+    const el = editorRef.current;
+    if (!el) return;
+    const measure = () => setNarrow(libraryCollapsed(el.clientWidth));
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [loaded]);
+
+  // The preview takes the width of its column.
   useEffect(() => {
     const el = mainRef.current;
     if (!el) return;
@@ -774,19 +790,26 @@ export default function LayoutTab() {
         }}
       />
       {badItems.size > 0 && <p className="muted">{t("layout.problems")}</p>}
-      <div className="editor">
-        <Library
-          layout={layout}
-          actions={actions}
-          pageIndex={pageIdx}
-          integrations={integrations}
-          onBegin={session.begin}
-          onAddItem={(id) => void placeCatalog(id)}
-          onAddSet={(set) => void placeSet(set)}
-          onSetup={setupIntegration}
-        />
+      <div className={narrow ? "editor narrow" : "editor"} ref={editorRef}>
+        {(!narrow || libraryOpen) && (
+          <Library
+            layout={layout}
+            actions={actions}
+            pageIndex={pageIdx}
+            integrations={integrations}
+            onBegin={session.begin}
+            onAddItem={(id) => void placeCatalog(id)}
+            onAddSet={(set) => void placeSet(set)}
+            onSetup={setupIntegration}
+          />
+        )}
         <div className="editor-main" ref={mainRef} style={{ position: "relative" }}>
           <div className="preview-bar">
+            {narrow && (
+              <button type="button" className="icon-btn library-toggle" aria-expanded={libraryOpen} onClick={() => setLibraryOpen((v) => !v)}>
+                <PhIcon name="squares-four" size={16} /> {t("layout.library")}
+              </button>
+            )}
             <div className="grow">
               <PhoneStrip />
             </div>

@@ -539,6 +539,7 @@ export const zh: Dictionary = {
   "layout.group_stay_open": "按下按键后保持弹出组打开",
   "layout.problems": "有问题的按键列在下方。",
   "layout.undo": "撤销",
+  "layout.library": "资源库",
   "layout.redo": "重做",
   "layout.empty_title": "此页面是空的",
   "layout.add_apps": "添加程序",

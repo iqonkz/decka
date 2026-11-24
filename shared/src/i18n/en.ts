@@ -541,6 +541,7 @@ export const en = {
   "layout.group_stay_open": "Keep the group open after a key is pressed",
   "layout.problems": "Keys with problems are listed below.",
   "layout.undo": "Undo",
+  "layout.library": "Library",
   "layout.redo": "Redo",
   "layout.empty_title": "This page is empty",
   "layout.add_apps": "Add apps",

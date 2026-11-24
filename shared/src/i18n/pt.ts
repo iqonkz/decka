@@ -539,6 +539,7 @@ export const pt: Dictionary = {
   "layout.group_stay_open": "Manter o grupo aberto depois de pressionar uma tecla",
   "layout.problems": "As teclas com problemas estão listadas abaixo.",
   "layout.undo": "Desfazer",
+  "layout.library": "Biblioteca",
   "layout.redo": "Refazer",
   "layout.empty_title": "Esta página está vazia",
   "layout.add_apps": "Adicionar programas",
