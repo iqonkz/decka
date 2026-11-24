@@ -4,6 +4,8 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+## 0.30.0 — 2026-11-24
+
 Version 0.22.0 was built but never published; its changes are part of this release.
 
 ### Added
