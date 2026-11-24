@@ -4,9 +4,15 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
-## 0.22.0 — 2026-11-24
+Version 0.22.0 was built but never published; its changes are part of this release.
 
 ### Added
+- **Phone widgets and screens (0.30)**: every widget has one look in all four themes (a small header, equal corners and padding, quiet empty and waiting states, skeletons, numbers that move smoothly, the cover colour of `Now playing` as the tint of its tile); the service screens (pairing, link lost, update, permission, menu) were redrawn.
+- **Hourly weather**: the weather widget shows the next six hours (`HH:mm`, icon, temperature) from Open-Meteo; the brief of the day says `Rain expected around HH:mm` when the data shows precipitation in the next six hours.
+- **Song lyrics (off by default)**: `Integrations -> Lyrics` switches a lookup on lrclib.net (only the artist, the title and the length of a song are sent, once per song; nothing at all while it is off). The large `Now playing` widget shows the lines with the current one bright; a long press on the text shows `-0.5 s` / `+0.5 s` to fix a version that does not match, the shift is kept per song. Cache on this PC: at most 500 files.
+- **Recurring reminders**: `every day at 9 am`, `по будням в 8:30`, `каждый понедельник в 10 вечера` (Russian and English phrases; other languages through the model). A series fires, then moves to its next time; deleting it removes the whole series; after the PC was off it is one `Missed` notification per series.
+- **Keyboard in the settings window**: a visible focus and Tab order on every page, dialogs and pickers close with Esc.
+- **Voice phrases for `calc` and `ask`** in all 11 languages; fast-path phrases for opening a site (`открой сайт github.com`), maps search and dictation.
 - **New settings window (T23)**: one sidebar menu for everything; a search box that finds a setting by its name in the language of the window and jumps to it (for example `микрофон` scrolls to the microphone row in Voice and highlights it); settings as rows with switches and controls; an integrations catalog with cards; window theme System / Light / Dark with Mica; autosave (400 ms, rolls back on an error); a colour picker; a new reminders list with a time picker (a new reminder defaults to an hour ahead, :00 or :30).
 - **Calculator by voice**: `54 умножить на 114` answers `54 × 114 = 6156` (our own parser, no model; `+ − × ÷ ^ %`, brackets, square root, `20 percent of 150`, in 11 languages). Division by zero is answered, not guessed.
 - **Short answers by voice**: a question that is not a command (`how many days in a leap year`) is answered by the local model in at most 60 words. When it cannot know offline (news, rates), the pill asks `search the web?` and opens the search only after a yes.
@@ -20,6 +26,8 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 - **Claude / Codex widget 2×1** shows both limits (5 h and weekly) as two small bars.
 - **Mail form**: errors are shown in the language of the window.
 - **Window theme** is kept when the layout is saved.
+- **Voice**: a template such as `убери {item} из {list}` no longer swallows a request to shorten a text; `release:apk` no longer hangs on the Gradle daemon.
+- Checks: 500 reconnects of a phone and 50 abrupt drops leave no connection, subscription or task behind; the messages `list_toggle`, `notif_open`, `notif_dismiss`, `perm_answer` and `lyrics_offset` have a limit of 20 per second and ignore ids that the PC did not issue.
 
 ## 0.21.0 — 2026-11-23
 
