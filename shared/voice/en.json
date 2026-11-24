@@ -1,23 +1,377 @@
 {
   "lang": "en",
-  "yes": ["yes", "yeah", "yep", "sure", "confirm", "ok"],
-  "no": ["no", "nope", "cancel", "stop", "don't"],
+  "yes": [
+    "yes",
+    "yeah",
+    "yep",
+    "sure",
+    "confirm",
+    "ok"
+  ],
+  "no": [
+    "no",
+    "nope",
+    "cancel",
+    "stop",
+    "don't"
+  ],
   "intents": [
-    { "tool": "volume", "args": { "op": "up" }, "patterns": ["volume up", "louder", "turn it up", "increase volume"] },
-    { "tool": "volume", "args": { "op": "down" }, "patterns": ["volume down", "quieter", "turn it down", "lower volume"] },
-    { "tool": "volume", "args": { "op": "mute" }, "patterns": ["mute", "unmute", "silence", "mute volume"] },
-    { "tool": "media", "args": { "op": "play_pause" }, "patterns": ["play", "pause", "play pause", "stop playback"] },
-    { "tool": "media", "args": { "op": "next" }, "patterns": ["next track", "next song", "skip track", "skip"] },
-    { "tool": "media", "args": { "op": "prev" }, "patterns": ["previous track", "previous song", "prev track"] },
-    { "tool": "open_app", "patterns": ["open {app}", "launch {app}", "start {app}"] },
-    { "tool": "close_app", "patterns": ["close {app}", "quit {app}", "exit {app}"] },
-    { "tool": "switch_app", "patterns": ["switch to {app}", "go to {app}"] },
-    { "tool": "go_page", "patterns": ["go to page {name}", "open page {name}", "page {name}"] },
-    { "tool": "press_button", "patterns": ["press {label}", "click {label}", "press button {label}"] },
-    { "tool": "web_search", "args": { "site": "web" }, "patterns": ["search for {query}", "search {query}", "google {query}"] },
-    { "tool": "web_search", "args": { "site": "youtube" }, "patterns": ["search youtube for {query}", "find on youtube {query}", "youtube {query}"] },
-    { "tool": "timer", "patterns": ["timer for {n} minutes", "set timer for {n} minutes", "set a timer for {n} minutes"] },
-    { "tool": "system", "args": { "op": "lock" }, "patterns": ["lock computer", "lock pc", "lock screen", "lock workstation"] },
-    { "tool": "system", "args": { "op": "sleep" }, "patterns": ["sleep computer", "sleep pc", "put computer to sleep"] }
+    {
+      "tool": "volume",
+      "args": {
+        "op": "up"
+      },
+      "patterns": [
+        "volume up",
+        "louder",
+        "turn it up",
+        "increase volume"
+      ]
+    },
+    {
+      "tool": "volume",
+      "args": {
+        "op": "down"
+      },
+      "patterns": [
+        "volume down",
+        "quieter",
+        "turn it down",
+        "lower volume"
+      ]
+    },
+    {
+      "tool": "volume",
+      "args": {
+        "op": "mute"
+      },
+      "patterns": [
+        "mute",
+        "unmute",
+        "silence",
+        "mute volume"
+      ]
+    },
+    {
+      "tool": "media",
+      "args": {
+        "op": "play_pause"
+      },
+      "patterns": [
+        "play",
+        "pause",
+        "play pause",
+        "stop playback"
+      ]
+    },
+    {
+      "tool": "media",
+      "args": {
+        "op": "next"
+      },
+      "patterns": [
+        "next track",
+        "next song",
+        "skip track",
+        "skip"
+      ]
+    },
+    {
+      "tool": "media",
+      "args": {
+        "op": "prev"
+      },
+      "patterns": [
+        "previous track",
+        "previous song",
+        "prev track"
+      ]
+    },
+    {
+      "tool": "open_app",
+      "patterns": [
+        "open {app}",
+        "launch {app}",
+        "start {app}"
+      ]
+    },
+    {
+      "tool": "close_app",
+      "patterns": [
+        "close {app}",
+        "quit {app}",
+        "exit {app}"
+      ]
+    },
+    {
+      "tool": "switch_app",
+      "patterns": [
+        "switch to {app}",
+        "go to {app}"
+      ]
+    },
+    {
+      "tool": "go_page",
+      "patterns": [
+        "go to page {name}",
+        "open page {name}",
+        "page {name}"
+      ]
+    },
+    {
+      "tool": "press_button",
+      "patterns": [
+        "press {label}",
+        "click {label}",
+        "press button {label}"
+      ]
+    },
+    {
+      "tool": "web_search",
+      "args": {
+        "site": "web"
+      },
+      "patterns": [
+        "search for {query}",
+        "search {query}",
+        "google {query}"
+      ]
+    },
+    {
+      "tool": "web_search",
+      "args": {
+        "site": "youtube"
+      },
+      "patterns": [
+        "search youtube for {query}",
+        "find on youtube {query}",
+        "youtube {query}"
+      ]
+    },
+    {
+      "tool": "timer",
+      "patterns": [
+        "timer for {n} minutes",
+        "set timer for {n} minutes",
+        "set a timer for {n} minutes"
+      ]
+    },
+    {
+      "tool": "system",
+      "args": {
+        "op": "lock"
+      },
+      "patterns": [
+        "lock computer",
+        "lock pc",
+        "lock screen",
+        "lock workstation"
+      ]
+    },
+    {
+      "tool": "system",
+      "args": {
+        "op": "sleep"
+      },
+      "patterns": [
+        "sleep computer",
+        "sleep pc",
+        "put computer to sleep"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "polite"
+      },
+      "patterns": [
+        "make it more polite",
+        "make polite",
+        "more polite",
+        "rewrite politely"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "shorter"
+      },
+      "patterns": [
+        "make it shorter",
+        "make shorter",
+        "shorten this",
+        "shorten text",
+        "more concise"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "fix"
+      },
+      "patterns": [
+        "fix errors",
+        "fix mistakes",
+        "fix grammar",
+        "fix spelling",
+        "correct mistakes",
+        "fix punctuation"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "formal"
+      },
+      "patterns": [
+        "make it formal",
+        "more formal",
+        "rewrite formally",
+        "make formal"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "casual"
+      },
+      "patterns": [
+        "make it casual",
+        "more casual",
+        "make informal",
+        "rewrite casually"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "summarize"
+      },
+      "patterns": [
+        "summarize this",
+        "summarize text",
+        "summarize selection",
+        "give a summary"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "explain"
+      },
+      "patterns": [
+        "explain this",
+        "explain text",
+        "explain selection",
+        "what does this mean"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "translate"
+      },
+      "patterns": [
+        "translate to {lang}",
+        "translate into {lang}",
+        "translate this to {lang}",
+        "translate selection to {lang}"
+      ]
+    },
+    {
+      "tool": "screen_ask",
+      "patterns": [
+        "what is on screen",
+        "whats on the screen",
+        "what is on my screen",
+        "explain this screen",
+        "what to click here",
+        "explain this error",
+        "ask screen {text}"
+      ]
+    },
+    {
+      "tool": "remind",
+      "patterns": [
+        "remind me to {text} in {n} minutes",
+        "remind me in {n} minutes to {text}",
+        "remind me to {text} at {time}",
+        "remind me at {time} to {text}",
+        "remind me to {text}",
+        "remind me {text}"
+      ]
+    },
+    {
+      "tool": "reminders_show",
+      "patterns": [
+        "show reminders",
+        "show my reminders",
+        "list reminders",
+        "open reminders",
+        "what are my reminders"
+      ]
+    },
+    {
+      "tool": "list_add",
+      "patterns": [
+        "add {item} to {list} list",
+        "add {item} to list {list}",
+        "add {item} to {list}",
+        "add to {list} list {item}",
+        "add to {list} {item}"
+      ]
+    },
+    {
+      "tool": "list_show",
+      "patterns": [
+        "show {list} list",
+        "open {list} list",
+        "show list {list}",
+        "open list {list}"
+      ]
+    },
+    {
+      "tool": "list_remove",
+      "patterns": [
+        "remove {item} from {list} list",
+        "remove {item} from list {list}",
+        "remove {item} from {list}",
+        "delete {item} from {list} list",
+        "delete {item} from {list}",
+        "check off {item} in {list}"
+      ]
+    },
+    {
+      "tool": "day_brief",
+      "patterns": [
+        "good morning",
+        "daily brief",
+        "day summary",
+        "whats my day",
+        "what do i have today",
+        "morning briefing",
+        "daily briefing"
+      ]
+    },
+    {
+      "tool": "memory_add",
+      "patterns": [
+        "remember that {text}",
+        "remember {text}",
+        "save to memory that {text}",
+        "save to memory {text}",
+        "keep in mind that {text}"
+      ]
+    },
+    {
+      "tool": "memory_remove",
+      "patterns": [
+        "forget that {text}",
+        "forget {text}",
+        "delete memory {text}",
+        "remove from memory {text}",
+        "erase memory {text}"
+      ]
+    }
   ]
 }

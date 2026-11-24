@@ -1,27 +1,302 @@
 [
-  { "say": "прибавь громкость", "tool": "volume", "args": { "op": "up" } },
-  { "say": "сделай звук потише", "tool": "volume", "args": { "op": "down" } },
-  { "say": "отключи звук", "tool": "volume", "args": { "op": "mute" } },
-  { "say": "установи громкость на 50 процентов", "tool": "volume", "args": { "op": "set", "value": 50 } },
-  { "say": "поставь музыку на паузу", "tool": "media", "args": { "op": "play_pause" } },
-  { "say": "переключи на следующий трек", "tool": "media", "args": { "op": "next" } },
-  { "say": "включи предыдущую песню", "tool": "media", "args": { "op": "prev" } },
-  { "say": "открой калькулятор", "tool": "open_app", "args": { "name": "калькулятор" } },
-  { "say": "запусти spotify", "tool": "open_app", "args": { "name": "spotify" } },
-  { "say": "закрой discord", "tool": "close_app", "args": { "name": "discord" } },
-  { "say": "переключись на браузер chrome", "tool": "switch_app", "args": { "name": "chrome" } },
-  { "say": "перемести окно на другой монитор", "tool": "window_other_monitor", "args": {} },
-  { "say": "какой это монитор", "tool": "which_monitor", "args": {} },
-  { "say": "перейди на страницу стриминг", "tool": "go_page", "args": { "name": "streaming" } },
-  { "say": "открой главную страницу", "tool": "go_page", "args": { "name": "main" } },
-  { "say": "нажми кнопку заглушить микрофон", "tool": "press_button", "args": { "label": "mute mic" } },
-  { "say": "найди в интернете прогноз погоды", "tool": "web_search", "args": { "site": "web", "query": "прогноз погоды" } },
-  { "say": "найди на ютубе lofi hip hop", "tool": "web_search", "args": { "site": "youtube", "query": "lofi hip hop" } },
-  { "say": "найди на картах кофейни рядом", "tool": "web_search", "args": { "site": "maps", "query": "кофейни рядом" } },
-  { "say": "открой сайт github.com", "tool": "open_site", "args": { "domain": "github.com" } },
-  { "say": "напечатай Привет мир", "tool": "type_text", "args": { "text": "Привет мир" } },
-  { "say": "включи диктовку", "tool": "dictate", "args": {} },
-  { "say": "поставь таймер на 10 минут", "tool": "timer", "args": { "minutes": 10 } },
-  { "say": "заблокируй компьютер", "tool": "system", "args": { "op": "lock" } },
-  { "say": "переведи компьютер в спящий режим", "tool": "system", "args": { "op": "sleep" } }
+  {
+    "say": "прибавь громкость",
+    "tool": "volume",
+    "args": {
+      "op": "up"
+    }
+  },
+  {
+    "say": "сделай звук потише",
+    "tool": "volume",
+    "args": {
+      "op": "down"
+    }
+  },
+  {
+    "say": "отключи звук",
+    "tool": "volume",
+    "args": {
+      "op": "mute"
+    }
+  },
+  {
+    "say": "установи громкость на 50 процентов",
+    "tool": "volume",
+    "args": {
+      "op": "set",
+      "value": 50
+    }
+  },
+  {
+    "say": "поставь музыку на паузу",
+    "tool": "media",
+    "args": {
+      "op": "play_pause"
+    }
+  },
+  {
+    "say": "переключи на следующий трек",
+    "tool": "media",
+    "args": {
+      "op": "next"
+    }
+  },
+  {
+    "say": "включи предыдущую песню",
+    "tool": "media",
+    "args": {
+      "op": "prev"
+    }
+  },
+  {
+    "say": "открой калькулятор",
+    "tool": "open_app",
+    "args": {
+      "name": "калькулятор"
+    }
+  },
+  {
+    "say": "запусти spotify",
+    "tool": "open_app",
+    "args": {
+      "name": "spotify"
+    }
+  },
+  {
+    "say": "закрой discord",
+    "tool": "close_app",
+    "args": {
+      "name": "discord"
+    }
+  },
+  {
+    "say": "переключись на браузер chrome",
+    "tool": "switch_app",
+    "args": {
+      "name": "chrome"
+    }
+  },
+  {
+    "say": "перемести окно на другой монитор",
+    "tool": "window_other_monitor",
+    "args": {}
+  },
+  {
+    "say": "какой это монитор",
+    "tool": "which_monitor",
+    "args": {}
+  },
+  {
+    "say": "перейди на страницу стриминг",
+    "tool": "go_page",
+    "args": {
+      "name": "streaming"
+    }
+  },
+  {
+    "say": "открой главную страницу",
+    "tool": "go_page",
+    "args": {
+      "name": "main"
+    }
+  },
+  {
+    "say": "нажми кнопку заглушить микрофон",
+    "tool": "press_button",
+    "args": {
+      "label": "mute mic"
+    }
+  },
+  {
+    "say": "найди в интернете прогноз погоды",
+    "tool": "web_search",
+    "args": {
+      "site": "web",
+      "query": "прогноз погоды"
+    }
+  },
+  {
+    "say": "найди на ютубе lofi hip hop",
+    "tool": "web_search",
+    "args": {
+      "site": "youtube",
+      "query": "lofi hip hop"
+    }
+  },
+  {
+    "say": "найди на картах кофейни рядом",
+    "tool": "web_search",
+    "args": {
+      "site": "maps",
+      "query": "кофейни рядом"
+    }
+  },
+  {
+    "say": "открой сайт github.com",
+    "tool": "open_site",
+    "args": {
+      "domain": "github.com"
+    }
+  },
+  {
+    "say": "напечатай Привет мир",
+    "tool": "type_text",
+    "args": {
+      "text": "Привет мир"
+    }
+  },
+  {
+    "say": "включи диктовку",
+    "tool": "dictate",
+    "args": {}
+  },
+  {
+    "say": "поставь таймер на 10 минут",
+    "tool": "timer",
+    "args": {
+      "minutes": 10
+    }
+  },
+  {
+    "say": "заблокируй компьютер",
+    "tool": "system",
+    "args": {
+      "op": "lock"
+    }
+  },
+  {
+    "say": "переведи компьютер в спящий режим",
+    "tool": "system",
+    "args": {
+      "op": "sleep"
+    }
+  },
+  {
+    "say": "перефразируй это письмо более мягким тоном",
+    "tool": "text_transform",
+    "args": {
+      "op": "polite"
+    }
+  },
+  {
+    "say": "убери лишнюю воду из этого абзаца",
+    "tool": "text_transform",
+    "args": {
+      "op": "shorter"
+    }
+  },
+  {
+    "say": "проверь пунктуацию и орфографию в выделенном фрагменте",
+    "tool": "text_transform",
+    "args": {
+      "op": "fix"
+    }
+  },
+  {
+    "say": "приведи это сообщение к строгому деловому стилю",
+    "tool": "text_transform",
+    "args": {
+      "op": "formal"
+    }
+  },
+  {
+    "say": "перепиши этот текст простыми словами как для друга",
+    "tool": "text_transform",
+    "args": {
+      "op": "casual"
+    }
+  },
+  {
+    "say": "выдели главные тезисы из этой статьи",
+    "tool": "text_transform",
+    "args": {
+      "op": "summarize"
+    }
+  },
+  {
+    "say": "поясни простыми словами что значит эта фраза",
+    "tool": "text_transform",
+    "args": {
+      "op": "explain"
+    }
+  },
+  {
+    "say": "переложи этот отрывок на немецкий язык",
+    "tool": "text_transform",
+    "args": {
+      "op": "translate",
+      "lang": "de"
+    }
+  },
+  {
+    "say": "посмотри почему упала сборка проекта в консоли",
+    "tool": "screen_ask",
+    "args": {
+      "question": "почему упала сборка проекта в консоли"
+    }
+  },
+  {
+    "say": "подай сигнал выключить духовку через сорок пять минут",
+    "tool": "remind",
+    "args": {
+      "text": "выключить духовку",
+      "inMinutes": 45
+    }
+  },
+  {
+    "say": "создай напоминание зайти к врачу в 16:30",
+    "tool": "remind",
+    "args": {
+      "text": "зайти к врачу",
+      "at": "16:30"
+    }
+  },
+  {
+    "say": "выведи список всех моих запланированных напоминалок",
+    "tool": "reminders_show",
+    "args": {}
+  },
+  {
+    "say": "внеси свежие круассаны в список покупок",
+    "tool": "list_add",
+    "args": {
+      "list": "покупки",
+      "item": "свежие круассаны"
+    }
+  },
+  {
+    "say": "взглянем на пункты в списке текущих задач",
+    "tool": "list_show",
+    "args": {
+      "list": "текущие задачи"
+    }
+  },
+  {
+    "say": "вычеркни стиральный порошок из хозяйственного перечня",
+    "tool": "list_remove",
+    "args": {
+      "list": "хозяйственный перечень",
+      "item": "стиральный порошок"
+    }
+  },
+  {
+    "say": "расскажи как выглядит мое расписание и дела на сегодня",
+    "tool": "day_brief",
+    "args": {}
+  },
+  {
+    "say": "зафиксируй что день рождения мамы пятнадцатого мая",
+    "tool": "memory_add",
+    "args": {
+      "text": "день рождения мамы пятнадцатого мая"
+    }
+  },
+  {
+    "say": "сотри запись о старом пароле от гостевого вайфая",
+    "tool": "memory_remove",
+    "args": {
+      "text": "старый пароль от гостевого вайфая"
+    }
+  }
 ]

@@ -1,27 +1,302 @@
 [
-  { "say": "дыбысты көтеріңіз", "tool": "volume", "args": { "op": "up" } },
-  { "say": "дыбысты азайтыңыз", "tool": "volume", "args": { "op": "down" } },
-  { "say": "дыбысты толық өшір", "tool": "volume", "args": { "op": "mute" } },
-  { "say": "дыбыс деңгейін елу пайызға қой", "tool": "volume", "args": { "op": "set", "value": 50 } },
-  { "say": "музыканы кідірте тұр", "tool": "media", "args": { "op": "play_pause" } },
-  { "say": "келесі әнге көш", "tool": "media", "args": { "op": "next" } },
-  { "say": "алдыңғы әуенді қос", "tool": "media", "args": { "op": "prev" } },
-  { "say": "калькуляторды аш", "tool": "open_app", "args": { "name": "calculator" } },
-  { "say": "spotify іске қос", "tool": "open_app", "args": { "name": "spotify" } },
-  { "say": "discord бағдарламасын жап", "tool": "close_app", "args": { "name": "discord" } },
-  { "say": "chrome браузеріне ауыс", "tool": "switch_app", "args": { "name": "chrome" } },
-  { "say": "терезені басқа мониторға жылжыт", "tool": "window_other_monitor", "args": {} },
-  { "say": "бұл қай монитор", "tool": "which_monitor", "args": {} },
-  { "say": "стриминг бетіне өту", "tool": "go_page", "args": { "name": "streaming" } },
-  { "say": "басты бетті аш", "tool": "go_page", "args": { "name": "main" } },
-  { "say": "микрофонды өшіру батырмасын бас", "tool": "press_button", "args": { "label": "mute mic" } },
-  { "say": "интернеттен ауа райын іздеу", "tool": "web_search", "args": { "site": "web", "query": "ауа райы" } },
-  { "say": "youtube-тен lofi музыкасын ізде", "tool": "web_search", "args": { "site": "youtube", "query": "lofi hip hop" } },
-  { "say": "картадан жақын маңдағы кофеханаларды ізде", "tool": "web_search", "args": { "site": "maps", "query": "жақын кофеханалар" } },
-  { "say": "github.com сайтын аш", "tool": "open_site", "args": { "domain": "github.com" } },
-  { "say": "Сәлем әлем деп мәтін жаз", "tool": "type_text", "args": { "text": "Сәлем әлем" } },
-  { "say": "диктант режимін қос", "tool": "dictate", "args": {} },
-  { "say": "он минутқа таймер қой", "tool": "timer", "args": { "minutes": 10 } },
-  { "say": "компьютерді құлыпта", "tool": "system", "args": { "op": "lock" } },
-  { "say": "компьютерді ұйқыға жібер", "tool": "system", "args": { "op": "sleep" } }
+  {
+    "say": "дыбысты көтеріңіз",
+    "tool": "volume",
+    "args": {
+      "op": "up"
+    }
+  },
+  {
+    "say": "дыбысты азайтыңыз",
+    "tool": "volume",
+    "args": {
+      "op": "down"
+    }
+  },
+  {
+    "say": "дыбысты толық өшір",
+    "tool": "volume",
+    "args": {
+      "op": "mute"
+    }
+  },
+  {
+    "say": "дыбыс деңгейін елу пайызға қой",
+    "tool": "volume",
+    "args": {
+      "op": "set",
+      "value": 50
+    }
+  },
+  {
+    "say": "музыканы кідірте тұр",
+    "tool": "media",
+    "args": {
+      "op": "play_pause"
+    }
+  },
+  {
+    "say": "келесі әнге көш",
+    "tool": "media",
+    "args": {
+      "op": "next"
+    }
+  },
+  {
+    "say": "алдыңғы әуенді қос",
+    "tool": "media",
+    "args": {
+      "op": "prev"
+    }
+  },
+  {
+    "say": "калькуляторды аш",
+    "tool": "open_app",
+    "args": {
+      "name": "calculator"
+    }
+  },
+  {
+    "say": "spotify іске қос",
+    "tool": "open_app",
+    "args": {
+      "name": "spotify"
+    }
+  },
+  {
+    "say": "discord бағдарламасын жап",
+    "tool": "close_app",
+    "args": {
+      "name": "discord"
+    }
+  },
+  {
+    "say": "chrome браузеріне ауыс",
+    "tool": "switch_app",
+    "args": {
+      "name": "chrome"
+    }
+  },
+  {
+    "say": "терезені басқа мониторға жылжыт",
+    "tool": "window_other_monitor",
+    "args": {}
+  },
+  {
+    "say": "бұл қай монитор",
+    "tool": "which_monitor",
+    "args": {}
+  },
+  {
+    "say": "стриминг бетіне өту",
+    "tool": "go_page",
+    "args": {
+      "name": "streaming"
+    }
+  },
+  {
+    "say": "басты бетті аш",
+    "tool": "go_page",
+    "args": {
+      "name": "main"
+    }
+  },
+  {
+    "say": "микрофонды өшіру батырмасын бас",
+    "tool": "press_button",
+    "args": {
+      "label": "mute mic"
+    }
+  },
+  {
+    "say": "интернеттен ауа райын іздеу",
+    "tool": "web_search",
+    "args": {
+      "site": "web",
+      "query": "ауа райы"
+    }
+  },
+  {
+    "say": "youtube-тен lofi музыкасын ізде",
+    "tool": "web_search",
+    "args": {
+      "site": "youtube",
+      "query": "lofi hip hop"
+    }
+  },
+  {
+    "say": "картадан жақын маңдағы кофеханаларды ізде",
+    "tool": "web_search",
+    "args": {
+      "site": "maps",
+      "query": "жақын кофеханалар"
+    }
+  },
+  {
+    "say": "github.com сайтын аш",
+    "tool": "open_site",
+    "args": {
+      "domain": "github.com"
+    }
+  },
+  {
+    "say": "Сәлем әлем деп мәтін жаз",
+    "tool": "type_text",
+    "args": {
+      "text": "Сәлем әлем"
+    }
+  },
+  {
+    "say": "диктант режимін қос",
+    "tool": "dictate",
+    "args": {}
+  },
+  {
+    "say": "он минутқа таймер қой",
+    "tool": "timer",
+    "args": {
+      "minutes": 10
+    }
+  },
+  {
+    "say": "компьютерді құлыпта",
+    "tool": "system",
+    "args": {
+      "op": "lock"
+    }
+  },
+  {
+    "say": "компьютерді ұйқыға жібер",
+    "tool": "system",
+    "args": {
+      "op": "sleep"
+    }
+  },
+  {
+    "say": "мына хатты биязы үнмен қайта жазшы",
+    "tool": "text_transform",
+    "args": {
+      "op": "polite"
+    }
+  },
+  {
+    "say": "осы сөйлемнің артық сөздерін алып қысқартшы",
+    "tool": "text_transform",
+    "args": {
+      "op": "shorter"
+    }
+  },
+  {
+    "say": "таңдалған мәтіндегі орфографиялық қателерді тексер",
+    "tool": "text_transform",
+    "args": {
+      "op": "fix"
+    }
+  },
+  {
+    "say": "бұл мәтінді қызметтік іс қағаздар стиліне ауыстыр",
+    "tool": "text_transform",
+    "args": {
+      "op": "formal"
+    }
+  },
+  {
+    "say": "досыма жазғандай еркін әңгіме тілімен өзгерт",
+    "tool": "text_transform",
+    "args": {
+      "op": "casual"
+    }
+  },
+  {
+    "say": "осы мақаланың ең негізгі түйінін шығарып бер",
+    "tool": "text_transform",
+    "args": {
+      "op": "summarize"
+    }
+  },
+  {
+    "say": "мына ұғымның нақты мағынасын қарапайым етіп айтып бер",
+    "tool": "text_transform",
+    "args": {
+      "op": "explain"
+    }
+  },
+  {
+    "say": "бұл үзіндіні ағылшын тіліне аударып жібер",
+    "tool": "text_transform",
+    "args": {
+      "op": "translate",
+      "lang": "en"
+    }
+  },
+  {
+    "say": "терминалда шыққан қатенің себебін анықтап бер",
+    "tool": "screen_ask",
+    "args": {
+      "question": "терминалда шыққан қатенің себебін анықтап бер"
+    }
+  },
+  {
+    "say": "жиырма минуттан соң шай ішуді ұмытпауымды қадағала",
+    "tool": "remind",
+    "args": {
+      "text": "шай ішу",
+      "inMinutes": 20
+    }
+  },
+  {
+    "say": "сағат 14:00 кезінде жиналыс бар екенін хабарла",
+    "tool": "remind",
+    "args": {
+      "text": "жиналыс бар",
+      "at": "14:00"
+    }
+  },
+  {
+    "say": "алдағы уақытқа қойылған барлық ескертпелерді қарап шығайық",
+    "tool": "reminders_show",
+    "args": {}
+  },
+  {
+    "say": "дүкенге барғанда алатын заттарға минералды суды қос",
+    "tool": "list_add",
+    "args": {
+      "list": "дүкен",
+      "item": "минералды су"
+    }
+  },
+  {
+    "say": "бүгінгі атқарылатын жұмыстар тізімін жайып сал",
+    "tool": "list_show",
+    "args": {
+      "list": "жұмыстар"
+    }
+  },
+  {
+    "say": "сатып алынғандар қатарынан нанды алып таста",
+    "tool": "list_remove",
+    "args": {
+      "list": "сатып алынғандар",
+      "item": "нан"
+    }
+  },
+  {
+    "say": "бүгін мені қандай маңызды шаруалар күтіп тұр",
+    "tool": "day_brief",
+    "args": {}
+  },
+  {
+    "say": "менің автокөлігімнің нөмірі 777 екенін жадыңда сақта",
+    "tool": "memory_add",
+    "args": {
+      "text": "автокөлігімнің нөмірі 777"
+    }
+  },
+  {
+    "say": "ескі мекенжайым туралы сақталған жазбаны тазала",
+    "tool": "memory_remove",
+    "args": {
+      "text": "ескі мекенжай"
+    }
+  }
 ]

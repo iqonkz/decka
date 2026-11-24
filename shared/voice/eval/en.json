@@ -1,27 +1,302 @@
 [
-  { "say": "turn the volume up", "tool": "volume", "args": { "op": "up" } },
-  { "say": "turn the volume down", "tool": "volume", "args": { "op": "down" } },
-  { "say": "mute the sound", "tool": "volume", "args": { "op": "mute" } },
-  { "say": "set volume to 50 percent", "tool": "volume", "args": { "op": "set", "value": 50 } },
-  { "say": "pause the music", "tool": "media", "args": { "op": "play_pause" } },
-  { "say": "skip to the next track", "tool": "media", "args": { "op": "next" } },
-  { "say": "play previous track", "tool": "media", "args": { "op": "prev" } },
-  { "say": "open calculator", "tool": "open_app", "args": { "name": "calculator" } },
-  { "say": "launch spotify", "tool": "open_app", "args": { "name": "spotify" } },
-  { "say": "close discord", "tool": "close_app", "args": { "name": "discord" } },
-  { "say": "switch to chrome", "tool": "switch_app", "args": { "name": "chrome" } },
-  { "say": "move window to next monitor", "tool": "window_other_monitor", "args": {} },
-  { "say": "which monitor is this", "tool": "which_monitor", "args": {} },
-  { "say": "go to page streaming", "tool": "go_page", "args": { "name": "streaming" } },
-  { "say": "open main page", "tool": "go_page", "args": { "name": "main" } },
-  { "say": "press button mute mic", "tool": "press_button", "args": { "label": "mute mic" } },
-  { "say": "search for weather forecast", "tool": "web_search", "args": { "site": "web", "query": "weather forecast" } },
-  { "say": "find lofi hip hop on youtube", "tool": "web_search", "args": { "site": "youtube", "query": "lofi hip hop" } },
-  { "say": "search maps for coffee shops nearby", "tool": "web_search", "args": { "site": "maps", "query": "coffee shops nearby" } },
-  { "say": "open github.com", "tool": "open_site", "args": { "domain": "github.com" } },
-  { "say": "type Hello world", "tool": "type_text", "args": { "text": "Hello world" } },
-  { "say": "start dictation", "tool": "dictate", "args": {} },
-  { "say": "set a timer for 10 minutes", "tool": "timer", "args": { "minutes": 10 } },
-  { "say": "lock my pc", "tool": "system", "args": { "op": "lock" } },
-  { "say": "put the computer to sleep", "tool": "system", "args": { "op": "sleep" } }
+  {
+    "say": "turn the volume up",
+    "tool": "volume",
+    "args": {
+      "op": "up"
+    }
+  },
+  {
+    "say": "turn the volume down",
+    "tool": "volume",
+    "args": {
+      "op": "down"
+    }
+  },
+  {
+    "say": "mute the sound",
+    "tool": "volume",
+    "args": {
+      "op": "mute"
+    }
+  },
+  {
+    "say": "set volume to 50 percent",
+    "tool": "volume",
+    "args": {
+      "op": "set",
+      "value": 50
+    }
+  },
+  {
+    "say": "pause the music",
+    "tool": "media",
+    "args": {
+      "op": "play_pause"
+    }
+  },
+  {
+    "say": "skip to the next track",
+    "tool": "media",
+    "args": {
+      "op": "next"
+    }
+  },
+  {
+    "say": "play previous track",
+    "tool": "media",
+    "args": {
+      "op": "prev"
+    }
+  },
+  {
+    "say": "open calculator",
+    "tool": "open_app",
+    "args": {
+      "name": "calculator"
+    }
+  },
+  {
+    "say": "launch spotify",
+    "tool": "open_app",
+    "args": {
+      "name": "spotify"
+    }
+  },
+  {
+    "say": "close discord",
+    "tool": "close_app",
+    "args": {
+      "name": "discord"
+    }
+  },
+  {
+    "say": "switch to chrome",
+    "tool": "switch_app",
+    "args": {
+      "name": "chrome"
+    }
+  },
+  {
+    "say": "move window to next monitor",
+    "tool": "window_other_monitor",
+    "args": {}
+  },
+  {
+    "say": "which monitor is this",
+    "tool": "which_monitor",
+    "args": {}
+  },
+  {
+    "say": "go to page streaming",
+    "tool": "go_page",
+    "args": {
+      "name": "streaming"
+    }
+  },
+  {
+    "say": "open main page",
+    "tool": "go_page",
+    "args": {
+      "name": "main"
+    }
+  },
+  {
+    "say": "press button mute mic",
+    "tool": "press_button",
+    "args": {
+      "label": "mute mic"
+    }
+  },
+  {
+    "say": "search for weather forecast",
+    "tool": "web_search",
+    "args": {
+      "site": "web",
+      "query": "weather forecast"
+    }
+  },
+  {
+    "say": "find lofi hip hop on youtube",
+    "tool": "web_search",
+    "args": {
+      "site": "youtube",
+      "query": "lofi hip hop"
+    }
+  },
+  {
+    "say": "search maps for coffee shops nearby",
+    "tool": "web_search",
+    "args": {
+      "site": "maps",
+      "query": "coffee shops nearby"
+    }
+  },
+  {
+    "say": "open github.com",
+    "tool": "open_site",
+    "args": {
+      "domain": "github.com"
+    }
+  },
+  {
+    "say": "type Hello world",
+    "tool": "type_text",
+    "args": {
+      "text": "Hello world"
+    }
+  },
+  {
+    "say": "start dictation",
+    "tool": "dictate",
+    "args": {}
+  },
+  {
+    "say": "set a timer for 10 minutes",
+    "tool": "timer",
+    "args": {
+      "minutes": 10
+    }
+  },
+  {
+    "say": "lock my pc",
+    "tool": "system",
+    "args": {
+      "op": "lock"
+    }
+  },
+  {
+    "say": "put the computer to sleep",
+    "tool": "system",
+    "args": {
+      "op": "sleep"
+    }
+  },
+  {
+    "say": "could you rewrite this email in a softer tone",
+    "tool": "text_transform",
+    "args": {
+      "op": "polite"
+    }
+  },
+  {
+    "say": "trim down this paragraph please",
+    "tool": "text_transform",
+    "args": {
+      "op": "shorter"
+    }
+  },
+  {
+    "say": "please proofread this message for typos",
+    "tool": "text_transform",
+    "args": {
+      "op": "fix"
+    }
+  },
+  {
+    "say": "turn this note into professional business language",
+    "tool": "text_transform",
+    "args": {
+      "op": "formal"
+    }
+  },
+  {
+    "say": "make this sound like a friendly chat message",
+    "tool": "text_transform",
+    "args": {
+      "op": "casual"
+    }
+  },
+  {
+    "say": "provide the key takeaways of this article",
+    "tool": "text_transform",
+    "args": {
+      "op": "summarize"
+    }
+  },
+  {
+    "say": "can you clarify the meaning of this selected sentence",
+    "tool": "text_transform",
+    "args": {
+      "op": "explain"
+    }
+  },
+  {
+    "say": "convert this text into French please",
+    "tool": "text_transform",
+    "args": {
+      "op": "translate",
+      "lang": "fr"
+    }
+  },
+  {
+    "say": "tell me why this build command failed in terminal",
+    "tool": "screen_ask",
+    "args": {
+      "question": "tell me why this build command failed in terminal"
+    }
+  },
+  {
+    "say": "prompt me to call John in forty five minutes",
+    "tool": "remind",
+    "args": {
+      "text": "call John",
+      "inMinutes": 45
+    }
+  },
+  {
+    "say": "set an alert to attend the team meeting at 15:00",
+    "tool": "remind",
+    "args": {
+      "text": "attend the team meeting",
+      "at": "15:00"
+    }
+  },
+  {
+    "say": "let me see everything i need to be reminded of",
+    "tool": "reminders_show",
+    "args": {}
+  },
+  {
+    "say": "put organic apples on my grocery checklist",
+    "tool": "list_add",
+    "args": {
+      "list": "grocery",
+      "item": "organic apples"
+    }
+  },
+  {
+    "say": "display all entries in the project tasks checklist",
+    "tool": "list_show",
+    "args": {
+      "list": "project tasks"
+    }
+  },
+  {
+    "say": "strike off whole milk from my groceries",
+    "tool": "list_remove",
+    "args": {
+      "list": "groceries",
+      "item": "whole milk"
+    }
+  },
+  {
+    "say": "give me an overview of my agenda and alerts for today",
+    "tool": "day_brief",
+    "args": {}
+  },
+  {
+    "say": "take note that my office door code is 4829",
+    "tool": "memory_add",
+    "args": {
+      "text": "office door code is 4829"
+    }
+  },
+  {
+    "say": "discard the note about the old office door code",
+    "tool": "memory_remove",
+    "args": {
+      "text": "old office door code"
+    }
+  }
 ]

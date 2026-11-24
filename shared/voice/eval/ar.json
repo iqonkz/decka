@@ -1,27 +1,302 @@
 [
-  { "say": "ارفع صوت الجهاز", "tool": "volume", "args": { "op": "up" } },
-  { "say": "اخفض الصوت قليلاً", "tool": "volume", "args": { "op": "down" } },
-  { "say": "اكتم الصوت تماماً", "tool": "volume", "args": { "op": "mute" } },
-  { "say": "اضبط الصوت على خمسين بالمائة", "tool": "volume", "args": { "op": "set", "value": 50 } },
-  { "say": "أوقف الموسيقى مؤقتاً", "tool": "media", "args": { "op": "play_pause" } },
-  { "say": "شغل الأغنية التالية", "tool": "media", "args": { "op": "next" } },
-  { "say": "شغل المقطع السابق", "tool": "media", "args": { "op": "prev" } },
-  { "say": "افتح الآلة الحاسبة", "tool": "open_app", "args": { "name": "calculator" } },
-  { "say": "شغل تطبيق سبوتيفاي", "tool": "open_app", "args": { "name": "spotify" } },
-  { "say": "أغلق ديسكورد", "tool": "close_app", "args": { "name": "discord" } },
-  { "say": "انتقل إلى متصفح كروم", "tool": "switch_app", "args": { "name": "chrome" } },
-  { "say": "انقل النافذة إلى الشاشة الأخرى", "tool": "window_other_monitor", "args": {} },
-  { "say": "أي شاشة هذه", "tool": "which_monitor", "args": {} },
-  { "say": "انتقل إلى صفحة البث", "tool": "go_page", "args": { "name": "streaming" } },
-  { "say": "افتح الصفحة الرئيسية", "tool": "go_page", "args": { "name": "main" } },
-  { "say": "اضغط زر كتم الميكروفون", "tool": "press_button", "args": { "label": "mute mic" } },
-  { "say": "ابحث في الإنترنت عن حالة الطقس", "tool": "web_search", "args": { "site": "web", "query": "حالة الطقس" } },
-  { "say": "ابحث في يوتيوب عن موسيقى لوفاي", "tool": "web_search", "args": { "site": "youtube", "query": "lofi hip hop" } },
-  { "say": "ابحث في الخرائط عن مقاهي قريبة", "tool": "web_search", "args": { "site": "maps", "query": "مقاهي قريبة" } },
-  { "say": "افتح موقع github.com", "tool": "open_site", "args": { "domain": "github.com" } },
-  { "say": "اكتب مرحباً بالعالم", "tool": "type_text", "args": { "text": "مرحباً بالعالم" } },
-  { "say": "ابدأ الإملاء الصوتي", "tool": "dictate", "args": {} },
-  { "say": "اضبط مؤقتاً لعشر دقائق", "tool": "timer", "args": { "minutes": 10 } },
-  { "say": "اقفل شاشة الكمبيوتر", "tool": "system", "args": { "op": "lock" } },
-  { "say": "ضع الكمبيوتر في وضع السكون", "tool": "system", "args": { "op": "sleep" } }
+  {
+    "say": "ارفع صوت الجهاز",
+    "tool": "volume",
+    "args": {
+      "op": "up"
+    }
+  },
+  {
+    "say": "اخفض الصوت قليلاً",
+    "tool": "volume",
+    "args": {
+      "op": "down"
+    }
+  },
+  {
+    "say": "اكتم الصوت تماماً",
+    "tool": "volume",
+    "args": {
+      "op": "mute"
+    }
+  },
+  {
+    "say": "اضبط الصوت على خمسين بالمائة",
+    "tool": "volume",
+    "args": {
+      "op": "set",
+      "value": 50
+    }
+  },
+  {
+    "say": "أوقف الموسيقى مؤقتاً",
+    "tool": "media",
+    "args": {
+      "op": "play_pause"
+    }
+  },
+  {
+    "say": "شغل الأغنية التالية",
+    "tool": "media",
+    "args": {
+      "op": "next"
+    }
+  },
+  {
+    "say": "شغل المقطع السابق",
+    "tool": "media",
+    "args": {
+      "op": "prev"
+    }
+  },
+  {
+    "say": "افتح الآلة الحاسبة",
+    "tool": "open_app",
+    "args": {
+      "name": "calculator"
+    }
+  },
+  {
+    "say": "شغل تطبيق سبوتيفاي",
+    "tool": "open_app",
+    "args": {
+      "name": "spotify"
+    }
+  },
+  {
+    "say": "أغلق ديسكورد",
+    "tool": "close_app",
+    "args": {
+      "name": "discord"
+    }
+  },
+  {
+    "say": "انتقل إلى متصفح كروم",
+    "tool": "switch_app",
+    "args": {
+      "name": "chrome"
+    }
+  },
+  {
+    "say": "انقل النافذة إلى الشاشة الأخرى",
+    "tool": "window_other_monitor",
+    "args": {}
+  },
+  {
+    "say": "أي شاشة هذه",
+    "tool": "which_monitor",
+    "args": {}
+  },
+  {
+    "say": "انتقل إلى صفحة البث",
+    "tool": "go_page",
+    "args": {
+      "name": "streaming"
+    }
+  },
+  {
+    "say": "افتح الصفحة الرئيسية",
+    "tool": "go_page",
+    "args": {
+      "name": "main"
+    }
+  },
+  {
+    "say": "اضغط زر كتم الميكروفون",
+    "tool": "press_button",
+    "args": {
+      "label": "mute mic"
+    }
+  },
+  {
+    "say": "ابحث في الإنترنت عن حالة الطقس",
+    "tool": "web_search",
+    "args": {
+      "site": "web",
+      "query": "حالة الطقس"
+    }
+  },
+  {
+    "say": "ابحث في يوتيوب عن موسيقى لوفاي",
+    "tool": "web_search",
+    "args": {
+      "site": "youtube",
+      "query": "lofi hip hop"
+    }
+  },
+  {
+    "say": "ابحث في الخرائط عن مقاهي قريبة",
+    "tool": "web_search",
+    "args": {
+      "site": "maps",
+      "query": "مقاهي قريبة"
+    }
+  },
+  {
+    "say": "افتح موقع github.com",
+    "tool": "open_site",
+    "args": {
+      "domain": "github.com"
+    }
+  },
+  {
+    "say": "اكتب مرحباً بالعالم",
+    "tool": "type_text",
+    "args": {
+      "text": "مرحباً بالعالم"
+    }
+  },
+  {
+    "say": "ابدأ الإملاء الصوتي",
+    "tool": "dictate",
+    "args": {}
+  },
+  {
+    "say": "اضبط مؤقتاً لعشر دقائق",
+    "tool": "timer",
+    "args": {
+      "minutes": 10
+    }
+  },
+  {
+    "say": "اقفل شاشة الكمبيوتر",
+    "tool": "system",
+    "args": {
+      "op": "lock"
+    }
+  },
+  {
+    "say": "ضع الكمبيوتر في وضع السكون",
+    "tool": "system",
+    "args": {
+      "op": "sleep"
+    }
+  },
+  {
+    "say": "هل يمكنك صياغة هذه الرسالة بلباقة وحسن أسلوب",
+    "tool": "text_transform",
+    "args": {
+      "op": "polite"
+    }
+  },
+  {
+    "say": "احذف الحشو الزائد واختزل هذه الفقرة",
+    "tool": "text_transform",
+    "args": {
+      "op": "shorter"
+    }
+  },
+  {
+    "say": "دقق هذا النص المظلل لغويا ونحويا وإملائيا",
+    "tool": "text_transform",
+    "args": {
+      "op": "fix"
+    }
+  },
+  {
+    "say": "حول هذا المكتوب إلى خطاب عمل ديواني رفيع",
+    "tool": "text_transform",
+    "args": {
+      "op": "formal"
+    }
+  },
+  {
+    "say": "أعد كتابة العبارة بأسلوب ودي مبسط للمحادثات",
+    "tool": "text_transform",
+    "args": {
+      "op": "casual"
+    }
+  },
+  {
+    "say": "استخرج لي الزبدة والأفكار الجوهرية من هذا المقال",
+    "tool": "text_transform",
+    "args": {
+      "op": "summarize"
+    }
+  },
+  {
+    "say": "وضح لي بأسلوب ميسر ماذا يقصد الكاتب هنا",
+    "tool": "text_transform",
+    "args": {
+      "op": "explain"
+    }
+  },
+  {
+    "say": "انقل هذا الاقتباس إلى اللغة الإنجليزية من فضلك",
+    "tool": "text_transform",
+    "args": {
+      "op": "translate",
+      "lang": "en"
+    }
+  },
+  {
+    "say": "تفقد شاشتي وأخبرني بسبب تعطل أمر البناء",
+    "tool": "screen_ask",
+    "args": {
+      "question": "سبب تعطل أمر البناء في الشاشة"
+    }
+  },
+  {
+    "say": "نبهني لموعد أخذ الدواء بعد خمس وعشرين دقيقة",
+    "tool": "remind",
+    "args": {
+      "text": "أخذ الدواء",
+      "inMinutes": 25
+    }
+  },
+  {
+    "say": "أنشئ تنبيها لمقابلة العمل عند الساعة 11:00",
+    "tool": "remind",
+    "args": {
+      "text": "مقابلة العمل",
+      "at": "11:00"
+    }
+  },
+  {
+    "say": "استعرض أمامي كل المهام التي قيدتها في التنبيهات",
+    "tool": "reminders_show",
+    "args": {}
+  },
+  {
+    "say": "سجل علبة شاي أخضر ضمن قائمة البقالة",
+    "tool": "list_add",
+    "args": {
+      "list": "البقالة",
+      "item": "علبة شاي أخضر"
+    }
+  },
+  {
+    "say": "اعرض محتويات جدول أعمالي لهذا الأسبوع",
+    "tool": "list_show",
+    "args": {
+      "list": "أعمال الأسبوع"
+    }
+  },
+  {
+    "say": "اشطب شراء المناديل من جدول المشتريات",
+    "tool": "list_remove",
+    "args": {
+      "list": "المشتريات",
+      "item": "شراء المناديل"
+    }
+  },
+  {
+    "say": "أطلعني على مجريات يومي وجدولي وحالة الطقس",
+    "tool": "day_brief",
+    "args": {}
+  },
+  {
+    "say": "احفظ عندك أن مقاس حذائي هو ثلاثة وأربعون",
+    "tool": "memory_add",
+    "args": {
+      "text": "مقاس حذائي هو ثلاثة وأربعون"
+    }
+  },
+  {
+    "say": "احذف المعلومة المسجلة بشأن رقم الاشتراك القديم",
+    "tool": "memory_remove",
+    "args": {
+      "text": "رقم الاشتراك القديم"
+    }
+  }
 ]

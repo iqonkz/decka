@@ -1,27 +1,302 @@
 [
-  { "say": "调大音量", "tool": "volume", "args": { "op": "up" } },
-  { "say": "调小音量", "tool": "volume", "args": { "op": "down" } },
-  { "say": "静音", "tool": "volume", "args": { "op": "mute" } },
-  { "say": "将音量设置为百分之五十", "tool": "volume", "args": { "op": "set", "value": 50 } },
-  { "say": "暂停播放音乐", "tool": "media", "args": { "op": "play_pause" } },
-  { "say": "播放下一首歌曲", "tool": "media", "args": { "op": "next" } },
-  { "say": "返回上一首歌曲", "tool": "media", "args": { "op": "prev" } },
-  { "say": "打开计算器", "tool": "open_app", "args": { "name": "计算器" } },
-  { "say": "启动spotify", "tool": "open_app", "args": { "name": "spotify" } },
-  { "say": "关闭discord", "tool": "close_app", "args": { "name": "discord" } },
-  { "say": "切换到chrome浏览器", "tool": "switch_app", "args": { "name": "chrome" } },
-  { "say": "将窗口移动到另一个显示器", "tool": "window_other_monitor", "args": {} },
-  { "say": "这是哪个显示器", "tool": "which_monitor", "args": {} },
-  { "say": "切换到直播页面", "tool": "go_page", "args": { "name": "streaming" } },
-  { "say": "打开主页面", "tool": "go_page", "args": { "name": "main" } },
-  { "say": "按下麦克风静音按键", "tool": "press_button", "args": { "label": "mute mic" } },
-  { "say": "在网上搜索天气预报", "tool": "web_search", "args": { "site": "web", "query": "天气预报" } },
-  { "say": "在youtube搜索lofi音乐", "tool": "web_search", "args": { "site": "youtube", "query": "lofi hip hop" } },
-  { "say": "在地图上搜索附近的咖啡馆", "tool": "web_search", "args": { "site": "maps", "query": "附近咖啡馆" } },
-  { "say": "打开网址github.com", "tool": "open_site", "args": { "domain": "github.com" } },
-  { "say": "输入文本你好世界", "tool": "type_text", "args": { "text": "你好世界" } },
-  { "say": "开始听写", "tool": "dictate", "args": {} },
-  { "say": "设置十分钟倒计时", "tool": "timer", "args": { "minutes": 10 } },
-  { "say": "锁定电脑屏幕", "tool": "system", "args": { "op": "lock" } },
-  { "say": "让电脑进入睡眠模式", "tool": "system", "args": { "op": "sleep" } }
+  {
+    "say": "调大音量",
+    "tool": "volume",
+    "args": {
+      "op": "up"
+    }
+  },
+  {
+    "say": "调小音量",
+    "tool": "volume",
+    "args": {
+      "op": "down"
+    }
+  },
+  {
+    "say": "静音",
+    "tool": "volume",
+    "args": {
+      "op": "mute"
+    }
+  },
+  {
+    "say": "将音量设置为百分之五十",
+    "tool": "volume",
+    "args": {
+      "op": "set",
+      "value": 50
+    }
+  },
+  {
+    "say": "暂停播放音乐",
+    "tool": "media",
+    "args": {
+      "op": "play_pause"
+    }
+  },
+  {
+    "say": "播放下一首歌曲",
+    "tool": "media",
+    "args": {
+      "op": "next"
+    }
+  },
+  {
+    "say": "返回上一首歌曲",
+    "tool": "media",
+    "args": {
+      "op": "prev"
+    }
+  },
+  {
+    "say": "打开计算器",
+    "tool": "open_app",
+    "args": {
+      "name": "计算器"
+    }
+  },
+  {
+    "say": "启动spotify",
+    "tool": "open_app",
+    "args": {
+      "name": "spotify"
+    }
+  },
+  {
+    "say": "关闭discord",
+    "tool": "close_app",
+    "args": {
+      "name": "discord"
+    }
+  },
+  {
+    "say": "切换到chrome浏览器",
+    "tool": "switch_app",
+    "args": {
+      "name": "chrome"
+    }
+  },
+  {
+    "say": "将窗口移动到另一个显示器",
+    "tool": "window_other_monitor",
+    "args": {}
+  },
+  {
+    "say": "这是哪个显示器",
+    "tool": "which_monitor",
+    "args": {}
+  },
+  {
+    "say": "切换到直播页面",
+    "tool": "go_page",
+    "args": {
+      "name": "streaming"
+    }
+  },
+  {
+    "say": "打开主页面",
+    "tool": "go_page",
+    "args": {
+      "name": "main"
+    }
+  },
+  {
+    "say": "按下麦克风静音按键",
+    "tool": "press_button",
+    "args": {
+      "label": "mute mic"
+    }
+  },
+  {
+    "say": "在网上搜索天气预报",
+    "tool": "web_search",
+    "args": {
+      "site": "web",
+      "query": "天气预报"
+    }
+  },
+  {
+    "say": "在youtube搜索lofi音乐",
+    "tool": "web_search",
+    "args": {
+      "site": "youtube",
+      "query": "lofi hip hop"
+    }
+  },
+  {
+    "say": "在地图上搜索附近的咖啡馆",
+    "tool": "web_search",
+    "args": {
+      "site": "maps",
+      "query": "附近咖啡馆"
+    }
+  },
+  {
+    "say": "打开网址github.com",
+    "tool": "open_site",
+    "args": {
+      "domain": "github.com"
+    }
+  },
+  {
+    "say": "输入文本你好世界",
+    "tool": "type_text",
+    "args": {
+      "text": "你好世界"
+    }
+  },
+  {
+    "say": "开始听写",
+    "tool": "dictate",
+    "args": {}
+  },
+  {
+    "say": "设置十分钟倒计时",
+    "tool": "timer",
+    "args": {
+      "minutes": 10
+    }
+  },
+  {
+    "say": "锁定电脑屏幕",
+    "tool": "system",
+    "args": {
+      "op": "lock"
+    }
+  },
+  {
+    "say": "让电脑进入睡眠模式",
+    "tool": "system",
+    "args": {
+      "op": "sleep"
+    }
+  },
+  {
+    "say": "麻烦把这封邮件改写得更温和有礼貌一些",
+    "tool": "text_transform",
+    "args": {
+      "op": "polite"
+    }
+  },
+  {
+    "say": "把这段文字精简压缩只保留核心要点",
+    "tool": "text_transform",
+    "args": {
+      "op": "shorter"
+    }
+  },
+  {
+    "say": "检查选中文本中的错别字标点和语病问题",
+    "tool": "text_transform",
+    "args": {
+      "op": "fix"
+    }
+  },
+  {
+    "say": "把这篇草稿转变为严谨规范的商务公文口吻",
+    "tool": "text_transform",
+    "args": {
+      "op": "formal"
+    }
+  },
+  {
+    "say": "将这几句话改成亲切自然的口语闲聊风格",
+    "tool": "text_transform",
+    "args": {
+      "op": "casual"
+    }
+  },
+  {
+    "say": "归纳提取出这份报告最关键的核心论点",
+    "tool": "text_transform",
+    "args": {
+      "op": "summarize"
+    }
+  },
+  {
+    "say": "用通俗易懂的语言阐释一下这个专业术语",
+    "tool": "text_transform",
+    "args": {
+      "op": "explain"
+    }
+  },
+  {
+    "say": "把选中的这篇短文精准翻译成英文版",
+    "tool": "text_transform",
+    "args": {
+      "op": "translate",
+      "lang": "en"
+    }
+  },
+  {
+    "say": "帮我看看屏幕终端里报错的具体原因是什么",
+    "tool": "screen_ask",
+    "args": {
+      "question": "终端报错的具体原因"
+    }
+  },
+  {
+    "say": "过二十五分钟后提示我去喝水活动一下",
+    "tool": "remind",
+    "args": {
+      "text": "喝水活动",
+      "inMinutes": 25
+    }
+  },
+  {
+    "say": "在下午15点30分提醒我参加部门周会",
+    "tool": "remind",
+    "args": {
+      "text": "参加部门周会",
+      "at": "15:30"
+    }
+  },
+  {
+    "say": "把系统里所有待办提醒事项整齐列出来",
+    "tool": "reminders_show",
+    "args": {}
+  },
+  {
+    "say": "在采购清册中追加一箱低脂纯牛奶",
+    "tool": "list_add",
+    "args": {
+      "list": "采购清册",
+      "item": "低脂纯牛奶"
+    }
+  },
+  {
+    "say": "浏览一下本周工作重点列表里的各项任务",
+    "tool": "list_show",
+    "args": {
+      "list": "本周工作重点"
+    }
+  },
+  {
+    "say": "把采购单里的洗发水标记为已买并剔除",
+    "tool": "list_remove",
+    "args": {
+      "list": "采购单",
+      "item": "洗发水"
+    }
+  },
+  {
+    "say": "为我汇总一下今天的整体工作日程与天气状况",
+    "tool": "day_brief",
+    "args": {}
+  },
+  {
+    "say": "帮我记住我家宠物的名字叫糯米团子",
+    "tool": "memory_add",
+    "args": {
+      "text": "宠物名字叫糯米团子"
+    }
+  },
+  {
+    "say": "清除掉关于旧办公室门禁密码的记忆",
+    "tool": "memory_remove",
+    "args": {
+      "text": "旧办公室门禁密码"
+    }
+  }
 ]

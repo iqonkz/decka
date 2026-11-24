@@ -1,23 +1,349 @@
 {
   "lang": "ja",
-  "yes": ["はい", "ええ", "確認", "了解", "そうです"],
-  "no": ["いいえ", "キャンセル", "やめて", "停止", "違います"],
+  "yes": [
+    "はい",
+    "ええ",
+    "確認",
+    "了解",
+    "そうです"
+  ],
+  "no": [
+    "いいえ",
+    "キャンセル",
+    "やめて",
+    "停止",
+    "違います"
+  ],
   "intents": [
-    { "tool": "volume", "args": { "op": "up" }, "patterns": ["音量を上げて", "音量を大きくして", "もっと大きく"] },
-    { "tool": "volume", "args": { "op": "down" }, "patterns": ["音量を下げて", "音量を小さくして", "もっと静かに", "音量を少し下げてください", "音量を少し下げて", "音量を下げてください"] },
-    { "tool": "volume", "args": { "op": "mute" }, "patterns": ["ミュート", "消音", "音声を消す", "音声をミュート", "ミュートにして"] },
-    { "tool": "media", "args": { "op": "play_pause" }, "patterns": ["再生", "一時停止", "再開", "停止", "再生を一時停止して", "一時停止して"] },
-    { "tool": "media", "args": { "op": "next" }, "patterns": ["次の曲", "次のトラック", "スキップ"] },
-    { "tool": "media", "args": { "op": "prev" }, "patterns": ["前の曲", "前のトラック"] },
-    { "tool": "open_app", "patterns": ["{app}を開く", "{app}を起動して", "{app}を開いて", "{app}を開いてください"] },
-    { "tool": "close_app", "patterns": ["{app}を閉じる", "{app}を終了して"] },
-    { "tool": "switch_app", "patterns": ["{app}に切り替えて", "{app}へ移動"] },
-    { "tool": "go_page", "patterns": ["ページ{name}を開く", "ページ{name}に移動"] },
-    { "tool": "press_button", "patterns": ["キー{label}を押す", "{label}を押して"] },
-    { "tool": "web_search", "args": { "site": "web" }, "patterns": ["{query}を検索", "ウェブで{query}を検索"] },
-    { "tool": "web_search", "args": { "site": "youtube" }, "patterns": ["youtubeで{query}を検索", "ユーチューブで{query}を検索"] },
-    { "tool": "timer", "patterns": ["{n}分のタイマー", "{n}分のタイマーをセット", "{n}分のタイマーをかけて", "{n}分タイマー"] },
-    { "tool": "system", "args": { "op": "lock" }, "patterns": ["pcをロック", "画面をロック", "コンピューターをロック", "パソコンの画面をロック", "パソコンをロック"] },
-    { "tool": "system", "args": { "op": "sleep" }, "patterns": ["pcをスリープ", "スリープ状態にする", "パソコンをスリープにして", "パソコンをスリープ"] }
+    {
+      "tool": "volume",
+      "args": {
+        "op": "up"
+      },
+      "patterns": [
+        "音量を上げて",
+        "音量を大きくして",
+        "もっと大きく"
+      ]
+    },
+    {
+      "tool": "volume",
+      "args": {
+        "op": "down"
+      },
+      "patterns": [
+        "音量を下げて",
+        "音量を小さくして",
+        "もっと静かに",
+        "音量を少し下げてください",
+        "音量を少し下げて",
+        "音量を下げてください"
+      ]
+    },
+    {
+      "tool": "volume",
+      "args": {
+        "op": "mute"
+      },
+      "patterns": [
+        "ミュート",
+        "消音",
+        "音声を消す",
+        "音声をミュート",
+        "ミュートにして"
+      ]
+    },
+    {
+      "tool": "media",
+      "args": {
+        "op": "play_pause"
+      },
+      "patterns": [
+        "再生",
+        "一時停止",
+        "再開",
+        "停止",
+        "再生を一時停止して",
+        "一時停止して"
+      ]
+    },
+    {
+      "tool": "media",
+      "args": {
+        "op": "next"
+      },
+      "patterns": [
+        "次の曲",
+        "次のトラック",
+        "スキップ"
+      ]
+    },
+    {
+      "tool": "media",
+      "args": {
+        "op": "prev"
+      },
+      "patterns": [
+        "前の曲",
+        "前のトラック"
+      ]
+    },
+    {
+      "tool": "open_app",
+      "patterns": [
+        "{app}を開く",
+        "{app}を起動して",
+        "{app}を開いて",
+        "{app}を開いてください"
+      ]
+    },
+    {
+      "tool": "close_app",
+      "patterns": [
+        "{app}を閉じる",
+        "{app}を終了して"
+      ]
+    },
+    {
+      "tool": "switch_app",
+      "patterns": [
+        "{app}に切り替えて",
+        "{app}へ移動"
+      ]
+    },
+    {
+      "tool": "go_page",
+      "patterns": [
+        "ページ{name}を開く",
+        "ページ{name}に移動"
+      ]
+    },
+    {
+      "tool": "press_button",
+      "patterns": [
+        "キー{label}を押す",
+        "{label}を押して"
+      ]
+    },
+    {
+      "tool": "web_search",
+      "args": {
+        "site": "web"
+      },
+      "patterns": [
+        "{query}を検索",
+        "ウェブで{query}を検索"
+      ]
+    },
+    {
+      "tool": "web_search",
+      "args": {
+        "site": "youtube"
+      },
+      "patterns": [
+        "youtubeで{query}を検索",
+        "ユーチューブで{query}を検索"
+      ]
+    },
+    {
+      "tool": "timer",
+      "patterns": [
+        "{n}分のタイマー",
+        "{n}分のタイマーをセット",
+        "{n}分のタイマーをかけて",
+        "{n}分タイマー"
+      ]
+    },
+    {
+      "tool": "system",
+      "args": {
+        "op": "lock"
+      },
+      "patterns": [
+        "pcをロック",
+        "画面をロック",
+        "コンピューターをロック",
+        "パソコンの画面をロック",
+        "パソコンをロック"
+      ]
+    },
+    {
+      "tool": "system",
+      "args": {
+        "op": "sleep"
+      },
+      "patterns": [
+        "pcをスリープ",
+        "スリープ状態にする",
+        "パソコンをスリープにして",
+        "パソコンをスリープ"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "polite"
+      },
+      "patterns": [
+        "丁寧にして",
+        "もっと丁寧に書いて",
+        "丁寧に書き直して"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "shorter"
+      },
+      "patterns": [
+        "短くして",
+        "要約して短く",
+        "簡潔にして",
+        "短縮して"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "fix"
+      },
+      "patterns": [
+        "誤字を修正して",
+        "間違いを直して",
+        "文法を直して",
+        "文章を校正して"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "formal"
+      },
+      "patterns": [
+        "かしこまった表現にして",
+        "フォーマルにして",
+        "ビジネス向けにして"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "casual"
+      },
+      "patterns": [
+        "カジュアルにして",
+        "くだけた表現にして",
+        "フランクにして"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "summarize"
+      },
+      "patterns": [
+        "要約して",
+        "まとめを教えて",
+        "概要をまとめて"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "explain"
+      },
+      "patterns": [
+        "これを説明して",
+        "意味を説明して",
+        "詳しく教えて"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "translate"
+      },
+      "patterns": [
+        "{lang}に翻訳して",
+        "{lang}に訳して",
+        "{lang}へ翻訳"
+      ]
+    },
+    {
+      "tool": "screen_ask",
+      "patterns": [
+        "画面には何がある",
+        "画面を説明して",
+        "ここは何を押す",
+        "このエラーを説明して"
+      ]
+    },
+    {
+      "tool": "remind",
+      "patterns": [
+        "{n}分後に{text}をリマインドして",
+        "{n}分後に{text}を教えて",
+        "{time}に{text}をリマインドして",
+        "{text}をリマインドして"
+      ]
+    },
+    {
+      "tool": "reminders_show",
+      "patterns": [
+        "リマインダーを見せて",
+        "リマインダーを表示",
+        "リマインダーを開いて",
+        "リマインダー一覧"
+      ]
+    },
+    {
+      "tool": "list_add",
+      "patterns": [
+        "{list}リストに{item}を追加して",
+        "{list}に{item}を追加",
+        "{list}に{item}を入れて"
+      ]
+    },
+    {
+      "tool": "list_show",
+      "patterns": [
+        "{list}リストを見せて",
+        "{list}リストを開いて"
+      ]
+    },
+    {
+      "tool": "list_remove",
+      "patterns": [
+        "{list}リストから{item}を削除して",
+        "{list}から{item}を消して",
+        "{list}から{item}を取り消して"
+      ]
+    },
+    {
+      "tool": "day_brief",
+      "patterns": [
+        "おはよう",
+        "今日の予定",
+        "デイリーブリーフ",
+        "今日の概要",
+        "今日のまとめ"
+      ]
+    },
+    {
+      "tool": "memory_add",
+      "patterns": [
+        "{text}と覚えて",
+        "{text}を覚えておいて",
+        "{text}を記憶して"
+      ]
+    },
+    {
+      "tool": "memory_remove",
+      "patterns": [
+        "{text}を忘れて",
+        "{text}の記憶を消して",
+        "{text}を忘れてください"
+      ]
+    }
   ]
 }

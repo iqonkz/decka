@@ -316,6 +316,13 @@ fn match_pieces(pieces: &[Piece], toks: &[String]) -> Option<Vec<(String, Vec<St
 fn arg_name(tool: &str, slot: &str) -> &'static str {
     match (slot, tool) {
         ("n", "volume") => "value",
+        ("n", "remind") => "inMinutes",
+        ("text", "screen_ask") => "question",
+        ("text", _) => "text",
+        ("item", _) => "item",
+        ("list", _) => "list",
+        ("lang", _) => "lang",
+        ("time", _) => "time",
         ("n", _) => "minutes",
         ("app", _) | ("name", _) => "name",
         ("label", _) => "label",
@@ -323,6 +330,25 @@ fn arg_name(tool: &str, slot: &str) -> &'static str {
         ("domain", _) => "domain",
         _ => "name",
     }
+}
+
+/// The code of a language said by its name (English, Russian or its own name).
+fn lang_code(name: &str) -> Option<&'static str> {
+    const NAMES: [(&str, &[&str]); 11] = [
+        ("en", &["english", "английский", "англійски", "inglés", "anglais", "inglês", "englisch", "英语", "英語", "ағылшын"]),
+        ("zh", &["chinese", "китайский", "chino", "chinois", "chinês", "chinesisch", "中文", "汉语", "中国語", "қытай"]),
+        ("hi", &["hindi", "хинди", "हिंदी", "हिन्दी", "ヒンディー語", "印地语", "印地語"]),
+        ("es", &["spanish", "испанский", "español", "espagnol", "espanhol", "spanisch", "西班牙语", "スペイン語", "испан"]),
+        ("ar", &["arabic", "арабский", "árabe", "arabe", "árabe", "arabisch", "العربية", "阿拉伯语", "アラビア語", "араб"]),
+        ("fr", &["french", "французский", "francés", "français", "francês", "französisch", "法语", "フランス語", "француз"]),
+        ("pt", &["portuguese", "португальский", "portugués", "portugais", "português", "portugiesisch", "葡萄牙语", "ポルトガル語", "португал"]),
+        ("ru", &["russian", "русский", "ruso", "russe", "russo", "russisch", "俄语", "ロシア語", "орыс"]),
+        ("de", &["german", "немецкий", "alemán", "allemand", "alemão", "deutsch", "德语", "ドイツ語", "неміс"]),
+        ("ja", &["japanese", "японский", "japonés", "japonais", "japonês", "japanisch", "日语", "日本語", "жапон"]),
+        ("kk", &["kazakh", "казахский", "kazajo", "kazakh", "cazaque", "kasachisch", "哈萨克语", "カザフ語", "қазақ"]),
+    ];
+    let n = name.trim().to_lowercase();
+    NAMES.iter().find(|(_, names)| names.iter().any(|x| *x == n)).map(|(c, _)| *c)
 }
 
 impl Table {
@@ -345,11 +371,21 @@ impl Table {
         let mut args = base.clone();
         for (slot, toks) in slots {
             let name = arg_name(tool, slot);
-            if name == "minutes" || name == "value" {
+            if name == "lang" {
+                // A language said by name ("Russian", "русский") becomes its code; an unknown one is left to the model.
+                args.insert(name.into(), json!(lang_code(&join(toks))?));
+            } else if name == "time" {
+                // "at 9:30" needs the clock to know the day: the model resolves it, not this table.
+                return None;
+            } else if name == "minutes" || name == "value" || name == "inMinutes" {
                 args.insert(name.into(), json!(toks.first()?.parse::<u32>().ok()?));
             } else {
                 args.insert(name.into(), json!(join(toks)));
             }
+        }
+        // Templates that cannot make a valid call alone are left to the model: a reminder without a time, a fact (its case matters).
+        if (tool == "remind" && !args.contains_key("inMinutes")) || tool == "memory_add" {
+            return None;
         }
         Some(Intent { tool: tool.clone(), args })
     }
@@ -472,6 +508,23 @@ mod tests {
         assert_eq!((i.tool.as_str(), i.args["minutes"].as_u64()), ("timer", Some(15)));
         let i = hit(&t, "search youtube for cat videos");
         assert_eq!((i.tool.as_str(), i.args["site"].as_str(), i.args["query"].as_str()), ("web_search", Some("youtube"), Some("cat videos")));
+    }
+
+    #[test]
+    fn m22_templates_fill_the_arguments_the_tools_expect() {
+        let t = en();
+        let i = hit(&t, "remind me to call mom in 10 minutes");
+        assert_eq!((i.tool.as_str(), i.args["text"].as_str(), i.args["inMinutes"].as_u64()), ("remind", Some("call mom"), Some(10)));
+        let i = hit(&t, "translate to Russian");
+        assert_eq!((i.tool.as_str(), i.args["op"].as_str(), i.args["lang"].as_str()), ("text_transform", Some("translate"), Some("ru")));
+        let i = hit(&t, "add milk to shopping list");
+        assert_eq!((i.tool.as_str(), i.args["item"].as_str(), i.args["list"].as_str()), ("list_add", Some("milk"), Some("shopping")));
+        let i = hit(&t, "show shopping list");
+        assert_eq!((i.tool.as_str(), i.args["list"].as_str()), ("list_show", Some("shopping")));
+        // Left to the model: a day-less clock time, a reminder without a time, an unknown language, a fact (its case matters).
+        for phrase in ["remind me to call mom at 9", "remind me to call mom", "translate to Klingon", "remember that Aigerim is my wife"] {
+            assert!(!matches!(t.matches(phrase), Match::Hit(_)), "{phrase}");
+        }
     }
 
     #[test]

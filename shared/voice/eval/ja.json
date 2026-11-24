@@ -1,27 +1,302 @@
 [
-  { "say": "音量を上げてください", "tool": "volume", "args": { "op": "up" } },
-  { "say": "音量を下げてください", "tool": "volume", "args": { "op": "down" } },
-  { "say": "音声をミュートにして", "tool": "volume", "args": { "op": "mute" } },
-  { "say": "音量を50パーセントに設定", "tool": "volume", "args": { "op": "set", "value": 50 } },
-  { "say": "音楽を一時停止", "tool": "media", "args": { "op": "play_pause" } },
-  { "say": "次のトラックへスキップ", "tool": "media", "args": { "op": "next" } },
-  { "say": "前の曲を再生", "tool": "media", "args": { "op": "prev" } },
-  { "say": "電卓を開く", "tool": "open_app", "args": { "name": "calculator" } },
-  { "say": "spotifyを起動して", "tool": "open_app", "args": { "name": "spotify" } },
-  { "say": "discordを閉じて", "tool": "close_app", "args": { "name": "discord" } },
-  { "say": "chromeに切り替える", "tool": "switch_app", "args": { "name": "chrome" } },
-  { "say": "ウィンドウをもう一つのモニターへ移動", "tool": "window_other_monitor", "args": {} },
-  { "say": "これはどのモニターですか", "tool": "which_monitor", "args": {} },
-  { "say": "配信ページを開いて", "tool": "go_page", "args": { "name": "streaming" } },
-  { "say": "メインページに移動", "tool": "go_page", "args": { "name": "main" } },
-  { "say": "マイクミュートキーを押す", "tool": "press_button", "args": { "label": "mute mic" } },
-  { "say": "ウェブで天気予報を検索", "tool": "web_search", "args": { "site": "web", "query": "天気予報" } },
-  { "say": "youtubeでlofi音楽を検索", "tool": "web_search", "args": { "site": "youtube", "query": "lofi hip hop" } },
-  { "say": "マップで近くのカフェを検索", "tool": "web_search", "args": { "site": "maps", "query": "近くのカフェ" } },
-  { "say": "github.comを開いて", "tool": "open_site", "args": { "domain": "github.com" } },
-  { "say": "こんにちは世界と入力して", "tool": "type_text", "args": { "text": "こんにちは世界" } },
-  { "say": "音声入力を開始", "tool": "dictate", "args": {} },
-  { "say": "10分のタイマーをセットして", "tool": "timer", "args": { "minutes": 10 } },
-  { "say": "パソコンをロックして", "tool": "system", "args": { "op": "lock" } },
-  { "say": "パソコンをスリープ状態にする", "tool": "system", "args": { "op": "sleep" } }
+  {
+    "say": "音量を上げてください",
+    "tool": "volume",
+    "args": {
+      "op": "up"
+    }
+  },
+  {
+    "say": "音量を下げてください",
+    "tool": "volume",
+    "args": {
+      "op": "down"
+    }
+  },
+  {
+    "say": "音声をミュートにして",
+    "tool": "volume",
+    "args": {
+      "op": "mute"
+    }
+  },
+  {
+    "say": "音量を50パーセントに設定",
+    "tool": "volume",
+    "args": {
+      "op": "set",
+      "value": 50
+    }
+  },
+  {
+    "say": "音楽を一時停止",
+    "tool": "media",
+    "args": {
+      "op": "play_pause"
+    }
+  },
+  {
+    "say": "次のトラックへスキップ",
+    "tool": "media",
+    "args": {
+      "op": "next"
+    }
+  },
+  {
+    "say": "前の曲を再生",
+    "tool": "media",
+    "args": {
+      "op": "prev"
+    }
+  },
+  {
+    "say": "電卓を開く",
+    "tool": "open_app",
+    "args": {
+      "name": "calculator"
+    }
+  },
+  {
+    "say": "spotifyを起動して",
+    "tool": "open_app",
+    "args": {
+      "name": "spotify"
+    }
+  },
+  {
+    "say": "discordを閉じて",
+    "tool": "close_app",
+    "args": {
+      "name": "discord"
+    }
+  },
+  {
+    "say": "chromeに切り替える",
+    "tool": "switch_app",
+    "args": {
+      "name": "chrome"
+    }
+  },
+  {
+    "say": "ウィンドウをもう一つのモニターへ移動",
+    "tool": "window_other_monitor",
+    "args": {}
+  },
+  {
+    "say": "これはどのモニターですか",
+    "tool": "which_monitor",
+    "args": {}
+  },
+  {
+    "say": "配信ページを開いて",
+    "tool": "go_page",
+    "args": {
+      "name": "streaming"
+    }
+  },
+  {
+    "say": "メインページに移動",
+    "tool": "go_page",
+    "args": {
+      "name": "main"
+    }
+  },
+  {
+    "say": "マイクミュートキーを押す",
+    "tool": "press_button",
+    "args": {
+      "label": "mute mic"
+    }
+  },
+  {
+    "say": "ウェブで天気予報を検索",
+    "tool": "web_search",
+    "args": {
+      "site": "web",
+      "query": "天気予報"
+    }
+  },
+  {
+    "say": "youtubeでlofi音楽を検索",
+    "tool": "web_search",
+    "args": {
+      "site": "youtube",
+      "query": "lofi hip hop"
+    }
+  },
+  {
+    "say": "マップで近くのカフェを検索",
+    "tool": "web_search",
+    "args": {
+      "site": "maps",
+      "query": "近くのカフェ"
+    }
+  },
+  {
+    "say": "github.comを開いて",
+    "tool": "open_site",
+    "args": {
+      "domain": "github.com"
+    }
+  },
+  {
+    "say": "こんにちは世界と入力して",
+    "tool": "type_text",
+    "args": {
+      "text": "こんにちは世界"
+    }
+  },
+  {
+    "say": "音声入力を開始",
+    "tool": "dictate",
+    "args": {}
+  },
+  {
+    "say": "10分のタイマーをセットして",
+    "tool": "timer",
+    "args": {
+      "minutes": 10
+    }
+  },
+  {
+    "say": "パソコンをロックして",
+    "tool": "system",
+    "args": {
+      "op": "lock"
+    }
+  },
+  {
+    "say": "パソコンをスリープ状態にする",
+    "tool": "system",
+    "args": {
+      "op": "sleep"
+    }
+  },
+  {
+    "say": "この文面を角が立たない丁寧な言葉遣いに直してください",
+    "tool": "text_transform",
+    "args": {
+      "op": "polite"
+    }
+  },
+  {
+    "say": "選択範囲の文章をコンパクトに凝縮してください",
+    "tool": "text_transform",
+    "args": {
+      "op": "shorter"
+    }
+  },
+  {
+    "say": "この段落の誤字脱字や助詞の誤りを校正して",
+    "tool": "text_transform",
+    "args": {
+      "op": "fix"
+    }
+  },
+  {
+    "say": "ビジネスメールにふさわしい改まった文体に変換して",
+    "tool": "text_transform",
+    "args": {
+      "op": "formal"
+    }
+  },
+  {
+    "say": "チャットで送りやすい親しみのある口調に変えて",
+    "tool": "text_transform",
+    "args": {
+      "op": "casual"
+    }
+  },
+  {
+    "say": "この記事の核心となる論点を箇条書きでまとめて",
+    "tool": "text_transform",
+    "args": {
+      "op": "summarize"
+    }
+  },
+  {
+    "say": "この技術用語が指し示す概念を分かりやすく説いて",
+    "tool": "text_transform",
+    "args": {
+      "op": "explain"
+    }
+  },
+  {
+    "say": "この日本語のフレーズを英語に変換してください",
+    "tool": "text_transform",
+    "args": {
+      "op": "translate",
+      "lang": "en"
+    }
+  },
+  {
+    "say": "コンソールに出力された異常終了の原因を教えて",
+    "tool": "screen_ask",
+    "args": {
+      "question": "コンソールの異常終了の原因"
+    }
+  },
+  {
+    "say": "30分が経過したら洗濯物を取り込むよう教えて",
+    "tool": "remind",
+    "args": {
+      "text": "洗濯物を取り込む",
+      "inMinutes": 30
+    }
+  },
+  {
+    "say": "16時45分に来客がある旨のアラートを入れて",
+    "tool": "remind",
+    "args": {
+      "text": "来客",
+      "at": "16:45"
+    }
+  },
+  {
+    "say": "登録されている通知予定を全部並べてみせて",
+    "tool": "reminders_show",
+    "args": {}
+  },
+  {
+    "say": "買い物メモにオーガニック卵を付け足しておいて",
+    "tool": "list_add",
+    "args": {
+      "list": "買い物メモ",
+      "item": "オーガニック卵"
+    }
+  },
+  {
+    "say": "本日の進行案件リストの中身を確認したい",
+    "tool": "list_show",
+    "args": {
+      "list": "進行案件"
+    }
+  },
+  {
+    "say": "食材調達メモから牛乳の項目を取り消して",
+    "tool": "list_remove",
+    "args": {
+      "list": "食材調達メモ",
+      "item": "牛乳"
+    }
+  },
+  {
+    "say": "今日一日のスケジュールと優先課題をブリーフィングして",
+    "tool": "day_brief",
+    "args": {}
+  },
+  {
+    "say": "私の好物は抹茶アイスクリームだと記憶しておいて",
+    "tool": "memory_add",
+    "args": {
+      "text": "好物は抹茶アイスクリーム"
+    }
+  },
+  {
+    "say": "以前記録した旧住所のデータを記憶から消去して",
+    "tool": "memory_remove",
+    "args": {
+      "text": "旧住所"
+    }
+  }
 ]

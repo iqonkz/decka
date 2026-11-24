@@ -1,27 +1,302 @@
 [
-  { "say": "आवाज़ थोड़ी बढ़ाओ", "tool": "volume", "args": { "op": "up" } },
-  { "say": "आवाज़ थोड़ी कम करो", "tool": "volume", "args": { "op": "down" } },
-  { "say": "आवाज़ पूरी तरह बंद करो", "tool": "volume", "args": { "op": "mute" } },
-  { "say": "आवाज़ पचास प्रतिशत पर सेट करो", "tool": "volume", "args": { "op": "set", "value": 50 } },
-  { "say": "संगीत को रोकें", "tool": "media", "args": { "op": "play_pause" } },
-  { "say": "अगला गाना चलाओ", "tool": "media", "args": { "op": "next" } },
-  { "say": "पिछला गाना बजाओ", "tool": "media", "args": { "op": "prev" } },
-  { "say": "कैलकुलेटर ऐप खोलो", "tool": "open_app", "args": { "name": "calculator" } },
-  { "say": "spotify शुरू करो", "tool": "open_app", "args": { "name": "spotify" } },
-  { "say": "discord बंद कर दो", "tool": "close_app", "args": { "name": "discord" } },
-  { "say": "chrome ब्राउज़र पर जाओ", "tool": "switch_app", "args": { "name": "chrome" } },
-  { "say": "विंडो को दूसरे मॉनिटर पर भेजो", "tool": "window_other_monitor", "args": {} },
-  { "say": "यह कौन सा मॉनिटर है", "tool": "which_monitor", "args": {} },
-  { "say": "स्ट्रीमिंग पेज पर जाओ", "tool": "go_page", "args": { "name": "streaming" } },
-  { "say": "मुख्य पेज खोलो", "tool": "go_page", "args": { "name": "main" } },
-  { "say": "माइक म्यूट बटन दबाओ", "tool": "press_button", "args": { "label": "mute mic" } },
-  { "say": "इंटरनेट पर मौसम का हाल खोजें", "tool": "web_search", "args": { "site": "web", "query": "weather forecast" } },
-  { "say": "यूट्यूब पर लो-फाई गाने ढूँढो", "tool": "web_search", "args": { "site": "youtube", "query": "lofi hip hop" } },
-  { "say": "नक्शे पर नज़दीकी कैफ़े ढूँढें", "tool": "web_search", "args": { "site": "maps", "query": "nearby cafes" } },
-  { "say": "वेबसाइट github.com खोलो", "tool": "open_site", "args": { "domain": "github.com" } },
-  { "say": "नमस्ते दुनिया टाइप करो", "tool": "type_text", "args": { "text": "नमस्ते दुनिया" } },
-  { "say": "बोलकर टाइप करना शुरू करो", "tool": "dictate", "args": {} },
-  { "say": "दस मिनट का टाइमर लगाओ", "tool": "timer", "args": { "minutes": 10 } },
-  { "say": "स्क्रीन लॉक कर दो", "tool": "system", "args": { "op": "lock" } },
-  { "say": "कंप्यूटर को स्लीप कर दो", "tool": "system", "args": { "op": "sleep" } }
+  {
+    "say": "आवाज़ थोड़ी बढ़ाओ",
+    "tool": "volume",
+    "args": {
+      "op": "up"
+    }
+  },
+  {
+    "say": "आवाज़ थोड़ी कम करो",
+    "tool": "volume",
+    "args": {
+      "op": "down"
+    }
+  },
+  {
+    "say": "आवाज़ पूरी तरह बंद करो",
+    "tool": "volume",
+    "args": {
+      "op": "mute"
+    }
+  },
+  {
+    "say": "आवाज़ पचास प्रतिशत पर सेट करो",
+    "tool": "volume",
+    "args": {
+      "op": "set",
+      "value": 50
+    }
+  },
+  {
+    "say": "संगीत को रोकें",
+    "tool": "media",
+    "args": {
+      "op": "play_pause"
+    }
+  },
+  {
+    "say": "अगला गाना चलाओ",
+    "tool": "media",
+    "args": {
+      "op": "next"
+    }
+  },
+  {
+    "say": "पिछला गाना बजाओ",
+    "tool": "media",
+    "args": {
+      "op": "prev"
+    }
+  },
+  {
+    "say": "कैलकुलेटर ऐप खोलो",
+    "tool": "open_app",
+    "args": {
+      "name": "calculator"
+    }
+  },
+  {
+    "say": "spotify शुरू करो",
+    "tool": "open_app",
+    "args": {
+      "name": "spotify"
+    }
+  },
+  {
+    "say": "discord बंद कर दो",
+    "tool": "close_app",
+    "args": {
+      "name": "discord"
+    }
+  },
+  {
+    "say": "chrome ब्राउज़र पर जाओ",
+    "tool": "switch_app",
+    "args": {
+      "name": "chrome"
+    }
+  },
+  {
+    "say": "विंडो को दूसरे मॉनिटर पर भेजो",
+    "tool": "window_other_monitor",
+    "args": {}
+  },
+  {
+    "say": "यह कौन सा मॉनिटर है",
+    "tool": "which_monitor",
+    "args": {}
+  },
+  {
+    "say": "स्ट्रीमिंग पेज पर जाओ",
+    "tool": "go_page",
+    "args": {
+      "name": "streaming"
+    }
+  },
+  {
+    "say": "मुख्य पेज खोलो",
+    "tool": "go_page",
+    "args": {
+      "name": "main"
+    }
+  },
+  {
+    "say": "माइक म्यूट बटन दबाओ",
+    "tool": "press_button",
+    "args": {
+      "label": "mute mic"
+    }
+  },
+  {
+    "say": "इंटरनेट पर मौसम का हाल खोजें",
+    "tool": "web_search",
+    "args": {
+      "site": "web",
+      "query": "weather forecast"
+    }
+  },
+  {
+    "say": "यूट्यूब पर लो-फाई गाने ढूँढो",
+    "tool": "web_search",
+    "args": {
+      "site": "youtube",
+      "query": "lofi hip hop"
+    }
+  },
+  {
+    "say": "नक्शे पर नज़दीकी कैफ़े ढूँढें",
+    "tool": "web_search",
+    "args": {
+      "site": "maps",
+      "query": "nearby cafes"
+    }
+  },
+  {
+    "say": "वेबसाइट github.com खोलो",
+    "tool": "open_site",
+    "args": {
+      "domain": "github.com"
+    }
+  },
+  {
+    "say": "नमस्ते दुनिया टाइप करो",
+    "tool": "type_text",
+    "args": {
+      "text": "नमस्ते दुनिया"
+    }
+  },
+  {
+    "say": "बोलकर टाइप करना शुरू करो",
+    "tool": "dictate",
+    "args": {}
+  },
+  {
+    "say": "दस मिनट का टाइमर लगाओ",
+    "tool": "timer",
+    "args": {
+      "minutes": 10
+    }
+  },
+  {
+    "say": "स्क्रीन लॉक कर दो",
+    "tool": "system",
+    "args": {
+      "op": "lock"
+    }
+  },
+  {
+    "say": "कंप्यूटर को स्लीप कर दो",
+    "tool": "system",
+    "args": {
+      "op": "sleep"
+    }
+  },
+  {
+    "say": "कृपया इस ईमेल को थोड़े शिष्ट और आदरणीय लहजे में बदलें",
+    "tool": "text_transform",
+    "args": {
+      "op": "polite"
+    }
+  },
+  {
+    "say": "इस अनुच्छेद से अनावश्यक बातें हटाकर सीमित करें",
+    "tool": "text_transform",
+    "args": {
+      "op": "shorter"
+    }
+  },
+  {
+    "say": "चुने हुए हिस्से की वर्तनी और व्याकरण की गलतियों को ठीक करें",
+    "tool": "text_transform",
+    "args": {
+      "op": "fix"
+    }
+  },
+  {
+    "say": "इस संदेश को आधिकारिक कार्यालय शैली में ढालें",
+    "tool": "text_transform",
+    "args": {
+      "op": "formal"
+    }
+  },
+  {
+    "say": "इसे दोस्तों के बीच की सामान्य बातचीत की तरह लिखें",
+    "tool": "text_transform",
+    "args": {
+      "op": "casual"
+    }
+  },
+  {
+    "say": "इस लंबे लेख के बुनियादी निष्कर्ष निकालकर बताएं",
+    "tool": "text_transform",
+    "args": {
+      "op": "summarize"
+    }
+  },
+  {
+    "say": "इस कठिन वाक्य का सरल अर्थ समझा दीजिए",
+    "tool": "text_transform",
+    "args": {
+      "op": "explain"
+    }
+  },
+  {
+    "say": "इस गद्यांश का अंग्रेजी भाषा में रूपांतरण कीजिए",
+    "tool": "text_transform",
+    "args": {
+      "op": "translate",
+      "lang": "en"
+    }
+  },
+  {
+    "say": "स्क्रीन देखकर बताएं कि प्रोग्राम में यह एरर क्यों आया",
+    "tool": "screen_ask",
+    "args": {
+      "question": "प्रोग्राम में यह एरर क्यों आया"
+    }
+  },
+  {
+    "say": "मुझे चालीस मिनट के उपरांत दवा लेने की सूचना दें",
+    "tool": "remind",
+    "args": {
+      "text": "दवा लेना",
+      "inMinutes": 40
+    }
+  },
+  {
+    "say": "दोपहर 12:30 बजे डॉक्टर के पास जाने की चेतावनी सेट करें",
+    "tool": "remind",
+    "args": {
+      "text": "डॉक्टर के पास जाना",
+      "at": "12:30"
+    }
+  },
+  {
+    "say": "मेरे द्वारा दर्ज की गई सभी आगामी सूचनाएं दिखाएं",
+    "tool": "reminders_show",
+    "args": {}
+  },
+  {
+    "say": "सब्जी की तालिका में ताज़ा पालक भी दर्ज कर लें",
+    "tool": "list_add",
+    "args": {
+      "list": "सब्जी",
+      "item": "ताज़ा पालक"
+    }
+  },
+  {
+    "say": "इस महीने के ज़रूरी कामों का विवरण पेश करें",
+    "tool": "list_show",
+    "args": {
+      "list": "ज़रूरी काम"
+    }
+  },
+  {
+    "say": "सामानों की सूची से सरसों का तेल हटा दीजिए",
+    "tool": "list_remove",
+    "args": {
+      "list": "सामान",
+      "item": "सरसों का तेल"
+    }
+  },
+  {
+    "say": "आज के मुख्य कार्यक्रमों और कार्यसूची की समीक्षा प्रस्तुत करें",
+    "tool": "day_brief",
+    "args": {}
+  },
+  {
+    "say": "याद रखें कि मेरी गाड़ी की सर्विसिंग की तारीख 20 दिसंबर है",
+    "tool": "memory_add",
+    "args": {
+      "text": "गाड़ी की सर्विसिंग की तारीख 20 दिसंबर है"
+    }
+  },
+  {
+    "say": "पुराने कमरे के नंबर से जुड़ी जानकारी मस्तिष्क से हटा दें",
+    "tool": "memory_remove",
+    "args": {
+      "text": "पुराने कमरे का नंबर"
+    }
+  }
 ]

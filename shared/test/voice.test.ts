@@ -19,6 +19,7 @@ const VALID_TOOLS = new Set([
   "dictate",
   "timer",
   "system",
+  "text_transform",  "screen_ask",  "remind",  "reminders_show",  "list_add",  "list_show",  "list_remove",  "day_brief",  "memory_add",  "memory_remove",  "paste_text",
 ]);
 
 const LANGUAGES = ["en", "zh", "hi", "es", "ar", "fr", "pt", "ru", "de", "ja", "kk"];
@@ -42,7 +43,7 @@ describe("Voice phrase tables (T21.3b)", () => {
 
       expect(Array.isArray(content.intents)).toBe(true);
       expect(content.intents.length).toBeGreaterThanOrEqual(10);
-      expect(content.intents.length).toBeLessThanOrEqual(25);
+      expect(content.intents.length).toBeLessThanOrEqual(60);
 
       for (const intent of content.intents) {
         expect(VALID_TOOLS.has(intent.tool)).toBe(true);
@@ -79,7 +80,7 @@ describe("Voice phrase tables (T21.3b)", () => {
 
       const evalSet = JSON.parse(fs.readFileSync(filePath, "utf-8"));
       expect(Array.isArray(evalSet)).toBe(true);
-      expect(evalSet.length).toBe(25);
+      expect(evalSet.length).toBeGreaterThanOrEqual(25);
 
       for (const item of evalSet) {
         expect(typeof item.say).toBe("string");

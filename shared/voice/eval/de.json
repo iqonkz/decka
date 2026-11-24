@@ -1,27 +1,302 @@
 [
-  { "say": "lautstärke etwas erhöhen", "tool": "volume", "args": { "op": "up" } },
-  { "say": "lautstärke etwas verringern", "tool": "volume", "args": { "op": "down" } },
-  { "say": "ton stummschalten", "tool": "volume", "args": { "op": "mute" } },
-  { "say": "lautstärke auf 50 prozent stellen", "tool": "volume", "args": { "op": "set", "value": 50 } },
-  { "say": "musik pausieren", "tool": "media", "args": { "op": "play_pause" } },
-  { "say": "zum nächsten track springen", "tool": "media", "args": { "op": "next" } },
-  { "say": "vorherigen titel abspielen", "tool": "media", "args": { "op": "prev" } },
-  { "say": "rechner öffnen", "tool": "open_app", "args": { "name": "calculator" } },
-  { "say": "spotify starten", "tool": "open_app", "args": { "name": "spotify" } },
-  { "say": "discord schließen", "tool": "close_app", "args": { "name": "discord" } },
-  { "say": "zu chrome wechseln", "tool": "switch_app", "args": { "name": "chrome" } },
-  { "say": "fenster auf anderen monitor verschieben", "tool": "window_other_monitor", "args": {} },
-  { "say": "welcher monitor ist das", "tool": "which_monitor", "args": {} },
-  { "say": "gehe zu seite streaming", "tool": "go_page", "args": { "name": "streaming" } },
-  { "say": "hauptseite öffnen", "tool": "go_page", "args": { "name": "main" } },
-  { "say": "taste mikrofon stumm drücken", "tool": "press_button", "args": { "label": "mute mic" } },
-  { "say": "im web nach wetterbericht suchen", "tool": "web_search", "args": { "site": "web", "query": "wetterbericht" } },
-  { "say": "auf youtube lofi hip hop suchen", "tool": "web_search", "args": { "site": "youtube", "query": "lofi hip hop" } },
-  { "say": "auf karten nach cafes in der nähe suchen", "tool": "web_search", "args": { "site": "maps", "query": "cafes in der nähe" } },
-  { "say": "öffne github.com", "tool": "open_site", "args": { "domain": "github.com" } },
-  { "say": "schreibe Hallo Welt", "tool": "type_text", "args": { "text": "Hallo Welt" } },
-  { "say": "diktieren starten", "tool": "dictate", "args": {} },
-  { "say": "timer für 10 minuten stellen", "tool": "timer", "args": { "minutes": 10 } },
-  { "say": "pc sperren", "tool": "system", "args": { "op": "lock" } },
-  { "say": "computer in ruhezustand versetzen", "tool": "system", "args": { "op": "sleep" } }
+  {
+    "say": "lautstärke etwas erhöhen",
+    "tool": "volume",
+    "args": {
+      "op": "up"
+    }
+  },
+  {
+    "say": "lautstärke etwas verringern",
+    "tool": "volume",
+    "args": {
+      "op": "down"
+    }
+  },
+  {
+    "say": "ton stummschalten",
+    "tool": "volume",
+    "args": {
+      "op": "mute"
+    }
+  },
+  {
+    "say": "lautstärke auf 50 prozent stellen",
+    "tool": "volume",
+    "args": {
+      "op": "set",
+      "value": 50
+    }
+  },
+  {
+    "say": "musik pausieren",
+    "tool": "media",
+    "args": {
+      "op": "play_pause"
+    }
+  },
+  {
+    "say": "zum nächsten track springen",
+    "tool": "media",
+    "args": {
+      "op": "next"
+    }
+  },
+  {
+    "say": "vorherigen titel abspielen",
+    "tool": "media",
+    "args": {
+      "op": "prev"
+    }
+  },
+  {
+    "say": "rechner öffnen",
+    "tool": "open_app",
+    "args": {
+      "name": "calculator"
+    }
+  },
+  {
+    "say": "spotify starten",
+    "tool": "open_app",
+    "args": {
+      "name": "spotify"
+    }
+  },
+  {
+    "say": "discord schließen",
+    "tool": "close_app",
+    "args": {
+      "name": "discord"
+    }
+  },
+  {
+    "say": "zu chrome wechseln",
+    "tool": "switch_app",
+    "args": {
+      "name": "chrome"
+    }
+  },
+  {
+    "say": "fenster auf anderen monitor verschieben",
+    "tool": "window_other_monitor",
+    "args": {}
+  },
+  {
+    "say": "welcher monitor ist das",
+    "tool": "which_monitor",
+    "args": {}
+  },
+  {
+    "say": "gehe zu seite streaming",
+    "tool": "go_page",
+    "args": {
+      "name": "streaming"
+    }
+  },
+  {
+    "say": "hauptseite öffnen",
+    "tool": "go_page",
+    "args": {
+      "name": "main"
+    }
+  },
+  {
+    "say": "taste mikrofon stumm drücken",
+    "tool": "press_button",
+    "args": {
+      "label": "mute mic"
+    }
+  },
+  {
+    "say": "im web nach wetterbericht suchen",
+    "tool": "web_search",
+    "args": {
+      "site": "web",
+      "query": "wetterbericht"
+    }
+  },
+  {
+    "say": "auf youtube lofi hip hop suchen",
+    "tool": "web_search",
+    "args": {
+      "site": "youtube",
+      "query": "lofi hip hop"
+    }
+  },
+  {
+    "say": "auf karten nach cafes in der nähe suchen",
+    "tool": "web_search",
+    "args": {
+      "site": "maps",
+      "query": "cafes in der nähe"
+    }
+  },
+  {
+    "say": "öffne github.com",
+    "tool": "open_site",
+    "args": {
+      "domain": "github.com"
+    }
+  },
+  {
+    "say": "schreibe Hallo Welt",
+    "tool": "type_text",
+    "args": {
+      "text": "Hallo Welt"
+    }
+  },
+  {
+    "say": "diktieren starten",
+    "tool": "dictate",
+    "args": {}
+  },
+  {
+    "say": "timer für 10 minuten stellen",
+    "tool": "timer",
+    "args": {
+      "minutes": 10
+    }
+  },
+  {
+    "say": "pc sperren",
+    "tool": "system",
+    "args": {
+      "op": "lock"
+    }
+  },
+  {
+    "say": "computer in ruhezustand versetzen",
+    "tool": "system",
+    "args": {
+      "op": "sleep"
+    }
+  },
+  {
+    "say": "könntest du diese nachricht etwas freundlicher formulieren",
+    "tool": "text_transform",
+    "args": {
+      "op": "polite"
+    }
+  },
+  {
+    "say": "kürze diesen abschnitt auf das wesentliche",
+    "tool": "text_transform",
+    "args": {
+      "op": "shorter"
+    }
+  },
+  {
+    "say": "überprüfe diesen text auf rechtschreibfehler und kommafehler",
+    "tool": "text_transform",
+    "args": {
+      "op": "fix"
+    }
+  },
+  {
+    "say": "wandle diese notiz in ein förmliches geschäftsanschreiben um",
+    "tool": "text_transform",
+    "args": {
+      "op": "formal"
+    }
+  },
+  {
+    "say": "schreibe das um als wäre es eine nachricht an einen kumpel",
+    "tool": "text_transform",
+    "args": {
+      "op": "casual"
+    }
+  },
+  {
+    "say": "fasse die kernaussagen dieses dokuments stichpunktartig zusammen",
+    "tool": "text_transform",
+    "args": {
+      "op": "summarize"
+    }
+  },
+  {
+    "say": "erläutere mir bitte was dieser fachbegriff im text bedeutet",
+    "tool": "text_transform",
+    "args": {
+      "op": "explain"
+    }
+  },
+  {
+    "say": "übertrage diesen ausgewählten absatz ins spanische",
+    "tool": "text_transform",
+    "args": {
+      "op": "translate",
+      "lang": "es"
+    }
+  },
+  {
+    "say": "sag mir welcher fehler im compiler fenster angezeigt wird",
+    "tool": "screen_ask",
+    "args": {
+      "question": "welcher fehler im compiler fenster angezeigt wird"
+    }
+  },
+  {
+    "say": "erinnere mich in fünfzehn minuten daran die wäsche aufzuhängen",
+    "tool": "remind",
+    "args": {
+      "text": "wäsche aufhängen",
+      "inMinutes": 15
+    }
+  },
+  {
+    "say": "stelle eine erinnerung für den zahnarzttermin um 11:30",
+    "tool": "remind",
+    "args": {
+      "text": "zahnarzttermin",
+      "at": "11:30"
+    }
+  },
+  {
+    "say": "zeige mir alle anstehenden weckrufe und erinnerungen an",
+    "tool": "reminders_show",
+    "args": {}
+  },
+  {
+    "say": "trage frische butter auf meinen einkaufszettel ein",
+    "tool": "list_add",
+    "args": {
+      "list": "einkaufszettel",
+      "item": "frische butter"
+    }
+  },
+  {
+    "say": "öffne bitte die übersicht meiner wochenaufgaben",
+    "tool": "list_show",
+    "args": {
+      "list": "wochenaufgaben"
+    }
+  },
+  {
+    "say": "streiche mineralwasser von der einkaufsliste",
+    "tool": "list_remove",
+    "args": {
+      "list": "einkaufsliste",
+      "item": "mineralwasser"
+    }
+  },
+  {
+    "say": "gib mir ein kurzes briefing über meine termine und das wetter heute",
+    "tool": "day_brief",
+    "args": {}
+  },
+  {
+    "say": "behalte bitte im gedächtnis dass mein fahrradschloss den code 5120 hat",
+    "tool": "memory_add",
+    "args": {
+      "text": "fahrradschloss code 5120"
+    }
+  },
+  {
+    "say": "entferne die notiz über die alte büroadresse",
+    "tool": "memory_remove",
+    "args": {
+      "text": "alte büroadresse"
+    }
+  }
 ]
