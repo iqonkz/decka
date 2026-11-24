@@ -119,6 +119,15 @@ describe("invalid inputs are rejected", () => {
     expect(valid(weather, { ...base, hourly: [15, 16, 17, 18, 19, 20].map((h) => ({ ...hour(h), isDay: 1 })) })).toBe(false);
   });
 
+  test("T24.4: a reminder of the phone section may carry a known repeat", () => {
+    const section = proto("RemindersSection");
+    const item = { id: "0123456789abcdef", text: "pills", at: "2026-11-26T09:00" };
+    expect(valid(section, { items: [item] })).toBe(true);
+    for (const repeat of ["daily", "weekdays", "weekly"]) expect(valid(section, { items: [{ ...item, repeat }] })).toBe(true);
+    expect(valid(section, { items: [{ ...item, repeat: "monthly" }] })).toBe(false);
+    expect(valid(section, { items: [{ ...item, repeat: null }] })).toBe(false);
+  });
+
   test("T24.2: lyrics_offset is a key and a step of 500, and the lyrics section is bounded", () => {
     const msg = { t: "lyrics_offset", trackKey: "0123456789abcdef", deltaMs: 500 };
     expect(valid(proto("LyricsOffsetMsg"), msg)).toBe(true);

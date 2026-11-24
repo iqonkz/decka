@@ -6,7 +6,7 @@
 use serde_json::{json, Map, Value};
 
 use super::matcher::{number_words, Intent};
-use crate::assistant::Local;
+use crate::assistant::{Local, Repeat};
 
 /// Words that stand in front of a time ("в 22:15", "at 9").
 const PREPS: &[&str] = &["в", "во", "к", "на", "at", "by", "a", "à", "um"];
@@ -179,6 +179,30 @@ fn find(words: &[String]) -> Option<(Found, Vec<usize>)> {
     None
 }
 
+/// A series said in words: (how it repeats, the weekday of a weekly one, the indices of its words).
+fn find_repeat(words: &[String]) -> Option<(Repeat, Option<&'static str>, Vec<usize>)> {
+    for i in 0..words.len() {
+        let w = words[i].as_str();
+        let next = words.get(i + 1).map(String::as_str);
+        let after = words.get(i + 2).map(String::as_str);
+        match (w, next) {
+            ("ежедневно" | "daily" | "everyday", _) => return Some((Repeat::Daily, None, vec![i])),
+            ("каждый" | "every", Some("день" | "day")) => return Some((Repeat::Daily, None, vec![i, i + 1])),
+            ("every", Some("weekday")) => return Some((Repeat::Weekdays, None, vec![i, i + 1])),
+            ("по", Some("будням")) | ("в", Some("будни")) | ("on", Some("weekdays")) => return Some((Repeat::Weekdays, None, vec![i, i + 1])),
+            ("по", Some("рабочим")) if after == Some("дням") => return Some((Repeat::Weekdays, None, vec![i, i + 1, i + 2])),
+            ("weekdays", _) => return Some((Repeat::Weekdays, None, vec![i])),
+            ("каждый" | "каждую" | "каждое" | "every", Some(d)) => {
+                if let Some(day) = weekday(d) {
+                    return Some((Repeat::Weekly, Some(day), vec![i, i + 1]));
+                }
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
 /// The reminder of a phrase that has a lead-in word (one of `leads`, each a list of normalised words) and a time: the
 /// `remind` call with the text cut free of the lead-in and the time. `None` when there is no lead-in, no time or no text.
 pub fn remind_intent(phrase: &str, leads: &[Vec<String>], now: &Local) -> Option<Intent> {
@@ -189,7 +213,17 @@ pub fn remind_intent(phrase: &str, leads: &[Vec<String>], now: &Local) -> Option
         .find_map(|p| leads.iter().filter(|l| !l.is_empty() && words.len() >= p + l.len() && words[p..p + l.len()] == l[..]).map(|l| (p, l.len())).max_by_key(|(_, n)| *n))?;
     let keep: Vec<usize> = (0..words.len()).filter(|i| *i < at || *i >= at + len).collect();
     let rest: Vec<String> = keep.iter().map(|i| words[*i].clone()).collect();
-    let (found, used) = find(&rest)?;
+    // "every day", "on weekdays", "every Monday": a series. Its words are cut first, the time is looked for in the others.
+    let series = find_repeat(&rest);
+    let (cut, outside): (Vec<usize>, Vec<usize>) = match &series {
+        Some((_, _, used)) => (used.clone(), (0..rest.len()).filter(|i| !used.contains(i)).collect()),
+        None => (Vec::new(), (0..rest.len()).collect()),
+    };
+    let rest_free: Vec<String> = outside.iter().map(|i| rest[*i].clone()).collect();
+    let (found, used_free) = find(&rest_free)?;
+    // The indices of `rest_free` back to those of `rest`.
+    let mut used: Vec<usize> = used_free.iter().map(|i| outside[*i]).collect();
+    used.extend(cut);
     let mut text: Vec<&str> = keep.iter().enumerate().filter(|(k, _)| !used.contains(k)).map(|(_, i)| raw[*i]).collect();
     while text.first().is_some_and(|w| FILLERS.contains(&norm(w).as_str())) {
         text.remove(0);
@@ -200,6 +234,16 @@ pub fn remind_intent(phrase: &str, leads: &[Vec<String>], now: &Local) -> Option
     }
     let mut args = Map::new();
     args.insert("text".into(), Value::String(text));
+    if let Some((repeat, weekday, _)) = series {
+        // A series needs a clock time and no other day; `weekly` carries its weekday.
+        let Found::At { hour, minute, day: None } = found else { return None };
+        args.insert("repeat".into(), json!(repeat.as_str()));
+        args.insert("time".into(), json!(format!("{hour:02}:{minute:02}")));
+        if let Some(d) = weekday {
+            args.insert("day".into(), json!(d));
+        }
+        return Some(Intent { tool: "remind".into(), args });
+    }
     match found {
         Found::In(m) => {
             args.insert("inMinutes".into(), json!(m));
@@ -261,6 +305,30 @@ mod tests {
         assert_eq!(call("напомни через час позвонить").unwrap().1["in"], json!(60));
         assert_eq!(call("remind me in half an hour to stretch").unwrap().1["in"], json!(30));
         assert_eq!(call("remind me to stand up in 45 minutes").unwrap(), ("stand up".to_string(), json!({ "day": null, "time": null, "in": 45 })));
+    }
+
+    /// T24.4: a series said in words; the words and the time are cut from the text.
+    #[test]
+    fn a_series_comes_with_its_repeat_time_and_weekday() {
+        let get = |phrase: &str| {
+            remind_intent(phrase, &leads(), &evening()).map(|i| {
+                let s = |k: &str| i.args.get(k).and_then(|v| v.as_str()).map(String::from);
+                (s("text").unwrap(), s("repeat"), s("time"), s("day"), i.args.get("inMinutes").is_some())
+            })
+        };
+        let row = |text: &str, repeat: &str, time: &str, day: Option<&str>| Some((text.to_string(), Some(repeat.to_string()), Some(time.to_string()), day.map(String::from), false));
+        assert_eq!(get("напомни каждый день в 9 утра выпить воду"), row("выпить воду", "daily", "09:00", None));
+        assert_eq!(get("напомни мне по будням в 8:30 вставать"), row("вставать", "weekdays", "08:30", None));
+        assert_eq!(get("напомни по рабочим дням в 18.00 закрывать задачи"), row("закрывать задачи", "weekdays", "18:00", None));
+        assert_eq!(get("напомни каждый понедельник в 10 вечера выносить мусор"), row("выносить мусор", "weekly", "22:00", Some("mon")));
+        assert_eq!(get("напомни каждую пятницу в 18:00 подводить итоги"), row("подводить итоги", "weekly", "18:00", Some("fri")));
+        assert_eq!(get("напомни в 7:15 ежедневно делать зарядку"), row("делать зарядку", "daily", "07:15", None));
+        assert_eq!(get("remind me every day at 7 am to take pills"), row("take pills", "daily", "07:00", None));
+        assert_eq!(get("remind me on weekdays at 8:30 to stretch"), row("stretch", "weekdays", "08:30", None));
+        assert_eq!(get("remind me every Monday at 9:15 to plan the week"), row("plan the week", "weekly", "09:15", Some("mon")));
+        // A series without a clock time, or with "in N minutes", is not a series the table can read.
+        assert_eq!(get("напомни каждый день пить воду"), None);
+        assert_eq!(get("напомни каждый день через 5 минут пить"), None);
     }
 
     #[test]

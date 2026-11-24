@@ -765,9 +765,9 @@ impl Ports for Inner {
                 ToolCall::DayBrief => {
                     return day_brief(&agent, &sup, lang).await;
                 }
-                ToolCall::Remind { text, when } => {
+                ToolCall::Remind { text, when, repeat } => {
                     let now = crate::assistant::Local::now();
-                    let r = agent.assistant().add_reminder(text, when, &now)?;
+                    let r = agent.assistant().add_reminder_repeat(text, when, *repeat, &now)?;
                     return Ok(format!("Reminder set: {}", crate::assistant::reminders_text(&[r], &now)));
                 }
                 ToolCall::RemindersShow => {

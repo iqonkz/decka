@@ -199,9 +199,104 @@ pub fn resolve(when: &When, now: &Local) -> Result<Local, &'static str> {
 pub struct Reminder {
     pub id: String,
     pub text: String,
-    /// Local time `YYYY-MM-DDTHH:MM`.
+    /// Local time `YYYY-MM-DDTHH:MM`; of a repeating reminder the next time it fires.
     pub at: String,
     pub done: bool,
+    /// 0.23 (DATA_MODEL.md 13.4): a series; absent = once.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub repeat: Option<Repeat>,
+}
+
+/// How a series repeats. `weekly` keeps the weekday of `at`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Repeat {
+    Daily,
+    Weekdays,
+    Weekly,
+}
+
+impl Repeat {
+    pub fn parse(s: &str) -> Option<Repeat> {
+        Some(match s {
+            "daily" => Repeat::Daily,
+            "weekdays" => Repeat::Weekdays,
+            "weekly" => Repeat::Weekly,
+            _ => return None,
+        })
+    }
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Repeat::Daily => "daily",
+            Repeat::Weekdays => "weekdays",
+            Repeat::Weekly => "weekly",
+        }
+    }
+}
+
+fn day_of(l: &Local) -> i64 {
+    days_from_civil(l.year, l.month, l.day)
+}
+
+fn is_weekend(day: i64) -> bool {
+    (day + 3).rem_euclid(7) >= 5
+}
+
+fn step(day: i64, repeat: Repeat) -> i64 {
+    match repeat {
+        Repeat::Daily => day + 1,
+        Repeat::Weekly => day + 7,
+        Repeat::Weekdays => {
+            let mut d = day + 1;
+            while is_weekend(d) {
+                d += 1;
+            }
+            d
+        }
+    }
+}
+
+/// The moment of a series that follows `at` (`include_at` false: after `at`) and lies after `now`. The wall clock time of day
+/// is kept (the local clock, so a change of summer time moves nothing); `weekdays` skips Saturday and Sunday, `weekly` keeps
+/// the weekday, the end of a month and of a year are plain calendar days.
+pub fn occurrence_after(at: &Local, repeat: Repeat, now: &Local, include_at: bool) -> Local {
+    let clock = at.hour as i64 * 60 + at.minute as i64;
+    let now_m = now.minutes();
+    let mut d = day_of(at);
+    if repeat == Repeat::Weekdays {
+        while is_weekend(d) {
+            d += 1;
+        }
+    }
+    if !include_at {
+        d = step(d, repeat);
+    }
+    let gap = now_m.div_euclid(1440) - d;
+    if gap > 0 {
+        match repeat {
+            Repeat::Daily => d += gap,
+            Repeat::Weekly => d += gap / 7 * 7,
+            Repeat::Weekdays => {}
+        }
+    }
+    let mut guard = 0;
+    while d * 1440 + clock <= now_m && guard < 20_000 {
+        d = step(d, repeat);
+        guard += 1;
+    }
+    Local::from_minutes(d * 1440 + clock)
+}
+
+/// A moment of `day` at `hour:minute`, whether it has passed or not (the series decides what comes next).
+fn day_clock(day: &Day, hour: u32, minute: u32, now: &Local) -> Local {
+    let today = now.minutes().div_euclid(1440);
+    let date = match day {
+        Day::Today => today,
+        Day::Tomorrow => today + 1,
+        Day::Weekday(w) => today + (*w as i64 - now.weekday() as i64).rem_euclid(7),
+    };
+    Local::from_minutes(date * 1440 + hour as i64 * 60 + minute as i64)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -353,13 +448,26 @@ impl Assistant {
 
     /// Adds a reminder (`id` = None) or changes the text and the time of one. A time that is new must lie in the future, within a
     /// year; the same time as before is kept whatever it is. Changing the time of a finished reminder makes it open again.
-    pub fn reminder_upsert(&self, id: Option<&str>, text: &str, at_iso: &str, now: &Local) -> Result<Reminder, String> {
+    /// `repeat`: `None` keeps the series of an existing reminder (a new one is once), `Some(None)` makes it once, `Some(Some(r))` a series.
+    pub fn reminder_upsert(&self, id: Option<&str>, text: &str, at_iso: &str, repeat: Option<Option<Repeat>>, now: &Local) -> Result<Reminder, String> {
         let text = clean_text(text, "reminder")?;
         let at = Local::parse_iso(at_iso).ok_or("The time must be YYYY-MM-DDTHH:MM")?;
         let mut g = self.inner.lock().unwrap();
         let Some(id) = id else {
             drop(g);
-            return self.add_reminder(&text, &When::At(at), now);
+            let wanted = repeat.flatten();
+            // A series starts at its first moment on or after the chosen one (weekdays skip a weekend).
+            let first = match wanted {
+                Some(r) => {
+                    resolve(&When::At(at.clone()), now).map_err(String::from)?;
+                    occurrence_after(&at, r, now, true)
+                }
+                None => at,
+            };
+            return self.add_reminder_repeat(&text, &When::At(first.clone()), None, now).and_then(|r| match wanted {
+                Some(rep) => self.set_repeat(&r.id, Some(rep)).ok_or_else(|| "There is no such reminder".to_string()),
+                None => Ok(r),
+            });
         };
         let Some(i) = g.0.reminders.iter().position(|r| r.id == id) else { return Err("There is no such reminder".into()) };
         if g.0.reminders[i].at != at.iso() {
@@ -368,12 +476,31 @@ impl Assistant {
         }
         g.0.reminders[i].text = text;
         g.0.reminders[i].at = at.iso();
+        if let Some(wanted) = repeat {
+            g.0.reminders[i].repeat = wanted;
+            // A series of weekdays never starts on a weekend.
+            if let (Some(r), Some(l)) = (wanted, Local::parse_iso(&g.0.reminders[i].at)) {
+                if r == Repeat::Weekdays {
+                    g.0.reminders[i].at = occurrence_after(&l, r, now, true).iso();
+                }
+            }
+        }
         let r = g.0.reminders[i].clone();
         self.save_reminders(&g.0)?;
         Ok(r)
     }
 
-    /// Deletes a reminder; false for an id the agent did not issue.
+    /// Makes a reminder of this agent a series (or once); `None` for an id it did not issue.
+    fn set_repeat(&self, id: &str, repeat: Option<Repeat>) -> Option<Reminder> {
+        let mut g = self.inner.lock().unwrap();
+        let r = g.0.reminders.iter_mut().find(|r| r.id == id)?;
+        r.repeat = repeat;
+        let out = r.clone();
+        let _ = self.save_reminders(&g.0);
+        Some(out)
+    }
+
+    /// Deletes a reminder (the whole series of a repeating one); false for an id the agent did not issue.
     pub fn reminder_delete(&self, id: &str) -> bool {
         self.delete_reminder(id)
     }
@@ -453,7 +580,15 @@ impl Assistant {
     /// The `reminders` and `lists` sections of the phone state (DATA_MODEL.md 13.7): the next 5 reminders and every list with
     /// its first 50 items.
     pub fn sections(&self) -> (serde_json::Value, serde_json::Value) {
-        let reminders = serde_json::json!({ "items": self.upcoming(PHONE_REMINDERS).iter().map(|r| serde_json::json!({ "id": r.id, "text": r.text, "at": r.at })).collect::<Vec<_>>() });
+        // `repeat` is present only for a series.
+        let row = |r: &Reminder| {
+            let mut v = serde_json::json!({ "id": r.id, "text": r.text, "at": r.at });
+            if let Some(repeat) = r.repeat {
+                v["repeat"] = repeat.as_str().into();
+            }
+            v
+        };
+        let reminders = serde_json::json!({ "items": self.upcoming(PHONE_REMINDERS).iter().map(row).collect::<Vec<_>>() });
         let lists = serde_json::json!({ "lists": self.lists().iter().map(|l| serde_json::json!({
             "id": l.id, "name": l.name,
             "items": l.items.iter().take(PHONE_ITEMS).map(|i| serde_json::json!({ "id": i.id, "text": i.text, "done": i.done })).collect::<Vec<_>>(),
@@ -464,8 +599,18 @@ impl Assistant {
     // ---- Reminders ----
 
     pub fn add_reminder(&self, text: &str, when: &When, now: &Local) -> Result<Reminder, String> {
+        self.add_reminder_repeat(text, when, None, now)
+    }
+
+    /// `add_reminder` for a series: `when` must be a time of day (with a day or without), the first firing is the first moment of
+    /// the series after `now`.
+    pub fn add_reminder_repeat(&self, text: &str, when: &When, repeat: Option<Repeat>, now: &Local) -> Result<Reminder, String> {
         let text = clean_text(text, "reminder")?;
-        let at = resolve(when, now).map_err(String::from)?;
+        let at = match (repeat, when) {
+            (None, w) => resolve(w, now).map_err(String::from)?,
+            (Some(r), When::Day { day, hour, minute }) => occurrence_after(&day_clock(day, *hour, *minute, now), r, now, true),
+            (Some(_), _) => return Err("A repeating reminder needs a time of the day".into()),
+        };
         let mut g = self.inner.lock().unwrap();
         // Finished reminders make room for new ones.
         if g.0.reminders.len() >= MAX_REMINDERS {
@@ -474,7 +619,7 @@ impl Assistant {
         if g.0.reminders.len() >= MAX_REMINDERS {
             return Err("There are too many reminders".into());
         }
-        let r = Reminder { id: new_id(), text, at: at.iso(), done: false };
+        let r = Reminder { id: new_id(), text, at: at.iso(), done: false, repeat };
         g.0.reminders.push(r.clone());
         self.save_reminders(&g.0)?;
         Ok(r)
@@ -491,7 +636,12 @@ impl Assistant {
         due.sort_by(|a, b| a.at.cmp(&b.at));
         for r in &mut g.0.reminders {
             if !r.done && r.at <= now_iso {
-                r.done = true;
+                // A series is not finished by firing: it moves to its next moment after now (what was missed in between is skipped,
+                // so a series that was due several times while the PC was off is one reminder, one `Missed`).
+                match (r.repeat, Local::parse_iso(&r.at)) {
+                    (Some(repeat), Some(at)) => r.at = occurrence_after(&at, repeat, now, false).iso(),
+                    _ => r.done = true,
+                }
             }
         }
         let _ = self.save_reminders(&g.0);
@@ -646,6 +796,122 @@ mod tests {
     // 2026-11-25 is a Wednesday.
     fn now() -> Local {
         at(2026, 11, 25, 14, 30)
+    }
+
+    // ---- Series (0.23, DATA_MODEL.md 13.4 "Повтор") ----
+
+    #[test]
+    fn the_next_moment_of_a_series() {
+        // 2026-11-25 is a Wednesday: Friday is the 27th, Monday the 30th.
+        let fired = |l: Local, r: Repeat, now: Local| occurrence_after(&l, r, &now, false).iso();
+        assert_eq!(fired(at(2026, 11, 25, 9, 0), Repeat::Daily, at(2026, 11, 25, 9, 0)), "2026-11-26T09:00");
+        assert_eq!(fired(at(2026, 11, 25, 9, 0), Repeat::Weekly, at(2026, 11, 25, 9, 0)), "2026-12-02T09:00");
+        // Weekdays skip the weekend: Friday -> Monday, Thursday -> Friday.
+        assert_eq!(fired(at(2026, 11, 27, 9, 0), Repeat::Weekdays, at(2026, 11, 27, 9, 0)), "2026-11-30T09:00");
+        assert_eq!(fired(at(2026, 11, 26, 9, 0), Repeat::Weekdays, at(2026, 11, 26, 9, 0)), "2026-11-27T09:00");
+        // The end of a month, a year and a leap February are plain calendar days.
+        assert_eq!(fired(at(2026, 11, 30, 23, 30), Repeat::Daily, at(2026, 11, 30, 23, 30)), "2026-12-01T23:30");
+        assert_eq!(fired(at(2026, 12, 31, 8, 0), Repeat::Daily, at(2026, 12, 31, 8, 0)), "2027-01-01T08:00");
+        assert_eq!(fired(at(2028, 2, 28, 8, 0), Repeat::Daily, at(2028, 2, 28, 8, 0)), "2028-02-29T08:00");
+        assert_eq!(fired(at(2027, 2, 28, 8, 0), Repeat::Daily, at(2027, 2, 28, 8, 0)), "2027-03-01T08:00");
+        assert_eq!(fired(at(2026, 12, 29, 8, 0), Repeat::Weekly, at(2026, 12, 29, 8, 0)), "2027-01-05T08:00");
+        // A series that was due many times while the PC was off continues after `now`, never in the past.
+        assert_eq!(fired(at(2026, 11, 10, 9, 0), Repeat::Daily, at(2026, 11, 25, 10, 0)), "2026-11-26T09:00");
+        assert_eq!(fired(at(2026, 11, 10, 9, 0), Repeat::Daily, at(2026, 11, 25, 8, 0)), "2026-11-25T09:00");
+        assert_eq!(fired(at(2026, 11, 2, 9, 0), Repeat::Weekly, at(2026, 11, 25, 10, 0)), "2026-11-30T09:00");
+        assert_eq!(fired(at(2026, 11, 2, 9, 0), Repeat::Weekdays, at(2026, 11, 28, 10, 0)), "2026-11-30T09:00", "from a Saturday: Monday");
+        // The first moment of a new series: on or after the start, weekdays never on a weekend.
+        let first = |l: Local, r: Repeat| occurrence_after(&l, r, &now(), true).iso();
+        assert_eq!(first(at(2026, 11, 28, 9, 0), Repeat::Weekdays), "2026-11-30T09:00");
+        assert_eq!(first(at(2026, 11, 26, 9, 0), Repeat::Weekdays), "2026-11-26T09:00");
+        assert_eq!(first(at(2026, 11, 25, 9, 0), Repeat::Daily), "2026-11-26T09:00", "today 09:00 has passed at 14:30");
+    }
+
+    #[test]
+    fn the_wall_clock_survives_a_change_of_summer_time() {
+        // Europe moved its clocks on 2026-03-29 and 2026-10-25: a reminder of 02:30 or 08:00 stays at that wall time.
+        for (from, repeat, hour, minute) in [((2026, 3, 28), Repeat::Daily, 8, 0), ((2026, 10, 24), Repeat::Daily, 8, 0), ((2026, 3, 28), Repeat::Daily, 2, 30), ((2026, 10, 23), Repeat::Weekdays, 7, 15)] {
+            let mut moment = at(from.0, from.1, from.2, hour, minute);
+            for _ in 0..4 {
+                moment = occurrence_after(&moment, repeat, &moment, false);
+                assert_eq!((moment.hour, moment.minute), (hour, minute), "{}", moment.iso());
+            }
+        }
+    }
+
+    #[test]
+    fn firing_a_series_does_not_finish_it_and_the_window_and_the_phone_see_it() {
+        let (_dir, a) = assistant();
+        let r = a.add_reminder_repeat("take pills", &When::Day { day: Day::Today, hour: 9, minute: 0 }, Some(Repeat::Daily), &now()).unwrap();
+        assert_eq!((r.at.as_str(), r.repeat), ("2026-11-26T09:00", Some(Repeat::Daily)), "09:00 has passed today: the first moment is tomorrow");
+        let once = a.add_reminder("one", &When::InMinutes(5), &now()).unwrap();
+        let later = at(2026, 11, 26, 9, 0);
+        let due = a.take_due(&later);
+        assert_eq!(due.iter().map(|d| d.text.as_str()).collect::<Vec<_>>(), ["one", "take pills"]);
+        let all = a.reminders_all();
+        let series = all.iter().find(|x| x.id == r.id).unwrap();
+        assert!(!series.done, "a series is not done after it fired");
+        assert_eq!(series.at, "2026-11-27T09:00");
+        assert!(all.iter().find(|x| x.id == once.id).is_some_and(|x| x.done), "a single reminder is finished as before");
+        assert!(a.take_due(&later).is_empty(), "no second firing at the same time");
+        // The phone section carries `repeat` for the series only.
+        let (reminders, _) = a.sections();
+        let items = reminders["items"].as_array().unwrap();
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0]["repeat"], "daily");
+        a.add_reminder("plain", &When::InMinutes(20), &later).unwrap();
+        let (reminders, _) = a.sections();
+        assert!(reminders["items"].as_array().unwrap().iter().any(|i| i["text"] == "plain" && i.get("repeat").is_none()));
+    }
+
+    #[test]
+    fn a_series_missed_for_days_is_one_missed_notice_and_continues() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("reminders.json"),
+            r#"{"reminders":[
+              {"id":"0000000000000001","text":"pills","at":"2026-11-20T09:00","done":false,"repeat":"daily"},
+              {"id":"0000000000000002","text":"standup","at":"2026-11-23T10:00","done":false,"repeat":"weekdays"},
+              {"id":"0000000000000003","text":"rent","at":"2026-11-24T12:00","done":false}
+            ]}"#,
+        )
+        .unwrap();
+        let a = Assistant::load(dir.path());
+        let start = at(2026, 11, 25, 14, 30);
+        let due = a.take_due(&start);
+        assert_eq!(due.len(), 3, "one entry per series and per reminder, however many times it was due");
+        let (title, body) = due_notice(&due, true).unwrap();
+        assert_eq!(title, "Missed");
+        assert_eq!(body.matches("pills").count() + body.matches("standup").count() + body.matches("rent").count(), 3);
+        let after = a.reminders_all();
+        assert_eq!(after.iter().find(|r| r.text == "pills").unwrap().at, "2026-11-26T09:00");
+        assert_eq!(after.iter().find(|r| r.text == "standup").unwrap().at, "2026-11-26T10:00");
+        assert!(after.iter().find(|r| r.text == "rent").unwrap().done);
+        assert!(a.take_due(&start).is_empty(), "the next start has nothing to say");
+        // The file keeps the series (done stays false) and its repeat.
+        let file: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(dir.path().join("reminders.json")).unwrap()).unwrap();
+        let rows = file["reminders"].as_array().unwrap();
+        assert_eq!((rows[0]["repeat"].as_str(), rows[0]["done"].as_bool()), (Some("daily"), Some(false)));
+        assert_eq!((rows[1]["repeat"].as_str(), rows[2].get("repeat")), (Some("weekdays"), None));
+    }
+
+    #[test]
+    fn deleting_removes_the_whole_series_and_the_window_edits_the_repeat() {
+        let (_dir, a) = assistant();
+        let r = a.add_reminder_repeat("gym", &When::Day { day: Day::Weekday(0), hour: 7, minute: 0 }, Some(Repeat::Weekly), &now()).unwrap();
+        assert_eq!(r.at, "2026-11-30T07:00", "the next Monday");
+        assert!(a.reminder_delete(&r.id));
+        assert!(a.reminders_all().is_empty() && a.take_due(&at(2027, 1, 1, 0, 0)).is_empty());
+        // From the window: a new series on a weekend starts on Monday; an edit without `repeat` keeps it, "once" ends it.
+        let s = a.reminder_upsert(None, "stretch", "2026-11-28T09:00", Some(Some(Repeat::Weekdays)), &now()).unwrap();
+        assert_eq!((s.at.as_str(), s.repeat), ("2026-11-30T09:00", Some(Repeat::Weekdays)));
+        let kept = a.reminder_upsert(Some(&s.id), "stretch more", "2026-11-30T09:00", None, &now()).unwrap();
+        assert_eq!((kept.text.as_str(), kept.repeat), ("stretch more", Some(Repeat::Weekdays)));
+        let once = a.reminder_upsert(Some(&s.id), "stretch more", "2026-11-30T09:00", Some(None), &now()).unwrap();
+        assert_eq!(once.repeat, None);
+        assert!(a.add_reminder_repeat("x", &When::InMinutes(5), Some(Repeat::Daily), &now()).is_err(), "a series needs a time of the day");
+        assert_eq!(Repeat::parse("weekly"), Some(Repeat::Weekly));
+        assert_eq!(Repeat::parse("monthly"), None);
     }
 
     #[test]
@@ -821,7 +1087,7 @@ mod tests {
     fn broken_or_oversized_files_do_not_stop_the_agent() {
         let dir = tempfile::tempdir().unwrap();
         std::fs::write(dir.path().join("reminders.json"), "{ nonsense").unwrap();
-        let big: Vec<Reminder> = (0..600).map(|i| Reminder { id: format!("{i:016x}"), text: "x".into(), at: "2030-01-01T00:00".into(), done: false }).collect();
+        let big: Vec<Reminder> = (0..600).map(|i| Reminder { id: format!("{i:016x}"), text: "x".into(), at: "2030-01-01T00:00".into(), done: false, repeat: None }).collect();
         std::fs::write(dir.path().join("lists.json"), serde_json::to_string(&ListsFile { lists: vec![] }).unwrap()).unwrap();
         let a = Assistant::load(dir.path());
         assert!(a.upcoming(10).is_empty());
@@ -836,15 +1102,15 @@ mod tests {
             let a = Assistant::load(d.path());
             (d, a)
         };
-        let r = a.reminder_upsert(None, "  call   mom ", "2026-11-25T18:30", &now()).unwrap();
+        let r = a.reminder_upsert(None, "  call   mom ", "2026-11-25T18:30", None, &now()).unwrap();
         assert_eq!((r.text.as_str(), r.at.as_str(), r.done), ("call mom", "2026-11-25T18:30", false));
-        assert!(a.reminder_upsert(None, "x", "2026-11-25T09:00", &now()).is_err(), "a new time must be in the future");
-        assert!(a.reminder_upsert(None, "x", "2028-01-01T09:00", &now()).is_err(), "at most a year ahead");
-        assert!(a.reminder_upsert(None, "", "2026-11-26T09:00", &now()).is_err() && a.reminder_upsert(None, "x", "tomorrow", &now()).is_err());
-        assert!(a.reminder_upsert(None, &"y".repeat(201), "2026-11-26T09:00", &now()).is_err());
-        let edited = a.reminder_upsert(Some(&r.id), "call dad", "2026-11-25T18:30", &now()).unwrap();
+        assert!(a.reminder_upsert(None, "x", "2026-11-25T09:00", None, &now()).is_err(), "a new time must be in the future");
+        assert!(a.reminder_upsert(None, "x", "2028-01-01T09:00", None, &now()).is_err(), "at most a year ahead");
+        assert!(a.reminder_upsert(None, "", "2026-11-26T09:00", None, &now()).is_err() && a.reminder_upsert(None, "x", "tomorrow", None, &now()).is_err());
+        assert!(a.reminder_upsert(None, &"y".repeat(201), "2026-11-26T09:00", None, &now()).is_err());
+        let edited = a.reminder_upsert(Some(&r.id), "call dad", "2026-11-25T18:30", None, &now()).unwrap();
         assert_eq!((edited.text.as_str(), edited.id.as_str()), ("call dad", r.id.as_str()), "the text changes, the time is kept");
-        assert_eq!(a.reminder_upsert(Some("0000000000000000"), "x", "2026-11-26T09:00", &now()).unwrap_err(), "There is no such reminder");
+        assert_eq!(a.reminder_upsert(Some("0000000000000000"), "x", "2026-11-26T09:00", None, &now()).unwrap_err(), "There is no such reminder");
         assert!(!a.reminder_delete("0000000000000000") && a.reminder_delete(&r.id));
         assert!(a.reminders_all().is_empty());
 

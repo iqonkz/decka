@@ -113,7 +113,11 @@ pub fn lists_get(app: AppHandle) -> Result<serde_json::Value, String> {
 
 /// One reminder as the Reminders window gets it.
 fn reminder_json(r: &decka_core::assistant::Reminder) -> serde_json::Value {
-    serde_json::json!({ "id": r.id, "text": r.text, "at": r.at, "done": r.done })
+    let mut v = serde_json::json!({ "id": r.id, "text": r.text, "at": r.at, "done": r.done });
+    if let Some(repeat) = r.repeat {
+        v["repeat"] = repeat.as_str().into();
+    }
+    v
 }
 
 /// M22 (DATA_MODEL.md 13.7): every reminder, finished ones too.
@@ -124,8 +128,15 @@ pub fn reminders_get(app: AppHandle) -> Result<serde_json::Value, String> {
 
 /// Adds a reminder (no `id`) or changes the text and the time of one; only ids the agent issued are accepted.
 #[tauri::command]
-pub fn reminder_upsert(app: AppHandle, id: Option<String>, text: String, at: String) -> Result<serde_json::Value, String> {
-    let r = agent(&app)?.assistant().reminder_upsert(id.as_deref(), &text, &at, &decka_core::assistant::Local::now())?;
+/// `repeat`: `once` | `daily` | `weekdays` | `weekly`; absent keeps the series of an existing reminder (a new one is once).
+pub fn reminder_upsert(app: AppHandle, id: Option<String>, text: String, at: String, repeat: Option<String>) -> Result<serde_json::Value, String> {
+    use decka_core::assistant::Repeat;
+    let repeat = match repeat.as_deref() {
+        None => None,
+        Some("once") => Some(None),
+        Some(other) => Some(Some(Repeat::parse(other).ok_or("The repeat must be once, daily, weekdays or weekly")?)),
+    };
+    let r = agent(&app)?.assistant().reminder_upsert(id.as_deref(), &text, &at, repeat, &decka_core::assistant::Local::now())?;
     Ok(reminder_json(&r))
 }
 

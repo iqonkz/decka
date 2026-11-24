@@ -104,7 +104,7 @@ export interface FullState {
   lyrics?: LyricsInfo | null;      // M24 (DATA_MODEL.md 14): the lyrics of the current song; null = off, nothing playing or no text
 }
 
-export interface RemindersSection { items: { id: string; text: string; at: string }[] } // soonest first, at: local time YYYY-MM-DDTHH:MM
+export interface RemindersSection { items: { id: string; text: string; at: string; repeat?: "daily" | "weekdays" | "weekly" }[] } // soonest first, at: local time YYYY-MM-DDTHH:MM
 export interface ListsSection { lists: { id: string; name: string; items: { id: string; text: string; done: boolean }[] }[] } // at most 50 items per list
 
 /** A newer app, downloaded and verified by the agent: the phone fetches it with `apk_get`. */

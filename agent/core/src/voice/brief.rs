@@ -201,7 +201,7 @@ mod tests {
     }
 
     fn reminder(at: &str, text: &str, done: bool) -> Reminder {
-        Reminder { id: "0".repeat(16), text: text.into(), at: at.into(), done }
+        Reminder { id: "0".repeat(16), text: text.into(), at: at.into(), done, repeat: None }
     }
 
     fn list(name: &str, items: &[(&str, bool)]) -> ListView {

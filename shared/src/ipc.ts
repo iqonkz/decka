@@ -89,11 +89,14 @@ export interface VoiceStatus {
   error?: string;
 }
 /** M22 (DATA_MODEL.md 13.7): the rows of the Reminders window. */
+/** 0.23 (DATA_MODEL.md 13.4): a repeating reminder; absent = once. */
+export type ReminderRepeat = "daily" | "weekdays" | "weekly";
 export interface ReminderRow {
   id: string;
   text: string;
-  at: string;
+  at: string;           // of a series: the next time it fires
   done: boolean;
+  repeat?: ReminderRepeat;
 }
 export interface ListRow {
   id: string;
@@ -185,7 +188,7 @@ export interface IpcCommands {
   set_mail_password(args: { accountId: Id; password: string }): void; // M17: encrypts with DPAPI and saves for that mailbox; "" removes it
   lists_get(): ListRow[];                                       // M22 (DATA_MODEL.md 13.7): every list with all its items, for the editor and the Reminders window
   reminders_get(): ReminderRow[];                               // every reminder, finished ones too, soonest first
-  reminder_upsert(args: { id?: string; text: string; at: string }): ReminderRow; // no id = new; at: local YYYY-MM-DDTHH:MM; only ids the PC issued
+  reminder_upsert(args: { id?: string; text: string; at: string; repeat?: ReminderRepeat | "once" }): ReminderRow; // no id = new; at: local YYYY-MM-DDTHH:MM; only ids the PC issued
   reminder_delete(args: { id: string }): void;
   list_upsert(args: { id?: string; name: string; items: { id?: string; text: string; done: boolean }[] }): ListRow; // no id = new list; items replace the old ones
   list_delete(args: { id: string }): void;

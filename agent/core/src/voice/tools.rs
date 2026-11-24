@@ -106,7 +106,7 @@ pub enum ToolCall {
     /// A short answer of the model to a question that is not a command (DATA_MODEL.md 12.5).
     Ask { question: String },
     /// A reminder (DATA_MODEL.md 13.4); the moment is worked out by the agent from `when`, never by the model.
-    Remind { text: String, when: crate::assistant::When },
+    Remind { text: String, when: crate::assistant::When, repeat: Option<crate::assistant::Repeat> },
     RemindersShow,
     /// The brief of the day (DATA_MODEL.md 13.5).
     DayBrief,
@@ -399,14 +399,35 @@ fn run(tool: &str, args: &serde_json::Map<String, Value>, ctx: &Context) -> Resu
         }
         "remind" => {
             use crate::assistant::{Day, Local, When};
-            only(args, &["text", "inMinutes", "day", "time", "at"])?;
+            only(args, &["text", "inMinutes", "day", "time", "at", "repeat"])?;
             let what = text(args, "text", crate::assistant::MAX_TEXT)?.to_string();
             let clock = |s: &str| -> Option<(u32, u32)> {
                 let (h, m) = s.trim().split_once(':')?;
                 let (h, m) = (h.parse::<u32>().ok()?, m.parse::<u32>().ok()?);
                 (h < 24 && m < 60).then_some((h, m))
             };
+            let repeat = match args.get("repeat") {
+                None | Some(Value::Null) => None,
+                Some(v) => Some(v.as_str().and_then(crate::assistant::Repeat::parse).ok_or_else(|| reject("repeat must be daily, weekdays or weekly"))?),
+            };
+            // A series needs a time of the day; a weekly one a weekday; a daily one and one of weekdays no day at all.
+            if let Some(r) = repeat {
+                if args.get("inMinutes").is_some() || args.get("at").is_some() || args.get("time").is_none() {
+                    return Err(reject("a repeating reminder needs a time of the day"));
+                }
+                let day = args.get("day").and_then(Value::as_str).and_then(Day::parse);
+                match (r, day) {
+                    (crate::assistant::Repeat::Weekly, Some(Day::Weekday(_))) => {}
+                    (crate::assistant::Repeat::Weekly, _) => return Err(reject("a weekly reminder needs a weekday")),
+                    (_, None) if args.get("day").is_none() => {}
+                    _ => return Err(reject("only a weekly reminder takes a day")),
+                }
+            }
             let when = match (args.get("inMinutes"), args.get("day"), args.get("time"), args.get("at")) {
+                (None, None, Some(t), None) if repeat.is_some() => {
+                    let (hour, minute) = t.as_str().and_then(clock).ok_or_else(|| reject("time must be HH:MM"))?;
+                    When::Day { day: Day::Today, hour, minute }
+                }
                 (Some(m), None, None, None) => {
                     let m = m.as_u64().filter(|m| (1..=crate::assistant::MAX_AHEAD_MINUTES as u64).contains(m)).ok_or_else(|| reject("inMinutes must be 1..525600"))?;
                     When::InMinutes(m as u32)
@@ -419,7 +440,7 @@ fn run(tool: &str, args: &serde_json::Map<String, Value>, ctx: &Context) -> Resu
                 (None, None, None, Some(a)) => When::At(a.as_str().and_then(Local::parse_iso).ok_or_else(|| reject("at must be a local time YYYY-MM-DDTHH:MM"))?),
                 _ => return Err(reject("a reminder needs exactly one of: inMinutes, day with time, at")),
             };
-            ready(ToolCall::Remind { text: what, when }, false, "Set a reminder")
+            ready(ToolCall::Remind { text: what, when, repeat }, false, "Set a reminder")
         }
         "memory_add" => {
             only(args, &["text"])?;
@@ -687,8 +708,8 @@ mod tests {
     fn a_reminder_states_its_time_in_exactly_one_way_and_the_model_does_no_date_arithmetic() {
         use crate::assistant::{Day, When};
         let r = |args: Value| call("remind", args);
-        assert_eq!(ready_of(r(json!({ "text": "call mom", "inMinutes": 15 }))).call, ToolCall::Remind { text: "call mom".into(), when: When::InMinutes(15) });
-        assert_eq!(ready_of(r(json!({ "text": "x", "day": "fri", "time": "08:15" }))).call, ToolCall::Remind { text: "x".into(), when: When::Day { day: Day::Weekday(4), hour: 8, minute: 15 } });
+        assert_eq!(ready_of(r(json!({ "text": "call mom", "inMinutes": 15 }))).call, ToolCall::Remind { text: "call mom".into(), when: When::InMinutes(15), repeat: None });
+        assert_eq!(ready_of(r(json!({ "text": "x", "day": "fri", "time": "08:15" }))).call, ToolCall::Remind { text: "x".into(), when: When::Day { day: Day::Weekday(4), hour: 8, minute: 15 }, repeat: None });
         assert!(matches!(ready_of(r(json!({ "text": "x", "at": "2026-12-01T09:00" }))).call, ToolCall::Remind { when: When::At(_), .. }));
         for bad in [
             json!({ "text": "x" }),
@@ -728,6 +749,30 @@ mod tests {
         assert!(!v.confirm && v.call == ToolCall::Ask { question: "why is the sky blue".into() });
         assert!(is_reject(call("ask", json!({ "question": "x".repeat(301) }))));
         assert!(is_reject(call("ask", json!({}))));
+    }
+
+    #[test]
+    fn a_series_takes_a_time_of_the_day_and_a_weekly_one_a_weekday() {
+        use crate::assistant::{Day, Repeat, When};
+        let r = |v: serde_json::Value| call("remind", v);
+        let daily = ready_of(r(json!({ "text": "pills", "repeat": "daily", "time": "09:00" })));
+        assert_eq!(daily.call, ToolCall::Remind { text: "pills".into(), when: When::Day { day: Day::Today, hour: 9, minute: 0 }, repeat: Some(Repeat::Daily) });
+        assert!(matches!(ready_of(r(json!({ "text": "x", "repeat": "weekdays", "time": "08:30" }))).call, ToolCall::Remind { repeat: Some(Repeat::Weekdays), .. }));
+        assert_eq!(
+            ready_of(r(json!({ "text": "gym", "repeat": "weekly", "day": "mon", "time": "07:00" }))).call,
+            ToolCall::Remind { text: "gym".into(), when: When::Day { day: Day::Weekday(0), hour: 7, minute: 0 }, repeat: Some(Repeat::Weekly) }
+        );
+        for bad in [
+            json!({ "text": "x", "repeat": "monthly", "time": "09:00" }),
+            json!({ "text": "x", "repeat": "daily" }),
+            json!({ "text": "x", "repeat": "daily", "inMinutes": 5 }),
+            json!({ "text": "x", "repeat": "daily", "at": "2026-12-01T09:00" }),
+            json!({ "text": "x", "repeat": "weekly", "time": "09:00" }),
+            json!({ "text": "x", "repeat": "weekly", "day": "tomorrow", "time": "09:00" }),
+            json!({ "text": "x", "repeat": "daily", "day": "mon", "time": "09:00" }),
+        ] {
+            assert!(is_reject(r(bad.clone())), "{bad}");
+        }
     }
 
     #[test]
