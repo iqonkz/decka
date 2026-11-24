@@ -298,5 +298,91 @@
     "args": {
       "text": "clave del casillero viejo"
     }
+  },
+  {
+    "say": "cuánto es 54 multiplicado por 114",
+    "tool": "calc",
+    "args": {
+      "expr": "54 * 114"
+    }
+  },
+  {
+    "say": "calcula trescientos cincuenta más ochocientos veinte",
+    "tool": "calc",
+    "args": {
+      "expr": "350 + 820"
+    }
+  },
+  {
+    "say": "resta 175 a 600",
+    "tool": "calc",
+    "args": {
+      "expr": "600 - 175"
+    }
+  },
+  {
+    "say": "divide novecientos sesenta entre ocho",
+    "tool": "calc",
+    "args": {
+      "expr": "960 / 8"
+    }
+  },
+  {
+    "say": "cuánto es el 15 por ciento de 240",
+    "tool": "calc",
+    "args": {
+      "expr": "15% * 240"
+    }
+  },
+  {
+    "say": "por qué el cielo se ve azul durante el día",
+    "tool": "ask",
+    "args": {
+      "question": "por qué el cielo se ve azul durante el día"
+    }
+  },
+  {
+    "say": "cuántos días tiene un año bisiesto",
+    "tool": "ask",
+    "args": {
+      "question": "cuántos días tiene un año bisiesto"
+    }
+  },
+  {
+    "say": "a qué temperatura en grados celsius hierve el agua",
+    "tool": "ask",
+    "args": {
+      "question": "a qué temperatura en grados celsius hierve el agua"
+    }
+  },
+  {
+    "say": "quién escribió la obra de hamlet",
+    "tool": "ask",
+    "args": {
+      "question": "quién escribió la obra de hamlet"
+    }
+  },
+  {
+    "say": "cuál es la capital de australia",
+    "tool": "ask",
+    "args": {
+      "question": "cuál es la capital de australia"
+    }
+  },
+  {
+    "say": "cuáles son las noticias más importantes de hoy",
+    "tool": "web_search",
+    "args": {
+      "site": "web",
+      "query": "noticias más importantes de hoy"
+    }
+  },
+  {
+    "say": "cuál es el tipo de cambio actual del dólar al euro",
+    "tool": "web_search",
+    "args": {
+      "site": "web",
+      "query": "tipo de cambio dólar a euro hoy"
+    }
   }
 ]
