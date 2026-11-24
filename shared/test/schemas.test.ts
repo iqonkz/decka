@@ -119,6 +119,22 @@ describe("invalid inputs are rejected", () => {
     expect(valid(weather, { ...base, hourly: [15, 16, 17, 18, 19, 20].map((h) => ({ ...hour(h), isDay: 1 })) })).toBe(false);
   });
 
+  test("T24.2: lyrics_offset is a key and a step of 500, and the lyrics section is bounded", () => {
+    const msg = { t: "lyrics_offset", trackKey: "0123456789abcdef", deltaMs: 500 };
+    expect(valid(proto("LyricsOffsetMsg"), msg)).toBe(true);
+    expect(valid(proto("LyricsOffsetMsg"), { ...msg, deltaMs: -500 })).toBe(true);
+    expect(valid(proto("ClientMsg"), msg)).toBe(true);
+    for (const bad of [{ ...msg, deltaMs: 1000 }, { ...msg, deltaMs: 0 }, { ...msg, trackKey: "../x" }, { ...msg, trackKey: "ABCDEF0123456789" }, { ...msg, text: "la la" }, { t: "lyrics_offset", deltaMs: 500 }]) {
+      expect(valid(proto("LyricsOffsetMsg"), bad)).toBe(false);
+    }
+    const info = { trackKey: "0123456789abcdef", synced: true, offsetMs: 1500, lines: [{ t: 1000, text: "la" }, { text: "" }] };
+    expect(valid(proto("LyricsInfo"), info)).toBe(true);
+    expect(valid(proto("LyricsInfo"), { ...info, offsetMs: 30500 })).toBe(false);
+    expect(valid(proto("LyricsInfo"), { ...info, offsetMs: 250 })).toBe(false);
+    expect(valid(proto("LyricsInfo"), { ...info, lines: Array.from({ length: 301 }, () => ({ text: "x" })) })).toBe(false);
+    expect(valid(proto("LyricsInfo"), { ...info, lines: [{ text: "x".repeat(201) }] })).toBe(false);
+  });
+
   test("list_toggle carries two ids issued by the agent and nothing else", () => {
     const ok = { t: "list_toggle", listId: "0123456789abcdef", itemId: "fedcba9876543210" };
     expect(valid(proto("ListToggleMsg"), ok)).toBe(true);

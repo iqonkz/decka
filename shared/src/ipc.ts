@@ -107,6 +107,9 @@ export interface MemoryFact {
 }
 /** `dictation.json`: what starts a dictation, whether the text is tidied, and the words whisper should know (at most 500 of 60 characters). */
 export type DictationTrigger = { kind: "doubleCtrl" } | { kind: "chord"; keys: string[] } | { kind: "off" };
+export interface LyricsStatus {
+  enabled: boolean;
+}
 export interface DictationSettings {
   trigger: DictationTrigger;
   mode: "clean" | "raw";
@@ -190,6 +193,8 @@ export interface IpcCommands {
   memory_update(args: { id: string; text: string }): MemoryFact;
   memory_delete(args: { id: string }): void;
   memory_clear(): void;                                         // Forget all
+  lyrics_get(): LyricsStatus;                                   // M24 (DATA_MODEL.md 14): the switch of the song lyrics, off by default
+  lyrics_set(args: { enabled: boolean }): LyricsStatus;         // on sends the artist, the title and the length of a song to lrclib.net; off clears the lyrics on the phones
   voice_dictation_get(): DictationSettings;
   voice_dictation_set(args: DictationSettings): DictationSettings; // an invalid shortcut is an error string; the answer is what was saved
   mail_check_now(): void;                                       // M17: looks at the mailboxes at once

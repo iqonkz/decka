@@ -369,6 +369,8 @@ struct Inner {
     assistant: crate::assistant::Assistant,
     /// What the user asked to remember (DATA_MODEL.md 13.6).
     memory: crate::voice::memory::Memory,
+    /// M24: lyrics of the current track (off by default).
+    lyrics: crate::lyrics::Lyrics,
     ai_task: Mutex<Option<JoinHandle<()>>>,
     /// Twitch: the polling loop, the sign-in in progress (and its error), the last error and the last good numbers.
     twitch_task: Mutex<Option<JoinHandle<()>>>,
@@ -430,6 +432,7 @@ impl Agent {
                 voice: crate::voice::VoiceHub::new(),
                 assistant: crate::assistant::Assistant::load(&config_dir),
                 memory: crate::voice::memory::Memory::load(&config_dir),
+                lyrics: crate::lyrics::Lyrics::new(&config_dir, lyrics_dir(&config_dir, opts.config_dir.is_some())),
                 ai_task: Mutex::new(None),
                 twitch_task: Mutex::new(None),
                 twitch_login_task: Mutex::new(None),
@@ -547,6 +550,22 @@ impl Agent {
             });
             agent.inner.background.lock().unwrap().push(publisher);
         }
+        // M24 (DATA_MODEL.md 14): the lyrics follow the media session; off = nothing is asked.
+        {
+            let for_task = agent.clone();
+            let mut rx = agent.inner.store.subscribe();
+            let task = tokio::spawn(async move {
+                for_task.sync_lyrics().await;
+                loop {
+                    match rx.recv().await {
+                        Ok(patch) if patch.section == "media" => for_task.sync_lyrics().await,
+                        Ok(_) | Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {}
+                        Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
+                    }
+                }
+            });
+            agent.inner.background.lock().unwrap().push(task);
+        }
         agent.restart_collectors();
         agent.start_server().await;
         agent.restart_usb();
@@ -560,6 +579,45 @@ impl Agent {
     /// M21: where `voice_*` messages of the phones arrive; `set_sink` connects the pipeline.
     pub fn memory(&self) -> &crate::voice::memory::Memory {
         &self.inner.memory
+    }
+
+    pub fn lyrics(&self) -> &crate::lyrics::Lyrics {
+        &self.inner.lyrics
+    }
+
+    /// Whether the lyrics of the current song are looked up (config.media.lyrics.enabled, off by default).
+    pub fn lyrics_enabled(&self) -> bool {
+        self.config().media.and_then(|m| m.lyrics).is_some_and(|l| l.enabled)
+    }
+
+    /// Brings the lyrics section in line with the media session and the switch.
+    pub async fn sync_lyrics(&self) {
+        let media: Option<crate::model::MediaInfo> = serde_json::from_value(self.inner.store.get("media")).ok();
+        let value = self.inner.lyrics.section(media.as_ref(), self.lyrics_enabled()).await;
+        self.inner.store.set("lyrics", value);
+    }
+
+    /// lyrics_set: the switch of the lyrics. Off clears the section at once and nothing more is asked.
+    pub fn set_lyrics_enabled(&self, enabled: bool) -> Result<bool, String> {
+        let mut config = self.config();
+        config.media.get_or_insert_with(Default::default).lyrics = Some(crate::model::SwitchConfig { enabled });
+        if let SaveResult::Rejected(issues) = self.write_config(config) {
+            return Err(issues.first().map(|i| i.message.clone()).unwrap_or_default());
+        }
+        let me = self.clone();
+        self.inner.runtime.spawn(async move { me.sync_lyrics().await });
+        Ok(enabled)
+    }
+
+    /// lyrics_offset of a phone: the shift of the current track moves by one step; any other key changes nothing.
+    pub fn lyrics_offset(&self, track_key: &str, delta_ms: i64) -> bool {
+        match self.inner.lyrics.nudge(track_key, delta_ms) {
+            Some(value) => {
+                self.inner.store.set("lyrics", value);
+                true
+            }
+            None => false,
+        }
     }
 
     pub fn assistant(&self) -> &crate::assistant::Assistant {
@@ -2638,6 +2696,14 @@ pub enum ApkGetError {
     Busy,
     /// Not a multiple of 3000 or outside the file.
     BadOffset,
+}
+
+/// `%LOCALAPPDATA%\Decka\lyrics`; a test copy keeps it inside its own folder.
+fn lyrics_dir(config_dir: &std::path::Path, explicit: bool) -> PathBuf {
+    if explicit || std::env::var_os("DECKA_CONFIG_DIR").is_some_and(|d| !d.is_empty()) {
+        return config_dir.join("lyrics");
+    }
+    dirs::data_local_dir().unwrap_or_else(|| PathBuf::from(".")).join("Decka").join("lyrics")
 }
 
 /// `%LOCALAPPDATA%\Decka\updates`; a test copy (explicit or env configuration folder) keeps it inside its own folder.

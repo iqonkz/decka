@@ -88,6 +88,8 @@ pub fn run() {
             commands::memory_clear,
             commands::voice_dictation_get,
             commands::voice_dictation_set,
+            commands::lyrics_get,
+            commands::lyrics_set,
             commands::windows_notifications_status,
             commands::network_status,
             commands::cc_status,

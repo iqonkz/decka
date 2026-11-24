@@ -1,0 +1,29 @@
+[
+  {
+    "id": 11,
+    "trackName": "Midnight City (Eric Prydz Remix)",
+    "artistName": "M83",
+    "duration": 328.0,
+    "instrumental": false,
+    "plainLyrics": "Remix words",
+    "syncedLyrics": "[00:10.00] Remix words"
+  },
+  {
+    "id": 12,
+    "trackName": "Midnight City",
+    "artistName": "M83",
+    "duration": 244.4,
+    "instrumental": false,
+    "plainLyrics": "Waiting in a car\nWaiting for a ride in the dark",
+    "syncedLyrics": "[00:05.00] Waiting in a car\n[00:09.50] Waiting for a ride in the dark"
+  },
+  {
+    "id": 13,
+    "trackName": "Midnight City",
+    "artistName": "M83",
+    "duration": 243.0,
+    "instrumental": true,
+    "plainLyrics": null,
+    "syncedLyrics": null
+  }
+]

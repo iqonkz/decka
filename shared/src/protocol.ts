@@ -35,6 +35,8 @@ export interface PermAnswerMsg { t: "perm_answer"; reqId: string; decision: "all
 export interface NotifOpenMsg { t: "notif_open"; notifId: string; }
 /** T22.13 (DATA_MODEL.md 13.4): a tap on an item of a list widget. Data, not a command: the ids were issued by the agent, others are ignored. */
 export interface ListToggleMsg { t: "list_toggle"; listId: string; itemId: string; }   // ids ^[0-9a-f]{16}$
+// M24 (DATA_MODEL.md 14): data, not a command. trackKey is one the PC issued (an unknown one is ignored); the step is +-500 ms only.
+export interface LyricsOffsetMsg { t: "lyrics_offset"; trackKey: string; deltaMs: -500 | 500; }   // trackKey ^[0-9a-f]{16}$
 /** M20 (T20.4): the next piece of the new APK; `offset` is a multiple of 3000. Only inside the encrypted channel. */
 export interface ApkGetMsg { t: "apk_get"; offset: number; }
 // M21 (DATA_MODEL.md 12.6): voice from the phone, only inside the v2 channel. `seq` counts from 0 and grows by exactly 1.
@@ -52,7 +54,7 @@ export interface VoiceInfo {
   /** M22 (DATA_MODEL.md 13.7): what the running request is, for the label of the pill. */
   activity?: "dictate" | "screen";
 }
-export type ClientMsg = Hello2Msg | AuthMsg | PairMsg | HelloMsg | PressMsg | NotifDismissMsg | PingMsg | PermAnswerMsg | NotifOpenMsg | ListToggleMsg | ApkGetMsg
+export type ClientMsg = Hello2Msg | AuthMsg | PairMsg | HelloMsg | PressMsg | NotifDismissMsg | PingMsg | PermAnswerMsg | NotifOpenMsg | ListToggleMsg | LyricsOffsetMsg | ApkGetMsg
   | VoiceStartMsg | VoiceChunkMsg | VoiceEndMsg | VoiceCancelMsg | VoiceConfirmMsg;
 
 // ===== Server -> Client (WS) =====
@@ -77,7 +79,7 @@ export interface ApkChunkMsg { t: "apk_chunk"; offset: number; data: string; tot
 export type ServerMsg = ChallengeMsg | AuthOkMsg | PairedMsg | WelcomeMsg | PatchMsg | PressResultMsg | PongMsg | ApkChunkMsg | ErrorMsg;
 
 // ===== State (sections) =====
-export type SectionName = "layout" | "sys" | "statuses" | "notifications" | "vars" | "focus" | "media" | "icons" | "weather" | "obs" | "ai" | "twitch" | "youtube" | "strip" | "battery" | "mail" | "update" | "voice" | "reminders" | "lists"; // reminders, lists: M22; weather, obs: M15; ai: M16; strip, battery, mail: M17; update: M20; voice: M21
+export type SectionName = "layout" | "sys" | "statuses" | "notifications" | "vars" | "focus" | "media" | "icons" | "weather" | "obs" | "ai" | "twitch" | "youtube" | "strip" | "battery" | "mail" | "update" | "voice" | "reminders" | "lists" | "lyrics"; // lyrics: M24; reminders, lists: M22; weather, obs: M15; ai: M16; strip, battery, mail: M17; update: M20; voice: M21
 export interface FullState {
   layout: ClientLayout;
   sys: SysStats | null;            // null = collector disabled
@@ -99,6 +101,7 @@ export interface FullState {
   voice?: VoiceInfo | null;        // M21
   reminders?: RemindersSection;    // M22 (DATA_MODEL.md 13.7): the next 5 reminders
   lists?: ListsSection;            // M22: every list, the first 50 items of each
+  lyrics?: LyricsInfo | null;      // M24 (DATA_MODEL.md 14): the lyrics of the current song; null = off, nothing playing or no text
 }
 
 export interface RemindersSection { items: { id: string; text: string; at: string }[] } // soonest first, at: local time YYYY-MM-DDTHH:MM
@@ -191,6 +194,13 @@ export interface WeatherInfo {
   current: { temp: number; code: number; isDay: boolean; wind: number };   // temp: whole degrees C/F; code: WMO; wind: whole km/h or mph
   daily: { date: string; min: number; max: number; code: number }[];      // exactly 3 days, date "YYYY-MM-DD", starting today
   hourly?: WeatherHour[];          // 0.23 (DESIGN 4.16): 6 hours starting with the next one; absent when the answer had none
+}
+// M24 (DATA_MODEL.md 14): the lyrics of the current song. Section "lyrics"; null = off, nothing playing or no text.
+export interface LyricsInfo {
+  trackKey: string;                // ^[0-9a-f]{16}$ — a hash of artist|title|duration, issued by the PC
+  synced: boolean;                 // true: lines with a time; false: plain text without a highlight
+  lines: { t?: number; text: string }[]; // t: ms from the start of the track (synced only); <= 300 lines x <= 200 characters
+  offsetMs: number;                // the user's shift for this track, -30000..30000, steps of 500
 }
 export interface WeatherHour { time: string; temp: number; code: number; isDay: boolean } // time: local "HH:mm"
 

@@ -15,6 +15,7 @@ pub mod installed;
 #[cfg(windows)]
 pub mod imaging;
 pub mod logging;
+pub mod lyrics;
 pub mod media_control;
 pub mod model;
 pub mod netpolicy;

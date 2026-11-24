@@ -467,6 +467,17 @@ async fn handle_text(
             }
             true
         }
+        Ok(ClientMsg::LyricsOffset { track_key, delta_ms }) => {
+            // Data, not a command: only the key of the current track and a step of half a second move the shift; anything else
+            // (an unknown key, another step) changes nothing. Same limit per second as a press.
+            if !press_limiter.check("lyrics_offset") {
+                return link.send(&error_msg(ErrorCode::RateLimited, "too many lyrics offsets")).await;
+            }
+            if agent.lyrics_enabled() {
+                agent.lyrics_offset(&track_key, delta_ms);
+            }
+            true
+        }
         Ok(ClientMsg::NotifOpen { notif_id }) => {
             // Only the id of the notification comes from the phone (ARCHITECTURE.md S21); the program is the agent's own record.
             tracing::info!("notif_open {notif_id} device={}", who.device_id);

@@ -64,6 +64,7 @@ pub fn default_config() -> ConfigFile {
         mail: None,
         windows_notifications: None,
         network: None,
+        media: None,
     }
 }
 

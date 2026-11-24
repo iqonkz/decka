@@ -19,6 +19,24 @@ pub struct TokenResult {
     api_token: String,
 }
 
+/// The switch of the lyrics of the current song (DATA_MODEL.md 14).
+#[derive(Serialize)]
+pub struct LyricsStatus {
+    enabled: bool,
+}
+
+/// `Lyrics` card: is the lookup on (off by default; on sends the artist, the title and the length of a song to lrclib.net).
+#[tauri::command]
+pub fn lyrics_get(app: AppHandle) -> Result<LyricsStatus, String> {
+    Ok(LyricsStatus { enabled: agent(&app)?.lyrics_enabled() })
+}
+
+/// Switches the lyrics on or off; off clears them from the phones at once.
+#[tauri::command]
+pub fn lyrics_set(app: AppHandle, enabled: bool) -> Result<LyricsStatus, String> {
+    Ok(LyricsStatus { enabled: agent(&app)?.set_lyrics_enabled(enabled)? })
+}
+
 #[tauri::command]
 pub fn get_status(app: AppHandle) -> Result<AgentStatus, String> {
     Ok(agent(&app)?.status())

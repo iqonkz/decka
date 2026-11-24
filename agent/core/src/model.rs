@@ -653,6 +653,17 @@ pub struct ConfigFile {
     /// M18 (DATA_MODEL.md 11.2): the policy for phones on public networks; absent = `allowPublic: true`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub network: Option<NetworkConfig>,
+    /// M24 (DATA_MODEL.md 14): `media.lyrics.enabled`, off by default; absent = off.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub media: Option<MediaConfig>,
+}
+
+/// `config.media`: what the "Now playing" widget may do besides showing the session.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct MediaConfig {
+    /// Song lyrics from lrclib.net (the artist, the title and the duration are sent); absent = off.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lyrics: Option<SwitchConfig>,
 }
 
 /// `allowPublic: false` closes every connection that arrives on a public network.

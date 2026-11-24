@@ -205,6 +205,41 @@ async fn store_changes_arrive_as_patches_and_duplicates_do_not() {
     e.agent.shutdown().await;
 }
 
+/// T24.2: `lyrics_offset` is data. Off by default, an unknown key and a wrong step change nothing, nothing is sent back, and
+/// the socket stays usable; the switch is a config value that survives a read.
+#[tokio::test]
+async fn lyrics_offset_changes_nothing_it_was_not_given_a_key_for() {
+    let e = env().await;
+    let (mut ws, _) = pair(&e).await;
+    assert!(!e.agent.lyrics_enabled(), "off by default");
+    for msg in [
+        json!({ "t": "lyrics_offset", "trackKey": "0123456789abcdef", "deltaMs": 500 }),
+        json!({ "t": "lyrics_offset", "trackKey": "0123456789abcdef", "deltaMs": 1000 }),
+        json!({ "t": "lyrics_offset", "trackKey": "../../x", "deltaMs": -500 }),
+    ] {
+        send(&mut ws, msg).await;
+    }
+    send(&mut ws, json!({ "t": "ping", "ts": 7 })).await;
+    // Whatever background sources send, no lyrics patch and no error come back.
+    loop {
+        let frame = recv(&mut ws).await;
+        assert_ne!(frame["section"], "lyrics", "{frame}");
+        assert_ne!(frame["t"], "error", "{frame}");
+        if frame["t"] == "pong" {
+            break;
+        }
+    }
+    assert_eq!(e.agent.store().get("lyrics"), serde_json::Value::Null);
+    assert!(!e.agent.lyrics_offset("0123456789abcdef", 500));
+    // The switch is kept in the configuration.
+    assert_eq!(e.agent.set_lyrics_enabled(true), Ok(true));
+    assert!(e.agent.lyrics_enabled());
+    assert_eq!(e.agent.config().media.and_then(|m| m.lyrics).map(|l| l.enabled), Some(true));
+    assert_eq!(e.agent.set_lyrics_enabled(false), Ok(false));
+    assert!(!e.agent.lyrics_enabled());
+    e.agent.shutdown().await;
+}
+
 #[tokio::test]
 async fn ping_gets_pong_with_same_ts() {
     let e = env().await;
