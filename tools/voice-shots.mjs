@@ -51,6 +51,30 @@ const base = `http://127.0.0.1:${server.address().port}/index.html`;
 const PILL = { w: 360, h: 160, scale: 3 };
 const PHONE = { w: 800, h: 360, scale: 2 };
 const DECK = { w: 1280, h: 600, scale: 1 };
+function t235bShots() {
+  const out = {};
+  const land = { w: 844, h: 390, scale: 1 };
+  const port = { w: 390, h: 844, scale: 1 };
+  for (const theme of ["amoled", "studio", "material", "glass"]) {
+    out[`t235b-demo-${theme}-land`] = [land, `scene=deck&theme=${theme}`];
+    out[`t235b-demo-${theme}-port`] = [port, `scene=deck&theme=${theme}&orient=portrait`];
+  }
+  const gridShot = { w: 1100, h: 640, scale: 1 };
+  out["t235b-widgets-sml-1"] = [gridShot, "scene=deck&theme=studio&pack=sml1"];
+  out["t235b-widgets-sml-2"] = [gridShot, "scene=deck&theme=studio&pack=sml2"];
+  out["t235b-widgets-sml-3"] = [gridShot, "scene=deck&theme=studio&pack=sml3"];
+  out["t235b-widgets-empty"] = [gridShot, "scene=deck&theme=studio&pack=empty"];
+  for (const lang of ["en", "ru"]) {
+    out[`t235b-srv-pair-${lang}`] = [port, `scene=service&screen=pair&lang=${lang}`];
+    out[`t235b-srv-qr-${lang}`] = [port, `scene=service&screen=qr&lang=${lang}`];
+    out[`t235b-srv-link-${lang}`] = [port, `scene=service&screen=link&lang=${lang}`];
+    out[`t235b-srv-update-${lang}`] = [port, `scene=service&screen=update&lang=${lang}`];
+    out[`t235b-srv-perm-${lang}`] = [port, `scene=service&screen=perm&lang=${lang}`];
+    out[`t235b-srv-menu-${lang}`] = [port, `scene=service&screen=menu&lang=${lang}`];
+    out[`t235b-srv-skeleton-${lang}`] = [port, `scene=service&screen=skeleton&lang=${lang}`];
+  }
+  return out;
+}
 // T23: the settings window (Russian) in both colour schemes: pages, a search with results and the minimum window width.
 function settingsShots() {
   const out = {};
@@ -98,6 +122,7 @@ const SHOTS = {
   "m22-pill-dictating": [PILL, "scene=pill&state=listening&activity=dictate"],
   "m22-pill-looking": [PILL, "scene=pill&state=thinking&activity=screen&heard=what+is+on+screen"],
   ...settingsShots(),
+  ...t235bShots(),
   "phone-idle": [PHONE, "scene=phone&state=idle"],
   "phone-listening": [PHONE, "scene=phone&state=listening"],
   "phone-done": [PHONE, "scene=phone&state=done&heard=turn+the+volume+up&reply=Done"],
@@ -112,7 +137,7 @@ async function shoot(name, [size, query, click]) {
   const chrome = spawn(CHROME, ["--headless=new", `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`, "--lang=en-US", `--window-size=${size.w},${size.h}`, "about:blank"], { stdio: "ignore" });
   try {
     let target;
-    for (let i = 0; i < 50 && !target; i++) {
+    for (let i = 0; i < 80 && !target; i++) {
       try {
         target = (await (await fetch(`http://127.0.0.1:${port}/json`)).json()).find((t) => t.type === "page");
       } catch {
@@ -120,6 +145,7 @@ async function shoot(name, [size, query, click]) {
       }
       if (!target) await sleep(200);
     }
+    if (!target) throw new Error(`${name}: Chrome CDP target did not appear`);
     const ws = new WebSocket(target.webSocketDebuggerUrl);
     await new Promise((r) => ws.addEventListener("open", r, { once: true }));
     let id = 0;
@@ -139,7 +165,12 @@ async function shoot(name, [size, query, click]) {
     await send("Runtime.enable");
     await send("Emulation.setDeviceMetricsOverride", { width: size.w, height: size.h, deviceScaleFactor: size.scale, mobile: false });
     await send("Page.navigate", { url: `${base}?${query}` });
-    await sleep(1200);
+    for (let w = 0; w < 40; w++) {
+      const r = await send("Runtime.evaluate", { expression: "document.getElementById('root')?.childElementCount ?? 0", returnByValue: true }).catch(() => null);
+      if ((r?.result?.value ?? 0) > 0) break;
+      await sleep(100);
+    }
+    await sleep(query.includes("theme=glass") ? 2200 : 1500);
     const scheme = new URLSearchParams(query).get("scheme");
     if (scheme) {
       await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: scheme }] });

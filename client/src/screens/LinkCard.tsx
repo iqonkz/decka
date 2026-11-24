@@ -3,6 +3,7 @@ import { t } from "@decka/shared";
 import { connectAgain, retryConnection, unpair } from "../app/controller";
 import { cardButtons, linkView, type LinkView } from "../net/linkState";
 import { useAppState } from "../store/store";
+import ServiceCard from "../ui/ServiceCard";
 
 /** The view of the link: the card appears 8 s after the link was lost (at once when the PC rejected the key). */
 export function useLinkView(): LinkView {
@@ -22,41 +23,43 @@ export function useLinkView(): LinkView {
   return linkView(conn, since === null ? 0 : Math.max(0, now - since));
 }
 
-/** "Can't reach {pc}" over the dimmed layout: the way out is always here (DESIGN.md 4.13). */
+/** "Can't reach {pc}" over the dimmed layout: the way out is always here (DESIGN.md 4.13, 4.16). */
 export default function LinkCard({ reason }: { reason: "silent" | "rejected" }) {
   const pc = useAppState((s) => s.agentName) ?? "PC";
   const [why, setWhy] = useState(false);
   const buttons = cardButtons(reason);
   return (
-    <div className="link-backdrop">
-      <div className="link-card" role="dialog" aria-label={t("link.title", { pc })}>
-        <h2>{t("link.title", { pc })}</h2>
-        <p>{reason === "silent" ? t("link.silent") : t("link.rejected")}</p>
-        <div className="link-buttons">
-          {buttons.tryAgain && (
-            <button className="primary" type="button" onClick={retryConnection}>
-              {t("link.try_again")}
-            </button>
-          )}
-          <button className={buttons.tryAgain ? "" : "primary"} type="button" onClick={connectAgain}>
-            {t("link.connect_again")}
+    <ServiceCard
+      backdrop
+      role="dialog"
+      icon="wifi-slash"
+      title={t("link.title", { pc })}
+      text={reason === "silent" ? t("link.silent") : t("link.rejected")}
+    >
+      <div className="service-actions">
+        {buttons.tryAgain && (
+          <button className="pill-btn primary" type="button" onClick={retryConnection}>
+            {t("link.try_again")}
           </button>
-        </div>
-        <button type="button" className="link-small" onClick={unpair}>
+        )}
+        <button className={buttons.tryAgain ? "pill-btn secondary" : "pill-btn primary"} type="button" onClick={connectAgain}>
+          {t("link.connect_again")}
+        </button>
+        <button type="button" className="pill-btn secondary" onClick={unpair}>
           {t("link.other_pc")}
         </button>
         <button type="button" className="link-small" aria-expanded={why} onClick={() => setWhy(!why)}>
           {t("link.why")}
         </button>
-        {why && (
-          <ul className="connecting-hints">
-            <li>{t("phone.hint_wifi")}</li>
-            <li>{t("phone.hint_agent")}</li>
-            <li>{t("link.hint_public")}</li>
-            <li>{t("link.hint_usb")}</li>
-          </ul>
-        )}
       </div>
-    </div>
+      {why && (
+        <ul className="connecting-hints">
+          <li>{t("phone.hint_wifi")}</li>
+          <li>{t("phone.hint_agent")}</li>
+          <li>{t("link.hint_public")}</li>
+          <li>{t("link.hint_usb")}</li>
+        </ul>
+      )}
+    </ServiceCard>
   );
 }

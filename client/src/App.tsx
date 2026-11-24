@@ -8,6 +8,7 @@ import DeckScreen from "./screens/DeckScreen";
 import PairScreen from "./screens/PairScreen";
 import { applyOrientation } from "./platform/orientation";
 import { useAppState } from "./store/store";
+import ServiceCard from "./ui/ServiceCard";
 
 export default function App() {
   const conn = useAppState((s) => s.conn);
@@ -23,19 +24,33 @@ export default function App() {
   }, [hasState, orientation]);
 
   if (conn === "unpaired" || conn === "repair") return <PairScreen />;
-  if (conn === "update_required") return <div className="center">{t("phone.update_required")}</div>;
+  if (conn === "update_required") {
+    return (
+      <ServiceCard icon="arrow-circle-up" title={t("phone.update_title")} text={t("phone.update_required")}>
+        <div className="service-actions">
+          <button className="pill-btn primary" type="button" onClick={() => location.reload()}>
+            {t("menu.reload")}
+          </button>
+          <button className="pill-btn secondary" type="button" onClick={unpair}>
+            {t("phone.unpair")}
+          </button>
+        </div>
+      </ServiceCard>
+    );
+  }
   if (conn === "not_your_pc") {
     // The PC could not prove it holds our key (PROTOCOL.md 10): no automatic retries until the owner decides.
     return (
-      <div className="center">
-        <p>{t("phone.not_your_pc")}</p>
-        <button className="primary" type="button" onClick={retryConnection}>
-          {t("phone.retry")}
-        </button>
-        <button type="button" onClick={unpair}>
-          {t("phone.unpair")}
-        </button>
-      </div>
+      <ServiceCard icon="shield-warning" title={t("phone.not_your_pc_title")} text={t("phone.not_your_pc")}>
+        <div className="service-actions">
+          <button className="pill-btn primary" type="button" onClick={retryConnection}>
+            {t("phone.retry")}
+          </button>
+          <button className="pill-btn secondary" type="button" onClick={unpair}>
+            {t("phone.unpair")}
+          </button>
+        </div>
+      </ServiceCard>
     );
   }
   return (

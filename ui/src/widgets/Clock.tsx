@@ -4,7 +4,6 @@ import { formatClock, formatDate } from "./format";
 
 export default function Clock({ item }: { item: ClockItem }) {
   const seconds = item.seconds === true;
-  const wide = item.w >= 2;
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -14,10 +13,8 @@ export default function Clock({ item }: { item: ClockItem }) {
 
   return (
     <div className="clock">
-      <div className="clock-time" style={{ fontSize: wide ? "9vmin" : "5.5vmin" }}>
-        {formatClock(now, seconds)}
-      </div>
-      {wide && <div className="clock-date">{formatDate(now)}</div>}
+      <div className="clock-time widget-figure">{formatClock(now, seconds)}</div>
+      <div className="clock-date w-m">{formatDate(now)}</div>
     </div>
   );
 }

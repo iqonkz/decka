@@ -3,6 +3,7 @@ import { t, type PermRequest } from "@decka/shared";
 import { answerPerm } from "../app/controller";
 import { hapticEvent } from "../platform/haptics";
 import { openPerms, useAppState } from "../store/store";
+import ServiceCard from "../ui/ServiceCard";
 
 /** `Allow` and `Deny` ignore touches for this long after a question appears (a stray touch must not decide it). */
 export const PERM_GUARD_MS = 400;
@@ -43,7 +44,7 @@ function HoldToAllow({ disabled, onHold }: { disabled: boolean; onHold: () => vo
   return (
     <button
       type="button"
-      className="perm-allow perm-hold"
+      className="pill-btn primary perm-hold"
       disabled={disabled}
       onPointerDown={() => {
         setHint(false);
@@ -51,7 +52,7 @@ function HoldToAllow({ disabled, onHold }: { disabled: boolean; onHold: () => vo
         frame.current = window.requestAnimationFrame(step);
       }}
       onPointerUp={() => {
-        if (start.current !== null) setHint(true); // released too early
+        if (start.current !== null) setHint(true);
         stop();
       }}
       onPointerLeave={stop}
@@ -61,15 +62,15 @@ function HoldToAllow({ disabled, onHold }: { disabled: boolean; onHold: () => vo
       <svg className="perm-ring" viewBox="0 0 20 20" width="20" height="20" aria-hidden="true">
         <circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" strokeOpacity="0.25" strokeWidth="2" />
         <circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray={`${progress * 50.3} 50.3`} transform="rotate(-90 10 10)" />
-      </svg>{" "}
-      {hint ? t("perm.hold_hint") : t("perm.allow")}
+      </svg>
+      <span>{hint ? t("perm.hold_hint") : t("perm.allow")}</span>
     </button>
   );
 }
 
 /**
- * The permission sheet (DATA_MODEL.md 6.8): over any page while Claude Code waits for an answer. It closes at once when answered
- * here, and quietly when the question left `pending` (answered on the PC, or the wait ran out).
+ * The permission card (DATA_MODEL.md 6.8, DESIGN.md 4.16): centered service card with 88 px hero icon,
+ * 22/600 title, summary box, timer, and 48 px pill actions.
  */
 export default function PermSheet() {
   const pending = useAppState((s) => s.state?.ai?.pending);
@@ -87,7 +88,7 @@ export default function PermSheet() {
     setExpanded(false);
     setShownAt(Date.now());
     if (!reqId) return;
-    hapticEvent({ type: "confirm" }); // a short buzz: a question is waiting
+    hapticEvent({ type: "confirm" });
     const guard = window.setTimeout(() => setArmed(true), PERM_GUARD_MS);
     const tick = window.setInterval(() => setNow(Date.now()), 250);
     return () => {
@@ -106,45 +107,47 @@ export default function PermSheet() {
   };
 
   return (
-    <div className="perm-backdrop">
-      <div className="perm-sheet" role="dialog" aria-label={title}>
-        {open.length > 1 && <div className="perm-count">{t("perm.count", { n: 1, total: open.length })}</div>}
-        <h2 className="perm-title">{title}</h2>
-        {request.project !== "" && <div className="perm-project">{request.project}</div>}
-        {request.summary !== "" && (
-          <button type="button" className={expanded ? "perm-summary expanded" : "perm-summary"} aria-label={t("perm.expand")} onClick={() => setExpanded((e) => !e)}>
-            {request.summary}
+    <ServiceCard
+      backdrop
+      role="dialog"
+      icon={request.danger === true ? "shield-warning" : "shield-check"}
+      title={title}
+      text={request.project || undefined}
+    >
+      {open.length > 1 && <div className="perm-count">{t("perm.count", { n: 1, total: open.length })}</div>}
+      {request.summary !== "" && (
+        <button type="button" className={expanded ? "perm-summary expanded" : "perm-summary"} aria-label={t("perm.expand")} onClick={() => setExpanded((e) => !e)}>
+          {request.summary}
+        </button>
+      )}
+      <div className="perm-timer" aria-hidden="true">
+        <span style={{ width: `${left * 100}%` }} />
+      </div>
+      <div className="service-actions">
+        {request.danger === true ? (
+          <HoldToAllow disabled={!armed} onHold={() => answer("allow")} />
+        ) : (
+          <button type="button" className="pill-btn primary" disabled={!armed} onClick={() => answer("allow")}>
+            {t("perm.allow")}
           </button>
         )}
-        <div className="perm-timer" aria-hidden="true">
-          <span style={{ width: `${left * 100}%` }} />
-        </div>
-        <div className="perm-actions">
-          <button type="button" className="perm-deny" disabled={!armed} onClick={() => answer("deny")}>
-            {t("perm.deny")}
-          </button>
-          {request.danger === true ? (
-            <HoldToAllow disabled={!armed} onHold={() => answer("allow")} />
-          ) : (
-            <button type="button" className="perm-allow" disabled={!armed} onClick={() => answer("allow")}>
-              {t("perm.allow")}
-            </button>
-          )}
-        </div>
+        <button type="button" className="pill-btn danger-soft" disabled={!armed} onClick={() => answer("deny")}>
+          {t("perm.deny")}
+        </button>
         {request.always && offersAlways(request) && (
-          <button type="button" className="perm-always" disabled={!armed} onClick={() => answer("allow_always")}>
+          <button type="button" className="pill-btn secondary" disabled={!armed} onClick={() => answer("allow_always")}>
             {t("perm.always", { what: request.always.value })}
           </button>
         )}
         {(request.replies ?? []).map((text, i) => (
-          <button key={i} type="button" className="perm-reply" disabled={!armed} onClick={() => answer("reply", i)}>
+          <button key={i} type="button" className="pill-btn secondary" disabled={!armed} onClick={() => answer("reply", i)}>
             {t("perm.reply", { text })}
           </button>
         ))}
-        <button type="button" className="perm-pc" onClick={() => answer("pc")}>
+        <button type="button" className="pill-btn secondary" onClick={() => answer("pc")}>
           {t("perm.pc")}
         </button>
       </div>
-    </div>
+    </ServiceCard>
   );
 }

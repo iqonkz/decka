@@ -11,31 +11,30 @@ export default function VoiceConfirmSheet() {
   }
 
   return (
-    <div className="perm-backdrop" onPointerDown={() => confirmVoice(false)}>
+    <div className="menu-backdrop" onPointerDown={() => confirmVoice(false)}>
       <div
-        className="perm-sheet voice-confirm-sheet"
+        className="menu-sheet voice-confirm-sheet"
         role="dialog"
         aria-label={t("voice.confirm_title")}
         onPointerDown={(e) => e.stopPropagation()}
       >
-        <div className="perm-count">{t("voice.confirm_title")}</div>
-        <h2 className="perm-title">{tVoice(confirm.key, confirm.args, confirm.text)}</h2>
-        <div className="perm-actions" style={{ marginTop: "1.6vmin" }}>
+        <div className="sheet-handle" aria-hidden="true" />
+        <div className="phone-group-title">{t("voice.confirm_title")}</div>
+        <h2 className="sheet-title">{tVoice(confirm.key, confirm.args, confirm.text)}</h2>
+        <div className="service-actions" style={{ marginTop: 12 }}>
           <button
             type="button"
-            className="secondary"
-            style={{ flex: 1, height: "56px" }}
-            onClick={() => confirmVoice(false)}
-          >
-            {t("voice.no")}
-          </button>
-          <button
-            type="button"
-            className="perm-allow"
-            style={{ flex: 1, height: "56px" }}
+            className="pill-btn primary"
             onClick={() => confirmVoice(true)}
           >
             {t("voice.yes")}
+          </button>
+          <button
+            type="button"
+            className="pill-btn secondary"
+            onClick={() => confirmVoice(false)}
+          >
+            {t("voice.no")}
           </button>
         </div>
       </div>

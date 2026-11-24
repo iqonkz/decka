@@ -1,8 +1,10 @@
-import { type WeatherItem } from "@decka/shared";
+import { t, type WeatherItem } from "@decka/shared";
 import { formatWeekday } from "./format";
 import { useDeckEnv } from "../deckEnv";
 import { weatherIcon, type WeatherIconName } from "./weatherIcon";
 import { WEATHER_SVG } from "./weatherIcons";
+import WidgetEmpty from "./WidgetEmpty";
+import { useAnimatedNumber } from "./useAnimatedNumber";
 
 /** A weather icon drawn as a mask in the colour of the text (it follows the theme). */
 function WeatherGlyph({ name, size }: { name: WeatherIconName; size: number }) {
@@ -24,44 +26,39 @@ function weekday(date: string): string {
 
 const deg = (n: number): string => `${n}°`;
 
-/** The weather widget (DATA_MODEL.md 6.3): 1x1 icon and temperature; 2x1 adds min / max and the place; 3x2 and 4x2 add three days. */
-export default function Weather({ item }: { item: WeatherItem }) {
+/**
+ * The weather widget (DATA_MODEL.md 6.3, DESIGN.md 4.16):
+ * Density is driven by `@container tile`: S shows icon + temp; M adds place & min/max; L adds 3-day daily row.
+ * Hourly forecast is skipped because WeatherInfo does not include hourly data.
+ */
+export default function Weather({ item: _item }: { item: WeatherItem }) {
   const { weather } = useDeckEnv();
+  const shownTemp = useAnimatedNumber(weather?.current.temp ?? 0, 300);
   if (!weather) {
-    return (
-      <div className="weather weather-empty">
-        <WeatherGlyph name="cloud" size={Math.round(0.9 * 28)} />
-        <span className="weather-temp">—</span>
-      </div>
-    );
+    return <WidgetEmpty icon="lucide:sun" text={t("widget.no_data")} />;
   }
   const { current, daily, place } = weather;
   const today = daily[0];
   const icon = weatherIcon(current.code, current.isDay);
-  const big = item.h >= 2;
   return (
-    <div className={big ? "weather big" : "weather"}>
+    <div className="weather">
       <div className="weather-now">
-        <WeatherGlyph name={icon} size={big ? 44 : 32} />
-        <span className="weather-temp">{deg(current.temp)}</span>
-        {item.w >= 2 && (
-          <span className="weather-side">
-            {today && <span className="weather-range">{deg(today.min)} / {deg(today.max)}</span>}
-            <span className="weather-place">{place}</span>
-          </span>
-        )}
+        <WeatherGlyph name={icon} size={36} />
+        <span className="weather-temp widget-figure">{deg(shownTemp)}</span>
+        <span className="weather-side w-m">
+          {today && <span className="weather-range">{deg(today.min)} / {deg(today.max)}</span>}
+          <span className="weather-place">{place}</span>
+        </span>
       </div>
-      {big && (
-        <div className="weather-days">
-          {daily.slice(0, 3).map((d) => (
-            <div key={d.date} className="weather-day">
-              <span className="weather-dow">{weekday(d.date)}</span>
-              <WeatherGlyph name={weatherIcon(d.code, true)} size={26} />
-              <span className="weather-range">{deg(d.max)} / {deg(d.min)}</span>
-            </div>
-          ))}
-        </div>
-      )}
+      <div className="weather-days w-l">
+        {daily.slice(0, 3).map((d) => (
+          <div key={d.date} className="weather-day">
+            <span className="weather-dow">{weekday(d.date)}</span>
+            <WeatherGlyph name={weatherIcon(d.code, true)} size={20} />
+            <span className="weather-day-temp">{deg(d.max)} / {deg(d.min)}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

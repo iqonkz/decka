@@ -1021,4 +1021,9 @@ export const ja: Dictionary = {
   "mailset.err_host": "ホストは必須です",
   "mailset.err_port": "ポートは1〜65535である必要があります",
   "mailset.save_account": "保存",
+  "widget.no_data": "データなし",
+  "widget.not_set_up": "未設定",
+  "phone.update_title": "アップデートが必要",
+  "phone.not_your_pc_title": "PCを認識できません",
+  "pair.qr_hint": "枠内にQRコードを合わせてください",
 };

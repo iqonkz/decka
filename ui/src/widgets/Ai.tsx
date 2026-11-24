@@ -6,13 +6,16 @@ import { ProviderMark } from "./aiMarks";
 import { aiMode, closestWindow, compactFit, formatReset, levelOf, MIN_TEXT, ringGeometry, rowsFit, textWidth, windowLabel, type Level } from "./aiModel";
 import { burnKey, useAiHistory, type AiHistory } from "./aiHistory";
 import { LEVEL_COLOR } from "./statusOrder";
+import { useAnimatedNumber } from "./useAnimatedNumber";
+import WidgetEmpty from "./WidgetEmpty";
 
 type Provider = "claude" | "codex";
 
 const PAD = 2;
-const LEVEL_FILL: Record<Level, string> = { accent: "var(--accent, #3b82f6)", warning: LEVEL_COLOR.warning, error: LEVEL_COLOR.error };
+// Threshold colours from DESIGN.md 4.16: <= 70% accent, <= 90% #f59e0b, > 90% #ef4444.
+const LEVEL_FILL: Record<Level, string> = { accent: "var(--accent, #7c5cff)", warning: "#f59e0b", error: "#ef4444" };
 
-/** Colour of a ring or bar by level (DESIGN.md 4.11: 70 / 90). */
+/** Colour of a ring or bar by level (DESIGN.md 4.11, 4.16). */
 export function levelColor(pct: number): string {
   return LEVEL_FILL[levelOf(pct)];
 }
@@ -66,22 +69,34 @@ function ringCenter(d: number, stroke: number, rings: number, text: string, big:
   return null;
 }
 
+function AnimatedPct({ pct }: { pct: number }) {
+  const n = useAnimatedNumber(Math.round(pct), 300);
+  return <>{n}%</>;
+}
+
 /** 2x1: both limits of a provider (5h and weekly) as two small bars under its mark. */
 function CompactCell({ entry, width, height }: { entry: Entry; width: number; height: number }) {
   const { provider, data } = entry;
   const units = { d: t("ai.unit_d"), h: t("ai.unit_h"), m: t("ai.unit_m") };
-  const all = data ? data.windows.slice(0, 2) : [];
+  if (!data || data.windows.length === 0) {
+    return (
+      <div className="ai-cell ai-compact" style={{ width }}>
+        <ProviderMark provider={provider} size={14} dim={true} />
+        <span className="ai-hint">{t("widget.no_data")}</span>
+      </div>
+    );
+  }
+  const all = data.windows.slice(0, 2);
   const fit = compactFit(height, all.length);
   const windows = all.slice(0, fit.windows);
   return (
     <div className="ai-cell ai-compact" style={{ width }}>
-      {fit.mark && <ProviderMark provider={provider} size={14} dim={data === null} />}
-      {windows.length === 0 && <span className="ai-pct ai-dash">—</span>}
+      {fit.mark && <ProviderMark provider={provider} size={14} dim={false} />}
       {windows.map((w) => (
         <div key={w.label} className="ai-cwin" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(w.pct)}>
           <span className="ai-cwin-head">
             <span className="ai-label">{windowLabel(w.label, units)}</span>
-            <span className="ai-cwin-pct">{Math.round(w.pct)}%</span>
+            <span className="ai-cwin-pct"><AnimatedPct pct={w.pct} /></span>
           </span>
           <span className="ai-bar"><span className="ai-fill" style={{ width: `${Math.min(100, Math.max(0, w.pct))}%`, background: levelColor(w.pct) }} /></span>
         </div>
@@ -93,18 +108,26 @@ function CompactCell({ entry, width, height }: { entry: Entry; width: number; he
 function RingCell({ entry, width, height, now, history }: { entry: Entry; width: number; height: number; now: number; history: AiHistory }) {
   const { provider, data } = entry;
   const windows = data ? data.windows : [];
+  const closest = closestWindow(windows);
+  const animatedClosest = useAnimatedNumber(closest ? Math.round(closest.pct) : 0, 300);
+  if (!data || !closest) {
+    return (
+      <div className="ai-cell" style={{ width }}>
+        <WidgetEmpty icon="lucide:terminal" text={t("widget.no_data")} />
+      </div>
+    );
+  }
   const stroke = 6;
   const rings = windows.length > 1 ? 2 : 1;
-  const closest = closestWindow(windows);
-  const text = closest ? `${Math.round(closest.pct)}%` : "—";
+  const text = `${animatedClosest}%`;
   const markSize = 14;
   const rowH = markSize + 4;
   const withRow = height - rowH >= 36;
   const d = Math.max(0, Math.min(width - 4, withRow ? height - rowH : height));
   const big = 18;
   const centre = ringCenter(d, stroke, rings, text, big);
-  const line = data ? resetLine(provider, data, now, history) : null;
-  const lineFits = line !== null && markSize + 4 + textWidth(line.text, 12) <= width;
+  const line = resetLine(provider, data, now, history);
+  const lineFits = line !== null && markSize + 4 + textWidth(line.text, 11) <= width;
   return (
     <div className="ai-cell" style={{ width }}>
       <div className="ai-ring-box" style={{ width: d, height: d }}>
@@ -113,7 +136,7 @@ function RingCell({ entry, width, height, now, history }: { entry: Entry; width:
       </div>
       {withRow && (
         <div className="ai-cell-row" style={{ height: markSize }}>
-          <ProviderMark provider={provider} size={markSize} dim={data === null} />
+          <ProviderMark provider={provider} size={markSize} dim={false} />
           {lineFits && line && <span className="ai-reset" style={{ color: line.warn ? LEVEL_COLOR.warning : undefined }}>{line.text}</span>}
         </div>
       )}
@@ -128,7 +151,7 @@ function Bar({ w, units, labels }: { w: AiWindow; units: { d: string; h: string;
       <span className="ai-bar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(w.pct)}>
         <span className="ai-fill" style={{ width: `${Math.min(100, Math.max(0, w.pct))}%`, background: levelColor(w.pct) }} />
       </span>
-      <span className="ai-pct">{Math.round(w.pct)}%</span>
+      <span className="ai-pct"><AnimatedPct pct={w.pct} /></span>
     </div>
   );
 }
@@ -145,7 +168,7 @@ function RowBlock({ entry, width, height, now, history, hint }: { entry: Entry; 
     <div className="ai-block" style={{ height }}>
       <ProviderMark provider={provider} size={18} dim={data === null} />
       <div className="ai-block-main">
-        {windows.length === 0 && <div className="ai-line"><span className="ai-pct ai-dash">—</span></div>}
+        {windows.length === 0 && <span className="ai-hint">{t("widget.no_data")}</span>}
         {windows.map((w) => <Bar key={w.label} w={w} units={units} labels={fit.labels} />)}
         {fit.reset && line && <div className="ai-reset" style={{ color: line.warn ? LEVEL_COLOR.warning : undefined }}>{line.text}</div>}
         {hintNode}
@@ -155,9 +178,8 @@ function RowBlock({ entry, width, height, now, history, hint }: { entry: Entry; 
 }
 
 /**
- * The AI limits widget (DATA_MODEL.md 6.8, DESIGN.md 4.11): a figure and a shape instead of words. 2x1: a ring per provider;
- * 2x2: concentric rings; from 3x2: two bars per provider; 4x2 adds the Claude Code sessions. Whatever does not fit is left out.
- * A tap opens the sheet with the details.
+ * The AI limits widget (DATA_MODEL.md 6.8, DESIGN.md 4.11, 4.16):
+ * Never shows "—" in empty rings; uses unified empty state when no provider has data.
  */
 export default function Ai({ item }: { item: AiItem }) {
   const { ai, onOpenPerm, onOpenPermHistory } = useDeckEnv();
@@ -172,6 +194,20 @@ export default function Ai({ item }: { item: AiItem }) {
   const entries: Entry[] = [];
   if (show === "both" || show === "claude") entries.push({ provider: "claude", data: claude });
   if ((show === "both" || show === "codex") && codex) entries.push({ provider: "codex", data: codex });
+
+  if (entries.length === 0 || entries.every((e) => e.data === null)) {
+    return (
+      <div className="ai" style={{ padding: PAD }} onClick={() => onOpenPermHistory?.()}>
+        <WidgetEmpty icon="lucide:terminal" text={t("widget.no_data")} hint={item.w >= 3 ? t("ai.no_data_hint") : undefined} />
+        {pending > 0 && (
+          <button type="button" className="ai-badge" aria-label={t("ai.waiting", { n: pending })} onClick={(e) => { e.stopPropagation(); onOpenPerm?.(); }}>
+            {pending}
+          </button>
+        )}
+      </div>
+    );
+  }
+
   // The tile panel keeps its own padding (0.08 of the side) and a 1 px border (deck.css): the widget has what is left.
   const inset = Math.round(0.08 * side) + 1;
   const W = item.w * side + (item.w - 1) * gap - 2 * inset;
@@ -182,12 +218,10 @@ export default function Ai({ item }: { item: AiItem }) {
   const innerH = H - 2 * PAD;
   const waiting = new Set((ai?.pending ?? []).map((p) => p.sessionId));
   const sessions = withSessions ? (ai?.sessions ?? []).slice(0, 3) : [];
-  const sessionsW = avail - innerW - 8; // the gap between the limits and the sessions
+  const sessionsW = avail - innerW - 8;
 
   let body: ReactNode;
-  if (entries.length === 0) {
-    body = null;
-  } else if (mode === "rows") {
+  if (mode === "rows") {
     const n = entries.length;
     const blockH = Math.floor((innerH - 6 * (n - 1)) / n);
     body = (
@@ -218,7 +252,7 @@ export default function Ai({ item }: { item: AiItem }) {
           {sessions.map((s) => {
             const meta = s.ctxPct !== undefined ? t("ai.ctx", { pct: s.ctxPct }) : "";
             const nameW = textWidth(s.project, 13);
-            if (nameW > sessionsW - 12) return null; // the name does not fit: the row is left out, not cut
+            if (nameW > sessionsW - 12) return null;
             const metaFits = meta !== "" && nameW + 8 + textWidth(meta, 12) <= sessionsW - 12;
             return (
               <div key={s.id} className="ai-session">

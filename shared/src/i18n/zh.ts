@@ -1021,4 +1021,9 @@ export const zh: Dictionary = {
   "mailset.err_host": "服务器地址必填",
   "mailset.err_port": "端口必须为 1..65535",
   "mailset.save_account": "保存",
+  "widget.no_data": "暂无数据",
+  "widget.not_set_up": "未设置",
+  "phone.update_title": "需要更新",
+  "phone.not_your_pc_title": "无法识别此电脑",
+  "pair.qr_hint": "将二维码对准框内",
 };

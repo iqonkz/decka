@@ -1,13 +1,14 @@
 import { useState, type FormEvent } from "react";
-import logoUrl from "../../../docs/assets/decka-logo.svg";
 import { normalizeCode, parseHostInput, parsePairUrl, t } from "@decka/shared";
 import { cancelConnectAgain, pairErrorText, pairWith } from "../app/controller";
 import { isNative } from "../platform/native";
 import { scanQr } from "../platform/scan";
 import { useAppState } from "../store/store";
 import type { ConnFailure } from "../net/connection";
+import ServiceCard from "../ui/ServiceCard";
+import QrFrame from "./QrFrame";
 
-export default function PairScreen() {
+export default function PairScreen({ showQrFrame = false }: { showQrFrame?: boolean }) {
   const native = isNative();
   const initialError = useAppState((s) => s.lastError);
   const conn = useAppState((s) => s.conn);
@@ -16,6 +17,7 @@ export default function PairScreen() {
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(initialError);
   const [busy, setBusy] = useState(false);
+  const [qrOpen, setQrOpen] = useState(showQrFrame);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -49,45 +51,53 @@ export default function PairScreen() {
   }
 
   return (
-    <form className="pair" onSubmit={submit}>
-      <img src={logoUrl} width={72} height={72} alt="" />
-      <h1>{t("pair.title")}</h1>
-      <p className="hint">{t("pair.hint")}</p>
-      {native && (
-        <button className="primary" type="button" disabled={busy} onClick={() => void scan()}>
-          {t("pair.scan")}
-        </button>
-      )}
-      {native && (
+    <>
+      <ServiceCard icon="qr-code" title={t("pair.title")} text={t("pair.hint")} asForm onSubmit={submit}>
+        {native && (
+          <input
+            className="field"
+            aria-label={t("pair.address_label")}
+            placeholder="192.168.1.10"
+            inputMode="url"
+            autoCapitalize="off"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+          />
+        )}
         <input
-          className="field"
-          aria-label={t("pair.address_label")}
-          placeholder="192.168.1.10"
-          inputMode="url"
-          autoCapitalize="off"
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
+          className="field code"
+          aria-label={t("pair.code_label")}
+          placeholder="XXXX-XXXX"
+          autoCapitalize="characters"
+          autoComplete="off"
+          maxLength={9}
+          value={code}
+          onChange={(e) => setCode(e.target.value.toUpperCase())}
         />
-      )}
-      <input
-        className="field code"
-        aria-label={t("pair.code_label")}
-        placeholder="XXXX-XXXX"
-        autoCapitalize="characters"
-        autoComplete="off"
-        maxLength={9}
-        value={code}
-        onChange={(e) => setCode(e.target.value.toUpperCase())}
-      />
-      {error && <p className="error">{error}</p>}
-      <button className="primary" type="submit" disabled={busy}>
-        {busy ? t("pair.busy") : t("pair.submit")}
-      </button>
-      {conn === "repair" && (
-        <button type="button" disabled={busy} onClick={cancelConnectAgain}>
-          {t("link.cancel")}
-        </button>
-      )}
-    </form>
+        {error && <p className="error">{error}</p>}
+        <div className="service-actions">
+          {native ? (
+            <>
+              <button className="pill-btn primary" type="button" disabled={busy} onClick={() => void scan()}>
+                {t("pair.scan")}
+              </button>
+              <button className="pill-btn secondary" type="submit" disabled={busy}>
+                {busy ? t("pair.busy") : t("pair.submit")}
+              </button>
+            </>
+          ) : (
+            <button className="pill-btn primary" type="submit" disabled={busy}>
+              {busy ? t("pair.busy") : t("pair.submit")}
+            </button>
+          )}
+          {conn === "repair" && (
+            <button className="pill-btn secondary" type="button" disabled={busy} onClick={cancelConnectAgain}>
+              {t("link.cancel")}
+            </button>
+          )}
+        </div>
+      </ServiceCard>
+      {qrOpen && <QrFrame onClose={() => setQrOpen(false)} />}
+    </>
   );
 }

@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import { t, type TwitchItem } from "@decka/shared";
 import { useDeckEnv } from "../deckEnv";
 import { obsElapsed } from "./obsTime";
+import WidgetEmpty from "./WidgetEmpty";
 
 /**
- * The Twitch widget: the dot and `LIVE` with the viewers, the followers, and (from 3 wide) the title, the game and the time on
- * air. A look at the channel that failed leaves the last numbers with the word `No connection`.
+ * The Twitch widget (DESIGN.md 4.16).
  */
 export default function Twitch({ item }: { item: TwitchItem }) {
   const { twitch } = useDeckEnv();
@@ -21,12 +21,7 @@ export default function Twitch({ item }: { item: TwitchItem }) {
   }, [timed]);
 
   if (!twitch) {
-    return (
-      <div className="twitch twitch-empty">
-        <span className="twitch-dot off" />
-        <span className="twitch-text">{t("twitch.off")}</span>
-      </div>
-    );
+    return <WidgetEmpty icon="lucide:video" text={t("twitch.off")} />;
   }
   const big = item.h >= 2;
   return (
@@ -41,8 +36,8 @@ export default function Twitch({ item }: { item: TwitchItem }) {
         {t("twitch.followers", { n: twitch.followers })}
         {!twitch.connected && <span className="twitch-stale"> · {t("twitch.no_connection")}</span>}
       </div>
-      {big && twitch.live && twitch.title !== undefined && <div className="twitch-title">{twitch.title}</div>}
-      {big && twitch.live && twitch.game !== undefined && <div className="twitch-game">{twitch.game}</div>}
+      {twitch.live && twitch.title !== undefined && <div className="twitch-title w-m">{twitch.title}</div>}
+      {twitch.live && twitch.game !== undefined && <div className="twitch-game w-l">{twitch.game}</div>}
     </div>
   );
 }

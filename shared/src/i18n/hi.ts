@@ -1021,4 +1021,9 @@ export const hi: Dictionary = {
   "mailset.err_host": "होस्ट आवश्यक है",
   "mailset.err_port": "पोर्ट 1..65535 होना चाहिए",
   "mailset.save_account": "सहेजें",
+  "widget.no_data": "कोई डेटा नहीं",
+  "widget.not_set_up": "सेट नहीं है",
+  "phone.update_title": "अपडेट आवश्यक",
+  "phone.not_your_pc_title": "PC पहचाना नहीं गया",
+  "pair.qr_hint": "QR कोड को फ़्रेम के अंदर रखें",
 };

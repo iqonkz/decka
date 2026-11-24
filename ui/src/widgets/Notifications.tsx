@@ -3,6 +3,7 @@ import { t, type NotificationsItem } from "@decka/shared";
 import { useDeckEnv } from "../deckEnv";
 import { relTime } from "./relTime";
 import { LEVEL_COLOR } from "./statusOrder";
+import WidgetEmpty from "./WidgetEmpty";
 
 const REFRESH_MS = 30_000;
 
@@ -18,10 +19,11 @@ export default function Notifications(_props: { item: NotificationsItem }) {
   if (!list || list.length === 0) {
     const off = vars["notif.windows"] !== true;
     return (
-      <div className="tile-body notif-empty">
-        <div className="empty-title">{off ? t("widget.notif_off") : t("widget.no_notifications")}</div>
-        {off && <div className="empty-hint">{t("widget.notif_off_hint")}</div>}
-      </div>
+      <WidgetEmpty
+        icon={off ? "lucide:bell-off" : "lucide:bell"}
+        text={off ? t("widget.notif_off") : t("widget.no_notifications")}
+        hint={off ? t("widget.notif_off_hint") : undefined}
+      />
     );
   }
   return (

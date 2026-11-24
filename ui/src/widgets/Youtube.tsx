@@ -2,11 +2,10 @@ import { useEffect, useState } from "react";
 import { t, type YoutubeItem } from "@decka/shared";
 import { useDeckEnv } from "../deckEnv";
 import { obsElapsed } from "./obsTime";
+import WidgetEmpty from "./WidgetEmpty";
 
 /**
- * The YouTube widget: the dot and `LIVE` with the viewers, the subscribers, and (from 3 wide) the title and the time on air. It
- * shares the look of the Twitch widget (`.twitch` classes: a stream-numbers panel); a failed look at the channel leaves the last
- * numbers with the word `No connection`.
+ * The YouTube widget (DESIGN.md 4.16).
  */
 export default function Youtube({ item }: { item: YoutubeItem }) {
   const { youtube } = useDeckEnv();
@@ -21,12 +20,7 @@ export default function Youtube({ item }: { item: YoutubeItem }) {
   }, [timed]);
 
   if (!youtube) {
-    return (
-      <div className="twitch twitch-empty">
-        <span className="twitch-dot off" />
-        <span className="twitch-text">{t("youtube.off")}</span>
-      </div>
-    );
+    return <WidgetEmpty icon="lucide:play" text={t("youtube.off")} />;
   }
   const big = item.h >= 2;
   return (
@@ -41,7 +35,7 @@ export default function Youtube({ item }: { item: YoutubeItem }) {
         {youtube.subscribers !== undefined ? t("youtube.subscribers", { n: youtube.subscribers }) : youtube.channel}
         {!youtube.connected && <span className="twitch-stale"> · {t("twitch.no_connection")}</span>}
       </div>
-      {big && youtube.live && youtube.title !== undefined && <div className="twitch-title">{youtube.title}</div>}
+      {youtube.live && youtube.title !== undefined && <div className="twitch-title w-m">{youtube.title}</div>}
     </div>
   );
 }

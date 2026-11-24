@@ -7,8 +7,12 @@ const HOLD_MS = 800;
 const TICK_MS = 250;
 const BUZZ_COUNT = 3;
 const BUZZ_GAP_MS = 220;
+const RING_SIZE = 100;
+const RING_STROKE = 4;
+const RING_R = (RING_SIZE - RING_STROKE) / 2;
+const RING_C = 2 * Math.PI * RING_R;
 
-/** The timer (DATA_MODEL.md 6.7): all on the phone. Tap starts and pauses, a hold of 0.8 s resets, the preset keys pick a length. */
+/** The timer (DATA_MODEL.md 6.7, DESIGN.md 4.16): 4 px accent progress ring, main-size digits, 28 px preset pills. */
 export default function Timer({ item }: { item: TimerItem }) {
   const { onFeedback, onTimerDone } = useDeckEnv();
   const presets = item.presets ?? DEFAULT_PRESETS;
@@ -61,21 +65,37 @@ export default function Timer({ item }: { item: TimerItem }) {
   };
   useEffect(() => clearHold, []);
 
-  const showPresets = item.w >= 2;
+  const totalMs = Math.max(1, state.minutes * 60_000);
+  const ratio = Math.min(1, Math.max(0, state.remainingMs / totalMs));
+
   return (
     <div className={["timer", state.running ? "running" : "", state.done ? "done" : "", flashing ? "flash" : "", item.h >= 2 ? "tall" : ""].filter(Boolean).join(" ")}>
       <div className="timer-main" onPointerDown={onDown} onPointerUp={onUp} onPointerCancel={clearHold} onPointerLeave={clearHold}>
-        <div className="timer-time">{formatRemaining(state.remainingMs)}</div>
-      </div>
-      {showPresets && (
-        <div className="timer-presets">
-          {presets.map((m) => (
-            <button key={m} type="button" className={m === state.minutes ? "on" : ""} onClick={() => dispatch({ type: "preset", minutes: m })}>
-              {m}
-            </button>
-          ))}
+        <div className="timer-ring-wrap">
+          <svg className="timer-ring" viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`} aria-hidden="true">
+            <circle cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RING_R} fill="none" stroke="rgba(127, 127, 127, 0.24)" strokeWidth={RING_STROKE} />
+            <circle
+              cx={RING_SIZE / 2}
+              cy={RING_SIZE / 2}
+              r={RING_R}
+              fill="none"
+              stroke={state.done ? "var(--error, #ef4444)" : "var(--accent, #7c5cff)"}
+              strokeWidth={RING_STROKE}
+              strokeLinecap="round"
+              strokeDasharray={`${RING_C * ratio} ${RING_C}`}
+              transform={`rotate(-90 ${RING_SIZE / 2} ${RING_SIZE / 2})`}
+            />
+          </svg>
+          <div className="timer-time widget-figure">{formatRemaining(state.remainingMs)}</div>
         </div>
-      )}
+      </div>
+      <div className="timer-presets w-m">
+        {presets.map((m) => (
+          <button key={m} type="button" className={m === state.minutes ? "on" : ""} onClick={() => dispatch({ type: "preset", minutes: m })}>
+            {m}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

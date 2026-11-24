@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { t } from "@decka/shared";
 import { gridMetrics, Icon, PopupGrid } from "@decka/ui";
+import PhIcon from "../ui/PhIcon";
 import { setStripMode, stripModeFor, stripPage, useStripModes, type StripMode } from "./stripMode";
 import { useDeckProps } from "./useDeckProps";
 import { useAppState } from "../store/store";
@@ -11,8 +12,7 @@ const HEADER_PX = 28;
 
 /**
  * The app strip (DESIGN.md 4.10, DATA_MODEL.md 10.5): a panel with the keys of the built-in template of the program in front,
- * at the right edge (portrait: at the bottom). It does not move the page and never adds one. The mode of every program is kept
- * on this phone only: `auto` slides out by itself, `tab` shows only the tab at the edge, `never` shows nothing.
+ * at the right edge (portrait: at the bottom).
  */
 export default function AppStrip() {
   const strip = useAppState((s) => s.state?.strip);
@@ -63,7 +63,7 @@ export default function AppStrip() {
   const { side, gap } = gridMetrics(viewport, grid.cols, grid.rows);
   const pad = Math.round(0.12 * side);
   const across = 2 * side + gap + 2 * pad; // the short side of the strip
-  const appIcon = strip.icon ?? "lucide:app-window"; // the program's own icon (an `img:` of the icons section) when the PC found it
+  const appIcon = strip.icon ?? "lucide:app-window";
   const edge = portrait ? "strip-bottom" : "strip-right";
 
   const choose = (next: StripMode) => {
@@ -98,18 +98,22 @@ export default function AppStrip() {
       {menu && (
         <div className="menu-backdrop" onPointerDown={() => setMenu(false)}>
           <div className="menu-sheet" role="dialog" aria-label={t("strip.options")} onPointerDown={(e) => e.stopPropagation()}>
-            {(
-              [
-                ["auto", t("strip.auto")],
-                ["tab", t("strip.tab_only")],
-                ["never", t("strip.never", { name: strip.name })],
-              ] as const
-            ).map(([value, label]) => (
-              <button key={value} type="button" className="menu-row menu-button" onClick={() => choose(value)}>
-                <span>{label}</span>
-                <span>{mode === value ? "✓" : ""}</span>
-              </button>
-            ))}
+            <div className="sheet-handle" aria-hidden="true" />
+            <div className="phone-group">
+              {(
+                [
+                  ["auto", t("strip.auto")],
+                  ["tab", t("strip.tab_only")],
+                  ["never", t("strip.never", { name: strip.name })],
+                ] as const
+              ).map(([value, label]) => (
+                <button key={value} type="button" className="phone-row menu-button" onClick={() => choose(value)}>
+                  <PhIcon name="squares-four" size={20} className="phone-row-icon" />
+                  <span className="phone-row-label">{label}</span>
+                  {mode === value && <PhIcon name="check" size={18} color="var(--accent, #7c5cff)" />}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
