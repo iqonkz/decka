@@ -69,7 +69,7 @@ const SHOTS = {
   "m22-widgets": [DECK, "scene=deck&m22=1&theme=glass"],
   "m22-widgets-amoled": [DECK, "scene=deck&m22=1&theme=amoled"],
   "m22-reminders-window": [{ w: 1100, h: 700, scale: 1 }, "scene=settings&theme=studio&go=reminders"],
-  "m22-lists-window": [{ w: 1100, h: 700, scale: 1 }, "scene=settings&theme=studio&go=reminders", ".seg button::1"],
+  "m22-lists-window": [{ w: 1100, h: 700, scale: 1 }, "scene=settings&theme=studio&go=reminders", ".segmented-track button::1"],
   "m22-voice-window": [{ w: 1100, h: 1300, scale: 1 }, "scene=settings&theme=studio&go=voice"],
   "m22-pill-dictating": [PILL, "scene=pill&state=listening&activity=dictate"],
   "m22-pill-looking": [PILL, "scene=pill&state=thinking&activity=screen&heard=what+is+on+screen"],
