@@ -971,6 +971,64 @@ mod tests {
         assert_eq!(states, ["listening", "recognizing", "thinking", "done"]);
     }
 
+    /// T23.B: the pill hung in `Listening…` after several commands in a row. Ten requests with every kind of ending,
+    /// one after another: the phase is never left in a working state and always returns to idle.
+    #[tokio::test]
+    async fn ten_requests_in_a_row_always_return_to_idle() {
+        let fake = Arc::new(Fake::default());
+        let d = Driver::new(tokio::runtime::Handle::current(), fake.clone());
+        let wait = |d: Driver| async move {
+            for _ in 0..200 {
+                if !matches!(d.state().phase, Phase::Listening | Phase::Transcribing | Phase::Loading | Phase::Thinking | Phase::Executing) {
+                    return;
+                }
+                tokio::time::sleep(Duration::from_millis(10)).await;
+            }
+            panic!("stuck in {:?}", d.state().phase);
+        };
+        for i in 0..10u32 {
+            *fake.transcript.lock().unwrap() = if i % 4 == 3 { "   ".into() } else if i % 4 == 2 { "tell me a story".into() } else { "volume up".into() };
+            d.handle_event(Event::Start { id: format!("{i:016x}"), source: Source::Pc });
+            assert_eq!(d.state().phase, Phase::Listening, "request {i} starts");
+            d.push_audio(&[1u8; 3200]);
+            match i % 5 {
+                // The click on the pill or the hotkey while speaking.
+                0 => {
+                    d.note_speech(600);
+                    d.handle_event(Event::AudioEnd);
+                }
+                // Silence after speech ends the phrase.
+                1 => {
+                    d.note_speech(900);
+                    d.handle_event(Event::AudioEnd);
+                }
+                // A click before any speech, and silence for 5 s.
+                2 => {
+                    d.note_speech(0);
+                    d.handle_event(Event::AudioEnd);
+                }
+                3 => d.handle_event(Event::NoSpeech),
+                // Esc.
+                _ => d.handle_event(Event::Cancel),
+            }
+            wait(d.clone()).await;
+            // The result stays for a while, then the reset of the host (or a new request) follows.
+            if matches!(d.state().phase, Phase::Done(_) | Phase::Failed(_)) {
+                // A new request may start over a finished one at once.
+                if i % 3 == 0 {
+                    d.handle_event(Event::Start { id: format!("{:016x}", 100 + i), source: Source::Pc });
+                    assert_eq!(d.state().phase, Phase::Listening);
+                    d.handle_event(Event::Watchdog);
+                    // A reset from the earlier request is stale and changes nothing.
+                }
+                d.handle_event(Event::Reset);
+            }
+            assert_eq!(d.state().phase, Phase::Idle, "request {i} returns to idle");
+            assert_eq!(d.state().id, None);
+        }
+        assert_eq!(fake.published.lock().unwrap().last().unwrap().state, "idle");
+    }
+
     #[tokio::test]
     async fn the_driver_cancels_an_unanswered_confirmation_and_never_executes() {
         let fake = Arc::new(Fake::default());

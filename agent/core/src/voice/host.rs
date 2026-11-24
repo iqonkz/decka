@@ -48,6 +48,40 @@ const LOGGED_FIRST: usize = 5;
 const MIN_RECORDING_MS: u128 = 400;
 static PC_STARTED: std::sync::Mutex<Option<Instant>> = std::sync::Mutex::new(None);
 
+/// The window of the pill belongs to the main thread and takes seconds to appear: the pipeline (and the microphone) must
+/// not wait for it. One worker keeps ALL commands of the pill (states and waves) in order.
+fn pill_worker(job: Box<dyn FnOnce() + Send>) {
+    static WORKER: std::sync::OnceLock<std::sync::Mutex<std::sync::mpsc::Sender<Box<dyn FnOnce() + Send>>>> = std::sync::OnceLock::new();
+    let tx = WORKER.get_or_init(|| {
+        let (tx, rx) = std::sync::mpsc::channel::<Box<dyn FnOnce() + Send>>();
+        std::thread::spawn(move || {
+            while let Ok(job) = rx.recv() {
+                job();
+            }
+        });
+        std::sync::Mutex::new(tx)
+    });
+    let _ = tx.lock().unwrap().send(job);
+}
+
+/// A wave update waits in the queue of the pill while the window is created; one waiting update is enough.
+static WAVE_PENDING: AtomicBool = AtomicBool::new(false);
+
+/// Wave of the microphone for the pill. It goes through the same queue as the states and is checked when it RUNS: a wave
+/// that overtook the `Destroy` of its request used to bring the pill back, stuck in `Listening…` (0.22.0).
+fn send_wave(current: impl FnOnce() -> State + Send + 'static, pill: PillHook, cmd: PillCmd, id: Option<String>) {
+    if WAVE_PENDING.swap(true, Ordering::SeqCst) {
+        return;
+    }
+    pill_worker(Box::new(move || {
+        WAVE_PENDING.store(false, Ordering::SeqCst);
+        let s = current();
+        if s.phase == Phase::Listening && s.id == id {
+            pill(cmd);
+        }
+    }));
+}
+
 fn too_early() -> bool {
     PC_STARTED.lock().unwrap().is_some_and(|t| t.elapsed().as_millis() < MIN_RECORDING_MS)
 }
@@ -631,20 +665,8 @@ impl Inner {
     fn show(&self, info: &VoiceInfo, level: f32) {
         let hotkey = self.service.status().hotkey;
         if let Some(cmd) = pill_cmd(info, &hotkey, level) {
-            // The window of the pill belongs to the main thread and takes seconds to appear: the pipeline (and the
-            // microphone) must not wait for it. One worker keeps the commands in order.
-            static WORKER: std::sync::OnceLock<std::sync::Mutex<std::sync::mpsc::Sender<Box<dyn FnOnce() + Send>>>> = std::sync::OnceLock::new();
-            let tx = WORKER.get_or_init(|| {
-                let (tx, rx) = std::sync::mpsc::channel::<Box<dyn FnOnce() + Send>>();
-                std::thread::spawn(move || {
-                    while let Ok(job) = rx.recv() {
-                        job();
-                    }
-                });
-                std::sync::Mutex::new(tx)
-            });
             let pill = self.pill.clone();
-            let _ = tx.lock().unwrap().send(Box::new(move || pill(cmd)));
+            pill_worker(Box::new(move || pill(cmd)));
         }
     }
 }
@@ -861,7 +883,6 @@ impl Ports for Inner {
                 let (counter, decided) = (self.chunks.clone(), Arc::new(AtomicBool::new(false)));
                 // The decisions of the first requests after the start (or all of them with `DECKA_VOICE_DEBUG`) go to voice.log.
                 let log = std::env::var_os("DECKA_VOICE_DEBUG").is_some() || LOGGED_REQUESTS.fetch_add(1, Ordering::SeqCst) < LOGGED_FIRST;
-                let handle = self.handle.clone();
                 mic::start(
                     wanted,
                     log,
@@ -879,13 +900,8 @@ impl Ports for Inner {
                         if let Some(info) = last_info.as_ref().filter(|i| i.state == "listening") {
                             if let Some(cmd) = pill_cmd(info, &hotkey, fed.level) {
                                 // Windows of the pill belong to the main thread: never wait for it on the audio thread.
-                                let (pill_self, driver) = (pill_self.clone(), feed.clone());
-                                handle.spawn_blocking(move || {
-                                    // A wave update that waited for the window must not bring the pill back after it was closed.
-                                    if driver.state().phase == Phase::Listening {
-                                        pill_self(cmd);
-                                    }
-                                });
+                                let driver = feed.clone();
+                                send_wave(move || driver.state(), pill_self.clone(), cmd, info.id.clone());
                             }
                         }
                         let event = match fed.verdict {
@@ -971,9 +987,12 @@ impl Ports for Inner {
             let (driver, pill) = (self.driver().clone(), self.pill.clone());
             std::thread::spawn(move || {
                 std::thread::sleep(Duration::from_millis(1500));
-                if driver.state().phase == Phase::Idle {
-                    pill(PillCmd::Destroy);
-                }
+                // Through the queue of the pill: a Destroy that overtakes a Show would leave the window open.
+                pill_worker(Box::new(move || {
+                    if driver.state().phase == Phase::Idle {
+                        pill(PillCmd::Destroy);
+                    }
+                }));
             });
         }
         // A result stays visible for a moment, then the pipeline is idle again.
@@ -1001,6 +1020,37 @@ mod tests {
 
     fn info(state: &'static str, source: Option<Source>) -> VoiceInfo {
         VoiceInfo { state, id: Some("x".into()), source, heard: None, reply: None, reply_key: None, reply_args: Default::default(), confirm: None, activity: None }
+    }
+
+    /// T23.B: a wave of request N queued after the `Destroy` of request N must not bring the pill back.
+    #[test]
+    fn a_wave_queued_after_destroy_does_not_create_the_pill() {
+        use std::sync::Mutex;
+        let log: Arc<Mutex<Vec<&'static str>>> = Arc::new(Mutex::new(Vec::new()));
+        let pill: PillHook = {
+            let log = log.clone();
+            Arc::new(move |c| log.lock().unwrap().push(if matches!(c, PillCmd::Destroy) { "destroy" } else { "show" }))
+        };
+        let shared = Arc::new(Mutex::new(state(Phase::Listening, Source::Pc)));
+        let id = shared.lock().unwrap().id.clone();
+        // The request ends: the state becomes idle and the destroy goes into the queue of the pill.
+        {
+            let (shared, pill) = (shared.clone(), pill.clone());
+            pill_worker(Box::new(move || {
+                *shared.lock().unwrap() = State::idle();
+                pill(PillCmd::Destroy);
+            }));
+        }
+        // The late wave of the same request is queued behind it.
+        let s2 = shared.clone();
+        send_wave(move || s2.lock().unwrap().clone(), pill.clone(), PillCmd::Show(json!({})), id);
+        // A marker job: when it runs, everything before it has run.
+        let (tx, rx) = std::sync::mpsc::channel();
+        pill_worker(Box::new(move || {
+            let _ = tx.send(());
+        }));
+        rx.recv_timeout(Duration::from_secs(5)).unwrap();
+        assert_eq!(*log.lock().unwrap(), ["destroy"]);
     }
 
     #[test]
