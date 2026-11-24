@@ -1035,4 +1035,7 @@ export const zh: Dictionary = {
   "integ.item_lyrics_name": "歌词",
   "integ.item_lyrics_desc": "歌曲标题和歌手将发送至 lrclib.net 以查找歌词",
   "integ.lyrics_toggle": "为正在播放的曲目显示歌词",
+  "look.accent_hex": "HEX 颜色代码",
+  "rem.prev_month": "上个月",
+  "rem.next_month": "下个月",
 };

@@ -1035,4 +1035,7 @@ export const hi: Dictionary = {
   "integ.item_lyrics_name": "गाने के बोल",
   "integ.item_lyrics_desc": "बोल खोजने के लिए गीत का शीर्षक और कलाकार lrclib.net पर भेजे जाते हैं",
   "integ.lyrics_toggle": "चल रहे ट्रैक के बोल दिखाएं",
+  "look.accent_hex": "HEX रंग कोड",
+  "rem.prev_month": "पिछला महीना",
+  "rem.next_month": "अगला महीना",
 };

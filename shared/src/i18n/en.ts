@@ -1044,5 +1044,8 @@ export const en = {
   "integ.item_lyrics_name": "Lyrics",
   "integ.item_lyrics_desc": "Song title and artist are sent to lrclib.net to find lyrics",
   "integ.lyrics_toggle": "Show lyrics for playing tracks",
+  "look.accent_hex": "HEX color code",
+  "rem.prev_month": "Previous month",
+  "rem.next_month": "Next month",
   // @@END
 } as const;

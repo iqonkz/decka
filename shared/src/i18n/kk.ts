@@ -1042,4 +1042,7 @@ export const kk: Dictionary = {
   "integ.item_lyrics_name": "Ән мәтіндері",
   "integ.item_lyrics_desc": "Мәтінді іздеу үшін ән атауы мен орындаушысы lrclib.net сайтына жіберіледі",
   "integ.lyrics_toggle": "Ойнап тұрған әндердің мәтінін көрсету",
+  "look.accent_hex": "HEX түс коды",
+  "rem.prev_month": "Алдыңғы ай",
+  "rem.next_month": "Келесі ай",
 };

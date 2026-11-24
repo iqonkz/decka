@@ -191,7 +191,7 @@ export default function ColorPicker({ value, onChange }: ColorPickerProps) {
               maxLength={7}
               className="color-picker-hex-input"
               value={hexInput}
-              aria-label="HEX"
+              aria-label={t("look.accent_hex")}
               onChange={(e) => handleHexInputChange(e.target.value)}
               onBlur={() => setHexInput(currentHex.toUpperCase())}
             />

@@ -1075,4 +1075,7 @@ export const ar: Dictionary = {
   "integ.item_lyrics_name": "كلمات الأغاني",
   "integ.item_lyrics_desc": "يتم إرسال عنوان الأغنية والفنان إلى lrclib.net للبحث عن الكلمات",
   "integ.lyrics_toggle": "عرض كلمات الأغنية الحالية",
+  "look.accent_hex": "رمز اللون HEX",
+  "rem.prev_month": "الشهر السابق",
+  "rem.next_month": "الشهر التالي",
 };

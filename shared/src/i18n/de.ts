@@ -1035,4 +1035,7 @@ export const de: Dictionary = {
   "integ.item_lyrics_name": "Liedtexte",
   "integ.item_lyrics_desc": "Titel und Interpret werden zum Suchen von Liedtexten an lrclib.net gesendet",
   "integ.lyrics_toggle": "Liedtexte für laufende Titel anzeigen",
+  "look.accent_hex": "HEX-Farbcode",
+  "rem.prev_month": "Vorheriger Monat",
+  "rem.next_month": "Nächster Monat",
 };

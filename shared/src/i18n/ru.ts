@@ -1066,5 +1066,8 @@ export const ru: Record<Base | ExtraPlural, string> = {
   "integ.item_lyrics_name": "Тексты песен",
   "integ.item_lyrics_desc": "Название и исполнитель песни отправляются на lrclib.net для поиска текста",
   "integ.lyrics_toggle": "Показывать текст играющей песни",
+  "look.accent_hex": "HEX-код цвета",
+  "rem.prev_month": "Предыдущий месяц",
+  "rem.next_month": "Следующий месяц",
   // @@END
 };

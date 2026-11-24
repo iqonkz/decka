@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { dropIndex, moveStep } from "./seqOps";
 import { SEQUENCE_LIMITS, t, validateActions, type Action, type ActionsFile, type SequenceStep } from "@decka/shared";
 import Button from "../ui/Button";
@@ -16,6 +16,13 @@ const DEFAULT_WAIT_MS = 500;
 export default function SequenceEditor({ actions, onSave, onClose }: SequenceProps) {
   const [name, setName] = useState(t("seq.default_name"));
   const [steps, setSteps] = useState<SequenceStep[]>([]);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
   // The actions a step can run: not the sequences (no nesting).
   const choices = useMemo(
     () => Object.entries(actions.actions).filter(([, a]) => a.type !== "sequence").sort(([, a], [, b]) => a.name.localeCompare(b.name)),

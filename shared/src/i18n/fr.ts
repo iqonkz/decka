@@ -1035,4 +1035,7 @@ export const fr: Dictionary = {
   "integ.item_lyrics_name": "Paroles",
   "integ.item_lyrics_desc": "Le titre et l'artiste sont envoyés à lrclib.net pour trouver les paroles",
   "integ.lyrics_toggle": "Afficher les paroles des morceaux en cours",
+  "look.accent_hex": "Code couleur HEX",
+  "rem.prev_month": "Mois précédent",
+  "rem.next_month": "Mois suivant",
 };

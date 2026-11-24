@@ -1035,4 +1035,7 @@ export const ja: Dictionary = {
   "integ.item_lyrics_name": "歌詞",
   "integ.item_lyrics_desc": "歌詞検索のため曲名とアーティスト名が lrclib.net に送信されます",
   "integ.lyrics_toggle": "再生中の曲の歌詞を表示する",
+  "look.accent_hex": "HEXカラーコード",
+  "rem.prev_month": "前の月",
+  "rem.next_month": "次の月",
 };
