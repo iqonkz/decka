@@ -89,25 +89,16 @@ function About({ updates }: { updates: Updates }) {
   );
 }
 
-/** The rarely needed pages: actions, integrations, settings, about (DESIGN.md 4.6a). */
-export default function MoreTab({ section, onSection, updates }: { section: MoreSection; onSection: (s: MoreSection) => void; updates: Updates }) {
+/** The sections of the more group, now navigated directly from the sidebar (DESIGN.md 4.14). */
+export default function MoreTab({ section, updates }: { section: MoreSection; onSection?: (s: MoreSection) => void; updates: Updates }) {
   return (
-    <div className="more-layout">
-      <nav className="more-nav" aria-label={t("tab.more")}>
-        {SECTION_IDS.map((id) => (
-          <button key={id} type="button" className={id === section ? "active" : ""} title={sectionLabel(id)} onClick={() => onSection(id)}>
-            {sectionLabel(id)}
-          </button>
-        ))}
-      </nav>
-      <div className="more-body">
-        {section === "actions" && <ActionsTab />}
-        {section === "integrations" && <IntegrationsTab />}
-        {section === "settings" && <SettingsTab />}
-        {section === "voice" && <VoiceSection />}
-        {section === "reminders" && <RemindersTab />}
-        {section === "about" && <About updates={updates} />}
-      </div>
+    <div className="more-body">
+      {section === "actions" && <ActionsTab />}
+      {section === "integrations" && <IntegrationsTab />}
+      {section === "settings" && <SettingsTab />}
+      {section === "voice" && <VoiceSection />}
+      {section === "reminders" && <RemindersTab />}
+      {section === "about" && <About updates={updates} />}
     </div>
   );
 }

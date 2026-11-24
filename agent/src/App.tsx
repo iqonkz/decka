@@ -10,45 +10,44 @@ import FirstRun, { wizardDone } from "./tabs/FirstRun";
 import LayoutTab from "./tabs/LayoutTab";
 import MoreTab, { isMoreSection, type MoreSection } from "./tabs/MoreTab";
 import PhoneTab from "./tabs/PhoneTab";
-import Tabs, { type TabDef } from "./ui/Tabs";
+import Sidebar from "./ui/Sidebar";
+import type { SearchTargetPage } from "./ui/searchRegistry";
 
 type TabId = "deck" | "look" | "phone" | "more";
 
 const TAB_IDS: TabId[] = ["deck", "look", "phone", "more"];
 
-/** The side menu in the current language (labels are looked up at render time). */
-function tabs(updateAvailable: boolean): TabDef<TabId>[] {
-  return [
-    { id: "deck", label: t("tab.deck"), icon: "squares-four" },
-    { id: "look", label: t("tab.look"), icon: "palette" },
-    { id: "phone", label: t("tab.phone"), icon: "device-mobile" },
-    { id: "more", label: t("tab.more"), icon: "dots-three-outline", dot: updateAvailable },
-  ];
-}
-
 const isTab = (s: string): s is TabId => (TAB_IDS as string[]).includes(s);
 
 /**
- * Where a name goes: the new four tabs, and the old names of the tray, the editor and the first-run guide
- * (`status`, `pairing` -> Phone; `appearance` -> Look; `layout` -> Deck; `actions`, `integrations`, `settings` -> More).
+ * Where a name goes: the tabs and sections of the sidebar menu, and the old names of the tray,
+ * the editor and the first-run guide (`status`, `pairing` -> Phone; `appearance` -> Look; `layout`/`keys` -> Deck; `actions`, `integrations`, `settings`, `voice`, `reminders`, `about` -> More).
  */
 export function resolveTarget(target: string): { tab: TabId; section?: MoreSection } | null {
   const name = target.split(":")[0] ?? "";
   if (isTab(name)) return { tab: name };
   switch (name) {
+    case "keys":
+    case "layout":
+      return { tab: "deck" };
     case "status":
     case "pairing":
       return { tab: "phone" };
     case "appearance":
       return { tab: "look" };
-    case "layout":
-      return { tab: "deck" };
     default:
       return isMoreSection(name) ? { tab: "more", section: name } : null;
   }
 }
 
-function TabBody({ tab, section, onSection, updates }: { tab: TabId; section: MoreSection; onSection: (s: MoreSection) => void; updates: ReturnType<typeof useUpdates> }) {
+function getActivePage(tab: TabId, section: MoreSection): SearchTargetPage {
+  if (tab === "deck") return "deck";
+  if (tab === "look") return "look";
+  if (tab === "phone") return "phone";
+  return section;
+}
+
+function TabBody({ tab, section, updates }: { tab: TabId; section: MoreSection; updates: ReturnType<typeof useUpdates> }) {
   switch (tab) {
     case "deck":
       return <LayoutTab />;
@@ -57,7 +56,7 @@ function TabBody({ tab, section, onSection, updates }: { tab: TabId; section: Mo
     case "phone":
       return <PhoneTab />;
     case "more":
-      return <MoreTab section={section} onSection={onSection} updates={updates} />;
+      return <MoreTab section={section} updates={updates} />;
   }
 }
 export default function App() {
@@ -130,12 +129,21 @@ export default function App() {
     };
   }, []);
 
+  const handleSidebarNavigate = useCallback((target: { tab: TabId; section?: MoreSection }) => {
+    setTab(target.tab);
+    if (target.section) setSection(target.section);
+  }, []);
+
   return (
     <div className="shell">
-      <Tabs tabs={tabs(updates.status?.available != null)} active={tab} onSelect={setTab} />
+      <Sidebar
+        activePage={getActivePage(tab, section)}
+        onNavigate={handleSidebarNavigate}
+        updateAvailable={updates.status?.available != null}
+      />
       <main className="content">
         <UpdateBanner status={updates.status} />
-        <TabBody tab={tab} section={section} onSection={setSection} updates={updates} />
+        <TabBody tab={tab} section={section} updates={updates} />
       </main>
       {firstRun && (
         <FirstRun
