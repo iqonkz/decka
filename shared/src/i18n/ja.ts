@@ -1090,4 +1090,7 @@ export const ja: Dictionary = {
   "island.stop": "停止",
   "island.slow_eta": "画面を確認中… ~{s} 秒",
   "island.slow_almost": "もうすぐ…",
+  "island.connected": "接続済み",
+  "island.speaking": "読み上げ中…",
+  "island.replay": "トランジション再生",
 };

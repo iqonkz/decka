@@ -1097,4 +1097,7 @@ export const kk: Dictionary = {
   "island.stop": "Тоқтату",
   "island.slow_eta": "Экранды қарап жатырмын… ~{s} с",
   "island.slow_almost": "Тағы сәл…",
+  "island.connected": "Қосылды",
+  "island.speaking": "Сөйлеп тұр…",
+  "island.replay": "Ауысуды ойнату",
 };

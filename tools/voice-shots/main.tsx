@@ -319,13 +319,25 @@ if (scene === "deck" || scene === "settings") {
       ? "margin:0;min-height:100vh;background:linear-gradient(135deg,#e8eef8,#f3e8ff);font-family:system-ui,-apple-system,sans-serif;"
       : "margin:0;min-height:100vh;background:radial-gradient(900px 600px at 20% 20%,#1e2b4f 0%,transparent 65%),radial-gradient(900px 600px at 80% 85%,#3b1c54 0%,transparent 65%),#0b0d14;font-family:system-ui,-apple-system,sans-serif;";
   if (q.get("interactive")) {
+    const { t: tr } = await import("@decka/shared");
     function IslandDemoApp() {
       const [mode, setMode] = useState<"tab" | "compact" | "expanded">("expanded");
       const [phase, setPhase] = useState<"idle" | "loading" | "listening" | "thinking" | "speaking" | "error">("listening");
       const [level, setLevel] = useState(0.55);
       const [slow, setSlow] = useState(false);
       const [lyrics, setLyrics] = useState(true);
+      const [showText, setShowText] = useState(true);
       const [demoTheme, setDemoTheme] = useState<"light" | "dark">(themeMode);
+      const replayTransition = () => {
+        setMode("expanded");
+        setSlow(false);
+        setPhase("listening");
+        setShowText(false);
+        window.setTimeout(() => {
+          setPhase("done" as never);
+          setShowText(true);
+        }, 160);
+      };
       const evt = {
         mode,
         lyrics: lyrics ? { playing: true, current: "Midnight City — M83", next: "Waiting in a car" } : null,
@@ -333,11 +345,13 @@ if (scene === "deck" || scene === "settings") {
           active: true,
           phase,
           level,
-          heard: q.get("lang") === "ru" ? "Что на экране?" : "What is on screen?",
-          reply: q.get("lang") === "ru" ? "На экране открыт редактор кода и панель задач." : "A code editor and task panel are open on screen.",
-          actions: ["copy", "insert", "speak", "again", "lang:en", "lang:ru"],
-          slow: slow ? { etaSec: 12, elapsedSec: 4 } : null,
-          chips: [{ label: q.get("lang") === "ru" ? "Открыть код" : "Open code", command: "open" }],
+          ...(showText ? {
+            heard: q.get("lang") === "ru" ? "Что на экране?" : "What is on screen?",
+            reply: q.get("lang") === "ru" ? "На экране открыт редактор кода и панель задач." : "A code editor and task panel are open on screen.",
+            actions: ["copy", "insert", "speak", "again", "lang:en", "lang:ru"],
+            chips: [{ label: q.get("lang") === "ru" ? "Открыть код" : "Open code", command: "open" }],
+          } : {}),
+          slow: showText && slow ? { etaSec: 12, elapsedSec: 4 } : null,
         },
       };
       return (
@@ -349,10 +363,12 @@ if (scene === "deck" || scene === "settings") {
             {(["idle", "loading", "listening", "thinking", "speaking", "error"] as const).map((p) => (
               <button key={p} onClick={() => setPhase(p)}>{p}</button>
             ))}
+            <button onClick={replayTransition}>{tr("island.replay")}</button>
             <label>Level <input type="range" min={0} max={1} step={0.05} value={level} onChange={(e) => setLevel(Number(e.target.value))} /></label>
+            <label><input type="checkbox" checked={showText} onChange={(e) => setShowText(e.target.checked)} /> Text</label>
             <label><input type="checkbox" checked={slow} onChange={(e) => setSlow(e.target.checked)} /> Slow</label>
             <label><input type="checkbox" checked={lyrics} onChange={(e) => setLyrics(e.target.checked)} /> Lyrics</label>
-            <button onClick={() => setDemoTheme((t) => (t === "dark" ? "light" : "dark"))}>{demoTheme}</button>
+            <button onClick={() => setDemoTheme((d) => (d === "dark" ? "light" : "dark"))}>{demoTheme}</button>
           </div>
           <Island event={evt} theme={demoTheme} onAction={() => {}} onChipClick={() => {}} onStopSlow={() => setSlow(false)} />
           <ParticlesOrb state={phase === "loading" ? "connecting" : phase === "error" ? "idle" : phase} size={120} level={level} />
@@ -381,6 +397,9 @@ if (scene === "deck" || scene === "settings") {
       const hasLyrics = q.get("lyrics") === "1";
       const isSlow = q.get("slow") === "1";
       const hasReply = q.get("reply") === "1";
+      const isSolo = q.get("solo") === "1";
+      const transParam = q.get("transition");
+      const transitionPreview = transParam !== null ? Number(transParam) : undefined;
       const evt = {
         mode,
         lyrics: hasLyrics ? { playing: true, current: isRu ? "В полночном городе огни" : "Waiting in a car", next: isRu ? "Ждём рассвет у реки" : "Waiting for a ride in the dark" } : null,
@@ -388,16 +407,26 @@ if (scene === "deck" || scene === "settings") {
           active: true,
           phase,
           level: Number(q.get("level") ?? 0.6),
-          heard: q.get("heard") ?? (isRu ? "Что на экране?" : "What is on my screen?"),
-          reply: hasReply ? (q.get("replyText") ?? (isRu ? "На экране открыт список задач и терминал." : "A task list and terminal window are open on your screen.")) : undefined,
-          actions: hasReply ? ["copy", "insert", "speak", "again", "lang:en", "lang:ru"] : undefined,
-          slow: isSlow ? { etaSec: 12, elapsedSec: q.get("almost") === "1" ? 30 : 4 } : null,
-          chips: hasReply ? [{ label: isRu ? "Копировать код" : "Copy snippet", command: "copy" }] : undefined,
+          ...(isSolo ? {} : {
+            heard: q.get("heard") ?? (isRu ? "Что на экране?" : "What is on my screen?"),
+            reply: hasReply ? (q.get("replyText") ?? (isRu ? "На экране открыт список задач и терминал." : "A task list and terminal window are open on your screen.")) : undefined,
+            actions: hasReply && phase !== "error" ? ["copy", "insert", "speak", "again", "lang:en", "lang:ru"] : undefined,
+            slow: isSlow ? { etaSec: 12, elapsedSec: q.get("almost") === "1" ? 30 : 4 } : null,
+            chips: hasReply && phase !== "error" ? [{ label: isRu ? "Копировать код" : "Copy snippet", command: "copy" }] : undefined,
+          }),
         },
       };
       root.render(
         <div style={{ display: "flex", justifyContent: "center", paddingTop: 28 }}>
-          <Island event={evt} theme={themeMode} hovered={q.get("hover") === "1"} onAction={() => {}} onChipClick={() => {}} onStopSlow={() => {}} />
+          <Island
+            event={evt}
+            theme={themeMode}
+            hovered={q.get("hover") === "1"}
+            transitionPreview={transitionPreview}
+            onAction={() => {}}
+            onChipClick={() => {}}
+            onStopSlow={() => {}}
+          />
         </div>,
       );
     }

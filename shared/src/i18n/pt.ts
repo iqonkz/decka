@@ -1090,4 +1090,7 @@ export const pt: Dictionary = {
   "island.stop": "Parar",
   "island.slow_eta": "Analisando a tela… ~{s} s",
   "island.slow_almost": "Só mais um pouco…",
+  "island.connected": "Conectado",
+  "island.speaking": "Falando…",
+  "island.replay": "Reproduzir transição",
 };
