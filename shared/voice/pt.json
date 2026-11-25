@@ -197,7 +197,9 @@
         "deixe mais educado",
         "mais educado",
         "escreva com mais educação",
-        "reescreva educadamente"
+        "reescreva educadamente",
+        "ainda mais educado",
+        "mais gentil"
       ]
     },
     {
@@ -209,7 +211,9 @@
         "deixe mais curto",
         "mais curto",
         "encurte o texto",
-        "mais conciso"
+        "mais conciso",
+        "ainda mais curto",
+        "encurte"
       ]
     },
     {
@@ -280,7 +284,11 @@
       "patterns": [
         "traduza para {lang}",
         "traduza em {lang}",
-        "traduzir para {lang}"
+        "traduzir para {lang}",
+        "como se diz {text} em {lang}",
+        "traduza {text} para {lang}",
+        "e em {lang}",
+        "agora em {lang}"
       ]
     },
     {
@@ -371,6 +379,193 @@
         "quanto é {expr}",
         "quanto e {expr}",
         "{expr}"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "reply"
+      },
+      "patterns": [
+        "escreva uma resposta",
+        "rascunhe uma resposta",
+        "responda a isso"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "weather"
+      },
+      "patterns": [
+        "como está o tempo",
+        "qual é o clima",
+        "como está o clima hoje"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "cpu"
+      },
+      "patterns": [
+        "uso da cpu",
+        "carga do processador",
+        "status da cpu"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "ram"
+      },
+      "patterns": [
+        "quanta ram livre",
+        "uso de memória",
+        "quanto de ram"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "disk"
+      },
+      "patterns": [
+        "quanto espaço em disco",
+        "espaço livre no disco",
+        "armazenamento livre"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "network"
+      },
+      "patterns": [
+        "velocidade da rede",
+        "status da internet",
+        "conexão de rede"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "phone_battery"
+      },
+      "patterns": [
+        "bateria do celular",
+        "quanto de bateria no telefone",
+        "nível da bateria"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "media"
+      },
+      "patterns": [
+        "o que está tocando",
+        "qual música está tocando",
+        "faixa atual"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "ai_limits"
+      },
+      "patterns": [
+        "limites de ia",
+        "cota de ia",
+        "limites do claude"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "focus"
+      },
+      "patterns": [
+        "status do foco",
+        "quanto tempo de foco resta",
+        "temporizador de foco"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "next_reminder"
+      },
+      "patterns": [
+        "quando é o próximo lembrete",
+        "próximo lembrete",
+        "qual o próximo lembrete"
+      ]
+    },
+    {
+      "tool": "lyrics_window",
+      "args": {
+        "show": false
+      },
+      "patterns": [
+        "esconda a letra",
+        "oculte a letra",
+        "ocultar letras"
+      ]
+    },
+    {
+      "tool": "lyrics_window",
+      "args": {
+        "show": true
+      },
+      "patterns": [
+        "mostre a letra",
+        "exiba a letra",
+        "mostrar letras"
+      ]
+    },
+    {
+      "tool": "voice_action",
+      "args": {
+        "kind": "copy"
+      },
+      "patterns": [
+        "copie isso",
+        "copiar resposta",
+        "copie a resposta"
+      ]
+    },
+    {
+      "tool": "voice_action",
+      "args": {
+        "kind": "insert"
+      },
+      "patterns": [
+        "insira isso",
+        "cole isso",
+        "inserir resposta"
+      ]
+    },
+    {
+      "tool": "voice_action",
+      "args": {
+        "kind": "speak"
+      },
+      "patterns": [
+        "fale a resposta",
+        "leia a resposta",
+        "diga em voz alta"
+      ]
+    },
+    {
+      "tool": "voice_action",
+      "args": {
+        "kind": "again"
+      },
+      "patterns": [
+        "outra opção",
+        "tente novamente",
+        "outra variante"
       ]
     }
   ]

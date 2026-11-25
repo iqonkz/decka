@@ -435,5 +435,85 @@
       "text": "blumengießen",
       "at": "11:00"
     }
+  },
+  {
+    "say": "wie ist das wetter",
+    "tool": "status",
+    "args": {
+      "topic": "weather"
+    }
+  },
+  {
+    "say": "ram verbrauch",
+    "tool": "status",
+    "args": {
+      "topic": "ram"
+    }
+  },
+  {
+    "say": "songtext ausblenden",
+    "tool": "lyrics_window",
+    "args": {
+      "show": false
+    }
+  },
+  {
+    "say": "songtext anzeigen",
+    "tool": "lyrics_window",
+    "args": {
+      "show": true
+    }
+  },
+  {
+    "say": "wie sagt man danke auf englisch",
+    "tool": "text_transform",
+    "args": {
+      "op": "translate",
+      "text": "danke",
+      "lang": "en"
+    }
+  },
+  {
+    "say": "antwort schreiben",
+    "tool": "text_transform",
+    "args": {
+      "op": "reply"
+    }
+  },
+  {
+    "say": "und auf französisch",
+    "tool": "text_transform",
+    "args": {
+      "op": "translate",
+      "lang": "fr"
+    }
+  },
+  {
+    "say": "noch eine variante",
+    "tool": "voice_action",
+    "args": {
+      "kind": "again"
+    }
+  },
+  {
+    "say": "antwort kopieren",
+    "tool": "voice_action",
+    "args": {
+      "kind": "copy"
+    }
+  },
+  {
+    "say": "antwort einfügen",
+    "tool": "voice_action",
+    "args": {
+      "kind": "insert"
+    }
+  },
+  {
+    "say": "antwort vorlesen",
+    "tool": "voice_action",
+    "args": {
+      "kind": "speak"
+    }
   }
 ]

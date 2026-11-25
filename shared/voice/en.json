@@ -188,7 +188,9 @@
         "make it more polite",
         "make polite",
         "more polite",
-        "rewrite politely"
+        "rewrite politely",
+        "politer",
+        "even more polite"
       ]
     },
     {
@@ -201,7 +203,9 @@
         "make shorter",
         "shorten this",
         "shorten text",
-        "more concise"
+        "more concise",
+        "shorter",
+        "even shorter"
       ]
     },
     {
@@ -275,7 +279,13 @@
         "translate to {lang}",
         "translate into {lang}",
         "translate this to {lang}",
-        "translate selection to {lang}"
+        "translate selection to {lang}",
+        "how do you say {text} in {lang}",
+        "how to say {text} in {lang}",
+        "translate {text} to {lang}",
+        "translate {text} into {lang}",
+        "and in {lang}",
+        "now in {lang}"
       ]
     },
     {
@@ -421,6 +431,209 @@
         "open {name} page",
         "go to {name} page",
         "switch to {name} page"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "reply"
+      },
+      "patterns": [
+        "write a reply",
+        "draft a reply",
+        "reply to this",
+        "compose reply"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "weather"
+      },
+      "patterns": [
+        "whats the weather",
+        "what is the weather",
+        "how is the weather",
+        "whats the weather today"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "cpu"
+      },
+      "patterns": [
+        "whats the cpu load",
+        "cpu usage",
+        "how loaded is the cpu",
+        "processor load"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "ram"
+      },
+      "patterns": [
+        "how much ram is free",
+        "ram usage",
+        "memory usage",
+        "how much memory is used"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "disk"
+      },
+      "patterns": [
+        "how much disk space is left",
+        "disk space",
+        "free disk space",
+        "storage space"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "network"
+      },
+      "patterns": [
+        "whats the network speed",
+        "network status",
+        "internet speed",
+        "check network"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "phone_battery"
+      },
+      "patterns": [
+        "phone battery",
+        "whats the phone battery",
+        "battery on phone",
+        "phone charge"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "media"
+      },
+      "patterns": [
+        "whats playing",
+        "what is playing",
+        "current track",
+        "current song"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "ai_limits"
+      },
+      "patterns": [
+        "ai limits",
+        "claude limits",
+        "whats my ai limit",
+        "ai quota"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "focus"
+      },
+      "patterns": [
+        "focus status",
+        "whats the focus timer",
+        "how much focus time left",
+        "focus mode status"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "next_reminder"
+      },
+      "patterns": [
+        "when is my next reminder",
+        "next reminder",
+        "whats my next reminder"
+      ]
+    },
+    {
+      "tool": "lyrics_window",
+      "args": {
+        "show": false
+      },
+      "patterns": [
+        "hide lyrics",
+        "hide the lyrics",
+        "hide song lyrics",
+        "turn off lyrics overlay"
+      ]
+    },
+    {
+      "tool": "lyrics_window",
+      "args": {
+        "show": true
+      },
+      "patterns": [
+        "show lyrics",
+        "show the lyrics",
+        "show song lyrics",
+        "bring back lyrics"
+      ]
+    },
+    {
+      "tool": "voice_action",
+      "args": {
+        "kind": "copy"
+      },
+      "patterns": [
+        "copy that",
+        "copy it",
+        "copy answer",
+        "copy result"
+      ]
+    },
+    {
+      "tool": "voice_action",
+      "args": {
+        "kind": "insert"
+      },
+      "patterns": [
+        "insert that",
+        "insert it",
+        "paste it",
+        "insert answer"
+      ]
+    },
+    {
+      "tool": "voice_action",
+      "args": {
+        "kind": "speak"
+      },
+      "patterns": [
+        "speak it",
+        "say it",
+        "speak answer",
+        "voice it"
+      ]
+    },
+    {
+      "tool": "voice_action",
+      "args": {
+        "kind": "again"
+      },
+      "patterns": [
+        "another option",
+        "try again",
+        "one more option",
+        "regenerate"
       ]
     }
   ]

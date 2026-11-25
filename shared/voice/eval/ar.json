@@ -435,5 +435,85 @@
       "text": "سقي النباتات",
       "at": "11:00"
     }
+  },
+  {
+    "say": "كيف الطقس",
+    "tool": "status",
+    "args": {
+      "topic": "weather"
+    }
+  },
+  {
+    "say": "استخدام الرام",
+    "tool": "status",
+    "args": {
+      "topic": "ram"
+    }
+  },
+  {
+    "say": "إخفاء الكلمات",
+    "tool": "lyrics_window",
+    "args": {
+      "show": false
+    }
+  },
+  {
+    "say": "عرض الكلمات",
+    "tool": "lyrics_window",
+    "args": {
+      "show": true
+    }
+  },
+  {
+    "say": "ترجم شكرا لك إلى english",
+    "tool": "text_transform",
+    "args": {
+      "op": "translate",
+      "text": "شكرا لك",
+      "lang": "en"
+    }
+  },
+  {
+    "say": "اكتب ردا",
+    "tool": "text_transform",
+    "args": {
+      "op": "reply"
+    }
+  },
+  {
+    "say": "الآن إلى french",
+    "tool": "text_transform",
+    "args": {
+      "op": "translate",
+      "lang": "fr"
+    }
+  },
+  {
+    "say": "خيار آخر",
+    "tool": "voice_action",
+    "args": {
+      "kind": "again"
+    }
+  },
+  {
+    "say": "انسخ الإجابة",
+    "tool": "voice_action",
+    "args": {
+      "kind": "copy"
+    }
+  },
+  {
+    "say": "أدرج الإجابة",
+    "tool": "voice_action",
+    "args": {
+      "kind": "insert"
+    }
+  },
+  {
+    "say": "انطق الإجابة",
+    "tool": "voice_action",
+    "args": {
+      "kind": "speak"
+    }
   }
 ]

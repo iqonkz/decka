@@ -22,6 +22,9 @@ const VALID_TOOLS = new Set([
   "text_transform",  "screen_ask",  "remind",  "reminders_show",  "list_add",  "list_show",  "list_remove",  "day_brief",  "memory_add",  "memory_remove",  "paste_text",
   "calc",
   "ask",
+  "status",
+  "lyrics_window",
+  "voice_action",
 ]);
 
 const LANGUAGES = ["en", "zh", "hi", "es", "ar", "fr", "pt", "ru", "de", "ja", "kk"];
@@ -89,6 +92,57 @@ describe("Voice phrase tables (T21.3b)", () => {
         expect(item.say.trim().length).toBeGreaterThan(0);
         expect(VALID_TOOLS.has(item.tool)).toBe(true);
         expect(typeof item.args).toBe("object");
+      }
+    });
+
+    it(`validates M26 status/lyrics/reply/followup phrases and slots for ${lang}`, () => {
+      const table = JSON.parse(fs.readFileSync(path.join(voiceDir, `${lang}.json`), "utf-8"));
+      const topics = new Set(
+        table.intents
+          .filter((i: { tool: string }) => i.tool === "status")
+          .map((i: { args?: { topic?: string } }) => i.args?.topic),
+      );
+      expect(topics).toEqual(
+        new Set(["weather", "cpu", "ram", "disk", "network", "phone_battery", "media", "ai_limits", "focus", "next_reminder"]),
+      );
+
+      const lyrics = table.intents.filter((i: { tool: string }) => i.tool === "lyrics_window");
+      expect(lyrics.some((i: { args?: { show?: boolean } }) => i.args?.show === false)).toBe(true);
+      expect(lyrics.some((i: { args?: { show?: boolean } }) => i.args?.show === true)).toBe(true);
+
+      const translate = table.intents.find(
+        (i: { tool: string; args?: { op?: string } }) => i.tool === "text_transform" && i.args?.op === "translate",
+      );
+      expect(translate?.patterns.some((p: string) => p.includes("{text}") && p.includes("{lang}"))).toBe(true);
+      expect(
+        table.intents.some(
+          (i: { tool: string; args?: { op?: string } }) => i.tool === "text_transform" && i.args?.op === "reply",
+        ),
+      ).toBe(true);
+
+      const actions = new Set(
+        table.intents
+          .filter((i: { tool: string }) => i.tool === "voice_action")
+          .map((i: { args?: { kind?: string } }) => i.args?.kind),
+      );
+      expect(actions).toEqual(new Set(["copy", "insert", "speak", "again"]));
+
+      // Slot syntax & duplicate slotless pattern collision check
+      const allowedSlots = new Set(["app", "domain", "expr", "item", "label", "lang", "list", "n", "name", "query", "text", "time"]);
+      const seenLiterals = new Map<string, string>();
+      for (const intent of table.intents) {
+        const key = `${intent.tool}:${JSON.stringify(intent.args ?? {})}`;
+        for (const p of intent.patterns) {
+          const slots = [...p.matchAll(/\{([^}]*)\}/g)].map((m: RegExpMatchArray) => m[1]!);
+          expect(p.split("{").length).toBe(p.split("}").length);
+          for (const s of slots) expect(allowedSlots.has(s)).toBe(true);
+          if (slots.length === 0) {
+            const norm = p.toLowerCase().trim().replace(/\s+/g, " ");
+            const prev = seenLiterals.get(norm);
+            if (prev) expect(prev).toBe(key);
+            seenLiterals.set(norm, key);
+          }
+        }
       }
     });
   }

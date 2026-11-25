@@ -435,5 +435,85 @@
       "text": "给阳台的植物浇水",
       "at": "11:00"
     }
+  },
+  {
+    "say": "天气怎么样",
+    "tool": "status",
+    "args": {
+      "topic": "weather"
+    }
+  },
+  {
+    "say": "内存用了多少",
+    "tool": "status",
+    "args": {
+      "topic": "ram"
+    }
+  },
+  {
+    "say": "隐藏歌词",
+    "tool": "lyrics_window",
+    "args": {
+      "show": false
+    }
+  },
+  {
+    "say": "显示歌词",
+    "tool": "lyrics_window",
+    "args": {
+      "show": true
+    }
+  },
+  {
+    "say": "把谢谢你翻译成英语",
+    "tool": "text_transform",
+    "args": {
+      "op": "translate",
+      "text": "谢谢你",
+      "lang": "en"
+    }
+  },
+  {
+    "say": "写个回复",
+    "tool": "text_transform",
+    "args": {
+      "op": "reply"
+    }
+  },
+  {
+    "say": "换成日语",
+    "tool": "text_transform",
+    "args": {
+      "op": "translate",
+      "lang": "ja"
+    }
+  },
+  {
+    "say": "换个说法",
+    "tool": "voice_action",
+    "args": {
+      "kind": "again"
+    }
+  },
+  {
+    "say": "复制结果",
+    "tool": "voice_action",
+    "args": {
+      "kind": "copy"
+    }
+  },
+  {
+    "say": "插入",
+    "tool": "voice_action",
+    "args": {
+      "kind": "insert"
+    }
+  },
+  {
+    "say": "读出回答",
+    "tool": "voice_action",
+    "args": {
+      "kind": "speak"
+    }
   }
 ]

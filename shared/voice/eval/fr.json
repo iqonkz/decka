@@ -435,5 +435,85 @@
       "text": "arroser les plantes",
       "at": "11:00"
     }
+  },
+  {
+    "say": "quelle est la météo",
+    "tool": "status",
+    "args": {
+      "topic": "weather"
+    }
+  },
+  {
+    "say": "état de la ram",
+    "tool": "status",
+    "args": {
+      "topic": "ram"
+    }
+  },
+  {
+    "say": "masque les paroles",
+    "tool": "lyrics_window",
+    "args": {
+      "show": false
+    }
+  },
+  {
+    "say": "affiche les paroles",
+    "tool": "lyrics_window",
+    "args": {
+      "show": true
+    }
+  },
+  {
+    "say": "traduis merci beaucoup en anglais",
+    "tool": "text_transform",
+    "args": {
+      "op": "translate",
+      "text": "merci beaucoup",
+      "lang": "en"
+    }
+  },
+  {
+    "say": "écris une réponse",
+    "tool": "text_transform",
+    "args": {
+      "op": "reply"
+    }
+  },
+  {
+    "say": "et en espagnol",
+    "tool": "text_transform",
+    "args": {
+      "op": "translate",
+      "lang": "es"
+    }
+  },
+  {
+    "say": "une autre option",
+    "tool": "voice_action",
+    "args": {
+      "kind": "again"
+    }
+  },
+  {
+    "say": "copier la réponse",
+    "tool": "voice_action",
+    "args": {
+      "kind": "copy"
+    }
+  },
+  {
+    "say": "insère ça",
+    "tool": "voice_action",
+    "args": {
+      "kind": "insert"
+    }
+  },
+  {
+    "say": "lis la réponse",
+    "tool": "voice_action",
+    "args": {
+      "kind": "speak"
+    }
   }
 ]

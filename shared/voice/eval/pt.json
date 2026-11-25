@@ -435,5 +435,85 @@
       "text": "regar as plantas",
       "at": "11:00"
     }
+  },
+  {
+    "say": "como está o tempo",
+    "tool": "status",
+    "args": {
+      "topic": "weather"
+    }
+  },
+  {
+    "say": "uso de memória",
+    "tool": "status",
+    "args": {
+      "topic": "ram"
+    }
+  },
+  {
+    "say": "esconda a letra",
+    "tool": "lyrics_window",
+    "args": {
+      "show": false
+    }
+  },
+  {
+    "say": "mostre a letra",
+    "tool": "lyrics_window",
+    "args": {
+      "show": true
+    }
+  },
+  {
+    "say": "traduza obrigado para inglês",
+    "tool": "text_transform",
+    "args": {
+      "op": "translate",
+      "text": "obrigado",
+      "lang": "en"
+    }
+  },
+  {
+    "say": "escreva uma resposta",
+    "tool": "text_transform",
+    "args": {
+      "op": "reply"
+    }
+  },
+  {
+    "say": "e em francês",
+    "tool": "text_transform",
+    "args": {
+      "op": "translate",
+      "lang": "fr"
+    }
+  },
+  {
+    "say": "outra opção",
+    "tool": "voice_action",
+    "args": {
+      "kind": "again"
+    }
+  },
+  {
+    "say": "copiar resposta",
+    "tool": "voice_action",
+    "args": {
+      "kind": "copy"
+    }
+  },
+  {
+    "say": "insira isso",
+    "tool": "voice_action",
+    "args": {
+      "kind": "insert"
+    }
+  },
+  {
+    "say": "fale a resposta",
+    "tool": "voice_action",
+    "args": {
+      "kind": "speak"
+    }
   }
 ]

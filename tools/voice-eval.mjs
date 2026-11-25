@@ -50,6 +50,10 @@ export const VALID_TOOLS = new Set([
   "memory_remove",
   "calc",
   "ask",
+  // M26: status topics, lyrics window control, T26.3 reply actions
+  "status",
+  "lyrics_window",
+  "voice_action",
 ]);
 
 // Accuracy targets per DATA_MODEL.md §12.8:

@@ -304,7 +304,9 @@
         "hazlo más educado",
         "más educado",
         "escribe más amable",
-        "hazlo más formal y educado"
+        "hazlo más formal y educado",
+        "más amable",
+        "más cortés"
       ]
     },
     {
@@ -316,7 +318,9 @@
         "hazlo más corto",
         "más corto",
         "acorta el texto",
-        "hazlo más conciso"
+        "hazlo más conciso",
+        "más breve",
+        "acórtalo"
       ]
     },
     {
@@ -387,7 +391,12 @@
       "patterns": [
         "traduce al {lang}",
         "traduce a {lang}",
-        "traducir a {lang}"
+        "traducir a {lang}",
+        "cómo se dice {text} en {lang}",
+        "traduce {text} al {lang}",
+        "traduce {text} a {lang}",
+        "y en {lang}",
+        "ahora en {lang}"
       ]
     },
     {
@@ -480,6 +489,193 @@
         "cuánto es {expr}",
         "cuanto es {expr}",
         "{expr}"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "reply"
+      },
+      "patterns": [
+        "escribe una respuesta",
+        "redacta una respuesta",
+        "responde a esto"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "weather"
+      },
+      "patterns": [
+        "qué tiempo hace",
+        "cómo está el clima",
+        "pronóstico del tiempo"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "cpu"
+      },
+      "patterns": [
+        "uso de cpu",
+        "carga del procesador",
+        "estado de cpu"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "ram"
+      },
+      "patterns": [
+        "cuánta ram hay libre",
+        "uso de ram",
+        "cuánta memoria queda"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "disk"
+      },
+      "patterns": [
+        "cuánto espacio en disco queda",
+        "espacio en disco",
+        "espacio libre"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "network"
+      },
+      "patterns": [
+        "velocidad de red",
+        "estado de internet",
+        "cómo va la red"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "phone_battery"
+      },
+      "patterns": [
+        "batería del teléfono",
+        "cuánta batería tiene el móvil",
+        "carga del teléfono"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "media"
+      },
+      "patterns": [
+        "qué está sonando",
+        "qué canción suena",
+        "pista actual"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "ai_limits"
+      },
+      "patterns": [
+        "límites de ia",
+        "cuánto queda de ia",
+        "límites de claude"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "focus"
+      },
+      "patterns": [
+        "estado del enfoque",
+        "cuánto queda de enfoque",
+        "temporizador de enfoque"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "next_reminder"
+      },
+      "patterns": [
+        "cuándo es mi próximo recordatorio",
+        "próximo recordatorio",
+        "siguiente recordatorio"
+      ]
+    },
+    {
+      "tool": "lyrics_window",
+      "args": {
+        "show": false
+      },
+      "patterns": [
+        "oculta la letra",
+        "esconde la letra",
+        "ocultar letras"
+      ]
+    },
+    {
+      "tool": "lyrics_window",
+      "args": {
+        "show": true
+      },
+      "patterns": [
+        "muestra la letra",
+        "enseña la letra",
+        "mostrar letras"
+      ]
+    },
+    {
+      "tool": "voice_action",
+      "args": {
+        "kind": "copy"
+      },
+      "patterns": [
+        "copia eso",
+        "copiar respuesta",
+        "cópialo"
+      ]
+    },
+    {
+      "tool": "voice_action",
+      "args": {
+        "kind": "insert"
+      },
+      "patterns": [
+        "insértalo",
+        "pega eso",
+        "insertar respuesta"
+      ]
+    },
+    {
+      "tool": "voice_action",
+      "args": {
+        "kind": "speak"
+      },
+      "patterns": [
+        "léelo",
+        "di la respuesta",
+        "en voz alta"
+      ]
+    },
+    {
+      "tool": "voice_action",
+      "args": {
+        "kind": "again"
+      },
+      "patterns": [
+        "otra opción",
+        "intenta otra vez",
+        "una variante más"
       ]
     }
   ]

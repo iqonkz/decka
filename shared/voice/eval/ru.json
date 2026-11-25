@@ -435,5 +435,99 @@
       "text": "поливать цветы",
       "at": "11:00"
     }
+  },
+  {
+    "say": "какая погода",
+    "tool": "status",
+    "args": {
+      "topic": "weather"
+    }
+  },
+  {
+    "say": "сколько памяти занято",
+    "tool": "status",
+    "args": {
+      "topic": "ram"
+    }
+  },
+  {
+    "say": "что сейчас играет",
+    "tool": "status",
+    "args": {
+      "topic": "media"
+    }
+  },
+  {
+    "say": "когда следующее напоминание",
+    "tool": "status",
+    "args": {
+      "topic": "next_reminder"
+    }
+  },
+  {
+    "say": "скрой текст песни",
+    "tool": "lyrics_window",
+    "args": {
+      "show": false
+    }
+  },
+  {
+    "say": "покажи текст песни",
+    "tool": "lyrics_window",
+    "args": {
+      "show": true
+    }
+  },
+  {
+    "say": "переведи спасибо за помощь на английский",
+    "tool": "text_transform",
+    "args": {
+      "op": "translate",
+      "text": "спасибо за помощь",
+      "lang": "en"
+    }
+  },
+  {
+    "say": "напиши ответ",
+    "tool": "text_transform",
+    "args": {
+      "op": "reply"
+    }
+  },
+  {
+    "say": "а на французский",
+    "tool": "text_transform",
+    "args": {
+      "op": "translate",
+      "lang": "fr"
+    }
+  },
+  {
+    "say": "ещё вариант",
+    "tool": "voice_action",
+    "args": {
+      "kind": "again"
+    }
+  },
+  {
+    "say": "вставь",
+    "tool": "voice_action",
+    "args": {
+      "kind": "insert"
+    }
+  },
+  {
+    "say": "скопируй",
+    "tool": "voice_action",
+    "args": {
+      "kind": "copy"
+    }
+  },
+  {
+    "say": "озвучь",
+    "tool": "voice_action",
+    "args": {
+      "kind": "speak"
+    }
   }
 ]

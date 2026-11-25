@@ -435,5 +435,85 @@
       "text": "पौधों को पानी देना",
       "at": "11:00"
     }
+  },
+  {
+    "say": "मौसम कैसा है",
+    "tool": "status",
+    "args": {
+      "topic": "weather"
+    }
+  },
+  {
+    "say": "रैम उपयोग",
+    "tool": "status",
+    "args": {
+      "topic": "ram"
+    }
+  },
+  {
+    "say": "लिरिक्स छिपाएं",
+    "tool": "lyrics_window",
+    "args": {
+      "show": false
+    }
+  },
+  {
+    "say": "लिरिक्स दिखाएं",
+    "tool": "lyrics_window",
+    "args": {
+      "show": true
+    }
+  },
+  {
+    "say": "धन्यवाद का english में अनुवाद करें",
+    "tool": "text_transform",
+    "args": {
+      "op": "translate",
+      "text": "धन्यवाद",
+      "lang": "en"
+    }
+  },
+  {
+    "say": "जवाब लिखें",
+    "tool": "text_transform",
+    "args": {
+      "op": "reply"
+    }
+  },
+  {
+    "say": "और spanish में",
+    "tool": "text_transform",
+    "args": {
+      "op": "translate",
+      "lang": "es"
+    }
+  },
+  {
+    "say": "एक और विकल्प",
+    "tool": "voice_action",
+    "args": {
+      "kind": "again"
+    }
+  },
+  {
+    "say": "उत्तर कॉपी करें",
+    "tool": "voice_action",
+    "args": {
+      "kind": "copy"
+    }
+  },
+  {
+    "say": "इसे डालें",
+    "tool": "voice_action",
+    "args": {
+      "kind": "insert"
+    }
+  },
+  {
+    "say": "बोलकर सुनाएं",
+    "tool": "voice_action",
+    "args": {
+      "kind": "speak"
+    }
   }
 ]
