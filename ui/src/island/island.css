@@ -48,6 +48,8 @@
 }
 
 .island-panel {
+  /* The window follows the panel (island_rect), never the other way round: the panel keeps its own size. */
+  flex: none;
   box-sizing: border-box;
   background: var(--island-bg);
   border: 1px solid var(--island-border);
