@@ -3,9 +3,11 @@ import { SETS, getLanguage, pickText, insertSet, rotateLayout, t, tn, type Actio
 import logoUrl from "../../../docs/assets/decka-logo.svg";
 import { call } from "../ipc";
 import { saveLanguage } from "../language";
-import LanguageOptions from "./LanguageOptions";
+import { languageSelectOptions } from "./LanguageOptions";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
+import Checkbox from "../ui/Checkbox";
+import Select from "../ui/Select";
 import EntryIcon from "../ui/EntryIcon";
 import { insertContext, itemsOfSet } from "../editor/catalogUi";
 import { DEFAULT_SETS, planWizard, type WizardPick } from "../editor/wizardPlan";
@@ -148,9 +150,14 @@ export default function FirstRun({ onClose, startStep = 0 }: { onClose: () => vo
     <div className="wizard" role="dialog" aria-label={t("wizard.welcome")}>
       <div className="wizard-card">
         {step === 0 && (
-          <select className="wizard-lang" aria-label={t("settings.language")} value={layout?.display.language ?? "auto"} onChange={(e) => chooseLanguage(e.target.value as LanguageSetting)}>
-            <LanguageOptions />
-          </select>
+          <div className="wizard-lang">
+            <Select
+              aria-label={t("settings.language")}
+              value={layout?.display.language ?? "auto"}
+              options={languageSelectOptions()}
+              onChange={(val) => chooseLanguage(val as LanguageSetting)}
+            />
+          </div>
         )}
         {step === 0 && <img className="logo-wizard" src={logoUrl} width={96} height={96} alt="Decka" />}
         <p className="muted wizard-step">
@@ -194,15 +201,26 @@ export default function FirstRun({ onClose, startStep = 0 }: { onClose: () => vo
             <p className="muted">{t("wizard.sets_hint")}</p>
             <div className="wizard-sets">
               {SETS.filter((s) => s.requires !== "obs" || obsFound).map((s) => (
-                <label key={s.id} className={sets.has(s.id) ? "set-card selected" : "set-card"}>
+                <div
+                  key={s.id}
+                  className={sets.has(s.id) ? "set-card selected" : "set-card"}
+                  onClick={() =>
+                    setSets((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(s.id)) next.delete(s.id);
+                      else next.add(s.id);
+                      return next;
+                    })
+                  }
+                >
                   <span className="set-head">
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={sets.has(s.id)}
-                      onChange={(e) =>
+                      aria-label={pickText(s.name, getLanguage())}
+                      onChange={(checked) =>
                         setSets((prev) => {
                           const next = new Set(prev);
-                          if (e.target.checked) next.add(s.id);
+                          if (checked) next.add(s.id);
                           else next.delete(s.id);
                           return next;
                         })
@@ -212,7 +230,7 @@ export default function FirstRun({ onClose, startStep = 0 }: { onClose: () => vo
                     <strong>{pickText(s.name, getLanguage())}</strong>
                   </span>
                   <small className="muted">{pickText(s.description, getLanguage())}</small>
-                </label>
+                </div>
               ))}
             </div>
             <h3>{t("picker.programs")}</h3>
@@ -220,15 +238,15 @@ export default function FirstRun({ onClose, startStep = 0 }: { onClose: () => vo
             {apps === null && !error && <p className="muted">{t("picker.loading_apps")}</p>}
             <div className="app-list">
               {shown.map((a) => (
-                <label key={key(a)} className="app-row">
-                  <input
-                    type="checkbox"
+                <div key={key(a)} className="app-row">
+                  <Checkbox
                     checked={picked.has(key(a))}
+                    aria-label={a.name}
                     disabled={!picked.has(key(a)) && picked.size >= MAX_PICKS}
-                    onChange={(e) =>
+                    onChange={(checked) =>
                       setPicked((prev) => {
                         const next = new Set(prev);
-                        if (e.target.checked) next.add(key(a));
+                        if (checked) next.add(key(a));
                         else next.delete(key(a));
                         return next;
                       })
@@ -239,7 +257,7 @@ export default function FirstRun({ onClose, startStep = 0 }: { onClose: () => vo
                     <strong>{a.name}</strong>
                     <small className="muted">{a.program}</small>
                   </span>
-                </label>
+                </div>
               ))}
             </div>
             <p className="muted">{t("wizard.selected", { programs: tn("wizard.programs", picked.size), actions: tn("wizard.actions", sets.size), max: MAX_PICKS })}</p>

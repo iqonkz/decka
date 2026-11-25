@@ -2,12 +2,14 @@ import { useCallback, useEffect, useState } from "react";
 import { t, type ConfigFile, type LanguageSetting, type ValidationIssue } from "@decka/shared";
 import { call } from "../ipc";
 import { saveLanguage } from "../language";
-import LanguageOptions from "./LanguageOptions";
+import { languageSelectOptions } from "./LanguageOptions";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
+import Disclosure from "../ui/Disclosure";
 import { Group, PageHeader, Row, SectionHeader } from "../ui/SettingsGroup";
 import Switch from "../ui/Switch";
 import Segmented from "../ui/Segmented";
+import Select from "../ui/Select";
 import { useAutosave } from "../ui/useAutosave";
 
 export default function SettingsTab() {
@@ -75,17 +77,16 @@ export default function SettingsTab() {
 
       <Group>
         <Row id="section-settings-language" title={t("settings.language")}>
-          <select
-            className="settings-select"
+          <Select
+            aria-label={t("settings.language")}
             value={language}
-            onChange={(e) => {
-              const next = e.target.value as LanguageSetting;
+            options={languageSelectOptions()}
+            onChange={(val) => {
+              const next = val as LanguageSetting;
               setLanguage(next);
               void saveLanguage(next);
             }}
-          >
-            <LanguageOptions />
-          </select>
+          />
         </Row>
         <Row id="settings-pc-name" title={t("settings.pc_name")} description={t("settings.pc_name_hint")}>
           <input value={config.agentName} maxLength={40} onChange={(e) => edit({ agentName: e.target.value })} />
@@ -103,9 +104,8 @@ export default function SettingsTab() {
         )}
       </Group>
 
-      <details className="advanced" style={{ marginTop: 24 }}>
-        <summary style={{ cursor: "pointer", fontWeight: 600 }}>{t("common.more_options")}</summary>
-        <div id="settings-network" style={{ marginTop: 12 }}>
+      <Disclosure title={t("common.more_options")} style={{ marginTop: 24 }}>
+        <div id="settings-network">
           <SectionHeader title={t("settings.port")} />
           <Group>
             <Row id="section-settings-port" title={t("settings.port")} description={t("settings.port_hint")}>
@@ -141,7 +141,7 @@ export default function SettingsTab() {
             </Row>
           </Group>
         </div>
-      </details>
+      </Disclosure>
 
       {issues.length > 0 && (
         <div style={{ marginTop: 16 }}>

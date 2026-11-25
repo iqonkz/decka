@@ -4,6 +4,8 @@ import { call, onStatus } from "../ipc";
 import { RELEASES_URL } from "../updates";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
+import { Group, Row, SectionHeader } from "../ui/SettingsGroup";
+import Switch from "../ui/Switch";
 
 const fmtCode = (code: string): string => `${code.slice(0, 4)}-${code.slice(4)}`;
 const fmtTime = (ms: number): string => new Date(ms).toLocaleString(locale());
@@ -134,71 +136,67 @@ export default function PairingTab({ embedded = false }: { embedded?: boolean } 
         )}
       </section>
 
-      <section className="card">
-        <h3>{t("pairing.your_phones")}</h3>
+      <SectionHeader title={t("pairing.your_phones")} />
+      <Group>
         {devices.length === 0 ? (
-          <p className="muted">{t("pairing.none")}</p>
+          <div style={{ padding: "14px 0" }}>
+            <p className="muted" style={{ margin: 0 }}>{t("pairing.none")}</p>
+          </div>
         ) : (
-          <table>
-            <thead>
-              <tr>
-                <th />
-                <th>{t("pairing.col_name")}</th>
-                <th>{t("pairing.col_paired")}</th>
-                <th>{t("pairing.col_last_seen")}</th>
-                <th>{t("pairing.col_version")}</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {devices.map((d) => (
-                <tr key={d.id}>
-                  <td>
-                    <span className={d.connected ? "dot online" : "dot"} title={d.connected ? t("pairing.online") : t("pairing.offline")} />
-                  </td>
-                  <td>
-                    {d.name}
-                    <label className="check block">
-                      <input
-                        type="checkbox"
-                        checked={d.canApprove}
-                        onChange={(e) => void call("set_can_approve", { deviceId: d.id, allowed: e.target.checked }).then(refreshDevices)}
-                      />{" "}
-                      {t("pairing.can_approve")}
-                    </label>
-                  </td>
-                  <td>{fmtTime(d.createdAt)}</td>
-                  <td>{fmtTime(d.lastSeenAt)}</td>
-                  <td>
-                    {d.appVersion ?? <span className="muted">{t("pairing.version_unknown")}</span>}
-                    {d.appVersion !== undefined && agentVersion !== null && !sameMinor(d.appVersion, agentVersion) && (
-                      <div className="version-warn">
-                        {t("pairing.update_recommended", { version: d.appVersion })}{" "}
-                        <button type="button" className="link" onClick={() => void call("open_release", { url: RELEASES_URL })}>
-                          {t("pairing.releases")}
-                        </button>
-                      </div>
-                    )}
-                  </td>
-                  <td>
-                    {confirmId === d.id ? (
-                      <span className="row">
-                        <span>{t("pairing.forget_confirm", { name: d.name })}</span>
-                        <Button variant="danger" onClick={() => void revoke(d.id)}>
-                          {t("pairing.forget")}
-                        </Button>
-                        <Button onClick={() => setConfirmId(null)}>{t("common.cancel")}</Button>
-                      </span>
-                    ) : (
-                      <Button onClick={() => setConfirmId(d.id)}>{t("pairing.forget")}</Button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          devices.map((d) => (
+            <Row
+              key={d.id}
+              title={
+                <span className="row" style={{ gap: 8 }}>
+                  <span
+                    className={d.connected ? "dot online" : "dot"}
+                    title={d.connected ? t("pairing.online") : t("pairing.offline")}
+                  />
+                  <span>{d.name}</span>
+                </span>
+              }
+              description={
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <span>
+                    {t("pairing.col_paired")}: {fmtTime(d.createdAt)} · {t("pairing.col_last_seen")}: {fmtTime(d.lastSeenAt)} ·{" "}
+                    {t("pairing.col_version")}: {d.appVersion ?? t("pairing.version_unknown")}
+                  </span>
+                  {d.appVersion !== undefined && agentVersion !== null && !sameMinor(d.appVersion, agentVersion) && (
+                    <span className="version-warn">
+                      {t("pairing.update_recommended", { version: d.appVersion })}{" "}
+                      <button type="button" className="link" onClick={() => void call("open_release", { url: RELEASES_URL })}>
+                        {t("pairing.releases")}
+                      </button>
+                    </span>
+                  )}
+                </div>
+              }
+            >
+              <div className="row" style={{ gap: 12, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                <label className="switch-row">
+                  <Switch
+                    checked={d.canApprove}
+                    onChange={(allowed) => void call("set_can_approve", { deviceId: d.id, allowed }).then(refreshDevices)}
+                    label={t("pairing.can_approve")}
+                  />
+                  <span>{t("pairing.can_approve")}</span>
+                </label>
+                {confirmId === d.id ? (
+                  <span className="row">
+                    <span>{t("pairing.forget_confirm", { name: d.name })}</span>
+                    <Button variant="danger" onClick={() => void revoke(d.id)}>
+                      {t("pairing.forget")}
+                    </Button>
+                    <Button onClick={() => setConfirmId(null)}>{t("common.cancel")}</Button>
+                  </span>
+                ) : (
+                  <Button onClick={() => setConfirmId(d.id)}>{t("pairing.forget")}</Button>
+                )}
+              </div>
+            </Row>
+          ))
         )}
-      </section>
+      </Group>
     </div>
   );
 }

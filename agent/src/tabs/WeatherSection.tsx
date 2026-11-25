@@ -3,6 +3,7 @@ import { t, type ConfigFile, type PlaceResult, type WeatherConfig } from "@decka
 import { call } from "../ipc";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
+import Switch from "../ui/Switch";
 
 const label = (p: PlaceResult): string => [...new Set([p.name, p.region, p.country].filter((x): x is string => !!x))].join(", ");
 
@@ -61,16 +62,16 @@ export default function WeatherSection({ config, onSaved }: { config: ConfigFile
   return (
     <section className="card" id="weather">
       <h3>{t("weather.title")}</h3>
-      <label className="check">
-        <input
-          type="checkbox"
+      <label className="switch-row">
+        <Switch
           checked={enabled}
-          onChange={(e) => {
-            setEnabled(e.target.checked);
-            void save({ enabled: e.target.checked, place, units });
+          label={t("weather.enable")}
+          onChange={(checked) => {
+            setEnabled(checked);
+            void save({ enabled: checked, place, units });
           }}
-        />{" "}
-        {t("weather.enable")}
+        />
+        <span>{t("weather.enable")}</span>
       </label>
       <p className="muted">{place ? t("weather.place", { place: place.place }) : t("weather.no_place")}</p>
       <div className="row">

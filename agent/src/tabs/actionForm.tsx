@@ -1,6 +1,8 @@
 import { t, type Action, type MediaOp, type SystemOp } from "@decka/shared";
 import { useState } from "react";
+import Disclosure from "../ui/Disclosure";
 import Field from "../ui/Field";
+import Switch from "../ui/Switch";
 import { presetActions } from "../editor/addButton";
 import ChordField from "../editor/ChordField";
 import QuickPicker from "../editor/QuickPicker";
@@ -233,8 +235,7 @@ export default function ActionForm({ draft, onChange }: FormProps) {
         </div>
       )}
 
-      <details className="advanced">
-        <summary>{t("common.more_options")}</summary>
+      <Disclosure title={t("common.more_options")}>
         {draft.type === "launch" && (
           <>
             <Field label={t("form.arguments")} hint={t("form.arguments_hint")}>
@@ -243,15 +244,16 @@ export default function ActionForm({ draft, onChange }: FormProps) {
             <Field label={t("form.cwd")}>
               <input value={draft.cwd} onChange={(e) => set("cwd", e.target.value)} />
             </Field>
-            <label className="check">
-              <input type="checkbox" checked={draft.hidden} onChange={(e) => set("hidden", e.target.checked)} /> {t("form.hidden")}
+            <label className="switch-row">
+              <Switch checked={draft.hidden} onChange={(checked) => set("hidden", checked)} label={t("form.hidden")} />
+              <span>{t("form.hidden")}</span>
             </label>
           </>
         )}
         <Field label={t("form.toggle")} hint={t("form.toggle_hint")}>
           <input value={draft.toggleVar} onChange={(e) => set("toggleVar", e.target.value)} placeholder="audio.muted" />
         </Field>
-      </details>
+      </Disclosure>
     </div>
   );
 }

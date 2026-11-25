@@ -3,6 +3,7 @@ import { dropIndex, moveStep } from "./seqOps";
 import { SEQUENCE_LIMITS, t, validateActions, type Action, type ActionsFile, type SequenceStep } from "@decka/shared";
 import Button from "../ui/Button";
 import PhIcon from "../ui/PhIcon";
+import Select from "../ui/Select";
 
 export interface SequenceProps {
   actions: ActionsFile;
@@ -91,10 +92,13 @@ export default function SequenceEditor({ actions, onSave, onClose }: SequencePro
                   <span className="muted">{t("seq.ms")}</span>
                 </>
               ) : (
-                <select value={step.actionId} aria-label={t("seq.pick")} onChange={(e) => set(i, { actionId: e.target.value })}>
-                  <option value="">{t("seq.pick")}</option>
-                  {choices.map(([id, a]) => <option key={id} value={id}>{a.name}</option>)}
-                </select>
+                <Select
+                  aria-label={t("seq.pick")}
+                  value={step.actionId}
+                  placeholder={t("seq.pick")}
+                  options={choices.map(([id, a]) => ({ value: id, label: a.name }))}
+                  onChange={(val) => set(i, { actionId: val })}
+                />
               )}
               <button type="button" className="icon-btn" aria-label={t("seq.up")} disabled={i === 0} onClick={() => move(i, -1)}><PhIcon name="arrow-up" size={14} /></button>
               <button type="button" className="icon-btn" aria-label={t("seq.down")} disabled={i === steps.length - 1} onClick={() => move(i, 1)}><PhIcon name="arrow-down" size={14} /></button>

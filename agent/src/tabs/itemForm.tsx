@@ -3,7 +3,10 @@ import { t, type ActionsFile, type ButtonItem, type ButtonLook, type LayoutItem,
 import { call, navigate } from "../ipc";
 import IconField from "./IconField";
 import Button from "../ui/Button";
+import Disclosure from "../ui/Disclosure";
 import Field from "../ui/Field";
+import Select from "../ui/Select";
+import Switch from "../ui/Switch";
 import type { DisplaySettings } from "@decka/shared";
 import KeyPreview from "./KeyPreview";
 import { describeAction } from "../editor/describeAction";
@@ -16,13 +19,13 @@ function NumberSelect({ label, value, options, onChange }: { label: string; valu
   const list = options.includes(value) ? options : [...options, value].sort((a, b) => a - b);
   return (
     <Field label={label}>
-      <select value={value} disabled={list.length === 1} onChange={(e) => onChange(Number(e.target.value))}>
-        {list.map((n) => (
-          <option key={n} value={n}>
-            {n}
-          </option>
-        ))}
-      </select>
+      <Select
+        aria-label={label}
+        value={String(value)}
+        disabled={list.length === 1}
+        options={list.map((n) => ({ value: String(n), label: String(n) }))}
+        onChange={(val) => onChange(Number(val))}
+      />
     </Field>
   );
 }
@@ -37,17 +40,14 @@ function ListPicker({ value, onChange }: { value: string | undefined; onChange: 
       alive = false;
     };
   }, []);
+  const opts = [
+    { value: "", label: t("item.list_first") },
+    ...(value !== undefined && !lists.some((l) => l.id === value) ? [{ value, label: t("item.missing", { id: value }) }] : []),
+    ...lists.map((l) => ({ value: l.id, label: l.name })),
+  ];
   return (
     <Field label={t("item.list")}>
-      <select value={value ?? ""} onChange={(e) => onChange(e.target.value || undefined)}>
-        <option value="">{t("item.list_first")}</option>
-        {value !== undefined && !lists.some((l) => l.id === value) && <option value={value}>{t("item.missing", { id: value })}</option>}
-        {lists.map((l) => (
-          <option key={l.id} value={l.id}>
-            {l.name}
-          </option>
-        ))}
-      </select>
+      <Select aria-label={t("item.list")} value={value ?? ""} options={opts} onChange={(val) => onChange(val || undefined)} />
     </Field>
   );
 }
@@ -55,15 +55,14 @@ function ListPicker({ value, onChange }: { value: string | undefined; onChange: 
 /** An action of the `media` widget's key; `None` = no key. */
 function ActionSelect({ label, value, actions, onChange }: { label: string; value: string | undefined; actions: ActionsFile; onChange: (id: string | undefined) => void }) {
   const entries = Object.entries(actions.actions).sort(([, a], [, b]) => a.name.localeCompare(b.name));
+  const opts = [
+    { value: "", label: t("item.none") },
+    ...(value !== undefined && !actions.actions[value] ? [{ value, label: t("item.missing", { id: value }) }] : []),
+    ...entries.map(([id, a]) => ({ value: id, label: `${a.name} (${id})` })),
+  ];
   return (
     <Field label={label}>
-      <select value={value ?? ""} onChange={(e) => onChange(e.target.value || undefined)}>
-        <option value="">{t("item.none")}</option>
-        {value !== undefined && !actions.actions[value] && <option value={value}>{t("item.missing", { id: value })}</option>}
-        {entries.map(([id, a]) => (
-          <option key={id} value={id}>{`${a.name} (${id})`}</option>
-        ))}
-      </select>
+      <Select aria-label={label} value={value ?? ""} options={opts} onChange={(val) => onChange(val || undefined)} />
     </Field>
   );
 }
@@ -121,15 +120,15 @@ export default function ItemForm({ item, display, page, pages, grid, actions, on
       {item.kind === "button" && <KeyPreview item={item} display={display} />}
       {item.kind === "button" && <ButtonFields display={display} item={item} pages={pages} inPopup={page.popup === true} actions={actions} patch={patch} onChangeAction={onChangeAction} position={position} />}
       {item.kind !== "button" && (
-        <details className="advanced">
-          <summary>{t("item.position_size")}</summary>
+        <Disclosure title={t("item.position_size")}>
           {position}
-        </details>
+        </Disclosure>
       )}
 
       {item.kind === "clock" && (
-        <label className="check">
-          <input type="checkbox" checked={item.seconds === true} onChange={(e) => patch({ seconds: e.target.checked || undefined })} /> {t("item.seconds")}
+        <label className="switch-row">
+          <Switch checked={item.seconds === true} label={t("item.seconds")} onChange={(checked) => patch({ seconds: checked || undefined })} />
+          <span>{t("item.seconds")}</span>
         </label>
       )}
       {item.kind === "statuses" && (
@@ -151,11 +150,16 @@ export default function ItemForm({ item, display, page, pages, grid, actions, on
       )}
       {item.kind === "ai" && (
         <Field label={t("item.ai_show")}>
-          <select value={item.show ?? "both"} onChange={(e) => patch({ show: e.target.value === "both" ? undefined : e.target.value })}>
-            <option value="both">{t("item.ai_both")}</option>
-            <option value="claude">{t("ai.claude")}</option>
-            <option value="codex">{t("ai.codex")}</option>
-          </select>
+          <Select
+            aria-label={t("item.ai_show")}
+            value={item.show ?? "both"}
+            options={[
+              { value: "both", label: t("item.ai_both") },
+              { value: "claude", label: t("ai.claude") },
+              { value: "codex", label: t("ai.codex") },
+            ]}
+            onChange={(val) => patch({ show: val === "both" ? undefined : val })}
+          />
         </Field>
       )}
       {item.kind === "list" && <ListPicker value={item.listId} onChange={(listId) => patch({ listId })} />}
@@ -226,75 +230,82 @@ function ButtonFields({ display, item, pages, inPopup, actions, patch, onChangeA
           <Button onClick={() => patch({ color: undefined })}>{t("menu_item.default")}</Button>
         </div>
       </Field>
-      <label className="check">
-        <input type="checkbox" checked={item.confirm === true} onChange={(e) => patch({ confirm: e.target.checked || undefined })} /> {t("menu_item.ask")}
+      <label className="switch-row">
+        <Switch checked={item.confirm === true} label={t("menu_item.ask")} onChange={(checked) => patch({ confirm: checked || undefined })} />
+        <span>{t("menu_item.ask")}</span>
       </label>
       </div>
       </div>
 
-      <details className="advanced">
-        <summary>{t("common.more_options")}</summary>
+      <Disclosure title={t("common.more_options")}>
         {position}
       <Field label={t("item.on_tap")} hint={inPopup ? t("item.on_tap_popup_hint") : undefined}>
-        <select
+        <Select
+          aria-label={t("item.on_tap")}
           value={mode}
-          onChange={(e) =>
-            patch(tapModePatch(item, e.target.value as TapMode, { firstActionId: Object.keys(actions.actions)[0], firstPageId: normal[0]?.id, firstPopupId: popups[0]?.id }))
+          options={[
+            { value: "action", label: tapModeLabels().action },
+            ...(!inPopup
+              ? [
+                  { value: "page", label: tapModeLabels().page },
+                  {
+                    value: "popup",
+                    disabled: popups.length === 0,
+                    label: `${tapModeLabels().popup}${popups.length === 0 ? ` ${t("item.add_group_first")}` : ""}`,
+                  },
+                  {
+                    value: "action-popup",
+                    disabled: popups.length === 0,
+                    label: `${tapModeLabels()["action-popup"]}${popups.length === 0 ? ` ${t("item.add_group_first")}` : ""}`,
+                  },
+                ]
+              : []),
+          ]}
+          onChange={(val) =>
+            patch(tapModePatch(item, val as TapMode, { firstActionId: Object.keys(actions.actions)[0], firstPageId: normal[0]?.id, firstPopupId: popups[0]?.id }))
           }
-        >
-          <option value="action">{tapModeLabels().action}</option>
-          {!inPopup && <option value="page">{tapModeLabels().page}</option>}
-          {!inPopup && (
-            <option value="popup" disabled={popups.length === 0}>
-              {tapModeLabels().popup}
-              {popups.length === 0 ? ` ${t("item.add_group_first")}` : ""}
-            </option>
-          )}
-          {!inPopup && (
-            <option value="action-popup" disabled={popups.length === 0}>
-              {tapModeLabels()["action-popup"]}
-              {popups.length === 0 ? ` ${t("item.add_group_first")}` : ""}
-            </option>
-          )}
-        </select>
+        />
       </Field>
       {(mode === "action" || mode === "action-popup") && (
         <>
           <Field label={t("actions.action")} hint={t("item.new_action_hint")}>
             <div className="row">
-              <select value={item.actionId ?? ""} onChange={(e) => selectAction(e.target.value)}>
-                {item.actionId !== undefined && !actions.actions[item.actionId] && <option value={item.actionId}>{t("item.deleted_action")}</option>}
-                {actionEntries.map(([id, a]) => (
-                  <option key={id} value={id}>{`${a.name} (${id})`}</option>
-                ))}
-              </select>
-              <button type="button" onClick={() => void navigate("actions:new")}>
+              <Select
+                aria-label={t("actions.action")}
+                value={item.actionId ?? ""}
+                options={[
+                  ...(item.actionId !== undefined && !actions.actions[item.actionId]
+                    ? [{ value: item.actionId, label: t("item.deleted_action") }]
+                    : []),
+                  ...actionEntries.map(([id, a]) => ({ value: id, label: `${a.name} (${id})` })),
+                ]}
+                onChange={(val) => selectAction(val)}
+              />
+              <Button onClick={() => void navigate("actions:new")}>
                 {t("item.new_action")}
-              </button>
+              </Button>
             </div>
           </Field>
         </>
       )}
       {mode === "page" && (
         <Field label={t("item.page")}>
-          <select value={item.navigate ?? ""} onChange={(e) => patch({ navigate: e.target.value })}>
-            {normal.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
+          <Select
+            aria-label={t("item.page")}
+            value={item.navigate ?? ""}
+            options={normal.map((p) => ({ value: p.id, label: p.name }))}
+            onChange={(val) => patch({ navigate: val })}
+          />
         </Field>
       )}
       {(mode === "popup" || mode === "action-popup") && (
         <Field label={t("layout.group_title")}>
-          <select value={item.popup ?? ""} onChange={(e) => patch({ popup: e.target.value })}>
-            {popups.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
+          <Select
+            aria-label={t("layout.group_title")}
+            value={item.popup ?? ""}
+            options={popups.map((p) => ({ value: p.id, label: p.name }))}
+            onChange={(val) => patch({ popup: val })}
+          />
         </Field>
       )}
 
@@ -326,7 +337,7 @@ function ButtonFields({ display, item, pages, inPopup, actions, patch, onChangeA
           {t("item.add_state")}
         </Button>
       </div>
-      </details>
+      </Disclosure>
     </>
   );
 }

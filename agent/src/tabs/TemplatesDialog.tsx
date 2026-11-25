@@ -3,6 +3,7 @@ import { t, tn, type PageTemplate, type ValidationIssue } from "@decka/shared";
 import { call } from "../ipc";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
+import Modal from "../ui/Modal";
 
 interface Props {
   onClose: () => void;
@@ -36,37 +37,35 @@ export default function TemplatesDialog({ onClose, onAdded }: Props) {
   }
 
   return (
-    <div className="dialog-backdrop">
-      <div className="dialog" role="dialog" aria-label={t("templates.title")}>
-        <h2>{t("templates.title")}</h2>
-        <p className="muted">{t("templates.hint")}</p>
-        {error && <Banner kind="error">{error}</Banner>}
-        {issues.length > 0 && (
-          <Banner kind="error">
-            <ul>
-              {issues.map((i, n) => (
-                <li key={n}>{i.message}</li>
-              ))}
-            </ul>
-          </Banner>
-        )}
-        {!templates && !error && <p>{t("common.loading")}</p>}
-        <div className="template-list">
-          {templates?.map((tpl) => (
-            <div key={tpl.id} className="card template-card">
-              <h3>{tpl.name}</h3>
-              <p className="muted">{tpl.apps.join(", ")}</p>
-              <p className="muted">{tn("grid.buttons_count", tpl.items.filter((i) => i.kind === "button").length)}</p>
-              <Button variant="primary" disabled={busy} onClick={() => void add(tpl.id)}>
-                {t("picker.add")}
-              </Button>
-            </div>
-          ))}
-        </div>
-        <div className="row">
-          <Button onClick={onClose}>{t("common.close")}</Button>
-        </div>
+    <Modal
+      title={t("templates.title")}
+      subtitle={t("templates.hint")}
+      onClose={onClose}
+      footer={<Button onClick={onClose}>{t("common.close")}</Button>}
+    >
+      {error && <Banner kind="error">{error}</Banner>}
+      {issues.length > 0 && (
+        <Banner kind="error">
+          <ul>
+            {issues.map((i, n) => (
+              <li key={n}>{i.message}</li>
+            ))}
+          </ul>
+        </Banner>
+      )}
+      {!templates && !error && <p>{t("common.loading")}</p>}
+      <div className="template-list">
+        {templates?.map((tpl) => (
+          <div key={tpl.id} className="card template-card">
+            <h3>{tpl.name}</h3>
+            <p className="muted">{tpl.apps.join(", ")}</p>
+            <p className="muted">{tn("grid.buttons_count", tpl.items.filter((i) => i.kind === "button").length)}</p>
+            <Button variant="primary" disabled={busy} onClick={() => void add(tpl.id)}>
+              {t("picker.add")}
+            </Button>
+          </div>
+        ))}
       </div>
-    </div>
+    </Modal>
   );
 }

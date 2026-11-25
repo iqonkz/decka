@@ -5,6 +5,8 @@ import { call, navigate } from "../ipc";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
 import Field from "../ui/Field";
+import Modal from "../ui/Modal";
+import Switch from "../ui/Switch";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import type { DragPayload } from "./dragMachine";
 import { canRedo, canUndo, itemAt, moveItem, nearestFreeCell, newHistory, pushHistory, redo, undo, type History } from "./editorOps";
@@ -55,6 +57,9 @@ export default function LayoutTab() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [templatesOpen, setTemplatesOpen] = useState(false);
+  const [createModal, setCreateModal] = useState<"page" | "group" | null>(null);
+  const [createName, setCreateName] = useState("");
+  const [createStayOpen, setCreateStayOpen] = useState(false);
   const [resizing, setResizing] = useState<{ cols: number; rows: number; count: number } | null>(null);
   // Autosave (DESIGN.md 4.6): `saved` / `savedActions` are what is on the PC; 600 ms after the last edit the difference is written.
   const [savedActions, setSavedActions] = useState("");
@@ -231,17 +236,34 @@ export default function LayoutTab() {
     setCreating(null);
   }
 
-  function addPage() {
+  function addPage(customName?: string) {
     const n = layout!.pages.length + 1;
-    edit({ ...layout!, pages: [...layout!.pages, { id: newPageId(), name: t("page.n", { n }), items: [] }] });
+    const name = customName?.trim() || t("page.n", { n });
+    edit({ ...layout!, pages: [...layout!.pages, { id: newPageId(), name, items: [] }] });
     setPageIdx(layout!.pages.length);
     setSelectedId(null);
   }
 
-  function addPopupPage() {
-    edit({ ...layout!, pages: [...layout!.pages, newPopupPage(layout!.pages)] });
+  function addPopupPage(customName?: string, stayOpen = false) {
+    const base = newPopupPage(layout!.pages);
+    const name = customName?.trim() || base.name;
+    edit({ ...layout!, pages: [...layout!.pages, stayOpen ? { ...base, name, stayOpen: true } : { ...base, name }] });
     setPageIdx(layout!.pages.length);
     setSelectedId(null);
+  }
+
+  function openCreateModal(kind: "page" | "group") {
+    const n = layout!.pages.length + 1;
+    setCreateName(kind === "group" ? newPopupPage(layout!.pages).name : t("page.n", { n }));
+    setCreateStayOpen(false);
+    setCreateModal(kind);
+  }
+
+  function submitCreateModal() {
+    if (!createModal) return;
+    if (createModal === "page") addPage(createName);
+    else addPopupPage(createName, createStayOpen);
+    setCreateModal(null);
   }
 
   function deletePage() {
@@ -702,7 +724,7 @@ export default function LayoutTab() {
   };
 
   return (
-    <div className="stack">
+    <div className="deck-page-container stack">
       <h2>{t("tab.deck")}</h2>
 
       <div className="row wrap deck-bar">
@@ -751,8 +773,8 @@ export default function LayoutTab() {
                 x: box.left,
                 y: box.bottom + 4,
                 items: [
-                  { label: t("layout.new_page"), icon: "file-plus", onClick: addPage },
-                  { label: t("layout.new_group"), icon: "squares-four", onClick: addPopupPage },
+                  { label: t("layout.new_page"), icon: "file-plus", onClick: () => openCreateModal("page") },
+                  { label: t("layout.new_group"), icon: "squares-four", onClick: () => openCreateModal("group") },
                   { label: t("layout.from_template"), icon: "layout", onClick: () => setTemplatesOpen(true) },
                 ],
               });
@@ -768,16 +790,16 @@ export default function LayoutTab() {
         <section className="card">
           <h3>{t("layout.group_title")}</h3>
           <p className="muted">{t("layout.group_text")}</p>
-          <label className="check">
-            <input
-              type="checkbox"
+          <label className="switch-row">
+            <Switch
               checked={page.stayOpen === true}
-              onChange={(e) => {
+              label={t("layout.group_stay_open")}
+              onChange={(checked) => {
                 const { stayOpen: _old, ...rest } = page;
-                setPage(e.target.checked ? { ...rest, stayOpen: true } : rest);
+                setPage(checked ? { ...rest, stayOpen: true } : rest);
               }}
-            />{" "}
-            {t("layout.group_stay_open")}
+            />
+            <span>{t("layout.group_stay_open")}</span>
           </label>
         </section>
       ) : (
@@ -920,17 +942,52 @@ export default function LayoutTab() {
           {ghostLabel(session.dragging.payload)}
         </div>
       )}
+      {createModal && (
+        <Modal
+          title={createModal === "group" ? t("layout.new_group") : t("layout.new_page")}
+          onClose={() => setCreateModal(null)}
+          footer={
+            <>
+              <Button onClick={() => setCreateModal(null)}>{t("common.cancel")}</Button>
+              <Button variant="primary" disabled={createName.trim() === ""} onClick={submitCreateModal}>
+                {t("picker.add")}
+              </Button>
+            </>
+          }
+        >
+          <Field label={t("layout.page_name")}>
+            <input
+              autoFocus
+              maxLength={30}
+              value={createName}
+              onChange={(e) => setCreateName(e.target.value)}
+              onFocus={(e) => e.currentTarget.select()}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && createName.trim() !== "") submitCreateModal();
+              }}
+            />
+          </Field>
+          {createModal === "group" && (
+            <label className="switch-row">
+              <Switch checked={createStayOpen} label={t("layout.group_stay_open")} onChange={setCreateStayOpen} />
+              <span>{t("layout.group_stay_open")}</span>
+            </label>
+          )}
+        </Modal>
+      )}
       {resizing && (
-        <div className="dialog-backdrop">
-          <div className="dialog" role="dialog" aria-label={t("resize.label")}>
-            <h2>{tn("resize.title", resizing.count)}</h2>
-            <p>{tn("resize.question", resizing.count)}</p>
-            <div className="row">
-              <Button variant="primary" onClick={confirmResize}>{t("resize.move")}</Button>
+        <Modal
+          title={tn("resize.title", resizing.count)}
+          onClose={() => setResizing(null)}
+          footer={
+            <>
               <Button onClick={() => setResizing(null)}>{t("common.cancel")}</Button>
-            </div>
-          </div>
-        </div>
+              <Button variant="primary" onClick={confirmResize}>{t("resize.move")}</Button>
+            </>
+          }
+        >
+          <p style={{ margin: 0 }}>{tn("resize.question", resizing.count)}</p>
+        </Modal>
       )}
       {templatesOpen && (
         <TemplatesDialog

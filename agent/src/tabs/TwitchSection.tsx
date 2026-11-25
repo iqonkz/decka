@@ -3,6 +3,7 @@ import { t, type ConfigFile, type TwitchStatus } from "@decka/shared";
 import { call } from "../ipc";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
+import Switch from "../ui/Switch";
 
 /** `More → Integrations → Twitch`: the client id of your own Twitch application, the sign-in by a code, and the state. */
 export default function TwitchSection({ config, onSaved }: { config: ConfigFile; onSaved: () => Promise<void> }) {
@@ -65,16 +66,16 @@ export default function TwitchSection({ config, onSaved }: { config: ConfigFile;
   return (
     <section className="card" id="twitch">
       <h3>{t("twitchset.title")}</h3>
-      <label className="check">
-        <input
-          type="checkbox"
+      <label className="switch-row">
+        <Switch
           checked={enabled}
-          onChange={(e) => {
-            setEnabled(e.target.checked);
-            void save({ enabled: e.target.checked, clientId });
+          label={t("twitchset.enable")}
+          onChange={(checked) => {
+            setEnabled(checked);
+            void save({ enabled: checked, clientId });
           }}
-        />{" "}
-        {t("twitchset.enable")}
+        />
+        <span>{t("twitchset.enable")}</span>
       </label>
       <label className="field-row">
         <span>{t("twitchset.client_id")}</span>

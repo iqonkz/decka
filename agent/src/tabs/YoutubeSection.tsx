@@ -3,6 +3,7 @@ import { t, type ConfigFile, type YoutubeStatus } from "@decka/shared";
 import { call } from "../ipc";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
+import Switch from "../ui/Switch";
 
 /** `More → Integrations → YouTube`: the client id and secret of your own Google application, the sign-in by a code, and the state. */
 export default function YoutubeSection({ config, onSaved }: { config: ConfigFile; onSaved: () => Promise<void> }) {
@@ -80,16 +81,16 @@ export default function YoutubeSection({ config, onSaved }: { config: ConfigFile
   return (
     <section className="card" id="youtube">
       <h3>{t("youtubeset.title")}</h3>
-      <label className="check">
-        <input
-          type="checkbox"
+      <label className="switch-row">
+        <Switch
           checked={enabled}
-          onChange={(e) => {
-            setEnabled(e.target.checked);
-            void save({ enabled: e.target.checked, clientId });
+          label={t("youtubeset.enable")}
+          onChange={(checked) => {
+            setEnabled(checked);
+            void save({ enabled: checked, clientId });
           }}
-        />{" "}
-        {t("youtubeset.enable")}
+        />
+        <span>{t("youtubeset.enable")}</span>
       </label>
       <label className="field-row">
         <span>{t("youtubeset.client_id")}</span>

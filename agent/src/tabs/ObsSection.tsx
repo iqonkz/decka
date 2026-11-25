@@ -3,6 +3,7 @@ import { t, type ConfigFile, type ObsStatus } from "@decka/shared";
 import { call } from "../ipc";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
+import Switch from "../ui/Switch";
 
 /** `More → Integrations → OBS Studio` (DATA_MODEL.md 6.4): switch, port, password, connection state, how to turn the server on in OBS. */
 export default function ObsSection({ config, onSaved }: { config: ConfigFile; onSaved: () => Promise<void> }) {
@@ -52,16 +53,16 @@ export default function ObsSection({ config, onSaved }: { config: ConfigFile; on
   return (
     <section className="card" id="obs">
       <h3>{t("obsset.title")}</h3>
-      <label className="check">
-        <input
-          type="checkbox"
+      <label className="switch-row">
+        <Switch
           checked={enabled}
-          onChange={(e) => {
-            setEnabled(e.target.checked);
-            void save({ enabled: e.target.checked, port });
+          label={t("obsset.enable")}
+          onChange={(checked) => {
+            setEnabled(checked);
+            void save({ enabled: checked, port });
           }}
-        />{" "}
-        {t("obsset.enable")}
+        />
+        <span>{t("obsset.enable")}</span>
       </label>
       <div className="row">
         <label className="field-row">

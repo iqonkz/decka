@@ -4,6 +4,7 @@ import { icons as lucideIcons } from "lucide-react";
 import { t } from "@decka/shared";
 import { call } from "../ipc";
 import Button from "../ui/Button";
+import Select from "../ui/Select";
 import { ICON_NAMES } from "./iconNames";
 import { brandUrl, loadBrands, searchBrands, type Brand } from "./brands";
 import { searchIcons, svgUrl, visibleRows, WEIGHTS, type Weight } from "./phosphor";
@@ -191,13 +192,12 @@ function PhosphorPicker({ onPick, busy }: { onPick: (svg: string) => void; busy:
     <div className="stack">
       <div className="row">
         <input aria-label={t("icon.search")} placeholder={t("icon.search_n", { n: found.length })} value={query} onChange={(e) => { setQuery(e.target.value); setScrollTop(0); }} />
-        <select aria-label={t("icon.weight")} value={weight} onChange={(e) => setWeight(e.target.value as Weight)}>
-          {WEIGHTS.map((w) => (
-            <option key={w} value={w}>
-              {w}
-            </option>
-          ))}
-        </select>
+        <Select
+          aria-label={t("icon.weight")}
+          value={weight}
+          options={WEIGHTS.map((w) => ({ value: w, label: w }))}
+          onChange={(val) => setWeight(val as Weight)}
+        />
       </div>
       <div ref={box} className="phosphor-scroll" style={{ height: VIEW_H }} onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}>
         <div style={{ position: "relative", height: rows * CELL, width: "100%" }}>{cells}</div>

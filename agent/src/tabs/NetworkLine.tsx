@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { t, type NetworkStatus } from "@decka/shared";
 import { call } from "../ipc";
+import Banner from "../ui/Banner";
+import { Group, Row } from "../ui/SettingsGroup";
+import Switch from "../ui/Switch";
 
 /** `Phone` page (DATA_MODEL.md 11.2): the kind of network the phones use and `Allow phones on public networks`. */
 export default function NetworkLine() {
@@ -25,13 +28,20 @@ export default function NetworkLine() {
 
   if (!status) return null;
   return (
-    <section className="card">
-      <div className="row">
-        <strong className={status.kind === "public" ? "warn-text grow" : "grow"}>{t(`phone.net.${status.kind}`)}</strong>
-      </div>
-      <label className="check block">
-        <input type="checkbox" checked={status.allowPublic} onChange={(e) => void setAllowPublic(e.target.checked)} /> {t("phone.net.allow_public")}
-      </label>
-    </section>
+    <div style={{ marginTop: 16 }}>
+      {status.kind === "public" && (
+        <div style={{ marginBottom: 12 }}>
+          <Banner kind="warning">{t("phone.net.public")}</Banner>
+        </div>
+      )}
+      <Group>
+        {status.kind !== "public" && (
+          <Row title={t(`phone.net.${status.kind}`)} />
+        )}
+        <Row title={t("phone.net.allow_public")}>
+          <Switch checked={status.allowPublic} onChange={(val) => void setAllowPublic(val)} label={t("phone.net.allow_public")} />
+        </Row>
+      </Group>
+    </div>
   );
 }

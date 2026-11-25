@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { t, type Page } from "@decka/shared";
 import { call } from "../ipc";
 import Button from "../ui/Button";
+import Switch from "../ui/Switch";
 import { normalizeApp, withApps } from "./layoutOps";
 
 interface Props {
@@ -75,16 +76,16 @@ export default function PageApps({ page, isFirst, onChange }: Props) {
       <p className="muted">{t("pageapps.hint")}</p>
       <h4>{t("pageapps.time_title")}</h4>
       <div className="row">
-        <label className="check">
-          <input
-            type="checkbox"
+        <label className="switch-row">
+          <Switch
             checked={page.time !== undefined}
-            onChange={(e) => {
+            label={t("pageapps.time_on")}
+            onChange={(checked) => {
               const { time: _old, ...rest } = page;
-              onChange(e.target.checked ? { ...rest, time: { from: "20:00", to: "23:00" } } : rest);
+              onChange(checked ? { ...rest, time: { from: "20:00", to: "23:00" } } : rest);
             }}
-          />{" "}
-          {t("pageapps.time_on")}
+          />
+          <span>{t("pageapps.time_on")}</span>
         </label>
         {page.time && (
           <>
