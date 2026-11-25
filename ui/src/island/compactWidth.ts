@@ -1,9 +1,9 @@
-﻿// T26.F-8: the width of the compact island with a song line: by the longer of the two lines, 360..640 px.
+// T26.F.14: compact island with a song is fixed at 520 px.
 
-export const COMPACT_MIN = 360;
-export const COMPACT_MAX = 640;
-/** Orb (32) + gap (12) + padding (12 + 14) + a little room for rounding. */
-const CHROME = 32 + 12 + 12 + 14 + 6;
+export const COMPACT_MIN = 520;
+export const COMPACT_MAX = 520;
+/** Orb col (48) + gap (14) + padding (12 + 12) + rounding room. */
+const CHROME = 48 + 14 + 12 + 12 + 6;
 
 export type Measure = (text: string, font: string) => number;
 
@@ -23,14 +23,12 @@ export const measureText: Measure = (text, font) => {
   return ctx.measureText(text).width;
 };
 
-/** The panel width for the two lines, clamped to the 360..640 range. */
-export function compactWidth(current: string | undefined, next: string | undefined, measure: Measure = measureText): number {
-  const a = current ? measure(current, '600 14px "Segoe UI Variable", system-ui, sans-serif') : 0;
-  const b = next ? measure(next, '500 12px "Segoe UI Variable", system-ui, sans-serif') : 0;
-  return Math.min(COMPACT_MAX, Math.max(COMPACT_MIN, Math.ceil(Math.max(a, b)) + CHROME));
+/** Constant 520 px panel width for compact song mode (T26.F.14). */
+export function compactWidth(_current?: string, _next?: string, _measure?: Measure): number {
+  return COMPACT_MAX;
 }
 
-/** Whether the current line is longer than the room of a panel of the widest size (then it wraps onto a second line). */
+/** Whether the current line exceeds the text column of the 520 px panel (wraps up to 3 lines). */
 export function currentWraps(current: string | undefined, measure: Measure = measureText): boolean {
   return Boolean(current) && measure(current!, '600 14px "Segoe UI Variable", system-ui, sans-serif') + CHROME > COMPACT_MAX;
 }

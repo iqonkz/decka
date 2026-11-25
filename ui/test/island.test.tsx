@@ -13,12 +13,12 @@ describe("T26.5b ParticlesOrb & Island", () => {
     expect(particleCountForSize(32)).toBe(160);
   });
 
-  it("T26.F-8: compact width follows the longer line within 360..640 and long current lines wrap", () => {
+  it("T26.F-8/14: compact width is fixed at 520 px for song and long current lines wrap", () => {
     const m = (text: string) => text.length * 8;
-    expect(compactWidth("Hi", "yo", m)).toBe(360);
-    expect(compactWidth("x".repeat(40), "y", m)).toBe(40 * 8 + 76);
-    expect(compactWidth("x", "y".repeat(200), m)).toBe(640);
-    expect(currentWraps("x".repeat(80), m)).toBe(true);
+    expect(compactWidth("Hi", "yo", m)).toBe(520);
+    expect(compactWidth("x".repeat(40), "y", m)).toBe(520);
+    expect(compactWidth("x", "y".repeat(200), m)).toBe(520);
+    expect(currentWraps("x".repeat(60), m)).toBe(true);
     expect(currentWraps("x".repeat(40), m)).toBe(false);
   });
 
@@ -200,7 +200,7 @@ describe("T26.5b ParticlesOrb & Island", () => {
     expect(orbHtml).toContain('role="img"');
   });
 
-  it("T26.F.11: drives compact orb with musicLevel (140 pts) and renders 4 hover media controls", () => {
+  it("T26.F.11/14: drives 48px compact orb (160 pts) with musicLevel and renders 3 hover controls over orb", () => {
     setLanguage("en");
     expect(orbStateFromIsland({ mode: "compact", playing: true, musicLevel: 0.7 })).toEqual({
       orbState: "speaking",
@@ -224,12 +224,17 @@ describe("T26.5b ParticlesOrb & Island", () => {
         }}
       />,
     );
-    expect(playingHtml).toContain('data-particles="140"');
+    expect(playingHtml).toContain('data-particles="160"');
+    expect(playingHtml).toContain("width:48px;height:48px");
+    expect(playingHtml).toContain("island-compact-left");
     expect(playingHtml).toContain("island-compact-controls");
+    expect(playingHtml).toContain("is-play");
+    expect(playingHtml).toContain("is-prev");
+    expect(playingHtml).toContain("is-next");
     expect(playingHtml).toContain('aria-label="Previous track"');
     expect(playingHtml).toContain('aria-label="Pause"');
     expect(playingHtml).toContain('aria-label="Next track"');
-    expect(playingHtml).toContain('aria-label="Mute"');
+    expect(playingHtml).not.toContain('aria-label="Mute"');
 
     setLanguage("ru");
     const mutedPausedHtml = renderToString(
@@ -243,9 +248,9 @@ describe("T26.5b ParticlesOrb & Island", () => {
         }}
       />,
     );
-    expect(mutedPausedHtml).toContain('data-particles="140"');
+    expect(mutedPausedHtml).toContain('data-particles="160"');
     expect(mutedPausedHtml).toContain('aria-label="Воспроизвести"');
-    expect(mutedPausedHtml).toContain('aria-label="Включить звук"');
+    expect(mutedPausedHtml).not.toContain('aria-label="Включить звук"');
   });
 
   it("T26.F.12: renders countdown, unknown waiting dots, and track-only fallback without Listening", () => {

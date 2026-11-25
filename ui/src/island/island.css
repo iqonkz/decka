@@ -97,23 +97,65 @@
   opacity: 0.6;
 }
 
-/* T26.F-8: a current line longer than 640 px wraps (no ellipsis); the panel grows in height. */
+/* T26.F.14: two-column song compact (fixed 520px; left col 48px orb with hover controls overlay; right col text). */
+.island-compact-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: none;
+}
+
 .island-compact.wraps {
   height: auto;
   min-height: 72px;
-  padding-top: 10px;
-  padding-bottom: 10px;
 }
 
+.island-compact.is-song {
+  width: var(--cw, 520px);
+  height: auto;
+  min-height: 72px;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 12px;
+}
+
+.island-compact.is-song .island-compact-left {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  overflow: visible;
+}
+
+.island-compact.is-song .island-orb-wrap {
+  transition: opacity 150ms ease, filter 200ms ease;
+}
+
+.island-compact.is-song:hover .island-orb-wrap,
+.island-compact.is-song.is-hovered .island-orb-wrap,
+.island-compact.is-song:focus-within .island-orb-wrap {
+  opacity: 0.35;
+}
+
+.island-compact.is-song .island-compact-text {
+  padding-top: 0;
+  min-height: 0;
+  text-align: start;
+}
+
+.island-compact.is-song .island-song-title-text,
+.island-compact.is-song .island-lyric-current,
 .island-compact.wraps .island-song-title-text,
 .island-compact.wraps .island-lyric-current {
   white-space: normal;
-  overflow: visible;
+  overflow: hidden;
   text-overflow: clip;
   overflow-wrap: anywhere;
+  max-height: calc(1.3em * 3);
 }
 
 .island-compact.is-lyrics:hover,
+.island-compact.is-lyrics:focus-within,
 .island-compact.is-lyrics.is-hovered {
   opacity: 1;
 }
@@ -200,74 +242,77 @@
   }
 }
 
-/* T26.F.11: the panel grows by the width of the buttons on hover; the text is not narrowed. */
-.island-compact.is-song {
-  width: var(--cw, 360px);
-}
-
-.island-compact.is-song:hover,
-.island-compact.is-song.is-hovered,
-.island-compact.is-song:focus-within {
-  width: calc(var(--cw, 360px) + 140px);
-}
-
+/* T26.F.14: 3 media controls overlaid on 48px orb (0 -> 1 in 150 ms on hover / :focus-within, zero layout change). */
 .island-compact-controls {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  flex: none;
-  max-width: 0;
+  position: absolute;
+  inset: 0;
   opacity: 0;
-  overflow: hidden;
   pointer-events: none;
-  margin-inline-start: -12px;
-  transition: max-width 150ms ease, opacity 150ms ease, margin-inline-start 150ms ease;
+  transition: opacity 150ms ease;
 }
 
 .island-compact.is-song:hover .island-compact-controls,
 .island-compact.is-song.is-hovered .island-compact-controls,
-.island-compact.is-song:focus-within /* T26.F.11: the panel grows by the width of the buttons on hover; the text is not narrowed. */
-.island-compact.is-song {
-  width: var(--cw, 360px);
-}
-
-.island-compact.is-song:hover,
-.island-compact.is-song.is-hovered,
-.island-compact.is-song:focus-within {
-  width: calc(var(--cw, 360px) + 140px);
-}
-
-.island-compact-controls {
-  max-width: 126px;
-  margin-inline-start: 0;
-  padding: 2px;
-  margin-top: -2px;
-  margin-bottom: -2px;
-  margin-inline-end: -2px;
+.island-compact.is-song:focus-within .island-compact-controls {
   opacity: 1;
   pointer-events: auto;
 }
 
 .island-media-btn {
-  width: 28px;
-  height: 28px;
+  position: absolute;
   padding: 0;
   border: 0;
-  border-radius: 8px;
+  border-radius: 50%;
   background: transparent;
-  color: var(--island-muted);
+  color: var(--island-text);
   font: inherit;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex: none;
   cursor: pointer;
   transition: background-color 120ms ease, color 120ms ease;
 }
 
-.island-media-btn:hover {
-  background: var(--island-btn-hover);
-  color: var(--island-text);
+.island-media-btn.is-play {
+  width: 28px;
+  height: 28px;
+  left: 10px;
+  top: 10px;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.island-media-btn.is-play:hover {
+  background: rgba(0, 0, 0, 0.65);
+}
+
+.island-host[data-island-theme="light"] .island-media-btn.is-play {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.island-host[data-island-theme="light"] .island-media-btn.is-play:hover {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.island-media-btn.is-skip {
+  width: 20px;
+  height: 20px;
+  top: 14px;
+}
+
+.island-media-btn.is-prev {
+  left: -10px;
+}
+
+.island-media-btn.is-next {
+  left: 38px;
+}
+
+.island-media-btn.is-skip svg {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.55));
+}
+
+.island-host[data-island-theme="light"] .island-media-btn.is-skip svg {
+  filter: drop-shadow(0 1px 2px rgba(255, 255, 255, 0.85));
 }
 
 .island-media-btn:focus-visible {
