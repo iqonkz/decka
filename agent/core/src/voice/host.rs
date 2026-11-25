@@ -224,10 +224,18 @@ async fn screen_ask(service: &VoiceService, sup: &crate::ai::supervisor::Supervi
 
 /// `text_transform` (13.2): the selection of the focused program is taken, rewritten by the model and pasted back (or shown).
 #[cfg(windows)]
-async fn transform_selection(sup: &crate::ai::supervisor::Supervisor, lang: &str, op: super::textops::Op, target: Option<&str>) -> Result<String, String> {
+async fn transform_selection(sup: &crate::ai::supervisor::Supervisor, lang: &str, op: super::textops::Op, target: Option<&str>, said: Option<&str>) -> Result<String, String> {
     use super::clipboard::{SystemClipboard, SystemKeys};
     use super::textops;
-    let grabbed = tokio::task::spawn_blocking(|| textops::take_selection(&SystemClipboard, &SystemKeys, &std::thread::sleep))
+    // A text that was said (T26.2): no capture, the answer is only shown.
+    if let Some(said) = said {
+        let grabbed = textops::spoken_text(said).ok_or_else(|| textops::SELECT_FIRST.to_string())?;
+        let body = textops::request_body(op, target, lang, &grabbed.text);
+        let answer = super::assist::chat_text(sup, &body, textops::TRANSFORM_TIMEOUT).await;
+        return textops::finish_shown(answer.as_deref());
+    }
+    // UI Automation first: the clipboard stays untouched when the program gives its selection that way.
+    let grabbed = tokio::task::spawn_blocking(|| textops::take_selection_uia_first(&super::uia::selected_text, &SystemClipboard, &SystemKeys, &std::thread::sleep))
         .await
         .map_err(|e| format!("The action did not finish: {e}"))??;
     let body = textops::request_body(op, target, lang, &grabbed.text);
@@ -238,7 +246,7 @@ async fn transform_selection(sup: &crate::ai::supervisor::Supervisor, lang: &str
 }
 
 #[cfg(not(windows))]
-async fn transform_selection(_: &crate::ai::supervisor::Supervisor, _: &str, _: super::textops::Op, _: Option<&str>) -> Result<String, String> {
+async fn transform_selection(_: &crate::ai::supervisor::Supervisor, _: &str, _: super::textops::Op, _: Option<&str>, _: Option<&str>) -> Result<String, String> {
     Err("unsupported platform".into())
 }
 
@@ -817,8 +825,8 @@ impl Ports for Inner {
                 ToolCall::ScreenAsk { question } => {
                     return screen_ask(&service, &sup, lang, question).await;
                 }
-                ToolCall::TextTransform { op, lang: target } => {
-                    return transform_selection(&sup, lang, *op, target.as_deref()).await;
+                ToolCall::TextTransform { op, lang: target, text } => {
+                    return transform_selection(&sup, lang, *op, target.as_deref(), text.as_deref()).await;
                 }
                 ToolCall::PasteText { text } => {
                     *dictate.lock().unwrap() = None;

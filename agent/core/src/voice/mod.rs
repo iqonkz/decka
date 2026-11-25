@@ -24,6 +24,7 @@ pub mod textops;
 pub mod status;
 pub mod timephrase;
 pub mod tools;
+pub mod uia;
 pub mod winkeys;
 pub mod winops;
 

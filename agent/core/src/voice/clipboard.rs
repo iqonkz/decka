@@ -187,11 +187,17 @@ pub mod fakes {
         pub seq: Mutex<u32>,
         pub selected: Option<String>,
         pub pasted: Mutex<Vec<String>>,
+        copied: Mutex<u32>,
     }
 
     impl Fake {
         pub fn new(clipboard: Option<&str>, selected: Option<&str>) -> Fake {
-            Fake { text: Mutex::new(clipboard.map(String::from)), seq: Mutex::new(1), selected: selected.map(String::from), pasted: Mutex::new(vec![]) }
+            Fake { text: Mutex::new(clipboard.map(String::from)), seq: Mutex::new(1), selected: selected.map(String::from), pasted: Mutex::new(vec![]), copied: Mutex::new(0) }
+        }
+
+        /// How many times `Ctrl+C` was sent.
+        pub fn copies(&self) -> u32 {
+            *self.copied.lock().unwrap()
         }
     }
 
@@ -211,6 +217,7 @@ pub mod fakes {
 
     impl Keys for Fake {
         fn copy(&self) -> Result<(), String> {
+            *self.copied.lock().unwrap() += 1;
             if let Some(s) = &self.selected {
                 self.set(s)?;
             }

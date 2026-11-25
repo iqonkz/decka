@@ -103,7 +103,8 @@ pub enum ToolCall {
     Timer { minutes: u32, label: Option<String> },
     System(SystemOp),
     /// Work on the selected text (DATA_MODEL.md 13.2); `lang` is the target of `translate`.
-    TextTransform { op: super::textops::Op, lang: Option<String> },
+    /// `text` (T26.2): said by the user instead of selected; then nothing is captured and the result is only shown.
+    TextTransform { op: super::textops::Op, lang: Option<String>, text: Option<String> },
     /// A question about the active window (DATA_MODEL.md 13.3).
     ScreenAsk { question: String },
     /// Arithmetic worked out on the PC by `calc.rs` (DATA_MODEL.md 12.5): never by the model.
@@ -403,8 +404,12 @@ fn run(tool: &str, args: &serde_json::Map<String, Value>, ctx: &Context) -> Resu
             ready(ToolCall::Timer { minutes, label }, false, format!("Timer for {minutes} min"))
         }
         "text_transform" => {
-            only(args, &["op", "lang"])?;
+            only(args, &["op", "lang", "text"])?;
             let op = super::textops::Op::parse(args.get("op").and_then(Value::as_str).unwrap_or_default()).ok_or_else(|| reject("unknown text operation"))?;
+            let said = match args.get("text") {
+                None | Some(Value::Null) => None,
+                Some(_) => Some(text(args, "text", super::textops::MAX_SPOKEN_TEXT)?.to_string()),
+            };
             let lang = match args.get("lang") {
                 None | Some(Value::Null) => None,
                 Some(v) => Some(v.as_str().filter(|l| super::textops::LANGS.contains(l)).ok_or_else(|| reject("unknown language"))?.to_string()),
@@ -415,7 +420,7 @@ fn run(tool: &str, args: &serde_json::Map<String, Value>, ctx: &Context) -> Resu
             if op != super::textops::Op::Translate && lang.is_some() {
                 return Err(reject("only translate takes a language"));
             }
-            ready(ToolCall::TextTransform { op, lang }, false, format!("Text: {}", op.name()))
+            ready(ToolCall::TextTransform { op, lang, text: said }, false, format!("Text: {}", op.name()))
         }
         "remind" => {
             use crate::assistant::{Day, Local, When};
@@ -839,7 +844,15 @@ mod tests {
             let r = ready_of(call("text_transform", json!({ "op": op })));
             assert!(matches!(r.call, ToolCall::TextTransform { lang: None, .. }) && !r.confirm, "{op}");
         }
-        assert_eq!(ready_of(call("text_transform", json!({ "op": "translate", "lang": "de" }))).call, ToolCall::TextTransform { op: Op::Translate, lang: Some("de".into()) });
+        assert_eq!(ready_of(call("text_transform", json!({ "op": "translate", "lang": "de" }))).call, ToolCall::TextTransform { op: Op::Translate, lang: Some("de".into()), text: None });
+        // T26.2: said text (<= 500 characters), and the reply operation.
+        assert_eq!(
+            ready_of(call("text_transform", json!({ "op": "translate", "lang": "zh", "text": "спасибо за помощь" }))).call,
+            ToolCall::TextTransform { op: Op::Translate, lang: Some("zh".into()), text: Some("спасибо за помощь".into()) }
+        );
+        assert!(matches!(ready_of(call("text_transform", json!({ "op": "reply" }))).call, ToolCall::TextTransform { op: Op::Reply, .. }));
+        assert!(is_reject(call("text_transform", json!({ "op": "translate", "lang": "zh", "text": "a".repeat(501) }))));
+        assert!(is_reject(call("text_transform", json!({ "op": "reply", "lang": "de" }))));
         assert!(is_reject(call("text_transform", json!({ "op": "translate" }))), "translate needs a language");
         assert!(is_reject(call("text_transform", json!({ "op": "fix", "lang": "de" }))));
         assert!(is_reject(call("text_transform", json!({ "op": "translate", "lang": "xx" }))));
