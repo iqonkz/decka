@@ -4,6 +4,8 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+## 0.40.0 — 2026-11-25
+
 ### Added
 - **The island**: one small window at the top of the screen replaces the voice pill and the lyrics strip. It shows what the assistant hears, thinks and answers, with a living sphere that reacts to your voice, and the song lyrics: a thin tab when nothing is going on, the current and next line when a new song starts or when you point at it. It lets clicks through everywhere except on itself and hides over full-screen programs (except the voice).
 - **The assistant knows your panel**: ask `what's the weather`, `how loaded is the processor`, `how much memory/disk is free`, `what is playing`, `when is my next reminder`, `ai limits`, `phone battery`, `which program is active` - the answer comes from the widgets on this PC (never from the internet), with numbers. No data or the widget is off: it says where to turn it on.
@@ -17,6 +19,7 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 ### Changed
 - The settings window uses the shared radio and time controls everywhere (arrow keys work in radio groups).
 - `tools/voice-eval.mjs` now sends the real prompt of the agent (`voice-prompt-dump`), so the accuracy numbers match what the assistant does.
+
 ## 0.30.0 — 2026-11-24
 
 Version 0.22.0 was built but never published; its changes are part of this release.
