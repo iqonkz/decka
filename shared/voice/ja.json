@@ -187,7 +187,9 @@
       "patterns": [
         "丁寧にして",
         "もっと丁寧に書いて",
-        "丁寧に書き直して"
+        "丁寧に書き直して",
+        "もっと丁寧に",
+        "さらに丁寧に"
       ]
     },
     {
@@ -199,7 +201,9 @@
         "短くして",
         "要約して短く",
         "簡潔にして",
-        "短縮して"
+        "短縮して",
+        "もっと短く",
+        "短めに"
       ]
     },
     {
@@ -266,7 +270,11 @@
       "patterns": [
         "{lang}に翻訳して",
         "{lang}に訳して",
-        "{lang}へ翻訳"
+        "{lang}へ翻訳",
+        "{text}は{lang}で何と言う",
+        "{text}を{lang}に翻訳して",
+        "{lang}ではどうなる",
+        "次は{lang}で"
       ]
     },
     {
@@ -351,6 +359,193 @@
         "計算して {expr}",
         "計算 {expr}",
         "{expr}"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "reply"
+      },
+      "patterns": [
+        "返信を書いて",
+        "返事の下書きを作って",
+        "これに返信して"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "weather"
+      },
+      "patterns": [
+        "天気はどう",
+        "今の天気は",
+        "天気予報"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "cpu"
+      },
+      "patterns": [
+        "cpu使用率",
+        "プロセッサ負荷",
+        "cpuはどれくらい"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "ram"
+      },
+      "patterns": [
+        "メモリ使用量",
+        "空きメモリはどのくらい",
+        "ramの空き"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "disk"
+      },
+      "patterns": [
+        "ディスクの空き容量",
+        "ストレージの残り",
+        "ハードディスク空き"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "network"
+      },
+      "patterns": [
+        "ネットの速度",
+        "ネットワーク状況",
+        "回線速度"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "phone_battery"
+      },
+      "patterns": [
+        "スマホのバッテリー",
+        "携帯の電池残量",
+        "電話のバッテリー"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "media"
+      },
+      "patterns": [
+        "今流れている曲",
+        "再生中の曲は",
+        "何を再生してる"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "ai_limits"
+      },
+      "patterns": [
+        "aiの利用上限",
+        "aiリミット",
+        "claudeの上限"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "focus"
+      },
+      "patterns": [
+        "集中モードの状態",
+        "フォーカスタイマーの残り",
+        "集中タイマー"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "next_reminder"
+      },
+      "patterns": [
+        "次のリマインダーはいつ",
+        "次のリマインダー",
+        "次の予定リマインダー"
+      ]
+    },
+    {
+      "tool": "lyrics_window",
+      "args": {
+        "show": false
+      },
+      "patterns": [
+        "歌詞を隠して",
+        "歌詞を非表示",
+        "歌詞を消して"
+      ]
+    },
+    {
+      "tool": "lyrics_window",
+      "args": {
+        "show": true
+      },
+      "patterns": [
+        "歌詞を表示して",
+        "歌詞を出して",
+        "歌詞を見せて"
+      ]
+    },
+    {
+      "tool": "reply_action",
+      "args": {
+        "kind": "copy"
+      },
+      "patterns": [
+        "回答をコピー",
+        "これをコピー",
+        "コピーして"
+      ]
+    },
+    {
+      "tool": "reply_action",
+      "args": {
+        "kind": "insert"
+      },
+      "patterns": [
+        "回答を挿入",
+        "これを貼り付け",
+        "挿入して"
+      ]
+    },
+    {
+      "tool": "reply_action",
+      "args": {
+        "kind": "speak"
+      },
+      "patterns": [
+        "回答を読み上げて",
+        "音声で教えて",
+        "回答を話して"
+      ]
+    },
+    {
+      "tool": "reply_action",
+      "args": {
+        "kind": "again"
+      },
+      "patterns": [
+        "別の案",
+        "もう一度",
+        "他の言い方"
       ]
     }
   ]

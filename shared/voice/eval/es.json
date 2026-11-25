@@ -435,5 +435,85 @@
       "text": "regar las plantas",
       "at": "11:00"
     }
+  },
+  {
+    "say": "qué tiempo hace",
+    "tool": "status",
+    "args": {
+      "topic": "weather"
+    }
+  },
+  {
+    "say": "uso de ram",
+    "tool": "status",
+    "args": {
+      "topic": "ram"
+    }
+  },
+  {
+    "say": "oculta la letra",
+    "tool": "lyrics_window",
+    "args": {
+      "show": false
+    }
+  },
+  {
+    "say": "muestra la letra",
+    "tool": "lyrics_window",
+    "args": {
+      "show": true
+    }
+  },
+  {
+    "say": "cómo se dice buenos días en inglés",
+    "tool": "text_transform",
+    "args": {
+      "op": "translate",
+      "text": "buenos días",
+      "lang": "en"
+    }
+  },
+  {
+    "say": "escribe una respuesta",
+    "tool": "text_transform",
+    "args": {
+      "op": "reply"
+    }
+  },
+  {
+    "say": "y en francés",
+    "tool": "text_transform",
+    "args": {
+      "op": "translate",
+      "lang": "fr"
+    }
+  },
+  {
+    "say": "otra opción",
+    "tool": "reply_action",
+    "args": {
+      "kind": "again"
+    }
+  },
+  {
+    "say": "copiar respuesta",
+    "tool": "reply_action",
+    "args": {
+      "kind": "copy"
+    }
+  },
+  {
+    "say": "insértalo",
+    "tool": "reply_action",
+    "args": {
+      "kind": "insert"
+    }
+  },
+  {
+    "say": "di la respuesta",
+    "tool": "reply_action",
+    "args": {
+      "kind": "speak"
+    }
   }
 ]

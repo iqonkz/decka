@@ -187,7 +187,9 @@
         "mache es höflicher",
         "höflicher formulieren",
         "schreibe höflicher",
-        "mehr höflich"
+        "mehr höflich",
+        "noch höflicher",
+        "höflicher"
       ]
     },
     {
@@ -199,7 +201,9 @@
         "mache es kürzer",
         "kürzer fassen",
         "kürze den text",
-        "kürzer formulieren"
+        "kürzer formulieren",
+        "noch kürzer",
+        "kürzer"
       ]
     },
     {
@@ -270,7 +274,12 @@
       "patterns": [
         "übersetze auf {lang}",
         "übersetze in {lang}",
-        "übersetzen nach {lang}"
+        "übersetzen nach {lang}",
+        "wie sagt man {text} auf {lang}",
+        "übersetze {text} auf {lang}",
+        "übersetze {text} ins {lang}",
+        "und auf {lang}",
+        "jetzt auf {lang}"
       ]
     },
     {
@@ -358,6 +367,193 @@
         "wie viel ist {expr}",
         "was ist {expr}",
         "{expr}"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "reply"
+      },
+      "patterns": [
+        "antwort schreiben",
+        "entwirf eine antwort",
+        "antworte darauf"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "weather"
+      },
+      "patterns": [
+        "wie ist das wetter",
+        "wie wird das wetter",
+        "wie ist das wetter heute"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "cpu"
+      },
+      "patterns": [
+        "cpu auslastung",
+        "prozessorlast",
+        "wie stark ist die cpu ausgelastet"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "ram"
+      },
+      "patterns": [
+        "wie viel arbeitsspeicher ist frei",
+        "ram verbrauch",
+        "speicherauslastung"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "disk"
+      },
+      "patterns": [
+        "wie viel speicherplatz ist frei",
+        "festplattenspeicher",
+        "freier speicher"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "network"
+      },
+      "patterns": [
+        "netzwerkgeschwindigkeit",
+        "internetstatus",
+        "wie schnell ist das netz"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "phone_battery"
+      },
+      "patterns": [
+        "handy akku",
+        "wie voll ist das handy",
+        "akkustand telefon"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "media"
+      },
+      "patterns": [
+        "was läuft gerade",
+        "welcher song spielt",
+        "aktueller titel"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "ai_limits"
+      },
+      "patterns": [
+        "ki limits",
+        "wie hoch ist mein ki limit",
+        "claude limit"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "focus"
+      },
+      "patterns": [
+        "fokus status",
+        "wie lange läuft der fokus",
+        "fokus timer"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "next_reminder"
+      },
+      "patterns": [
+        "wann ist meine nächste erinnerung",
+        "nächste erinnerung",
+        "was kommt als nächstes"
+      ]
+    },
+    {
+      "tool": "lyrics_window",
+      "args": {
+        "show": false
+      },
+      "patterns": [
+        "songtext ausblenden",
+        "text verbergen",
+        "liedtext verstecken"
+      ]
+    },
+    {
+      "tool": "lyrics_window",
+      "args": {
+        "show": true
+      },
+      "patterns": [
+        "songtext anzeigen",
+        "liedtext zeigen",
+        "text einblenden"
+      ]
+    },
+    {
+      "tool": "reply_action",
+      "args": {
+        "kind": "copy"
+      },
+      "patterns": [
+        "das kopieren",
+        "antwort kopieren",
+        "kopiere es"
+      ]
+    },
+    {
+      "tool": "reply_action",
+      "args": {
+        "kind": "insert"
+      },
+      "patterns": [
+        "das einfügen",
+        "antwort einfügen",
+        "füge es ein"
+      ]
+    },
+    {
+      "tool": "reply_action",
+      "args": {
+        "kind": "speak"
+      },
+      "patterns": [
+        "antwort vorlesen",
+        "sag die antwort",
+        "sprich es aus"
+      ]
+    },
+    {
+      "tool": "reply_action",
+      "args": {
+        "kind": "again"
+      },
+      "patterns": [
+        "noch eine variante",
+        "nochmal versuchen",
+        "andere option"
       ]
     }
   ]

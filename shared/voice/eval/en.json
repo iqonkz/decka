@@ -435,5 +435,99 @@
       "text": "water the plants",
       "at": "11:00"
     }
+  },
+  {
+    "say": "whats the weather",
+    "tool": "status",
+    "args": {
+      "topic": "weather"
+    }
+  },
+  {
+    "say": "how much ram is used",
+    "tool": "status",
+    "args": {
+      "topic": "ram"
+    }
+  },
+  {
+    "say": "whats playing",
+    "tool": "status",
+    "args": {
+      "topic": "media"
+    }
+  },
+  {
+    "say": "when is my next reminder",
+    "tool": "status",
+    "args": {
+      "topic": "next_reminder"
+    }
+  },
+  {
+    "say": "hide lyrics",
+    "tool": "lyrics_window",
+    "args": {
+      "show": false
+    }
+  },
+  {
+    "say": "show lyrics",
+    "tool": "lyrics_window",
+    "args": {
+      "show": true
+    }
+  },
+  {
+    "say": "how do you say thank you in spanish",
+    "tool": "text_transform",
+    "args": {
+      "op": "translate",
+      "text": "thank you",
+      "lang": "es"
+    }
+  },
+  {
+    "say": "draft a reply",
+    "tool": "text_transform",
+    "args": {
+      "op": "reply"
+    }
+  },
+  {
+    "say": "and in french",
+    "tool": "text_transform",
+    "args": {
+      "op": "translate",
+      "lang": "fr"
+    }
+  },
+  {
+    "say": "another option",
+    "tool": "reply_action",
+    "args": {
+      "kind": "again"
+    }
+  },
+  {
+    "say": "insert it",
+    "tool": "reply_action",
+    "args": {
+      "kind": "insert"
+    }
+  },
+  {
+    "say": "copy answer",
+    "tool": "reply_action",
+    "args": {
+      "kind": "copy"
+    }
+  },
+  {
+    "say": "speak it",
+    "tool": "reply_action",
+    "args": {
+      "kind": "speak"
+    }
   }
 ]

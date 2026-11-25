@@ -435,5 +435,85 @@
       "text": "観葉植物に水をやる",
       "at": "11:00"
     }
+  },
+  {
+    "say": "今の天気は",
+    "tool": "status",
+    "args": {
+      "topic": "weather"
+    }
+  },
+  {
+    "say": "メモリ使用量",
+    "tool": "status",
+    "args": {
+      "topic": "ram"
+    }
+  },
+  {
+    "say": "歌詞を隠して",
+    "tool": "lyrics_window",
+    "args": {
+      "show": false
+    }
+  },
+  {
+    "say": "歌詞を表示して",
+    "tool": "lyrics_window",
+    "args": {
+      "show": true
+    }
+  },
+  {
+    "say": "ありがとうを英語に翻訳して",
+    "tool": "text_transform",
+    "args": {
+      "op": "translate",
+      "text": "ありがとう",
+      "lang": "en"
+    }
+  },
+  {
+    "say": "返信を書いて",
+    "tool": "text_transform",
+    "args": {
+      "op": "reply"
+    }
+  },
+  {
+    "say": "次はスペイン語で",
+    "tool": "text_transform",
+    "args": {
+      "op": "translate",
+      "lang": "es"
+    }
+  },
+  {
+    "say": "別の案",
+    "tool": "reply_action",
+    "args": {
+      "kind": "again"
+    }
+  },
+  {
+    "say": "回答をコピー",
+    "tool": "reply_action",
+    "args": {
+      "kind": "copy"
+    }
+  },
+  {
+    "say": "回答を挿入",
+    "tool": "reply_action",
+    "args": {
+      "kind": "insert"
+    }
+  },
+  {
+    "say": "回答を読み上げて",
+    "tool": "reply_action",
+    "args": {
+      "kind": "speak"
+    }
   }
 ]

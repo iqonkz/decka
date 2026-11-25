@@ -435,5 +435,85 @@
       "text": "гүлдерді суару",
       "at": "11:00"
     }
+  },
+  {
+    "say": "ауа райы қандай",
+    "tool": "status",
+    "args": {
+      "topic": "weather"
+    }
+  },
+  {
+    "say": "жедел жад қанша бос",
+    "tool": "status",
+    "args": {
+      "topic": "ram"
+    }
+  },
+  {
+    "say": "ән мәтінін жасыр",
+    "tool": "lyrics_window",
+    "args": {
+      "show": false
+    }
+  },
+  {
+    "say": "ән мәтінін көрсет",
+    "tool": "lyrics_window",
+    "args": {
+      "show": true
+    }
+  },
+  {
+    "say": "рахмет сөзін ағылшын тіліне аудар",
+    "tool": "text_transform",
+    "args": {
+      "op": "translate",
+      "text": "рахмет",
+      "lang": "en"
+    }
+  },
+  {
+    "say": "жауап жаз",
+    "tool": "text_transform",
+    "args": {
+      "op": "reply"
+    }
+  },
+  {
+    "say": "ал орыс тілінде",
+    "tool": "text_transform",
+    "args": {
+      "op": "translate",
+      "lang": "ru"
+    }
+  },
+  {
+    "say": "басқа нұсқа",
+    "tool": "reply_action",
+    "args": {
+      "kind": "again"
+    }
+  },
+  {
+    "say": "жауапты көшір",
+    "tool": "reply_action",
+    "args": {
+      "kind": "copy"
+    }
+  },
+  {
+    "say": "кірістір",
+    "tool": "reply_action",
+    "args": {
+      "kind": "insert"
+    }
+  },
+  {
+    "say": "жауапты оқып бер",
+    "tool": "reply_action",
+    "args": {
+      "kind": "speak"
+    }
   }
 ]

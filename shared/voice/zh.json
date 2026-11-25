@@ -191,7 +191,9 @@
         "更礼貌一些",
         "写得更客气",
         "更礼貌地改写",
-        "客气一点"
+        "客气一点",
+        "再客气点",
+        "更委婉些"
       ]
     },
     {
@@ -203,7 +205,9 @@
         "简短一点",
         "缩短内容",
         "精简文字",
-        "更简洁一点"
+        "更简洁一点",
+        "更短一点",
+        "短一点"
       ]
     },
     {
@@ -274,7 +278,11 @@
       "patterns": [
         "翻译成{lang}",
         "翻译为{lang}",
-        "译成{lang}"
+        "译成{lang}",
+        "{text}用{lang}怎么说",
+        "把{text}翻译成{lang}",
+        "换成{lang}",
+        "那{lang}呢"
       ]
     },
     {
@@ -359,6 +367,194 @@
         "计算 {expr}",
         "算一下 {expr}",
         "{expr}"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": {
+        "op": "reply"
+      },
+      "patterns": [
+        "写个回复",
+        "起草回复",
+        "回复这段话"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "weather"
+      },
+      "patterns": [
+        "天气怎么样",
+        "现在天气如何",
+        "今天天气",
+        "查一下天气"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "cpu"
+      },
+      "patterns": [
+        "处理器负载",
+        "cpu使用率",
+        "处理器占用多少"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "ram"
+      },
+      "patterns": [
+        "内存用了多少",
+        "还有多少可用内存",
+        "内存占用"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "disk"
+      },
+      "patterns": [
+        "磁盘还有多少空间",
+        "硬盘剩余空间",
+        "磁盘空间"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "network"
+      },
+      "patterns": [
+        "网速多少",
+        "网络状态",
+        "网络怎么样"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "phone_battery"
+      },
+      "patterns": [
+        "手机电量",
+        "手机还有多少电",
+        "手机电池"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "media"
+      },
+      "patterns": [
+        "正在播放什么",
+        "现在放的什么歌",
+        "当前曲目"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "ai_limits"
+      },
+      "patterns": [
+        "ai额度",
+        "ai限制",
+        "还剩多少ai额度"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "focus"
+      },
+      "patterns": [
+        "专注状态",
+        "专注还剩多久",
+        "专注计时器"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": {
+        "topic": "next_reminder"
+      },
+      "patterns": [
+        "下一个提醒什么时候",
+        "最近的提醒",
+        "下个提醒"
+      ]
+    },
+    {
+      "tool": "lyrics_window",
+      "args": {
+        "show": false
+      },
+      "patterns": [
+        "隐藏歌词",
+        "关闭歌词浮窗",
+        "收起歌词"
+      ]
+    },
+    {
+      "tool": "lyrics_window",
+      "args": {
+        "show": true
+      },
+      "patterns": [
+        "显示歌词",
+        "打开歌词浮窗",
+        "恢复歌词"
+      ]
+    },
+    {
+      "tool": "reply_action",
+      "args": {
+        "kind": "copy"
+      },
+      "patterns": [
+        "复制一下",
+        "复制结果",
+        "复制回答"
+      ]
+    },
+    {
+      "tool": "reply_action",
+      "args": {
+        "kind": "insert"
+      },
+      "patterns": [
+        "插入",
+        "粘贴进去",
+        "插入回答"
+      ]
+    },
+    {
+      "tool": "reply_action",
+      "args": {
+        "kind": "speak"
+      },
+      "patterns": [
+        "读出回答",
+        "念一下回答",
+        "播报回答"
+      ]
+    },
+    {
+      "tool": "reply_action",
+      "args": {
+        "kind": "again"
+      },
+      "patterns": [
+        "换个说法",
+        "再试一次",
+        "再来一个"
       ]
     }
   ]
