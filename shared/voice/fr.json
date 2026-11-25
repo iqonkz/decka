@@ -13,6 +13,24 @@
     "arrêter",
     "pas question"
   ],
+  "place_prepositions": [
+    "à",
+    "au",
+    "pour",
+    "en"
+  ],
+  "place_postpositions": [],
+  "place_suffixes": [],
+  "place_ignore": [
+    "le",
+    "la",
+    "mon",
+    "ce",
+    "maintenant",
+    "aujourdhui",
+    "demain",
+    "dehors"
+  ],
   "intents": [
     {
       "tool": "volume",

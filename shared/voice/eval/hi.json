@@ -517,5 +517,20 @@
     "args": {
       "kind": "speak"
     }
+  },
+  {
+    "say": "मौसम बताओ",
+    "tool": "status",
+    "args": {
+      "topic": "weather"
+    }
+  },
+  {
+    "say": "पेरिस में मौसम कैसा है",
+    "tool": "web_search",
+    "args": {
+      "query": "पेरिस में मौसम",
+      "site": "web"
+    }
   }
 ]

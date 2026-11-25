@@ -517,5 +517,20 @@
     "args": {
       "kind": "speak"
     }
+  },
+  {
+    "say": "cómo está el clima",
+    "tool": "status",
+    "args": {
+      "topic": "weather"
+    }
+  },
+  {
+    "say": "qué tiempo hace en París",
+    "tool": "web_search",
+    "args": {
+      "query": "tiempo en París",
+      "site": "web"
+    }
   }
 ]

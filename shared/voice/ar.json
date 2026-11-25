@@ -13,6 +13,18 @@
     "توقف",
     "كلا"
   ],
+  "place_prepositions": [
+    "في"
+  ],
+  "place_postpositions": [],
+  "place_suffixes": [],
+  "place_ignore": [
+    "اليوم",
+    "الآن",
+    "غدا",
+    "الخارج",
+    "هذا"
+  ],
   "intents": [
     {
       "tool": "volume",

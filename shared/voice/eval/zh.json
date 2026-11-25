@@ -517,5 +517,20 @@
     "args": {
       "kind": "speak"
     }
+  },
+  {
+    "say": "现在天气如何",
+    "tool": "status",
+    "args": {
+      "topic": "weather"
+    }
+  },
+  {
+    "say": "巴黎的天气怎么样",
+    "tool": "web_search",
+    "args": {
+      "query": "巴黎天气",
+      "site": "web"
+    }
   }
 ]

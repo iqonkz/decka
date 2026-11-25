@@ -45,6 +45,13 @@ describe("Voice phrase tables (T21.3b)", () => {
       expect(content.yes.length).toBeGreaterThan(0);
       expect(Array.isArray(content.no)).toBe(true);
       expect(content.no.length).toBeGreaterThan(0);
+      expect(Array.isArray(content.place_prepositions)).toBe(true);
+      expect(Array.isArray(content.place_postpositions)).toBe(true);
+      expect(Array.isArray(content.place_suffixes)).toBe(true);
+      expect(Array.isArray(content.place_ignore)).toBe(true);
+      expect(
+        content.place_prepositions.length + content.place_postpositions.length + content.place_suffixes.length,
+      ).toBeGreaterThan(0);
 
       expect(Array.isArray(content.intents)).toBe(true);
       expect(content.intents.length).toBeGreaterThanOrEqual(10);

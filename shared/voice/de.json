@@ -13,6 +13,22 @@
     "stopp",
     "nicht ausführen"
   ],
+  "place_prepositions": [
+    "in",
+    "für"
+  ],
+  "place_postpositions": [],
+  "place_suffixes": [],
+  "place_ignore": [
+    "der",
+    "die",
+    "das",
+    "heute",
+    "morgen",
+    "jetzt",
+    "meiner",
+    "dieser"
+  ],
   "intents": [
     {
       "tool": "volume",

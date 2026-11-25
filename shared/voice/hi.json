@@ -14,6 +14,21 @@
     "बंद करो",
     "नहीं चाहिए"
   ],
+  "place_prepositions": [],
+  "place_postpositions": [
+    "में",
+    "पर",
+    "के"
+  ],
+  "place_suffixes": [],
+  "place_ignore": [
+    "आज",
+    "अभी",
+    "कल",
+    "बाहर",
+    "यहाँ",
+    "इस"
+  ],
   "intents": [
     {
       "tool": "volume",

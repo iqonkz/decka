@@ -517,5 +517,20 @@
     "args": {
       "kind": "speak"
     }
+  },
+  {
+    "say": "ما حالة الطقس",
+    "tool": "status",
+    "args": {
+      "topic": "weather"
+    }
+  },
+  {
+    "say": "كيف الطقس في باريس",
+    "tool": "web_search",
+    "args": {
+      "query": "الطقس في باريس",
+      "site": "web"
+    }
   }
 ]
