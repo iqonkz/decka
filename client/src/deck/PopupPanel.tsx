@@ -75,6 +75,7 @@ export default function PopupPanel({ page, anchor, grid }: Props) {
     <div className={closing ? "popup-backdrop closing" : "popup-backdrop"} onPointerDown={requestClose}>
       <div
         className="tile panel popup-panel"
+        data-tile=""
         style={{
           left: place.left,
           top: place.top,

@@ -215,6 +215,7 @@ export default function VoiceFab() {
       <VoiceBubble state={notice ?? voiceState} fabPos={pos} />
       <div
         ref={setFabEl}
+        data-tile=""
         className={`voice-fab ${isGlass ? "glass" : ""} ${isListening ? "listening" : ""} ${isDragging ? "dragging" : ""}`}
         style={{
           position: "fixed",

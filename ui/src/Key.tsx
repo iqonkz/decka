@@ -176,7 +176,7 @@ export default function Key({ actionId, onTap, onPressed, confirm, icon, label, 
   const classes = ["key", phase, coloured ? "colored" : "", disabled ? "disabled" : "", noData ? "no-data" : "", full ? "full" : "", full?.mode === "cover" ? "tile-face" : ""].filter(Boolean).join(" ");
   const labelPad = 0.07 * side;
   return (
-    <div ref={element} className={classes} style={keyStyle} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={cancel}>
+    <div ref={element} className={classes} data-tile="" style={keyStyle} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={cancel}>
       {full && full.mode === "cover" && iconUrl && <img className="key-cover" src={iconUrl} alt="" draggable={false} />}
       {full && full.mode === "contain" && iconUrl && (
         <div className="key-icon">

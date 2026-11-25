@@ -22,7 +22,7 @@ export function versionLine(app: string, pc: string | null): string {
  * A touch opens the menu only on empty space: not on a key, a widget, an open group, a toast or a dialog.
  * `closest` is the element's `closest` function result for the selector of interactive parts.
  */
-export const INTERACTIVE_SELECTOR = ".key, .tile, .popup-backdrop, .toasts, .dialog-backdrop, .menu-sheet, .menu-backdrop";
+export const INTERACTIVE_SELECTOR = "[data-tile], .key, .tile, .voice-fab, .popup-backdrop, .toasts, .dialog-backdrop, .menu-sheet, .menu-backdrop";
 
 export function isEmptySpot(target: EventTarget | null): boolean {
   return typeof Element !== "undefined" && target instanceof Element && target.closest(INTERACTIVE_SELECTOR) === null;

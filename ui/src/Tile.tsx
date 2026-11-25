@@ -132,7 +132,7 @@ export default function Tile({ item }: { item: LayoutItem }) {
   const headerIcon = WIDGET_ICONS[kind] ?? "lucide:square";
 
   return (
-    <div className={panel ? "tile panel" : "tile"} data-tile-id={item.id} style={{ gridColumn: `${item.x + 1} / span ${item.w}`, gridRow: `${item.y + 1} / span ${item.h}` }}>
+    <div className={panel ? "tile panel" : "tile"} data-tile="" data-tile-id={item.id} style={{ gridColumn: `${item.x + 1} / span ${item.w}`, gridRow: `${item.y + 1} / span ${item.h}` }}>
       {showHeader && (
         <div className="tile-head">
           <Icon icon={headerIcon} size={14} />

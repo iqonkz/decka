@@ -35,9 +35,12 @@ html, body, #root {
   font-family: system-ui, sans-serif;
   overflow: hidden;
   user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
   -webkit-tap-highlight-color: transparent;
   touch-action: none;
 }
+#root * { -webkit-touch-callout: none; }
 
 .center {
   display: flex;
