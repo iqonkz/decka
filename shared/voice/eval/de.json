@@ -382,5 +382,58 @@
     "args": {
       "question": "wie steht der aktuelle wechselkurs euro zu dollar"
     }
+  },
+  {
+    "say": "erinnere mich jeden tag um 08:30 daran vitamine zu nehmen",
+    "tool": "remind",
+    "args": {
+      "text": "vitamine nehmen",
+      "at": "08:30",
+      "repeat": "daily"
+    }
+  },
+  {
+    "say": "setze eine tägliche erinnerung für 21:30 zum dehnen",
+    "tool": "remind",
+    "args": {
+      "text": "dehnen",
+      "at": "21:30",
+      "repeat": "daily"
+    }
+  },
+  {
+    "say": "erinnere mich werktags um 09:15 an das team-standup",
+    "tool": "remind",
+    "args": {
+      "text": "team-standup",
+      "at": "09:15",
+      "repeat": "weekdays"
+    }
+  },
+  {
+    "say": "erinnere mich jeden montag um 10:00 daran den bericht zu schicken",
+    "tool": "remind",
+    "args": {
+      "text": "bericht schicken",
+      "at": "10:00",
+      "repeat": "weekly"
+    }
+  },
+  {
+    "say": "jeden freitag um 19:00 an das projekt-backup erinnern",
+    "tool": "remind",
+    "args": {
+      "text": "projekt-backup",
+      "at": "19:00",
+      "repeat": "weekly"
+    }
+  },
+  {
+    "say": "erinnere mich jeden zweiten tag um 11:00 ans blumengießen",
+    "tool": "remind",
+    "args": {
+      "text": "blumengießen",
+      "at": "11:00"
+    }
   }
 ]

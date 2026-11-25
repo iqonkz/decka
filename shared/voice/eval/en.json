@@ -382,5 +382,58 @@
     "args": {
       "question": "current exchange rate of us dollar to euro"
     }
+  },
+  {
+    "say": "remind me to take vitamins every day at 08:30",
+    "tool": "remind",
+    "args": {
+      "text": "take vitamins",
+      "at": "08:30",
+      "repeat": "daily"
+    }
+  },
+  {
+    "say": "schedule a daily reminder to stretch before bed at 21:30",
+    "tool": "remind",
+    "args": {
+      "text": "stretch before bed",
+      "at": "21:30",
+      "repeat": "daily"
+    }
+  },
+  {
+    "say": "alert me about morning standup on weekdays at 09:15",
+    "tool": "remind",
+    "args": {
+      "text": "morning standup",
+      "at": "09:15",
+      "repeat": "weekdays"
+    }
+  },
+  {
+    "say": "remind me to send the status report every Monday at 10:00",
+    "tool": "remind",
+    "args": {
+      "text": "send the status report",
+      "at": "10:00",
+      "repeat": "weekly"
+    }
+  },
+  {
+    "say": "every Friday at 19:00 remind me to back up the project",
+    "tool": "remind",
+    "args": {
+      "text": "back up the project",
+      "at": "19:00",
+      "repeat": "weekly"
+    }
+  },
+  {
+    "say": "remind me to water the plants every other day at 11:00",
+    "tool": "remind",
+    "args": {
+      "text": "water the plants",
+      "at": "11:00"
+    }
   }
 ]

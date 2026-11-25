@@ -382,5 +382,58 @@
     "args": {
       "question": "cuál es el tipo de cambio actual del dólar al euro"
     }
+  },
+  {
+    "say": "recuérdame tomar las vitaminas todos los días a las 08:30",
+    "tool": "remind",
+    "args": {
+      "text": "tomar las vitaminas",
+      "at": "08:30",
+      "repeat": "daily"
+    }
+  },
+  {
+    "say": "pon un recordatorio diario para estirar a las 21:30",
+    "tool": "remind",
+    "args": {
+      "text": "estirar",
+      "at": "21:30",
+      "repeat": "daily"
+    }
+  },
+  {
+    "say": "avísame de la reunión diaria de lunes a viernes a las 09:15",
+    "tool": "remind",
+    "args": {
+      "text": "reunión diaria",
+      "at": "09:15",
+      "repeat": "weekdays"
+    }
+  },
+  {
+    "say": "recuérdame enviar el informe cada lunes a las 10:00",
+    "tool": "remind",
+    "args": {
+      "text": "enviar el informe",
+      "at": "10:00",
+      "repeat": "weekly"
+    }
+  },
+  {
+    "say": "todos los viernes a las 19:00 recuérdame hacer copia del proyecto",
+    "tool": "remind",
+    "args": {
+      "text": "hacer copia del proyecto",
+      "at": "19:00",
+      "repeat": "weekly"
+    }
+  },
+  {
+    "say": "recuérdame regar las plantas un día sí y otro no a las 11:00",
+    "tool": "remind",
+    "args": {
+      "text": "regar las plantas",
+      "at": "11:00"
+    }
   }
 ]

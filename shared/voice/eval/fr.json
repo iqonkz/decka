@@ -382,5 +382,58 @@
     "args": {
       "question": "quel est le cours actuel de l'euro par rapport au dollar"
     }
+  },
+  {
+    "say": "rappelle-moi de prendre mes vitamines tous les jours à 08:30",
+    "tool": "remind",
+    "args": {
+      "text": "prendre mes vitamines",
+      "at": "08:30",
+      "repeat": "daily"
+    }
+  },
+  {
+    "say": "mets un rappel quotidien à 21:30 pour faire des étirements",
+    "tool": "remind",
+    "args": {
+      "text": "faire des étirements",
+      "at": "21:30",
+      "repeat": "daily"
+    }
+  },
+  {
+    "say": "rappelle-moi le point du matin en semaine à 09:15",
+    "tool": "remind",
+    "args": {
+      "text": "point du matin",
+      "at": "09:15",
+      "repeat": "weekdays"
+    }
+  },
+  {
+    "say": "rappelle-moi d'envoyer le rapport chaque lundi à 10:00",
+    "tool": "remind",
+    "args": {
+      "text": "envoyer le rapport",
+      "at": "10:00",
+      "repeat": "weekly"
+    }
+  },
+  {
+    "say": "tous les vendredis à 19:00 rappelle-moi de sauvegarder le projet",
+    "tool": "remind",
+    "args": {
+      "text": "sauvegarder le projet",
+      "at": "19:00",
+      "repeat": "weekly"
+    }
+  },
+  {
+    "say": "rappelle-moi d'arroser les plantes un jour sur deux à 11:00",
+    "tool": "remind",
+    "args": {
+      "text": "arroser les plantes",
+      "at": "11:00"
+    }
   }
 ]
