@@ -435,5 +435,58 @@
       "text": "観葉植物に水をやる",
       "at": "11:00"
     }
+  },
+  {
+    "say": "画面で書き出しを探して",
+    "tool": "find_on_screen",
+    "args": {
+      "query": "書き出し"
+    }
+  },
+  {
+    "say": "これじゃない",
+    "tool": "find_on_screen",
+    "args": {
+      "next": true
+    }
+  },
+  {
+    "say": "これをクリック",
+    "tool": "ui_act",
+    "args": {
+      "action": "click",
+      "target": "this"
+    }
+  },
+  {
+    "say": "下にスクロール",
+    "tool": "ui_act",
+    "args": {
+      "action": "scroll_down"
+    }
+  },
+  {
+    "say": "タブを閉じて",
+    "tool": "ui_act",
+    "args": {
+      "action": "close_tab"
+    }
+  },
+  {
+    "say": "pdf保存のやり方を教えて",
+    "tool": "guide",
+    "args": {}
+  },
+  {
+    "say": "音読して",
+    "tool": "read_aloud",
+    "args": {}
+  },
+  {
+    "say": "モード作業を開始",
+    "tool": "mode_run",
+    "args": {
+      "name": "作業"
+    }
   }
 ]

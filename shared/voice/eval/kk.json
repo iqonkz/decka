@@ -435,5 +435,58 @@
       "text": "гүлдерді суару",
       "at": "11:00"
     }
+  },
+  {
+    "say": "экраннан экспорт тап",
+    "tool": "find_on_screen",
+    "args": {
+      "query": "экспорт"
+    }
+  },
+  {
+    "say": "ол емес",
+    "tool": "find_on_screen",
+    "args": {
+      "next": true
+    }
+  },
+  {
+    "say": "мынаны бас",
+    "tool": "ui_act",
+    "args": {
+      "action": "click",
+      "target": "this"
+    }
+  },
+  {
+    "say": "төмен айналдыр",
+    "tool": "ui_act",
+    "args": {
+      "action": "scroll_down"
+    }
+  },
+  {
+    "say": "қойындыны жап",
+    "tool": "ui_act",
+    "args": {
+      "action": "close_tab"
+    }
+  },
+  {
+    "say": "pdf сақтау жолын көрсет",
+    "tool": "guide",
+    "args": {}
+  },
+  {
+    "say": "дауыстап оқып бер",
+    "tool": "read_aloud",
+    "args": {}
+  },
+  {
+    "say": "жұмыс режимін іске қос",
+    "tool": "mode_run",
+    "args": {
+      "name": "жұмыс"
+    }
   }
 ]

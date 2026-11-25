@@ -435,5 +435,58 @@
       "text": "regar las plantas",
       "at": "11:00"
     }
+  },
+  {
+    "say": "dónde está exportar",
+    "tool": "find_on_screen",
+    "args": {
+      "query": "exportar"
+    }
+  },
+  {
+    "say": "ese no",
+    "tool": "find_on_screen",
+    "args": {
+      "next": true
+    }
+  },
+  {
+    "say": "haz clic aquí",
+    "tool": "ui_act",
+    "args": {
+      "action": "click",
+      "target": "this"
+    }
+  },
+  {
+    "say": "desplaza abajo",
+    "tool": "ui_act",
+    "args": {
+      "action": "scroll_down"
+    }
+  },
+  {
+    "say": "cierra la pestaña",
+    "tool": "ui_act",
+    "args": {
+      "action": "close_tab"
+    }
+  },
+  {
+    "say": "muéstrame cómo guardar pdf",
+    "tool": "guide",
+    "args": {}
+  },
+  {
+    "say": "lee en voz alta",
+    "tool": "read_aloud",
+    "args": {}
+  },
+  {
+    "say": "inicia el modo trabajo",
+    "tool": "mode_run",
+    "args": {
+      "name": "trabajo"
+    }
   }
 ]

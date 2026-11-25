@@ -481,6 +481,139 @@
         "cuanto es {expr}",
         "{expr}"
       ]
+    },
+    {
+      "tool": "find_on_screen",
+      "patterns": [
+        "dónde está {query}",
+        "busca {query} en pantalla",
+        "resalta {query}"
+      ]
+    },
+    {
+      "tool": "find_on_screen",
+      "args": {
+        "next": true
+      },
+      "patterns": [
+        "ese no",
+        "el siguiente"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "click",
+        "target": "this"
+      },
+      "patterns": [
+        "haz clic aquí",
+        "pulsa esto"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "click"
+      },
+      "patterns": [
+        "haz clic en pantalla en {target}",
+        "pulsa en pantalla {target}"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "scroll_down"
+      },
+      "patterns": [
+        "desplaza abajo",
+        "baja la página"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "scroll_up"
+      },
+      "patterns": [
+        "desplaza arriba",
+        "sube la página"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "close_tab"
+      },
+      "patterns": [
+        "cierra la pestaña",
+        "cerrar pestaña actual"
+      ]
+    },
+    {
+      "tool": "guide",
+      "patterns": [
+        "muéstrame cómo {goal}",
+        "guíame para {goal}"
+      ]
+    },
+    {
+      "tool": "guide_record",
+      "patterns": [
+        "recuerda cómo {goal}",
+        "graba pasos para {goal}"
+      ]
+    },
+    {
+      "tool": "read_aloud",
+      "patterns": [
+        "lee en voz alta",
+        "leer selección en voz alta"
+      ]
+    },
+    {
+      "tool": "mode_run",
+      "patterns": [
+        "modo trabajo",
+        "inicia el modo {name}",
+        "activa modo {name}"
+      ]
+    },
+    {
+      "tool": "mode_save",
+      "patterns": [
+        "guarda diseño como {name}",
+        "recuerda disposición como {name}"
+      ]
     }
+  ],
+  "guide_controls": {
+    "next": [
+      "siguiente",
+      "continúa"
+    ],
+    "back": [
+      "atrás",
+      "anterior"
+    ],
+    "stop": [
+      "detener",
+      "parar"
+    ],
+    "done": [
+      "listo",
+      "hecho"
+    ]
+  },
+  "danger_words": [
+    "eliminar",
+    "borrar",
+    "quitar",
+    "enviar",
+    "pagar",
+    "comprar",
+    "formatear",
+    "transferir"
   ]
 }

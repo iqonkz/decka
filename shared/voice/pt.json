@@ -372,6 +372,139 @@
         "quanto e {expr}",
         "{expr}"
       ]
+    },
+    {
+      "tool": "find_on_screen",
+      "patterns": [
+        "onde está {query}",
+        "encontre {query} na tela",
+        "destaque {query} na tela"
+      ]
+    },
+    {
+      "tool": "find_on_screen",
+      "args": {
+        "next": true
+      },
+      "patterns": [
+        "não é esse",
+        "o próximo na tela"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "click",
+        "target": "this"
+      },
+      "patterns": [
+        "clique aqui",
+        "clica nisso"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "click"
+      },
+      "patterns": [
+        "clique na tela em {target}",
+        "toque na tela em {target}"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "scroll_down"
+      },
+      "patterns": [
+        "role para baixo",
+        "desça a página"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "scroll_up"
+      },
+      "patterns": [
+        "role para cima",
+        "suba a página"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "close_tab"
+      },
+      "patterns": [
+        "feche a aba",
+        "fechar esta aba"
+      ]
+    },
+    {
+      "tool": "guide",
+      "patterns": [
+        "mostre como {goal}",
+        "guie para {goal}"
+      ]
+    },
+    {
+      "tool": "guide_record",
+      "patterns": [
+        "lembre como {goal}",
+        "grave passos para {goal}"
+      ]
+    },
+    {
+      "tool": "read_aloud",
+      "patterns": [
+        "leia em voz alta",
+        "ler seleção em voz alta"
+      ]
+    },
+    {
+      "tool": "mode_run",
+      "patterns": [
+        "modo trabalho",
+        "inicie o modo {name}",
+        "ative modo {name}"
+      ]
+    },
+    {
+      "tool": "mode_save",
+      "patterns": [
+        "salve layout como {name}",
+        "lembre disposição como {name}"
+      ]
     }
+  ],
+  "guide_controls": {
+    "next": [
+      "próximo",
+      "avançar"
+    ],
+    "back": [
+      "voltar",
+      "anterior"
+    ],
+    "stop": [
+      "parar",
+      "cancelar"
+    ],
+    "done": [
+      "pronto",
+      "feito"
+    ]
+  },
+  "danger_words": [
+    "excluir",
+    "apagar",
+    "remover",
+    "enviar",
+    "pagar",
+    "comprar",
+    "formatar",
+    "transferir"
   ]
 }

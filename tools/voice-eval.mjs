@@ -50,6 +50,14 @@ export const VALID_TOOLS = new Set([
   "memory_remove",
   "calc",
   "ask",
+  // M27: screen highlight, UI actions, step-by-step guide, read aloud, work modes
+  "find_on_screen",
+  "ui_act",
+  "guide",
+  "guide_record",
+  "read_aloud",
+  "mode_run",
+  "mode_save",
 ]);
 
 // Accuracy targets per DATA_MODEL.md §12.8:

@@ -359,6 +359,140 @@
         "كم يساوي {expr}",
         "{expr}"
       ]
+    },
+    {
+      "tool": "find_on_screen",
+      "patterns": [
+        "أين يوجد {query}",
+        "ابحث عن {query} على الشاشة",
+        "ظلل {query}"
+      ]
+    },
+    {
+      "tool": "find_on_screen",
+      "args": {
+        "next": true
+      },
+      "patterns": [
+        "ليس هذا",
+        "التالي على الشاشة"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "click",
+        "target": "this"
+      },
+      "patterns": [
+        "اضغط هنا",
+        "انقر على هذا"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "click"
+      },
+      "patterns": [
+        "انقر على الشاشة على {target}",
+        "اضغط في الشاشة {target}"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "scroll_down"
+      },
+      "patterns": [
+        "مرر للأسفل",
+        "انزل بالصفحة"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "scroll_up"
+      },
+      "patterns": [
+        "مرر للأعلى",
+        "اصعد بالصفحة"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "close_tab"
+      },
+      "patterns": [
+        "أغلق التبويب",
+        "إغلاق هذه اللسانة"
+      ]
+    },
+    {
+      "tool": "guide",
+      "patterns": [
+        "أرني كيف {goal}",
+        "ساعدني خطوة بخطوة {goal}"
+      ]
+    },
+    {
+      "tool": "guide_record",
+      "patterns": [
+        "تذكر كيف {goal}",
+        "سجل خطوات {goal}"
+      ]
+    },
+    {
+      "tool": "read_aloud",
+      "patterns": [
+        "اقرأ بصوت عال",
+        "اقرأ التحديد بصوت عال"
+      ]
+    },
+    {
+      "tool": "mode_run",
+      "patterns": [
+        "وضع العمل",
+        "شغل وضع {name}",
+        "فعل وضع {name}"
+      ]
+    },
+    {
+      "tool": "mode_save",
+      "patterns": [
+        "احفظ الترتيب باسم {name}",
+        "تذكر التخطيط باسم {name}"
+      ]
     }
+  ],
+  "guide_controls": {
+    "next": [
+      "التالي",
+      "تابع"
+    ],
+    "back": [
+      "السابق",
+      "رجوع"
+    ],
+    "stop": [
+      "توقف",
+      "إيقاف"
+    ],
+    "done": [
+      "تم",
+      "انتهى"
+    ]
+  },
+  "danger_words": [
+    "حذف",
+    "احذف",
+    "إزالة",
+    "إرسال",
+    "دفع",
+    "شراء",
+    "تهيئة",
+    "مسح",
+    "تحويل"
   ]
 }

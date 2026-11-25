@@ -443,6 +443,139 @@
         "हिसाब लगाओ {expr}",
         "{expr}"
       ]
+    },
+    {
+      "tool": "find_on_screen",
+      "patterns": [
+        "{query} कहाँ है",
+        "स्क्रीन पर {query} ढूंढें",
+        "{query} हाइलाइट करें"
+      ]
+    },
+    {
+      "tool": "find_on_screen",
+      "args": {
+        "next": true
+      },
+      "patterns": [
+        "यह नहीं",
+        "अगला दिखाओ"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "click",
+        "target": "this"
+      },
+      "patterns": [
+        "इस पर क्लिक करें",
+        "इसे दबाएं"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "click"
+      },
+      "patterns": [
+        "स्क्रीन पर {target} पर क्लिक करें",
+        "{target} को स्क्रीन पर दबाएं"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "scroll_down"
+      },
+      "patterns": [
+        "नीचे स्क्रॉल करें",
+        "नीचे जाएं"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "scroll_up"
+      },
+      "patterns": [
+        "ऊपर स्क्रॉल करें",
+        "ऊपर जाएं"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "close_tab"
+      },
+      "patterns": [
+        "टैब बंद करें",
+        "यह टैब बंद करें"
+      ]
+    },
+    {
+      "tool": "guide",
+      "patterns": [
+        "दिखाओ कि {goal} कैसे करें",
+        "{goal} कैसे करें"
+      ]
+    },
+    {
+      "tool": "guide_record",
+      "patterns": [
+        "याद रखो कि {goal} कैसे करते हैं",
+        "{goal} के चरण रिकॉर्ड करें"
+      ]
+    },
+    {
+      "tool": "read_aloud",
+      "patterns": [
+        "ज़ोर से पढ़ें",
+        "पढ़कर सुनाओ"
+      ]
+    },
+    {
+      "tool": "mode_run",
+      "patterns": [
+        "वर्क मोड",
+        "मोड {name} शुरू करें",
+        "कार्य मोड चालू करें"
+      ]
+    },
+    {
+      "tool": "mode_save",
+      "patterns": [
+        "लेआउट को {name} के रूप में सहेजें",
+        "इसे {name} मोड के रूप में याद रखें"
+      ]
     }
+  ],
+  "guide_controls": {
+    "next": [
+      "अगला",
+      "आगे"
+    ],
+    "back": [
+      "पीछे",
+      "वापस"
+    ],
+    "stop": [
+      "रोकें",
+      "बंद करें"
+    ],
+    "done": [
+      "हो गया",
+      "पूरा"
+    ]
+  },
+  "danger_words": [
+    "हटाएं",
+    "मिटाएं",
+    "डिलीट",
+    "भेजें",
+    "भुगतान",
+    "खरीदें",
+    "फ़ॉर्मेट",
+    "ट्रांसफर"
   ]
 }
