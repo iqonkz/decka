@@ -4,6 +4,8 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+## 0.41.0 — 2026-11-25
+
 ### Added
 - **Show me where**: ask `where is Save` and a frame with a short bubble lights up that button in the active window; `not that one` goes to the next candidate. Nothing is guessed: only elements that really exist in the window can be shown.
 - **Press, scroll, close a tab by voice**: `press this`, `press Export on the screen`, `scroll down`, `close the tab`. It acts only when you say so; a button named like Delete, Send, Pay or Buy waits for your "yes" first.
