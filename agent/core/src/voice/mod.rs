@@ -24,6 +24,7 @@ pub mod pipeline;
 pub mod screen;
 pub mod textops;
 pub mod followup;
+pub mod screenhelp;
 pub mod slowpath;
 pub mod speak;
 pub mod status;
