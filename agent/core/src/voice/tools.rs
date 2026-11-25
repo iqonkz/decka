@@ -256,9 +256,36 @@ pub fn validate(raw: &RawCall, ctx: &Context) -> Resolved {
         Value::Null => &empty,
         _ => return reject("arguments must be an object"),
     };
-    match run(raw.tool.as_str(), args, ctx) {
+    let args = normalize(raw.tool.as_str(), args, &crate::assistant::Local::now());
+    match run(raw.tool.as_str(), &args, ctx) {
         Ok(r) | Err(r) => r,
     }
+}
+
+/// Shapes of an argument the model gets wrong often are put right after parsing, not by the prompt (T27.0):
+/// a `remind` with `at` as a clock time ("16:30") or with a `time` and no `day` becomes `day` + `time` (today when the time is still
+/// ahead, tomorrow otherwise). Everything else stays as it came; a refusal still comes from `run`.
+pub fn normalize(tool: &str, args: &serde_json::Map<String, Value>, now: &crate::assistant::Local) -> serde_json::Map<String, Value> {
+    let mut out = args.clone();
+    if tool != "remind" {
+        return out;
+    }
+    let is_clock = |s: &str| s.trim().split_once(':').is_some_and(|(h, m)| h.parse::<u32>().is_ok_and(|h| h < 24) && m.parse::<u32>().is_ok_and(|m| m < 60));
+    if let Some(Value::String(at)) = out.get("at") {
+        if is_clock(at) && !out.contains_key("time") {
+            let t = at.trim().to_string();
+            out.remove("at");
+            out.insert("time".into(), Value::String(t));
+        }
+    }
+    if let Some(Value::String(t)) = out.get("time").cloned() {
+        if !out.contains_key("day") && !out.contains_key("repeat") && !out.contains_key("inMinutes") && is_clock(&t) {
+            let (h, m) = t.trim().split_once(':').map(|(h, m)| (h.parse::<u32>().unwrap_or(0), m.parse::<u32>().unwrap_or(0))).unwrap_or((0, 0));
+            let ahead = (h, m) > (now.hour, now.minute);
+            out.insert("day".into(), Value::String(if ahead { "today" } else { "tomorrow" }.into()));
+        }
+    }
+    out
 }
 
 fn run(tool: &str, args: &serde_json::Map<String, Value>, ctx: &Context) -> Result<Resolved, Resolved> {
@@ -557,6 +584,28 @@ fn run_action(a: &ActionRef, ctx: &Context) -> Resolved {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn remind_arguments_are_put_in_shape_before_validation() {
+        use crate::assistant::Local;
+        let now = Local::new(2026, 11, 26, 14, 0).unwrap();
+        let obj = |v: serde_json::Value| v.as_object().unwrap().clone();
+        // "at" with a clock time and a time with no day: today when ahead, tomorrow when passed.
+        let a = normalize("remind", &obj(json!({ "text": "x", "at": "16:30" })), &now);
+        assert_eq!((a.get("time"), a.get("day"), a.get("at")), (Some(&json!("16:30")), Some(&json!("today")), None));
+        let b = normalize("remind", &obj(json!({ "text": "x", "time": "09:00" })), &now);
+        assert_eq!(b.get("day"), Some(&json!("tomorrow")));
+        // Not touched: another tool, a full ISO "at", a series, a given day, minutes.
+        assert_eq!(normalize("timer", &obj(json!({ "minutes": 5 })), &now), obj(json!({ "minutes": 5 })));
+        let iso = obj(json!({ "text": "x", "at": "2026-11-27T10:00" }));
+        assert_eq!(normalize("remind", &iso, &now), iso);
+        let series = obj(json!({ "text": "x", "time": "08:30", "repeat": "daily" }));
+        assert_eq!(normalize("remind", &series, &now), series);
+        let dated = obj(json!({ "text": "x", "day": "fri", "time": "09:00" }));
+        assert_eq!(normalize("remind", &dated, &now), dated);
+        // And it goes through validation as a reminder.
+        assert!(matches!(call("remind", json!({ "text": "call", "at": "23:59" })), Resolved::Ready(_)));
+    }
+
     use super::*;
     use serde_json::json;
 

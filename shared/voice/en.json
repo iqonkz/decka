@@ -635,6 +635,53 @@
         "one more option",
         "regenerate"
       ]
+    },
+    {
+      "tool": "window_other_monitor",
+      "patterns": [
+        "move window to other monitor",
+        "move this window to the other monitor",
+        "move window to next monitor",
+        "send window to the other screen",
+        "move this window to the other screen"
+      ]
+    },
+    {
+      "tool": "which_monitor",
+      "patterns": [
+        "which monitor is this",
+        "what monitor is this",
+        "which screen is this",
+        "which monitor am i on"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": { "op": "summarize" },
+      "patterns": [
+        "provide the key takeaways",
+        "key takeaways of this",
+        "give me the key points",
+        "key points of this article"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": { "op": "formal" },
+      "patterns": [
+        "turn this into professional business language",
+        "make this sound professional",
+        "business language"
+      ]
+    },
+    {
+      "tool": "text_transform",
+      "args": { "op": "casual" },
+      "patterns": [
+        "make this sound like a friendly chat message",
+        "make it sound friendly",
+        "make it friendly"
+      ]
     }
   ]
 }

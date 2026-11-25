@@ -117,7 +117,18 @@ async fn main() {
                     answer
                 }
             };
-            if got.as_ref().is_some_and(|c| c.tool == tool && args_match(&item["args"], &c.args)) {
+            // As the agent does: the arguments are put in shape first (T27.0); a calc counts when it works out to the same number.
+            let got = got.map(|mut c| {
+                if let Value::Object(m) = &c.args {
+                    c.args = Value::Object(decka_core::voice::tools::normalize(&c.tool, m, &decka_core::assistant::Local::now()));
+                }
+                c
+            });
+            let calc_same = |c: &RawCall| {
+                let (a, b) = (item["args"]["expr"].as_str(), c.args["expr"].as_str());
+                matches!((a.map(decka_core::voice::calc::eval), b.map(decka_core::voice::calc::eval)), (Some(Ok(x)), Some(Ok(y))) if (x - y).abs() < 1e-9)
+            };
+            if got.as_ref().is_some_and(|c| c.tool == tool && (args_match(&item["args"], &c.args) || (tool == "calc" && calc_same(c)))) {
                 correct += 1;
             } else if args.iter().any(|a| a == "--verbose") {
                 eprintln!("[{lang}] {say:?}: expected {tool} {}, got {got:?}", item["args"]);
