@@ -342,7 +342,7 @@ export default function Island({
         ? Boolean(lyrics?.next)
         : countdownKnown || countdownUnknown || Boolean(lyrics?.artist)
       : false;
-    // T26.F.14: width follows the longer line (360..520), current line wraps up to 3 lines without ellipsis; controls sit under the orb on hover.
+    // T26.F.14: fixed 520px panel, 48px orb on left with overlay controls on hover, left-aligned text on right.
     const lyricLines = hasSong && hasActiveLyric ? { current: lyrics?.current, next: lyrics?.next } : { current: trackSummary || lyrics?.title, next: lyrics?.artist };
     const wraps = hasSong && currentWraps(lyricLines.current);
     const panelWidth = hasSong ? compactWidth(lyricLines.current, lyricLines.next) : undefined;
@@ -362,7 +362,7 @@ export default function Island({
             <div className={`island-orb-wrap compact${isError ? " is-error" : ""}`}>
               <ParticlesOrb
                 state={orbState}
-                size={hasSong ? 56 : 32}
+                size={hasSong ? 48 : 32}
                 colorFrom={colorFrom}
                 colorTo={colorTo}
                 level={hasSong ? lyrics?.musicLevel : voice?.level}
@@ -376,16 +376,16 @@ export default function Island({
               <div className="island-compact-controls">
                 <button
                   type="button"
-                  className="island-media-btn"
+                  className="island-media-btn is-skip is-prev"
                   title={t("island.media_prev")}
                   aria-label={t("island.media_prev")}
                   onClick={() => onMediaControl?.("prev")}
                 >
-                  <SkipBack size={16} strokeWidth={1.75} aria-hidden="true" />
+                  <SkipBack size={14} strokeWidth={1.75} aria-hidden="true" />
                 </button>
                 <button
                   type="button"
-                  className="island-media-btn"
+                  className="island-media-btn is-play"
                   title={playPauseLabel}
                   aria-label={playPauseLabel}
                   onClick={() => onMediaControl?.("play_pause")}
@@ -398,12 +398,12 @@ export default function Island({
                 </button>
                 <button
                   type="button"
-                  className="island-media-btn"
+                  className="island-media-btn is-skip is-next"
                   title={t("island.media_next")}
                   aria-label={t("island.media_next")}
                   onClick={() => onMediaControl?.("next")}
                 >
-                  <SkipForward size={16} strokeWidth={1.75} aria-hidden="true" />
+                  <SkipForward size={14} strokeWidth={1.75} aria-hidden="true" />
                 </button>
               </div>
             )}

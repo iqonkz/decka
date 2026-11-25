@@ -200,7 +200,7 @@ describe("T26.5b ParticlesOrb & Island", () => {
     expect(orbHtml).toContain('role="img"');
   });
 
-  it("T26.F.11/14: drives 56px compact orb (160 pts) with musicLevel and renders 3 hover controls in left col", () => {
+  it("T26.F.11/14: drives 48px compact orb (160 pts) with musicLevel and renders 3 hover controls over orb", () => {
     setLanguage("en");
     expect(orbStateFromIsland({ mode: "compact", playing: true, musicLevel: 0.7 })).toEqual({
       orbState: "speaking",
@@ -225,9 +225,12 @@ describe("T26.5b ParticlesOrb & Island", () => {
       />,
     );
     expect(playingHtml).toContain('data-particles="160"');
-    expect(playingHtml).toContain("width:56px;height:56px");
+    expect(playingHtml).toContain("width:48px;height:48px");
     expect(playingHtml).toContain("island-compact-left");
     expect(playingHtml).toContain("island-compact-controls");
+    expect(playingHtml).toContain("is-play");
+    expect(playingHtml).toContain("is-prev");
+    expect(playingHtml).toContain("is-next");
     expect(playingHtml).toContain('aria-label="Previous track"');
     expect(playingHtml).toContain('aria-label="Pause"');
     expect(playingHtml).toContain('aria-label="Next track"');

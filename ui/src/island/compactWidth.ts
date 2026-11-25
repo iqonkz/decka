@@ -2,8 +2,8 @@
 
 export const COMPACT_MIN = 520;
 export const COMPACT_MAX = 520;
-/** Left col (84) + gap (16) + padding (12 + 12) + rounding room. */
-const CHROME = 84 + 16 + 12 + 12 + 6;
+/** Orb col (48) + gap (14) + padding (12 + 12) + rounding room. */
+const CHROME = 48 + 14 + 12 + 12 + 6;
 
 export type Measure = (text: string, font: string) => number;
 
