@@ -4,7 +4,7 @@
 
 use std::time::{Duration, Instant};
 
-use decka_core::lyrics_overlay::{foreground_is_fullscreen, phone_shows_big_media, synced_lines, two_lines, visible, Inputs, PcOverlay};
+use decka_core::lyrics_overlay::{foreground_is_fullscreen, synced_lines, two_lines, visible, Inputs, PcOverlay};
 use decka_core::model::MediaInfo;
 use decka_core::Agent;
 use serde::Serialize;
@@ -75,7 +75,6 @@ pub fn setup(app: &AppHandle, agent: &Agent) {
     let app = app.clone();
     let agent = agent.clone();
     tauri::async_runtime::spawn(async move {
-        let mut status = agent.subscribe_status();
         let mut paused_since: Option<Instant> = None;
         let mut shown = false;
         let mut last: Option<Lines> = None;
@@ -85,7 +84,6 @@ pub fn setup(app: &AppHandle, agent: &Agent) {
             let store = agent.store();
             let media: Option<MediaInfo> = serde_json::from_value(store.get("media")).ok();
             let lyrics = store.get("lyrics");
-            let phone_connected = !status.borrow_and_update().clients.is_empty();
 
             let playing = media.as_ref().is_some_and(|m| m.playing);
             if playing {
@@ -102,8 +100,6 @@ pub fn setup(app: &AppHandle, agent: &Agent) {
                 synced: lines.is_some(),
                 playing,
                 paused_for_ms: paused_since.map_or(0, |t| t.elapsed().as_millis() as u64),
-                phone_connected,
-                phone_shows_media_l: phone_shows_big_media(&store.get("layout")),
                 fullscreen: wanted && foreground_is_fullscreen(),
             };
             let show = wanted && visible(&inputs);

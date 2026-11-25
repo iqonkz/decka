@@ -45,9 +45,6 @@ pub struct Inputs {
     pub playing: bool,
     /// How long the song has been paused (0 while it plays).
     pub paused_for_ms: u64,
-    pub phone_connected: bool,
-    /// A phone is connected and the layout has a `media` widget of size `L` (4×2 or bigger), see `phone_shows_big_media`.
-    pub phone_shows_media_l: bool,
     /// A full-screen program (game, video) is in the foreground.
     pub fullscreen: bool,
 }
@@ -57,18 +54,15 @@ pub fn visible(i: &Inputs) -> bool {
     if i.mode == PcOverlay::Off || !i.lyrics_enabled || !i.synced {
         return false;
     }
+    // Always: whenever a synced song plays, over full-screen programs too (DESIGN.md 4.17).
+    if i.mode == PcOverlay::Always {
+        return i.playing;
+    }
+    // Auto: a full-screen program (game, video) hides it; a paused song keeps it for 3 s, then it goes.
     if i.fullscreen {
         return false;
     }
-    // A paused song stays for 3 s, then the window goes.
-    if !i.playing && i.paused_for_ms >= PAUSE_HIDE_MS {
-        return false;
-    }
-    match i.mode {
-        PcOverlay::Always => true,
-        // Auto: the phone already shows the words when it is connected and has the big player.
-        _ => !(i.phone_connected && i.phone_shows_media_l),
-    }
+    i.playing || i.paused_for_ms < PAUSE_HIDE_MS
 }
 
 /// Whether a full-screen program (game, video, presentation) owns the screen: Windows' own answer to "may I show a
@@ -86,22 +80,6 @@ pub fn foreground_is_fullscreen() -> bool {
 #[cfg(not(windows))]
 pub fn foreground_is_fullscreen() -> bool {
     false
-}
-
-/// A `media` widget of size `L` (`w >= 4`, `h >= 2`, DESIGN.md 4.17) on a normal page of the layout section.
-/// The PC does not know which page the phone is on, so any such widget counts (it errs on the side of showing nothing twice).
-pub fn phone_shows_big_media(layout: &Value) -> bool {
-    let Some(pages) = layout.get("pages").and_then(Value::as_array) else { return false };
-    pages
-        .iter()
-        .filter(|p| p.get("popup").and_then(Value::as_bool) != Some(true))
-        .filter_map(|p| p.get("items").and_then(Value::as_array))
-        .flatten()
-        .any(|it| {
-            it.get("kind").and_then(Value::as_str) == Some("media")
-                && it.get("w").and_then(Value::as_u64).unwrap_or(0) >= 4
-                && it.get("h").and_then(Value::as_u64).unwrap_or(0) >= 2
-        })
 }
 
 /// The current line and the next one at `position_ms` (the song position plus the per-track shift). Before the first
@@ -146,8 +124,6 @@ mod tests {
             synced: true,
             playing: true,
             paused_for_ms: 0,
-            phone_connected: false,
-            phone_shows_media_l: false,
             fullscreen: false,
         }
     }
@@ -176,41 +152,23 @@ mod tests {
     }
 
     #[test]
-    fn fullscreen_program_hides_even_always() {
+    fn fullscreen_program_hides_auto_only() {
         assert!(!visible(&Inputs { fullscreen: true, ..base() }));
-        assert!(!visible(&Inputs { fullscreen: true, mode: PcOverlay::Always, ..base() }));
+        assert!(visible(&Inputs { fullscreen: true, mode: PcOverlay::Always, ..base() }));
     }
 
     #[test]
     fn pause_keeps_the_window_for_three_seconds() {
         assert!(visible(&Inputs { playing: false, paused_for_ms: 2_999, ..base() }));
         assert!(!visible(&Inputs { playing: false, paused_for_ms: 3_000, ..base() }));
-        assert!(!visible(&Inputs { playing: false, paused_for_ms: 10_000, mode: PcOverlay::Always, ..base() }));
+        // `Always` means while it plays: a pause ends it at once.
+        assert!(!visible(&Inputs { playing: false, paused_for_ms: 0, mode: PcOverlay::Always, ..base() }));
     }
 
     #[test]
-    fn auto_hides_when_the_phone_shows_media_l_always_does_not() {
-        let on_phone = Inputs { phone_connected: true, phone_shows_media_l: true, ..base() };
-        assert!(!visible(&on_phone));
-        assert!(visible(&Inputs { mode: PcOverlay::Always, ..on_phone }));
-        // A phone that is not connected shows nothing: the PC does.
-        assert!(visible(&Inputs { phone_connected: false, phone_shows_media_l: true, ..base() }));
-        // Connected but without the big player: the PC shows the words.
-        assert!(visible(&Inputs { phone_connected: true, phone_shows_media_l: false, ..base() }));
-    }
-
-    #[test]
-    fn media_l_means_a_media_widget_of_4x2_on_a_normal_page() {
-        let layout = |kind: &str, w: u64, h: u64, popup: bool| {
-            json!({ "pages": [{ "id": "p", "popup": popup, "items": [{ "id": "n", "kind": kind, "x": 0, "y": 0, "w": w, "h": h }] }] })
-        };
-        assert!(phone_shows_big_media(&layout("media", 4, 2, false)));
-        assert!(phone_shows_big_media(&layout("media", 6, 3, false)));
-        assert!(!phone_shows_big_media(&layout("media", 3, 2, false)));
-        assert!(!phone_shows_big_media(&layout("media", 4, 1, false)));
-        assert!(!phone_shows_big_media(&layout("weather", 4, 2, false)));
-        assert!(!phone_shows_big_media(&layout("media", 4, 2, true)));
-        assert!(!phone_shows_big_media(&json!({})));
+    fn auto_and_always_show_while_a_synced_song_plays() {
+        assert!(visible(&base()));
+        assert!(visible(&Inputs { mode: PcOverlay::Always, ..base() }));
     }
 
     #[test]
