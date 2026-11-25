@@ -43,8 +43,9 @@ const M22_LISTS = [
 ];
 const M22_REMINDERS = [
   { id: "3000000000000001", text: "Call the dentist", at: "2026-11-25T16:30" },
-  { id: "3000000000000002", text: "Pay the rent", at: "2026-11-26T09:00" },
-  { id: "3000000000000003", text: "Team meeting", at: "2026-11-27T11:00" },
+  { id: "3000000000000002", text: "Morning standup", at: "2026-11-26T09:00", repeat: "weekdays" },
+  { id: "3000000000000003", text: "Take vitamins", at: "2026-11-26T08:00", repeat: "daily" },
+  { id: "3000000000000004", text: "Team weekly sync", at: "2026-11-30T11:00", repeat: "weekly" },
 ];
 
 const root = createRoot(document.getElementById("root")!);
@@ -170,6 +171,56 @@ if (scene === "deck" || scene === "settings") {
       { id: "e-ls", kind: "list", x: 4, y: 4, w: 2, h: 1 },
       { id: "e-nt", kind: "notifications", x: 6, y: 4, w: 2, h: 1 },
     ];
+  } else if (pack === "m24-lyrics-sync" || pack === "m24-lyrics-plain") {
+    const synced = pack === "m24-lyrics-sync";
+    (fx.layout as Record<string, unknown>).grid = { cols: 6, rows: 3 };
+    fx.layout.pages[0]!.items = [
+      { id: "m4-1", kind: "media", x: 0, y: 0, w: 4, h: 2, prevAction: "media-prev", playAction: "media-play", nextAction: "media-next" },
+      { id: "m4-w", kind: "weather", x: 4, y: 0, w: 2, h: 2 },
+      { id: "m4-b1", kind: "button", x: 0, y: 2, w: 1, h: 1, label: "Mic", icon: "lucide:mic", actionId: "mic-toggle" },
+      { id: "m4-b2", kind: "button", x: 1, y: 2, w: 1, h: 1, label: "Mute", icon: "lucide:volume-x", actionId: "out-mute" },
+      { id: "m4-v", kind: "volume", x: 2, y: 2, w: 4, h: 1, upAction: "vol-up", downAction: "vol-down", muteAction: "vol-mute" },
+    ];
+    (fx.media as Record<string, unknown>).art = SAMPLE_ART;
+    (fx.media as Record<string, unknown>).playing = false;
+    (fx.media as Record<string, unknown>).positionSec = 14;
+    fx.lyrics = {
+      trackKey: "0123456789abcdef",
+      synced,
+      offsetMs: 500,
+      lines: [
+        { ...(synced ? { t: 4000 } : {}), text: "Waiting in a car" },
+        { ...(synced ? { t: 9000 } : {}), text: "Waiting for a ride in the dark" },
+        { ...(synced ? { t: 14000 } : {}), text: "The night city grows" },
+        { ...(synced ? { t: 19000 } : {}), text: "Looking at the neon glow" },
+        { ...(synced ? { t: 24000 } : {}), text: "Searching for the morning light" },
+      ],
+    };
+  } else if (pack === "m24-weather-hourly") {
+    (fx.layout as Record<string, unknown>).grid = { cols: 6, rows: 3 };
+    fx.layout.pages[0]!.items = [
+      { id: "wh-1", kind: "weather", x: 0, y: 0, w: 3, h: 2 },
+      { id: "wh-c", kind: "clock", x: 3, y: 0, w: 3, h: 2 },
+      { id: "wh-v", kind: "volume", x: 0, y: 2, w: 6, h: 1, upAction: "vol-up", downAction: "vol-down", muteAction: "vol-mute" },
+    ];
+    (fx.weather as Record<string, unknown>).hourly = [
+      { time: "13:00", temp: 8, code: 1, isDay: true },
+      { time: "14:00", temp: 9, code: 2, isDay: true },
+      { time: "15:00", temp: 8, code: 2, isDay: true },
+      { time: "16:00", temp: 6, code: 3, isDay: true },
+      { time: "17:00", temp: 4, code: 61, isDay: false },
+      { time: "18:00", temp: 3, code: 61, isDay: false },
+    ];
+  } else if (pack === "m24-rem-repeat") {
+    (fx.layout as Record<string, unknown>).grid = { cols: 6, rows: 3 };
+    fx.reminders = { items: M22_REMINDERS };
+    fx.layout.pages[0]!.items = [
+      { id: "rr-1", kind: "reminders", x: 0, y: 0, w: 4, h: 2 },
+      { id: "rr-c", kind: "clock", x: 4, y: 0, w: 2, h: 2 },
+      { id: "rr-v", kind: "volume", x: 0, y: 2, w: 6, h: 1, upAction: "vol-up", downAction: "vol-down", muteAction: "vol-mute" },
+    ];
+  } else if (pack === "m24-empty-deck") {
+    fx.layout.pages = [{ id: "main", name: "Main", items: [] }];
   } else {
     (fx.media as Record<string, unknown>).art = SAMPLE_ART;
     fx.layout.pages[0]!.items.push({ id: "w-media", kind: "media", x: 2, y: 3, w: 3, h: 1, prevAction: "media-prev", playAction: "media-play", nextAction: "media-next" });
@@ -196,20 +247,35 @@ if (scene === "deck" || scene === "settings") {
     root.render(<DeckScreen />);
   } else {
     await import("../../agent/src/styles.css");
-    localStorage.setItem("decka.wizard.done.v1", "1");
+    if (q.get("wizard") !== null) localStorage.removeItem("decka.wizard.done.v1");
+    else localStorage.setItem("decka.wizard.done.v1", "1");
     localStorage.setItem("decka.editor.tips.v1", "1");
+    const schemeParam = q.get("scheme");
+    if (schemeParam === "light" || schemeParam === "dark") {
+      fx.layout.display = { ...fx.layout.display, windowTheme: schemeParam };
+    }
     const layout = { version: 1, ...fx.layout };
     const answers: Record<string, unknown> = {
       get_layout: layout,
       save_layout: { ok: true, issues: [] },
+      save_actions: { ok: true, issues: [] },
       save_config: { ok: true, issues: [] },
       list_devices: [],
-      start_pairing: { token: "123456", expiresAt: Date.now() + 60000, qr: "data:image/svg+xml;utf8,<svg></svg>" },
+      is_first_run: q.get("wizard") !== null,
+      list_installed_apps: [
+        { name: "Visual Studio Code", program: "C:\\Apps\\Code.exe", args: [] },
+        { name: "Spotify", program: "C:\\Apps\\Spotify.exe", args: [] },
+        { name: "OBS Studio", program: "C:\\Apps\\obs64.exe", args: [] },
+        { name: "Discord", program: "C:\\Apps\\Discord.exe", args: [] },
+      ],
+      start_pairing: { code: "73914820", expiresAt: Date.now() + 120_000, url: "http://192.168.1.20:9247/pair#73914820", qrSvg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" fill="#fff"/><rect x="4" y="4" width="12" height="12" fill="#111"/><rect x="24" y="4" width="12" height="12" fill="#111"/><rect x="4" y="24" width="12" height="12" fill="#111"/><rect x="20" y="20" width="8" height="8" fill="#111"/></svg>' },
       cancel_pairing: null,
+      lyrics_get: false,
+      lyrics_set: true,
       get_actions: demoActions(actionsFx.default as { version: number; actions: Record<string, unknown> }),
       get_update_status: { state: "idle" },
-      get_status: { version: "0.20.1", focusApp: null, listening: { bind: "0.0.0.0", port: 9247 }, lanIps: ["192.168.1.20"], clients: [{ deviceId: "demo", name: "Phone", remote: "192.168.1.31", connectedAt: Date.now() }], usb: { enabled: false, adbFound: false, devices: [] }, configDir: "C:\\Users\\demo\\AppData\\Roaming\\Decka" },
-      list_window_apps: ["code.exe", "chrome.exe"],
+      get_status: { version: "0.22.0", focusApp: null, listening: { bind: "0.0.0.0", port: 9247 }, lanIps: ["192.168.1.20"], clients: [{ deviceId: "demo", name: "Phone", remote: "192.168.1.31", connectedAt: Date.now() }], usb: { enabled: false, adbFound: false, devices: [] }, configDir: "C:\\Users\\demo\\AppData\\Roaming\\Decka" },
+      list_window_apps: ["code.exe", "chrome.exe", "obs64.exe"],
       get_templates: [],
       get_config: (await import("../../shared/fixtures/config.example.json")).default,
       reminders_get: M22_REMINDERS.map((r, i) => ({ ...r, done: i === 99 })).concat([{ id: "3000000000000009", text: "Old one", at: "2026-11-24T09:00", done: true }]),
@@ -233,6 +299,7 @@ if (scene === "deck" || scene === "settings") {
     const { default: App } = await import("../../agent/src/App");
     root.render(<App />);
     if (q.get("go")) setTimeout(() => window.dispatchEvent(new CustomEvent("decka:go", { detail: { tab: q.get("go") } })), 500);
+    if (q.get("wizard") !== null) setTimeout(() => window.dispatchEvent(new CustomEvent("decka:run-setup", { detail: { step: Number(q.get("wizard")) } })), 450);
   }
 } else if (scene === "service") {
   await import("../../client/src/styles.css");
