@@ -283,7 +283,7 @@ fn executing(mut s: State, call: ToolCall) -> (State, Vec<Effect>) {
         s.activity = Some("screen");
     }
     // The result of arithmetic and of a question is the answer itself, not the few words the model said with the call.
-    if matches!(call, ToolCall::Calc { .. } | ToolCall::Ask { .. }) {
+    if matches!(call, ToolCall::Calc { .. } | ToolCall::Ask { .. } | ToolCall::Status { .. }) {
         s.say = None;
     }
     (s, vec![Effect::Execute(call)])
@@ -466,6 +466,11 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
                 }
                 _ => finish_key(s, Phase::Failed(msg::DIDNT_GET.into()), ReplyKey::plain(key::DIDNT_GET)),
             }
+        }
+        // A `status` answer: a template key with its numbers, the text is the English fallback.
+        (Phase::Executing, Event::Executed(Ok(reply))) if super::status::decode(&reply).is_some() => {
+            let (k, args, text) = super::status::decode(&reply).unwrap_or(("", Default::default(), String::new()));
+            finish_key(s, Phase::Done(text), ReplyKey { key: k, args })
         }
         (Phase::Executing, Event::Executed(Ok(reply))) => {
             match (s.say.clone(), reply.is_empty()) {
@@ -703,6 +708,14 @@ mod tests {
         let (s, fx) = run(yes);
         assert_eq!(s.phase, Phase::Executing);
         assert!(matches!(fx.last(), Some(Effect::Execute(ToolCall::OpenUrl { .. }))));
+
+        // A status answer keeps its key and numbers, and the model's own words do not replace it (T26.1).
+        let st = RawCall { tool: "status".into(), args: serde_json::json!({ "topic": "cpu" }) };
+        let answer = crate::voice::status::answer_for(crate::voice::status::Topic::Cpu, &crate::voice::status::Sections { sys: serde_json::json!({ "cpu": 23 }), ..Default::default() }, "en", &crate::assistant::Local::now());
+        let events = vec![start(Source::Phone), Event::AudioEnd, said("hm"), Event::LlmAnswer(Some((st, Some("it is fine".into())))), Event::Executed(Ok(crate::voice::status::encode(&answer)))];
+        let (s, _) = run(events);
+        let i = s.info();
+        assert_eq!((s.phase.clone(), i.reply_key, i.reply_args.get("pct").map(String::as_str)), (Phase::Done("Processor: 23% busy".into()), Some("voice.status.cpu"), Some("23")));
 
         // The result of arithmetic and a division by zero.
         let sum = RawCall { tool: "calc".into(), args: serde_json::json!({ "expr": "54 умножить на 114" }) };

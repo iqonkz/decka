@@ -543,6 +543,22 @@ mod tests {
     }
 
     #[test]
+    fn status_phrases_reach_status_not_web_search_in_en_and_ru() {
+        let ru = Table::parse(include_str!("../../../../shared/voice/ru.json")).unwrap();
+        for (t, say, topic) in [
+            (en(), "what is the weather", "weather"),
+            (en(), "how much ram is free", "ram"),
+            (en(), "next reminder", "next_reminder"),
+            (ru.clone(), "какая погода", "weather"),
+            (ru.clone(), "сколько места на диске", "disk"),
+            (ru, "что сейчас играет", "media"),
+        ] {
+            let i = hit(&t, say);
+            assert_eq!((i.tool.as_str(), i.args["topic"].as_str()), ("status", Some(topic)), "{say}");
+        }
+    }
+
+    #[test]
     fn lyrics_window_phrases_hide_and_show_in_en_and_ru() {
         let ru = Table::parse(include_str!("../../../../shared/voice/ru.json")).unwrap();
         for (t, say, show) in [
@@ -734,7 +750,7 @@ mod tests {
         let t = en();
         assert_eq!(hit(&t, "can you make it louder").args["op"], "up");
         assert_eq!(hit(&t, "please lock my pc").args["op"], "lock");
-        assert_eq!(t.matches("what is the weather in paris today please"), Match::None);
+        assert_eq!(t.matches("what is the capital of france today please"), Match::None);
         assert_eq!(t.matches(""), Match::None);
         assert_eq!(t.matches("..."), Match::None);
     }

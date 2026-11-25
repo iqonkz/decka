@@ -21,6 +21,7 @@ pub mod mic;
 pub mod pipeline;
 pub mod screen;
 pub mod textops;
+pub mod status;
 pub mod timephrase;
 pub mod tools;
 pub mod winkeys;

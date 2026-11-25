@@ -442,6 +442,99 @@
         "show the song lyrics",
         "show song lyrics"
       ]
+    },
+    {
+      "tool": "status",
+      "args": { "topic": "weather" },
+      "patterns": [
+        "what is the weather",
+        "how is the weather",
+        "weather today",
+        "weather now",
+        "tell me the weather"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": { "topic": "cpu" },
+      "patterns": [
+        "how loaded is the processor",
+        "how busy is the cpu",
+        "cpu load",
+        "processor load"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": { "topic": "ram" },
+      "patterns": [
+        "how much memory is free",
+        "how much ram is free",
+        "ram usage",
+        "memory usage"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": { "topic": "disk" },
+      "patterns": [
+        "how much disk space is left",
+        "how much free space is on the disk",
+        "disk space"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": { "topic": "network" },
+      "patterns": [
+        "network speed",
+        "how fast is the network"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": { "topic": "phone_battery" },
+      "patterns": [
+        "phone battery",
+        "how much battery is left",
+        "battery level"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": { "topic": "media" },
+      "patterns": [
+        "what is playing",
+        "what song is this",
+        "what is this song",
+        "what track is playing"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": { "topic": "ai_limits" },
+      "patterns": [
+        "ai limits",
+        "claude limits",
+        "how much of the claude limit is left"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": { "topic": "focus" },
+      "patterns": [
+        "which program is active",
+        "what app is active"
+      ]
+    },
+    {
+      "tool": "status",
+      "args": { "topic": "next_reminder" },
+      "patterns": [
+        "when is my next reminder",
+        "next reminder",
+        "what is my next reminder"
+      ]
     }
   ]
 }

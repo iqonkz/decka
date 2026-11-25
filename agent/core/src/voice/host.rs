@@ -748,6 +748,19 @@ impl Ports for Inner {
                 ToolCall::WhichMonitor => {
                     return tokio::task::spawn_blocking(winops::which_monitor).await.map_err(|e| format!("The action did not finish: {e}"))?;
                 }
+                ToolCall::Status { topic } => {
+                    let store = agent.store();
+                    let sections = super::status::Sections {
+                        weather: store.get("weather"),
+                        sys: store.get("sys"),
+                        battery: store.get("battery"),
+                        media: store.get("media"),
+                        ai: store.get("ai"),
+                        focus: store.get("focus"),
+                        reminder: agent.assistant().upcoming(1).into_iter().next(),
+                    };
+                    return Ok(super::status::encode(&super::status::answer_for(*topic, &sections, lang, &crate::assistant::Local::now())));
+                }
                 ToolCall::LyricsWindow { show } => {
                     agent.set_lyrics_hidden(!*show);
                     return Ok(if *show { "Lyrics shown".into() } else { "Lyrics hidden".into() });

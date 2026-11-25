@@ -15,7 +15,7 @@ pub const TOOLS: &[&str] = &[
     "press_button", "run_action", "open_app", "switch_app", "close_app", "window_other_monitor", "which_monitor", "volume", "media", "go_page",
     "web_search", "open_site", "type_text", "dictate", "timer", "system", "text_transform", "screen_ask",
     "memory_add", "memory_remove", "day_brief", "remind", "reminders_show", "list_add", "list_show", "list_remove", "calc", "ask",
-    "lyrics_window",
+    "lyrics_window", "status",
 ];
 
 pub const MAX_TEXT: usize = 2000;
@@ -90,6 +90,8 @@ pub enum ToolCall {
     WhichMonitor,
     /// T26.0: hide (`show: false`) or show the lyrics window of the PC; not stored in config.
     LyricsWindow { show: bool },
+    /// T26.1: a fact about this PC or its widgets, answered from the store by a fixed template (never from the internet).
+    Status { topic: super::status::Topic },
     Volume(VolumeOp),
     Media(MediaOp),
     GoPage { page_id: String, name: String },
@@ -305,6 +307,13 @@ fn run(tool: &str, args: &serde_json::Map<String, Value>, ctx: &Context) -> Resu
         "which_monitor" => {
             only(args, &[])?;
             ready(ToolCall::WhichMonitor, false, "Which monitor")
+        }
+        "status" => {
+            only(args, &["topic"])?;
+            match args.get("topic").and_then(Value::as_str).and_then(super::status::Topic::parse) {
+                Some(topic) => ready(ToolCall::Status { topic }, false, "Status"),
+                None => reject("unknown status topic"),
+            }
         }
         "lyrics_window" => {
             only(args, &["show"])?;
@@ -845,6 +854,10 @@ mod tests {
         assert_eq!(ready_of(call("lyrics_window", json!({ "show": true }))).call, ToolCall::LyricsWindow { show: true });
         for bad in [json!({}), json!({ "show": "no" }), json!({ "show": false, "x": 1 })] {
             assert!(matches!(call("lyrics_window", bad.clone()), Resolved::Reject(_)), "{bad}");
+        }
+        assert_eq!(ready_of(call("status", json!({ "topic": "ram" }))).call, ToolCall::Status { topic: super::super::status::Topic::Ram });
+        for bad in [json!({}), json!({ "topic": "internet" }), json!({ "topic": "cpu", "x": 1 })] {
+            assert!(matches!(call("status", bad.clone()), Resolved::Reject(_)), "{bad}");
         }
         assert_eq!(ready_of(call("window_other_monitor", json!({}))).call, ToolCall::WindowOtherMonitor);
         assert_eq!(ready_of(call("dictate", json!({}))).call, ToolCall::Dictate);
