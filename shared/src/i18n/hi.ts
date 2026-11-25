@@ -1038,4 +1038,11 @@ export const hi: Dictionary = {
   "look.accent_hex": "HEX रंग कोड",
   "rem.prev_month": "पिछला महीना",
   "rem.next_month": "अगला महीना",
+  "rem.repeat_aria": "दोहराव",
+  "rem.repeat_once": "एक बार",
+  "rem.repeat_daily": "प्रतिदिन",
+  "rem.repeat_weekdays": "सप्ताह के दिन",
+  "rem.repeat_weekly": "साप्ताहिक",
+  "rem.repeat_every_day": "हर दिन",
+  "rem.repeat_every_weekday": "हर {day}",
 };

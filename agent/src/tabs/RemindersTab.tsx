@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { t, type ListRow, type ReminderRow } from "@decka/shared";
+import { formatRepeatLabel, type ReminderRepeat } from "@decka/ui";
 import { call } from "../ipc";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
@@ -31,17 +32,20 @@ function InlineText({ value, label, done, onSave }: { value: string; label: stri
   return <input autoFocus className="grow" maxLength={200} aria-label={label} value={text} onChange={(e) => setText(e.target.value)} onBlur={() => finish(true)} onKeyDown={(e) => (e.key === "Enter" ? finish(true) : e.key === "Escape" ? finish(false) : undefined)} />;
 }
 
+type ReminderWithRepeat = ReminderRow & { repeat?: ReminderRepeat };
+
 function ReminderRowItem({
   reminder,
   onSave,
   onDelete,
 }: {
-  reminder: ReminderRow;
-  onSave: (patch: { text?: string; at?: string }) => void;
+  reminder: ReminderWithRepeat;
+  onSave: (patch: { text?: string; at?: string; repeat?: ReminderRepeat | null }) => void;
   onDelete: () => void;
 }) {
   const [showPicker, setShowPicker] = useState(false);
   const overdue = !reminder.done && isOverdue(reminder.at);
+  const repeatLabel = formatRepeatLabel(reminder.repeat, reminder.at);
 
   return (
     <Row
@@ -54,21 +58,31 @@ function ReminderRowItem({
             done={reminder.done}
             onSave={(next) => onSave({ text: next })}
           />
-          <div className="rem-pill-wrap">
-            <button
-              type="button"
-              className={`rem-time-pill ${overdue ? "overdue" : ""}`}
-              onClick={() => setShowPicker(!showPicker)}
-            >
-              <PhIcon name="clock" size={13} />
-              <span>{formatReminderLabel(reminder.at)}</span>
-            </button>
-            {showPicker && (
-              <TimePickerPopover
-                value={reminder.at}
-                onChange={(nextAt) => onSave({ at: nextAt })}
-                onClose={() => setShowPicker(false)}
-              />
+          <div className="rem-row-meta">
+            <div className="rem-pill-wrap">
+              <button
+                type="button"
+                className={`rem-time-pill ${overdue ? "overdue" : ""}`}
+                onClick={() => setShowPicker(!showPicker)}
+              >
+                <PhIcon name="clock" size={13} />
+                <span>{formatReminderLabel(reminder.at)}</span>
+              </button>
+              {showPicker && (
+                <TimePickerPopover
+                  value={reminder.at}
+                  onChange={(nextAt) => onSave({ at: nextAt })}
+                  repeat={reminder.repeat}
+                  onRepeatChange={(nextRep) => onSave({ repeat: nextRep ?? null })}
+                  onClose={() => setShowPicker(false)}
+                />
+              )}
+            </div>
+            {repeatLabel && (
+              <span className="rem-repeat-badge">
+                <PhIcon name="repeat" size={12} />
+                <span>{repeatLabel}</span>
+              </span>
             )}
           </div>
         </div>
@@ -86,16 +100,19 @@ function ReminderRowItem({
   );
 }
 
-function ReminderAddRow({ onAdd }: { onAdd: (text: string, at: string) => void }) {
+function ReminderAddRow({ onAdd }: { onAdd: (text: string, at: string, repeat?: ReminderRepeat) => void }) {
   const [text, setText] = useState("");
   const [at, setAt] = useState(() => nextHour(new Date()));
+  const [repeat, setRepeat] = useState<ReminderRepeat | undefined>(undefined);
   const [showPicker, setShowPicker] = useState(false);
+  const repeatLabel = formatRepeatLabel(repeat, at);
 
   const add = () => {
     if (text.trim() === "" || !isLocalTime(at)) return;
-    onAdd(text.trim(), at);
+    onAdd(text.trim(), at, repeat);
     setText("");
     setAt(nextHour(new Date()));
+    setRepeat(undefined);
   };
 
   return (
@@ -117,11 +134,19 @@ function ReminderAddRow({ onAdd }: { onAdd: (text: string, at: string) => void }
         >
           <PhIcon name="clock" size={13} />
           <span>{formatReminderLabel(at)}</span>
+          {repeatLabel && (
+            <>
+              <PhIcon name="repeat" size={12} />
+              <span>{repeatLabel}</span>
+            </>
+          )}
         </button>
         {showPicker && (
           <TimePickerPopover
             value={at}
             onChange={(nextAt) => setAt(nextAt)}
+            repeat={repeat}
+            onRepeatChange={setRepeat}
             onClose={() => setShowPicker(false)}
           />
         )}
@@ -134,7 +159,7 @@ function ReminderAddRow({ onAdd }: { onAdd: (text: string, at: string) => void }
 }
 
 function RemindersView({ onError }: { onError: (e: unknown) => void }) {
-  const [rows, setRows] = useState<ReminderRow[]>([]);
+  const [rows, setRows] = useState<ReminderWithRepeat[]>([]);
   const [showDone, setShowDone] = useState(false);
   const load = useCallback(() => call("reminders_get").then(setRows, onError), [onError]);
   useEffect(() => {
@@ -148,7 +173,7 @@ function RemindersView({ onError }: { onError: (e: unknown) => void }) {
     }
     await load();
   };
-  const shown = visibleReminders(rows, showDone);
+  const shown = visibleReminders(rows, showDone) as ReminderWithRepeat[];
   return (
     <div id="reminders-list" style={{ marginTop: 16 }}>
       <Group>
@@ -164,14 +189,28 @@ function RemindersView({ onError }: { onError: (e: unknown) => void }) {
             <ReminderRowItem
               key={r.id}
               reminder={r}
-              onSave={(patch) =>
-                void run(call("reminder_upsert", { id: r.id, text: patch.text ?? r.text, at: patch.at ?? r.at }))
-              }
+              onSave={(patch) => {
+                const nextRepeat = patch.repeat === null ? undefined : (patch.repeat ?? r.repeat);
+                // TODO(T24.x): drop `as never` once shared/src/ipc.ts adds `repeat?` to `reminder_upsert`.
+                void run(
+                  call("reminder_upsert", {
+                    id: r.id,
+                    text: patch.text ?? r.text,
+                    at: patch.at ?? r.at,
+                    ...(nextRepeat ? { repeat: nextRepeat } : {}),
+                  } as never),
+                );
+              }}
               onDelete={() => void run(call("reminder_delete", { id: r.id }))}
             />
           ))
         )}
-        <ReminderAddRow onAdd={(addText, addAt) => void run(call("reminder_upsert", { text: addText, at: addAt }))} />
+        <ReminderAddRow
+          onAdd={(addText, addAt, addRepeat) =>
+            // TODO(T24.x): drop `as never` once shared/src/ipc.ts adds `repeat?` to `reminder_upsert`.
+            void run(call("reminder_upsert", { text: addText, at: addAt, ...(addRepeat ? { repeat: addRepeat } : {}) } as never))
+          }
+        />
       </Group>
     </div>
   );

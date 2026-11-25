@@ -1038,4 +1038,11 @@ export const ja: Dictionary = {
   "look.accent_hex": "HEXカラーコード",
   "rem.prev_month": "前の月",
   "rem.next_month": "次の月",
+  "rem.repeat_aria": "繰り返し",
+  "rem.repeat_once": "1回のみ",
+  "rem.repeat_daily": "毎日",
+  "rem.repeat_weekdays": "平日",
+  "rem.repeat_weekly": "毎週",
+  "rem.repeat_every_day": "毎日",
+  "rem.repeat_every_weekday": "毎週{day}",
 };

@@ -5,7 +5,8 @@ import { DeckEnvContext, EMPTY_DATA, type DeckData, type DeckEnv } from "../src/
 import { DeckMetricsContext } from "../src/metricsContext";
 import Tile from "../src/Tile";
 import { effectiveMediaPositionMs, formatOffsetSeconds, selectActiveLyricIndex } from "../src/widgets/lyricsLogic";
-import type { LyricsInfo, WeatherInfoWithHourly } from "../src/widgets/m24Types";
+import { formatRepeatLabel } from "../src/widgets/repeatLabel";
+import type { LyricsInfo, RemindersSectionWithRepeat, WeatherInfoWithHourly } from "../src/widgets/m24Types";
 
 const NOOP = () => {};
 
@@ -130,5 +131,31 @@ describe("media L lyrics & sync (DESIGN 4.17, DATA_MODEL 14)", () => {
     const plainHtml = renderTile(large, { media, lyrics: plainLyrics });
     expect(plainHtml).toContain("media-lyrics-plain");
     expect(plainHtml).not.toContain("media-lyric-line active");
+  });
+});
+
+describe("recurring reminders repeat label & widget (DATA_MODEL 13.4)", () => {
+  test("formatRepeatLabel formats daily, weekdays, weekly, and omits non-repeating", () => {
+    expect(formatRepeatLabel(undefined, "2026-11-23T09:00", "en")).toBeNull();
+    expect(formatRepeatLabel("daily", "2026-11-23T09:00", "en")).toBe("Every day");
+    expect(formatRepeatLabel("weekdays", "2026-11-23T09:00", "en")).toBe("Weekdays");
+    expect(formatRepeatLabel("weekly", "2026-11-23T09:00", "en")).toBe("Every Mon");
+    expect(formatRepeatLabel("weekly", "2026-11-23T09:00", "ru")).toMatch(/Mon|пн/i);
+  });
+
+  test("Reminders phone widget renders repeat icon + label for repeating reminders", () => {
+    const reminders: RemindersSectionWithRepeat = {
+      items: [
+        { id: "0000000000000001", text: "Standup", at: "2026-11-25T10:00", repeat: "weekdays" },
+        { id: "0000000000000002", text: "Vitamins", at: "2026-11-25T08:00", repeat: "daily" },
+        { id: "0000000000000003", text: "Call mom", at: "2026-11-25T18:00" },
+      ],
+    };
+    const item = { id: "r1", kind: "reminders", x: 0, y: 0, w: 3, h: 2 } as LayoutItem;
+    const html = renderTile(item, { reminders: reminders as never });
+    expect(html).toContain('class="rem-repeat"');
+    expect(html).toContain("Weekdays");
+    expect(html).toContain("Every day");
+    expect((html.match(/class="rem-repeat"/g) ?? []).length).toBe(2);
   });
 });

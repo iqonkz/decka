@@ -1078,4 +1078,11 @@ export const ar: Dictionary = {
   "look.accent_hex": "رمز اللون HEX",
   "rem.prev_month": "الشهر السابق",
   "rem.next_month": "الشهر التالي",
+  "rem.repeat_aria": "التكرار",
+  "rem.repeat_once": "مرة واحدة",
+  "rem.repeat_daily": "يومياً",
+  "rem.repeat_weekdays": "أيام العمل",
+  "rem.repeat_weekly": "أسبوعياً",
+  "rem.repeat_every_day": "كل يوم",
+  "rem.repeat_every_weekday": "كل {day}",
 };

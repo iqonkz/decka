@@ -1038,4 +1038,11 @@ export const zh: Dictionary = {
   "look.accent_hex": "HEX 颜色代码",
   "rem.prev_month": "上个月",
   "rem.next_month": "下个月",
+  "rem.repeat_aria": "重复",
+  "rem.repeat_once": "单次",
+  "rem.repeat_daily": "每天",
+  "rem.repeat_weekdays": "工作日",
+  "rem.repeat_weekly": "每周",
+  "rem.repeat_every_day": "每天",
+  "rem.repeat_every_weekday": "每{day}",
 };

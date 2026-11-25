@@ -1045,4 +1045,11 @@ export const kk: Dictionary = {
   "look.accent_hex": "HEX түс коды",
   "rem.prev_month": "Алдыңғы ай",
   "rem.next_month": "Келесі ай",
+  "rem.repeat_aria": "Қайталау",
+  "rem.repeat_once": "Бір рет",
+  "rem.repeat_daily": "Күн сайын",
+  "rem.repeat_weekdays": "Жұмыс күндері",
+  "rem.repeat_weekly": "Апта сайын",
+  "rem.repeat_every_day": "Күн сайын",
+  "rem.repeat_every_weekday": "Әр {day}",
 };

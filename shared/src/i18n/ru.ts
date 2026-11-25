@@ -1069,5 +1069,12 @@ export const ru: Record<Base | ExtraPlural, string> = {
   "look.accent_hex": "HEX-код цвета",
   "rem.prev_month": "Предыдущий месяц",
   "rem.next_month": "Следующий месяц",
+  "rem.repeat_aria": "Повтор",
+  "rem.repeat_once": "Один раз",
+  "rem.repeat_daily": "Каждый день",
+  "rem.repeat_weekdays": "По будням",
+  "rem.repeat_weekly": "Раз в неделю",
+  "rem.repeat_every_day": "Каждый день",
+  "rem.repeat_every_weekday": "Каждый {day}",
   // @@END
 };

@@ -1038,4 +1038,11 @@ export const es: Dictionary = {
   "look.accent_hex": "Código de color HEX",
   "rem.prev_month": "Mes anterior",
   "rem.next_month": "Mes siguiente",
+  "rem.repeat_aria": "Repetir",
+  "rem.repeat_once": "Una vez",
+  "rem.repeat_daily": "Diario",
+  "rem.repeat_weekdays": "Entre semana",
+  "rem.repeat_weekly": "Semanal",
+  "rem.repeat_every_day": "Cada día",
+  "rem.repeat_every_weekday": "Cada {day}",
 };
