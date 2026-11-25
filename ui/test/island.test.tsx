@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { renderToString } from "react-dom/server";
-import Island from "../src/island/Island";
+import { setLanguage } from "@decka/shared";
+import Island, { expandedStatusText, hasVoiceContent } from "../src/island/Island";
 import ParticlesOrb, { particleCountForSize } from "../src/island/ParticlesOrb";
 import { orbStateFromIsland } from "../src/island/islandTypes";
 
@@ -36,7 +37,52 @@ describe("T26.5b ParticlesOrb & Island", () => {
     });
   });
 
-  it("renders hidden, tab, compact lyrics, and expanded states via t()", () => {
+  it("distinguishes solo (260x230, 140px orb) vs content (520, 72px orb) expanded layouts", () => {
+    setLanguage("ru");
+    expect(hasVoiceContent({ mode: "expanded", voice: { active: true, phase: "listening" } })).toBe(false);
+    expect(hasVoiceContent({ mode: "expanded", voice: { active: true, phase: "listening", heard: "Привет" } })).toBe(true);
+    expect(expandedStatusText("listening")).toBe("Слушаю…");
+    expect(expandedStatusText("loading")).toBe("Подключено");
+
+    const soloHtml = renderToString(
+      <Island event={{ mode: "expanded", voice: { active: true, phase: "listening", level: 0.5 } }} />,
+    );
+    expect(soloHtml).toContain("island-expanded is-solo");
+    expect(soloHtml).toContain("island-orb-slot is-solo");
+    expect(soloHtml).toContain("width:140px;height:140px");
+    expect(soloHtml).toContain("Слушаю…");
+    expect(soloHtml).not.toContain("island-content-col");
+
+    const contentHtml = renderToString(
+      <Island
+        event={{
+          mode: "expanded",
+          voice: { active: true, phase: "thinking", heard: "Что на экране?", slow: { etaSec: 12, elapsedSec: 4 } },
+        }}
+      />,
+    );
+    expect(contentHtml).toContain("island-expanded is-content");
+    expect(contentHtml).toContain("island-orb-slot is-content");
+    expect(contentHtml).toContain("width:72px;height:72px");
+    expect(contentHtml).toContain("island-content-col");
+    expect(contentHtml).toContain("Что на экране?");
+
+    const midHtml = renderToString(
+      <Island
+        transitionPreview={0.5}
+        event={{
+          mode: "expanded",
+          voice: { active: true, phase: "done", heard: "Hello", reply: "World" },
+        }}
+      />,
+    );
+    expect(midHtml).toContain("is-transitioning");
+    expect(midHtml).toContain("width:488px");
+    expect(midHtml).toContain("width:140px;height:140px");
+  });
+
+  it("renders hidden, tab, compact lyrics, and expanded action chips via t()", () => {
+    setLanguage("en");
     expect(renderToString(<Island event={{ mode: "hidden" }} />)).toBe("");
 
     const tabHtml = renderToString(<Island event={{ mode: "tab" }} />);
@@ -67,7 +113,7 @@ describe("T26.5b ParticlesOrb & Island", () => {
         }}
       />,
     );
-    expect(expandedHtml).toContain("island-expanded");
+    expect(expandedHtml).toContain("island-expanded is-content");
     expect(expandedHtml).toContain("island-slow-track");
     expect(expandedHtml).toContain("Answer text");
     expect(expandedHtml).toContain("Translate");

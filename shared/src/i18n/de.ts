@@ -1062,4 +1062,7 @@ export const de: Dictionary = {
   "island.stop": "Stopp",
   "island.slow_eta": "Bildschirm wird geprüft… ~{s} s",
   "island.slow_almost": "Einen Moment noch…",
+  "island.connected": "Verbunden",
+  "island.speaking": "Spreche…",
+  "island.replay": "Übergang abspielen",
 };

@@ -1062,4 +1062,7 @@ export const zh: Dictionary = {
   "island.stop": "停止",
   "island.slow_eta": "正在查看屏幕… 约 {s} 秒",
   "island.slow_almost": "马上就好…",
+  "island.connected": "已连接",
+  "island.speaking": "正在播报…",
+  "island.replay": "播放过渡",
 };

@@ -1102,4 +1102,7 @@ export const ar: Dictionary = {
   "island.stop": "إيقاف",
   "island.slow_eta": "أفحص الشاشة… ~{s} ث",
   "island.slow_almost": "لحظة إضافية…",
+  "island.connected": "متصل",
+  "island.speaking": "يتحدث…",
+  "island.replay": "تشغيل الانتقال",
 };

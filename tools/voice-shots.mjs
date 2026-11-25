@@ -100,7 +100,7 @@ function t24Shots() {
   return out;
 }
 function m26Shots() {
-  const islandSize = { w: 540, h: 480, scale: 2 };
+  const islandSize = { w: 600, h: 420, scale: 2 };
   const orbRowSize = { w: 760, h: 200, scale: 2 };
   return {
     "m26-orb-states-dark": [orbRowSize, "scene=island&orbRow=1&theme=dark"],
@@ -109,10 +109,12 @@ function m26Shots() {
     "m26-island-compact-lyrics": [{ w: 480, h: 160, scale: 2 }, "scene=island&mode=compact&voiceOff=1&lyrics=1&theme=dark"],
     "m26-island-compact-lyrics-hover": [{ w: 480, h: 160, scale: 2 }, "scene=island&mode=compact&voiceOff=1&lyrics=1&hover=1&theme=dark"],
     "m26-island-compact-voice": [{ w: 480, h: 160, scale: 2 }, "scene=island&mode=compact&state=listening&theme=dark"],
+    "m26-island-solo-listening": [{ w: 400, h: 320, scale: 2 }, "scene=island&mode=expanded&state=listening&solo=1&lang=ru&theme=dark"],
+    "m26-island-transition-mid": [islandSize, "scene=island&mode=expanded&state=thinking&transition=0.55&lang=ru&theme=dark"],
     "m26-island-expanded-slow-ru": [islandSize, "scene=island&mode=expanded&state=thinking&slow=1&lang=ru&theme=dark"],
     "m26-island-expanded-reply-en": [islandSize, "scene=island&mode=expanded&state=idle&reply=1&lang=en&theme=dark"],
     "m26-island-expanded-reply-light": [islandSize, "scene=island&mode=expanded&state=idle&reply=1&lang=ru&theme=light"],
-    "m26-island-expanded-error": [islandSize, "scene=island&mode=expanded&state=error&lang=en&theme=dark"],
+    "m26-island-expanded-error": [islandSize, "scene=island&mode=expanded&state=error&reply=1&replyText=Didn%27t+get+that&lang=en&theme=dark"],
   };
 }
 // T23: the settings window (Russian) in both colour schemes: pages, a search with results and the minimum window width.

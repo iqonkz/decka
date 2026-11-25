@@ -1071,5 +1071,8 @@ export const en = {
   "island.stop": "Stop",
   "island.slow_eta": "Looking at the screen… ~{s} s",
   "island.slow_almost": "Almost there…",
-  // @@END
+    "island.connected": "Connected",
+  "island.speaking": "Speaking…",
+  "island.replay": "Play transition",
+// @@END
 } as const;

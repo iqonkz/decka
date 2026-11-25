@@ -1062,4 +1062,7 @@ export const hi: Dictionary = {
   "island.stop": "रोकें",
   "island.slow_eta": "स्क्रीन देख रहा हूँ… ~{s} से",
   "island.slow_almost": "बस एक पल…",
+  "island.connected": "कनेक्टेड",
+  "island.speaking": "बोल रहा हूँ…",
+  "island.replay": "ट्रांज़िशन चलाएं",
 };

@@ -1093,5 +1093,8 @@ export const ru: Record<Base | ExtraPlural, string> = {
   "island.stop": "Стоп",
   "island.slow_eta": "Смотрю на экран… ~{s} с",
   "island.slow_almost": "Ещё немного…",
-  // @@END
+    "island.connected": "Подключено",
+  "island.speaking": "Говорю…",
+  "island.replay": "Проиграть переход",
+// @@END
 };
