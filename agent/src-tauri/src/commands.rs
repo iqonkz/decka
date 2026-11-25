@@ -593,6 +593,27 @@ pub async fn voice_confirm(app: AppHandle, id: String, yes: bool) -> Result<(), 
     Ok(())
 }
 
+/// The visible panel of the island (T26.4): the rest of its window lets clicks through. CSS pixels from the top-left of the window.
+#[tauri::command]
+pub fn island_rect(app: AppHandle, x: f64, y: f64, width: f64, height: f64) -> Result<(), String> {
+    let finite = [x, y, width, height].iter().all(|v| v.is_finite());
+    if !finite || width < 0.0 || height < 0.0 || width > 4000.0 || height > 4000.0 {
+        return Err("bad rectangle".into());
+    }
+    if let Some(shared) = app.try_state::<std::sync::Arc<crate::island::Shared>>() {
+        shared.set_rect(crate::island::Rect { x, y, width, height });
+    }
+    Ok(())
+}
+
+/// A button under the shown answer (T26.3): `copy`, `insert`, `speak`, `again`, `lang:<code>`. The window only names the action;
+/// what it does is decided by the PC, and a name outside this list is refused.
+#[tauri::command]
+pub async fn voice_action(app: AppHandle, kind: String) -> Result<(), String> {
+    let host = app.try_state::<decka_core::voice::host::Host>().ok_or_else(|| "voice control did not start".to_string())?;
+    host.action(&kind)
+}
+
 /// The click on the stop button (or the pill) while it listens: the recording ends and the command runs (DATA_MODEL.md 12.6a).
 #[tauri::command]
 pub async fn voice_stop(app: AppHandle) -> Result<(), String> {

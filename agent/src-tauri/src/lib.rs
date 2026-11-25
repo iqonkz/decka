@@ -1,4 +1,5 @@
 mod commands;
+mod island;
 mod lyrics_window;
 mod tray;
 mod voice;
@@ -126,6 +127,8 @@ pub fn run() {
             commands::voice_set,
             commands::voice_confirm,
             commands::voice_stop,
+            commands::voice_action,
+            commands::island_rect,
         ])
         .setup(|app| {
             let minimized = std::env::args().any(|a| a == "--minimized");

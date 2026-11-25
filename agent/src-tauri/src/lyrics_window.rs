@@ -19,9 +19,9 @@ const BOTTOM_GAP: f64 = 48.0;
 const TICK: Duration = Duration::from_millis(250);
 
 #[derive(Serialize, Clone, PartialEq)]
-struct Lines {
-    current: Option<String>,
-    next: Option<String>,
+pub(crate) struct Lines {
+    pub(crate) current: Option<String>,
+    pub(crate) next: Option<String>,
 }
 
 fn create(app: &AppHandle) -> Option<tauri::WebviewWindow> {
@@ -57,12 +57,12 @@ fn place(app: &AppHandle, window: &tauri::WebviewWindow) {
     let _ = window.set_position(PhysicalPosition::new(x.round() as i32, y.round() as i32));
 }
 
-fn now_ms() -> u64 {
+pub(crate) fn now_ms() -> u64 {
     std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_millis() as u64)
 }
 
 /// The two lines for the moment `now`: the song position (plus the time since it was reported, while it plays) and the shift.
-fn lines_now(media: &MediaInfo, lyrics: &Value, now: u64) -> Option<Lines> {
+pub(crate) fn lines_now(media: &MediaInfo, lyrics: &Value, now: u64) -> Option<Lines> {
     let lines = synced_lines(lyrics)?;
     let offset = lyrics.get("offsetMs").and_then(Value::as_i64).unwrap_or(0);
     let base = media.position_sec.unwrap_or(0) as i64 * 1000;

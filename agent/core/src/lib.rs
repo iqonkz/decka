@@ -20,6 +20,7 @@ pub mod installed;
 pub mod imaging;
 pub mod logging;
 pub mod lyrics;
+pub mod island;
 pub mod lyrics_overlay;
 pub mod media_control;
 pub mod model;

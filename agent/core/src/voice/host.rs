@@ -423,6 +423,9 @@ struct Inner {
     dictate_until: Arc<Mutex<Option<Instant>>>,
     /// T26.3: the answer that can be continued for 30 s (memory only).
     answers: Answers,
+    /// The slow path: durations of the last calls, and when the running one started.
+    slow: Arc<Mutex<super::slowpath::Tracker>>,
+    slow_since: Arc<Mutex<Option<Instant>>>,
     /// Timers that are running now (at most `winops::MAX_TIMERS`).
     timers: Arc<AtomicUsize>,
     goto_seq: Arc<AtomicU64>,
@@ -461,10 +464,13 @@ pub struct Host {
 impl Host {
     pub fn new(handle: tokio::runtime::Handle, agent: Agent, service: VoiceService, pill: PillHook) -> Host {
         let dictation = DictationSettings::load(agent.config_dir());
+        let config_dir = agent.config_dir().to_path_buf();
         let inner = Arc::new(Inner {
             handle: handle.clone(),
             dictate_until: Arc::new(Mutex::new(None)),
             answers: Arc::new(Mutex::new(Default::default())),
+            slow: Arc::new(Mutex::new(super::slowpath::Tracker::load(&config_dir))),
+            slow_since: Arc::new(Mutex::new(None)),
             timers: Arc::new(AtomicUsize::new(0)),
             goto_seq: Arc::new(AtomicU64::new(0)),
             agent,
@@ -677,6 +683,13 @@ impl Host {
         self.inner.driver().state()
     }
 
+    /// The slow call that runs now (the vision model): the estimate and the time so far, for the island.
+    pub fn slow_progress(&self) -> Option<super::slowpath::Progress> {
+        let since = (*self.inner.slow_since.lock().unwrap())?;
+        let eta_sec = self.inner.slow.lock().unwrap().eta_sec(false);
+        Some(super::slowpath::Progress { eta_sec, elapsed_sec: since.elapsed().as_secs() as u32 })
+    }
+
     /// `voice_stop` of the pill (IPC): the click on the stop button or on the pill ends the recording of the PC at once.
     pub fn stop(&self) {
         let driver = self.inner.driver();
@@ -860,6 +873,7 @@ impl Ports for Inner {
         let agent = self.agent.clone();
         let (dictate, timers, goto_seq) = (self.dictate_until.clone(), self.timers.clone(), self.goto_seq.clone());
         let answers = self.answers.clone();
+        let (slow, slow_since, slow_dir) = (self.slow.clone(), self.slow_since.clone(), self.agent.config_dir().to_path_buf());
         let handle = self.handle.clone();
         let (sup, lang, service) = (self.service.supervisor().clone(), self.language(), self.service.clone());
         Box::pin(async move {
@@ -959,7 +973,17 @@ impl Ports for Inner {
                     };
                 }
                 ToolCall::ScreenAsk { question } => {
-                    return screen_ask(&service, &sup, lang, question).await;
+                    // The slow path: the island shows "Looking at the screen..." with the estimate until this ends.
+                    *slow_since.lock().unwrap() = Some(Instant::now());
+                    let started = Instant::now();
+                    let answer = screen_ask(&service, &sup, lang, question).await;
+                    *slow_since.lock().unwrap() = None;
+                    if answer.is_ok() {
+                        let mut tracker = slow.lock().unwrap();
+                        tracker.record(started.elapsed().as_millis() as u64);
+                        tracker.save(&slow_dir);
+                    }
+                    return answer;
                 }
                 ToolCall::TextTransform { op, lang: target, text } => {
                     return run_transform(&sup, &answers, lang, *op, target.as_deref(), text.as_deref()).await;
