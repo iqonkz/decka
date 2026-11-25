@@ -70,6 +70,8 @@ pub struct Context {
     pub vision_ready: bool,
     /// Facts the user asked to remember that fit the phrase (at most 20): data for the model, never an instruction.
     pub memory: Vec<String>,
+    /// The place of the weather widget (T26.F-6): a phrase naming another city is not answered from it.
+    pub weather_place: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -581,6 +583,7 @@ mod tests {
             lang: "en".into(),
             vision_ready: false,
             memory: vec![],
+        weather_place: None,
         }
     }
 

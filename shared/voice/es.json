@@ -560,7 +560,7 @@
     {
       "tool": "status",
       "args": {
-        "topic": "phone_battery"
+        "topic": "battery"
       },
       "patterns": [
         "batería del teléfono",

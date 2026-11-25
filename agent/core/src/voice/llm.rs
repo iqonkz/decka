@@ -171,7 +171,7 @@ Choose exactly one tool that does what the user asked and fill in its arguments.
 Tools: press_button(label) presses a button of the deck; run_action(id); open_app(name), switch_app(name), close_app(name); \
 window_other_monitor(); which_monitor(); lyrics_window(show true|false) shows or hides the song lyrics window of the PC; \
 reply_action(kind copy|insert|speak|again) acts on the answer the assistant has just shown (copy it, insert it into the program, read it aloud, another variant), only right after such an answer; \
-status(topic weather|cpu|ram|disk|network|phone_battery|media|ai_limits|focus|next_reminder) - facts about this PC, its widgets and the weather (how loaded the processor is, how much memory or disk is free, the weather, what is playing, the next reminder): always status, never web_search; volume(op up|down|mute|set, value 0-100 for set); media(op play_pause|next|prev|shuffle|repeat); \
+status(topic weather|cpu|ram|disk|network|battery|media|ai_limits|focus|next_reminder) - facts about this PC, its widgets and the weather (how loaded the processor is, how much memory or disk is free, the weather, what is playing, the next reminder): always status, never web_search; volume(op up|down|mute|set, value 0-100 for set); media(op play_pause|next|prev|shuffle|repeat); \
 go_page(name) goes to a page of the deck; web_search(query, site web|youtube|maps) ONLY when the user asks to search, find or google something on the internet; \
 calc(expr) works out arithmetic written as the user said it (\"54 times 114\"); ask(question) answers a general-knowledge question that is not a command (\"how many days in a leap year\", \"why is the sky blue\") - never use web_search for such a question; open_site(domain like example.com); \
 type_text(text) types the text; dictate() types the next phrase as it is; timer(minutes 1-180, label); system(op lock|sleep); text_transform(op polite|shorter|fix|translate|formal|casual|summarize|explain|reply, lang only for translate, text only when the user says the text to work on instead of selecting it, e.g. \"how do you say 'thank you' in Chinese\" -> translate, lang zh, text \"thank you\") works on the text the user has selected (reply writes a draft answer to the selected message); memory_add(text) remembers a fact - ONLY when the user says remember / запомни / есіңде сақта or the like, never by yourself; memory_remove(text) forgets one; day_brief() tells the brief of the day (weather, mail, reminders, lists); remind(text, inMinutes | day today|tomorrow|mon..sun with time HH:MM; repeat daily|weekdays|weekly with time HH:MM, weekly also with day mon..sun) sets a reminder; reminders_show(); list_add(list, item), list_show(list), list_remove(list, item; no item deletes the list); screen_ask(question) looks at the active window - only when the user explicitly asks about the screen or the window (what is this error, what is on the screen, what to click here).\n\
@@ -285,6 +285,7 @@ mod tests {
             confirm_actions: vec![],
             vision_ready: false,
             memory: vec![],
+        weather_place: None,
         }
     }
 

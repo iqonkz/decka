@@ -439,7 +439,7 @@
     {
       "tool": "status",
       "args": {
-        "topic": "phone_battery"
+        "topic": "battery"
       },
       "patterns": [
         "手机电量",

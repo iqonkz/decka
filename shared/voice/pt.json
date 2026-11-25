@@ -450,7 +450,7 @@
     {
       "tool": "status",
       "args": {
-        "topic": "phone_battery"
+        "topic": "battery"
       },
       "patterns": [
         "bateria do celular",

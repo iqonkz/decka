@@ -399,6 +399,14 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
             }
             match env.table.matches(&text) {
                 Match::Hit(intent) => {
+                    // "weather in Paris" is not the weather of the widget: the model searches the web for it (T26.F-6).
+                    if intent.tool == "status"
+                        && intent.args.get("topic").and_then(|t| t.as_str()) == Some("weather")
+                        && super::status::names_other_place(&text, env.ctx.weather_place.as_deref())
+                    {
+                        s.phase = Phase::Thinking;
+                        return (s, vec![Effect::AskLlm(text)]);
+                    }
                     let raw = RawCall { tool: intent.tool, args: serde_json::Value::Object(intent.args) };
                     // A template can swallow a phrase meant for another tool ("open main page" is no program): the
                     // model gets the phrase before it is given up on.

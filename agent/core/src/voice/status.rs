@@ -15,7 +15,7 @@ pub enum Topic {
     Ram,
     Disk,
     Network,
-    PhoneBattery,
+    Battery,
     Media,
     AiLimits,
     Focus,
@@ -23,7 +23,7 @@ pub enum Topic {
 }
 
 /// Names of the topics as the model and the phrase tables spell them (the `enum` of the tool schema).
-pub const TOPICS: &[&str] = &["weather", "cpu", "ram", "disk", "network", "phone_battery", "media", "ai_limits", "focus", "next_reminder"];
+pub const TOPICS: &[&str] = &["weather", "cpu", "ram", "disk", "network", "battery", "media", "ai_limits", "focus", "next_reminder"];
 
 impl Topic {
     pub fn parse(name: &str) -> Option<Topic> {
@@ -33,7 +33,7 @@ impl Topic {
             "ram" => Topic::Ram,
             "disk" => Topic::Disk,
             "network" => Topic::Network,
-            "phone_battery" => Topic::PhoneBattery,
+            "battery" => Topic::Battery,
             "media" => Topic::Media,
             "ai_limits" => Topic::AiLimits,
             "focus" => Topic::Focus,
@@ -50,7 +50,7 @@ impl Topic {
             Topic::Ram => ("voice.status.ram", "voice.status.none.ram"),
             Topic::Disk => ("voice.status.disk", "voice.status.none.disk"),
             Topic::Network => ("voice.status.network", "voice.status.none.network"),
-            Topic::PhoneBattery => ("voice.status.phone_battery", "voice.status.none.phone_battery"),
+            Topic::Battery => ("voice.status.battery", "voice.status.none.battery"),
             Topic::Media => ("voice.status.media", "voice.status.none.media"),
             Topic::AiLimits => ("voice.status.ai_limits", "voice.status.none.ai_limits"),
             Topic::Focus => ("voice.status.focus", "voice.status.none.focus"),
@@ -77,6 +77,24 @@ pub struct Answer {
     pub key: &'static str,
     pub args: BTreeMap<String, String>,
     pub text: String,
+}
+
+/// Words that introduce a place ("weather in Paris"), per language; the word after one is the place.
+const PLACE_PREPOSITIONS: &[&str] = &["in", "at", "for", "в", "во", "для", "für", "à", "au", "pour", "en", "em", "para", "في"];
+
+/// Whether a weather phrase names a place other than `configured` (the widget's city): "погода в Париже" with Almaty set.
+/// A place equal to the configured one (up to a case ending) or no place at all is `false`.
+pub fn names_other_place(phrase: &str, configured: Option<&str>) -> bool {
+    let toks = super::matcher::tokens(phrase);
+    let Some(i) = toks.iter().position(|t| PLACE_PREPOSITIONS.contains(&t.as_str())) else { return false };
+    let Some(word) = toks.get(i + 1) else { return false };
+    // Times of the day and similar are not places.
+    if matches!(word.as_str(), "the" | "a" | "my" | "this" | "now" | "today" | "сейчас" | "сегодня" | "завтра" | "моём" | "моем" | "этом") {
+        return false;
+    }
+    let Some(place) = configured else { return true };
+    let place_toks = super::matcher::tokens(place);
+    !place_toks.iter().any(|p| super::matcher::trigram_sim(p, word) >= 0.5 || p.starts_with(word.as_str()) || word.starts_with(p.as_str()))
 }
 
 /// Languages that write the decimal comma.
@@ -158,14 +176,13 @@ pub fn answer_for(topic: Topic, s: &Sections, lang: &str, now: &Local) -> Answer
             }
             _ => none("No data on the network yet"),
         },
-        Topic::PhoneBattery => {
+        Topic::Battery => {
             let items: Vec<String> = s
                 .battery
                 .get("devices")
                 .and_then(Value::as_array)
                 .into_iter()
                 .flatten()
-                .filter(|d| d.get("kind").and_then(Value::as_str) == Some("bt"))
                 .filter_map(|d| Some(format!("{} {}%", d.get("name")?.as_str()?, d.get("pct")?.as_u64()?)))
                 .take(3)
                 .collect();
@@ -243,7 +260,7 @@ const ALL_KEYS: &[&str] = &[
     "voice.status.ram",
     "voice.status.disk",
     "voice.status.network",
-    "voice.status.phone_battery",
+    "voice.status.battery",
     "voice.status.media",
     "voice.status.ai_limits",
     "voice.status.focus",
@@ -253,7 +270,7 @@ const ALL_KEYS: &[&str] = &[
     "voice.status.none.ram",
     "voice.status.none.disk",
     "voice.status.none.network",
-    "voice.status.none.phone_battery",
+    "voice.status.none.battery",
     "voice.status.none.media",
     "voice.status.none.ai_limits",
     "voice.status.none.focus",
@@ -272,6 +289,16 @@ mod tests {
 
     fn now() -> Local {
         Local::new(2026, 11, 25, 14, 0).unwrap()
+    }
+
+    #[test]
+    fn other_place_is_not_the_widget_place() {
+        assert!(names_other_place("погода в Париже", Some("Almaty")));
+        assert!(names_other_place("what is the weather in Paris", Some("Almaty")));
+        assert!(!names_other_place("какая погода", Some("Almaty")));
+        assert!(!names_other_place("погода в Алматы", Some("Алматы")));
+        assert!(!names_other_place("weather in Almaty", Some("Almaty")));
+        assert!(!names_other_place("погода сегодня", Some("Almaty")));
     }
 
     fn full() -> Sections {
@@ -300,7 +327,7 @@ mod tests {
         let disk = a(Topic::Disk, "en");
         assert_eq!((disk.args["disk"].as_str(), disk.args["used"].as_str()), ("C:", "210.5"), "the system disk first");
         assert_eq!(a(Topic::Network, "en").text, "Network: 12.5 Mbps down, 0.8 Mbps up");
-        assert_eq!(a(Topic::PhoneBattery, "en").text, "Battery: Pixel 7 64%");
+        assert_eq!(a(Topic::Battery, "en").text, "Battery: Laptop 90%, Pixel 7 64%");
         assert_eq!(a(Topic::Media, "en").text, "Playing: Band - Song");
         assert_eq!(a(Topic::AiLimits, "en").text, "AI limits used: Claude 5h 42%, 7d 10.5%");
         assert_eq!(a(Topic::Focus, "en").text, "Active program: code.exe");

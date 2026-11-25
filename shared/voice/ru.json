@@ -489,7 +489,7 @@
     {
       "tool": "status",
       "args": {
-        "topic": "phone_battery"
+        "topic": "battery"
       },
       "patterns": [
         "заряд телефона",
