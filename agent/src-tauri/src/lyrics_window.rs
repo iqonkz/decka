@@ -101,6 +101,7 @@ pub fn setup(app: &AppHandle, agent: &Agent) {
                 playing,
                 paused_for_ms: paused_since.map_or(0, |t| t.elapsed().as_millis() as u64),
                 fullscreen: wanted && foreground_is_fullscreen(),
+                hidden: agent.lyrics_hidden(),
             };
             let show = wanted && visible(&inputs);
 

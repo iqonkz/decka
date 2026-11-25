@@ -542,6 +542,20 @@ mod tests {
         }
     }
 
+    #[test]
+    fn lyrics_window_phrases_hide_and_show_in_en_and_ru() {
+        let ru = Table::parse(include_str!("../../../../shared/voice/ru.json")).unwrap();
+        for (t, say, show) in [
+            (en(), "hide lyrics", false),
+            (en(), "show the lyrics", true),
+            (ru.clone(), "скрой текст песни", false),
+            (ru, "покажи текст песни", true),
+        ] {
+            let i = hit(&t, say);
+            assert_eq!((i.tool.as_str(), i.args["show"].as_bool()), ("lyrics_window", Some(show)), "{say}");
+        }
+    }
+
     /// The eval phrases (`shared/voice/eval`) through the phrase tables, without a model: what the fast path answers right, what
     /// it answers wrong (a template that swallowed a phrase of another tool) and what it leaves to the model. A wrong answer of
     /// the fast path is a bug of the table (the model never gets a say). `cargo test -p decka-core eval_phrases -- --nocapture`.

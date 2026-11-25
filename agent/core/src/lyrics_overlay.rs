@@ -47,11 +47,13 @@ pub struct Inputs {
     pub paused_for_ms: u64,
     /// A full-screen program (game, video) is in the foreground.
     pub fullscreen: bool,
+    /// Hidden by voice (T26.0): wins over every mode until shown again.
+    pub hidden: bool,
 }
 
 /// Whether the window is on screen.
 pub fn visible(i: &Inputs) -> bool {
-    if i.mode == PcOverlay::Off || !i.lyrics_enabled || !i.synced {
+    if i.hidden || i.mode == PcOverlay::Off || !i.lyrics_enabled || !i.synced {
         return false;
     }
     // Always: whenever a synced song plays, over full-screen programs too (DESIGN.md 4.17).
@@ -125,7 +127,15 @@ mod tests {
             playing: true,
             paused_for_ms: 0,
             fullscreen: false,
+            hidden: false,
         }
+    }
+
+    #[test]
+    fn hidden_by_voice_beats_auto_and_always() {
+        assert!(!visible(&Inputs { hidden: true, ..base() }));
+        assert!(!visible(&Inputs { hidden: true, mode: PcOverlay::Always, ..base() }));
+        assert!(visible(&Inputs { hidden: false, mode: PcOverlay::Always, ..base() }));
     }
 
     #[test]

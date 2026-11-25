@@ -15,6 +15,7 @@ pub const TOOLS: &[&str] = &[
     "press_button", "run_action", "open_app", "switch_app", "close_app", "window_other_monitor", "which_monitor", "volume", "media", "go_page",
     "web_search", "open_site", "type_text", "dictate", "timer", "system", "text_transform", "screen_ask",
     "memory_add", "memory_remove", "day_brief", "remind", "reminders_show", "list_add", "list_show", "list_remove", "calc", "ask",
+    "lyrics_window",
 ];
 
 pub const MAX_TEXT: usize = 2000;
@@ -87,6 +88,8 @@ pub enum ToolCall {
     CloseApp { name: String, program: String },
     WindowOtherMonitor,
     WhichMonitor,
+    /// T26.0: hide (`show: false`) or show the lyrics window of the PC; not stored in config.
+    LyricsWindow { show: bool },
     Volume(VolumeOp),
     Media(MediaOp),
     GoPage { page_id: String, name: String },
@@ -302,6 +305,14 @@ fn run(tool: &str, args: &serde_json::Map<String, Value>, ctx: &Context) -> Resu
         "which_monitor" => {
             only(args, &[])?;
             ready(ToolCall::WhichMonitor, false, "Which monitor")
+        }
+        "lyrics_window" => {
+            only(args, &["show"])?;
+            match args.get("show").and_then(Value::as_bool) {
+                Some(true) => ready(ToolCall::LyricsWindow { show: true }, false, "Show the lyrics"),
+                Some(false) => ready(ToolCall::LyricsWindow { show: false }, false, "Hide the lyrics"),
+                None => reject("show must be true or false"),
+            }
         }
         "volume" => {
             only(args, &["op", "value"])?;
@@ -830,6 +841,11 @@ mod tests {
     #[test]
     fn monitor_and_dictation_tools_take_no_arguments() {
         assert_eq!(ready_of(call("which_monitor", Value::Null)).call, ToolCall::WhichMonitor);
+        assert_eq!(ready_of(call("lyrics_window", json!({ "show": false }))).call, ToolCall::LyricsWindow { show: false });
+        assert_eq!(ready_of(call("lyrics_window", json!({ "show": true }))).call, ToolCall::LyricsWindow { show: true });
+        for bad in [json!({}), json!({ "show": "no" }), json!({ "show": false, "x": 1 })] {
+            assert!(matches!(call("lyrics_window", bad.clone()), Resolved::Reject(_)), "{bad}");
+        }
         assert_eq!(ready_of(call("window_other_monitor", json!({}))).call, ToolCall::WindowOtherMonitor);
         assert_eq!(ready_of(call("dictate", json!({}))).call, ToolCall::Dictate);
     }

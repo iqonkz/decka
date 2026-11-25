@@ -748,6 +748,10 @@ impl Ports for Inner {
                 ToolCall::WhichMonitor => {
                     return tokio::task::spawn_blocking(winops::which_monitor).await.map_err(|e| format!("The action did not finish: {e}"))?;
                 }
+                ToolCall::LyricsWindow { show } => {
+                    agent.set_lyrics_hidden(!*show);
+                    return Ok(if *show { "Lyrics shown".into() } else { "Lyrics hidden".into() });
+                }
                 ToolCall::TypeText { text } => {
                     *dictate.lock().unwrap() = None;
                     let text = text.clone();

@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 
 /**
  * tools/voice-eval.mjs — Evaluates voice commands or checks evaluation sets.
@@ -52,6 +52,7 @@ export const VALID_TOOLS = new Set([
   "memory_remove",
   "calc",
   "ask",
+  "lyrics_window",
 ]);
 
 // Accuracy targets per DATA_MODEL.md §12.8:

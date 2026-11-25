@@ -2,7 +2,7 @@
 
 use std::net::{IpAddr, SocketAddr};
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -371,6 +371,8 @@ struct Inner {
     memory: crate::voice::memory::Memory,
     /// M24: lyrics of the current track (off by default).
     lyrics: crate::lyrics::Lyrics,
+    /// T26.0: the lyrics window is hidden by voice until shown again or the agent restarts (never written to config).
+    lyrics_hidden: AtomicBool,
     ai_task: Mutex<Option<JoinHandle<()>>>,
     /// Twitch: the polling loop, the sign-in in progress (and its error), the last error and the last good numbers.
     twitch_task: Mutex<Option<JoinHandle<()>>>,
@@ -433,6 +435,7 @@ impl Agent {
                 assistant: crate::assistant::Assistant::load(&config_dir),
                 memory: crate::voice::memory::Memory::load(&config_dir),
                 lyrics: crate::lyrics::Lyrics::new(&config_dir, lyrics_dir(&config_dir, opts.config_dir.is_some())),
+                lyrics_hidden: AtomicBool::new(false),
                 ai_task: Mutex::new(None),
                 twitch_task: Mutex::new(None),
                 twitch_login_task: Mutex::new(None),
@@ -610,6 +613,15 @@ impl Agent {
     }
 
     /// `media.lyrics.pcOverlay` (DESIGN.md 4.17): the window of the words on the PC; absent or unknown = `auto`.
+    /// The voice hid the lyrics window (T26.0); it beats `auto` and `always`.
+    pub fn lyrics_hidden(&self) -> bool {
+        self.inner.lyrics_hidden.load(Ordering::SeqCst)
+    }
+
+    pub fn set_lyrics_hidden(&self, hidden: bool) {
+        self.inner.lyrics_hidden.store(hidden, Ordering::SeqCst);
+    }
+
     pub fn lyrics_overlay_mode(&self) -> crate::lyrics_overlay::PcOverlay {
         let config = self.config();
         let raw = config.media.as_ref().and_then(|m| m.lyrics.as_ref()).and_then(|l| l.pc_overlay.as_deref());

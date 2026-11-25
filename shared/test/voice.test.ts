@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+﻿import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -22,6 +22,7 @@ const VALID_TOOLS = new Set([
   "text_transform",  "screen_ask",  "remind",  "reminders_show",  "list_add",  "list_show",  "list_remove",  "day_brief",  "memory_add",  "memory_remove",  "paste_text",
   "calc",
   "ask",
+  "lyrics_window",
 ]);
 
 const LANGUAGES = ["en", "zh", "hi", "es", "ar", "fr", "pt", "ru", "de", "ja", "kk"];

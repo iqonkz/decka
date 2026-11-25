@@ -422,6 +422,26 @@
         "go to {name} page",
         "switch to {name} page"
       ]
+    },
+    {
+      "tool": "lyrics_window",
+      "args": { "show": false },
+      "patterns": [
+        "hide lyrics",
+        "hide the lyrics",
+        "hide the song lyrics",
+        "hide song lyrics"
+      ]
+    },
+    {
+      "tool": "lyrics_window",
+      "args": { "show": true },
+      "patterns": [
+        "show lyrics",
+        "show the lyrics",
+        "show the song lyrics",
+        "show song lyrics"
+      ]
     }
   ]
 }
