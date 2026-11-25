@@ -1,10 +1,10 @@
-﻿import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { renderToString } from "react-dom/server";
 import { setLanguage } from "@decka/shared";
 import Island, { expandedStatusText, hasVoiceContent } from "../src/island/Island";
 import { compactWidth, currentWraps } from "../src/island/compactWidth";
 import ParticlesOrb, { particleCountForSize } from "../src/island/ParticlesOrb";
-import { orbStateFromIsland } from "../src/island/islandTypes";
+import { compactVoiceText, orbStateFromIsland } from "../src/island/islandTypes";
 
 describe("T26.5b ParticlesOrb & Island", () => {
   it("computes particle counts per size rule (480 solo, 160 small)", () => {
@@ -20,6 +20,16 @@ describe("T26.5b ParticlesOrb & Island", () => {
     expect(compactWidth("x", "y".repeat(200), m)).toBe(640);
     expect(currentWraps("x".repeat(80), m)).toBe(true);
     expect(currentWraps("x".repeat(40), m)).toBe(false);
+  });
+
+  it("T26.F.12: a song without a current line, with the voice idle, is not listening", () => {
+    const song = { mode: "compact" as const, lyrics: { playing: true } };
+    expect(orbStateFromIsland(song).orbState).toBe("idle");
+    expect(compactVoiceText(undefined, "Listening...")).toBe("");
+    expect(compactVoiceText({ active: false, phase: "idle" }, "Listening...")).toBe("");
+    expect(orbStateFromIsland({ ...song, voice: { active: false, phase: "listening" } }).orbState).toBe("idle");
+    expect(orbStateFromIsland({ ...song, voice: { active: true, phase: "listening" } }).orbState).toBe("listening");
+    expect(compactVoiceText({ active: true, phase: "listening" }, "Listening...")).toBe("Listening...");
   });
 
   it("maps island voice states and errors to orb state", () => {

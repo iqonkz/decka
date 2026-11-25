@@ -1,6 +1,7 @@
-﻿import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { LANGUAGE_NAMES, LANGUAGES, t, type Language } from "@decka/shared";
 import { orbStateFromIsland, type IslandEvent, type IslandVoicePhase } from "./islandTypes";
+import { compactVoiceText } from "./islandTypes";
 import { compactWidth, currentWraps } from "./compactWidth";
 import ParticlesOrb from "./ParticlesOrb";
 import "./island.css";
@@ -306,7 +307,7 @@ export default function Island({
                 {lyrics?.next && <div className="island-lyric-next">{lyrics.next}</div>}
               </>
             ) : (
-              <div className="island-lyric-current">{voice?.reply ?? voice?.heard ?? t("voice.listening")}</div>
+              <div className="island-lyric-current">{compactVoiceText(voice, t("voice.listening"))}</div>
             )}
           </div>
         </div>
