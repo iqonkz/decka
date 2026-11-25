@@ -14,6 +14,7 @@ pub mod context;
 pub mod dictation;
 pub mod endpoint;
 pub mod host;
+pub mod highlight;
 pub mod hotkey;
 pub mod llm;
 pub mod matcher;

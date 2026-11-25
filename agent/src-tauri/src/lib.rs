@@ -1,4 +1,5 @@
 mod commands;
+mod highlight;
 mod island;
 mod tray;
 mod voice;
@@ -175,6 +176,7 @@ pub fn run() {
                     agent.start_update_loop();
                     voice::setup(app.handle(), &agent);
                     island::setup(app.handle(), &agent);
+                    highlight::setup(app.handle());
 
                     app.manage(agent);
                 }

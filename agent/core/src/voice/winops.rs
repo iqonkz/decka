@@ -302,6 +302,38 @@ mod win {
     }
 }
 
+/// The window that has the focus, as a number (0 when there is none or not on Windows).
+pub fn foreground_handle() -> u64 {
+    #[cfg(windows)]
+    {
+        // SAFETY: a plain query of the window manager.
+        unsafe { windows::Win32::UI::WindowsAndMessaging::GetForegroundWindow().0 as usize as u64 }
+    }
+    #[cfg(not(windows))]
+    {
+        0
+    }
+}
+
+/// Whether the left mouse button is down, and where the cursor is (physical pixels).
+pub fn left_button_and_cursor() -> (bool, (i32, i32)) {
+    #[cfg(windows)]
+    {
+        use windows::Win32::Foundation::POINT;
+        use windows::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, VK_LBUTTON};
+        use windows::Win32::UI::WindowsAndMessaging::GetCursorPos;
+        let mut p = POINT::default();
+        // SAFETY: plain queries of the input state; `p` lives for the call.
+        unsafe {
+            let _ = GetCursorPos(&mut p);
+            ((GetAsyncKeyState(i32::from(VK_LBUTTON.0)) as u16 & 0x8000) != 0, (p.x, p.y))
+        }
+    }
+    #[cfg(not(windows))]
+    {
+        (false, (0, 0))
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;
