@@ -1125,5 +1125,7 @@ export const ru: Record<Base | ExtraPlural, string> = {
     "island.connected": "Подключено",
   "island.speaking": "Говорю…",
   "island.replay": "Проиграть переход",
+  "island.copied": "Скопировано",
+  "island.stop_speaking": "Остановить озвучку",
 // @@END
 };

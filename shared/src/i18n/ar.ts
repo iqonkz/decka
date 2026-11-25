@@ -1133,4 +1133,6 @@ export const ar: Dictionary = {
   "island.connected": "متصل",
   "island.speaking": "يتحدث…",
   "island.replay": "تشغيل الانتقال",
+  "island.copied": "تم النسخ",
+  "island.stop_speaking": "إيقاف النطق",
 };

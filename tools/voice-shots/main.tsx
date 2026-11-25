@@ -423,6 +423,9 @@ if (scene === "deck" || scene === "settings") {
             theme={themeMode}
             hovered={q.get("hover") === "1"}
             transitionPreview={transitionPreview}
+            hoveredAction={q.get("hoverBtn") ?? undefined}
+            copiedPreview={q.get("copied") === "1"}
+            langMenuOpenPreview={q.get("langMenu") === "1"}
             onAction={() => {}}
             onChipClick={() => {}}
             onStopSlow={() => {}}

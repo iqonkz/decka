@@ -1,7 +1,20 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { LANGUAGE_NAMES, LANGUAGES, t, type Language } from "@decka/shared";
-import { orbStateFromIsland, type IslandEvent, type IslandVoicePhase } from "./islandTypes";
-import { compactVoiceText } from "./islandTypes";
+import {
+  Check,
+  ChevronDown,
+  ClipboardPaste,
+  Code,
+  Copy,
+  HelpCircle,
+  Languages,
+  Mic,
+  RefreshCw,
+  Reply,
+  Square,
+  Volume2,
+} from "lucide-react";
+import { LANGUAGE_NAMES, LANGUAGES, locale, t, type Language } from "@decka/shared";
+import { compactVoiceText, orbStateFromIsland, type IslandContextChip, type IslandEvent, type IslandVoicePhase } from "./islandTypes";
 import { compactWidth, currentWraps } from "./compactWidth";
 import ParticlesOrb from "./ParticlesOrb";
 import "./island.css";
@@ -15,20 +28,18 @@ export interface IslandProps {
   hovered?: boolean;
   /** Preview progress 0..1 of the solo -> content transition for deterministic inspection/snapshots. */
   transitionPreview?: number;
+  /** Preview helpers for deterministic answer-toolbar screenshots. */
+  hoveredAction?: string;
+  copiedPreview?: boolean;
+  langMenuOpenPreview?: boolean;
   onAction?: (kind: string) => void;
   onChipClick?: (command: string) => void;
   onStopSlow?: () => void;
   onTabHover?: () => void;
 }
 
-const SIMPLE_ACTIONS: { kind: string; key: "island.copy" | "island.insert" | "island.speak" | "island.again" }[] = [
-  { kind: "copy", key: "island.copy" },
-  { kind: "insert", key: "island.insert" },
-  { kind: "speak", key: "island.speak" },
-  { kind: "again", key: "island.again" },
-];
-
 const FLIP_MS = 320;
+const COPY_FEEDBACK_MS = 1200;
 const ORB_SOLO_SIZE = 140;
 const ORB_CONTENT_SIZE = 72;
 
@@ -59,6 +70,27 @@ export function expandedStatusText(phase?: IslandVoicePhase): string {
   }
 }
 
+export function chipIconKind(chip: IslandContextChip): "code" | "translate" | "reply" | "help" {
+  const hay = `${chip.command} ${chip.label}`.toLowerCase();
+  if (hay.includes("translate") || hay.includes("перевед")) return "translate";
+  if (hay.includes("reply") || hay.includes("ответ")) return "reply";
+  if (hay.includes("copy") || hay.includes("code") || hay.includes("код")) return "code";
+  return "help";
+}
+
+function renderChipIcon(kind: "code" | "translate" | "reply" | "help") {
+  switch (kind) {
+    case "code":
+      return <Code size={14} strokeWidth={1.75} aria-hidden="true" />;
+    case "translate":
+      return <Languages size={14} strokeWidth={1.75} aria-hidden="true" />;
+    case "reply":
+      return <Reply size={14} strokeWidth={1.75} aria-hidden="true" />;
+    case "help":
+      return <HelpCircle size={14} strokeWidth={1.75} aria-hidden="true" />;
+  }
+}
+
 function prefersReducedMotion(): boolean {
   return typeof window !== "undefined" && typeof window.matchMedia === "function"
     ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
@@ -66,11 +98,11 @@ function prefersReducedMotion(): boolean {
 }
 
 /**
- * Floating Island surface for PC (TASKS.md §T26.5b):
+ * Floating Island surface for PC (TASKS.md §T26.5b / §T26.F.9):
  * - `hidden`, `tab` (96x6 bar in 160x24 hit zone)
  * - `compact` (360x56 / 72, 32px orb)
  * - `expanded` solo (260x230, 140px orb + centered status line) and with content (520 x <=360, 72px orb left + right content column),
- *   connected by a 320ms FLIP transition keeping the orb canvas alive until completion.
+ *   with icon-first answer bar (lucide-react 18px, 1.75 stroke) and context chips.
  */
 export default function Island({
   event,
@@ -79,6 +111,9 @@ export default function Island({
   colorTo = "#d946ef",
   hovered = false,
   transitionPreview,
+  hoveredAction,
+  copiedPreview = false,
+  langMenuOpenPreview = false,
   onAction,
   onChipClick,
   onStopSlow,
@@ -86,6 +121,8 @@ export default function Island({
 }: IslandProps) {
   const { mode, lyrics, voice } = event;
   const [langMenuOpen, setLangMenuOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const copyTimerRef = useRef<number | null>(null);
   const langRef = useRef<HTMLDivElement>(null);
 
   const rawHasContent = mode === "expanded" && hasVoiceContent(event);
@@ -126,6 +163,21 @@ export default function Island({
     prevModeRef.current = mode;
     prevPhaseRef.current = voice?.phase;
   }, [mode, voice?.phase]);
+
+  useEffect(() => {
+    setCopied(false);
+    if (copyTimerRef.current !== null) {
+      window.clearTimeout(copyTimerRef.current);
+      copyTimerRef.current = null;
+    }
+  }, [voice?.reply]);
+
+  useEffect(
+    () => () => {
+      if (copyTimerRef.current !== null) window.clearTimeout(copyTimerRef.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!langMenuOpen) return;
@@ -188,7 +240,6 @@ export default function Island({
     const slotRect = slotEl.getBoundingClientRect();
     const firstRect = prevSoloOrbRectRef.current;
 
-    // Fallback delta when unmeasured in non-layout test environments matches geometric solo center -> 520px left slot.
     let dx = 74;
     let dy = 40;
     if (firstRect && firstRect.width > 0 && slotRect.width > 0) {
@@ -196,7 +247,6 @@ export default function Island({
       dy = firstRect.top + firstRect.height / 2 - (slotRect.top + slotRect.height / 2);
     }
 
-    // Frame 0: hold 140px canvas backing & invert orb + panel box to exact solo geometry.
     setFlipping(true);
     setAnimateContent(true);
 
@@ -319,14 +369,23 @@ export default function Island({
   const slow = voice?.slow;
   const slowOverdue = slow && (slow.elapsedSec ?? 0) > slow.etaSec * 2;
   const slowPct = slow ? Math.min(95, Math.round(((slow.elapsedSec ?? 0) / Math.max(1, slow.etaSec)) * 100)) : 0;
-  const hasActions = Boolean(voice?.actions && voice.actions.length > 0);
-  const showLang = Boolean(voice?.actions?.some((a) => a === "lang" || a.startsWith("lang:")));
+  const actions = voice?.actions ?? [];
+  const hasCopy = actions.includes("copy");
+  const hasInsert = actions.includes("insert");
+  const hasSpeak = actions.includes("speak");
+  const hasAgain = actions.includes("again");
+  const showLang = actions.some((a) => a === "lang" || a.startsWith("lang:"));
+  const hasGroup1 = hasCopy || hasInsert || hasSpeak;
+  const hasActions = hasGroup1 || hasAgain || showLang;
   const statusLabel = expandedStatusText(voice?.phase);
+  const currentLang = locale();
+  const isCopied = copied || copiedPreview;
+  const isSpeaking = voice?.phase === "speaking";
+  const isAgainSpinning = Boolean(voiceActive && (voice?.phase === "thinking" || voice?.phase === "recognizing" || voice?.phase === "loading"));
+  const menuOpen = langMenuOpen || langMenuOpenPreview;
 
-  // Keep 140px canvas live throughout solo, active FLIP transition, or preview snapshot; shrink to 72 at rest.
   const orbCanvasSize = !isContent || flipping || isPreviewMid ? ORB_SOLO_SIZE : ORB_CONTENT_SIZE;
 
-  // Sample cubic-bezier(0.2, 0.8, 0.2, 1) and 120ms-delayed 160ms content fade for deterministic preview snapshots.
   const easeOutCurve = (p: number) => 1 - Math.pow(1 - Math.max(0, Math.min(1, p)), 3);
   const previewT = isPreviewMid ? previewRatio : 0;
   const previewEase = easeOutCurve(previewT);
@@ -348,6 +407,16 @@ export default function Island({
         transform: `translateX(${(8 * (1 - contentT)).toFixed(1)}px)`,
       }
     : undefined;
+
+  const handleCopy = () => {
+    setCopied(true);
+    if (copyTimerRef.current !== null) window.clearTimeout(copyTimerRef.current);
+    copyTimerRef.current = window.setTimeout(() => {
+      copyTimerRef.current = null;
+      setCopied(false);
+    }, COPY_FEEDBACK_MS);
+    onAction?.("copy");
+  };
 
   return (
     <div className="island-host" data-island-theme={theme}>
@@ -405,54 +474,14 @@ export default function Island({
               voice?.phase !== "idle" && <div className="island-content-status">{statusLabel}</div>
             )}
 
-            {voice?.heard && <div className="island-heard">“{voice.heard}”</div>}
-
-            {voice?.reply && <div className="island-reply">{voice.reply}</div>}
-
-            {hasActions && (
-              <div className="island-actions">
-                {SIMPLE_ACTIONS.filter((a) => voice?.actions?.includes(a.kind)).map((a) => (
-                  <button
-                    key={a.kind}
-                    type="button"
-                    className="island-action-btn"
-                    onClick={() => onAction?.(a.kind)}
-                  >
-                    {t(a.key)}
-                  </button>
-                ))}
-                {showLang && (
-                  <div className="island-lang-wrap" ref={langRef}>
-                    <button
-                      type="button"
-                      className="island-action-btn"
-                      aria-expanded={langMenuOpen}
-                      onClick={() => setLangMenuOpen((v) => !v)}
-                    >
-                      {t("island.language")} ▾
-                    </button>
-                    {langMenuOpen && (
-                      <div className="island-lang-menu" role="menu">
-                        {LANGUAGES.map((code: Language) => (
-                          <button
-                            key={code}
-                            type="button"
-                            role="menuitem"
-                            className="island-lang-item"
-                            onClick={() => {
-                              setLangMenuOpen(false);
-                              onAction?.(`lang:${code}`);
-                            }}
-                          >
-                            {LANGUAGE_NAMES[code]}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
+            {voice?.heard && (
+              <div className="island-heard">
+                <Mic size={12} strokeWidth={1.75} className="island-heard-mic" aria-hidden="true" />
+                <span className="island-heard-text">{voice.heard}</span>
               </div>
             )}
+
+            {voice?.reply && <div className="island-reply">{voice.reply}</div>}
 
             {voice?.chips && voice.chips.length > 0 && (
               <div className="island-chips">
@@ -463,9 +492,105 @@ export default function Island({
                     className="island-chip"
                     onClick={() => onChipClick?.(chip.command)}
                   >
-                    {chip.label}
+                    {renderChipIcon(chipIconKind(chip))}
+                    <span>{chip.label}</span>
                   </button>
                 ))}
+              </div>
+            )}
+
+            {hasActions && (
+              <div className="island-actions">
+                {hasCopy && (
+                  <button
+                    type="button"
+                    className={`island-action-btn${isCopied ? " is-copied" : ""}${hoveredAction === "copy" ? " is-hovered" : ""}`}
+                    title={isCopied ? t("island.copied") : t("island.copy")}
+                    aria-label={isCopied ? t("island.copied") : t("island.copy")}
+                    onClick={handleCopy}
+                  >
+                    {isCopied ? <Check size={18} strokeWidth={1.75} aria-hidden="true" /> : <Copy size={18} strokeWidth={1.75} aria-hidden="true" />}
+                  </button>
+                )}
+                {hasInsert && (
+                  <button
+                    type="button"
+                    className={`island-action-btn${hoveredAction === "insert" ? " is-hovered" : ""}`}
+                    title={t("island.insert")}
+                    aria-label={t("island.insert")}
+                    onClick={() => onAction?.("insert")}
+                  >
+                    <ClipboardPaste size={18} strokeWidth={1.75} aria-hidden="true" />
+                  </button>
+                )}
+                {hasSpeak && (
+                  <button
+                    type="button"
+                    className={`island-action-btn${hoveredAction === "speak" ? " is-hovered" : ""}`}
+                    title={isSpeaking ? t("island.stop_speaking") : t("island.speak")}
+                    aria-label={isSpeaking ? t("island.stop_speaking") : t("island.speak")}
+                    onClick={() => onAction?.("speak")}
+                  >
+                    {isSpeaking ? <Square size={18} strokeWidth={1.75} aria-hidden="true" /> : <Volume2 size={18} strokeWidth={1.75} aria-hidden="true" />}
+                  </button>
+                )}
+
+                {hasGroup1 && hasAgain && <span className="island-actions-sep" aria-hidden="true" />}
+
+                {hasAgain && (
+                  <button
+                    type="button"
+                    className={`island-action-btn${hoveredAction === "again" ? " is-hovered" : ""}`}
+                    title={t("island.again")}
+                    aria-label={t("island.again")}
+                    onClick={() => onAction?.("again")}
+                  >
+                    <RefreshCw
+                      size={18}
+                      strokeWidth={1.75}
+                      className={isAgainSpinning ? "island-icon-spin" : undefined}
+                      aria-hidden="true"
+                    />
+                  </button>
+                )}
+
+                {showLang && (
+                  <div className="island-lang-wrap" ref={langRef}>
+                    <button
+                      type="button"
+                      className={`island-action-btn island-lang-btn${hoveredAction === "lang" ? " is-hovered" : ""}`}
+                      title={t("island.language")}
+                      aria-label={t("island.language")}
+                      aria-expanded={menuOpen}
+                      onClick={() => setLangMenuOpen((v) => !v)}
+                    >
+                      <Languages size={18} strokeWidth={1.75} aria-hidden="true" />
+                      <span className="island-lang-code">{currentLang.toUpperCase()}</span>
+                      <ChevronDown size={14} strokeWidth={1.75} aria-hidden="true" />
+                    </button>
+                    {menuOpen && (
+                      <div className="island-lang-menu" role="menu">
+                        {LANGUAGES.map((code: Language) => (
+                          <button
+                            key={code}
+                            type="button"
+                            role="menuitem"
+                            className={`island-lang-item${code === currentLang ? " is-current" : ""}`}
+                            onClick={() => {
+                              setLangMenuOpen(false);
+                              onAction?.(`lang:${code}`);
+                            }}
+                          >
+                            <span className="island-lang-item-check">
+                              {code === currentLang ? <Check size={14} strokeWidth={1.75} aria-hidden="true" /> : null}
+                            </span>
+                            <span>{LANGUAGE_NAMES[code]}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>

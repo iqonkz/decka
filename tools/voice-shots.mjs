@@ -123,6 +123,9 @@ function m26Shots() {
   "m26-island-tab-light": [{ w: 300, h: 100, scale: 2 }, "scene=island&mode=tab&theme=light"],
   "m26-island-compact-lyrics-light": [{ w: 480, h: 160, scale: 2 }, "scene=island&mode=compact&voiceOff=1&lyrics=1&theme=light"],
     "m26-island-expanded-error": [islandSize, "scene=island&mode=expanded&state=error&reply=1&replyText=Didn%27t+get+that&lang=en&theme=dark"],
+    "m26f9-answer-hover": [islandSize, "scene=island&mode=expanded&state=idle&reply=1&lang=en&theme=dark&hoverBtn=insert"],
+    "m26f9-answer-lang-menu": [{ w: 600, h: 560, scale: 2 }, "scene=island&mode=expanded&state=idle&reply=1&lang=ru&theme=dark&langMenu=1"],
+    "m26f9-answer-copied": [islandSize, "scene=island&mode=expanded&state=idle&reply=1&lang=en&theme=dark&copied=1"],
   };
 }
 // T23: the settings window (Russian) in both colour schemes: pages, a search with results and the minimum window width.

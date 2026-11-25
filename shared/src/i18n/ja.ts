@@ -1093,4 +1093,6 @@ export const ja: Dictionary = {
   "island.connected": "接続済み",
   "island.speaking": "読み上げ中…",
   "island.replay": "トランジション再生",
+  "island.copied": "コピーしました",
+  "island.stop_speaking": "読み上げを停止",
 };

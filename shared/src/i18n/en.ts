@@ -1103,5 +1103,7 @@ export const en = {
     "island.connected": "Connected",
   "island.speaking": "Speaking…",
   "island.replay": "Play transition",
+  "island.copied": "Copied",
+  "island.stop_speaking": "Stop speaking",
 // @@END
 } as const;
