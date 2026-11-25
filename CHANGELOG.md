@@ -4,6 +4,19 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+### Added
+- **Island, answers**: the answer buttons are now icons (Copy, Insert, Speak, Try again, Language) and the language menu opens below the panel. A "Copy code" chip appears only when the answer contains a code block.
+- **Island, music**: the compact island with a song is a fixed 520 px wide. The sphere is 48 px and moves with the music; on hover Play/Pause appears over the sphere and Next beside it. Before the first lyric line it shows the title and artist with "Lyrics in 0:12", or three dots while the lyrics are being searched for.
+- **Voice**: "status battery" answers with the PC and Bluetooth devices.
+
+### Changed
+- **Island**: a solo sphere opens into the answer smoothly; the window follows the size of the panel; the panel is a little less transparent (96 %) in both themes, and a light panel has a clearer edge on light wallpapers.
+- **Performance**: the sphere is drawn from pre-rendered dots (480 in the solo view, 160 small), at 30 fps while active, 15 fps at rest, and nothing while the window is hidden. The useless blur behind the panel is gone.
+
+### Fixed
+- **Island**: a song without a lyric line no longer says "Listening..." and the sphere no longer shows the listening state.
+- **Voice**: "weather in Paris" no longer answers with the weather of your city; it goes to the assistant instead. Reminder examples and tool descriptions are clearer for the model.
+
 ## 0.40.0 — 2026-11-25
 
 ### Added
