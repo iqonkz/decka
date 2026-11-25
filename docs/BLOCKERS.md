@@ -174,3 +174,5 @@ Not a blocker, a docs gap for the architect. T24.2 asks lrclib.net (HTTPS, 5 s, 
 
 ## 2026-11-25 - T25.3: the PC does not know which page the phone shows
 Not a stop, a gap for the architect. DESIGN 4.17 (`Auto`) hides the lyrics window while the phone shows a `media` widget of size `L` "on the current page". No message carries the current page of a phone (PROTOCOL has none), so the PC cannot tell. Implemented the safe approximation in `lyrics_overlay::phone_shows_big_media`: a phone is connected and the layout has a `media` widget with `w >= 4 && h >= 2` on any normal (non-popup) page. Effect: with such a widget anywhere in the layout, `Auto` stays hidden while a phone is connected, even when the phone is on another page; `Always` is not affected. An exact rule needs a small data message `page_view { pageId }` from the phone (data only, no command) - architect to decide; the function is the only place to change.
+
+**Решение архитектора 2026-11-25:** условие про телефон из `Auto` убрано (DESIGN §4.17): `Auto` = играет + синхронный текст, скрыто при паузе 3 с и полноэкранной программе. `page_view` не вводим; `phone_shows_big_media` удалить.
