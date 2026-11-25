@@ -149,6 +149,14 @@ function m26Shots() {
     "t26f14-compact-long-hover-ru-light": [{ w: 600, h: 260, scale: 2 }, "scene=island&mode=compact&voiceOff=1&lyrics=3lines&hover=1&lang=ru&theme=light"],
     "t26f14-compact-countdown-hover-ru-dark": [{ w: 600, h: 200, scale: 2 }, "scene=island&mode=compact&voiceOff=1&songScene=countdown&hover=1&lang=ru&theme=dark"],
     "t26f14-compact-countdown-hover-ru-light": [{ w: 600, h: 200, scale: 2 }, "scene=island&mode=compact&voiceOff=1&songScene=countdown&hover=1&lang=ru&theme=light"],
+function m27Shots() {
+  const overlaySize = { w: 960, h: 540, scale: 1 };
+  const settingsSize = { w: 860, h: 1850, scale: 1 };
+  return {
+    "m27-overlay-dark-ru": [overlaySize, "scene=m27&part=overlay&theme=dark&scheme=dark&lang=ru"],
+    "m27-overlay-light-en": [overlaySize, "scene=m27&part=overlay&theme=light&scheme=light&lang=en"],
+    "m27-settings-dark-ru": [settingsSize, "scene=m27&part=settings&theme=dark&scheme=dark&lang=ru"],
+    "m27-settings-light-en": [settingsSize, "scene=m27&part=settings&theme=light&scheme=light&lang=en"],
   };
 }
 // T23: the settings window (Russian) in both colour schemes: pages, a search with results and the minimum window width.
@@ -193,6 +201,7 @@ const SHOTS = {
   ...t235bShots(),
   ...t24Shots(),
   ...m26Shots(),
+  ...m27Shots(),
   "phone-idle": [PHONE, "scene=phone&state=idle"],
   "phone-listening": [PHONE, "scene=phone&state=listening"],
   "phone-done": [PHONE, "scene=phone&state=done&heard=turn+the+volume+up&reply=Done"],

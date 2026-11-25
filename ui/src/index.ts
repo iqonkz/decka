@@ -2,6 +2,7 @@
 // Data and callbacks come in as props; nothing here knows about sockets, stores or the settings window.
 import "./deck.css";
 import "./island/island.css";
+import "./m27/m27.css";
 import "./theme/amoled.css";
 import "./theme/studio.css";
 import "./theme/material.css";
@@ -53,3 +54,6 @@ export {
   type IslandMediaKind,
   type IslandEvent,
 } from "./island/islandTypes";
+export { default as HighlightOverlay, computeBubblePlacement, type BubblePlacement, type BubbleSide, type HighlightOverlayProps } from "./m27/HighlightOverlay";
+export { default as GuidePanel, type GuidePanelProps } from "./m27/GuidePanel";
+export type { HighlightRect, HighlightEvent, GuideStepEvent, SavedGuideStep, SavedGuide, WorkModeApp, WorkMode, VoiceModelTier } from "@decka/shared";

@@ -499,6 +499,99 @@ if (scene === "deck" || scene === "settings") {
       );
     }
   }
+} else if (scene === "m27") {
+  const { HighlightOverlay, GuidePanel } = await import("../../ui/src");
+  const { default: VoiceSection } = await import("../../agent/src/tabs/VoiceSection");
+  const themeMode = (q.get("theme") ?? "dark") as "light" | "dark";
+  const part = q.get("part") ?? "overlay";
+  const isRu = q.get("lang") === "ru";
+  if (part === "settings") {
+    await import("../../agent/src/styles.css");
+    const { applyWindowTheme } = await import("../../agent/src/windowTheme");
+    applyWindowTheme(themeMode);
+    (window as never as { __TAURI_INTERNALS__: unknown }).__TAURI_INTERNALS__ = {
+      invoke: async (cmd: string) =>
+        cmd === "memory_get"
+          ? []
+          : cmd === "voice_dictation_get"
+            ? { trigger: "double_ctrl", hotkey: ["ctrl", "alt", "d"], mode: "type", dictionary: [] }
+            : null,
+      transformCallback: () => 1,
+      metadata: { currentWindow: { label: "main" }, currentWebview: { label: "main", windowLabel: "main" } },
+    };
+    document.body.style.cssText = `margin:0;min-height:100vh;padding:24px;box-sizing:border-box;background:${themeMode === "light" ? "#f4f6fb" : "#161820"};`;
+    root.render(
+      <div style={{ maxWidth: 680, margin: "0 auto" }}>
+        <VoiceSection
+          openAdvanced
+          initialStatus={{
+            state: "ready",
+            hardware: { ramGb: 32, gpu: "RTX 4070", vramGb: 12 },
+            model: "standard",
+            downloadGb: 3.2,
+            hotkey: ["ctrl", "alt", "space"],
+            keepLoaded: false,
+            speak: false,
+            phoneButton: true,
+            mics: ["Default Mic"],
+          }}
+          previewGuides={[
+            {
+              id: "g1",
+              goal: [isRu ? "Сохранить как PDF" : "Save as PDF"],
+              process: "WINWORD.EXE",
+              steps: [
+                { role: "MenuItem", name: "File", automationId: "file" },
+                { role: "Button", name: "Export", automationId: "export" },
+              ],
+              created: "2026-11-25",
+              uses: 3,
+            },
+          ]}
+          previewModes={[
+            {
+              name: isRu ? "Разработка" : "Dev workspace",
+              apps: [{ exe: "code.exe" }, { exe: "chrome.exe" }],
+              focusMinutes: 45,
+            },
+          ]}
+        />
+      </div>,
+    );
+  } else {
+    document.body.style.cssText =
+      themeMode === "light"
+        ? "margin:0;min-height:100vh;background:linear-gradient(135deg,#e8eef8,#f3e8ff);font-family:system-ui,-apple-system,sans-serif;"
+        : "margin:0;min-height:100vh;background:radial-gradient(900px 600px at 20% 20%,#1e2b4f 0%,transparent 65%),#0b0d14;font-family:system-ui,-apple-system,sans-serif;";
+    root.render(
+      <div style={{ position: "relative", width: "100vw", height: "100vh" }}>
+        <div style={{ display: "flex", justifyContent: "center", paddingTop: 24 }}>
+          <GuidePanel
+            theme={themeMode}
+            guide={{
+              goal: isRu ? "Сохранить документ как PDF" : "Save document as PDF",
+              step: 2,
+              total: 4,
+              text: isRu ? "Нажмите «Экспорт», затем выберите PDF." : "Click Export, then select Create PDF/XPS.",
+              active: true,
+            }}
+            onBack={() => {}}
+            onStop={() => {}}
+          />
+        </div>
+        <HighlightOverlay
+          theme={themeMode}
+          viewport={{ width: 960, height: 540 }}
+          highlight={{
+            rect: { x: 180, y: 240, width: 160, height: 42 },
+            text: isRu ? "Нажмите «Экспорт»" : "Click Export",
+            step: 2,
+            total: 4,
+          }}
+        />
+      </div>,
+    );
+  }
 } else if (scene === "service") {
   await import("../../client/src/styles.css");
   const { applyTheme } = await import("../../ui/src");

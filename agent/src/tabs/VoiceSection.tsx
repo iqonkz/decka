@@ -1,17 +1,24 @@
 import { useEffect, useState } from "react";
 import { t, type VoiceStatus } from "@decka/shared";
+import type { SavedGuide, VoiceModelTier, WorkMode } from "@decka/ui";
+import { invoke } from "@tauri-apps/api/core";
 import { call, onVoiceStatus } from "../ipc";
 import Button from "../ui/Button";
 import Banner from "../ui/Banner";
+import Modal from "../ui/Modal";
 import ChordField from "../editor/ChordField";
 import { formatChord } from "../editor/addButton";
 import VoiceHelp from "./VoiceHelp";
 import DictationBlock from "./DictationBlock";
 import MemoryBlock from "./MemoryBlock";
+import GuidesBlock from "./GuidesBlock";
+import ModesBlock from "./ModesBlock";
 import { Group, PageHeader, Row, SectionHeader } from "../ui/SettingsGroup";
 import Disclosure from "../ui/Disclosure";
 import Select from "../ui/Select";
 import Switch from "../ui/Switch";
+
+const MODEL_9B_GB = "6.4";
 
 const DEFAULT_STATUS: VoiceStatus = {
   state: "off",
@@ -25,33 +32,71 @@ const DEFAULT_STATUS: VoiceStatus = {
   mics: [],
 };
 
-export function formatHardware(hw: { gpu?: string; vramGb?: number; ramGb: number }, model: "standard" | "light" | "9b"): string {
+export function supports9bModel(hw: { vramGb?: number; ramGb: number }): boolean {
+  return hw.ramGb >= 16 || (hw.vramGb ?? 0) >= 8;
+}
+
+export function formatHardware(hw: { gpu?: string; vramGb?: number; ramGb: number }, model: VoiceModelTier): string {
   const parts: string[] = [];
   if (hw.gpu) {
     if (hw.vramGb != null) parts.push(`${hw.gpu} (${Math.round(hw.vramGb)} GB)`);
     else parts.push(hw.gpu);
   }
   parts.push(`${hw.ramGb.toFixed(1)} GB RAM`);
-  const modelName = t(model === "light" ? "voice.model_light_short" : "voice.model_standard_short");
+  const modelName = t(
+    model === "light"
+      ? "voice.model_light_short"
+      : model === "9b"
+        ? "m27.model_9b_short"
+        : "voice.model_standard_short",
+  );
   return t("voice.hw_summary", { details: parts.join(", "), model: modelName });
 }
 
-/** Settings window: More → Voice (DATA_MODEL.md 12.7). */
-export default function VoiceSection() {
-  const [status, setStatus] = useState<VoiceStatus>(DEFAULT_STATUS);
+export interface VoiceSectionProps {
+  initialStatus?: VoiceStatus;
+  initialModelTier?: VoiceModelTier;
+  initialNotices?: boolean;
+  previewGuides?: SavedGuide[];
+  previewModes?: WorkMode[];
+  openAdvanced?: boolean;
+}
+
+/** Settings window: More → Voice (DATA_MODEL.md 12.7 + M27 guides, modes, notices, 9B). */
+export default function VoiceSection({
+  initialStatus,
+  initialModelTier,
+  initialNotices = true,
+  previewGuides,
+  previewModes,
+  openAdvanced,
+}: VoiceSectionProps = {}) {
+  const [status, setStatus] = useState<VoiceStatus>(initialStatus ?? DEFAULT_STATUS);
+  const [modelTier, setModelTier] = useState<VoiceModelTier>(initialModelTier ?? (initialStatus?.model ?? "standard"));
+  const [noticesEnabled, setNoticesEnabled] = useState<boolean>(initialNotices);
+  const [confirm9bOpen, setConfirm9bOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // T26.7: hints by the active program when the island opens (off by default).
   const [context, setContext] = useState(false);
 
   useEffect(() => {
+    if (initialStatus) return;
     let active = true;
     call("voice_context_get").then(
       (on) => active && setContext(on),
       () => {},
     );
+    call("voice_notices_get").then(
+      (on) => active && setNoticesEnabled(on),
+      () => {},
+    );
     call("voice_status").then(
-      (s) => active && setStatus(s),
+      (s) => {
+        if (!active) return;
+        setStatus(s);
+        setModelTier((cur) => (cur === "9b" ? cur : s.model));
+      },
       () => {},
     );
 
@@ -70,7 +115,7 @@ export default function VoiceSection() {
       active = false;
       off?.();
     };
-  }, []);
+  }, [initialStatus]);
 
   async function run(cmd: "voice_enable" | "voice_cancel" | "voice_remove") {
     setBusy(true);
@@ -214,19 +259,47 @@ export default function VoiceSection() {
             <Row title={t("voice.phone_button")}>
               <Switch checked={status.phoneButton} onChange={(val) => void setConfig({ phoneButton: val })} />
             </Row>
+
+            <Row title={t("m27.notices_title")} description={t("m27.notices_desc")}>
+              <Switch
+                checked={noticesEnabled}
+                onChange={(val) => {
+                  setNoticesEnabled(val);
+                  invoke("voice_notices_set", { enabled: val }).catch(() => {});
+                }}
+              />
+            </Row>
           </Group>
 
-          <Disclosure title={t("voice.advanced")} style={{ marginTop: 16 }}>
+          <Disclosure title={t("voice.advanced")} defaultOpen={openAdvanced} style={{ marginTop: 16 }}>
             <Group>
-              <Row title={t("voice.model")} description={t("voice.models_info", { llm: status.model === "light" ? "Qwen3.5 2B" : "Qwen3.5 4B" })}>
+              <Row
+                title={t("voice.model")}
+                description={
+                  supports9bModel(status.hardware)
+                    ? t("voice.models_info", {
+                        llm: modelTier === "light" ? "Qwen3.5 2B" : modelTier === "9b" ? "Qwen3.5 9B" : "Qwen3.5 4B",
+                      })
+                    : t("m27.model_9b_req")
+                }
+              >
                 <Select
                   aria-label={t("voice.model")}
-                  value={status.model}
+                  value={modelTier}
                   options={[
                     { value: "standard", label: t("voice.model_standard") },
                     { value: "light", label: t("voice.model_light") },
+                    ...(supports9bModel(status.hardware) ? [{ value: "9b", label: t("m27.model_9b") }] : []),
                   ]}
-                  onChange={(val) => void setConfig({ model: val as "standard" | "light" })}
+                  onChange={(val) => {
+                    const tier = val as VoiceModelTier;
+                    if (tier === "9b") {
+                      setConfirm9bOpen(true);
+                      return;
+                    }
+                    setModelTier(tier);
+                    void setConfig({ model: tier });
+                  }}
                 />
               </Row>
               <Row title={t("voice.remove")}>
@@ -239,8 +312,34 @@ export default function VoiceSection() {
         </>
       )}
 
+      {confirm9bOpen && (
+        <Modal
+          title={t("m27.model_9b_confirm_title")}
+          onClose={() => setConfirm9bOpen(false)}
+          footer={
+            <>
+              <Button onClick={() => setConfirm9bOpen(false)}>{t("common.cancel")}</Button>
+              <Button
+                variant="primary"
+                onClick={() => {
+                  setModelTier("9b");
+                  setConfirm9bOpen(false);
+                  invoke("voice_set_model_tier", { model: "9b" }).catch(() => {});
+                }}
+              >
+                {t("m27.model_9b_confirm_ok", { size: MODEL_9B_GB })}
+              </Button>
+            </>
+          }
+        >
+          <p>{t("m27.model_9b_confirm_body", { size: MODEL_9B_GB })}</p>
+        </Modal>
+      )}
+
       <DictationBlock />
       <MemoryBlock />
+      <GuidesBlock initialGuides={previewGuides} />
+      <ModesBlock initialModes={previewModes} />
       <div id="voice-help" style={{ marginTop: 24 }}>
         <VoiceHelp />
       </div>
