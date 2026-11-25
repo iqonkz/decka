@@ -19,9 +19,21 @@ export default function RadioGroup<T extends string = string>({
   "aria-label": ariaLabel,
   className,
 }: RadioGroupProps<T>) {
+  // Arrow keys move the choice (and the focus) like native radios; Tab enters the group on the checked one only.
+  const onKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const step = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : e.key === "ArrowLeft" || e.key === "ArrowUp" ? -1 : 0;
+    if (!step || options.length === 0) return;
+    e.preventDefault();
+    const at = Math.max(0, options.findIndex((o) => o.value === value));
+    const next = options[(at + step + options.length) % options.length];
+    onChange(next.value);
+    const buttons = e.currentTarget.querySelectorAll<HTMLButtonElement>('[role="radio"]');
+    buttons[options.indexOf(next)]?.focus();
+  };
+  const anyChecked = options.some((o) => o.value === value);
   return (
-    <div className={`radio-group${className ? ` ${className}` : ""}`} role="radiogroup" aria-label={ariaLabel}>
-      {options.map((o) => {
+    <div className={`radio-group${className ? ` ${className}` : ""}`} role="radiogroup" aria-label={ariaLabel} onKeyDown={onKey}>
+      {options.map((o, i) => {
         const checked = o.value === value;
         return (
           <button
@@ -29,6 +41,7 @@ export default function RadioGroup<T extends string = string>({
             type="button"
             role="radio"
             aria-checked={checked}
+            tabIndex={checked || (!anyChecked && i === 0) ? 0 : -1}
             className={`radio-pill${checked ? " checked" : ""}`}
             onClick={() => onChange(o.value)}
           >
