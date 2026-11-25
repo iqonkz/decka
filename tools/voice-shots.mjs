@@ -137,6 +137,7 @@ function m26Shots() {
     "m26f12-compact-unknown-en-light": [{ w: 480, h: 160, scale: 2 }, "scene=island&mode=compact&voiceOff=1&songScene=unknown&lang=en&theme=light"],
     "m26f12-compact-nolyrics-ru-dark": [{ w: 480, h: 160, scale: 2 }, "scene=island&mode=compact&voiceOff=1&songScene=nolyrics&lang=ru&theme=dark"],
     "m26f12-compact-nolyrics-en-light": [{ w: 480, h: 160, scale: 2 }, "scene=island&mode=compact&voiceOff=1&songScene=nolyrics&hover=1&lang=en&theme=light"],
+    "t26f14-compact-1line-hover-ru-dark": [{ w: 600, h: 180, scale: 2 }, "scene=island&mode=compact&voiceOff=1&lyrics=1line&hover=1&lang=ru&theme=dark"],
     "t26f14-compact-short-ru-dark": [{ w: 600, h: 180, scale: 2 }, "scene=island&mode=compact&voiceOff=1&lyrics=1&lang=ru&theme=dark"],
     "t26f14-compact-short-ru-light": [{ w: 600, h: 180, scale: 2 }, "scene=island&mode=compact&voiceOff=1&lyrics=1&lang=ru&theme=light"],
     "t26f14-compact-long-ru-dark": [{ w: 600, h: 240, scale: 2 }, "scene=island&mode=compact&voiceOff=1&lyrics=3lines&lang=ru&theme=dark"],

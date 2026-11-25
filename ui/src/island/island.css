@@ -81,13 +81,12 @@
   opacity: 0.6;
 }
 
-/* T26.F.14: song lines in compact (360..520 px fixed on hover; current wraps up to 3 lines without ellipsis). */
-.island-compact-main {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
+/* T26.F.14: two-column song compact (left: top-pinned 32px orb; right: text + hover controls aligned with text left edge). */
+.island-compact-right {
+  flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .island-compact.wraps {
@@ -99,11 +98,16 @@
   width: var(--cw, 360px);
   height: auto;
   min-height: 56px;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: center;
-  gap: 0;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
   padding: 12px 14px 12px 12px;
+}
+
+.island-compact.is-song .island-compact-text {
+  box-sizing: border-box;
+  min-height: 32px;
+  padding-top: 7px;
 }
 
 .island-compact.is-song .island-song-title-text,
@@ -205,7 +209,7 @@
   }
 }
 
-/* T26.F.14: 3 media controls under the orb, revealed on hover / :focus-within (+36 px height in 150 ms). */
+/* T26.F.14: 3 media controls in the right column under text, revealed on hover / :focus-within (+36 px height in 150 ms). */
 .island-compact-controls {
   box-sizing: border-box;
   display: flex;
@@ -213,12 +217,16 @@
   justify-content: flex-start;
   gap: 4px;
   height: 0;
-  margin: 0 -3px;
-  padding: 0 3px;
+  margin: 0 -9px;
+  padding: 0 9px;
   opacity: 0;
   overflow: hidden;
   pointer-events: none;
   transition: height 150ms ease, margin-bottom 150ms ease, padding-top 150ms ease, padding-bottom 150ms ease, opacity 150ms ease;
+}
+
+.island-compact-controls .island-media-btn:first-child {
+  margin-inline-start: -6px;
 }
 
 .island-compact.is-song:hover .island-compact-controls,
