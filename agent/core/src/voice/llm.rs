@@ -191,6 +191,17 @@ pub fn request_body(text: &str, ctx: &Context, lang: &str) -> Value {
     })
 }
 
+/// What `voice-prompt-dump` prints: `{ system, tools, params }`, cut from the very request the agent sends (no second copy
+/// of the prompt). `params` is the request without the messages (schema, temperature, limits).
+pub fn prompt_dump(ctx: &Context, lang: &str) -> Value {
+    let mut body = request_body("", ctx, lang);
+    let system = body["messages"][0]["content"].clone();
+    if let Some(o) = body.as_object_mut() {
+        o.remove("messages");
+    }
+    json!({ "system": system, "tools": TOOLS, "params": body })
+}
+
 // ---- Answer -----------------------------------------------------------------------------------------------------
 
 /// `{ "tool", "args", "say" }` from the text the model wrote. Nothing is checked here beyond the shape: the tool and its
@@ -320,6 +331,22 @@ mod tests {
         assert!(text.contains("\"Program number 0 "), "the head of the programs is kept");
         assert!(!text.contains("Program number 999 "), "the tail is cut");
         assert!(system_prompt(&c, "en").chars().count() < MAX_CONTEXT_CHARS + 2_500);
+    }
+
+    #[test]
+    fn the_dump_is_the_request_of_the_agent_without_the_phrase() {
+        for lang in ["en", "ru"] {
+            let d = prompt_dump(&ctx(), lang);
+            let tools: Vec<&str> = d["tools"].as_array().unwrap().iter().map(|t| t.as_str().unwrap()).collect();
+            assert_eq!(tools, TOOLS, "the names are the registry");
+            assert_eq!(d["system"], system_prompt(&ctx(), lang));
+            assert!(d["params"].get("messages").is_none());
+            assert_eq!(d["params"]["response_format"]["json_schema"]["schema"], schema(&ctx()));
+            // The text round-trips as JSON (what the bin prints).
+            let text = serde_json::to_string(&d).unwrap();
+            assert_eq!(serde_json::from_str::<Value>(&text).unwrap(), d);
+        }
+        assert!(prompt_dump(&ctx(), "ru")["system"].as_str().unwrap().contains("Russian"));
     }
 
     #[test]

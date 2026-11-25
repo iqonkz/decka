@@ -5,7 +5,9 @@
  *
  * Usage:
  *   node tools/voice-eval.mjs --check
- *   node tools/voice-eval.mjs --port 8080 [--api-key <key>] [--url <http://...>] [--lang <en>]
+ *   cargo run -q -p decka-core --bin voice-prompt-dump -- --lang en > en-prompt.json
+ *   node tools/voice-eval.mjs --prompt en-prompt.json --port 8089 [--api-key <key>] [--url <http://...>] [--lang <en>]
+ *   (the prompt file is required: the request is built from the agent's own prompt, not a stand-in)
  *
  * (DATA_MODEL.md §12.8, TASKS.md §0 / T21.4)
  */
@@ -66,6 +68,7 @@ function parseArgs(args) {
     apiKey: process.env.LLAMA_API_KEY || "",
     url: "",
     lang: "",
+    prompt: "",
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -80,6 +83,8 @@ function parseArgs(args) {
       flags.url = args[++i];
     } else if (a === "--lang" && i + 1 < args.length) {
       flags.lang = args[++i];
+    } else if (a === "--prompt" && i + 1 < args.length) {
+      flags.prompt = args[++i];
     }
   }
 
@@ -176,26 +181,31 @@ async function runCheck() {
   }
 }
 
-async function queryModel(url, apiKey, prompt) {
+export function loadPromptDump(file) {
+  if (!file) {
+    throw new Error("--prompt <file> is required: run `cargo run -q -p decka-core --bin voice-prompt-dump -- --lang <code>` and save its output");
+  }
+  // PowerShell 5.1 writes a BOM with Out-File / `>`; JSON.parse does not accept it.
+  const dump = JSON.parse(fs.readFileSync(file, "utf8").replace(/^﻿/, ""));
+  if (typeof dump.system !== "string" || !Array.isArray(dump.tools) || typeof dump.params !== "object" || dump.params === null) {
+    throw new Error(`${file}: not a voice-prompt-dump output ({ system, tools, params })`);
+  }
+  return dump;
+}
+
+async function queryModel(url, apiKey, prompt, dump) {
   const headers = { "Content-Type": "application/json" };
   if (apiKey) {
     headers["Authorization"] = `Bearer ${apiKey}`;
   }
 
+  // The request of the agent: its system prompt and its params (schema, temperature, no thinking), plus the phrase.
   const body = {
-    model: "qwen",
+    ...dump.params,
     messages: [
-      {
-        role: "system",
-        content:
-          "You are a voice assistant for PC control. Return JSON with 'tool' and 'args' matching the requested action.",
-      },
+      { role: "system", content: dump.system },
       { role: "user", content: prompt },
     ],
-    temperature: 0.0,
-    // Same as the agent at runtime (ask.rs, brief.rs): Qwen answers without a thinking pass.
-    chat_template_kwargs: { enable_thinking: false },
-    response_format: { type: "json_object" },
   };
 
   const res = await fetch(url, {
@@ -240,8 +250,16 @@ async function runEval(flags) {
     process.exit(1);
   }
 
+  let dump;
+  try {
+    dump = loadPromptDump(flags.prompt);
+  } catch (err) {
+    console.error(`Error: ${err.message}`);
+    process.exit(2);
+  }
   console.log(`Evaluating against ${flags.url}...\n`);
   const results = [];
+  const misses = [];
 
   for (const file of files) {
     const lang = file.replace(".json", "");
@@ -254,14 +272,16 @@ async function runEval(flags) {
 
     for (const item of items) {
       try {
-        const pred = await queryModel(flags.url, flags.apiKey, item.say);
+        const pred = await queryModel(flags.url, flags.apiKey, item.say, dump);
         const toolMatch = pred.tool === item.tool;
         const argsMatch = matchArgs(item.args, pred.args);
         if (toolMatch && argsMatch) {
           correct++;
+        } else {
+          misses.push({ lang, say: item.say, want: `${item.tool} ${JSON.stringify(item.args || {})}`, got: `${pred.tool} ${JSON.stringify(pred.args || {})}` });
         }
       } catch (err) {
-        // model query failed
+        misses.push({ lang, say: item.say, want: item.tool, got: `error: ${err.message}`.slice(0, 80) });
       }
     }
 
@@ -296,6 +316,20 @@ async function runEval(flags) {
     );
   }
   console.log("=".repeat(62) + "\n");
+
+  if (misses.length) {
+    // The most frequent wrong answers first: which expected tool was taken for which.
+    const counts = new Map();
+    for (const m of misses) {
+      const k = `${m.want.split(" ")[0]} -> ${m.got.split(" ")[0]}`;
+      counts.set(k, (counts.get(k) || 0) + 1);
+    }
+    console.log("Top confusions (expected -> got):");
+    [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).forEach(([k, n]) => console.log(`  ${n}x ${k}`));
+    console.log("First misses:");
+    misses.slice(0, 5).forEach((m) => console.log(`  [${m.lang}] "${m.say}": want ${m.want}; got ${m.got}`));
+    console.log();
+  }
 
   if (!allPass) {
     console.error("Some languages did not achieve required accuracy.");

@@ -10,6 +10,10 @@ license.workspace = true
 name = "decka-headless"
 path = "src/bin/decka-headless.rs"
 
+[[bin]]
+name = "voice-prompt-dump"
+path = "src/bin/voice-prompt-dump.rs"
+
 [dependencies]
 axum = { version = "0.8.9", features = ["ws"] }
 base64 = "0.23.1"
