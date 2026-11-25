@@ -1081,4 +1081,13 @@ export const de: Dictionary = {
   "phone.no_layout_title": "Noch keine Tasten",
   "phone.no_layout_body": "Füge auf deinem PC in Decka Tasten oder Widgets hinzu, dann erscheinen sie hier automatisch.",
   "menu.title": "Menü",
+  "orb.aria": "Sprachassistent-Kugel",
+  "island.copy": "Kopieren",
+  "island.insert": "Einfügen",
+  "island.speak": "Vorlesen",
+  "island.again": "Nochmal",
+  "island.language": "Sprache",
+  "island.stop": "Stopp",
+  "island.slow_eta": "Bildschirm wird geprüft… ~{s} s",
+  "island.slow_almost": "Einen Moment noch…",
 };

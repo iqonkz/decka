@@ -99,6 +99,22 @@ function t24Shots() {
   out["t24-phone-nolayout-ru"] = [port, "scene=deck&theme=studio&lang=ru&pack=m24-empty-deck"];
   return out;
 }
+function m26Shots() {
+  const islandSize = { w: 540, h: 480, scale: 2 };
+  const orbRowSize = { w: 760, h: 200, scale: 2 };
+  return {
+    "m26-orb-states-dark": [orbRowSize, "scene=island&orbRow=1&theme=dark"],
+    "m26-orb-states-light": [orbRowSize, "scene=island&orbRow=1&theme=light"],
+    "m26-island-tab": [{ w: 300, h: 100, scale: 2 }, "scene=island&mode=tab&theme=dark"],
+    "m26-island-compact-lyrics": [{ w: 480, h: 160, scale: 2 }, "scene=island&mode=compact&voiceOff=1&lyrics=1&theme=dark"],
+    "m26-island-compact-lyrics-hover": [{ w: 480, h: 160, scale: 2 }, "scene=island&mode=compact&voiceOff=1&lyrics=1&hover=1&theme=dark"],
+    "m26-island-compact-voice": [{ w: 480, h: 160, scale: 2 }, "scene=island&mode=compact&state=listening&theme=dark"],
+    "m26-island-expanded-slow-ru": [islandSize, "scene=island&mode=expanded&state=thinking&slow=1&lang=ru&theme=dark"],
+    "m26-island-expanded-reply-en": [islandSize, "scene=island&mode=expanded&state=idle&reply=1&lang=en&theme=dark"],
+    "m26-island-expanded-reply-light": [islandSize, "scene=island&mode=expanded&state=idle&reply=1&lang=ru&theme=light"],
+    "m26-island-expanded-error": [islandSize, "scene=island&mode=expanded&state=error&lang=en&theme=dark"],
+  };
+}
 // T23: the settings window (Russian) in both colour schemes: pages, a search with results and the minimum window width.
 function settingsShots() {
   const out = {};
@@ -150,6 +166,7 @@ const SHOTS = {
   ...settingsShots(),
   ...t235bShots(),
   ...t24Shots(),
+  ...m26Shots(),
   "phone-idle": [PHONE, "scene=phone&state=idle"],
   "phone-listening": [PHONE, "scene=phone&state=listening"],
   "phone-done": [PHONE, "scene=phone&state=done&heard=turn+the+volume+up&reply=Done"],
@@ -249,6 +266,46 @@ async function shoot(name, [size, query, click]) {
 }
 
 try {
+  if (process.env.BENCH_ORB) {
+    const profile = mkdtempSync(join(tmpdir(), "decka-orbbench-"));
+    const port = 9390 + Math.floor(Math.random() * 200);
+    const chrome = spawn(CHROME, ["--headless=new", `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`, "--window-size=400,400", "about:blank"], { stdio: "ignore" });
+    try {
+      let target;
+      for (let i = 0; i < 80 && !target; i++) {
+        try { target = (await (await fetch(`http://127.0.0.1:${port}/json`)).json()).find((t) => t.type === "page"); } catch {}
+        if (!target) await sleep(200);
+      }
+      const ws = new WebSocket(target.webSocketDebuggerUrl);
+      await new Promise((r) => ws.addEventListener("open", r, { once: true }));
+      let id = 0;
+      const waiting = new Map();
+      ws.addEventListener("message", (ev) => { const m = JSON.parse(String(ev.data)); if (m.id && waiting.has(m.id)) waiting.get(m.id)(m); });
+      const send = (method, params = {}) => new Promise((resolve, reject) => {
+        const mid = ++id;
+        waiting.set(mid, (m) => (m.error ? reject(new Error(`${method}: ${m.error.message}`)) : resolve(m.result)));
+        ws.send(JSON.stringify({ id: mid, method, params }));
+      });
+      await send("Page.enable");
+      await send("Performance.enable");
+      await send("Emulation.setDeviceMetricsOverride", { width: 400, height: 400, deviceScaleFactor: 1, mobile: false });
+      await send("Page.navigate", { url: `${base}?scene=orb-bench&state=listening&size=120` });
+      await sleep(1500);
+      const m1 = await send("Performance.getMetrics");
+      const t1 = performance.now();
+      await sleep(4000);
+      const m2 = await send("Performance.getMetrics");
+      const t2 = performance.now();
+      const metric = (res, k) => res.metrics.find((x) => x.name === k)?.value ?? 0;
+      const taskMs = (metric(m2, "TaskDuration") - metric(m1, "TaskDuration")) * 1000;
+      const scriptMs = (metric(m2, "ScriptDuration") - metric(m1, "ScriptDuration")) * 1000;
+      const wallMs = t2 - t1;
+      console.log(`ORB_BENCH size=120 state=listening wallMs=${wallMs.toFixed(1)} taskMs=${taskMs.toFixed(1)} scriptMs=${scriptMs.toFixed(1)} cpuPct=${((taskMs / wallMs) * 100).toFixed(2)}%`);
+      ws.close();
+    } finally {
+      chrome.kill();
+    }
+  }
   for (const [name, spec] of Object.entries(SHOTS)) {
     if (only && !only.includes(name)) continue;
     console.log(await shoot(name, spec));

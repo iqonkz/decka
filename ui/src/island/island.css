@@ -1,0 +1,315 @@
+/* Floating Decka Island (TASKS.md §T26.5b) */
+
+.island-host {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: "Segoe UI Variable", system-ui, -apple-system, sans-serif;
+  --island-bg: rgba(24, 24, 30, 0.9);
+  --island-border: rgba(255, 255, 255, 0.12);
+  --island-text: #ffffff;
+  --island-muted: rgba(255, 255, 255, 0.6);
+  --island-surface: rgba(255, 255, 255, 0.1);
+  --island-surface-hover: rgba(255, 255, 255, 0.18);
+  --island-accent: #7c5cff;
+}
+
+.island-host[data-island-theme="light"] {
+  --island-bg: rgba(248, 248, 250, 0.9);
+  --island-border: rgba(0, 0, 0, 0.08);
+  --island-text: #111116;
+  --island-muted: rgba(17, 17, 22, 0.6);
+  --island-surface: rgba(0, 0, 0, 0.06);
+  --island-surface-hover: rgba(0, 0, 0, 0.12);
+}
+
+.island-tab-zone {
+  width: 160px;
+  height: 24px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 2px;
+  cursor: pointer;
+}
+
+.island-tab-bar {
+  width: 96px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--island-text);
+  opacity: 0.4;
+  transition: opacity 300ms ease, transform 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.island-panel {
+  box-sizing: border-box;
+  background: var(--island-bg);
+  border: 1px solid var(--island-border);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  color: var(--island-text);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  transition:
+    width 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    height 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    border-radius 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 150ms ease,
+    transform 300ms ease;
+}
+
+.island-compact {
+  width: 360px;
+  height: 56px;
+  border-radius: 22px;
+  padding: 0 14px 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.island-compact.two-lines {
+  height: 72px;
+}
+
+.island-compact.is-lyrics {
+  opacity: 0.6;
+}
+
+.island-compact.is-lyrics:hover,
+.island-compact.is-lyrics.is-hovered {
+  opacity: 1;
+}
+
+.island-compact-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.island-lyric-current {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--island-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.island-lyric-next {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--island-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.island-expanded {
+  width: 440px;
+  max-height: 420px;
+  border-radius: 24px;
+  padding: 16px 20px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.island-orb-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  transition: filter 200ms ease;
+}
+
+.island-orb-wrap.is-error {
+  filter: saturate(0.4);
+  animation: island-error-shake 200ms ease-in-out;
+}
+
+@keyframes island-error-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  50% { transform: translateX(6px); }
+  75% { transform: translateX(-4px); }
+}
+
+.island-slow {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.island-slow-expanded {
+  margin-top: 2px;
+}
+
+.island-slow-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--island-muted);
+}
+
+.island-stop-btn {
+  border: 0;
+  border-radius: 999px;
+  padding: 2px 10px;
+  background: var(--island-surface);
+  color: var(--island-text);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.island-stop-btn:hover {
+  background: var(--island-surface-hover);
+}
+
+.island-slow-track {
+  width: 100%;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--island-surface);
+  overflow: hidden;
+}
+
+.island-slow-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--island-accent);
+  transition: width 300ms linear;
+}
+
+.island-heard {
+  width: 100%;
+  text-align: center;
+  font-size: 13px;
+  color: var(--island-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.island-reply {
+  width: 100%;
+  text-align: center;
+  font-size: 15px;
+  line-height: 1.45;
+  max-height: calc(1.45em * 8);
+  overflow-y: auto;
+  word-break: break-word;
+  color: var(--island-text);
+}
+
+.island-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.island-action-btn {
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--island-border);
+  border-radius: 999px;
+  background: var(--island-surface);
+  color: var(--island-text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+
+.island-action-btn:hover {
+  background: var(--island-surface-hover);
+}
+
+.island-lang-wrap {
+  position: relative;
+}
+
+.island-lang-menu {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  inset-inline-end: 0;
+  min-width: 160px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--island-bg);
+  border: 1px solid var(--island-border);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.island-lang-item {
+  width: 100%;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--island-text);
+  font: inherit;
+  font-size: 12px;
+  text-align: start;
+  cursor: pointer;
+}
+
+.island-lang-item:hover {
+  background: var(--island-surface-hover);
+}
+
+.island-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.island-chip {
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--island-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--island-muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.island-chip:hover {
+  background: var(--island-surface);
+  color: var(--island-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .island-tab-bar,
+  .island-panel,
+  .island-orb-wrap,
+  .island-slow-fill {
+    transition: none;
+    animation: none;
+  }
+}

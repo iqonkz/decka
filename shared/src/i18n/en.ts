@@ -1091,5 +1091,14 @@ export const en = {
   "phone.no_layout_title": "No buttons yet",
   "phone.no_layout_body": "Add buttons or widgets in Decka on your PC and they will appear here automatically.",
   "menu.title": "Menu",
+  "orb.aria": "Voice assistant orb",
+  "island.copy": "Copy",
+  "island.insert": "Insert",
+  "island.speak": "Speak",
+  "island.again": "Try again",
+  "island.language": "Language",
+  "island.stop": "Stop",
+  "island.slow_eta": "Looking at the screen… ~{s} s",
+  "island.slow_almost": "Almost there…",
   // @@END
 } as const;

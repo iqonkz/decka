@@ -1081,4 +1081,13 @@ export const fr: Dictionary = {
   "phone.no_layout_title": "Aucun bouton pour l'instant",
   "phone.no_layout_body": "Ajoutez des boutons ou widgets dans Decka sur votre PC et ils apparaîtront ici automatiquement.",
   "menu.title": "Menu",
+  "orb.aria": "Orbe de l’assistant vocal",
+  "island.copy": "Copier",
+  "island.insert": "Insérer",
+  "island.speak": "Lire",
+  "island.again": "Autre variante",
+  "island.language": "Langue",
+  "island.stop": "Arrêter",
+  "island.slow_eta": "Analyse de l’écran… ~{s} s",
+  "island.slow_almost": "Encore un instant…",
 };

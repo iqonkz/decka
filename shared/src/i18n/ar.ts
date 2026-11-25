@@ -1121,4 +1121,13 @@ export const ar: Dictionary = {
   "phone.no_layout_title": "لا توجد أزرار بعد",
   "phone.no_layout_body": "أضف أزراراً أو أدوات في Decka على الكمبيوتر وستظهر هنا تلقائياً.",
   "menu.title": "القائمة",
+  "orb.aria": "كرة المساعد الصوتي",
+  "island.copy": "نسخ",
+  "island.insert": "إدراج",
+  "island.speak": "قراءة",
+  "island.again": "خيار آخر",
+  "island.language": "اللغة",
+  "island.stop": "إيقاف",
+  "island.slow_eta": "أفحص الشاشة… ~{s} ث",
+  "island.slow_almost": "لحظة إضافية…",
 };
