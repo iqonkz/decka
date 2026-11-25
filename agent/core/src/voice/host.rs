@@ -780,6 +780,10 @@ struct LlamaAsker {
 }
 
 impl super::screenrun::StepAsker for LlamaAsker {
+    fn eta_sec(&self) -> Option<u32> {
+        Some(self.slow.lock().unwrap().eta_sec(false))
+    }
+
     fn ask(&self, body: Value) -> BoxFut<Option<String>> {
         let (sup, since, slow, dir) = (self.sup.clone(), self.slow_since.clone(), self.slow.clone(), self.dir.clone());
         Box::pin(async move {

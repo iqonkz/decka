@@ -27,6 +27,7 @@ export default function GuidePanel({ guide, theme = "dark", accent = "#7c5cff", 
         <span className="m27-step-badge">{stepLabel}</span>
       </div>
       <div className="m27-guide-text">{guide.text}</div>
+      {guide.etaSec ? <div className="m27-guide-eta">{t("island.slow_eta", { s: guide.etaSec })}</div> : null}
       <div className="m27-guide-actions">
         <button type="button" className="m27-guide-btn" disabled={guide.step <= 1} onClick={onBack}>
           {t("m27.back")}

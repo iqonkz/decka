@@ -1,4 +1,4 @@
-﻿// M27 (TASKS.md): the data the settings window and the island share with the agent - saved guides, work modes, the highlight.
+// M27 (TASKS.md): the data the settings window and the island share with the agent - saved guides, work modes, the highlight.
 // Keys and shapes follow DATA_MODEL.md; the agent writes the files, the window only shows and edits them through the IPC.
 
 export interface HighlightRect {
@@ -23,6 +23,8 @@ export interface GuideStepEvent {
   total?: number;
   text: string;
   active: boolean;
+  /** The model is thinking about this step: the estimate in seconds (shown as `~N s`). */
+  etaSec?: number;
 }
 
 export interface SavedGuideStep {

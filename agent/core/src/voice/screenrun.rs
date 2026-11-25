@@ -33,6 +33,10 @@ pub trait Screen: Send + Sync {
 /// The model of the guide: a chat body in, the text of the answer out (`None`: no answer).
 pub trait StepAsker: Send + Sync {
     fn ask(&self, body: Value) -> BoxFut<Option<String>>;
+    /// How long a step is expected to take, in seconds: the island shows "~N s" while the model thinks (the slow path).
+    fn eta_sec(&self) -> Option<u32> {
+        None
+    }
 }
 
 /// What the island shows of a guide (`GuideStepEvent`): the goal, the number of the step, the text, whether it goes on.
@@ -42,6 +46,9 @@ pub struct GuideEvent {
     pub step: u32,
     pub text: String,
     pub active: bool,
+    /// The model is thinking about this step: the estimate in seconds (`~N s` in the island).
+    #[serde(rename = "etaSec", skip_serializing_if = "Option::is_none")]
+    pub eta_sec: Option<u32>,
 }
 
 pub trait GuideSink: Send + Sync {
@@ -192,7 +199,7 @@ impl ScreenRun {
         *self.ctl.lock().unwrap() = None;
         self.running.store(false, Ordering::Relaxed);
         self.highlighter.clear();
-        self.events.event(GuideEvent { goal: goal.into(), step: 0, text: String::new(), active: false });
+        self.events.event(GuideEvent { goal: goal.into(), step: 0, text: String::new(), active: false, eta_sec: None });
         out
     }
 
@@ -224,6 +231,8 @@ impl ScreenRun {
             // 2. The model: only an id of this snapshot.
             if next.is_none() {
                 let body = screenhelp::step_request_body(goal, &snap, lang_name, &guide.done_names());
+                // The model takes seconds: the card shows "~N s" for as long as it thinks.
+                self.events.event(GuideEvent { goal: goal.into(), step: guide.step_number() as u32 + 1, text: String::new(), active: true, eta_sec: asker.eta_sec() });
                 let mut tries = 0;
                 loop {
                     let Some(content) = asker.ask(body.clone()).await else { return Err("The assistant did not answer".into()) };
@@ -248,7 +257,7 @@ impl ScreenRun {
             if !guide.push(e.clone(), say.clone()) {
                 break;
             }
-            self.events.event(GuideEvent { goal: goal.into(), step: guide.step_number() as u32, text: say.clone(), active: true });
+            self.events.event(GuideEvent { goal: goal.into(), step: guide.step_number() as u32, text: say.clone(), active: true, eta_sec: None });
             self.show(&e, &say, Some(guide.step_number() as u32));
             // 3. Wait for the person: the highlight ends (a click on it, another window), the window changes, "next", "back", "stop".
             let before = signature(&snap);
@@ -261,7 +270,7 @@ impl ScreenRun {
                         Some(GuideCtl::Next) => break,
                         Some(GuideCtl::Back) => {
                             if let Some((pe, ptext)) = guide.back().cloned() {
-                                self.events.event(GuideEvent { goal: goal.into(), step: guide.step_number() as u32, text: ptext.clone(), active: true });
+                                self.events.event(GuideEvent { goal: goal.into(), step: guide.step_number() as u32, text: ptext.clone(), active: true, eta_sec: None });
                                 self.show(&pe, &ptext, Some(guide.step_number() as u32));
                                 last_action = self.screen.now_ms();
                             }
@@ -435,6 +444,10 @@ mod tests {
     struct Script(Mutex<Vec<&'static str>>, AtomicUsize);
 
     impl StepAsker for Script {
+        fn eta_sec(&self) -> Option<u32> {
+            Some(7)
+        }
+
         fn ask(&self, _body: Value) -> BoxFut<Option<String>> {
             self.1.fetch_add(1, Ordering::Relaxed);
             let next = { let mut s = self.0.lock().unwrap(); if s.is_empty() { None } else { Some(s.remove(0).to_string()) } };
@@ -557,6 +570,27 @@ mod tests {
         let _ = handle.await;
         assert_eq!(rec.shown.lock().unwrap().iter().map(|h| h.text.clone()).collect::<Vec<_>>(), vec!["File", "Save As"]);
         assert_eq!(sr.guides().list()[0].uses, 1);
+    }
+
+    #[derive(Default)]
+    struct Events(Mutex<Vec<GuideEvent>>);
+
+    impl GuideSink for Events {
+        fn event(&self, e: GuideEvent) {
+            self.0.lock().unwrap().push(e);
+        }
+    }
+
+    #[tokio::test]
+    async fn while_the_model_thinks_the_card_carries_the_estimate() {
+        let dir = tempfile::tempdir().unwrap();
+        let events = Arc::new(Events::default());
+        let sr = ScreenRun::new(Fake::new(vec![snap(&["Start"])]), Highlighter::new(Arc::new(Recorder::default())), Guides::new(dir.path()), events.clone(), vec![]).with_timing(Duration::from_millis(5), Duration::from_millis(5));
+        let asker = Script(Mutex::new(vec![r#"{"next":"not_here","say":"Open Word"}"#]), AtomicUsize::new(0));
+        let _ = sr.guide("x", "English", &asker).await;
+        let seen = events.0.lock().unwrap();
+        assert_eq!(seen[0].eta_sec, Some(7), "the first event is the wait for the model");
+        assert!(seen[0].active && seen.last().is_some_and(|e| !e.active), "and the card is closed at the end");
     }
 
     #[tokio::test]
