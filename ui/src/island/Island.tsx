@@ -1,6 +1,7 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+﻿import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { LANGUAGE_NAMES, LANGUAGES, t, type Language } from "@decka/shared";
 import { orbStateFromIsland, type IslandEvent, type IslandVoicePhase } from "./islandTypes";
+import { compactWidth, currentWraps } from "./compactWidth";
 import ParticlesOrb from "./ParticlesOrb";
 import "./island.css";
 
@@ -260,6 +261,9 @@ export default function Island({
   if (mode === "compact") {
     const hasLyrics = Boolean(lyrics?.playing && lyrics.current);
     const hasTwoLines = hasLyrics && Boolean(lyrics?.next);
+    const lyricsShown = hasLyrics && !voiceActive;
+    const wraps = lyricsShown && currentWraps(lyrics?.current);
+    const panelWidth = lyricsShown ? compactWidth(lyrics?.current, lyrics?.next) : undefined;
     const slow = voice?.slow;
     const slowOverdue = slow && (slow.elapsedSec ?? 0) > slow.etaSec * 2;
     const slowPct = slow ? Math.min(95, Math.round(((slow.elapsedSec ?? 0) / Math.max(1, slow.etaSec)) * 100)) : 0;
@@ -267,7 +271,8 @@ export default function Island({
     return (
       <div className="island-host" data-island-theme={theme}>
         <div
-          className={`island-panel island-compact${hasTwoLines ? " two-lines" : ""}${hasLyrics && !voiceActive ? " is-lyrics" : ""}${hovered ? " is-hovered" : ""}`}
+          className={`island-panel island-compact${hasTwoLines ? " two-lines" : ""}${wraps ? " wraps" : ""}${hasLyrics && !voiceActive ? " is-lyrics" : ""}${hovered ? " is-hovered" : ""}`}
+          style={panelWidth ? { width: panelWidth } : undefined}
           role="status"
         >
           <div className={`island-orb-wrap compact${isError ? " is-error" : ""}`}>

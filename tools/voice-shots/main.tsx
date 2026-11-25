@@ -1,4 +1,4 @@
-// Harness of tools/voice-shots.mjs: draws the real PC pill (agent) and the real phone screens, widgets, and voice controls (client).
+﻿// Harness of tools/voice-shots.mjs: draws the real PC pill (agent) and the real phone screens, widgets, and voice controls (client).
 import { createRoot } from "react-dom/client";
 import { setLanguage, type Language } from "@decka/shared";
 import { recordSys, resetSysHistory } from "@decka/ui";
@@ -402,7 +402,7 @@ if (scene === "deck" || scene === "settings") {
       const transitionPreview = transParam !== null ? Number(transParam) : undefined;
       const evt = {
         mode,
-        lyrics: hasLyrics ? { playing: true, current: isRu ? "В полночном городе огни" : "Waiting in a car", next: isRu ? "Ждём рассвет у реки" : "Waiting for a ride in the dark" } : null,
+        lyrics: q.get("lyrics") === "long" ? { playing: true, current: isRu ? "Когда ночь опускается на старый город, и огни одно за другим гаснут в окнах, я всё ещё иду по набережной к тебе" : "When the night comes down on the old town and the lights go out one by one, I am still walking the river road to you", next: isRu ? "Ждём рассвет у реки" : "Waiting for a ride in the dark" } : hasLyrics ? { playing: true, current: isRu ? "В полночном городе огни" : "Waiting in a car", next: isRu ? "Ждём рассвет у реки" : "Waiting for a ride in the dark" } : null,
         voice: q.get("voiceOff") === "1" ? null : {
           active: true,
           phase,

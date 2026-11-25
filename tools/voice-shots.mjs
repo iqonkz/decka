@@ -108,6 +108,8 @@ function m26Shots() {
     "m26-island-tab": [{ w: 300, h: 100, scale: 2 }, "scene=island&mode=tab&theme=dark"],
     "m26-island-compact-lyrics": [{ w: 480, h: 160, scale: 2 }, "scene=island&mode=compact&voiceOff=1&lyrics=1&theme=dark"],
     "m26-island-compact-lyrics-hover": [{ w: 480, h: 160, scale: 2 }, "scene=island&mode=compact&voiceOff=1&lyrics=1&hover=1&theme=dark"],
+    "t26f-island-compact-lyrics-long-ru": [{ w: 700, h: 200, scale: 2 }, "scene=island&mode=compact&voiceOff=1&lyrics=long&lang=ru&theme=dark"],
+    "t26f-island-compact-lyrics-mid-ru": [{ w: 700, h: 200, scale: 2 }, "scene=island&mode=compact&voiceOff=1&lyrics=1&lang=ru&theme=dark"],
     "m26-island-compact-voice": [{ w: 480, h: 160, scale: 2 }, "scene=island&mode=compact&state=listening&theme=dark"],
     "m26-island-solo-listening": [{ w: 400, h: 320, scale: 2 }, "scene=island&mode=expanded&state=listening&solo=1&lang=ru&theme=dark"],
     "m26-island-transition-mid": [islandSize, "scene=island&mode=expanded&state=thinking&transition=0.55&lang=ru&theme=dark"],

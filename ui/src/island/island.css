@@ -1,4 +1,4 @@
-/* Floating Decka Island (TASKS.md §T26.5b) */
+﻿/* Floating Decka Island (TASKS.md §T26.5b) */
 
 .island-host {
   display: flex;
@@ -75,6 +75,21 @@
 
 .island-compact.is-lyrics {
   opacity: 0.6;
+}
+
+/* T26.F-8: a current line longer than 640 px wraps (no ellipsis); the panel grows in height. */
+.island-compact.wraps {
+  height: auto;
+  min-height: 72px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.island-compact.wraps .island-lyric-current {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
 }
 
 .island-compact.is-lyrics:hover,

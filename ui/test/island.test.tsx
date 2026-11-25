@@ -2,6 +2,7 @@
 import { renderToString } from "react-dom/server";
 import { setLanguage } from "@decka/shared";
 import Island, { expandedStatusText, hasVoiceContent } from "../src/island/Island";
+import { compactWidth, currentWraps } from "../src/island/compactWidth";
 import ParticlesOrb, { particleCountForSize } from "../src/island/ParticlesOrb";
 import { orbStateFromIsland } from "../src/island/islandTypes";
 
@@ -10,6 +11,15 @@ describe("T26.5b ParticlesOrb & Island", () => {
     expect(particleCountForSize(140)).toBe(480);
     expect(particleCountForSize(72)).toBe(160);
     expect(particleCountForSize(32)).toBe(160);
+  });
+
+  it("T26.F-8: compact width follows the longer line within 360..640 and long current lines wrap", () => {
+    const m = (text: string) => text.length * 8;
+    expect(compactWidth("Hi", "yo", m)).toBe(360);
+    expect(compactWidth("x".repeat(40), "y", m)).toBe(40 * 8 + 76);
+    expect(compactWidth("x", "y".repeat(200), m)).toBe(640);
+    expect(currentWraps("x".repeat(80), m)).toBe(true);
+    expect(currentWraps("x".repeat(40), m)).toBe(false);
   });
 
   it("maps island voice states and errors to orb state", () => {
