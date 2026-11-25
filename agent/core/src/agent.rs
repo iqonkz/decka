@@ -600,13 +600,30 @@ impl Agent {
     /// lyrics_set: the switch of the lyrics. Off clears the section at once and nothing more is asked.
     pub fn set_lyrics_enabled(&self, enabled: bool) -> Result<bool, String> {
         let mut config = self.config();
-        config.media.get_or_insert_with(Default::default).lyrics = Some(crate::model::SwitchConfig { enabled });
+        config.media.get_or_insert_with(Default::default).lyrics.get_or_insert_with(Default::default).enabled = enabled;
         if let SaveResult::Rejected(issues) = self.write_config(config) {
             return Err(issues.first().map(|i| i.message.clone()).unwrap_or_default());
         }
         let me = self.clone();
         self.inner.runtime.spawn(async move { me.sync_lyrics().await });
         Ok(enabled)
+    }
+
+    /// `media.lyrics.pcOverlay` (DESIGN.md 4.17): the window of the words on the PC; absent or unknown = `auto`.
+    pub fn lyrics_overlay_mode(&self) -> crate::lyrics_overlay::PcOverlay {
+        let config = self.config();
+        let raw = config.media.as_ref().and_then(|m| m.lyrics.as_ref()).and_then(|l| l.pc_overlay.as_deref());
+        crate::lyrics_overlay::PcOverlay::parse(raw)
+    }
+
+    /// lyrics_overlay_set: stores the mode; the switch of the lookup stays as it is.
+    pub fn set_lyrics_overlay_mode(&self, mode: crate::lyrics_overlay::PcOverlay) -> Result<crate::lyrics_overlay::PcOverlay, String> {
+        let mut config = self.config();
+        config.media.get_or_insert_with(Default::default).lyrics.get_or_insert_with(Default::default).pc_overlay = Some(mode.as_str().to_string());
+        if let SaveResult::Rejected(issues) = self.write_config(config) {
+            return Err(issues.first().map(|i| i.message.clone()).unwrap_or_default());
+        }
+        Ok(mode)
     }
 
     /// lyrics_offset of a phone: the shift of the current track moves by one step; any other key changes nothing.

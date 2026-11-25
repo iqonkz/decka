@@ -21,20 +21,41 @@ pub struct TokenResult {
 
 /// The switch of the lyrics of the current song (DATA_MODEL.md 14).
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LyricsStatus {
     enabled: bool,
+    pc_overlay: &'static str,
 }
 
-/// `Lyrics` card: is the lookup on (off by default; on sends the artist, the title and the length of a song to lrclib.net).
+fn lyrics_status(agent: &Agent) -> LyricsStatus {
+    LyricsStatus { enabled: agent.lyrics_enabled(), pc_overlay: agent.lyrics_overlay_mode().as_str() }
+}
+
+/// `Lyrics` card: is the lookup on (off by default; on sends the artist, the title and the length of a song to lrclib.net)
+/// and the mode of the window of the words on the PC.
 #[tauri::command]
 pub fn lyrics_get(app: AppHandle) -> Result<LyricsStatus, String> {
-    Ok(LyricsStatus { enabled: agent(&app)?.lyrics_enabled() })
+    Ok(lyrics_status(&agent(&app)?))
 }
 
 /// Switches the lyrics on or off; off clears them from the phones at once.
 #[tauri::command]
 pub fn lyrics_set(app: AppHandle, enabled: bool) -> Result<LyricsStatus, String> {
-    Ok(LyricsStatus { enabled: agent(&app)?.set_lyrics_enabled(enabled)? })
+    let agent = agent(&app)?;
+    agent.set_lyrics_enabled(enabled)?;
+    Ok(lyrics_status(&agent))
+}
+
+/// The mode of the window of the words on the PC: `off`, `auto` or `always` (anything else is refused).
+#[tauri::command]
+pub fn lyrics_overlay_set(app: AppHandle, mode: String) -> Result<LyricsStatus, String> {
+    let parsed = match mode.as_str() {
+        "off" | "auto" | "always" => decka_core::lyrics_overlay::PcOverlay::parse(Some(&mode)),
+        _ => return Err("unknown mode".into()),
+    };
+    let agent = agent(&app)?;
+    agent.set_lyrics_overlay_mode(parsed)?;
+    Ok(lyrics_status(&agent))
 }
 
 #[tauri::command]

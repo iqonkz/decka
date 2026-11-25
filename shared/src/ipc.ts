@@ -110,8 +110,11 @@ export interface MemoryFact {
 }
 /** `dictation.json`: what starts a dictation, whether the text is tidied, and the words whisper should know (at most 500 of 60 characters). */
 export type DictationTrigger = { kind: "doubleCtrl" } | { kind: "chord"; keys: string[] } | { kind: "off" };
+/** `media.lyrics.pcOverlay` (DESIGN.md 4.17): the window of the words on the PC. Unknown values read as `auto`. */
+export type LyricsPcOverlay = "off" | "auto" | "always";
 export interface LyricsStatus {
   enabled: boolean;
+  pcOverlay: LyricsPcOverlay;
 }
 export interface DictationSettings {
   trigger: DictationTrigger;
@@ -197,7 +200,8 @@ export interface IpcCommands {
   memory_delete(args: { id: string }): void;
   memory_clear(): void;                                         // Forget all
   lyrics_get(): LyricsStatus;                                   // M24 (DATA_MODEL.md 14): the switch of the song lyrics, off by default
-  lyrics_set(args: { enabled: boolean }): LyricsStatus;         // on sends the artist, the title and the length of a song to lrclib.net; off clears the lyrics on the phones
+  lyrics_overlay_set(args: { mode: LyricsPcOverlay }): LyricsStatus; // 0.30: the lyrics window on the PC (off | auto | always)
+  lyrics_set(args: { enabled: boolean }): LyricsStatus;       // on sends the artist, the title and the length of a song to lrclib.net; off clears the lyrics on the phones
   voice_dictation_get(): DictationSettings;
   voice_dictation_set(args: DictationSettings): DictationSettings; // an invalid shortcut is an error string; the answer is what was saved
   mail_check_now(): void;                                       // M17: looks at the mailboxes at once

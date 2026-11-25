@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { t, type ConfigFile, type HttpCheck, type ValidationIssue } from "@decka/shared";
+import { t, type ConfigFile, type HttpCheck, type LyricsPcOverlay, type ValidationIssue } from "@decka/shared";
 import { call } from "../ipc";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
@@ -15,7 +15,7 @@ import YoutubeSection from "./YoutubeSection";
 import MailSection from "./MailSection";
 import WinNotifSection from "./WinNotifSection";
 import LyricsSection from "./LyricsSection";
-import { lyricsGet, lyricsSet } from "./lyricsIpc";
+import { lyricsGet, lyricsOverlaySet, lyricsSet } from "./lyricsIpc";
 import Switch from "../ui/Switch";
 import {
   filterIntegrations,
@@ -73,6 +73,7 @@ export default function IntegrationsTab() {
   const [filterChip, setFilterChip] = useState<IntegrationFilterChip>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [lyricsEnabled, setLyricsEnabled] = useState(false);
+  const [lyricsPc, setLyricsPc] = useState<LyricsPcOverlay>("auto");
 
   const load = useCallback(async () => {
     const c = await call("get_config");
@@ -81,7 +82,8 @@ export default function IntegrationsTab() {
     setConfig(c);
     setChecks(c.collectors.checks);
     setPort(s.listening?.port ?? c.port);
-    setLyricsEnabled(lyr);
+    setLyricsEnabled(lyr.enabled);
+    setLyricsPc(lyr.pcOverlay);
   }, []);
 
   const toggleLyrics = useCallback(async (next: boolean) => {
@@ -95,6 +97,18 @@ export default function IntegrationsTab() {
       setError(String(e));
     }
   }, [lyricsEnabled]);
+
+  const changeLyricsPc = useCallback(async (next: LyricsPcOverlay) => {
+    const prev = lyricsPc;
+    setLyricsPc(next);
+    try {
+      await lyricsOverlaySet(next);
+      setMessage(t("common.saved"));
+    } catch (e) {
+      setLyricsPc(prev);
+      setError(String(e));
+    }
+  }, [lyricsPc]);
 
   useEffect(() => {
     load().catch((e) => setError(String(e)));
@@ -272,7 +286,7 @@ export default function IntegrationsTab() {
         {activeIntegration === "winnotif" && <WinNotifSection config={config} onSaved={load} />}
         {activeIntegration === "weather" && <WeatherSection config={config} onSaved={load} />}
         {activeIntegration === "ai" && <AiSection config={config} onSaved={load} />}
-        {activeIntegration === "lyrics" && <LyricsSection enabled={lyricsEnabled} onToggle={(v) => void toggleLyrics(v)} />}
+        {activeIntegration === "lyrics" && <LyricsSection enabled={lyricsEnabled} onToggle={(v) => void toggleLyrics(v)} pcOverlay={lyricsPc} onPcOverlay={(m) => void changeLyricsPc(m)} />}
 
         {activeIntegration === "api_token" && (
           <div>

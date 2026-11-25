@@ -663,7 +663,18 @@ pub struct ConfigFile {
 pub struct MediaConfig {
     /// Song lyrics from lrclib.net (the artist, the title and the duration are sent); absent = off.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub lyrics: Option<SwitchConfig>,
+    pub lyrics: Option<LyricsConfig>,
+}
+
+/// `config.media.lyrics`: the lookup switch and the window of the words on the PC (DESIGN.md 4.17).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LyricsConfig {
+    #[serde(default)]
+    pub enabled: bool,
+    /// `"off" | "auto" | "always"`; absent or unknown = `"auto"` (read through `PcOverlay::parse`, so a hand-edited value never rejects the file).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pc_overlay: Option<String>,
 }
 
 /// `allowPublic: false` closes every connection that arrives on a public network.

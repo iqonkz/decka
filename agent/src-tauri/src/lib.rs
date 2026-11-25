@@ -1,4 +1,5 @@
 mod commands;
+mod lyrics_window;
 mod tray;
 mod voice;
 
@@ -90,6 +91,7 @@ pub fn run() {
             commands::voice_dictation_set,
             commands::lyrics_get,
             commands::lyrics_set,
+        commands::lyrics_overlay_set,
             commands::windows_notifications_status,
             commands::network_status,
             commands::cc_status,
@@ -166,6 +168,7 @@ pub fn run() {
                     });
                     agent.start_update_loop();
                     voice::setup(app.handle(), &agent);
+                    lyrics_window::setup(app.handle(), &agent);
 
                     app.manage(agent);
                 }
