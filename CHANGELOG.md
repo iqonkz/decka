@@ -9,6 +9,7 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 Version 0.22.0 was built but never published; its changes are part of this release.
 
 ### Added
+- **Lyrics on the PC**: while a song with synced lyrics plays, a small click-through strip at the bottom of the screen shows the current and the next line (`Integrations -> Lyrics -> Lyrics on this PC`: `Off` / `Auto` / `Always`, default `Auto`). `Auto` hides it while a phone shows the large player, when the song is paused for 3 s, and over full-screen programs. No new network requests.
 - **Phone widgets and screens (0.30)**: every widget has one look in all four themes (a small header, equal corners and padding, quiet empty and waiting states, skeletons, numbers that move smoothly, the cover colour of `Now playing` as the tint of its tile); the service screens (pairing, link lost, update, permission, menu) were redrawn.
 - **Hourly weather**: the weather widget shows the next six hours (`HH:mm`, icon, temperature) from Open-Meteo; the brief of the day says `Rain expected around HH:mm` when the data shows precipitation in the next six hours.
 - **Song lyrics (off by default)**: `Integrations -> Lyrics` switches a lookup on lrclib.net (only the artist, the title and the length of a song are sent, once per song; nothing at all while it is off). The large `Now playing` widget shows the lines with the current one bright; a long press on the text shows `-0.5 s` / `+0.5 s` to fix a version that does not match, the shift is kept per song. Cache on this PC: at most 500 files.
@@ -21,6 +22,8 @@ Version 0.22.0 was built but never published; its changes are part of this relea
 - **Reminder times by voice**: `в 22.14`, `в 2215`, `22:14`, `в 10 вечера`, `через 5 минут` are read exactly and cut from the text of the reminder (they were saved at the wrong minute before).
 
 ### Fixed
+- **Long press on a key or widget never opens the phone menu or a system menu** (especially the voice button); the menu opens only on empty space. Pressing the microphone with the menu open closes the menu, and a socket that closes during a recording ends it quietly.
+- **Settings window**: native checkboxes, selects and `details` replaced by the shared controls everywhere; the `Phone not connected` strip is a banner like the others; repeat of a reminder can be switched off again.
 - Text contrast in the settings window and the integration cards.
 - **Voice pill stuck in `Listening…`** after several commands in a row: a late microphone-level update re-created the pill after it was closed; all pill commands now go through one ordered queue.
 - **Settings search** found nothing for words like `микрофон`: every page and setting is now searchable in all 11 languages.

@@ -19,12 +19,12 @@ const actions = JSON.parse(readFileSync(join(root, "shared", "fixtures", "action
 const APPS = ["Visual Studio Code", "Google Chrome", "Spotify", "Microsoft Word", "Discord", "OBS Studio", "Telegram Desktop", "Steam"].map((name) => ({ name, program: `C:\\Apps\\${name}.exe`, args: [] }));
 
 /** The init script: a Tauri IPC with just enough answers for the window to draw itself. */
-function mockScript(language) {
-  const layout = { ...layoutBase, display: { ...layoutBase.display, language } };
+function mockScript(language, windowTheme) {
+  const layout = { ...layoutBase, display: { ...layoutBase.display, language, ...(windowTheme ? { windowTheme } : {}) } };
   const config = { version: 1, agentName: "DESKTOP", port: 9247, bind: "0.0.0.0", apiToken: "dk_x", autostart: false, usb: { enabled: false, adbPath: "adb" }, collectors: { sys: { enabled: true, intervalSec: 2 }, checks: [] } };
   const status = { version: "0.10.0", listening: { bind: "0.0.0.0", port: 9247 }, lanIps: ["192.168.1.5"], clients: [], usb: { enabled: false, adbFound: false, devices: [] }, focusApp: "code.exe", configDir: "C:\\Users\\me\\AppData\\Roaming\\Decka" };
   return `(() => {
-    const answers = ${JSON.stringify({ get_layout: layout, get_actions: actions, get_config: config, get_status: status, is_first_run: false, list_installed_apps: APPS, list_devices: [], get_update_status: { available: null, checkedAt: null, failed: false } })};
+    const answers = ${JSON.stringify({ get_layout: layout, get_actions: actions, get_config: config, get_status: status, is_first_run: false, list_installed_apps: APPS, list_devices: [], network_status: { kind: "private", allowPublic: true }, get_update_status: { available: null, checkedAt: null, failed: false } })};
     window.__TAURI_INTERNALS__ = {
       invoke: async (cmd) => (cmd in answers ? JSON.parse(JSON.stringify(answers[cmd])) : []),
       transformCallback: () => 1, unregisterCallback() {}, convertFileSrc: (p) => p, metadata: { currentWindow: { label: "main" }, currentWebview: { label: "main" } },
@@ -89,6 +89,11 @@ const SCENARIOS = {
   "ui-library-kk": { language: "kk", width: 1000, height: 760, steps: [{ hover: ".library .palette-item" }] },
   "i18n-kk": { language: "kk", width: 1000, height: 760, steps: [{ hover: ".library .palette-item" }] },
   "i18n-ja": { language: "ja", width: 1000, height: 760, steps: [{ hover: ".library .palette-item" }] },
+  // 0.30 style audit: the Keys (panel) and Phone pages in both window themes.
+  "panel-light": { language: "en", windowTheme: "light", width: 1280, height: 800, steps: [{ click: ".sidebar-item", text: "Keys" }, { wait: 500 }] },
+  "panel-dark": { language: "en", windowTheme: "dark", width: 1280, height: 800, steps: [{ click: ".sidebar-item", text: "Keys" }, { wait: 500 }] },
+  "phone-light": { language: "en", windowTheme: "light", width: 1280, height: 800, steps: [{ click: ".sidebar-item", text: "Phone" }, { wait: 500 }] },
+  "phone-dark": { language: "en", windowTheme: "dark", width: 1280, height: 800, steps: [{ click: ".sidebar-item", text: "Phone" }, { wait: 500 }] },
 };
 
 async function shoot(name, scenario, base, outDir) {
@@ -100,17 +105,17 @@ async function shoot(name, scenario, base, outDir) {
     await cdp.send("Page.enable");
     await cdp.send("Runtime.enable");
     await cdp.send("Emulation.setDeviceMetricsOverride", { width: scenario.width, height: scenario.height, deviceScaleFactor: 1, mobile: false });
-    await cdp.send("Page.addScriptToEvaluateOnNewDocument", { source: mockScript(scenario.language) });
+    await cdp.send("Page.addScriptToEvaluateOnNewDocument", { source: mockScript(scenario.language, scenario.windowTheme) });
     await cdp.send("Page.navigate", { url: base });
     await sleep(1500);
-    const rect = async (selector) => {
-      const r = await cdp.send("Runtime.evaluate", { expression: `(() => { const e = document.querySelector(${JSON.stringify(selector)}); if (!e) return null; const b = e.getBoundingClientRect(); return { x: b.x + b.width / 2, y: b.y + b.height / 2 }; })()`, returnByValue: true });
+    const rect = async (selector, text) => {
+      const r = await cdp.send("Runtime.evaluate", { expression: `(() => { const e = ${text ? "[...document.querySelectorAll(" + JSON.stringify(selector) + ")].find((n) => n.textContent.trim().startsWith(" + JSON.stringify(text) + "))" : "document.querySelector(" + JSON.stringify(selector) + ")"}; if (!e) return null; const b = e.getBoundingClientRect(); return { x: b.x + b.width / 2, y: b.y + b.height / 2 }; })()`, returnByValue: true });
       return r.result.value;
     };
     for (const step of scenario.steps) {
       if (step.wait) await sleep(step.wait);
       if (step.click || step.hover) {
-        const at = await rect(step.click ?? step.hover);
+        const at = await rect(step.click ?? step.hover, step.text);
         if (!at) {
           const dump = await cdp.send("Runtime.evaluate", { expression: "document.body.innerText.slice(0, 400)", returnByValue: true });
           mkdirSync(outDir, { recursive: true });
