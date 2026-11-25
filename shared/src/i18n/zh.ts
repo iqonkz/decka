@@ -1053,4 +1053,13 @@ export const zh: Dictionary = {
   "phone.no_layout_title": "暂无按钮",
   "phone.no_layout_body": "在电脑上的 Decka 中添加按钮或小组件，它们会自动显示在此处。",
   "menu.title": "菜单",
+  "orb.aria": "语音助手球体",
+  "island.copy": "复制",
+  "island.insert": "插入",
+  "island.speak": "朗读",
+  "island.again": "换一个",
+  "island.language": "语言",
+  "island.stop": "停止",
+  "island.slow_eta": "正在查看屏幕… 约 {s} 秒",
+  "island.slow_almost": "马上就好…",
 };

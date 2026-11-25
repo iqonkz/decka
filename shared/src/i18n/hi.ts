@@ -1053,4 +1053,13 @@ export const hi: Dictionary = {
   "phone.no_layout_title": "अभी कोई बटन नहीं",
   "phone.no_layout_body": "अपने PC पर Decka में बटन या विजेट जोड़ें और वे यहाँ अपने आप दिखेंगे।",
   "menu.title": "मेनू",
+  "orb.aria": "वॉइस सहायक ऑर्ब",
+  "island.copy": "कॉपी करें",
+  "island.insert": "डालें",
+  "island.speak": "बोलकर सुनाएं",
+  "island.again": "फिर कोशिश करें",
+  "island.language": "भाषा",
+  "island.stop": "रोकें",
+  "island.slow_eta": "स्क्रीन देख रहा हूँ… ~{s} से",
+  "island.slow_almost": "बस एक पल…",
 };

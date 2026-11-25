@@ -1084,5 +1084,14 @@ export const ru: Record<Base | ExtraPlural, string> = {
   "phone.no_layout_title": "Кнопок пока нет",
   "phone.no_layout_body": "Добавьте кнопки или виджеты в Decka на ПК — они сразу появятся здесь.",
   "menu.title": "Меню",
+  "orb.aria": "Сфера голосового помощника",
+  "island.copy": "Копировать",
+  "island.insert": "Вставить",
+  "island.speak": "Озвучить",
+  "island.again": "Ещё вариант",
+  "island.language": "Язык",
+  "island.stop": "Стоп",
+  "island.slow_eta": "Смотрю на экран… ~{s} с",
+  "island.slow_almost": "Ещё немного…",
   // @@END
 };

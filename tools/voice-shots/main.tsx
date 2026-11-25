@@ -301,6 +301,108 @@ if (scene === "deck" || scene === "settings") {
     if (q.get("go")) setTimeout(() => window.dispatchEvent(new CustomEvent("decka:go", { detail: { tab: q.get("go") } })), 500);
     if (q.get("wizard") !== null) setTimeout(() => window.dispatchEvent(new CustomEvent("decka:run-setup", { detail: { step: Number(q.get("wizard")) } })), 450);
   }
+} else if (scene === "orb-bench") {
+  const { ParticlesOrb } = await import("../../ui/src");
+  document.body.style.background = "#0e1017";
+  const orbState = (q.get("state") ?? "listening") as "idle" | "connecting" | "listening" | "thinking" | "speaking";
+  const orbSize = Number(q.get("size") ?? 120);
+  root.render(
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
+      <ParticlesOrb state={orbState} size={orbSize} />
+    </div>,
+  );
+} else if (scene === "island") {
+  const { Island, ParticlesOrb } = await import("../../ui/src");
+  const { useState } = await import("react");
+  const themeMode = (q.get("theme") ?? "dark") as "light" | "dark";
+  document.body.style.cssText =
+    themeMode === "light"
+      ? "margin:0;min-height:100vh;background:linear-gradient(135deg,#e8eef8,#f3e8ff);font-family:system-ui,-apple-system,sans-serif;"
+      : "margin:0;min-height:100vh;background:radial-gradient(900px 600px at 20% 20%,#1e2b4f 0%,transparent 65%),radial-gradient(900px 600px at 80% 85%,#3b1c54 0%,transparent 65%),#0b0d14;font-family:system-ui,-apple-system,sans-serif;";
+  if (q.get("interactive")) {
+    function IslandDemoApp() {
+      const [mode, setMode] = useState<"tab" | "compact" | "expanded">("expanded");
+      const [phase, setPhase] = useState<"idle" | "loading" | "listening" | "thinking" | "speaking" | "error">("listening");
+      const [level, setLevel] = useState(0.55);
+      const [slow, setSlow] = useState(false);
+      const [lyrics, setLyrics] = useState(true);
+      const [demoTheme, setDemoTheme] = useState<"light" | "dark">(themeMode);
+      const evt = {
+        mode,
+        lyrics: lyrics ? { playing: true, current: "Midnight City — M83", next: "Waiting in a car" } : null,
+        voice: {
+          active: true,
+          phase,
+          level,
+          heard: q.get("lang") === "ru" ? "Что на экране?" : "What is on screen?",
+          reply: q.get("lang") === "ru" ? "На экране открыт редактор кода и панель задач." : "A code editor and task panel are open on screen.",
+          actions: ["copy", "insert", "speak", "again", "lang:en", "lang:ru"],
+          slow: slow ? { etaSec: 12, elapsedSec: 4 } : null,
+          chips: [{ label: q.get("lang") === "ru" ? "Открыть код" : "Open code", command: "open" }],
+        },
+      };
+      return (
+        <div style={{ padding: 24, display: "flex", flexDirection: "column", alignItems: "center", gap: 20, color: demoTheme === "light" ? "#14161c" : "#f4f6fa" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", fontSize: 12 }}>
+            {(["tab", "compact", "expanded"] as const).map((m) => (
+              <button key={m} onClick={() => setMode(m)}>{m}</button>
+            ))}
+            {(["idle", "loading", "listening", "thinking", "speaking", "error"] as const).map((p) => (
+              <button key={p} onClick={() => setPhase(p)}>{p}</button>
+            ))}
+            <label>Level <input type="range" min={0} max={1} step={0.05} value={level} onChange={(e) => setLevel(Number(e.target.value))} /></label>
+            <label><input type="checkbox" checked={slow} onChange={(e) => setSlow(e.target.checked)} /> Slow</label>
+            <label><input type="checkbox" checked={lyrics} onChange={(e) => setLyrics(e.target.checked)} /> Lyrics</label>
+            <button onClick={() => setDemoTheme((t) => (t === "dark" ? "light" : "dark"))}>{demoTheme}</button>
+          </div>
+          <Island event={evt} theme={demoTheme} onAction={() => {}} onChipClick={() => {}} onStopSlow={() => setSlow(false)} />
+          <ParticlesOrb state={phase === "loading" ? "connecting" : phase === "error" ? "idle" : phase} size={120} level={level} />
+        </div>
+      );
+    }
+    root.render(<IslandDemoApp />);
+  } else {
+    const mode = (q.get("mode") ?? "expanded") as "hidden" | "tab" | "compact" | "expanded";
+    const phase = (q.get("state") ?? "listening") as "idle" | "loading" | "listening" | "thinking" | "speaking" | "error";
+    const isRu = q.get("lang") === "ru";
+    const showOrbRow = q.get("orbRow") === "1";
+    if (showOrbRow) {
+      const states = ["idle", "connecting", "listening", "thinking", "speaking"] as const;
+      root.render(
+        <div style={{ display: "flex", gap: 20, padding: 24, alignItems: "center", justifyContent: "center", minHeight: "100vh", boxSizing: "border-box" }}>
+          {states.map((s) => (
+            <div key={s} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, color: themeMode === "light" ? "#14161c" : "#f4f6fa", fontSize: 12 }}>
+              <ParticlesOrb state={s} size={120} level={0.65} />
+              <span>{s}</span>
+            </div>
+          ))}
+        </div>,
+      );
+    } else {
+      const hasLyrics = q.get("lyrics") === "1";
+      const isSlow = q.get("slow") === "1";
+      const hasReply = q.get("reply") === "1";
+      const evt = {
+        mode,
+        lyrics: hasLyrics ? { playing: true, current: isRu ? "В полночном городе огни" : "Waiting in a car", next: isRu ? "Ждём рассвет у реки" : "Waiting for a ride in the dark" } : null,
+        voice: q.get("voiceOff") === "1" ? null : {
+          active: true,
+          phase,
+          level: Number(q.get("level") ?? 0.6),
+          heard: q.get("heard") ?? (isRu ? "Что на экране?" : "What is on my screen?"),
+          reply: hasReply ? (q.get("replyText") ?? (isRu ? "На экране открыт список задач и терминал." : "A task list and terminal window are open on your screen.")) : undefined,
+          actions: hasReply ? ["copy", "insert", "speak", "again", "lang:en", "lang:ru"] : undefined,
+          slow: isSlow ? { etaSec: 12, elapsedSec: q.get("almost") === "1" ? 30 : 4 } : null,
+          chips: hasReply ? [{ label: isRu ? "Копировать код" : "Copy snippet", command: "copy" }] : undefined,
+        },
+      };
+      root.render(
+        <div style={{ display: "flex", justifyContent: "center", paddingTop: 28 }}>
+          <Island event={evt} theme={themeMode} hovered={q.get("hover") === "1"} onAction={() => {}} onChipClick={() => {}} onStopSlow={() => {}} />
+        </div>,
+      );
+    }
+  }
 } else if (scene === "service") {
   await import("../../client/src/styles.css");
   const { applyTheme } = await import("../../ui/src");

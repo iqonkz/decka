@@ -1060,4 +1060,13 @@ export const kk: Dictionary = {
   "phone.no_layout_title": "Әзірге батырмалар жоқ",
   "phone.no_layout_body": "ДК-дегі Decka-да батырмалар не виджеттер қосыңыз — олар осында автоматты түрде пайда болады.",
   "menu.title": "Мәзір",
+  "orb.aria": "Дауыстық көмекші сферасы",
+  "island.copy": "Көшіру",
+  "island.insert": "Кірістіру",
+  "island.speak": "Дыбыстау",
+  "island.again": "Басқа нұсқа",
+  "island.language": "Тіл",
+  "island.stop": "Тоқтату",
+  "island.slow_eta": "Экранды қарап жатырмын… ~{s} с",
+  "island.slow_almost": "Тағы сәл…",
 };

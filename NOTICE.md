@@ -19,6 +19,7 @@ ull` when its source is absent |
 | [PhoneBox](https://github.com/ersinkoc/phonebox) | MIT | Idea of AI usage limits and phone approvals inspired by PhoneBox (github.com/ersinkoc/phonebox, MIT); no code copied |
 | [Bitfocus Companion](https://github.com/bitfocus/companion) | MIT (not verified on the repository page) | "Feedback": a button's look is computed from external state, not from the local press |
 | [Nixi](https://heynixi.com) (heynixi) | not applicable (idea only) | Voice control of the PC with a small floating pill and a local model |
+| [VoiceOrbs](https://voiceorbs.vercel.app/orbs/particles-orb) | not applicable (idea only) | 3D Fibonacci-sphere particle orb visualization across voice states |
 
 Voice control ideas inspired by Nixi (heynixi); no code copied. llama.cpp and whisper.cpp (MIT), Qwen3.5 (Apache-2.0), Whisper models (MIT) are downloaded at the user's request.
 

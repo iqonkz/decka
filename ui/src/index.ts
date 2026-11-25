@@ -1,6 +1,7 @@
 // @decka/ui: the deck itself (keys, widgets, grid) as presentational components.
 // Data and callbacks come in as props; nothing here knows about sockets, stores or the settings window.
 import "./deck.css";
+import "./island/island.css";
 import "./theme/amoled.css";
 import "./theme/studio.css";
 import "./theme/material.css";
@@ -37,3 +38,17 @@ export { averageRgbFromPixels, coverGradient, darkenCoverColor, rgbToHex, rgbToH
 export { effectiveMediaPositionMs, formatOffsetSeconds, selectActiveLyricIndex } from "./widgets/lyricsLogic";
 export { formatRepeatLabel } from "./widgets/repeatLabel";
 export { default as WidgetEmpty } from "./widgets/WidgetEmpty";
+export { default as ParticlesOrb, particleCountForSize, type ParticlesOrbProps } from "./island/ParticlesOrb";
+export { default as Island, type IslandProps } from "./island/Island";
+export {
+  orbStateFromIsland,
+  type OrbState,
+  type IslandMode,
+  type IslandVoicePhase,
+  type IslandActionKind,
+  type IslandSlowProgress,
+  type IslandContextChip,
+  type IslandVoiceState,
+  type IslandLyricsState,
+  type IslandEvent,
+} from "./island/islandTypes";

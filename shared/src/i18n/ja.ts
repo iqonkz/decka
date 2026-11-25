@@ -1053,4 +1053,13 @@ export const ja: Dictionary = {
   "phone.no_layout_title": "まだボタンがありません",
   "phone.no_layout_body": "PCのDeckaでボタンやウィジェットを追加すると、ここに自動的に表示されます。",
   "menu.title": "メニュー",
+  "orb.aria": "音声アシスタントオーブ",
+  "island.copy": "コピー",
+  "island.insert": "挿入",
+  "island.speak": "読み上げ",
+  "island.again": "別の案",
+  "island.language": "言語",
+  "island.stop": "停止",
+  "island.slow_eta": "画面を確認中… ~{s} 秒",
+  "island.slow_almost": "もうすぐ…",
 };
