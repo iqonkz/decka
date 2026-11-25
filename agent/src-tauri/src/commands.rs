@@ -533,7 +533,7 @@ pub fn get_icon_preview(app: AppHandle, icon: String) -> Result<Option<String>, 
 /// Opens `<configDir>\logs` in Explorer (created when missing).
 #[tauri::command]
 pub fn open_logs_dir(app: AppHandle) -> Result<(), String> {
-    let dir = decka_core::logging::logs_dir(&agent(&app)?.config_dir());
+    let dir = decka_core::logging::logs_dir(agent(&app)?.config_dir());
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     std::process::Command::new("explorer.exe").arg(dir).spawn().map(drop).map_err(|e| e.to_string())
 }
