@@ -169,3 +169,5 @@ Hugging Face перенаправляет на `us.aws.cdn.hf.co`, которо�
 
 ## 2026-11-26 - T24.S: ARCHITECTURE S18 (outbound hosts) does not list lrclib.net
 Not a blocker, a docs gap for the architect. T24.2 asks lrclib.net (HTTPS, 5 s, no redirects, no cookies) only while config.media.lyrics.enabled is true; the request carries artist, title and duration only (DATA_MODEL 14). S18 lists api.github.com and open-meteo hosts only - please add lrclib.net. Also new in this pass: list_toggle, notif_open, notif_dismiss, perm_answer and lyrics_offset now share the 20 per second limit of a socket (RATE_LIMITED, not fatal) and ignore ids that do not match the issued formats; S9 could mention it.
+
+**Решение архитектора 2026-11-25:** lrclib.net добавлен в S18. Общий лимит 20/с и проверка форматов id для data-сообщений принимаются как есть.
