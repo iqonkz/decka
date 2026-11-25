@@ -249,7 +249,7 @@
     "tool": "remind",
     "args": {
       "text": "videollamada",
-      "at": "17:15"
+      "time": "17:15"
     }
   },
   {
@@ -388,7 +388,7 @@
     "tool": "remind",
     "args": {
       "text": "tomar las vitaminas",
-      "at": "08:30",
+      "time": "08:30",
       "repeat": "daily"
     }
   },
@@ -397,7 +397,7 @@
     "tool": "remind",
     "args": {
       "text": "estirar",
-      "at": "21:30",
+      "time": "21:30",
       "repeat": "daily"
     }
   },
@@ -406,7 +406,7 @@
     "tool": "remind",
     "args": {
       "text": "reunión diaria",
-      "at": "09:15",
+      "time": "09:15",
       "repeat": "weekdays"
     }
   },
@@ -415,7 +415,8 @@
     "tool": "remind",
     "args": {
       "text": "enviar el informe",
-      "at": "10:00",
+      "day": "mon",
+      "time": "10:00",
       "repeat": "weekly"
     }
   },
@@ -424,7 +425,8 @@
     "tool": "remind",
     "args": {
       "text": "hacer copia del proyecto",
-      "at": "19:00",
+      "day": "fri",
+      "time": "19:00",
       "repeat": "weekly"
     }
   },
@@ -433,7 +435,7 @@
     "tool": "remind",
     "args": {
       "text": "regar las plantas",
-      "at": "11:00"
+      "time": "11:00"
     }
   },
   {

@@ -249,7 +249,7 @@
     "tool": "remind",
     "args": {
       "text": "来客",
-      "at": "16:45"
+      "time": "16:45"
     }
   },
   {
@@ -388,7 +388,7 @@
     "tool": "remind",
     "args": {
       "text": "ビタミンを飲む",
-      "at": "08:30",
+      "time": "08:30",
       "repeat": "daily"
     }
   },
@@ -397,7 +397,7 @@
     "tool": "remind",
     "args": {
       "text": "ストレッチする",
-      "at": "21:30",
+      "time": "21:30",
       "repeat": "daily"
     }
   },
@@ -406,7 +406,7 @@
     "tool": "remind",
     "args": {
       "text": "朝会",
-      "at": "09:15",
+      "time": "09:15",
       "repeat": "weekdays"
     }
   },
@@ -415,7 +415,8 @@
     "tool": "remind",
     "args": {
       "text": "週報を送る",
-      "at": "10:00",
+      "day": "mon",
+      "time": "10:00",
       "repeat": "weekly"
     }
   },
@@ -424,7 +425,8 @@
     "tool": "remind",
     "args": {
       "text": "コードのバックアップ",
-      "at": "19:00",
+      "day": "fri",
+      "time": "19:00",
       "repeat": "weekly"
     }
   },
@@ -433,7 +435,7 @@
     "tool": "remind",
     "args": {
       "text": "観葉植物に水をやる",
-      "at": "11:00"
+      "time": "11:00"
     }
   },
   {

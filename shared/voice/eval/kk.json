@@ -249,7 +249,7 @@
     "tool": "remind",
     "args": {
       "text": "жиналыс бар",
-      "at": "14:00"
+      "time": "14:00"
     }
   },
   {
@@ -388,7 +388,7 @@
     "tool": "remind",
     "args": {
       "text": "дәрумен ішу",
-      "at": "08:30",
+      "time": "08:30",
       "repeat": "daily"
     }
   },
@@ -397,7 +397,7 @@
     "tool": "remind",
     "args": {
       "text": "созылу жаттығуын жасау",
-      "at": "21:30",
+      "time": "21:30",
       "repeat": "daily"
     }
   },
@@ -406,7 +406,7 @@
     "tool": "remind",
     "args": {
       "text": "таңғы жиналыс",
-      "at": "09:15",
+      "time": "09:15",
       "repeat": "weekdays"
     }
   },
@@ -415,7 +415,8 @@
     "tool": "remind",
     "args": {
       "text": "есеп жіберу",
-      "at": "10:00",
+      "day": "mon",
+      "time": "10:00",
       "repeat": "weekly"
     }
   },
@@ -424,7 +425,8 @@
     "tool": "remind",
     "args": {
       "text": "жобаның резервтік көшірмесін жасау",
-      "at": "19:00",
+      "day": "fri",
+      "time": "19:00",
       "repeat": "weekly"
     }
   },
@@ -433,7 +435,7 @@
     "tool": "remind",
     "args": {
       "text": "гүлдерді суару",
-      "at": "11:00"
+      "time": "11:00"
     }
   },
   {

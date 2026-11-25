@@ -249,7 +249,7 @@
     "tool": "remind",
     "args": {
       "text": "зайти к врачу",
-      "at": "16:30"
+      "time": "16:30"
     }
   },
   {
@@ -388,7 +388,7 @@
     "tool": "remind",
     "args": {
       "text": "принимать витамины",
-      "at": "08:30",
+      "time": "08:30",
       "repeat": "daily"
     }
   },
@@ -397,7 +397,7 @@
     "tool": "remind",
     "args": {
       "text": "сделать растяжку",
-      "at": "21:30",
+      "time": "21:30",
       "repeat": "daily"
     }
   },
@@ -406,7 +406,7 @@
     "tool": "remind",
     "args": {
       "text": "утренняя планёрка",
-      "at": "09:15",
+      "time": "09:15",
       "repeat": "weekdays"
     }
   },
@@ -415,7 +415,8 @@
     "tool": "remind",
     "args": {
       "text": "отправить отчёт",
-      "at": "10:00",
+      "day": "mon",
+      "time": "10:00",
       "repeat": "weekly"
     }
   },
@@ -424,7 +425,8 @@
     "tool": "remind",
     "args": {
       "text": "сделать бэкап проекта",
-      "at": "19:00",
+      "day": "fri",
+      "time": "19:00",
       "repeat": "weekly"
     }
   },
@@ -433,7 +435,7 @@
     "tool": "remind",
     "args": {
       "text": "поливать цветы",
-      "at": "11:00"
+      "time": "11:00"
     }
   },
   {

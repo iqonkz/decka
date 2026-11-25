@@ -249,7 +249,7 @@
     "tool": "remind",
     "args": {
       "text": "参加部门周会",
-      "at": "15:30"
+      "time": "15:30"
     }
   },
   {
@@ -388,7 +388,7 @@
     "tool": "remind",
     "args": {
       "text": "吃维生素",
-      "at": "08:30",
+      "time": "08:30",
       "repeat": "daily"
     }
   },
@@ -397,7 +397,7 @@
     "tool": "remind",
     "args": {
       "text": "做睡前拉伸",
-      "at": "21:30",
+      "time": "21:30",
       "repeat": "daily"
     }
   },
@@ -406,7 +406,7 @@
     "tool": "remind",
     "args": {
       "text": "参加晨会",
-      "at": "09:15",
+      "time": "09:15",
       "repeat": "weekdays"
     }
   },
@@ -415,7 +415,8 @@
     "tool": "remind",
     "args": {
       "text": "发送周报",
-      "at": "10:00",
+      "day": "mon",
+      "time": "10:00",
       "repeat": "weekly"
     }
   },
@@ -424,7 +425,8 @@
     "tool": "remind",
     "args": {
       "text": "备份代码",
-      "at": "19:00",
+      "day": "fri",
+      "time": "19:00",
       "repeat": "weekly"
     }
   },
@@ -433,7 +435,7 @@
     "tool": "remind",
     "args": {
       "text": "给阳台的植物浇水",
-      "at": "11:00"
+      "time": "11:00"
     }
   },
   {
