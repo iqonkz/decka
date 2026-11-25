@@ -456,7 +456,7 @@ if (scene === "deck" || scene === "settings") {
         muted: hasSong ? q.get("muted") === "1" : undefined,
         musicLevel: hasSong ? Number(q.get("musicLevel") ?? 0.7) : undefined,
         track: hasSong ? { title: q.get("title") ?? "Midnight City", artist: q.get("artist") ?? "M83" } : undefined,
-        lyrics: q.get("lyrics") === "long" ? { playing: true, current: isRu ? "Когда ночь опускается на старый город, и огни одно за другим гаснут в окнах, я всё ещё иду по набережной к тебе" : "When the night comes down on the old town and the lights go out one by one, I am still walking the river road to you", next: isRu ? "Ждём рассвет у реки" : "Waiting for a ride in the dark" } : hasSong ? (
+        lyrics: q.get("lyrics") === "3lines" ? { playing: true, current: isRu ? "Когда ночь опускается на старый город, и огни одно за другим гаснут в окнах, я всё ещё иду по тихой набережной навстречу рассвету" : "When the night comes down on the old quiet town and the lights go out one by one across every street, I am still walking by the river toward dawn", next: isRu ? "Ждём рассвет у реки" : "Waiting for a ride in the dark" } : q.get("lyrics") === "long" ? { playing: true, current: isRu ? "Когда ночь опускается на старый город, и огни одно за другим гаснут в окнах, я всё ещё иду по набережной к тебе" : "When the night comes down on the old town and the lights go out one by one, I am still walking the river road to you", next: isRu ? "Ждём рассвет у реки" : "Waiting for a ride in the dark" } : hasSong ? (
           songScene === "lyrics" ? {
             playing: q.get("playing") !== "0",
             current: isRu ? "В полночном городе огни" : "Waiting in a car",

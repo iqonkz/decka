@@ -1,7 +1,7 @@
-﻿// T26.F-8: the width of the compact island with a song line: by the longer of the two lines, 360..640 px.
+﻿// T26.F.14: the width of the compact island with a song line: by the longer of the two lines, 360..520 px.
 
 export const COMPACT_MIN = 360;
-export const COMPACT_MAX = 640;
+export const COMPACT_MAX = 520;
 /** Orb (32) + gap (12) + padding (12 + 14) + a little room for rounding. */
 const CHROME = 32 + 12 + 12 + 14 + 6;
 
@@ -23,7 +23,7 @@ export const measureText: Measure = (text, font) => {
   return ctx.measureText(text).width;
 };
 
-/** The panel width for the two lines, clamped to the 360..640 range. */
+/** The panel width for the two lines, clamped to the 360..520 range. */
 export function compactWidth(current: string | undefined, next: string | undefined, measure: Measure = measureText): number {
   const a = current ? measure(current, '600 14px "Segoe UI Variable", system-ui, sans-serif') : 0;
   const b = next ? measure(next, '500 12px "Segoe UI Variable", system-ui, sans-serif') : 0;

@@ -17,7 +17,6 @@ import {
   SkipForward,
   Square,
   Volume2,
-  VolumeX,
 } from "lucide-react";
 import { LANGUAGE_NAMES, LANGUAGES, locale, t, type Language } from "@decka/shared";
 import { formatTime } from "../widgets/mediaPos";
@@ -343,14 +342,14 @@ export default function Island({
         ? Boolean(lyrics?.next)
         : countdownKnown || countdownUnknown || Boolean(lyrics?.artist)
       : false;
-    // T26.F.8: the width follows the longer line (360..640) and a longer current line wraps; the hover buttons add their width (T26.F.11).
+    // T26.F.14: width follows the longer line (360..520), current line wraps up to 3 lines without ellipsis; controls sit under the orb on hover.
     const lyricLines = hasSong && hasActiveLyric ? { current: lyrics?.current, next: lyrics?.next } : { current: trackSummary || lyrics?.title, next: lyrics?.artist };
     const wraps = hasSong && currentWraps(lyricLines.current);
-    const panelWidth = hasSong ? compactWidth(lyricLines.current, lyricLines.next) : undefined;    const slow = voice?.slow;
+    const panelWidth = hasSong ? compactWidth(lyricLines.current, lyricLines.next) : undefined;
+    const slow = voice?.slow;
     const slowOverdue = slow && (slow.elapsedSec ?? 0) > slow.etaSec * 2;
     const slowPct = slow ? Math.min(95, Math.round(((slow.elapsedSec ?? 0) / Math.max(1, slow.etaSec)) * 100)) : 0;
     const playPauseLabel = lyrics?.playing ? t("island.media_pause") : t("island.media_play");
-    const muteLabel = lyrics?.muted ? t("island.media_unmute") : t("island.media_mute");
 
     return (
       <div className="island-host" data-island-theme={theme}>
@@ -359,20 +358,21 @@ export default function Island({
           style={panelWidth ? ({ "--cw": `${panelWidth}px` } as CSSProperties) : undefined}
           role="status"
         >
-          <div className={`island-orb-wrap compact${isError ? " is-error" : ""}`}>
-            <ParticlesOrb
-              state={orbState}
-              size={32}
-              colorFrom={colorFrom}
-              colorTo={colorTo}
-              level={hasSong ? lyrics?.musicLevel : voice?.level}
-              particleCount={hasSong ? 140 : undefined}
-              maxFps={hasSong ? 20 : undefined}
-              amplitude={hasSong ? 0.6 : 1}
-              staticFrame={!voiceActive && !lyrics?.playing}
-            />
-          </div>
-          <div className="island-compact-text">
+          <div className="island-compact-main">
+            <div className={`island-orb-wrap compact${isError ? " is-error" : ""}`}>
+              <ParticlesOrb
+                state={orbState}
+                size={32}
+                colorFrom={colorFrom}
+                colorTo={colorTo}
+                level={hasSong ? lyrics?.musicLevel : voice?.level}
+                particleCount={hasSong ? 140 : undefined}
+                maxFps={hasSong ? 20 : undefined}
+                amplitude={hasSong ? 0.6 : 1}
+                staticFrame={!voiceActive && !lyrics?.playing}
+              />
+            </div>
+            <div className="island-compact-text">
             {voiceActive && slow ? (
               <div className="island-slow">
                 <div className="island-slow-row">
@@ -424,9 +424,10 @@ export default function Island({
                   {lyrics?.artist && <div className="island-lyric-next">{lyrics.artist}</div>}
                 </>
               )
-            ) : (
-              <div className="island-lyric-current">{compactVoiceText(voice, t("voice.listening"))}</div>
-            )}
+              ) : (
+                <div className="island-lyric-current">{compactVoiceText(voice, t("voice.listening"))}</div>
+              )}
+            </div>
           </div>
           {hasSong && (
             <div className="island-compact-controls">
@@ -460,19 +461,6 @@ export default function Island({
                 onClick={() => onMediaControl?.("next")}
               >
                 <SkipForward size={16} strokeWidth={1.75} aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                className="island-media-btn"
-                title={muteLabel}
-                aria-label={muteLabel}
-                onClick={() => onMediaControl?.("mute")}
-              >
-                {lyrics?.muted ? (
-                  <VolumeX size={16} strokeWidth={1.75} aria-hidden="true" />
-                ) : (
-                  <Volume2 size={16} strokeWidth={1.75} aria-hidden="true" />
-                )}
               </button>
             </div>
           )}

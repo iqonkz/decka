@@ -81,23 +81,44 @@
   opacity: 0.6;
 }
 
-/* T26.F-8: a current line longer than 640 px wraps (no ellipsis); the panel grows in height. */
-.island-compact.wraps {
-  height: auto;
-  min-height: 72px;
-  padding-top: 10px;
-  padding-bottom: 10px;
+/* T26.F.14: song lines in compact (360..520 px fixed on hover; current wraps up to 3 lines without ellipsis). */
+.island-compact-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
 }
 
+.island-compact.wraps {
+  height: auto;
+  min-height: 56px;
+}
+
+.island-compact.is-song {
+  width: var(--cw, 360px);
+  height: auto;
+  min-height: 56px;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 0;
+  padding: 12px 14px 12px 12px;
+}
+
+.island-compact.is-song .island-song-title-text,
+.island-compact.is-song .island-lyric-current,
 .island-compact.wraps .island-song-title-text,
 .island-compact.wraps .island-lyric-current {
   white-space: normal;
-  overflow: visible;
+  overflow: hidden;
   text-overflow: clip;
   overflow-wrap: anywhere;
+  max-height: calc(1.3em * 3);
 }
 
 .island-compact.is-lyrics:hover,
+.island-compact.is-lyrics:focus-within,
 .island-compact.is-lyrics.is-hovered {
   opacity: 1;
 }
@@ -184,50 +205,29 @@
   }
 }
 
-/* T26.F.11: the panel grows by the width of the buttons on hover; the text is not narrowed. */
-.island-compact.is-song {
-  width: var(--cw, 360px);
-}
-
-.island-compact.is-song:hover,
-.island-compact.is-song.is-hovered,
-.island-compact.is-song:focus-within {
-  width: calc(var(--cw, 360px) + 140px);
-}
-
+/* T26.F.14: 3 media controls under the orb, revealed on hover / :focus-within (+36 px height in 150 ms). */
 .island-compact-controls {
+  box-sizing: border-box;
   display: flex;
   align-items: center;
-  gap: 2px;
-  flex: none;
-  max-width: 0;
+  justify-content: flex-start;
+  gap: 4px;
+  height: 0;
+  margin: 0 -3px;
+  padding: 0 3px;
   opacity: 0;
   overflow: hidden;
   pointer-events: none;
-  margin-inline-start: -12px;
-  transition: max-width 150ms ease, opacity 150ms ease, margin-inline-start 150ms ease;
+  transition: height 150ms ease, margin-bottom 150ms ease, padding-top 150ms ease, padding-bottom 150ms ease, opacity 150ms ease;
 }
 
 .island-compact.is-song:hover .island-compact-controls,
 .island-compact.is-song.is-hovered .island-compact-controls,
-.island-compact.is-song:focus-within /* T26.F.11: the panel grows by the width of the buttons on hover; the text is not narrowed. */
-.island-compact.is-song {
-  width: var(--cw, 360px);
-}
-
-.island-compact.is-song:hover,
-.island-compact.is-song.is-hovered,
-.island-compact.is-song:focus-within {
-  width: calc(var(--cw, 360px) + 140px);
-}
-
-.island-compact-controls {
-  max-width: 126px;
-  margin-inline-start: 0;
-  padding: 2px;
-  margin-top: -2px;
-  margin-bottom: -2px;
-  margin-inline-end: -2px;
+.island-compact.is-song:focus-within .island-compact-controls {
+  height: 39px;
+  margin-bottom: -3px;
+  padding-top: 8px;
+  padding-bottom: 3px;
   opacity: 1;
   pointer-events: auto;
 }
