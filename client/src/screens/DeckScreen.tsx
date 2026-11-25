@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { t } from "@decka/shared";
+import { useVoiceRecording } from "../voice/api";
 import { setPage, unpair } from "../app/controller";
 import ConnBadge from "../deck/ConnBadge";
 import DimOverlay from "../display/DimOverlay";
@@ -55,6 +56,11 @@ export default function DeckScreen() {
   // A long press on empty space opens the menu (it replaces the old five taps in the corner).
   const hold = useMenuGesture(openMenu, !menuOpen && !confirmUnpair);
   useContextPages();
+  // The mic button floats above the menu; a recording and an open sheet are two different states, so the sheet closes (T25.2).
+  const recording = useVoiceRecording();
+  useEffect(() => {
+    if (recording) setMenuOpen(false);
+  }, [recording]);
   const display = layout?.display;
   const theme = resolveTheme(display);
   const art = useAppState((s) => s.state?.media?.art);

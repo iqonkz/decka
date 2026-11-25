@@ -86,7 +86,7 @@ export class VoiceSession {
     if (this.cur) return;
     const id = this.d.newId();
     const cur: Current = { id, seq: 0, capture: null, timer: null, mode, endpointer: new Endpointer(), smoother: new LevelSmoother(), decided: false, stopRequested: false };
-    if (!this.d.send({ t: "voice_start", id })) throw new Error("voice: offline");
+    if (!this.safeSend({ t: "voice_start", id })) throw new Error("voice: offline");
     this.cur = cur;
     this.d.onActive?.(true);
     let capture: { stop: () => void };
@@ -96,7 +96,7 @@ export class VoiceSession {
       if (this.cur === cur) {
         this.cur = null;
         this.d.onActive?.(false);
-        this.d.send({ t: "voice_cancel", id });
+        this.safeSend({ t: "voice_cancel", id });
       }
       if (isMicDenied(e)) this.d.onMicDenied?.();
       throw e;
@@ -109,6 +109,15 @@ export class VoiceSession {
     cur.capture = capture;
     cur.timer = this.d.setTimeout(() => this.stop(), MAX_RECORDING_MS);
     if (cur.stopRequested) this.stop();
+  }
+
+  /** A socket that closes under our hands (send throws) is the same as no channel: never an exception out of the audio callback. */
+  private safeSend(msg: VoiceMsg): boolean {
+    try {
+      return this.d.send(msg);
+    } catch {
+      return false;
+    }
   }
 
   /** The end of speech: the rest of the sound goes out, then `voice_end`. */
@@ -126,7 +135,7 @@ export class VoiceSession {
     this.cur = null;
     this.d.onActive?.(false);
     this.d.onLevel?.(0);
-    this.d.send({ t: "voice_end", id: cur.id });
+    this.safeSend({ t: "voice_end", id: cur.id });
   }
 
   cancel(): void {
@@ -137,18 +146,18 @@ export class VoiceSession {
     cur.capture?.stop();
     this.d.onActive?.(false);
     this.d.onLevel?.(0);
-    this.d.send({ t: "voice_cancel", id: cur.id });
+    this.safeSend({ t: "voice_cancel", id: cur.id });
   }
 
   /** The answer to the question of the PC about a risky call. */
   confirm(id: string, yes: boolean): void {
-    this.d.send({ t: "voice_confirm", id, yes });
+    this.safeSend({ t: "voice_confirm", id, yes });
   }
 
   private push(cur: Current, chunk: Int16Array): void {
     // After `cancel` the late chunks of the closing microphone are dropped; the flush inside `stop` still sees `this.cur === cur`.
     if (this.cur !== cur || chunk.length === 0) return;
-    if (!this.d.send({ t: "voice_chunk", id: cur.id, seq: cur.seq, data: chunkToBase64(chunk) })) {
+    if (!this.safeSend({ t: "voice_chunk", id: cur.id, seq: cur.seq, data: chunkToBase64(chunk) })) {
       this.cancel();
       return;
     }

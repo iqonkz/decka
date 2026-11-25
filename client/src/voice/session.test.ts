@@ -43,6 +43,18 @@ describe("voice session", () => {
     expect(r.s.active).toBe(false);
   });
 
+  it("a socket that throws on send (closing under the recording) cancels the recording, nothing escapes (T25.2)", async () => {
+    let boom = false;
+    const r = rig({ extra: { send: (m) => { if (boom) throw new Error("socket closing"); return (void m, true); } } });
+    const p = r.s.start();
+    r.open();
+    await p;
+    boom = true;
+    expect(() => r.feed(new Int16Array(1600))).not.toThrow();
+    expect(r.s.active).toBe(false);
+    expect(() => r.s.stop()).not.toThrow();
+  });
+
   it("a second start while one runs does nothing", async () => {
     const r = rig();
     const p = r.s.start();
