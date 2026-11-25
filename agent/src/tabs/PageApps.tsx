@@ -3,6 +3,7 @@ import { t, type Page } from "@decka/shared";
 import { call } from "../ipc";
 import Button from "../ui/Button";
 import Switch from "../ui/Switch";
+import TimeField from "../ui/TimeField";
 import { normalizeApp, withApps } from "./layoutOps";
 
 interface Props {
@@ -89,9 +90,9 @@ export default function PageApps({ page, isFirst, onChange }: Props) {
         </label>
         {page.time && (
           <>
-            <input type="time" aria-label={t("pageapps.time_from")} value={page.time.from} onChange={(e) => e.target.value && onChange({ ...page, time: { from: e.target.value, to: page.time!.to } })} />
+            <TimeField aria-label={t("pageapps.time_from")} value={page.time.from} onChange={(from) => onChange({ ...page, time: { from, to: page.time!.to } })} />
             <span>–</span>
-            <input type="time" aria-label={t("pageapps.time_to")} value={page.time.to} onChange={(e) => e.target.value && onChange({ ...page, time: { from: page.time!.from, to: e.target.value } })} />
+            <TimeField aria-label={t("pageapps.time_to")} value={page.time.to} onChange={(to) => onChange({ ...page, time: { from: page.time!.from, to } })} />
           </>
         )}
       </div>

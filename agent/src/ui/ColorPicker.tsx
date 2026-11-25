@@ -18,9 +18,11 @@ export const ACCENTS = [
 export interface ColorPickerProps {
   value: string;
   onChange: (hex: string) => void;
+  compact?: boolean;
+  "aria-label"?: string;
 }
 
-export default function ColorPicker({ value, onChange }: ColorPickerProps) {
+export default function ColorPicker({ value, onChange, compact = false, "aria-label": ariaLabel }: ColorPickerProps) {
   const currentHex = normalizeHex(value);
   const isCustom = !ACCENTS.some((c) => c.toLowerCase() === currentHex.toLowerCase());
   const [open, setOpen] = useState(false);
@@ -117,41 +119,51 @@ export default function ColorPicker({ value, onChange }: ColorPickerProps) {
 
   return (
     <div className="color-picker-wrap" ref={popoverRef}>
-      <div className="swatches-row">
-        {ACCENTS.map((c) => {
-          const isSelected = currentHex.toLowerCase() === c.toLowerCase();
-          return (
-            <button
-              key={c}
-              type="button"
-              className={`color-swatch-circle ${isSelected ? "selected" : ""}`}
-              style={{ backgroundColor: c }}
-              aria-label={t("look.accent_swatch", { c })}
-              onClick={() => {
-                setOpen(false);
-                onChange(c);
-              }}
-            >
-              {isSelected && <PhIcon name="check" size={14} color="#fff" weight="bold" />}
-            </button>
-          );
-        })}
-
-        {/* 9th Swatch: Custom Color */}
+      {compact ? (
         <button
           type="button"
-          className={`color-swatch-circle custom ${isCustom ? "selected custom-active" : ""}`}
-          style={isCustom ? { backgroundColor: currentHex } : undefined}
-          aria-label={t("look.custom_accent")}
+          className="color-swatch-circle selected"
+          style={{ backgroundColor: currentHex }}
+          aria-label={ariaLabel ?? t("look.custom_accent")}
           onClick={() => setOpen(!open)}
-        >
-          {isCustom ? (
-            <PhIcon name="check" size={14} color="#fff" weight="bold" />
-          ) : (
-            <PhIcon name="plus" size={14} color="#fff" weight="bold" />
-          )}
-        </button>
-      </div>
+        />
+      ) : (
+        <div className="swatches-row">
+          {ACCENTS.map((c) => {
+            const isSelected = currentHex.toLowerCase() === c.toLowerCase();
+            return (
+              <button
+                key={c}
+                type="button"
+                className={`color-swatch-circle ${isSelected ? "selected" : ""}`}
+                style={{ backgroundColor: c }}
+                aria-label={t("look.accent_swatch", { c })}
+                onClick={() => {
+                  setOpen(false);
+                  onChange(c);
+                }}
+              >
+                {isSelected && <PhIcon name="check" size={14} color="#fff" weight="bold" />}
+              </button>
+            );
+          })}
+
+          {/* 9th Swatch: Custom Color */}
+          <button
+            type="button"
+            className={`color-swatch-circle custom ${isCustom ? "selected custom-active" : ""}`}
+            style={isCustom ? { backgroundColor: currentHex } : undefined}
+            aria-label={t("look.custom_accent")}
+            onClick={() => setOpen(!open)}
+          >
+            {isCustom ? (
+              <PhIcon name="check" size={14} color="#fff" weight="bold" />
+            ) : (
+              <PhIcon name="plus" size={14} color="#fff" weight="bold" />
+            )}
+          </button>
+        </div>
+      )}
 
       {open && (
         <div className="color-picker-popover" role="dialog" aria-label={t("look.custom_accent")}>

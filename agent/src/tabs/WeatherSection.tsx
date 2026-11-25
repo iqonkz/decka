@@ -3,6 +3,7 @@ import { t, type ConfigFile, type PlaceResult, type WeatherConfig } from "@decka
 import { call } from "../ipc";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
+import Segmented from "../ui/Segmented";
 import Switch from "../ui/Switch";
 
 const label = (p: PlaceResult): string => [...new Set([p.name, p.region, p.country].filter((x): x is string => !!x))].join(", ");
@@ -107,22 +108,19 @@ export default function WeatherSection({ config, onSaved }: { config: ConfigFile
           ))}
         </ul>
       )}
-      <div className="row" role="radiogroup" aria-label={t("weather.units")}>
+      <div className="row" role="group" aria-label={t("weather.units")}>
         <span className="muted">{t("weather.units")}</span>
-        {(["metric", "imperial"] as const).map((u) => (
-          <label key={u} className="check">
-            <input
-              type="radio"
-              name="weather-units"
-              checked={units === u}
-              onChange={() => {
-                setUnits(u);
-                void save({ enabled, place, units: u });
-              }}
-            />{" "}
-            {u === "metric" ? "°C" : "°F"}
-          </label>
-        ))}
+        <Segmented
+          options={[
+            { value: "metric", label: "°C" },
+            { value: "imperial", label: "°F" },
+          ]}
+          value={units}
+          onChange={(u) => {
+            setUnits(u);
+            void save({ enabled, place, units: u });
+          }}
+        />
         <span className="grow" />
         <Button disabled={busy || !enabled || !place} onClick={() => void refresh()}>{t("weather.refresh")}</Button>
       </div>
