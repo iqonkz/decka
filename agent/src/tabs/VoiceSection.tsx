@@ -9,6 +9,8 @@ import VoiceHelp from "./VoiceHelp";
 import DictationBlock from "./DictationBlock";
 import MemoryBlock from "./MemoryBlock";
 import { Group, PageHeader, Row, SectionHeader } from "../ui/SettingsGroup";
+import Disclosure from "../ui/Disclosure";
+import Select from "../ui/Select";
 import Switch from "../ui/Switch";
 
 const DEFAULT_STATUS: VoiceStatus = {
@@ -176,14 +178,15 @@ export default function VoiceSection() {
             </Row>
 
             <Row id="section-voice-mic" title={t("voice.mic")}>
-              <select className="settings-select" value={status.mic ?? ""} onChange={(e) => void setConfig({ mic: e.target.value })}>
-                <option value="">{t("voice.mic_default")}</option>
-                {status.mics.map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ))}
-              </select>
+              <Select
+                aria-label={t("voice.mic")}
+                value={status.mic ?? ""}
+                options={[
+                  { value: "", label: t("voice.mic_default") },
+                  ...status.mics.map((m) => ({ value: m, label: m })),
+                ]}
+                onChange={(mic) => void setConfig({ mic })}
+              />
             </Row>
 
             <Row title={t("voice.keep_loaded")} description={t("voice.keep_loaded_hint")}>
@@ -195,18 +198,18 @@ export default function VoiceSection() {
             </Row>
           </Group>
 
-          <details style={{ marginTop: 16 }}>
-            <summary style={{ cursor: "pointer", fontWeight: 600 }}>{t("voice.advanced")}</summary>
-            <Group style={{ marginTop: 10 }}>
+          <Disclosure title={t("voice.advanced")} style={{ marginTop: 16 }}>
+            <Group>
               <Row title={t("voice.model")} description={t("voice.models_info", { llm: status.model === "light" ? "Qwen3.5 2B" : "Qwen3.5 4B" })}>
-                <select
-                  className="settings-select"
+                <Select
+                  aria-label={t("voice.model")}
                   value={status.model}
-                  onChange={(e) => void setConfig({ model: e.target.value as "standard" | "light" })}
-                >
-                  <option value="standard">{t("voice.model_standard")}</option>
-                  <option value="light">{t("voice.model_light")}</option>
-                </select>
+                  options={[
+                    { value: "standard", label: t("voice.model_standard") },
+                    { value: "light", label: t("voice.model_light") },
+                  ]}
+                  onChange={(val) => void setConfig({ model: val as "standard" | "light" })}
+                />
               </Row>
               <Row title={t("voice.remove")}>
                 <Button variant="danger" disabled={busy} onClick={() => void run("voice_remove")}>
@@ -214,7 +217,7 @@ export default function VoiceSection() {
                 </Button>
               </Row>
             </Group>
-          </details>
+          </Disclosure>
         </>
       )}
 

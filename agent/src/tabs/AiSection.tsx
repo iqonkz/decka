@@ -4,6 +4,8 @@ import { relTime } from "@decka/ui";
 import { call } from "../ipc";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
+import Select from "../ui/Select";
+import Switch from "../ui/Switch";
 
 const DEFAULTS: AiConfig = { claude: { enabled: false, approvals: true, timeoutSec: 120 }, codex: { enabled: true } };
 const WAITS = [60, 120, 300] as const;
@@ -95,21 +97,25 @@ export default function AiSection({ config, onSaved }: { config: ConfigFile; onS
         )}
       </div>
       {installed && status?.statusLineConflict && <Banner kind="warning">{t("aiset.conflict")}</Banner>}
-      <label className="check">
-        <input type="checkbox" checked={ai.claude.accountLimits === true} onChange={(e) => void save({ ...ai, claude: { ...ai.claude, accountLimits: e.target.checked } })} /> {t("aiset.account")}
+      <label className="switch-row">
+        <Switch checked={ai.claude.accountLimits === true} onChange={(checked) => void save({ ...ai, claude: { ...ai.claude, accountLimits: checked } })} label={t("aiset.account")} />
+        <span>{t("aiset.account")}</span>
       </label>
       <small className="muted block">{t("aiset.account_hint")}</small>
-      <label className="check">
-        <input type="checkbox" checked={ai.claude.approvals} onChange={(e) => void save({ ...ai, claude: { ...ai.claude, approvals: e.target.checked } })} /> {t("aiset.approve")}
+      <label className="switch-row">
+        <Switch checked={ai.claude.approvals} onChange={(checked) => void save({ ...ai, claude: { ...ai.claude, approvals: checked } })} label={t("aiset.approve")} />
+        <span>{t("aiset.approve")}</span>
       </label>
       <div className="row">
         <label className="field-row">
           <span>{t("aiset.wait")}</span>
-          <select value={ai.claude.timeoutSec} disabled={!ai.claude.approvals} onChange={(e) => void save({ ...ai, claude: { ...ai.claude, timeoutSec: Number(e.target.value) as AiConfig["claude"]["timeoutSec"] } })}>
-            {WAITS.map((n) => (
-              <option key={n} value={n}>{t("aiset.seconds", { n })}</option>
-            ))}
-          </select>
+          <Select
+            aria-label={t("aiset.wait")}
+            value={String(ai.claude.timeoutSec)}
+            disabled={!ai.claude.approvals}
+            options={WAITS.map((n) => ({ value: String(n), label: t("aiset.seconds", { n }) }))}
+            onChange={(val) => void save({ ...ai, claude: { ...ai.claude, timeoutSec: Number(val) as AiConfig["claude"]["timeoutSec"] } })}
+          />
         </label>
       </div>
       <small className="muted block">{t("aiset.restart")}</small>
@@ -118,17 +124,18 @@ export default function AiSection({ config, onSaved }: { config: ConfigFile; onS
         <strong>{t("ai.codex")}</strong>
         <span className={status?.codexFound ? "ok-text" : "muted"}>{status?.codexFound ? t("aiset.codex_found") : t("aiset.codex_missing")}</span>
       </div>
-      <label className="check">
-        <input type="checkbox" checked={ai.codex.enabled} onChange={(e) => void save({ ...ai, codex: { ...ai.codex, enabled: e.target.checked } })} /> {t("aiset.codex_show")}
+      <label className="switch-row">
+        <Switch checked={ai.codex.enabled} onChange={(checked) => void save({ ...ai, codex: { ...ai.codex, enabled: checked } })} label={t("aiset.codex_show")} />
+        <span>{t("aiset.codex_show")}</span>
       </label>
-      <label className="check">
-        <input
-          type="checkbox"
+      <label className="switch-row">
+        <Switch
           checked={ai.codex.approvals !== false}
           disabled={!ai.codex.enabled}
-          onChange={(e) => void save({ ...ai, codex: { ...ai.codex, approvals: e.target.checked } })}
-        />{" "}
-        {t("aiset.codex_approve")}
+          label={t("aiset.codex_approve")}
+          onChange={(checked) => void save({ ...ai, codex: { ...ai.codex, approvals: checked } })}
+        />
+        <span>{t("aiset.codex_approve")}</span>
       </label>
       {installed && status?.codexHook && <small className="muted block">{t("aiset.codex_hook")}</small>}
       {!status?.codexHook && status?.codexFound && ai.codex.approvals !== false && <small className="muted block">{t("aiset.codex_install_hint")}</small>}

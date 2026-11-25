@@ -17,6 +17,7 @@ import WinNotifSection from "./WinNotifSection";
 import LyricsSection from "./LyricsSection";
 import { lyricsGet, lyricsOverlaySet, lyricsSet } from "./lyricsIpc";
 import Switch from "../ui/Switch";
+import Disclosure from "../ui/Disclosure";
 import {
   filterIntegrations,
   type IntegrationCategory,
@@ -375,8 +376,7 @@ export default function IntegrationsTab() {
                   <Field label={t("integ.check_address")}>
                     <input value={editing.check.url} onChange={(e) => setEditing({ ...editing, check: { ...editing.check, url: e.target.value } })} />
                   </Field>
-                  <details className="advanced">
-                    <summary>{t("common.more_options")}</summary>
+                  <Disclosure title={t("common.more_options")}>
                     <div className="grid-4">
                       <Field label={t("integ.check_every")}>
                         <input type="number" value={editing.check.intervalSec} onChange={(e) => setEditing({ ...editing, check: { ...editing.check, intervalSec: Number(e.target.value) } })} />
@@ -396,7 +396,7 @@ export default function IntegrationsTab() {
                         <input value={editing.check.group ?? ""} onChange={(e) => setEditing({ ...editing, check: { ...editing.check, group: e.target.value || undefined } })} />
                       </Field>
                     </div>
-                  </details>
+                  </Disclosure>
                   <div className="row">
                     <Button
                       variant="primary"

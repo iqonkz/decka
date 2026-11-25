@@ -91,7 +91,7 @@ export default function PhoneMenu({ reduced, onToggleReduced, haptics, onToggleH
               />
             </div>
             {isNative() && (
-              <div className="phone-row">
+              <div className="phone-row phone-row-wrap">
                 <PhIcon name="device-mobile" size={20} className="phone-row-icon" />
                 <span className="phone-row-label">{t("menu.turn")}</span>
                 <span className="phone-seg">

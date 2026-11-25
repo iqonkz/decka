@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { effectivePrivacy, t, type ConfigFile, type NotifPrivacy, type WindowsNotificationsConfig, type WindowsNotificationsStatus } from "@decka/shared";
 import { call } from "../ipc";
 import Banner from "../ui/Banner";
+import Select from "../ui/Select";
+import Switch from "../ui/Switch";
 
 type Choice = "full" | "app" | "hide";
 
@@ -54,8 +56,9 @@ export default function WinNotifSection({ config, onSaved }: { config: ConfigFil
     <section className="card" id="winnotif">
       <h3>{t("winnotif.title")}</h3>
       <div className="row">
-        <label className="check grow">
-          <input type="checkbox" checked={enabled} onChange={(e) => void save({ ...saved, enabled: e.target.checked, exclude })} /> {t("winnotif.enable")}
+        <label className="switch-row grow">
+          <Switch checked={enabled} label={t("winnotif.enable")} onChange={(checked) => void save({ ...saved, enabled: checked, exclude })} />
+          <span>{t("winnotif.enable")}</span>
         </label>
         {state && <strong className={status?.access === "allowed" ? "ok-text" : "warn-text"}>{state}</strong>}
       </div>
@@ -66,11 +69,16 @@ export default function WinNotifSection({ config, onSaved }: { config: ConfigFil
           {apps.map((app) => (
             <div className="row" key={app}>
               <span className="grow">{app}</span>
-              <select value={choiceOf(app)} onChange={(e) => choose(app, e.target.value as Choice)}>
-                <option value="full">{t("winnotif.mode.full")}</option>
-                <option value="app">{t("winnotif.mode.app")}</option>
-                <option value="hide">{t("winnotif.mode.hide")}</option>
-              </select>
+              <Select
+                aria-label={app}
+                value={choiceOf(app)}
+                options={[
+                  { value: "full", label: t("winnotif.mode.full") },
+                  { value: "app", label: t("winnotif.mode.app") },
+                  { value: "hide", label: t("winnotif.mode.hide") },
+                ]}
+                onChange={(val) => choose(app, val as Choice)}
+              />
             </div>
           ))}
         </div>

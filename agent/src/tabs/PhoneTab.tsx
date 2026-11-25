@@ -3,6 +3,7 @@ import { t, type AgentStatus } from "@decka/shared";
 import { call, onStatus } from "../ipc";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
+import Disclosure from "../ui/Disclosure";
 import DiagSection from "./DiagSection";
 import NetworkLine from "./NetworkLine";
 import PairingTab from "./PairingTab";
@@ -115,70 +116,67 @@ export default function PhoneTab() {
         </div>
       )}
 
-      <details className="advanced" style={{ marginTop: 32 }}>
-        <summary style={{ cursor: "pointer", fontWeight: 600 }}>{t("common.more_options")}</summary>
-        <div style={{ marginTop: 12 }}>
-          <SectionHeader title={t("phone.addresses")} />
-          <Group>
-            <div style={{ padding: "14px 0" }}>
-              {status.listening && (
-                <p className="muted" style={{ margin: "0 0 8px" }}>
-                  {t("phone.listening", { where: `${status.listening.bind}:${status.listening.port}` })}
-                </p>
-              )}
-              {status.lanIps.length === 0 ? (
-                <p className="muted" style={{ margin: 0 }}>{t("phone.no_address")}</p>
-              ) : (
-                <ul style={{ margin: 0, paddingInlineStart: 20 }}>
-                  {status.lanIps.map((ip) => (
-                    <li key={ip}>
-                      <code>{`http://${ip}:${port}`}</code>
-                    </li>
-                  ))}
-                </ul>
-              )}
+      <Disclosure title={t("common.more_options")} style={{ marginTop: 32 }}>
+        <SectionHeader title={t("phone.addresses")} />
+        <Group>
+          <div style={{ padding: "14px 0" }}>
+            {status.listening && (
+              <p className="muted" style={{ margin: "0 0 8px" }}>
+                {t("phone.listening", { where: `${status.listening.bind}:${status.listening.port}` })}
+              </p>
+            )}
+            {status.lanIps.length === 0 ? (
+              <p className="muted" style={{ margin: 0 }}>{t("phone.no_address")}</p>
+            ) : (
+              <ul style={{ margin: 0, paddingInlineStart: 20 }}>
+                {status.lanIps.map((ip) => (
+                  <li key={ip}>
+                    <code>{`http://${ip}:${port}`}</code>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </Group>
+
+        <SectionHeader title="USB" />
+        <Group>
+          <div style={{ padding: "14px 0" }}>
+            {!status.usb.enabled ? (
+              <p className="muted" style={{ margin: 0 }}>{t("phone.usb_off")}</p>
+            ) : !status.usb.adbFound ? (
+              <Banner kind="warning">{t("phone.adb_not_found")}{status.usb.lastError ? `: ${status.usb.lastError}` : ""}</Banner>
+            ) : status.usb.devices.length === 0 ? (
+              <p className="muted" style={{ margin: 0 }}>{t("phone.no_usb_phones")}</p>
+            ) : (
+              <ul style={{ margin: 0, paddingInlineStart: 20 }}>
+                {status.usb.devices.map((d) => (
+                  <li key={d.serial}>
+                    {d.serial} {d.reversed && <span className="tag">{t("phone.usb_ready")}</span>}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </Group>
+
+        <SectionHeader title={t("phone.active_app")} />
+        <Group>
+          <Row title={t("phone.active_app")}>
+            <span>{status.focusApp ?? "—"}</span>
+          </Row>
+        </Group>
+
+        <SectionHeader title={t("phone.config_folder")} />
+        <Group>
+          <Row title={<code>{status.configDir}</code>}>
+            <div className="row">
+              <Button onClick={() => call("open_config_dir")}>{t("common.open")}</Button>
+              <Button onClick={() => call("open_logs_dir")}>{t("phone.open_logs")}</Button>
             </div>
-          </Group>
-
-          <SectionHeader title="USB" />
-          <Group>
-            <div style={{ padding: "14px 0" }}>
-              {!status.usb.enabled ? (
-                <p className="muted" style={{ margin: 0 }}>{t("phone.usb_off")}</p>
-              ) : !status.usb.adbFound ? (
-                <p className="warn-text" style={{ margin: 0 }}>{t("phone.adb_not_found")}{status.usb.lastError ? `: ${status.usb.lastError}` : ""}</p>
-              ) : status.usb.devices.length === 0 ? (
-                <p className="muted" style={{ margin: 0 }}>{t("phone.no_usb_phones")}</p>
-              ) : (
-                <ul style={{ margin: 0, paddingInlineStart: 20 }}>
-                  {status.usb.devices.map((d) => (
-                    <li key={d.serial}>
-                      {d.serial} {d.reversed && <span className="tag">{t("phone.usb_ready")}</span>}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </Group>
-
-          <SectionHeader title={t("phone.active_app")} />
-          <Group>
-            <Row title={t("phone.active_app")}>
-              <span>{status.focusApp ?? "—"}</span>
-            </Row>
-          </Group>
-
-          <SectionHeader title={t("phone.config_folder")} />
-          <Group>
-            <Row title={<code>{status.configDir}</code>}>
-              <div className="row">
-                <Button onClick={() => call("open_config_dir")}>{t("common.open")}</Button>
-                <Button onClick={() => call("open_logs_dir")}>{t("phone.open_logs")}</Button>
-              </div>
-            </Row>
-          </Group>
-        </div>
-      </details>
+          </Row>
+        </Group>
+      </Disclosure>
     </div>
   );
 }

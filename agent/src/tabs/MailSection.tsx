@@ -4,6 +4,7 @@ import { call } from "../ipc";
 import { makeActionId } from "../editor/addButton";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
+import Select from "../ui/Select";
 import { showToast } from "../ui/Toast";
 
 const MAX_ACCOUNTS = 3;
@@ -228,12 +229,13 @@ export default function MailSection({ config, onSaved }: { config: ConfigFile; o
 
       {accounts.length < MAX_ACCOUNTS && (
         <div className="row" style={{ marginTop: 12 }}>
-          <select aria-label={t("mailset.add")} value="" onChange={(e) => e.target.value && void addPreset(e.target.value)}>
-            <option value="">{t("mailset.add")}</option>
-            {MAIL_PRESETS.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
+          <Select
+            aria-label={t("mailset.add")}
+            value=""
+            placeholder={t("mailset.add")}
+            options={MAIL_PRESETS.map((p) => ({ value: p.id, label: p.name }))}
+            onChange={(val) => val && void addPreset(val)}
+          />
           {accounts.length > 0 && <Button onClick={() => void call("mail_check_now")}>{t("mailset.check_now")}</Button>}
         </div>
       )}

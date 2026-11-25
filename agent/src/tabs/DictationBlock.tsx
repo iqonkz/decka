@@ -6,6 +6,7 @@ import ChordField from "../editor/ChordField";
 import { formatChord } from "../editor/addButton";
 import { Group, Row, SectionHeader } from "../ui/SettingsGroup";
 import Segmented from "../ui/Segmented";
+import Select from "../ui/Select";
 
 const DEFAULT_CHORD = ["ctrl", "alt", "d"];
 
@@ -51,11 +52,16 @@ export default function DictationBlock() {
       {error && <Banner kind="error">{error}</Banner>}
       <Group>
         <Row title={t("dict.trigger")}>
-          <select className="settings-select" value={kind} onChange={(e) => setTrigger(e.target.value as DictationTrigger["kind"])}>
-            <option value="doubleCtrl">{t("dict.trigger_double")}</option>
-            <option value="chord">{t("dict.trigger_chord")}</option>
-            <option value="off">{t("dict.trigger_off")}</option>
-          </select>
+          <Select
+            aria-label={t("dict.trigger")}
+            value={kind}
+            options={[
+              { value: "doubleCtrl", label: t("dict.trigger_double") },
+              { value: "chord", label: t("dict.trigger_chord") },
+              { value: "off", label: t("dict.trigger_off") },
+            ]}
+            onChange={(val) => setTrigger(val as DictationTrigger["kind"])}
+          />
         </Row>
         {settings.trigger.kind === "chord" && (
           <Row title={t("dict.trigger_chord")} description={formatChord(settings.trigger.keys)}>

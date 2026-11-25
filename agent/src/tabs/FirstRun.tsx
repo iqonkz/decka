@@ -3,9 +3,11 @@ import { SETS, getLanguage, pickText, insertSet, rotateLayout, t, tn, type Actio
 import logoUrl from "../../../docs/assets/decka-logo.svg";
 import { call } from "../ipc";
 import { saveLanguage } from "../language";
-import LanguageOptions from "./LanguageOptions";
+import { languageSelectOptions } from "./LanguageOptions";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
+import Checkbox from "../ui/Checkbox";
+import Select from "../ui/Select";
 import EntryIcon from "../ui/EntryIcon";
 import PhIcon from "../ui/PhIcon";
 import { Group, PageHeader, SectionHeader } from "../ui/SettingsGroup";
@@ -160,14 +162,14 @@ export default function FirstRun({ onClose, startStep = 0 }: { onClose: () => vo
           </div>
           <span className="wizard-step-label">{t("wizard.step", { n: step + 1, title: titles[step] ?? "" })}</span>
           {step === 0 && (
-            <select
-              className="settings-select wizard-lang"
-              aria-label={t("settings.language")}
-              value={layout?.display.language ?? "auto"}
-              onChange={(e) => chooseLanguage(e.target.value as LanguageSetting)}
-            >
-              <LanguageOptions />
-            </select>
+            <div className="wizard-lang">
+              <Select
+                aria-label={t("settings.language")}
+                value={layout?.display.language ?? "auto"}
+                options={languageSelectOptions()}
+                onChange={(val) => chooseLanguage(val as LanguageSetting)}
+              />
+            </div>
           )}
         </div>
 
@@ -239,13 +241,13 @@ export default function FirstRun({ onClose, startStep = 0 }: { onClose: () => vo
                       </span>
                     )}
                     <span className="set-head">
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         checked={isSelected}
-                        onChange={(e) =>
+                        aria-label={pickText(s.name, getLanguage())}
+                        onChange={(on) =>
                           setSets((prev) => {
                             const next = new Set(prev);
-                            if (e.target.checked) next.add(s.id);
+                            if (on) next.add(s.id);
                             else next.delete(s.id);
                             return next;
                           })
@@ -275,14 +277,14 @@ export default function FirstRun({ onClose, startStep = 0 }: { onClose: () => vo
               <div className="app-list">
                 {shown.map((a) => (
                   <label key={key(a)} className="app-row">
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={picked.has(key(a))}
+                      aria-label={a.name}
                       disabled={!picked.has(key(a)) && picked.size >= MAX_PICKS}
-                      onChange={(e) =>
+                      onChange={(on) =>
                         setPicked((prev) => {
                           const next = new Set(prev);
-                          if (e.target.checked) next.add(key(a));
+                          if (on) next.add(key(a));
                           else next.delete(key(a));
                           return next;
                         })

@@ -4,6 +4,7 @@ import { formatRepeatLabel } from "@decka/ui";
 import { call } from "../ipc";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
+import Checkbox from "../ui/Checkbox";
 import ConfirmButton from "../ui/ConfirmButton";
 import PhIcon from "../ui/PhIcon";
 import { editItems, isLocalTime, nextHour, visibleReminders } from "./remindersModel";
@@ -281,7 +282,7 @@ function ListsView({ onError }: { onError: (e: unknown) => void }) {
                 key={i.id}
                 title={
                   <div className="row" style={{ flexWrap: "wrap" }}>
-                    <input type="checkbox" aria-label={i.text} checked={i.done} onChange={(e) => void save(list, { id: i.id, done: e.target.checked })} />
+                    <Checkbox aria-label={i.text} checked={i.done} onChange={(done) => void save(list, { id: i.id, done })} />
                     <InlineText value={i.text} label={t("rem.text")} done={i.done} onSave={(text) => void save(list, { id: i.id, text })} />
                   </div>
                 }

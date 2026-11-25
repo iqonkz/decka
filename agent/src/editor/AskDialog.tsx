@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getLanguage, pickText, t, type Answer, type CatalogItem, type Page } from "@decka/shared";
 import Button from "../ui/Button";
+import Select from "../ui/Select";
 import { actionFromUrl } from "./addButton";
 import ChordField from "./ChordField";
 
@@ -77,10 +78,14 @@ export default function AskDialog({ item, pages, currentPageId, obs, onConfirm, 
           empty ? (
             <p className="muted">{item.ask === "page" ? t("ask.no_pages") : t("ask.connect_obs")}</p>
           ) : (
-            <select autoFocus aria-label={title} value={choice} onChange={(e) => { setChoice(e.target.value); setError(null); }}>
-              <option value="">{t("ask.choose")}</option>
-              {options.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
-            </select>
+            <Select
+              autoFocus
+              aria-label={title}
+              value={choice}
+              placeholder={t("ask.choose")}
+              options={options.map((o) => ({ value: o.id, label: o.label }))}
+              onChange={(val) => { setChoice(val); setError(null); }}
+            />
           )
         )}
         {error && <small className="warn-text">{error}</small>}
