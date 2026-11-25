@@ -1135,4 +1135,12 @@ export const ar: Dictionary = {
   "island.replay": "تشغيل الانتقال",
   "island.copied": "تم النسخ",
   "island.stop_speaking": "إيقاف النطق",
+  "island.media_prev": "المقطع السابق",
+  "island.media_play": "تشغيل",
+  "island.media_pause": "إيقاف مؤقت",
+  "island.media_next": "المقطع التالي",
+  "island.media_mute": "كتم الصوت",
+  "island.media_unmute": "إلغاء الكتم",
+  "island.lyrics_in": "الكلمات خلال {time}",
+  "island.lyrics_waiting": "بانتظار الكلمات",
 };

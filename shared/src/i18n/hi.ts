@@ -1095,4 +1095,12 @@ export const hi: Dictionary = {
   "island.replay": "ट्रांज़िशन चलाएं",
   "island.copied": "कॉपी हो गया",
   "island.stop_speaking": "बोलना रोकें",
+  "island.media_prev": "पिछला ट्रैक",
+  "island.media_play": "चलाएं",
+  "island.media_pause": "रोकें",
+  "island.media_next": "अगला ट्रैक",
+  "island.media_mute": "म्यूट करें",
+  "island.media_unmute": "अनम्यूट करें",
+  "island.lyrics_in": "बोल {time} में",
+  "island.lyrics_waiting": "बोल की प्रतीक्षा",
 };

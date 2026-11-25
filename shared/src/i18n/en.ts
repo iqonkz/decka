@@ -1105,5 +1105,13 @@ export const en = {
   "island.replay": "Play transition",
   "island.copied": "Copied",
   "island.stop_speaking": "Stop speaking",
+  "island.media_prev": "Previous track",
+  "island.media_play": "Play",
+  "island.media_pause": "Pause",
+  "island.media_next": "Next track",
+  "island.media_mute": "Mute",
+  "island.media_unmute": "Unmute",
+  "island.lyrics_in": "Lyrics in {time}",
+  "island.lyrics_waiting": "Waiting for lyrics",
 // @@END
 } as const;

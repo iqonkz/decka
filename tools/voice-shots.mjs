@@ -126,6 +126,16 @@ function m26Shots() {
     "m26f9-answer-hover": [islandSize, "scene=island&mode=expanded&state=idle&reply=1&lang=en&theme=dark&hoverBtn=insert"],
     "m26f9-answer-lang-menu": [{ w: 600, h: 560, scale: 2 }, "scene=island&mode=expanded&state=idle&reply=1&lang=ru&theme=dark&langMenu=1"],
     "m26f9-answer-copied": [islandSize, "scene=island&mode=expanded&state=idle&reply=1&lang=en&theme=dark&copied=1"],
+    "m26f11-compact-lyrics-hover-ru-dark": [{ w: 480, h: 160, scale: 2 }, "scene=island&mode=compact&voiceOff=1&songScene=lyrics&hover=1&lang=ru&theme=dark"],
+    "m26f11-compact-lyrics-hover-en-dark": [{ w: 480, h: 160, scale: 2 }, "scene=island&mode=compact&voiceOff=1&songScene=lyrics&hover=1&lang=en&theme=dark"],
+    "m26f11-compact-lyrics-hover-ru-light": [{ w: 480, h: 160, scale: 2 }, "scene=island&mode=compact&voiceOff=1&songScene=lyrics&hover=1&lang=ru&theme=light"],
+    "m26f11-compact-lyrics-hover-muted-en-light": [{ w: 480, h: 160, scale: 2 }, "scene=island&mode=compact&voiceOff=1&songScene=lyrics&hover=1&muted=1&lang=en&theme=light"],
+    "m26f12-compact-countdown-ru-dark": [{ w: 480, h: 160, scale: 2 }, "scene=island&mode=compact&voiceOff=1&songScene=countdown&hover=1&lang=ru&theme=dark"],
+    "m26f12-compact-countdown-en-light": [{ w: 480, h: 160, scale: 2 }, "scene=island&mode=compact&voiceOff=1&songScene=countdown&lang=en&theme=light"],
+    "m26f12-compact-unknown-ru-dark": [{ w: 480, h: 160, scale: 2 }, "scene=island&mode=compact&voiceOff=1&songScene=unknown&lang=ru&theme=dark"],
+    "m26f12-compact-unknown-en-light": [{ w: 480, h: 160, scale: 2 }, "scene=island&mode=compact&voiceOff=1&songScene=unknown&lang=en&theme=light"],
+    "m26f12-compact-nolyrics-ru-dark": [{ w: 480, h: 160, scale: 2 }, "scene=island&mode=compact&voiceOff=1&songScene=nolyrics&lang=ru&theme=dark"],
+    "m26f12-compact-nolyrics-en-light": [{ w: 480, h: 160, scale: 2 }, "scene=island&mode=compact&voiceOff=1&songScene=nolyrics&hover=1&lang=en&theme=light"],
   };
 }
 // T23: the settings window (Russian) in both colour schemes: pages, a search with results and the minimum window width.
@@ -292,18 +302,24 @@ try {
       await send("Page.enable");
       await send("Performance.enable");
       await send("Emulation.setDeviceMetricsOverride", { width: 400, height: 400, deviceScaleFactor: 1, mobile: false });
-      await send("Page.navigate", { url: `${base}?scene=orb-bench&state=listening&size=120` });
-      await sleep(1500);
-      const m1 = await send("Performance.getMetrics");
-      const t1 = performance.now();
-      await sleep(4000);
-      const m2 = await send("Performance.getMetrics");
-      const t2 = performance.now();
-      const metric = (res, k) => res.metrics.find((x) => x.name === k)?.value ?? 0;
-      const taskMs = (metric(m2, "TaskDuration") - metric(m1, "TaskDuration")) * 1000;
-      const scriptMs = (metric(m2, "ScriptDuration") - metric(m1, "ScriptDuration")) * 1000;
-      const wallMs = t2 - t1;
-      console.log(`ORB_BENCH size=120 state=listening wallMs=${wallMs.toFixed(1)} taskMs=${taskMs.toFixed(1)} scriptMs=${scriptMs.toFixed(1)} cpuPct=${((taskMs / wallMs) * 100).toFixed(2)}%`);
+      const benchCases = [
+        ["size=120 state=listening", "scene=orb-bench&state=listening&size=120"],
+        ["size=32 state=speaking fps=20 points=140 amp=0.6", "scene=orb-bench&state=speaking&size=32&fps=20&points=140&amp=0.6&level=0.75"],
+      ];
+      for (const [label, qStr] of benchCases) {
+        await send("Page.navigate", { url: `${base}?${qStr}` });
+        await sleep(1500);
+        const m1 = await send("Performance.getMetrics");
+        const t1 = performance.now();
+        await sleep(4000);
+        const m2 = await send("Performance.getMetrics");
+        const t2 = performance.now();
+        const metric = (res, k) => res.metrics.find((x) => x.name === k)?.value ?? 0;
+        const taskMs = (metric(m2, "TaskDuration") - metric(m1, "TaskDuration")) * 1000;
+        const scriptMs = (metric(m2, "ScriptDuration") - metric(m1, "ScriptDuration")) * 1000;
+        const wallMs = t2 - t1;
+        console.log(`ORB_BENCH ${label} wallMs=${wallMs.toFixed(1)} taskMs=${taskMs.toFixed(1)} scriptMs=${scriptMs.toFixed(1)} cpuPct=${((taskMs / wallMs) * 100).toFixed(2)}%`);
+      }
       ws.close();
     } finally {
       chrome.kill();

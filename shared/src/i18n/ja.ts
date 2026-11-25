@@ -1095,4 +1095,12 @@ export const ja: Dictionary = {
   "island.replay": "トランジション再生",
   "island.copied": "コピーしました",
   "island.stop_speaking": "読み上げを停止",
+  "island.media_prev": "前の曲",
+  "island.media_play": "再生",
+  "island.media_pause": "一時停止",
+  "island.media_next": "次の曲",
+  "island.media_mute": "ミュート",
+  "island.media_unmute": "ミュート解除",
+  "island.lyrics_in": "{time} 後に歌詞",
+  "island.lyrics_waiting": "歌詞を待機中",
 };

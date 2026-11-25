@@ -114,11 +114,13 @@ struct Sample {
     playing: bool,
     /// The output of the PC is muted (`audio.muted`).
     muted: bool,
+    /// The track of the media section, for the lines before the first lyric line.
+    track_info: Option<Value>,
 }
 
 impl Default for Sample {
     fn default() -> Sample {
-        Sample { visible: false, mode: decka_core::lyrics_overlay::PcOverlay::Auto, track: None, fullscreen: false, lyrics: None, playing: false, muted: false }
+        Sample { visible: false, mode: decka_core::lyrics_overlay::PcOverlay::Auto, track: None, fullscreen: false, lyrics: None, playing: false, muted: false, track_info: None }
     }
 }
 
@@ -150,7 +152,8 @@ fn sample(agent: &Agent, paused_since: &mut Option<Instant>) -> Sample {
     let track = lyrics.get("trackKey").and_then(Value::as_str).map(str::to_string).or_else(|| media.as_ref().map(|m| format!("{}|{}", m.title, m.artist.clone().unwrap_or_default())));
     let current = lines.as_ref().map(|l| json!({ "playing": playing, "current": l.current, "next": l.next, "firstLineInMs": l.first_in_ms }));
     let muted = store.get("vars").get("audio.muted").and_then(Value::as_bool).unwrap_or(false);
-    Sample { visible: shown, mode, track, fullscreen, lyrics: current, playing, muted }
+    let song = media.as_ref().filter(|m| !m.title.is_empty()).map(|m| json!({ "title": m.title, "artist": m.artist }));
+    Sample { visible: shown, mode, track, fullscreen, lyrics: current, playing, muted, track_info: song }
 }
 
 fn create(app: &AppHandle) -> Option<tauri::WebviewWindow> {
@@ -293,6 +296,7 @@ pub fn setup(app: &AppHandle, agent: &Agent) -> Arc<Shared> {
                 "voice": voice_json,
                 "playing": sampled.playing,
                 "muted": sampled.muted,
+                "track": sampled.track_info,
                 "musicLevel": if music { decka_core::audio::music_level(meter.level()) } else { 0.0 },
             });
             let repeat = fresh_until.is_some_and(|t| Instant::now() < t) && tick % 5 == 0;

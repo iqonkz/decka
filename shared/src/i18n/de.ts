@@ -1095,4 +1095,12 @@ export const de: Dictionary = {
   "island.replay": "Übergang abspielen",
   "island.copied": "Kopiert",
   "island.stop_speaking": "Vorlesen stoppen",
+  "island.media_prev": "Vorheriger Titel",
+  "island.media_play": "Abspielen",
+  "island.media_pause": "Pause",
+  "island.media_next": "Nächster Titel",
+  "island.media_mute": "Stummschalten",
+  "island.media_unmute": "Ton einschalten",
+  "island.lyrics_in": "Text in {time}",
+  "island.lyrics_waiting": "Warten auf Songtext",
 };

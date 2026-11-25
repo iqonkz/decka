@@ -1102,4 +1102,12 @@ export const kk: Dictionary = {
   "island.replay": "Ауысуды ойнату",
   "island.copied": "Көшірілді",
   "island.stop_speaking": "Оқуды тоқтату",
+  "island.media_prev": "Алдыңғы ән",
+  "island.media_play": "Ойнату",
+  "island.media_pause": "Кідірту",
+  "island.media_next": "Келесі ән",
+  "island.media_mute": "Дыбысты өшіру",
+  "island.media_unmute": "Дыбысты қосу",
+  "island.lyrics_in": "Мәтін {time} кейін",
+  "island.lyrics_waiting": "Мәтін күтілуде",
 };

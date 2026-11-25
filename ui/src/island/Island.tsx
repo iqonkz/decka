@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import {
   Check,
   ChevronDown,
@@ -8,13 +8,20 @@ import {
   HelpCircle,
   Languages,
   Mic,
+  Music,
+  Pause,
+  Play,
   RefreshCw,
   Reply,
+  SkipBack,
+  SkipForward,
   Square,
   Volume2,
+  VolumeX,
 } from "lucide-react";
 import { LANGUAGE_NAMES, LANGUAGES, locale, t, type Language } from "@decka/shared";
-import { compactVoiceText, orbStateFromIsland, type IslandContextChip, type IslandEvent, type IslandVoicePhase } from "./islandTypes";
+import { formatTime } from "../widgets/mediaPos";
+import { compactVoiceText, orbStateFromIsland, songView, type IslandContextChip, type IslandEvent, type IslandMediaKind, type IslandVoicePhase } from "./islandTypes";
 import { compactWidth, currentWraps } from "./compactWidth";
 import ParticlesOrb from "./ParticlesOrb";
 import "./island.css";
@@ -34,6 +41,7 @@ export interface IslandProps {
   langMenuOpenPreview?: boolean;
   onAction?: (kind: string) => void;
   onChipClick?: (command: string) => void;
+  onMediaControl?: (action: IslandMediaKind) => void;
   onStopSlow?: () => void;
   onTabHover?: () => void;
 }
@@ -126,6 +134,7 @@ export default function Island({
   langMenuOpenPreview = false,
   onAction,
   onChipClick,
+  onMediaControl,
   onStopSlow,
   onTabHover,
 }: IslandProps) {
@@ -320,20 +329,34 @@ export default function Island({
   }
 
   if (mode === "compact") {
-    const hasLyrics = Boolean(lyrics?.playing && lyrics.current);
-    const hasTwoLines = hasLyrics && Boolean(lyrics?.next);
-    const lyricsShown = hasLyrics && !voiceActive;
-    const wraps = lyricsShown && currentWraps(lyrics?.current);
-    const panelWidth = lyricsShown ? compactWidth(lyrics?.current, lyrics?.next) : undefined;
-    const slow = voice?.slow;
+    const lyrics = songView(event);
+    const hasActiveLyric = Boolean(lyrics?.current);
+    const hasSong = !voiceActive && Boolean(lyrics);
+    const countdownKnown = !hasActiveLyric && typeof lyrics?.nextInSec === "number" && lyrics.nextInSec >= 0;
+    const countdownUnknown = !hasActiveLyric && Boolean(lyrics?.lyricsPending || lyrics?.nextInSec === null);
+    const trackSummary =
+      lyrics?.title && lyrics?.artist
+        ? `${lyrics.title} — ${lyrics.artist}`
+        : (lyrics?.title ?? lyrics?.artist ?? "");
+    const hasTwoLines = hasSong
+      ? hasActiveLyric
+        ? Boolean(lyrics?.next)
+        : countdownKnown || countdownUnknown || Boolean(lyrics?.artist)
+      : false;
+    // T26.F.8: the width follows the longer line (360..640) and a longer current line wraps; the hover buttons add their width (T26.F.11).
+    const lyricLines = hasSong && hasActiveLyric ? { current: lyrics?.current, next: lyrics?.next } : { current: trackSummary || lyrics?.title, next: lyrics?.artist };
+    const wraps = hasSong && currentWraps(lyricLines.current);
+    const panelWidth = hasSong ? compactWidth(lyricLines.current, lyricLines.next) : undefined;    const slow = voice?.slow;
     const slowOverdue = slow && (slow.elapsedSec ?? 0) > slow.etaSec * 2;
     const slowPct = slow ? Math.min(95, Math.round(((slow.elapsedSec ?? 0) / Math.max(1, slow.etaSec)) * 100)) : 0;
+    const playPauseLabel = lyrics?.playing ? t("island.media_pause") : t("island.media_play");
+    const muteLabel = lyrics?.muted ? t("island.media_unmute") : t("island.media_mute");
 
     return (
       <div className="island-host" data-island-theme={theme}>
         <div
-          className={`island-panel island-compact${hasTwoLines ? " two-lines" : ""}${wraps ? " wraps" : ""}${hasLyrics && !voiceActive ? " is-lyrics" : ""}${hovered ? " is-hovered" : ""}`}
-          style={panelWidth ? { width: panelWidth } : undefined}
+          className={`island-panel island-compact${hasTwoLines ? " two-lines" : ""}${wraps ? " wraps" : ""}${hasSong ? " is-lyrics is-song" : ""}${hovered ? " is-hovered" : ""}`}
+          style={panelWidth ? ({ "--cw": `${panelWidth}px` } as CSSProperties) : undefined}
           role="status"
         >
           <div className={`island-orb-wrap compact${isError ? " is-error" : ""}`}>
@@ -342,8 +365,11 @@ export default function Island({
               size={32}
               colorFrom={colorFrom}
               colorTo={colorTo}
-              level={voice?.level}
-              staticFrame={!voiceActive}
+              level={hasSong ? lyrics?.musicLevel : voice?.level}
+              particleCount={hasSong ? 140 : undefined}
+              maxFps={hasSong ? 20 : undefined}
+              amplitude={hasSong ? 0.6 : 1}
+              staticFrame={!voiceActive && !lyrics?.playing}
             />
           </div>
           <div className="island-compact-text">
@@ -361,15 +387,95 @@ export default function Island({
                   <div className="island-slow-fill" style={{ width: `${Math.max(12, slowPct)}%` }} />
                 </div>
               </div>
-            ) : hasLyrics ? (
-              <>
-                <div className="island-lyric-current">{lyrics?.current}</div>
-                {lyrics?.next && <div className="island-lyric-next">{lyrics.next}</div>}
-              </>
+            ) : hasSong ? (
+              hasActiveLyric ? (
+                <>
+                  <div className="island-lyric-current">{lyrics?.current}</div>
+                  {lyrics?.next && <div className="island-lyric-next">{lyrics.next}</div>}
+                </>
+              ) : countdownKnown ? (
+                <>
+                  <div className="island-lyric-current island-song-title-row">
+                    <Music size={12} strokeWidth={1.75} className="island-song-icon" aria-hidden="true" />
+                    <span className="island-song-title-text">{trackSummary}</span>
+                  </div>
+                  <div className="island-lyric-next">
+                    {t("island.lyrics_in", { time: formatTime(Math.max(0, Math.round(lyrics?.nextInSec ?? 0))) })}
+                  </div>
+                </>
+              ) : countdownUnknown ? (
+                <>
+                  <div className="island-lyric-current island-song-title-row">
+                    <Music size={12} strokeWidth={1.75} className="island-song-icon" aria-hidden="true" />
+                    <span className="island-song-title-text">{trackSummary}</span>
+                  </div>
+                  <div className="island-lyric-next island-lyrics-dots" aria-label={t("island.lyrics_waiting")}>
+                    <span className="island-lyrics-dot" />
+                    <span className="island-lyrics-dot" />
+                    <span className="island-lyrics-dot" />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="island-lyric-current island-song-title-row">
+                    <Music size={12} strokeWidth={1.75} className="island-song-icon" aria-hidden="true" />
+                    <span className="island-song-title-text">{lyrics?.title ?? ""}</span>
+                  </div>
+                  {lyrics?.artist && <div className="island-lyric-next">{lyrics.artist}</div>}
+                </>
+              )
             ) : (
               <div className="island-lyric-current">{compactVoiceText(voice, t("voice.listening"))}</div>
             )}
           </div>
+          {hasSong && (
+            <div className="island-compact-controls">
+              <button
+                type="button"
+                className="island-media-btn"
+                title={t("island.media_prev")}
+                aria-label={t("island.media_prev")}
+                onClick={() => onMediaControl?.("prev")}
+              >
+                <SkipBack size={16} strokeWidth={1.75} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="island-media-btn"
+                title={playPauseLabel}
+                aria-label={playPauseLabel}
+                onClick={() => onMediaControl?.("play_pause")}
+              >
+                {lyrics?.playing ? (
+                  <Pause size={16} strokeWidth={1.75} aria-hidden="true" />
+                ) : (
+                  <Play size={16} strokeWidth={1.75} aria-hidden="true" />
+                )}
+              </button>
+              <button
+                type="button"
+                className="island-media-btn"
+                title={t("island.media_next")}
+                aria-label={t("island.media_next")}
+                onClick={() => onMediaControl?.("next")}
+              >
+                <SkipForward size={16} strokeWidth={1.75} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="island-media-btn"
+                title={muteLabel}
+                aria-label={muteLabel}
+                onClick={() => onMediaControl?.("mute")}
+              >
+                {lyrics?.muted ? (
+                  <VolumeX size={16} strokeWidth={1.75} aria-hidden="true" />
+                ) : (
+                  <Volume2 size={16} strokeWidth={1.75} aria-hidden="true" />
+                )}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );

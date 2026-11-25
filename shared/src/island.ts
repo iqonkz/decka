@@ -59,6 +59,8 @@ export interface IslandEvent {
   mode: IslandMode;
   lyrics?: IslandLyricsState | null;
   voice?: IslandVoiceState | null;
+  /** T26.F.10: the track on the PC (title and artist from the media section); absent when nothing is loaded. */
+  track?: { title: string; artist?: string };
   /** T26.F.10: a song is playing (with or without a lyrics line). */
   playing?: boolean;
   /** The output of the PC is muted. */

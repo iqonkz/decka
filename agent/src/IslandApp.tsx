@@ -76,12 +76,21 @@ export default function IslandApp() {
     ro.observe(el);
     const mo = new MutationObserver(report);
     mo.observe(el, { childList: true, subtree: true });
-    // The panel changes size during its 220 ms transition.
+    // The panel changes size during its 220 ms transition (the hover buttons widen it): report often while it runs.
     const timer = window.setInterval(report, 250);
+    let fast: number | undefined;
+    const onTransition = () => {
+      window.clearInterval(fast);
+      fast = window.setInterval(report, 40);
+      window.setTimeout(() => window.clearInterval(fast), 320);
+    };
+    el.addEventListener("transitionrun", onTransition);
     return () => {
       ro.disconnect();
       mo.disconnect();
       window.clearInterval(timer);
+      window.clearInterval(fast);
+      el.removeEventListener("transitionrun", onTransition);
     };
   }, []);
 
@@ -92,6 +101,7 @@ export default function IslandApp() {
       <Island
         event={shown}
         theme={theme}
+        onMediaControl={(kind) => void call("media_control", { kind }).catch(() => {})}
         onAction={(kind) => void call("voice_action", { kind: kind as never }).catch(() => {})}
         onChipClick={(command) => void call("voice_chip", { command: command as never }).catch(() => {})}
         onStopSlow={() => void call("voice_cancel").catch(() => {})}
