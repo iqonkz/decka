@@ -559,6 +559,20 @@ mod tests {
     }
 
     #[test]
+    fn follow_up_phrases_in_en_and_ru() {
+        let ru = Table::parse(include_str!("../../../../shared/voice/ru.json")).unwrap();
+        for (t, say, kind) in [(en(), "copy it", "copy"), (en(), "insert it", "insert"), (en(), "read it aloud", "speak"), (en(), "another option", "again"), (ru.clone(), "вставь", "insert"), (ru.clone(), "скопируй", "copy"), (ru.clone(), "озвучь", "speak"), (ru.clone(), "ещё вариант", "again")] {
+            let i = hit(&t, say);
+            assert_eq!((i.tool.as_str(), i.args["kind"].as_str()), ("reply_action", Some(kind)), "{say}");
+        }
+        // "and in German" is a translation; the agent continues the last answer when there is one.
+        let i = hit(&ru, "а на немецкий");
+        assert_eq!((i.tool.as_str(), i.args["op"].as_str(), i.args["lang"].as_str()), ("text_transform", Some("translate"), Some("de")));
+        let i = hit(&en(), "and in german");
+        assert_eq!((i.tool.as_str(), i.args["op"].as_str(), i.args["lang"].as_str()), ("text_transform", Some("translate"), Some("de")));
+    }
+
+    #[test]
     fn lyrics_window_phrases_hide_and_show_in_en_and_ru() {
         let ru = Table::parse(include_str!("../../../../shared/voice/ru.json")).unwrap();
         for (t, say, show) in [

@@ -30,7 +30,7 @@ pub mod msg {
     pub const WRONG: &str = "Something went wrong, try again";
     pub const ASK_WEB: &str = "I can't know that offline, search the web?";
     pub use crate::voice::calc::{DIV_ZERO, NOT_NUMBER};
-    pub use crate::voice::textops::{NO_ANSWER, SELECT_FIRST, TOO_LONG};
+    pub use crate::voice::textops::{NO_ANSWER, NO_CONTEXT, SELECT_FIRST, TOO_LONG};
 }
 
 /// i18n keys of the fixed phrases (`shared/src/i18n`, `voice.reply.*`); the English text of `msg` is their fallback.
@@ -48,6 +48,7 @@ pub mod key {
     pub const WRONG: &str = "voice.reply.wrong";
     pub const SELECT_FIRST: &str = "voice.reply.select_text";
     pub const TOO_LONG: &str = "voice.reply.text_too_long";
+    pub const NO_CONTEXT: &str = "voice.reply.no_context";
     pub const DIV_ZERO: &str = "voice.reply.div_zero";
     pub const NOT_NUMBER: &str = "voice.reply.calc_failed";
     /// A confirmation, not a reply: the question "search the web?" after an `ask` the model could not answer.
@@ -59,6 +60,7 @@ fn executor_key(text: &str) -> Option<&'static str> {
     match text {
         msg::SELECT_FIRST => Some(key::SELECT_FIRST),
         msg::TOO_LONG => Some(key::TOO_LONG),
+        msg::NO_CONTEXT => Some(key::NO_CONTEXT),
         msg::NO_ANSWER => Some(key::DIDNT_GET),
         msg::DIV_ZERO => Some(key::DIV_ZERO),
         msg::NOT_NUMBER => Some(key::NOT_NUMBER),
@@ -117,11 +119,13 @@ pub struct State {
     pub reply_key: Option<ReplyKey>,
     /// What the request is, for the label of the pill (DATA_MODEL.md 13.7): `dictate` (a dictation) or `screen` (the screen is being looked at).
     pub activity: Option<&'static str>,
+    /// T26.3: the shown answer can be continued; the window of the PC offers `followup::ACTIONS` under it.
+    pub actions: bool,
 }
 
 impl State {
     pub fn idle() -> State {
-        State { phase: Phase::Idle, id: None, source: None, heard: None, say: None, reply_key: None, activity: None }
+        State { phase: Phase::Idle, id: None, source: None, heard: None, say: None, reply_key: None, activity: None, actions: false }
     }
 }
 
@@ -146,6 +150,9 @@ pub struct VoiceInfo {
     /// `dictate` or `screen` while the request runs: the pill says `Dictating...` or `Looking at the screen`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub activity: Option<&'static str>,
+    /// T26.3: what can be done with the shown answer. Only for the window of the PC (`pill_payload`); the phones do not get it.
+    #[serde(skip)]
+    pub actions: Vec<&'static str>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -187,6 +194,7 @@ impl State {
             reply_args: self.reply_key.as_ref().filter(|_| matches!(state, "done" | "error")).map(|k| k.args.clone()).unwrap_or_default(),
             confirm,
             activity: self.activity.filter(|_| matches!(state, "listening" | "recognizing" | "thinking" | "loading")),
+            actions: if self.actions && state == "done" { super::followup::ACTIONS.to_vec() } else { Vec::new() },
         }
     }
 }
@@ -283,15 +291,20 @@ fn executing(mut s: State, call: ToolCall) -> (State, Vec<Effect>) {
         s.activity = Some("screen");
     }
     // The result of arithmetic and of a question is the answer itself, not the few words the model said with the call.
-    if matches!(call, ToolCall::Calc { .. } | ToolCall::Ask { .. } | ToolCall::Status { .. }) {
+    if matches!(call, ToolCall::Calc { .. } | ToolCall::Ask { .. } | ToolCall::Status { .. } | ToolCall::TextTransform { .. } | ToolCall::ReplyAction { .. }) {
         s.say = None;
     }
+    // An answer that is shown (not pasted) can be continued; the flag only counts when the result is not empty.
+    s.actions = matches!(call, ToolCall::TextTransform { .. } | ToolCall::ReplyAction { kind: super::followup::Kind::Again });
     (s, vec![Effect::Execute(call)])
 }
 
 fn finish(mut s: State, phase: Phase) -> (State, Vec<Effect>) {
     s.phase = phase;
     s.reply_key = None;
+    if !matches!(s.phase, Phase::Done(ref t) if !t.is_empty()) {
+        s.actions = false;
+    }
     (s, Vec::new())
 }
 
@@ -299,6 +312,7 @@ fn finish(mut s: State, phase: Phase) -> (State, Vec<Effect>) {
 fn finish_key(mut s: State, phase: Phase, key: ReplyKey) -> (State, Vec<Effect>) {
     s.phase = phase;
     s.reply_key = Some(key);
+    s.actions = false;
     (s, Vec::new())
 }
 
@@ -323,7 +337,7 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
     match (&state.phase, event) {
         (Phase::Idle | Phase::Done(_) | Phase::Failed(_), Event::Start { id, source }) => {
             let effects = if source == Source::Pc { vec![Effect::StartCapture] } else { Vec::new() };
-            (State { phase: Phase::Listening, id: Some(id), source: Some(source), heard: None, say: None, reply_key: None, activity: env.dictate.then_some("dictate") }, effects)
+            (State { phase: Phase::Listening, id: Some(id), source: Some(source), heard: None, say: None, reply_key: None, activity: env.dictate.then_some("dictate"), actions: false }, effects)
         }
         (Phase::Idle, Event::Cancel) => (s, Vec::new()),
         (Phase::Listening, Event::CaptureFailed(e)) if e == msg::NO_SOUND => {
@@ -716,6 +730,15 @@ mod tests {
         let (s, _) = run(events);
         let i = s.info();
         assert_eq!((s.phase.clone(), i.reply_key, i.reply_args.get("pct").map(String::as_str)), (Phase::Done("Processor: 23% busy".into()), Some("voice.status.cpu"), Some("23")));
+
+        // T26.3: a shown rewrite offers the actions of the PC window; a pasted one (empty result) and a status answer do not.
+        let tt = |op: &str| RawCall { tool: "text_transform".into(), args: serde_json::json!({ "op": op }) };
+        let (shown, _) = run(vec![start(Source::Pc), Event::AudioEnd, said("hm"), Event::LlmAnswer(Some((tt("summarize"), Some("ok".into())))), Event::Executed(Ok("It is about cats.".into()))]);
+        assert_eq!((shown.phase.clone(), shown.info().actions), (Phase::Done("It is about cats.".into()), crate::voice::followup::ACTIONS.to_vec()));
+        let (pasted, _) = run(vec![start(Source::Pc), Event::AudioEnd, said("hm"), Event::LlmAnswer(Some((tt("polite"), None))), Event::Executed(Ok(String::new()))]);
+        assert!(pasted.info().actions.is_empty());
+        let (failed, _) = run(vec![start(Source::Pc), Event::AudioEnd, said("hm"), Event::LlmAnswer(Some((tt("summarize"), None))), Event::Executed(Err(msg::NO_CONTEXT.into()))]);
+        assert_eq!((failed.info().reply_key, failed.info().actions.is_empty()), (Some("voice.reply.no_context"), true));
 
         // The result of arithmetic and a division by zero.
         let sum = RawCall { tool: "calc".into(), args: serde_json::json!({ "expr": "54 умножить на 114" }) };

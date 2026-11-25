@@ -24,6 +24,7 @@ const VALID_TOOLS = new Set([
   "ask",
   "lyrics_window",
   "status",
+  "reply_action",
 ]);
 
 const LANGUAGES = ["en", "zh", "hi", "es", "ar", "fr", "pt", "ru", "de", "ja", "kk"];

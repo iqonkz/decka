@@ -103,6 +103,8 @@ pub fn pill_payload(info: &VoiceInfo, hotkey: &[String], level: f32) -> Value {
     if let Some(o) = v.as_object_mut() {
         o.insert("level".into(), json!((level as f64 * 100.0).round() / 100.0));
         o.insert("hotkey".into(), json!(hotkey::format_chord(hotkey)));
+        // T26.3: the actions under a shown answer (the window of the PC only).
+        o.insert("actions".into(), json!(info.actions));
     }
     v
 }
@@ -222,34 +224,138 @@ async fn screen_ask(service: &VoiceService, sup: &crate::ai::supervisor::Supervi
     answer.as_deref().and_then(super::screen::accept_answer).ok_or_else(|| super::textops::NO_ANSWER.to_string())
 }
 
-/// `text_transform` (13.2): the selection of the focused program is taken, rewritten by the model and pasted back (or shown).
+/// What a text operation made: the text to show (empty when the result replaced the selection) and the text it worked on.
+struct Transformed {
+    reply: String,
+    source: String,
+}
+
+/// Where the text of an operation comes from.
+enum TextSource<'a> {
+    /// The selection of the focused program (UI Automation first, then `Ctrl+C`).
+    Selection,
+    /// A text that was said or carried over from the last answer: nothing is captured, the answer is only shown.
+    Given(&'a str),
+}
+
+/// `text_transform` (13.2): the text is taken, rewritten by the model and pasted back (or shown).
 #[cfg(windows)]
-async fn transform_selection(sup: &crate::ai::supervisor::Supervisor, lang: &str, op: super::textops::Op, target: Option<&str>, said: Option<&str>) -> Result<String, String> {
+async fn transform_text(sup: &crate::ai::supervisor::Supervisor, lang: &str, op: super::textops::Op, target: Option<&str>, source: TextSource<'_>, temperature: f64) -> Result<Transformed, String> {
     use super::clipboard::{SystemClipboard, SystemKeys};
     use super::textops;
-    // A text that was said (T26.2): no capture, the answer is only shown.
-    if let Some(said) = said {
-        let grabbed = textops::spoken_text(said).ok_or_else(|| textops::SELECT_FIRST.to_string())?;
-        let body = textops::request_body(op, target, lang, &grabbed.text);
+    // A text that was said (T26.2) or continued (T26.3): no capture, the answer is only shown.
+    if let TextSource::Given(text) = source {
+        let grabbed = textops::source_text(text).ok_or_else(|| textops::SELECT_FIRST.to_string())?;
+        let body = textops::request_body_at(op, target, lang, &grabbed.text, temperature);
         let answer = super::assist::chat_text(sup, &body, textops::TRANSFORM_TIMEOUT).await;
-        return textops::finish_shown(answer.as_deref());
+        return Ok(Transformed { reply: textops::finish_shown(answer.as_deref())?, source: grabbed.text });
     }
     // UI Automation first: the clipboard stays untouched when the program gives its selection that way.
     let grabbed = tokio::task::spawn_blocking(|| textops::take_selection_uia_first(&super::uia::selected_text, &SystemClipboard, &SystemKeys, &std::thread::sleep))
         .await
         .map_err(|e| format!("The action did not finish: {e}"))??;
-    let body = textops::request_body(op, target, lang, &grabbed.text);
+    let body = textops::request_body_at(op, target, lang, &grabbed.text, temperature);
     let answer = super::assist::chat_text(sup, &body, textops::TRANSFORM_TIMEOUT).await;
-    tokio::task::spawn_blocking(move || textops::finish(&SystemClipboard, &SystemKeys, op, &grabbed, answer.as_deref(), &std::thread::sleep))
+    let source = grabbed.text.clone();
+    let reply = tokio::task::spawn_blocking(move || textops::finish(&SystemClipboard, &SystemKeys, op, &grabbed, answer.as_deref(), &std::thread::sleep))
         .await
-        .map_err(|e| format!("The action did not finish: {e}"))?
+        .map_err(|e| format!("The action did not finish: {e}"))??;
+    Ok(Transformed { reply, source })
 }
 
 #[cfg(not(windows))]
-async fn transform_selection(_: &crate::ai::supervisor::Supervisor, _: &str, _: super::textops::Op, _: Option<&str>, _: Option<&str>) -> Result<String, String> {
+async fn transform_text(_: &crate::ai::supervisor::Supervisor, _: &str, _: super::textops::Op, _: Option<&str>, _: TextSource<'_>, _: f64) -> Result<Transformed, String> {
     Err("unsupported platform".into())
 }
 
+/// The temperature of "another variant": different words, same meaning.
+const VARIANT_TEMPERATURE: f64 = 0.8;
+
+type Answers = Arc<Mutex<super::followup::Memory>>;
+
+/// A shown answer becomes the context of the next phrase; an answer that replaced the selection ends it.
+fn remember(answers: &Answers, op: super::textops::Op, target: Option<&str>, ui_lang: &str, done: &Transformed) {
+    let mut memory = answers.lock().unwrap();
+    if done.reply.is_empty() {
+        memory.clear();
+    } else {
+        let answer = super::followup::Answer {
+            tool: "text_transform",
+            op,
+            lang: target.map(str::to_string),
+            source_text: done.source.clone(),
+            result: done.reply.clone(),
+            ui_lang: ui_lang.to_string(),
+        };
+        memory.set(answer, Instant::now());
+    }
+}
+
+/// `text_transform` of a call: a rewrite right after an answer continues that answer (T26.3).
+async fn run_transform(
+    sup: &crate::ai::supervisor::Supervisor,
+    answers: &Answers,
+    lang: &str,
+    op: super::textops::Op,
+    target: Option<&str>,
+    said: Option<&str>,
+) -> Result<String, String> {
+    let carried = if said.is_none() { answers.lock().unwrap().fresh(Instant::now()).and_then(|a| super::followup::continued_text(a, op)) } else { None };
+    let given = said.map(str::to_string).or(carried);
+    let source = given.as_deref().map_or(TextSource::Selection, TextSource::Given);
+    let done = transform_text(sup, lang, op, target, source, 0.2).await?;
+    remember(answers, op, target, lang, &done);
+    Ok(done.reply)
+}
+
+/// What to do with the answer that was just shown (T26.3), for a phrase ("insert it") and for the buttons of the PC window.
+async fn reply_action(sup: &crate::ai::supervisor::Supervisor, answers: &Answers, kind: &super::followup::Kind) -> Result<String, String> {
+    use super::followup::Kind;
+    use super::textops;
+    let Some(answer) = answers.lock().unwrap().fresh(Instant::now()).cloned() else {
+        return Err(textops::NO_CONTEXT.to_string());
+    };
+    let blocking = |e: tokio::task::JoinError| format!("The action did not finish: {e}");
+    match kind {
+        Kind::Copy => {
+            let text = answer.result;
+            tokio::task::spawn_blocking(move || copy_to_clipboard(&text)).await.map_err(blocking)??;
+            Ok(String::new())
+        }
+        Kind::Insert => {
+            let text = answer.result;
+            tokio::task::spawn_blocking(move || paste_system(&text)).await.map_err(blocking)??;
+            Ok(String::new())
+        }
+        Kind::Speak => {
+            let text = answer.result;
+            tokio::task::spawn_blocking(move || super::speak::speak(&text)).await.map_err(blocking)??;
+            Ok(String::new())
+        }
+        Kind::Again => {
+            let done = transform_text(sup, &answer.ui_lang, answer.op, answer.lang.as_deref(), TextSource::Given(&answer.source_text), VARIANT_TEMPERATURE).await?;
+            remember(answers, answer.op, answer.lang.as_deref(), &answer.ui_lang, &done);
+            Ok(done.reply)
+        }
+        Kind::Lang(code) => {
+            let from = super::followup::continued_text(&answer, textops::Op::Translate).unwrap_or_else(|| answer.result.clone());
+            let done = transform_text(sup, &answer.ui_lang, textops::Op::Translate, Some(code), TextSource::Given(&from), 0.2).await?;
+            remember(answers, textops::Op::Translate, Some(code), &answer.ui_lang, &done);
+            Ok(done.reply)
+        }
+    }
+}
+
+#[cfg(windows)]
+fn copy_to_clipboard(text: &str) -> Result<(), String> {
+    use super::clipboard::{Clipboard, SystemClipboard};
+    SystemClipboard.set(text)
+}
+
+#[cfg(not(windows))]
+fn copy_to_clipboard(_: &str) -> Result<(), String> {
+    Err("unsupported platform".into())
+}
 /// The value of the variable `voice.goto`: the page and a counter, so going to the same page twice is a new value.
 /// The phones watch the variable and navigate (they never send the page back).
 pub fn goto_value(page_id: &str, seq: u64) -> String {
@@ -315,6 +421,8 @@ struct Inner {
     handle: tokio::runtime::Handle,
     /// "Dictate" waits for the next phrase until this moment.
     dictate_until: Arc<Mutex<Option<Instant>>>,
+    /// T26.3: the answer that can be continued for 30 s (memory only).
+    answers: Answers,
     /// Timers that are running now (at most `winops::MAX_TIMERS`).
     timers: Arc<AtomicUsize>,
     goto_seq: Arc<AtomicU64>,
@@ -356,6 +464,7 @@ impl Host {
         let inner = Arc::new(Inner {
             handle: handle.clone(),
             dictate_until: Arc::new(Mutex::new(None)),
+            answers: Arc::new(Mutex::new(Default::default())),
             timers: Arc::new(AtomicUsize::new(0)),
             goto_seq: Arc::new(AtomicU64::new(0)),
             agent,
@@ -542,6 +651,22 @@ impl Host {
         self.inner.driver().handle_event(Event::Confirm { id: id.to_string(), yes });
     }
 
+    /// `voice_action` of the PC window (IPC): `copy`, `insert`, `speak`, `again`, `lang:<code>` on the answer that was just shown.
+    /// The result of `again` and `lang` is shown as a new answer. The window only names an action; what it does is decided here.
+    pub fn action(&self, kind: &str) -> Result<(), String> {
+        let kind = super::followup::Kind::parse(kind).ok_or_else(|| "unknown action".to_string())?;
+        let inner = self.inner.clone();
+        self.inner.handle.spawn(async move {
+            let sup = inner.service.supervisor().clone();
+            match reply_action(&sup, &inner.answers, &kind).await {
+                Ok(text) if !text.is_empty() => inner.plate(&text, true, 20),
+                Ok(_) => {}
+                Err(e) => inner.plate(&e, false, 5),
+            }
+        });
+        Ok(())
+    }
+
     /// Starts or ends a PC voice request, as if the hotkey were pressed.
     pub fn trigger(&self) {
         self.inner.pressed(Pressed::Main);
@@ -643,10 +768,15 @@ impl Inner {
 
     /// The plate of a reminder (DATA_MODEL.md 13.7): the pill shows its text for 5 s, unless a voice request is running.
     fn remind_plate(self: &Arc<Self>, text: &str) {
-        if self.driver().state().phase != Phase::Idle {
+        self.plate(text, false, 5);
+    }
+
+    /// A line on the pill for `secs` seconds; with `actions` the PC window offers what can be done with the answer (T26.3).
+    fn plate(self: &Arc<Self>, text: &str, actions: bool, secs: u64) {
+        if is_active(&self.driver().state().phase) {
             return;
         }
-        let info = |state: &'static str, reply: Option<String>| VoiceInfo {
+        let info = move |state: &'static str, reply: Option<String>| VoiceInfo {
             state,
             id: reply.is_some().then(|| "0000000000000000".to_string()),
             source: reply.is_some().then_some(Source::Pc),
@@ -656,14 +786,15 @@ impl Inner {
             reply_args: Default::default(),
             confirm: None,
             activity: None,
+            actions: if actions && state == "done" { super::followup::ACTIONS.to_vec() } else { Vec::new() },
         };
         self.show(&info("done", Some(text.chars().take(200).collect())), 0.0);
         let weak = Arc::downgrade(self);
         self.handle.spawn(async move {
-            tokio::time::sleep(Duration::from_secs(5)).await;
+            tokio::time::sleep(Duration::from_secs(secs)).await;
             if let Some(inner) = weak.upgrade() {
                 // A voice request that started meanwhile owns the pill now.
-                if inner.driver().state().phase == Phase::Idle {
+                if !is_active(&inner.driver().state().phase) {
                     inner.show(&info("idle", None), 0.0);
                 }
             }
@@ -728,11 +859,16 @@ impl Ports for Inner {
     fn execute(&self, call: ToolCall) -> BoxFut<Result<String, String>> {
         let agent = self.agent.clone();
         let (dictate, timers, goto_seq) = (self.dictate_until.clone(), self.timers.clone(), self.goto_seq.clone());
+        let answers = self.answers.clone();
         let handle = self.handle.clone();
         let (sup, lang, service) = (self.service.supervisor().clone(), self.language(), self.service.clone());
         Box::pin(async move {
             if let ToolCall::RunAction { action_id } = &call {
                 return agent.execute(action_id).await.map(|_| String::new()).map_err(|(_, m)| m);
+            }
+            // Any command but a continuation ends the context of the last answer (T26.3).
+            if !matches!(call, ToolCall::TextTransform { .. } | ToolCall::ReplyAction { .. }) {
+                answers.lock().unwrap().clear();
             }
             match &call {
                 ToolCall::Volume(VolumeOp::Set(v)) => {
@@ -826,7 +962,10 @@ impl Ports for Inner {
                     return screen_ask(&service, &sup, lang, question).await;
                 }
                 ToolCall::TextTransform { op, lang: target, text } => {
-                    return transform_selection(&sup, lang, *op, target.as_deref(), text.as_deref()).await;
+                    return run_transform(&sup, &answers, lang, *op, target.as_deref(), text.as_deref()).await;
+                }
+                ToolCall::ReplyAction { kind } => {
+                    return reply_action(&sup, &answers, kind).await;
                 }
                 ToolCall::PasteText { text } => {
                     *dictate.lock().unwrap() = None;
@@ -1051,11 +1190,11 @@ mod tests {
     use crate::model::SystemOp;
 
     fn state(phase: Phase, source: Source) -> State {
-        State { phase, id: Some("0011223344556677".into()), source: Some(source), heard: None, say: None, reply_key: None, activity: None }
+        State { phase, id: Some("0011223344556677".into()), source: Some(source), heard: None, say: None, reply_key: None, activity: None, actions: false }
     }
 
     fn info(state: &'static str, source: Option<Source>) -> VoiceInfo {
-        VoiceInfo { state, id: Some("x".into()), source, heard: None, reply: None, reply_key: None, reply_args: Default::default(), confirm: None, activity: None }
+        VoiceInfo { state, id: Some("x".into()), source, heard: None, reply: None, reply_key: None, reply_args: Default::default(), confirm: None, activity: None, actions: Vec::new() }
     }
 
     /// T23.B: a wave of request N queued after the `Destroy` of request N must not bring the pill back.

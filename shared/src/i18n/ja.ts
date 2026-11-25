@@ -973,6 +973,7 @@ export const ja: Dictionary = {
   "voice.reply.wrong": "問題が発生しました。もう一度お試しください",
   "voice.reply.select_text": "先にテキストを選択してください",
   "voice.reply.text_too_long": "テキストが長すぎます",
+  "voice.reply.no_context": "続けられる内容がありません",
   "voice.reply.mic_unavailable": "マイクを使用できません",
   "voice.reply.mic_denied": "Android の設定で Decka にマイクを許可してください",
   "voice.reply.no_sound": "マイクから音が出ません。「その他 → 音声」で選択してください",

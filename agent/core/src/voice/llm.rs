@@ -80,6 +80,7 @@ fn args_schema(tool: &str, ctx: &Context) -> Value {
         "calc" => obj(json!({ "expr": { "type": "string", "minLength": 1, "maxLength": super::calc::MAX_EXPR } }), &["expr"]),
         "ask" => obj(json!({ "question": { "type": "string", "minLength": 1, "maxLength": super::ask::MAX_QUESTION } }), &["question"]),
         "screen_ask" => obj(json!({ "question": { "type": "string", "minLength": 1, "maxLength": super::screen::MAX_QUESTION } }), &["question"]),
+        "reply_action" => obj(json!({ "kind": { "enum": ["copy", "insert", "speak", "again"] } }), &["kind"]),
         "status" => obj(json!({ "topic": { "enum": super::status::TOPICS } }), &["topic"]),
         "lyrics_window" => obj(json!({ "show": { "type": "boolean" } }), &["show"]),
         "memory_add" | "memory_remove" => obj(json!({ "text": { "type": "string", "minLength": 1, "maxLength": 200 } }), &["text"]),
@@ -169,6 +170,7 @@ pub fn system_prompt(ctx: &Context, lang: &str) -> String {
 Choose exactly one tool that does what the user asked and fill in its arguments.\n\
 Tools: press_button(label) presses a button of the deck; run_action(id); open_app(name), switch_app(name), close_app(name); \
 window_other_monitor(); which_monitor(); lyrics_window(show true|false) shows or hides the song lyrics window of the PC; \
+reply_action(kind copy|insert|speak|again) acts on the answer the assistant has just shown (copy it, insert it into the program, read it aloud, another variant), only right after such an answer; \
 status(topic weather|cpu|ram|disk|network|phone_battery|media|ai_limits|focus|next_reminder) - facts about this PC, its widgets and the weather (how loaded the processor is, how much memory or disk is free, the weather, what is playing, the next reminder): always status, never web_search; volume(op up|down|mute|set, value 0-100 for set); media(op play_pause|next|prev|shuffle|repeat); \
 go_page(name) goes to a page of the deck; web_search(query, site web|youtube|maps) ONLY when the user asks to search, find or google something on the internet; \
 calc(expr) works out arithmetic written as the user said it (\"54 times 114\"); ask(question) answers a general-knowledge question that is not a command (\"how many days in a leap year\", \"why is the sky blue\") - never use web_search for such a question; open_site(domain like example.com); \

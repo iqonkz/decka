@@ -54,6 +54,7 @@ export const VALID_TOOLS = new Set([
   "ask",
   "lyrics_window",
   "status",
+  "reply_action",
 ]);
 
 // Accuracy targets per DATA_MODEL.md §12.8:

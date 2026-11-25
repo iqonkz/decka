@@ -21,6 +21,8 @@ pub const TRANSFORM_TIMEOUT: Duration = Duration::from_secs(30);
 pub const SELECT_FIRST: &str = "Select text first";
 pub const TOO_LONG: &str = "The text is too long";
 pub const NO_ANSWER: &str = "Didn't get that — try again";
+/// A continuation ("insert it") with no answer to continue: none was given, or the 30 s are over (T26.3).
+pub const NO_CONTEXT: &str = "Nothing to continue";
 
 /// The 11 languages of the interface; `translate` may target any of them.
 pub const LANGS: [&str; 11] = ["en", "zh", "hi", "es", "ar", "fr", "pt", "ru", "de", "ja", "kk"];
@@ -99,6 +101,11 @@ pub fn instruction(op: Op, target: Option<&str>, user_lang: &str) -> String {
 
 /// The body of `POST /v1/chat/completions` for one operation.
 pub fn request_body(op: Op, target: Option<&str>, user_lang: &str, text: &str) -> Value {
+    request_body_at(op, target, user_lang, text, 0.2)
+}
+
+/// `request_body` with another temperature: "another variant" asks for a different wording of the same thing.
+pub fn request_body_at(op: Op, target: Option<&str>, user_lang: &str, text: &str, temperature: f64) -> Value {
     let max_tokens = (text.chars().count() * 2 + 128).min(4096);
     json!({
         "model": "decka",
@@ -106,7 +113,7 @@ pub fn request_body(op: Op, target: Option<&str>, user_lang: &str, text: &str) -
             { "role": "system", "content": instruction(op, target, user_lang) },
             { "role": "user", "content": text },
         ],
-        "temperature": 0.2,
+        "temperature": temperature,
         "max_tokens": max_tokens,
         "stream": false,
         "chat_template_kwargs": { "enable_thinking": false },
@@ -190,6 +197,12 @@ pub fn take_selection_uia_first(uia: &dyn Fn() -> Option<String>, cb: &dyn Clipb
 pub fn spoken_text(text: &str) -> Option<Grabbed> {
     let text = text.trim();
     (!text.is_empty() && text.chars().count() <= MAX_SPOKEN_TEXT).then(|| Grabbed { text: text.to_string(), previous: None })
+}
+
+/// A text carried over from the last answer or said (T26.3): used as it is, up to the size of a selection.
+pub fn source_text(text: &str) -> Option<Grabbed> {
+    let text = text.trim();
+    (!text.is_empty() && text.chars().count() <= MAX_SELECTION).then(|| Grabbed { text: text.to_string(), previous: None })
 }
 
 /// The answer for a text that is only shown (said text, or a `Reply`): cleaned and fitted to the reply of the protocol.

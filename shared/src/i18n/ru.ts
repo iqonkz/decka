@@ -1004,6 +1004,7 @@ export const ru: Record<Base | ExtraPlural, string> = {
   "voice.reply.wrong": "Что-то пошло не так, попробуйте ещё раз",
   "voice.reply.select_text": "Сначала выделите текст",
   "voice.reply.text_too_long": "Текст слишком длинный",
+  "voice.reply.no_context": "Нечего продолжать",
   "voice.reply.mic_unavailable": "Микрофон недоступен",
   "voice.reply.mic_denied": "Разрешите Decka микрофон в настройках Android",
   "voice.reply.no_sound": "Микрофон не даёт звука — выберите его в «Ещё → Голос»",

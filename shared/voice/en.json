@@ -275,7 +275,9 @@
         "translate to {lang}",
         "translate into {lang}",
         "translate this to {lang}",
-        "translate selection to {lang}"
+        "translate selection to {lang}",
+        "and in {lang}",
+        "and into {lang}"
       ]
     },
     {
@@ -534,6 +536,44 @@
         "when is my next reminder",
         "next reminder",
         "what is my next reminder"
+      ]
+    },
+    {
+      "tool": "reply_action",
+      "args": { "kind": "copy" },
+      "patterns": [
+        "copy it",
+        "copy that",
+        "copy the answer"
+      ]
+    },
+    {
+      "tool": "reply_action",
+      "args": { "kind": "insert" },
+      "patterns": [
+        "insert it",
+        "insert that",
+        "insert the answer"
+      ]
+    },
+    {
+      "tool": "reply_action",
+      "args": { "kind": "speak" },
+      "patterns": [
+        "read it aloud",
+        "read it out loud",
+        "say it aloud",
+        "speak it"
+      ]
+    },
+    {
+      "tool": "reply_action",
+      "args": { "kind": "again" },
+      "patterns": [
+        "another option",
+        "another variant",
+        "one more option",
+        "give me another one"
       ]
     }
   ]

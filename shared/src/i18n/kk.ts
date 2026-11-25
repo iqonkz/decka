@@ -980,6 +980,7 @@ export const kk: Dictionary = {
   "voice.reply.wrong": "Бір нәрсе дұрыс болмады, қайталап көріңіз",
   "voice.reply.select_text": "Алдымен мәтінді белгілеңіз",
   "voice.reply.text_too_long": "Мәтін тым ұзын",
+  "voice.reply.no_context": "Жалғастыратын ештеңе жоқ",
   "voice.reply.mic_unavailable": "Микрофон қолжетімсіз",
   "voice.reply.mic_denied": "Android баптауларында Decka-ға микрофонды рұқсат етіңіз",
   "voice.reply.no_sound": "Микрофон дыбыс бермейді — оны «Тағы → Дауыс» бөлімінде таңдаңыз",

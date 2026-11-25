@@ -973,6 +973,7 @@ export const es: Dictionary = {
   "voice.reply.wrong": "Algo salió mal, inténtalo de nuevo",
   "voice.reply.select_text": "Selecciona un texto primero",
   "voice.reply.text_too_long": "El texto es demasiado largo",
+  "voice.reply.no_context": "Nada que continuar",
   "voice.reply.mic_unavailable": "El micrófono no está disponible",
   "voice.reply.mic_denied": "Permite el micrófono a Decka en los ajustes de Android",
   "voice.reply.no_sound": "El micrófono no da sonido: elígelo en Más → Voz",
