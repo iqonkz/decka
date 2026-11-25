@@ -4,6 +4,8 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+## 0.40.1 — 2026-11-25
+
 ### Added
 - **Island, answers**: the answer buttons are now icons (Copy, Insert, Speak, Try again, Language) and the language menu opens below the panel. A "Copy code" chip appears only when the answer contains a code block.
 - **Island, music**: the compact island with a song is a fixed 520 px wide. The sphere is 48 px and moves with the music; on hover Play/Pause appears over the sphere and Next beside it. Before the first lyric line it shows the title and artist with "Lyrics in 0:12", or three dots while the lyrics are being searched for.
