@@ -50,5 +50,8 @@ export {
   type IslandContextChip,
   type IslandVoiceState,
   type IslandLyricsState,
+  type IslandMediaAction,
+  type IslandMusicLyricsState,
+  type IslandMusicEvent,
   type IslandEvent,
 } from "./island/islandTypes";

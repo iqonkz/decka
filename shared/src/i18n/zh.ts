@@ -1095,4 +1095,12 @@ export const zh: Dictionary = {
   "island.replay": "播放过渡",
   "island.copied": "已复制",
   "island.stop_speaking": "停止朗读",
+  "island.media_prev": "上一首",
+  "island.media_play": "播放",
+  "island.media_pause": "暂停",
+  "island.media_next": "下一首",
+  "island.media_mute": "静音",
+  "island.media_unmute": "取消静音",
+  "island.lyrics_in": "{time} 后显示歌词",
+  "island.lyrics_waiting": "等待歌词",
 };

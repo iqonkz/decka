@@ -1127,5 +1127,13 @@ export const ru: Record<Base | ExtraPlural, string> = {
   "island.replay": "Проиграть переход",
   "island.copied": "Скопировано",
   "island.stop_speaking": "Остановить озвучку",
+  "island.media_prev": "Предыдущий трек",
+  "island.media_play": "Воспроизвести",
+  "island.media_pause": "Пауза",
+  "island.media_next": "Следующий трек",
+  "island.media_mute": "Выключить звук",
+  "island.media_unmute": "Включить звук",
+  "island.lyrics_in": "Текст через {time}",
+  "island.lyrics_waiting": "Ожидание текста",
 // @@END
 };

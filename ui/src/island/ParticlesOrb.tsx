@@ -10,6 +10,12 @@ export interface ParticlesOrbProps {
   colorFrom?: string;
   colorTo?: string;
   level?: number;
+  /** Optional override for particle count (defaults to `particleCountForSize(size)`). */
+  particleCount?: number;
+  /** Optional target frame-rate cap in fps (defaults to 30 active / 15 idle). */
+  maxFps?: number;
+  /** Multiplier for displacement amplitude in active states (defaults to 1). */
+  amplitude?: number;
   paused?: boolean;
   staticFrame?: boolean;
   "aria-label"?: string;
@@ -44,6 +50,9 @@ export default function ParticlesOrb({
   colorFrom = "#22d3ee",
   colorTo = "#d946ef",
   level,
+  particleCount,
+  maxFps,
+  amplitude = 1,
   paused = false,
   staticFrame = false,
   "aria-label": ariaLabel,
@@ -65,6 +74,10 @@ export default function ParticlesOrb({
   speedRef.current = speed;
   const levelRef = useRef(level);
   levelRef.current = level;
+  const maxFpsRef = useRef(maxFps);
+  maxFpsRef.current = maxFps;
+  const ampRef = useRef(amplitude);
+  ampRef.current = amplitude;
 
   const weightsRef = useRef<StateWeights>({
     connecting: state === "connecting" ? 1 : 0,
@@ -73,7 +86,7 @@ export default function ParticlesOrb({
     speaking: state === "speaking" ? 1 : 0,
   });
 
-  const count = particleCountForSize(size);
+  const count = particleCount ?? particleCountForSize(size);
 
   const COLOR_BINS = 8;
   const DEPTH_BINS = 4;
@@ -262,7 +275,7 @@ export default function ParticlesOrb({
 
         // Speaking: vortex twist + inward radial stream + jitter proportional to level
         if (w.speaking > 0.01) {
-          const s = w.speaking;
+          const s = w.speaking * ampRef.current;
           const twist = s * (0.9 * py + Math.sin(time * 3.0) * 0.3);
           const ct = Math.cos(twist);
           const st = Math.sin(twist);
@@ -301,10 +314,14 @@ export default function ParticlesOrb({
     drawFrame(0);
     if (!shouldAnimate) return;
 
-    // 30 fps while a request is active, 15 fps at rest; nothing is drawn while the window is hidden.
+    // 30 fps while a request is active, 15 fps at rest (or maxFps override e.g. 20 fps for compact music); paused if hidden.
     const tick = (now: number) => {
       const elapsedMs = now - lastTs;
-      const minFrameMs = stateRef.current === "idle" ? 66 : 33;
+      const minFrameMs = maxFpsRef.current
+        ? Math.round(1000 / maxFpsRef.current)
+        : stateRef.current === "idle"
+          ? 66
+          : 33;
       if (elapsedMs >= minFrameMs - 2 && !document.hidden) {
         const dt = Math.min(0.12, elapsedMs / 1000);
         lastTs = now;
@@ -322,6 +339,7 @@ export default function ParticlesOrb({
       ref={canvasRef}
       role="img"
       aria-label={ariaLabel ?? t("orb.aria")}
+      data-particles={count}
       className={className ? `particles-orb ${className}` : "particles-orb"}
       style={{ width: size, height: size, display: "block", flex: "none" }}
     />

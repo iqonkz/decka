@@ -168,4 +168,45 @@ describe("T26.5b ParticlesOrb & Island", () => {
     const orbHtml = renderToString(<ParticlesOrb state="listening" size={120} level={0.5} />);
     expect(orbHtml).toContain('role="img"');
   });
+
+  it("T26.F.11: drives compact orb with musicLevel (140 pts) and renders 4 hover media controls", () => {
+    setLanguage("en");
+    expect(orbStateFromIsland({ mode: "compact", lyrics: { playing: true, musicLevel: 0.7 } })).toEqual({
+      orbState: "speaking",
+      isError: false,
+    });
+    expect(orbStateFromIsland({ mode: "compact", lyrics: { playing: false, musicLevel: 0.7 } })).toEqual({
+      orbState: "idle",
+      isError: false,
+    });
+
+    const playingHtml = renderToString(
+      <Island
+        hovered
+        event={{
+          mode: "compact",
+          lyrics: { playing: true, current: "First line", next: "Second line", musicLevel: 0.65, muted: false },
+        }}
+      />,
+    );
+    expect(playingHtml).toContain('data-particles="140"');
+    expect(playingHtml).toContain("island-compact-controls");
+    expect(playingHtml).toContain('aria-label="Previous track"');
+    expect(playingHtml).toContain('aria-label="Pause"');
+    expect(playingHtml).toContain('aria-label="Next track"');
+    expect(playingHtml).toContain('aria-label="Mute"');
+
+    setLanguage("ru");
+    const mutedPausedHtml = renderToString(
+      <Island
+        event={{
+          mode: "compact",
+          lyrics: { playing: false, current: "Строка", muted: true },
+        }}
+      />,
+    );
+    expect(mutedPausedHtml).toContain('data-particles="140"');
+    expect(mutedPausedHtml).toContain('aria-label="Воспроизвести"');
+    expect(mutedPausedHtml).toContain('aria-label="Включить звук"');
+  });
 });

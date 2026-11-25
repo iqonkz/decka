@@ -8,18 +8,29 @@ import {
   HelpCircle,
   Languages,
   Mic,
+  Pause,
+  Play,
   RefreshCw,
   Reply,
+  SkipBack,
+  SkipForward,
   Square,
   Volume2,
+  VolumeX,
 } from "lucide-react";
 import { LANGUAGE_NAMES, LANGUAGES, locale, t, type Language } from "@decka/shared";
-import { orbStateFromIsland, type IslandContextChip, type IslandEvent, type IslandVoicePhase } from "./islandTypes";
+import {
+  orbStateFromIsland,
+  type IslandContextChip,
+  type IslandMediaAction,
+  type IslandMusicEvent,
+  type IslandVoicePhase,
+} from "./islandTypes";
 import ParticlesOrb from "./ParticlesOrb";
 import "./island.css";
 
 export interface IslandProps {
-  event: IslandEvent;
+  event: IslandMusicEvent;
   theme?: "light" | "dark";
   colorFrom?: string;
   colorTo?: string;
@@ -33,6 +44,7 @@ export interface IslandProps {
   langMenuOpenPreview?: boolean;
   onAction?: (kind: string) => void;
   onChipClick?: (command: string) => void;
+  onMediaControl?: (action: IslandMediaAction) => void;
   onStopSlow?: () => void;
   onTabHover?: () => void;
 }
@@ -42,7 +54,7 @@ const COPY_FEEDBACK_MS = 1200;
 const ORB_SOLO_SIZE = 140;
 const ORB_CONTENT_SIZE = 72;
 
-export function hasVoiceContent(event: IslandEvent): boolean {
+export function hasVoiceContent(event: IslandMusicEvent): boolean {
   const v = event.voice;
   if (!v) return false;
   return Boolean(v.heard || v.reply || v.slow);
@@ -115,6 +127,7 @@ export default function Island({
   langMenuOpenPreview = false,
   onAction,
   onChipClick,
+  onMediaControl,
   onStopSlow,
   onTabHover,
 }: IslandProps) {
@@ -310,15 +323,18 @@ export default function Island({
 
   if (mode === "compact") {
     const hasLyrics = Boolean(lyrics?.playing && lyrics.current);
+    const hasSongOrb = !voiceActive && Boolean(lyrics);
     const hasTwoLines = hasLyrics && Boolean(lyrics?.next);
     const slow = voice?.slow;
     const slowOverdue = slow && (slow.elapsedSec ?? 0) > slow.etaSec * 2;
     const slowPct = slow ? Math.min(95, Math.round(((slow.elapsedSec ?? 0) / Math.max(1, slow.etaSec)) * 100)) : 0;
+    const playPauseLabel = lyrics?.playing ? t("island.media_pause") : t("island.media_play");
+    const muteLabel = lyrics?.muted ? t("island.media_unmute") : t("island.media_mute");
 
     return (
       <div className="island-host" data-island-theme={theme}>
         <div
-          className={`island-panel island-compact${hasTwoLines ? " two-lines" : ""}${hasLyrics && !voiceActive ? " is-lyrics" : ""}${hovered ? " is-hovered" : ""}`}
+          className={`island-panel island-compact${hasTwoLines ? " two-lines" : ""}${hasLyrics && !voiceActive ? " is-lyrics" : ""}${hasSongOrb ? " is-song" : ""}${hovered ? " is-hovered" : ""}`}
           role="status"
         >
           <div className={`island-orb-wrap compact${isError ? " is-error" : ""}`}>
@@ -327,8 +343,11 @@ export default function Island({
               size={32}
               colorFrom={colorFrom}
               colorTo={colorTo}
-              level={voice?.level}
-              staticFrame={!voiceActive}
+              level={hasSongOrb ? lyrics?.musicLevel : voice?.level}
+              particleCount={hasSongOrb ? 140 : undefined}
+              maxFps={hasSongOrb ? 20 : undefined}
+              amplitude={hasSongOrb ? 0.6 : 1}
+              staticFrame={!voiceActive && !lyrics?.playing}
             />
           </div>
           <div className="island-compact-text">
@@ -355,6 +374,54 @@ export default function Island({
               <div className="island-lyric-current">{voice?.reply ?? voice?.heard ?? t("voice.listening")}</div>
             )}
           </div>
+          {hasSongOrb && (
+            <div className="island-compact-controls">
+              <button
+                type="button"
+                className="island-media-btn"
+                title={t("island.media_prev")}
+                aria-label={t("island.media_prev")}
+                onClick={() => onMediaControl?.("prev")}
+              >
+                <SkipBack size={16} strokeWidth={1.75} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="island-media-btn"
+                title={playPauseLabel}
+                aria-label={playPauseLabel}
+                onClick={() => onMediaControl?.("play_pause")}
+              >
+                {lyrics?.playing ? (
+                  <Pause size={16} strokeWidth={1.75} aria-hidden="true" />
+                ) : (
+                  <Play size={16} strokeWidth={1.75} aria-hidden="true" />
+                )}
+              </button>
+              <button
+                type="button"
+                className="island-media-btn"
+                title={t("island.media_next")}
+                aria-label={t("island.media_next")}
+                onClick={() => onMediaControl?.("next")}
+              >
+                <SkipForward size={16} strokeWidth={1.75} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="island-media-btn"
+                title={muteLabel}
+                aria-label={muteLabel}
+                onClick={() => onMediaControl?.("mute")}
+              >
+                {lyrics?.muted ? (
+                  <VolumeX size={16} strokeWidth={1.75} aria-hidden="true" />
+                ) : (
+                  <Volume2 size={16} strokeWidth={1.75} aria-hidden="true" />
+                )}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );

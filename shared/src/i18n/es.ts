@@ -1095,4 +1095,12 @@ export const es: Dictionary = {
   "island.replay": "Reproducir transición",
   "island.copied": "Copiado",
   "island.stop_speaking": "Detener voz",
+  "island.media_prev": "Pista anterior",
+  "island.media_play": "Reproducir",
+  "island.media_pause": "Pausar",
+  "island.media_next": "Siguiente pista",
+  "island.media_mute": "Silenciar",
+  "island.media_unmute": "Activar sonido",
+  "island.lyrics_in": "Letra en {time}",
+  "island.lyrics_waiting": "Esperando letra",
 };

@@ -1095,4 +1095,12 @@ export const fr: Dictionary = {
   "island.replay": "Rejouer la transition",
   "island.copied": "Copié",
   "island.stop_speaking": "Arrêter la lecture",
+  "island.media_prev": "Piste précédente",
+  "island.media_play": "Lecture",
+  "island.media_pause": "Pause",
+  "island.media_next": "Piste suivante",
+  "island.media_mute": "Couper le son",
+  "island.media_unmute": "Rétablir le son",
+  "island.lyrics_in": "Paroles dans {time}",
+  "island.lyrics_waiting": "En attente des paroles",
 };

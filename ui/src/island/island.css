@@ -114,6 +114,59 @@
   white-space: nowrap;
 }
 
+.island-compact-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  margin-inline-start: -12px;
+  transition: max-width 150ms ease, opacity 150ms ease, margin-inline-start 150ms ease;
+}
+
+.island-compact.is-song:hover .island-compact-controls,
+.island-compact.is-song.is-hovered .island-compact-controls,
+.island-compact.is-song:focus-within .island-compact-controls {
+  max-width: 126px;
+  margin-inline-start: 0;
+  padding: 2px;
+  margin-top: -2px;
+  margin-bottom: -2px;
+  margin-inline-end: -2px;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.island-media-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--island-muted);
+  font: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.island-media-btn:hover {
+  background: var(--island-btn-hover);
+  color: var(--island-text);
+}
+
+.island-media-btn:focus-visible {
+  outline: 2px solid var(--island-accent);
+  outline-offset: 1px;
+}
+
 /* Expanded: Solo (260x230, 140px center) & Content (520x<=360, 72px left + content col) */
 .island-expanded {
   border-radius: 24px;
@@ -484,6 +537,7 @@
   .island-panel,
   .island-orb-wrap,
   .island-content-col,
+  .island-compact-controls,
   .island-icon-spin,
   .island-slow-fill {
     transition: none;
