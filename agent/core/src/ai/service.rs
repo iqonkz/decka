@@ -29,6 +29,9 @@ pub enum VoiceState {
 pub enum ModelChoice {
     Standard,
     Light,
+    /// Qwen3.5 9B (T27.7): offered only on a PC with 16 GB of RAM or 8 GB of video memory; chosen by hand, never recommended.
+    #[serde(rename = "9b")]
+    Extended,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -124,6 +127,7 @@ pub fn plan(manifest: &[ManifestEntry], model: ModelChoice, gpu: bool) -> Vec<&M
     let llm = match model {
         ModelChoice::Standard => "llm-standard",
         ModelChoice::Light => "llm-light",
+        ModelChoice::Extended => "llm-extended",
     };
     ["llama-runtime", if gpu { "whisper-runtime-cuda" } else { "whisper-runtime" }, llm, "stt"].iter().filter_map(|id| manifest.iter().find(|e| e.id == *id)).collect()
 }
@@ -312,6 +316,7 @@ impl VoiceService {
         let id = match self.model() {
             ModelChoice::Standard => "mmproj-standard",
             ModelChoice::Light => "mmproj-light",
+            ModelChoice::Extended => "mmproj-extended",
         };
         self.inner.manifest.iter().find(|e| e.id == id)
     }
@@ -492,11 +497,13 @@ impl VoiceService {
 
     /// A model switch downloads the other model, then deletes the previous one (12.2).
     fn drop_other_model(&self, keep: ModelChoice) {
-        let other = match keep {
-            ModelChoice::Standard => "llm-light",
-            ModelChoice::Light => "llm-standard",
+        let keep_id = match keep {
+            ModelChoice::Standard => "llm-standard",
+            ModelChoice::Light => "llm-light",
+            ModelChoice::Extended => "llm-extended",
         };
-        if let Some(e) = self.inner.manifest.iter().find(|e| e.id == other) {
+        // One model at a time: every other model file goes.
+        for e in self.inner.manifest.iter().filter(|e| e.kind == "llm" && e.id != keep_id) {
             let _ = std::fs::remove_file(target_of(&self.inner.root, e));
         }
     }
@@ -560,6 +567,10 @@ impl VoiceService {
             if let Some(m) = args.mic {
                 st.settings.mic = if m.is_empty() { None } else { Some(m) };
             }
+            // The extended model only on a PC that can carry it.
+            if args.model == Some(ModelChoice::Extended) && !self.hardware().extended_ok() {
+                return Err("The extended model needs 16 GB of memory or 8 GB of video memory".into());
+            }
             // A model change while a download runs is ignored: the running install keeps its model.
             if let Some(m) = args.model {
                 if st.download.is_none() && st.settings.model != Some(m) {
@@ -597,6 +608,22 @@ impl VoiceService {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn the_extended_model_is_in_the_manifest_with_its_projector_and_needs_a_strong_pc() {
+        let manifest = crate::ai::download::parse_manifest(&std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../shared/ai/manifest.json")).unwrap()).unwrap();
+        let llm = manifest.iter().find(|e| e.id == "llm-extended").expect("the 9B model");
+        let vision = manifest.iter().find(|e| e.id == "mmproj-extended").expect("its own projector");
+        assert!(llm.url.contains("Qwen3.5-9B-GGUF") && llm.url.ends_with("Q4_K_M.gguf") && llm.license == "Apache-2.0" && llm.sha256.len() == 64);
+        assert!(vision.url.contains("Qwen3.5-9B-GGUF") && vision.kind == "vision" && vision.sha256 != manifest.iter().find(|e| e.id == "mmproj-standard").unwrap().sha256);
+        let ids: Vec<_> = plan(&manifest, ModelChoice::Extended, false).iter().map(|e| e.id.clone()).collect();
+        assert_eq!(ids, ["llama-runtime", "whisper-runtime", "llm-extended", "stt"]);
+        let hw = |vram: Option<f64>, ram: f64| HardwareInfo { gpu: None, vram_gb: vram, ram_gb: ram };
+        assert!(hw(None, 16.0).extended_ok() && hw(Some(8.0), 8.0).extended_ok());
+        assert!(!hw(Some(6.0), 8.0).extended_ok() && !hw(None, 15.9).extended_ok());
+        assert_eq!(serde_json::to_string(&ModelChoice::Extended).unwrap(), "\"9b\"");
+        assert_ne!(recommend(&hw(Some(24.0), 64.0)), ModelChoice::Extended, "never recommended");
+    }
+
     use super::*;
     use sha2::{Digest, Sha256};
 

@@ -666,6 +666,26 @@ pub struct ConfigFile {
 pub struct VoiceConfig {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub context: Option<VoiceContextConfig>,
+    /// T27.8: `voice.notices.enabled`, on by default; absent = on.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub notices: Option<VoiceNoticesConfig>,
+}
+
+/// `config.voice.notices`: short notes of the island about the state of the PC.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct VoiceNoticesConfig {
+    #[serde(default = "yes")]
+    pub enabled: bool,
+}
+
+impl Default for VoiceNoticesConfig {
+    fn default() -> Self {
+        VoiceNoticesConfig { enabled: true }
+    }
+}
+
+fn yes() -> bool {
+    true
 }
 
 /// `config.voice.context`: the island may look at the name of the active program and the selected text when it opens.

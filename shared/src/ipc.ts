@@ -3,6 +3,7 @@ import type { ActionsFile } from "./actions";
 import type { LayoutFile } from "./layout";
 import type { ConfigFile, DeviceInfo } from "./config";
 import type { PageTemplate } from "./templates";
+import type { SavedGuide, VoiceModelTier, WorkMode } from "./m27";
 
 /** One line of the connection check (`diag.rs`); `id` and `status` pick the sentence, `detail` fills it. */
 export interface DiagCheck {
@@ -78,7 +79,7 @@ export interface VoiceStatus {
   state: "off" | "downloading" | "ready" | "loading" | "error";
   progress?: { done: number; total: number };
   hardware: { gpu?: string; vramGb?: number; ramGb: number };
-  model: "standard" | "light";
+  model: VoiceModelTier;
   downloadGb: number;
   hotkey: string[];
   keepLoaded: boolean;
@@ -123,7 +124,7 @@ export interface DictationSettings {
 }
 
 export interface VoiceSetArgs {
-  model?: "standard" | "light";
+  model?: VoiceModelTier;
   hotkey?: string[];
   keepLoaded?: boolean;
   speak?: boolean;
@@ -139,6 +140,15 @@ export interface IpcCommands {
   voice_action(args: { kind: "copy" | "insert" | "speak" | "again" | `lang:${string}` }): void; // T26.3: a button under the shown answer; the PC decides what it does
   voice_context_get(): boolean;                                 // T26.7: hints by the active program when the island opens (off by default)
   voice_context_set(args: { enabled: boolean }): boolean;
+  voice_notices_get(): boolean;                                 // T27.8: short notes of the island about the PC; on by default
+  voice_notices_set(args: { enabled: boolean }): boolean;
+  guides_list(): SavedGuide[];                                  // T27.6: the saved guides (recipes), local files
+  guides_rename(args: { id: string; goal: string }): void;
+  guides_delete(args: { id: string }): void;
+  modes_list(): WorkMode[];                                     // T27.10: the work modes; the PC starts only the programs written in them
+  modes_save(args: { mode: WorkMode; originalName?: string }): void;
+  modes_delete(args: { name: string }): void;
+  voice_set_model_tier(args: { model: "light" | "standard" | "9b" }): VoiceModelTier; // T27.7: one model at a time; the server restarts
   voice_chip(args: { command: "translate" | "explain" | "reply" | "error" }): void; // a tap on a hint chip; the PC decides what it does
   media_control(args: { kind: "prev" | "play_pause" | "next" | "mute" }): void;         // T26.F.10: a media button of the island; same operations as the deck buttons
   island_rect(args: { x: number; y: number; width: number; height: number }): void;                          // T26.4: the visible panel of the island; the rest of its window lets clicks through

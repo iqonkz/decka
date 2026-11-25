@@ -25,7 +25,7 @@ const DEFAULT_STATUS: VoiceStatus = {
   mics: [],
 };
 
-export function formatHardware(hw: { gpu?: string; vramGb?: number; ramGb: number }, model: "standard" | "light"): string {
+export function formatHardware(hw: { gpu?: string; vramGb?: number; ramGb: number }, model: "standard" | "light" | "9b"): string {
   const parts: string[] = [];
   if (hw.gpu) {
     if (hw.vramGb != null) parts.push(`${hw.gpu} (${Math.round(hw.vramGb)} GB)`);

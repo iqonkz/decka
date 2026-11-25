@@ -89,6 +89,34 @@ pub fn launchable(exe: &str) -> bool {
     p.is_absolute() && p.is_file()
 }
 
+/// Replaces (or adds) a mode edited in the settings. The programs must be full paths; a mode has 1..12 of them.
+pub fn put(dir: &Path, mode: Mode, original_name: Option<&str>) -> Result<(), String> {
+    if mode.name.trim().is_empty() {
+        return Err("The mode needs a name".into());
+    }
+    if mode.apps.is_empty() || mode.apps.len() > MAX_APPS {
+        return Err("A mode has 1 to 12 programs".into());
+    }
+    if mode.apps.iter().any(|a| !Path::new(&a.exe).is_absolute()) {
+        return Err("A program must be a full path".into());
+    }
+    let mut modes = load(dir);
+    let key = original_name.unwrap_or(&mode.name).to_lowercase();
+    modes.retain(|m| m.name.to_lowercase() != key && m.name.to_lowercase() != mode.name.to_lowercase());
+    modes.push(mode);
+    write(dir, &modes)
+}
+
+pub fn delete(dir: &Path, name: &str) -> Result<(), String> {
+    let mut modes = load(dir);
+    let before = modes.len();
+    modes.retain(|m| !m.name.eq_ignore_ascii_case(name));
+    if modes.len() == before {
+        return Err("No such mode".into());
+    }
+    write(dir, &modes)
+}
+
 /// Saves the windows that are open now as the mode `name` (the same name replaces the older mode).
 pub fn save(dir: &Path, name: &str) -> Result<String, String> {
     save_with(dir, name, current_layout())
@@ -228,6 +256,19 @@ fn place(_: &str, _: Rect) {}
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn a_mode_edited_in_the_settings_is_checked_replaced_and_deleted() {
+        let dir = tempfile::tempdir().unwrap();
+        let mode = |name: &str, exe: &str| Mode { name: name.into(), apps: vec![app(exe)], focus_minutes: Some(25) };
+        put(dir.path(), mode("work", "C:\\a.exe"), None).unwrap();
+        put(dir.path(), mode("study", "C:\\b.exe"), Some("work")).unwrap();
+        assert_eq!(load(dir.path()).iter().map(|m| m.name.clone()).collect::<Vec<_>>(), vec!["study".to_string()], "renamed");
+        assert!(put(dir.path(), mode("x", "a.exe"), None).is_err(), "not a full path");
+        assert!(put(dir.path(), Mode { name: "y".into(), apps: vec![], focus_minutes: None }, None).is_err());
+        assert!(delete(dir.path(), "STUDY").is_ok());
+        assert!(delete(dir.path(), "study").is_err());
+    }
+
     use super::*;
 
     fn app(exe: &str) -> ModeApp {

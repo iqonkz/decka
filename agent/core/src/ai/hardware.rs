@@ -18,6 +18,11 @@ impl HardwareInfo {
         recommend_model(self.vram_gb, self.ram_gb)
     }
 
+    /// The extended model (Qwen3.5 9B) is offered from 16 GB of RAM or 8 GB of video memory (T27.7).
+    pub fn extended_ok(&self) -> bool {
+        self.ram_gb >= 16.0 || self.vram_gb.is_some_and(|v| v >= 8.0)
+    }
+
     /// Speech recognition goes to the video card: NVIDIA (the only ready-made GPU build of whisper.cpp for Windows is
     /// cuBLAS) with at least 2 GB of video memory.
     pub fn whisper_gpu(&self) -> bool {

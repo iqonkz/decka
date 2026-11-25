@@ -626,6 +626,57 @@ pub fn island_rect(app: AppHandle, x: f64, y: f64, width: f64, height: f64) -> R
     Ok(())
 }
 
+/// `voice.notices.enabled` (T27.8).
+#[tauri::command]
+pub fn voice_notices_get(app: AppHandle) -> Result<bool, String> {
+    Ok(agent(&app)?.voice_notices_enabled())
+}
+
+#[tauri::command]
+pub fn voice_notices_set(app: AppHandle, enabled: bool) -> Result<bool, String> {
+    agent(&app)?.set_voice_notices_enabled(enabled)
+}
+
+/// The saved guides (T27.6): the files of `%APPDATA%/Decka/guides`.
+#[tauri::command]
+pub fn guides_list(app: AppHandle) -> Result<Vec<decka_core::voice::guides::Recipe>, String> {
+    Ok(decka_core::voice::guides::Guides::new(agent(&app)?.config_dir()).list())
+}
+
+#[tauri::command]
+pub fn guides_rename(app: AppHandle, id: String, goal: String) -> Result<(), String> {
+    decka_core::voice::guides::Guides::new(agent(&app)?.config_dir()).rename(&id, &goal)
+}
+
+#[tauri::command]
+pub fn guides_delete(app: AppHandle, id: String) -> Result<(), String> {
+    decka_core::voice::guides::Guides::new(agent(&app)?.config_dir()).delete(&id)
+}
+
+/// The work modes (T27.10): `%APPDATA%/Decka/modes.json`.
+#[tauri::command]
+pub fn modes_list(app: AppHandle) -> Result<Vec<decka_core::voice::modes::Mode>, String> {
+    Ok(decka_core::voice::modes::load(agent(&app)?.config_dir()))
+}
+
+#[tauri::command]
+pub fn modes_save(app: AppHandle, mode: decka_core::voice::modes::Mode, original_name: Option<String>) -> Result<(), String> {
+    decka_core::voice::modes::put(agent(&app)?.config_dir(), mode, original_name.as_deref())
+}
+
+#[tauri::command]
+pub fn modes_delete(app: AppHandle, name: String) -> Result<(), String> {
+    decka_core::voice::modes::delete(agent(&app)?.config_dir(), &name)
+}
+
+/// The model of the assistant (T27.7): light, standard or the extended 9B one. One model at a time; the server restarts.
+#[tauri::command]
+pub fn voice_set_model_tier(app: AppHandle, model: decka_core::ai::service::ModelChoice) -> Result<decka_core::ai::service::ModelChoice, String> {
+    let service = app.try_state::<decka_core::ai::service::VoiceService>().ok_or_else(|| "voice control did not start".to_string())?;
+    service.set(decka_core::ai::service::VoiceSetArgs { model: Some(model), ..Default::default() })?;
+    Ok(model)
+}
+
 /// A media button of the island (T26.F.10): `prev`, `play_pause`, `next`, `mute`. The same operations as the deck buttons; any other
 /// name is refused.
 #[tauri::command]

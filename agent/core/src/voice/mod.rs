@@ -22,6 +22,7 @@ pub mod matcher;
 pub mod memory;
 pub mod mic;
 pub mod modes;
+pub mod notices;
 pub mod pipeline;
 pub mod screen;
 pub mod textops;

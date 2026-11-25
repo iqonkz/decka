@@ -15,3 +15,4 @@ export * from "./catalog";
 export * from "./insertSet";
 export * from "./burn";
 export * from "./island";
+export * from "./m27";

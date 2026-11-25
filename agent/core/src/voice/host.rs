@@ -725,6 +725,23 @@ impl Host {
         let _ = self.inner.screen.set(Arc::new(run));
     }
 
+    /// T27.8: every few seconds looks at the widgets and, when a rule says so, shows a short note on the island (no sound).
+    pub fn start_notices(&self) {
+        let inner = self.inner.clone();
+        self.inner.handle.spawn(async move {
+            let (mut notices, started) = (super::notices::Notices::default(), Instant::now());
+            loop {
+                tokio::time::sleep(Duration::from_secs(5)).await;
+                let store = inner.agent.store();
+                let fullscreen = tokio::task::spawn_blocking(crate::lyrics_overlay::foreground_is_fullscreen).await.unwrap_or(false);
+                let s = super::notices::sample(started.elapsed().as_millis() as u64, &store.get("sys"), &store.get("battery"), &store.get("ai"), false, fullscreen);
+                for n in notices.step(inner.agent.voice_notices_enabled(), &s) {
+                    inner.plate(&n.text, false, 6);
+                }
+            }
+        });
+    }
+
     pub fn screen(&self) -> Option<Arc<super::screenrun::ScreenRun>> {
         self.inner.screen.get().cloned()
     }

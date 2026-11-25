@@ -623,6 +623,20 @@ impl Agent {
         self.config().voice.and_then(|v| v.context).is_some_and(|c| c.enabled)
     }
 
+    /// `voice.notices.enabled` (T27.8): short notes about memory, processor, battery, disk; on by default.
+    pub fn voice_notices_enabled(&self) -> bool {
+        self.config().voice.and_then(|v| v.notices).is_none_or(|n| n.enabled)
+    }
+
+    pub fn set_voice_notices_enabled(&self, enabled: bool) -> Result<bool, String> {
+        let mut config = self.config();
+        config.voice.get_or_insert_with(Default::default).notices = Some(crate::model::VoiceNoticesConfig { enabled });
+        if let SaveResult::Rejected(issues) = self.write_config(config) {
+            return Err(issues.first().map(|i| i.message.clone()).unwrap_or_default());
+        }
+        Ok(enabled)
+    }
+
     pub fn set_voice_context_enabled(&self, enabled: bool) -> Result<bool, String> {
         let mut config = self.config();
         config.voice.get_or_insert_with(Default::default).context.get_or_insert_with(Default::default).enabled = enabled;
