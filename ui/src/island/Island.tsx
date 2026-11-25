@@ -78,6 +78,16 @@ export function chipIconKind(chip: IslandContextChip): "code" | "translate" | "r
   return "help";
 }
 
+/** Whether an answer holds a fenced code block (a pair of ``` fences). */
+export function hasCodeBlock(text: string | undefined): boolean {
+  return Boolean(text && /```[\s\S]*?```/.test(text));
+}
+
+/** The chips to show: a "copy code" chip only when the answer has a code block (T26.F.9). */
+export function visibleChips(chips: IslandContextChip[] | undefined, reply: string | undefined): IslandContextChip[] {
+  return (chips ?? []).filter((c) => chipIconKind(c) !== "code" || hasCodeBlock(reply));
+}
+
 function renderChipIcon(kind: "code" | "translate" | "reply" | "help") {
   switch (kind) {
     case "code":
@@ -483,9 +493,9 @@ export default function Island({
 
             {voice?.reply && <div className="island-reply">{voice.reply}</div>}
 
-            {voice?.chips && voice.chips.length > 0 && (
+            {visibleChips(voice?.chips, voice?.reply).length > 0 && (
               <div className="island-chips">
-                {voice.chips.map((chip, idx) => (
+                {visibleChips(voice?.chips, voice?.reply).map((chip, idx) => (
                   <button
                     key={idx}
                     type="button"

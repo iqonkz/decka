@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { renderToString } from "react-dom/server";
 import { setLanguage } from "@decka/shared";
-import Island, { chipIconKind, expandedStatusText, hasVoiceContent } from "../src/island/Island";
+import Island, { chipIconKind, expandedStatusText, hasCodeBlock, hasVoiceContent, visibleChips } from "../src/island/Island";
 import { compactWidth, currentWraps } from "../src/island/compactWidth";
 import ParticlesOrb, { particleCountForSize } from "../src/island/ParticlesOrb";
 import { compactVoiceText, orbStateFromIsland } from "../src/island/islandTypes";
@@ -30,6 +30,15 @@ describe("T26.5b ParticlesOrb & Island", () => {
     expect(orbStateFromIsland({ ...song, voice: { active: false, phase: "listening" } }).orbState).toBe("idle");
     expect(orbStateFromIsland({ ...song, voice: { active: true, phase: "listening" } }).orbState).toBe("listening");
     expect(compactVoiceText({ active: true, phase: "listening" }, "Listening...")).toBe("Listening...");
+  });
+
+  it("T26.F.9: the copy-code chip needs a code block in the answer", () => {
+    const chips = [{ label: "Copy code", command: "copy_code" }, { label: "Translate", command: "translate" }];
+    expect(hasCodeBlock("text\n```js\nlet a = 1;\n```")).toBe(true);
+    expect(hasCodeBlock("no code here")).toBe(false);
+    expect(hasCodeBlock("one ``` fence only")).toBe(false);
+    expect(visibleChips(chips, "plain answer").map((c) => c.command)).toEqual(["translate"]);
+    expect(visibleChips(chips, "```\nx\n```").map((c) => c.command)).toEqual(["copy_code", "translate"]);
   });
 
   it("maps island voice states and errors to orb state", () => {

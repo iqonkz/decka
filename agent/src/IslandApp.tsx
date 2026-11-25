@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { t, tVoice, type IslandEvent, type LanguageSetting } from "@decka/shared";
 import { Island, useApplyLanguage } from "@decka/ui";
 import { call, listen } from "./ipc";
@@ -13,6 +13,15 @@ function localized(event: IslandEvent): IslandEvent {
   // Hint chips carry an i18n key as their label.
   const chips = v.chips?.map((c) => ({ ...c, label: c.label.startsWith("voice.chip.") ? (tVoice(c.label, undefined, c.label) ?? c.label) : c.label }));
   return { ...event, voice: { ...v, reply: reply || v.reply, chips } };
+}
+
+/** The panel with the language menu while it is open (the menu drops below the panel): the window grows to hold both (T26.F.9). */
+export function unionRect(a: DOMRect | undefined, b: DOMRect | undefined): { x: number; y: number; width: number; height: number } | undefined {
+  if (!a) return b;
+  if (!b || b.width === 0 || b.height === 0) return a;
+  const x = Math.min(a.x, b.x);
+  const y = Math.min(a.y, b.y);
+  return { x, y, width: Math.max(a.right, b.right) - x, height: Math.max(a.bottom, b.bottom) - y };
 }
 
 /**
@@ -59,7 +68,7 @@ export default function IslandApp() {
     if (!el) return;
     const report = () => {
       const panel = el.querySelector<HTMLElement>(".island-panel, .island-tab-zone");
-      const r = panel?.getBoundingClientRect();
+      const r = unionRect(panel?.getBoundingClientRect(), el.querySelector<HTMLElement>(".island-lang-menu")?.getBoundingClientRect());
       void call("island_rect", { x: r?.x ?? 0, y: r?.y ?? 0, width: r?.width ?? 0, height: r?.height ?? 0 }).catch(() => {});
     };
     report();
