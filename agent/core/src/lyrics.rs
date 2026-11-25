@@ -488,14 +488,10 @@ impl Lyrics {
             return c.found.as_ref().map_or(Value::Null, |f| self.info(&key, f));
         }
         let now = now_ms();
-        let outcome = match self.cache.get(&key, now) {
+        let cached = self.cache.get(&key, now);
+        let outcome = match cached {
             Some(o) => o,
-            None => match {
-                self.loading.store(true, std::sync::atomic::Ordering::Relaxed);
-                let looked = lookup(self.http.as_ref(), &self.base, &artist, &title, duration).await;
-                self.loading.store(false, std::sync::atomic::Ordering::Relaxed);
-                looked
-            } {
+            None => match self.lookup_flagged(&artist, &title, duration).await {
                 Ok(o) => {
                     self.cache.put(&key, &o, now);
                     o
@@ -514,6 +510,14 @@ impl Lyrics {
         let value = found.as_ref().map_or(Value::Null, |f| self.info(&key, f));
         *self.current.lock().unwrap() = Some(Current { key, found });
         value
+    }
+
+    /// The network lookup with the `loading` flag raised for its duration (T26.F.13).
+    async fn lookup_flagged(&self, artist: &str, title: &str, duration: u64) -> Result<Outcome, String> {
+        self.loading.store(true, std::sync::atomic::Ordering::Relaxed);
+        let looked = lookup(self.http.as_ref(), &self.base, artist, title, duration).await;
+        self.loading.store(false, std::sync::atomic::Ordering::Relaxed);
+        looked
     }
 
     /// `lyrics_offset` of a phone. Only the key of the current track counts; the new section value is returned when it changed.

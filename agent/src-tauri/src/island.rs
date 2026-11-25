@@ -168,6 +168,9 @@ fn acrylic_wanted() -> bool {
     std::env::var("DECKA_ISLAND_GLASS").is_ok_and(|v| v == "acrylic")
 }
 
+/// What the glass was last cut for: the mode and the rounded panel rectangle.
+type GlassKey = (Mode, Option<(i64, i64, i64, i64)>);
+
 /// Panel radius in CSS pixels, as the page draws it (`island.css`).
 fn panel_radius(mode: Mode) -> i32 {
     if mode == Mode::Expanded { 24 } else { 22 }
@@ -270,7 +273,7 @@ pub fn setup(app: &AppHandle, agent: &Agent) -> Arc<Shared> {
         let mut machine = Machine::default();
         let meter = decka_core::audio::PeakMeter::start();
         let acrylic = acrylic_wanted();
-        let mut last_glass: Option<(Mode, Option<(i64, i64, i64, i64)>)> = None;
+        let mut last_glass: Option<GlassKey> = None;
         let (mut shown, mut ignoring, mut paused_since) = (false, true, None);
         let (mut last_event, mut fresh_until): (Option<Value>, Option<Instant>) = (None, None);
         let (mut tick, mut sampled) = (0u64, Sample::default());
