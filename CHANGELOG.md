@@ -9,6 +9,8 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 Version 0.22.0 was built but never published; its changes are part of this release.
 
 ### Added
+- **Recurring reminders in the settings window**: pick `Every day` / `Weekdays` / `Every <weekday>` next to the time; the list shows a repeat badge, and a repeat can be switched off again.
+- **First-run wizard restyled**: step bar, one language selector, set cards with the shared checkbox, and an empty-deck screen on the phone that says what to do next.
 - **Lyrics on the PC**: while a song with synced lyrics plays, a small click-through strip at the bottom of the screen shows the current and the next line (`Integrations -> Lyrics -> Lyrics on this PC`: `Off` / `Auto` / `Always`, default `Auto`). `Auto` hides it while a phone shows the large player, when the song is paused for 3 s, and over full-screen programs. No new network requests.
 - **Phone widgets and screens (0.30)**: every widget has one look in all four themes (a small header, equal corners and padding, quiet empty and waiting states, skeletons, numbers that move smoothly, the cover colour of `Now playing` as the tint of its tile); the service screens (pairing, link lost, update, permission, menu) were redrawn.
 - **Hourly weather**: the weather widget shows the next six hours (`HH:mm`, icon, temperature) from Open-Meteo; the brief of the day says `Rain expected around HH:mm` when the data shows precipitation in the next six hours.
