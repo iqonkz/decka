@@ -305,9 +305,20 @@ if (scene === "deck" || scene === "settings") {
   document.body.style.background = "#0e1017";
   const orbState = (q.get("state") ?? "listening") as "idle" | "connecting" | "listening" | "thinking" | "speaking";
   const orbSize = Number(q.get("size") ?? 120);
+  const maxFps = q.get("fps") ? Number(q.get("fps")) : undefined;
+  const particleCount = q.get("points") ? Number(q.get("points")) : undefined;
+  const amplitude = q.get("amp") ? Number(q.get("amp")) : 1;
+  const orbLevel = q.get("level") ? Number(q.get("level")) : undefined;
   root.render(
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
-      <ParticlesOrb state={orbState} size={orbSize} />
+      <ParticlesOrb
+        state={orbState}
+        size={orbSize}
+        maxFps={maxFps}
+        particleCount={particleCount}
+        amplitude={amplitude}
+        level={orbLevel}
+      />
     </div>,
   );
 } else if (scene === "island") {
@@ -321,15 +332,21 @@ if (scene === "deck" || scene === "settings") {
   if (q.get("interactive")) {
     const { t: tr } = await import("@decka/shared");
     function IslandDemoApp() {
-      const [mode, setMode] = useState<"tab" | "compact" | "expanded">("expanded");
+      const [mode, setMode] = useState<"tab" | "compact" | "expanded">("compact");
       const [phase, setPhase] = useState<"idle" | "loading" | "listening" | "thinking" | "speaking" | "error">("listening");
       const [level, setLevel] = useState(0.55);
+      const [musicLevel, setMusicLevel] = useState(0.7);
+      const [musicPlaying, setMusicPlaying] = useState(true);
+      const [musicMuted, setMusicMuted] = useState(false);
+      const [songScene, setSongScene] = useState<"lyrics" | "countdown" | "unknown" | "nolyrics">("lyrics");
       const [slow, setSlow] = useState(false);
       const [lyrics, setLyrics] = useState(true);
+      const [voiceOn, setVoiceOn] = useState(false);
       const [showText, setShowText] = useState(true);
       const [demoTheme, setDemoTheme] = useState<"light" | "dark">(themeMode);
       const replayTransition = () => {
         setMode("expanded");
+        setVoiceOn(true);
         setSlow(false);
         setPhase("listening");
         setShowText(false);
@@ -338,10 +355,27 @@ if (scene === "deck" || scene === "settings") {
           setShowText(true);
         }, 160);
       };
+      const songTitle = "Midnight City";
+      const songArtist = "M83";
+      const demoLyrics = !lyrics ? null : {
+        playing: musicPlaying,
+        musicLevel,
+        muted: musicMuted,
+        title: songTitle,
+        artist: songArtist,
+        ...(songScene === "lyrics" ? {
+          current: q.get("lang") === "ru" ? "В полночном городе огни" : "Waiting in a car",
+          next: q.get("lang") === "ru" ? "Ждём рассвет у реки" : "Waiting for a ride in the dark",
+        } : songScene === "countdown" ? {
+          nextInSec: 12,
+        } : songScene === "unknown" ? {
+          nextInSec: null,
+        } : {}),
+      };
       const evt = {
         mode,
-        lyrics: lyrics ? { playing: true, current: "Midnight City — M83", next: "Waiting in a car" } : null,
-        voice: {
+        lyrics: demoLyrics,
+        voice: voiceOn ? {
           active: true,
           phase,
           level,
@@ -352,7 +386,7 @@ if (scene === "deck" || scene === "settings") {
             chips: [{ label: q.get("lang") === "ru" ? "Открыть код" : "Open code", command: "open" }],
           } : {}),
           slow: showText && slow ? { etaSec: 12, elapsedSec: 4 } : null,
-        },
+        } : null,
       };
       return (
         <div style={{ padding: 24, display: "flex", flexDirection: "column", alignItems: "center", gap: 20, color: demoTheme === "light" ? "#14161c" : "#f4f6fa" }}>
@@ -361,16 +395,36 @@ if (scene === "deck" || scene === "settings") {
               <button key={m} onClick={() => setMode(m)}>{m}</button>
             ))}
             {(["idle", "loading", "listening", "thinking", "speaking", "error"] as const).map((p) => (
-              <button key={p} onClick={() => setPhase(p)}>{p}</button>
+              <button key={p} onClick={() => { setVoiceOn(true); setPhase(p); }}>{p}</button>
             ))}
             <button onClick={replayTransition}>{tr("island.replay")}</button>
             <label>Level <input type="range" min={0} max={1} step={0.05} value={level} onChange={(e) => setLevel(Number(e.target.value))} /></label>
+            <label>musicLevel <input type="range" min={0} max={1} step={0.05} value={musicLevel} onChange={(e) => setMusicLevel(Number(e.target.value))} /></label>
+            <label><input type="checkbox" checked={voiceOn} onChange={(e) => setVoiceOn(e.target.checked)} /> Voice</label>
             <label><input type="checkbox" checked={showText} onChange={(e) => setShowText(e.target.checked)} /> Text</label>
             <label><input type="checkbox" checked={slow} onChange={(e) => setSlow(e.target.checked)} /> Slow</label>
-            <label><input type="checkbox" checked={lyrics} onChange={(e) => setLyrics(e.target.checked)} /> Lyrics</label>
+            <label><input type="checkbox" checked={lyrics} onChange={(e) => setLyrics(e.target.checked)} /> Song</label>
+            <label><input type="checkbox" checked={musicPlaying} onChange={(e) => setMusicPlaying(e.target.checked)} /> playing</label>
+            <label><input type="checkbox" checked={musicMuted} onChange={(e) => setMusicMuted(e.target.checked)} /> muted</label>
+            <select value={songScene} onChange={(e) => setSongScene(e.target.value as typeof songScene)}>
+              <option value="lyrics">with lyrics + hover</option>
+              <option value="countdown">before first line</option>
+              <option value="unknown">countdown unknown</option>
+              <option value="nolyrics">no lyrics</option>
+            </select>
             <button onClick={() => setDemoTheme((d) => (d === "dark" ? "light" : "dark"))}>{demoTheme}</button>
           </div>
-          <Island event={evt} theme={demoTheme} onAction={() => {}} onChipClick={() => {}} onStopSlow={() => setSlow(false)} />
+          <Island
+            event={evt}
+            theme={demoTheme}
+            onAction={() => {}}
+            onChipClick={() => {}}
+            onMediaControl={(act) => {
+              if (act === "play_pause") setMusicPlaying((p) => !p);
+              if (act === "mute") setMusicMuted((m) => !m);
+            }}
+            onStopSlow={() => setSlow(false)}
+          />
           <ParticlesOrb state={phase === "loading" ? "connecting" : phase === "error" ? "idle" : phase} size={120} level={level} />
         </div>
       );
@@ -395,6 +449,8 @@ if (scene === "deck" || scene === "settings") {
       );
     } else {
       const hasLyrics = q.get("lyrics") === "1";
+      const songScene = q.get("songScene") ?? (hasLyrics ? "lyrics" : "");
+      const hasSong = Boolean(songScene);
       const isSlow = q.get("slow") === "1";
       const hasReply = q.get("reply") === "1";
       const isSolo = q.get("solo") === "1";
@@ -402,7 +458,21 @@ if (scene === "deck" || scene === "settings") {
       const transitionPreview = transParam !== null ? Number(transParam) : undefined;
       const evt = {
         mode,
-        lyrics: hasLyrics ? { playing: true, current: isRu ? "В полночном городе огни" : "Waiting in a car", next: isRu ? "Ждём рассвет у реки" : "Waiting for a ride in the dark" } : null,
+        lyrics: hasSong ? {
+          playing: q.get("playing") !== "0",
+          muted: q.get("muted") === "1",
+          musicLevel: Number(q.get("musicLevel") ?? 0.7),
+          title: q.get("title") ?? "Midnight City",
+          artist: q.get("artist") ?? "M83",
+          ...(songScene === "lyrics" ? {
+            current: isRu ? "В полночном городе огни" : "Waiting in a car",
+            next: isRu ? "Ждём рассвет у реки" : "Waiting for a ride in the dark",
+          } : songScene === "countdown" ? {
+            nextInSec: Number(q.get("nextInSec") ?? 12),
+          } : songScene === "unknown" ? {
+            nextInSec: null,
+          } : {}),
+        } : null,
         voice: q.get("voiceOff") === "1" ? null : {
           active: true,
           phase,

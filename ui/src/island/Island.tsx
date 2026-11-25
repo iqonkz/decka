@@ -8,6 +8,7 @@ import {
   HelpCircle,
   Languages,
   Mic,
+  Music,
   Pause,
   Play,
   RefreshCw,
@@ -19,6 +20,7 @@ import {
   VolumeX,
 } from "lucide-react";
 import { LANGUAGE_NAMES, LANGUAGES, locale, t, type Language } from "@decka/shared";
+import { formatTime } from "../widgets/mediaPos";
 import {
   orbStateFromIsland,
   type IslandContextChip,
@@ -322,9 +324,19 @@ export default function Island({
   }
 
   if (mode === "compact") {
-    const hasLyrics = Boolean(lyrics?.playing && lyrics.current);
-    const hasSongOrb = !voiceActive && Boolean(lyrics);
-    const hasTwoLines = hasLyrics && Boolean(lyrics?.next);
+    const hasActiveLyric = Boolean(lyrics?.current);
+    const hasSong = !voiceActive && Boolean(lyrics);
+    const countdownKnown = !hasActiveLyric && typeof lyrics?.nextInSec === "number" && lyrics.nextInSec >= 0;
+    const countdownUnknown = !hasActiveLyric && Boolean(lyrics?.lyricsPending || lyrics?.nextInSec === null);
+    const trackSummary =
+      lyrics?.title && lyrics?.artist
+        ? `${lyrics.title} — ${lyrics.artist}`
+        : (lyrics?.title ?? lyrics?.artist ?? "");
+    const hasTwoLines = hasSong
+      ? hasActiveLyric
+        ? Boolean(lyrics?.next)
+        : countdownKnown || countdownUnknown || Boolean(lyrics?.artist)
+      : false;
     const slow = voice?.slow;
     const slowOverdue = slow && (slow.elapsedSec ?? 0) > slow.etaSec * 2;
     const slowPct = slow ? Math.min(95, Math.round(((slow.elapsedSec ?? 0) / Math.max(1, slow.etaSec)) * 100)) : 0;
@@ -334,7 +346,7 @@ export default function Island({
     return (
       <div className="island-host" data-island-theme={theme}>
         <div
-          className={`island-panel island-compact${hasTwoLines ? " two-lines" : ""}${hasLyrics && !voiceActive ? " is-lyrics" : ""}${hasSongOrb ? " is-song" : ""}${hovered ? " is-hovered" : ""}`}
+          className={`island-panel island-compact${hasTwoLines ? " two-lines" : ""}${hasSong ? " is-lyrics is-song" : ""}${hovered ? " is-hovered" : ""}`}
           role="status"
         >
           <div className={`island-orb-wrap compact${isError ? " is-error" : ""}`}>
@@ -343,10 +355,10 @@ export default function Island({
               size={32}
               colorFrom={colorFrom}
               colorTo={colorTo}
-              level={hasSongOrb ? lyrics?.musicLevel : voice?.level}
-              particleCount={hasSongOrb ? 140 : undefined}
-              maxFps={hasSongOrb ? 20 : undefined}
-              amplitude={hasSongOrb ? 0.6 : 1}
+              level={hasSong ? lyrics?.musicLevel : voice?.level}
+              particleCount={hasSong ? 140 : undefined}
+              maxFps={hasSong ? 20 : undefined}
+              amplitude={hasSong ? 0.6 : 1}
               staticFrame={!voiceActive && !lyrics?.playing}
             />
           </div>
@@ -365,16 +377,48 @@ export default function Island({
                   <div className="island-slow-fill" style={{ width: `${Math.max(12, slowPct)}%` }} />
                 </div>
               </div>
-            ) : hasLyrics ? (
-              <>
-                <div className="island-lyric-current">{lyrics?.current}</div>
-                {lyrics?.next && <div className="island-lyric-next">{lyrics.next}</div>}
-              </>
+            ) : hasSong ? (
+              hasActiveLyric ? (
+                <>
+                  <div className="island-lyric-current">{lyrics?.current}</div>
+                  {lyrics?.next && <div className="island-lyric-next">{lyrics.next}</div>}
+                </>
+              ) : countdownKnown ? (
+                <>
+                  <div className="island-lyric-current island-song-title-row">
+                    <Music size={12} strokeWidth={1.75} className="island-song-icon" aria-hidden="true" />
+                    <span className="island-song-title-text">{trackSummary}</span>
+                  </div>
+                  <div className="island-lyric-next">
+                    {t("island.lyrics_in", { time: formatTime(Math.max(0, Math.round(lyrics?.nextInSec ?? 0))) })}
+                  </div>
+                </>
+              ) : countdownUnknown ? (
+                <>
+                  <div className="island-lyric-current island-song-title-row">
+                    <Music size={12} strokeWidth={1.75} className="island-song-icon" aria-hidden="true" />
+                    <span className="island-song-title-text">{trackSummary}</span>
+                  </div>
+                  <div className="island-lyric-next island-lyrics-dots" aria-label={t("island.lyrics_waiting")}>
+                    <span className="island-lyrics-dot" />
+                    <span className="island-lyrics-dot" />
+                    <span className="island-lyrics-dot" />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="island-lyric-current island-song-title-row">
+                    <Music size={12} strokeWidth={1.75} className="island-song-icon" aria-hidden="true" />
+                    <span className="island-song-title-text">{lyrics?.title ?? ""}</span>
+                  </div>
+                  {lyrics?.artist && <div className="island-lyric-next">{lyrics.artist}</div>}
+                </>
+              )
             ) : (
               <div className="island-lyric-current">{voice?.reply ?? voice?.heard ?? t("voice.listening")}</div>
             )}
           </div>
-          {hasSongOrb && (
+          {hasSong && (
             <div className="island-compact-controls">
               <button
                 type="button"

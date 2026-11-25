@@ -209,4 +209,53 @@ describe("T26.5b ParticlesOrb & Island", () => {
     expect(mutedPausedHtml).toContain('aria-label="Воспроизвести"');
     expect(mutedPausedHtml).toContain('aria-label="Включить звук"');
   });
+
+  it("T26.F.12: renders countdown, unknown waiting dots, and track-only fallback without Listening", () => {
+    setLanguage("ru");
+    const countdownHtml = renderToString(
+      <Island
+        event={{
+          mode: "compact",
+          lyrics: { playing: true, title: "Midnight City", artist: "M83", nextInSec: 12 },
+        }}
+      />,
+    );
+    expect(countdownHtml).toContain("island-compact two-lines is-lyrics is-song");
+    expect(countdownHtml).toContain("island-song-icon");
+    expect(countdownHtml).toContain("Midnight City — M83");
+    expect(countdownHtml).toContain("Текст через 0:12");
+    expect(countdownHtml).not.toContain("Слушаю");
+
+    setLanguage("en");
+    const unknownHtml = renderToString(
+      <Island
+        event={{
+          mode: "compact",
+          lyrics: { playing: true, title: "Midnight City", artist: "M83", nextInSec: null },
+        }}
+      />,
+    );
+    expect(unknownHtml).toContain("Midnight City — M83");
+    expect(unknownHtml).toContain("island-lyrics-dots");
+    expect(unknownHtml.match(/class="island-lyrics-dot"/g)?.length).toBe(3);
+    expect(unknownHtml).not.toContain("Listening");
+
+    const noLyricsHtml = renderToString(
+      <Island
+        event={{
+          mode: "compact",
+          lyrics: { playing: true, title: "Midnight City", artist: "M83" },
+        }}
+      />,
+    );
+    expect(noLyricsHtml).toContain("island-song-icon");
+    expect(noLyricsHtml).toContain(">Midnight City<");
+    expect(noLyricsHtml).toContain(">M83<");
+    expect(noLyricsHtml).not.toContain("Listening");
+
+    const emptySongHtml = renderToString(
+      <Island event={{ mode: "compact", lyrics: { playing: true } }} />,
+    );
+    expect(emptySongHtml).not.toContain("Listening");
+  });
 });
