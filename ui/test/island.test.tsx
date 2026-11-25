@@ -229,9 +229,9 @@ describe("T26.5b ParticlesOrb & Island", () => {
     expect(playingHtml).toContain("island-compact-left");
     expect(playingHtml).toContain("island-compact-controls");
     expect(playingHtml).toContain("is-play");
-    expect(playingHtml).toContain("is-prev");
+    expect(playingHtml).not.toContain("is-prev");
     expect(playingHtml).toContain("is-next");
-    expect(playingHtml).toContain('aria-label="Previous track"');
+    expect(playingHtml).not.toContain('aria-label="Previous track"');
     expect(playingHtml).toContain('aria-label="Pause"');
     expect(playingHtml).toContain('aria-label="Next track"');
     expect(playingHtml).not.toContain('aria-label="Mute"');

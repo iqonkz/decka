@@ -13,7 +13,6 @@ import {
   Play,
   RefreshCw,
   Reply,
-  SkipBack,
   SkipForward,
   Square,
   Volume2,
@@ -374,15 +373,6 @@ export default function Island({
             </div>
             {hasSong && (
               <div className="island-compact-controls">
-                <button
-                  type="button"
-                  className="island-media-btn is-skip is-prev"
-                  title={t("island.media_prev")}
-                  aria-label={t("island.media_prev")}
-                  onClick={() => onMediaControl?.("prev")}
-                >
-                  <SkipBack size={14} strokeWidth={1.75} aria-hidden="true" />
-                </button>
                 <button
                   type="button"
                   className="island-media-btn is-play"

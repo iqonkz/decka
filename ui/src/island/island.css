@@ -6,7 +6,7 @@
   width: 100%;
   box-sizing: border-box;
   font-family: "Segoe UI Variable", system-ui, -apple-system, sans-serif;
-  --island-bg: rgba(24, 24, 30, 0.92);
+  --island-bg: rgba(24, 24, 30, 0.96);
   --island-border: rgba(255, 255, 255, 0.12);
   --island-divider: rgba(255, 255, 255, 0.06);
   --island-btn-hover: rgba(255, 255, 255, 0.08);
@@ -18,8 +18,9 @@
 }
 
 .island-host[data-island-theme="light"] {
-  --island-bg: rgba(248, 248, 250, 0.92);
-  --island-border: rgba(0, 0, 0, 0.08);
+  --island-bg: rgba(248, 248, 250, 0.96);
+  /* A light panel must stand out on a light wallpaper: a clearer edge and a ring under the shadow (T26.F.2). */
+  --island-border: rgba(0, 0, 0, 0.18);
   --island-divider: rgba(0, 0, 0, 0.06);
   --island-btn-hover: rgba(0, 0, 0, 0.05);
   --island-text: #111116;
@@ -29,6 +30,10 @@
 }
 
 /* T26.F.3: acrylic variant - the system draws the glass, the page only tints it; the window cut hides the shadow anyway. */
+.island-host[data-island-theme="light"] .island-panel {
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06), 0 10px 32px rgba(0, 0, 0, 0.3);
+}
+
 [data-island-glass="acrylic"] .island-host {
   --island-bg: rgba(24, 24, 30, 0.38);
 }
@@ -297,10 +302,6 @@
   width: 20px;
   height: 20px;
   top: 14px;
-}
-
-.island-media-btn.is-prev {
-  left: -10px;
 }
 
 .island-media-btn.is-next {
