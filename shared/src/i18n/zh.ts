@@ -1045,4 +1045,7 @@ export const zh: Dictionary = {
   "rem.repeat_weekly": "每周",
   "rem.repeat_every_day": "每天",
   "rem.repeat_every_weekday": "每{day}",
+  "phone.no_layout_title": "暂无按钮",
+  "phone.no_layout_body": "在电脑上的 Decka 中添加按钮或小组件，它们会自动显示在此处。",
+  "menu.title": "菜单",
 };

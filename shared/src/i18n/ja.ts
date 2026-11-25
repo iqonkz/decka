@@ -1045,4 +1045,7 @@ export const ja: Dictionary = {
   "rem.repeat_weekly": "毎週",
   "rem.repeat_every_day": "毎日",
   "rem.repeat_every_weekday": "毎週{day}",
+  "phone.no_layout_title": "まだボタンがありません",
+  "phone.no_layout_body": "PCのDeckaでボタンやウィジェットを追加すると、ここに自動的に表示されます。",
+  "menu.title": "メニュー",
 };

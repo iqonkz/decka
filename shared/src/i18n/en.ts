@@ -1054,5 +1054,8 @@ export const en = {
   "rem.repeat_weekly": "Weekly",
   "rem.repeat_every_day": "Every day",
   "rem.repeat_every_weekday": "Every {day}",
+  "phone.no_layout_title": "No buttons yet",
+  "phone.no_layout_body": "Add buttons or widgets in Decka on your PC and they will appear here automatically.",
+  "menu.title": "Menu",
   // @@END
 } as const;

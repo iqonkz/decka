@@ -1076,5 +1076,8 @@ export const ru: Record<Base | ExtraPlural, string> = {
   "rem.repeat_weekly": "Раз в неделю",
   "rem.repeat_every_day": "Каждый день",
   "rem.repeat_every_weekday": "Каждый {day}",
+  "phone.no_layout_title": "Кнопок пока нет",
+  "phone.no_layout_body": "Добавьте кнопки или виджеты в Decka на ПК — они сразу появятся здесь.",
+  "menu.title": "Меню",
   // @@END
 };

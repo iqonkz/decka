@@ -1045,4 +1045,7 @@ export const pt: Dictionary = {
   "rem.repeat_weekly": "Semanalmente",
   "rem.repeat_every_day": "Todo dia",
   "rem.repeat_every_weekday": "Toda {day}",
+  "phone.no_layout_title": "Ainda não há botões",
+  "phone.no_layout_body": "Adicione botões ou widgets no Decka no seu PC e eles aparecerão aqui automaticamente.",
+  "menu.title": "Menu",
 };

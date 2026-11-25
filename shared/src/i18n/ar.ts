@@ -1085,4 +1085,7 @@ export const ar: Dictionary = {
   "rem.repeat_weekly": "أسبوعياً",
   "rem.repeat_every_day": "كل يوم",
   "rem.repeat_every_weekday": "كل {day}",
+  "phone.no_layout_title": "لا توجد أزرار بعد",
+  "phone.no_layout_body": "أضف أزراراً أو أدوات في Decka على الكمبيوتر وستظهر هنا تلقائياً.",
+  "menu.title": "القائمة",
 };

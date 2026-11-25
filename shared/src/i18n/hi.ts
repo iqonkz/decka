@@ -1045,4 +1045,7 @@ export const hi: Dictionary = {
   "rem.repeat_weekly": "साप्ताहिक",
   "rem.repeat_every_day": "हर दिन",
   "rem.repeat_every_weekday": "हर {day}",
+  "phone.no_layout_title": "अभी कोई बटन नहीं",
+  "phone.no_layout_body": "अपने PC पर Decka में बटन या विजेट जोड़ें और वे यहाँ अपने आप दिखेंगे।",
+  "menu.title": "मेनू",
 };

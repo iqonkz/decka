@@ -88,14 +88,36 @@ export default function DeckScreen() {
   const count = navigableIndices(layout.pages).length;
   const active = navigablePosition(layout.pages, pageIndex);
   const popupPage = popup ? layout.pages.find((p) => p.id === popup.pageId && p.popup === true) : undefined;
+  const emptyDeck = count === 0 || layout.pages.every((p) => p.items.length === 0);
 
   return (
     <>
       {theme.theme === "glass" && <GlassLayer wallpaper={theme.wallpaper} art={art} frost={reduced} />}
       <div className={mode === "sleep" ? "deck asleep" : "deck"}>
         <div className="deck-inner" style={{ transform: `translate(${shift.x}px, ${shift.y}px)` }}>
-          <PageStrip pages={layout.pages} pageIndex={pageIndex} grid={layout.grid} onCommit={setPage} />
-          <PageDots count={count} active={active} />
+          {emptyDeck ? (
+            <div className="deck-empty-center">
+              <ServiceCard
+                icon="squares-four"
+                title={t("phone.no_layout_title")}
+                text={t("phone.no_layout_body")}
+              >
+                <div className="service-actions">
+                  <button className="pill-btn primary" type="button" onClick={() => location.reload()}>
+                    {t("menu.reload")}
+                  </button>
+                  <button className="pill-btn secondary" type="button" onClick={openMenu}>
+                    {t("menu.title")}
+                  </button>
+                </div>
+              </ServiceCard>
+            </div>
+          ) : (
+            <>
+              <PageStrip pages={layout.pages} pageIndex={pageIndex} grid={layout.grid} onCommit={setPage} />
+              <PageDots count={count} active={active} />
+            </>
+          )}
           <PageHint />
           <ConnBadge />
           <AppStrip />

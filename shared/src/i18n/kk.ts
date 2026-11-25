@@ -1052,4 +1052,7 @@ export const kk: Dictionary = {
   "rem.repeat_weekly": "Апта сайын",
   "rem.repeat_every_day": "Күн сайын",
   "rem.repeat_every_weekday": "Әр {day}",
+  "phone.no_layout_title": "Әзірге батырмалар жоқ",
+  "phone.no_layout_body": "ДК-дегі Decka-да батырмалар не виджеттер қосыңыз — олар осында автоматты түрде пайда болады.",
+  "menu.title": "Мәзір",
 };
