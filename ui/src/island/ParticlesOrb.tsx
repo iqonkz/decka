@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { t } from "@decka/shared";
 import { parseHex } from "../theme/colors";
 import type { OrbState } from "./islandTypes";
@@ -21,10 +21,9 @@ const X_TILT = 0.32;
 const COS_TILT = Math.cos(X_TILT);
 const SIN_TILT = Math.sin(X_TILT);
 
-/** Number of particles: 720 at size 168, scaled by (size/168)^2, never below 140. */
+/** Number of particles (T26.F): 480 for the solo orb (140 px), 160 for the small ones (72 px with content, 32 px compact). */
 export function particleCountForSize(size: number): number {
-  const s = Math.max(16, size);
-  return Math.max(140, Math.round(720 * Math.pow(s / 168, 2)));
+  return size >= 100 ? 480 : 160;
 }
 
 interface StateWeights {
@@ -76,7 +75,7 @@ export default function ParticlesOrb({
 
   const count = particleCountForSize(size);
 
-  const COLOR_BINS = 4;
+  const COLOR_BINS = 8;
   const DEPTH_BINS = 4;
   const TOTAL_BINS = COLOR_BINS * DEPTH_BINS;
 
@@ -88,11 +87,6 @@ export default function ParticlesOrb({
     const phase = new Float32Array(count);
     const colorBin = new Uint8Array(count);
 
-    const outX = new Float32Array(count);
-    const outY = new Float32Array(count);
-    const outR = new Float32Array(count);
-    const nextIdx = new Int16Array(count);
-    const binHead = new Int16Array(TOTAL_BINS);
     const binStyles = new Array<string>(TOTAL_BINS);
 
     const [r1, g1, b1] = parseHex(colorFrom) ?? [34, 211, 238];
@@ -122,7 +116,7 @@ export default function ParticlesOrb({
       colorBin[i] = Math.min(COLOR_BINS - 1, Math.max(0, Math.round(mixT * (COLOR_BINS - 1))));
     }
 
-    return { ux, uy, uz, phase, colorBin, binStyles, outX, outY, outR, nextIdx, binHead };
+    return { ux, uy, uz, phase, colorBin, binStyles };
   }, [count, colorFrom, colorTo]);
 
   useEffect(() => {
@@ -173,6 +167,27 @@ export default function ParticlesOrb({
     const shouldAnimate = !paused && !staticFrame && !reducedMotion && inView && docVisible;
     const TAU = Math.PI * 2;
 
+    // Pre-rendered dots: one sprite per (shade, depth); the frame only blits them (no arc, gradient or shadowBlur per frame).
+    const sprites: HTMLCanvasElement[] = [];
+    const spriteHalf: number[] = [];
+    for (let b = 0; b < TOTAL_BINS; b++) {
+      const db = b % DEPTH_BINS;
+      const rad = (0.6 + ((db + 0.5) / DEPTH_BINS) * 1.5) * dotSizeFactor;
+      const px = Math.ceil(2 * rad * dpr) + 2;
+      const sc = document.createElement("canvas");
+      sc.width = px;
+      sc.height = px;
+      const sctx = sc.getContext("2d");
+      if (sctx) {
+        sctx.fillStyle = particles.binStyles[b]!;
+        sctx.beginPath();
+        sctx.arc(px / 2, px / 2, rad * dpr, 0, TAU);
+        sctx.fill();
+      }
+      sprites.push(sc);
+      spriteHalf.push(px / (2 * dpr));
+    }
+
     let yaw = 0.4;
     let time = 0;
     let lastTs = performance.now();
@@ -215,8 +230,7 @@ export default function ParticlesOrb({
       const thinkPulse = 1 - w.thinking * (0.14 + 0.1 * Math.sin(time * 4.8));
       const radiusMul = breathe * listenScale * thinkPulse;
 
-      const { ux, uy, uz, phase, colorBin, binStyles, outX, outY, outR, nextIdx, binHead } = particles;
-      binHead.fill(-1);
+      const { ux, uy, uz, phase, colorBin } = particles;
 
       for (let i = 0; i < count; i++) {
         let px = ux[i]!;
@@ -275,25 +289,11 @@ export default function ParticlesOrb({
         const persp = 0.65 + depthT * 0.45;
         const rPx = baseRadius * radiusMul * persp;
 
-        outX[i] = half + rx * rPx;
-        outY[i] = half + ry * rPx;
-        outR[i] = (0.6 + depthT * 1.5) * dotSizeFactor;
         const db = Math.min(DEPTH_BINS - 1, (depthT * DEPTH_BINS) | 0);
         const bin = colorBin[i]! * DEPTH_BINS + db;
-        nextIdx[i] = binHead[bin]!;
-        binHead[bin] = i;
-      }
-
-      for (let b = 0; b < TOTAL_BINS; b++) {
-        let idx = binHead[b]!;
-        if (idx === -1) continue;
-        ctx.fillStyle = binStyles[b]!;
-        while (idx !== -1) {
-          ctx.beginPath();
-          ctx.arc(outX[idx]!, outY[idx]!, outR[idx]!, 0, TAU);
-          ctx.fill();
-          idx = nextIdx[idx]!;
-        }
+        const hs = spriteHalf[bin]!;
+        // Additive blending is order-independent, so the dots are blitted in index order.
+        ctx.drawImage(sprites[bin]!, half + rx * rPx - hs, half + ry * rPx - hs, hs * 2, hs * 2);
       }
     };
 
@@ -301,11 +301,12 @@ export default function ParticlesOrb({
     drawFrame(0);
     if (!shouldAnimate) return;
 
-    const MIN_FRAME_MS = 38; // ~26 fps cadence keeps 120px listening CPU below 3% while staying fluid.
+    // 30 fps while a request is active, 15 fps at rest; nothing is drawn while the window is hidden.
     const tick = (now: number) => {
       const elapsedMs = now - lastTs;
-      if (elapsedMs >= MIN_FRAME_MS) {
-        const dt = Math.min(0.08, elapsedMs / 1000);
+      const minFrameMs = stateRef.current === "idle" ? 66 : 33;
+      if (elapsedMs >= minFrameMs - 2 && !document.hidden) {
+        const dt = Math.min(0.12, elapsedMs / 1000);
         lastTs = now;
         drawFrame(dt);
       }

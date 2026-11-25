@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+﻿import { describe, expect, it } from "vitest";
 import { renderToString } from "react-dom/server";
 import { setLanguage } from "@decka/shared";
 import Island, { expandedStatusText, hasVoiceContent } from "../src/island/Island";
@@ -6,11 +6,10 @@ import ParticlesOrb, { particleCountForSize } from "../src/island/ParticlesOrb";
 import { orbStateFromIsland } from "../src/island/islandTypes";
 
 describe("T26.5b ParticlesOrb & Island", () => {
-  it("computes particle counts per size rule (720 at 168, >= 140)", () => {
-    expect(particleCountForSize(168)).toBe(720);
-    expect(particleCountForSize(120)).toBe(Math.round(720 * Math.pow(120 / 168, 2)));
-    expect(particleCountForSize(32)).toBe(140);
-    expect(particleCountForSize(24)).toBe(140);
+  it("computes particle counts per size rule (480 solo, 160 small)", () => {
+    expect(particleCountForSize(140)).toBe(480);
+    expect(particleCountForSize(72)).toBe(160);
+    expect(particleCountForSize(32)).toBe(160);
   });
 
   it("maps island voice states and errors to orb state", () => {
