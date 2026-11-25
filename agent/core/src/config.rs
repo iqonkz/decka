@@ -65,6 +65,7 @@ pub fn default_config() -> ConfigFile {
         windows_notifications: None,
         network: None,
         media: None,
+        voice: None,
     }
 }
 

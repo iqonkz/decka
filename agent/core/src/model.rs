@@ -656,6 +656,23 @@ pub struct ConfigFile {
     /// M24 (DATA_MODEL.md 14): `media.lyrics.enabled`, off by default; absent = off.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub media: Option<MediaConfig>,
+    /// T26.7: `voice.context.enabled` - hints by the active program when the island opens; absent = off.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub voice: Option<VoiceConfig>,
+}
+
+/// `config.voice`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct VoiceConfig {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub context: Option<VoiceContextConfig>,
+}
+
+/// `config.voice.context`: the island may look at the name of the active program and the selected text when it opens.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct VoiceContextConfig {
+    #[serde(default)]
+    pub enabled: bool,
 }
 
 /// `config.media`: what the "Now playing" widget may do besides showing the session.

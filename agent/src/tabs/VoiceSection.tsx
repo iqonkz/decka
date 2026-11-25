@@ -41,9 +41,15 @@ export default function VoiceSection() {
   const [status, setStatus] = useState<VoiceStatus>(DEFAULT_STATUS);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // T26.7: hints by the active program when the island opens (off by default).
+  const [context, setContext] = useState(false);
 
   useEffect(() => {
     let active = true;
+    call("voice_context_get").then(
+      (on) => active && setContext(on),
+      () => {},
+    );
     call("voice_status").then(
       (s) => active && setStatus(s),
       () => {},
@@ -191,6 +197,18 @@ export default function VoiceSection() {
 
             <Row title={t("voice.keep_loaded")} description={t("voice.keep_loaded_hint")}>
               <Switch checked={status.keepLoaded} onChange={(val) => void setConfig({ keepLoaded: val })} />
+            </Row>
+
+            <Row title={t("voice.context")} description={t("voice.context_hint")}>
+              <Switch
+                checked={context}
+                onChange={(on) =>
+                  void call("voice_context_set", { enabled: on }).then(
+                    (v) => setContext(v),
+                    (e) => setError(String(e)),
+                  )
+                }
+              />
             </Row>
 
             <Row title={t("voice.phone_button")}>

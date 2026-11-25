@@ -423,6 +423,8 @@ struct Inner {
     dictate_until: Arc<Mutex<Option<Instant>>>,
     /// T26.3: the answer that can be continued for 30 s (memory only).
     answers: Answers,
+    /// T26.7: hint chips of the island that opened by voice (empty when the setting is off).
+    chips: Arc<Mutex<Vec<Value>>>,
     /// The slow path: durations of the last calls, and when the running one started.
     slow: Arc<Mutex<super::slowpath::Tracker>>,
     slow_since: Arc<Mutex<Option<Instant>>>,
@@ -469,6 +471,7 @@ impl Host {
             handle: handle.clone(),
             dictate_until: Arc::new(Mutex::new(None)),
             answers: Arc::new(Mutex::new(Default::default())),
+            chips: Arc::new(Mutex::new(Vec::new())),
             slow: Arc::new(Mutex::new(super::slowpath::Tracker::load(&config_dir))),
             slow_since: Arc::new(Mutex::new(None)),
             timers: Arc::new(AtomicUsize::new(0)),
@@ -657,6 +660,39 @@ impl Host {
         self.inner.driver().handle_event(Event::Confirm { id: id.to_string(), yes });
     }
 
+    /// The hint chips of the island that is open now (T26.7), as `{ label, command }`.
+    pub fn context_chips(&self) -> Vec<Value> {
+        self.inner.chips.lock().unwrap().clone()
+    }
+
+    /// `voice_chip` of the PC window (IPC): a tap on a chip is the same request as saying it. The command is one of
+    /// `context::COMMANDS`; what it does is decided here.
+    pub fn chip(&self, command: &str) -> Result<(), String> {
+        use super::textops::Op;
+        let lang = self.inner.language();
+        let call = match command {
+            "translate" => ToolCall::TextTransform { op: Op::Translate, lang: Some(lang.to_string()), text: None },
+            "explain" => ToolCall::TextTransform { op: Op::Explain, lang: None, text: None },
+            "reply" => ToolCall::TextTransform { op: Op::Reply, lang: None, text: None },
+            "error" => ToolCall::ScreenAsk { question: "What is this error and how can it be fixed?".into() },
+            _ => return Err("unknown chip".into()),
+        };
+        let inner = self.inner.clone();
+        // The recording that is running is not needed any more.
+        if self.inner.driver().state().phase == Phase::Listening {
+            self.inner.driver().handle_event(Event::Cancel);
+        }
+        let shows_text = matches!(call, ToolCall::TextTransform { .. });
+        self.inner.handle.spawn(async move {
+            match inner.execute(call).await {
+                Ok(text) if !text.is_empty() => inner.plate(&text, shows_text, 20),
+                Ok(_) => {}
+                Err(e) => inner.plate(&e, false, 5),
+            }
+        });
+        Ok(())
+    }
+
     /// `voice_action` of the PC window (IPC): `copy`, `insert`, `speak`, `again`, `lang:<code>` on the answer that was just shown.
     /// The result of `again` and `lang` is shown as a new answer. The window only names an action; what it does is decided here.
     pub fn action(&self, kind: &str) -> Result<(), String> {
@@ -745,6 +781,19 @@ impl Inner {
         }
     }
 
+    /// T26.7: looks at the active program and the selection when the island opens by voice - only if the user turned it on.
+    fn refresh_chips(&self) {
+        self.chips.lock().unwrap().clear();
+        if !self.agent.voice_context_enabled() {
+            return;
+        }
+        let (chips, vision) = (self.chips.clone(), self.service.vision_installed());
+        self.handle.spawn(async move {
+            let found = tokio::task::spawn_blocking(move || super::context::chips_json(&super::context::chips(&super::context::snapshot(vision)))).await.unwrap_or_default();
+            *chips.lock().unwrap() = found;
+        });
+    }
+
     fn pressed(&self, p: Pressed) {
         if p == Pressed::Dictate {
             return self.start_dictation();
@@ -764,6 +813,7 @@ impl Inner {
             }
             if matches!(e, Event::Start { .. }) {
                 *PC_STARTED.lock().unwrap() = Some(Instant::now());
+                self.refresh_chips();
             }
             self.driver().handle_event(e);
         }

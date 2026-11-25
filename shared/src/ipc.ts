@@ -138,6 +138,9 @@ export interface IpcCommands {
   voice_cancel(): VoiceStatus;
   voice_confirm(args: { id: string; yes: boolean }): void;     // the Yes/No of the PC pill (the pill window arrives with C2)
   voice_action(args: { kind: "copy" | "insert" | "speak" | "again" | `lang:${string}` }): void; // T26.3: a button under the shown answer; the PC decides what it does
+  voice_context_get(): boolean;                                 // T26.7: hints by the active program when the island opens (off by default)
+  voice_context_set(args: { enabled: boolean }): boolean;
+  voice_chip(args: { command: "translate" | "explain" | "reply" | "error" }): void; // a tap on a hint chip; the PC decides what it does
   island_rect(args: IslandRect): void;                          // T26.4: the visible panel of the island; the rest of its window lets clicks through
   voice_stop(args: Record<string, never>): void;               // the stop button of the PC pill: end the recording now (12.6a)
   voice_remove(): VoiceStatus;

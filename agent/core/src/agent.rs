@@ -613,6 +613,20 @@ impl Agent {
     }
 
     /// `media.lyrics.pcOverlay` (DESIGN.md 4.17): the window of the words on the PC; absent or unknown = `auto`.
+    /// `voice.context.enabled` (T26.7): hints by the active program when the island opens; off by default.
+    pub fn voice_context_enabled(&self) -> bool {
+        self.config().voice.and_then(|v| v.context).is_some_and(|c| c.enabled)
+    }
+
+    pub fn set_voice_context_enabled(&self, enabled: bool) -> Result<bool, String> {
+        let mut config = self.config();
+        config.voice.get_or_insert_with(Default::default).context.get_or_insert_with(Default::default).enabled = enabled;
+        if let SaveResult::Rejected(issues) = self.write_config(config) {
+            return Err(issues.first().map(|i| i.message.clone()).unwrap_or_default());
+        }
+        Ok(enabled)
+    }
+
     /// The voice hid the lyrics window (T26.0); it beats `auto` and `always`.
     pub fn lyrics_hidden(&self) -> bool {
         self.inner.lyrics_hidden.load(Ordering::SeqCst)

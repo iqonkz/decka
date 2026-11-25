@@ -129,6 +129,9 @@ pub fn run() {
             commands::voice_stop,
             commands::voice_action,
             commands::island_rect,
+            commands::voice_context_get,
+            commands::voice_context_set,
+            commands::voice_chip,
         ])
         .setup(|app| {
             let minimized = std::env::args().any(|a| a == "--minimized");

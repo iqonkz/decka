@@ -10,6 +10,7 @@ pub mod ask;
 pub mod brief;
 pub mod calc;
 pub mod clipboard;
+pub mod context;
 pub mod dictation;
 pub mod endpoint;
 pub mod host;

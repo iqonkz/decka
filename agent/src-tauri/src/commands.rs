@@ -593,6 +593,24 @@ pub async fn voice_confirm(app: AppHandle, id: String, yes: bool) -> Result<(), 
     Ok(())
 }
 
+/// `voice.context.enabled` (T26.7): hints by the active program when the island opens.
+#[tauri::command]
+pub fn voice_context_get(app: AppHandle) -> Result<bool, String> {
+    Ok(agent(&app)?.voice_context_enabled())
+}
+
+#[tauri::command]
+pub fn voice_context_set(app: AppHandle, enabled: bool) -> Result<bool, String> {
+    agent(&app)?.set_voice_context_enabled(enabled)
+}
+
+/// A tap on a hint chip of the island (T26.7): `translate`, `explain`, `reply` or `error`; the PC decides what it means.
+#[tauri::command]
+pub async fn voice_chip(app: AppHandle, command: String) -> Result<(), String> {
+    let host = app.try_state::<decka_core::voice::host::Host>().ok_or_else(|| "voice control did not start".to_string())?;
+    host.chip(&command)
+}
+
 /// The visible panel of the island (T26.4): the rest of its window lets clicks through. CSS pixels from the top-left of the window.
 #[tauri::command]
 pub fn island_rect(app: AppHandle, x: f64, y: f64, width: f64, height: f64) -> Result<(), String> {

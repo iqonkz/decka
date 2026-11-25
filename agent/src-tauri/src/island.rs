@@ -43,8 +43,6 @@ pub struct Shared {
     rect: Mutex<Option<Rect>>,
     /// The last payload of the voice host for the PC window (`None`: idle).
     voice: Mutex<Option<Value>>,
-    /// Hint chips of the open island (T26.7), set when a voice request starts.
-    chips: Mutex<Vec<Value>>,
 }
 
 impl Shared {
@@ -56,9 +54,6 @@ impl Shared {
         *self.voice.lock().unwrap() = payload;
     }
 
-    pub fn set_chips(&self, chips: Vec<Value>) {
-        *self.chips.lock().unwrap() = chips;
-    }
 }
 
 /// The sections of the agent the lyrics part reads, sampled four times a second.
@@ -175,7 +170,7 @@ pub fn setup(app: &AppHandle, agent: &Agent) -> Arc<Shared> {
             let slow = host.as_ref().and_then(|h| h.slow_progress());
             let (voice, voice_json) = {
                 let payload = loop_shared.voice.lock().unwrap().clone();
-                let chips = loop_shared.chips.lock().unwrap().clone();
+                let chips = host.as_ref().map(|h| h.context_chips()).unwrap_or_default();
                 voice_view(payload.as_ref(), slow, &chips)
             };
             let mode = machine.step(&Inputs {
