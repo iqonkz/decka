@@ -13,6 +13,8 @@ import Switch from "../ui/Switch";
 import Segmented from "../ui/Segmented";
 import PhIcon from "../ui/PhIcon";
 import ColorPicker from "../ui/ColorPicker";
+import RadioGroup from "../ui/RadioGroup";
+import TimeField from "../ui/TimeField";
 import { useAutosave } from "../ui/useAutosave";
 import { applyWindowTheme } from "../windowTheme";
 
@@ -177,12 +179,13 @@ export default function AppearanceTab() {
         <>
           <SectionHeader id="section-look-wallpaper" title={t("look.wallpaper")} subtitle={t("look.wallpaper_hint")} />
           <Group>
-            <div className="row wrap" style={{ padding: "14px 0" }}>
-              {WALLPAPERS.map((w) => (
-                <label key={w} className="check" style={{ margin: 0 }}>
-                  <input type="radio" name="wallpaper" checked={(display.wallpaper ?? "aurora") === w} onChange={() => set({ wallpaper: w })} /> {t(`wallpaper.${w}`)}
-                </label>
-              ))}
+            <div style={{ padding: "14px 0" }}>
+              <RadioGroup
+                aria-label={t("look.wallpaper")}
+                value={display.wallpaper ?? "aurora"}
+                options={WALLPAPERS.map((w) => ({ value: w, label: t(`wallpaper.${w}`) }))}
+                onChange={(w) => set({ wallpaper: w })}
+              />
             </div>
           </Group>
         </>
@@ -236,9 +239,9 @@ export default function AppearanceTab() {
         <Row id="section-look-night" title={t("look.night")}>
           <div className="row">
             <Switch checked={display.night.enabled} onChange={(checked) => set({ night: { ...display.night, enabled: checked } })} />
-            <input type="time" aria-label={t("look.night_from")} value={display.night.from} onChange={(e) => set({ night: { ...display.night, from: e.target.value } })} />
+            <TimeField aria-label={t("look.night_from")} value={display.night.from} onChange={(from) => set({ night: { ...display.night, from } })} />
             <span>{t("look.night_to_word")}</span>
-            <input type="time" aria-label={t("look.night_to")} value={display.night.to} onChange={(e) => set({ night: { ...display.night, to: e.target.value } })} />
+            <TimeField aria-label={t("look.night_to")} value={display.night.to} onChange={(to) => set({ night: { ...display.night, to } })} />
           </div>
         </Row>
       </Group>

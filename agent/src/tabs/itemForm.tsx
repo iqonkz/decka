@@ -3,6 +3,7 @@ import { t, type ActionsFile, type ButtonItem, type ButtonLook, type LayoutItem,
 import { call, navigate } from "../ipc";
 import IconField from "./IconField";
 import Button from "../ui/Button";
+import ColorPicker from "../ui/ColorPicker";
 import Disclosure from "../ui/Disclosure";
 import Field from "../ui/Field";
 import Select from "../ui/Select";
@@ -78,7 +79,7 @@ function LookFields({ look, onChange }: { look: ButtonLook; onChange: (look: But
     <div className="look-fields">
       <input placeholder={t("item.label")} value={look.label ?? ""} maxLength={24} onChange={(e) => set("label", e.target.value)} />
       <IconField value={look.icon} onChange={(icon) => set("icon", icon ?? "")} />
-      <input type="color" value={look.color ?? "#1e1e24"} onChange={(e) => set("color", e.target.value)} aria-label={t("menu_item.color")} />
+      <ColorPicker compact aria-label={t("menu_item.color")} value={look.color ?? "#1e1e24"} onChange={(hex) => set("color", hex)} />
       <Button onClick={() => set("color", "")}>{t("item.clear")}</Button>
     </div>
   );
@@ -96,8 +97,6 @@ interface Props {
   /** Opens the quick picker to give this button another action. */
   onChangeAction: () => void;
 }
-
-const SWATCHES = ["#7c5cff", "#3b82f6", "#06b6d4", "#16a34a", "#eab308", "#f97316", "#ef4444", "#ec4899"];
 
 export default function ItemForm({ item, display, page, pages, grid, actions, onChange, onDelete, onChangeAction }: Props) {
   const [minW, maxW, minH, maxH] = sizeRange(item.kind, grid);
@@ -222,11 +221,8 @@ function ButtonFields({ display, item, pages, inPopup, actions, patch, onChangeA
         <Button onClick={onChangeAction}>{t("item.change")}</Button>
       </div>
       <Field label={t("menu_item.color")}>
-        <div className="swatches">
-          {SWATCHES.map((c) => (
-            <button key={c} type="button" aria-label={`${t("menu_item.color")} ${c}`} className={`swatch${item.color?.toLowerCase() === c ? " on" : ""}`} style={{ background: c }} onClick={() => patch({ color: c })} />
-          ))}
-          <input type="color" aria-label={t("item.custom_color")} value={item.color ?? "#1e1e24"} onChange={(e) => patch({ color: e.target.value })} />
+        <div className="row wrap" style={{ gap: 10 }}>
+          <ColorPicker value={item.color ?? "#1e1e24"} onChange={(hex) => patch({ color: hex })} />
           <Button onClick={() => patch({ color: undefined })}>{t("menu_item.default")}</Button>
         </div>
       </Field>
