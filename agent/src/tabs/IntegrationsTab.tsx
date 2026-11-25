@@ -18,6 +18,7 @@ import LyricsSection from "./LyricsSection";
 import { lyricsGet, lyricsOverlaySet, lyricsSet } from "./lyricsIpc";
 import Switch from "../ui/Switch";
 import Disclosure from "../ui/Disclosure";
+import Modal from "../ui/Modal";
 import {
   filterIntegrations,
   type IntegrationCategory,
@@ -367,37 +368,12 @@ export default function IntegrationsTab() {
             </Group>
 
             {editing && (
-              <div className="dialog-backdrop">
-                <div className="dialog" role="dialog" aria-label={t("integ.check")}>
-                  <h2>{editing.index < 0 ? t("integ.add_check") : t("integ.edit_check")}</h2>
-                  <Field label={t("integ.check_name")}>
-                    <input autoFocus value={editing.check.label} onChange={(e) => setEditing({ ...editing, check: { ...editing.check, label: e.target.value } })} />
-                  </Field>
-                  <Field label={t("integ.check_address")}>
-                    <input value={editing.check.url} onChange={(e) => setEditing({ ...editing, check: { ...editing.check, url: e.target.value } })} />
-                  </Field>
-                  <Disclosure title={t("common.more_options")}>
-                    <div className="grid-4">
-                      <Field label={t("integ.check_every")}>
-                        <input type="number" value={editing.check.intervalSec} onChange={(e) => setEditing({ ...editing, check: { ...editing.check, intervalSec: Number(e.target.value) } })} />
-                      </Field>
-                      <Field label={t("integ.give_up")}>
-                        <input type="number" value={editing.check.timeoutSec} onChange={(e) => setEditing({ ...editing, check: { ...editing.check, timeoutSec: Number(e.target.value) } })} />
-                      </Field>
-                      <Field label={t("integ.expected")} hint={t("integ.expected_hint")}>
-                        <input
-                          type="number"
-                          placeholder="200"
-                          value={editing.check.expectStatus ?? ""}
-                          onChange={(e) => setEditing({ ...editing, check: { ...editing.check, expectStatus: e.target.value === "" ? undefined : Number(e.target.value) } })}
-                        />
-                      </Field>
-                      <Field label={t("integ.group")}>
-                        <input value={editing.check.group ?? ""} onChange={(e) => setEditing({ ...editing, check: { ...editing.check, group: e.target.value || undefined } })} />
-                      </Field>
-                    </div>
-                  </Disclosure>
-                  <div className="row">
+              <Modal
+                title={editing.index < 0 ? t("integ.add_check") : t("integ.edit_check")}
+                onClose={() => setEditing(null)}
+                footer={
+                  <>
+                    <Button onClick={() => setEditing(null)}>{t("common.cancel")}</Button>
                     <Button
                       variant="primary"
                       onClick={() => {
@@ -408,10 +384,37 @@ export default function IntegrationsTab() {
                     >
                       {t("common.save")}
                     </Button>
-                    <Button onClick={() => setEditing(null)}>{t("common.cancel")}</Button>
+                  </>
+                }
+              >
+                <Field label={t("integ.check_name")}>
+                  <input autoFocus value={editing.check.label} onChange={(e) => setEditing({ ...editing, check: { ...editing.check, label: e.target.value } })} />
+                </Field>
+                <Field label={t("integ.check_address")}>
+                  <input value={editing.check.url} onChange={(e) => setEditing({ ...editing, check: { ...editing.check, url: e.target.value } })} />
+                </Field>
+                <Disclosure title={t("common.more_options")}>
+                  <div className="grid-4">
+                    <Field label={t("integ.check_every")}>
+                      <input type="number" value={editing.check.intervalSec} onChange={(e) => setEditing({ ...editing, check: { ...editing.check, intervalSec: Number(e.target.value) } })} />
+                    </Field>
+                    <Field label={t("integ.give_up")}>
+                      <input type="number" value={editing.check.timeoutSec} onChange={(e) => setEditing({ ...editing, check: { ...editing.check, timeoutSec: Number(e.target.value) } })} />
+                    </Field>
+                    <Field label={t("integ.expected")} hint={t("integ.expected_hint")}>
+                      <input
+                        type="number"
+                        placeholder="200"
+                        value={editing.check.expectStatus ?? ""}
+                        onChange={(e) => setEditing({ ...editing, check: { ...editing.check, expectStatus: e.target.value === "" ? undefined : Number(e.target.value) } })}
+                      />
+                    </Field>
+                    <Field label={t("integ.group")}>
+                      <input value={editing.check.group ?? ""} onChange={(e) => setEditing({ ...editing, check: { ...editing.check, group: e.target.value || undefined } })} />
+                    </Field>
                   </div>
-                </div>
-              </div>
+                </Disclosure>
+              </Modal>
             )}
           </div>
         )}

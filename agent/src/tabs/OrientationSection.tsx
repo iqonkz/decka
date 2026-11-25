@@ -4,6 +4,7 @@ import { EMPTY_DATA, GlassLayer, Grid, resolveTheme } from "@decka/ui";
 import { call } from "../ipc";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
+import Modal from "../ui/Modal";
 import PhIcon from "../ui/PhIcon";
 import PhoneFrame from "./PhoneFrame";
 
@@ -112,19 +113,21 @@ export default function OrientationSection({ orientation, onChanged }: Props) {
       {error && <Banner kind="error">{error}</Banner>}
       {message && <Banner kind="success">{message}</Banner>}
       {pending && (
-        <div className="dialog-backdrop">
-          <div className="dialog" role="dialog" aria-label={t("orientation.title")}>
-            <h2>{t(`orientation.turn_to_${pending.to}`)}</h2>
-            <Preview layout={pending.layout} />
-            <p className="muted">{pending.moved > 0 ? tn("orientation.moved", pending.moved) : t("orientation.nothing_moved")}</p>
-            <div className="row">
+        <Modal
+          title={t(`orientation.turn_to_${pending.to}`)}
+          onClose={() => setPending(null)}
+          footer={
+            <>
+              <Button onClick={() => setPending(null)}>{t("common.cancel")}</Button>
               <Button variant="primary" onClick={() => void confirm()}>
                 {t("orientation.rotate")}
               </Button>
-              <Button onClick={() => setPending(null)}>{t("common.cancel")}</Button>
-            </div>
-          </div>
-        </div>
+            </>
+          }
+        >
+          <Preview layout={pending.layout} />
+          <p className="muted" style={{ margin: 0 }}>{pending.moved > 0 ? tn("orientation.moved", pending.moved) : t("orientation.nothing_moved")}</p>
+        </Modal>
       )}
     </>
   );

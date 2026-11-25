@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { dropIndex, moveStep } from "./seqOps";
 import { SEQUENCE_LIMITS, t, validateActions, type Action, type ActionsFile, type SequenceStep } from "@decka/shared";
 import Button from "../ui/Button";
+import Modal from "../ui/Modal";
 import PhIcon from "../ui/PhIcon";
 import Select from "../ui/Select";
 
@@ -60,64 +61,67 @@ export default function SequenceEditor({ actions, onSave, onClose }: SequencePro
   };
 
   return (
-    <div className="dialog-backdrop" onPointerDown={onClose}>
-      <div className="dialog sequence-dialog" role="dialog" aria-label={t("seq.title")} onPointerDown={(e) => e.stopPropagation()}>
-        <h2>{t("seq.title")}</h2>
-        <label className="field-row">
-          <span>{t("seq.name")}</span>
-          <input value={name} maxLength={60} onChange={(e) => setName(e.target.value)} />
-        </label>
-        <p className="muted">{t("seq.help")}</p>
-        {choices.length === 0 && <p className="warn-text">{t("seq.no_actions")}</p>}
-        <ol className="seq-steps" ref={list}>
-          {steps.map((step, i) => (
-            <li key={i} className={`seq-step${drag?.from === i ? " dragging" : ""}${drag && drag.over === i && drag.from !== i ? (drag.over > drag.from ? " drop-after" : " drop-before") : ""}`}>
-              <span
-                className="seq-handle"
-                role="button"
-                aria-label={t("seq.drag")}
-                title={t("seq.drag")}
-                onPointerDown={(e) => startDrag(e, i)}
-                onPointerMove={dragMove}
-                onPointerUp={dragEnd}
-                onPointerCancel={() => setDrag(null)}
-              >
-                <PhIcon name="dots-six-vertical" size={16} />
-              </span>
-              {"delayMs" in step ? (
-                <>
-                  <PhIcon name="timer" size={18} />
-                  <span>{t("seq.wait")}</span>
-                  <input type="number" min={SEQUENCE_LIMITS.delayMin} max={SEQUENCE_LIMITS.delayMax} step={50} value={step.delayMs} onChange={(e) => set(i, { delayMs: Number(e.target.value) })} />
-                  <span className="muted">{t("seq.ms")}</span>
-                </>
-              ) : (
-                <Select
-                  aria-label={t("seq.pick")}
-                  value={step.actionId}
-                  placeholder={t("seq.pick")}
-                  options={choices.map(([id, a]) => ({ value: id, label: a.name }))}
-                  onChange={(val) => set(i, { actionId: val })}
-                />
-              )}
-              <button type="button" className="icon-btn" aria-label={t("seq.up")} disabled={i === 0} onClick={() => move(i, -1)}><PhIcon name="arrow-up" size={14} /></button>
-              <button type="button" className="icon-btn" aria-label={t("seq.down")} disabled={i === steps.length - 1} onClick={() => move(i, 1)}><PhIcon name="arrow-down" size={14} /></button>
-              <button type="button" className="icon-btn" aria-label={t("seq.remove")} onClick={() => setSteps((list) => list.filter((_, n) => n !== i))}><PhIcon name="x" size={14} /></button>
-            </li>
-          ))}
-        </ol>
-        <div className="row">
-          <Button disabled={full || choices.length === 0} onClick={() => setSteps((l) => [...l, { actionId: "" }])}>{t("seq.add_step")}</Button>
-          <Button disabled={full} onClick={() => setSteps((l) => [...l, { delayMs: DEFAULT_WAIT_MS }])}>{t("seq.wait")}</Button>
-          <span className="grow" />
-          <span className="muted">{t("seq.summary", { steps: steps.length, seconds: Math.round(totalMs / 100) / 10 })}</span>
-        </div>
-        {issues.length > 0 && <ul className="warn-text">{issues.map((i, n) => <li key={n}>{i.message}</li>)}</ul>}
-        <div className="row">
-          <Button variant="primary" disabled={steps.length === 0 || steps.some((s) => "actionId" in s && s.actionId === "") || issues.length > 0} onClick={() => onSave(draft.name, steps)}>{t("seq.save")}</Button>
+    <Modal
+      title={t("seq.title")}
+      subtitle={t("seq.help")}
+      onClose={onClose}
+      className="sequence-dialog"
+      footer={
+        <>
           <Button onClick={onClose}>{t("common.cancel")}</Button>
-        </div>
+          <Button variant="primary" disabled={steps.length === 0 || steps.some((s) => "actionId" in s && s.actionId === "") || issues.length > 0} onClick={() => onSave(draft.name, steps)}>{t("seq.save")}</Button>
+        </>
+      }
+    >
+      <label className="field-row">
+        <span>{t("seq.name")}</span>
+        <input value={name} maxLength={60} onChange={(e) => setName(e.target.value)} />
+      </label>
+      {choices.length === 0 && <p className="warn-text">{t("seq.no_actions")}</p>}
+      <ol className="seq-steps" ref={list}>
+        {steps.map((step, i) => (
+          <li key={i} className={`seq-step${drag?.from === i ? " dragging" : ""}${drag && drag.over === i && drag.from !== i ? (drag.over > drag.from ? " drop-after" : " drop-before") : ""}`}>
+            <span
+              className="seq-handle"
+              role="button"
+              aria-label={t("seq.drag")}
+              title={t("seq.drag")}
+              onPointerDown={(e) => startDrag(e, i)}
+              onPointerMove={dragMove}
+              onPointerUp={dragEnd}
+              onPointerCancel={() => setDrag(null)}
+            >
+              <PhIcon name="dots-six-vertical" size={16} />
+            </span>
+            {"delayMs" in step ? (
+              <>
+                <PhIcon name="timer" size={18} />
+                <span>{t("seq.wait")}</span>
+                <input type="number" min={SEQUENCE_LIMITS.delayMin} max={SEQUENCE_LIMITS.delayMax} step={50} value={step.delayMs} onChange={(e) => set(i, { delayMs: Number(e.target.value) })} />
+                <span className="muted">{t("seq.ms")}</span>
+              </>
+            ) : (
+              <Select
+                aria-label={t("seq.pick")}
+                value={step.actionId}
+                placeholder={t("seq.pick")}
+                options={choices.map(([id, a]) => ({ value: id, label: a.name }))}
+                onChange={(val) => set(i, { actionId: val })}
+              />
+            )}
+            <button type="button" className="icon-btn" aria-label={t("seq.up")} disabled={i === 0} onClick={() => move(i, -1)}><PhIcon name="arrow-up" size={14} /></button>
+            <button type="button" className="icon-btn" aria-label={t("seq.down")} disabled={i === steps.length - 1} onClick={() => move(i, 1)}><PhIcon name="arrow-down" size={14} /></button>
+            <button type="button" className="icon-btn" aria-label={t("seq.remove")} onClick={() => setSteps((list) => list.filter((_, n) => n !== i))}><PhIcon name="x" size={14} /></button>
+          </li>
+        ))}
+      </ol>
+      <div className="row">
+        <Button disabled={full || choices.length === 0} onClick={() => setSteps((l) => [...l, { actionId: "" }])}>{t("seq.add_step")}</Button>
+        <Button disabled={full} onClick={() => setSteps((l) => [...l, { delayMs: DEFAULT_WAIT_MS }])}>{t("seq.wait")}</Button>
+        <span className="grow" />
+        <span className="muted">{t("seq.summary", { steps: steps.length, seconds: Math.round(totalMs / 100) / 10 })}</span>
       </div>
-    </div>
+      {issues.length > 0 && <ul className="warn-text">{issues.map((i, n) => <li key={n}>{i.message}</li>)}</ul>}
+    </Modal>
   );
 }
