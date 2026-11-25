@@ -132,6 +132,7 @@ pub fn run() {
             commands::media_control,
             commands::voice_notices_get,
             commands::voice_notices_set,
+            commands::guide_control,
             commands::guides_list,
             commands::guides_rename,
             commands::guides_delete,

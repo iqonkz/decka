@@ -71,11 +71,13 @@ pub struct Shared {
     size: Mutex<(f64, f64)>,
     /// The last payload of the voice host for the PC window (`None`: idle).
     voice: Mutex<Option<Value>>,
+    /// A guide is running: the window stays up to show its card even when the island itself has nothing to say (T27.5).
+    guide: std::sync::atomic::AtomicBool,
 }
 
 impl Default for Shared {
     fn default() -> Shared {
-        Shared { rect: Mutex::default(), size: Mutex::new((WIDTH, HEIGHT)), voice: Mutex::default() }
+        Shared { rect: Mutex::default(), size: Mutex::new((WIDTH, HEIGHT)), voice: Mutex::default(), guide: Default::default() }
     }
 }
 
@@ -95,6 +97,14 @@ impl Shared {
 
     pub fn set_size(&self, size: (f64, f64)) {
         *self.size.lock().unwrap() = size;
+    }
+
+    pub fn set_guide(&self, on: bool) {
+        self.guide.store(on, std::sync::atomic::Ordering::Relaxed);
+    }
+
+    pub fn guide_on(&self) -> bool {
+        self.guide.load(std::sync::atomic::Ordering::Relaxed)
     }
 
     pub fn set_voice(&self, payload: Option<Value>) {
@@ -308,7 +318,7 @@ pub fn setup(app: &AppHandle, agent: &Agent) -> Arc<Shared> {
                 fullscreen: sampled.fullscreen,
             });
 
-            if mode == Mode::Hidden {
+            if mode == Mode::Hidden && !loop_shared.guide_on() {
                 if shown {
                     if let Some(w) = &window {
                         let _ = w.hide();

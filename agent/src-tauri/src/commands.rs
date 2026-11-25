@@ -637,6 +637,21 @@ pub fn voice_notices_set(app: AppHandle, enabled: bool) -> Result<bool, String> 
     agent(&app)?.set_voice_notices_enabled(enabled)
 }
 
+/// A button of the guide card in the island (T27.5): `next`, `back`, `stop`, `done`.
+#[tauri::command]
+pub fn guide_control(app: AppHandle, kind: String) -> Result<(), String> {
+    use decka_core::voice::tools::GuideCtl;
+    let kind = match kind.as_str() {
+        "next" => GuideCtl::Next,
+        "back" => GuideCtl::Back,
+        "stop" => GuideCtl::Stop,
+        "done" => GuideCtl::Done,
+        _ => return Err("unknown guide control".into()),
+    };
+    let host = app.try_state::<decka_core::voice::host::Host>().ok_or_else(|| "voice control did not start".to_string())?;
+    host.screen().ok_or_else(|| "The screen help is not ready".to_string())?.control(kind).map(|_| ())
+}
+
 /// The saved guides (T27.6): the files of `%APPDATA%/Decka/guides`.
 #[tauri::command]
 pub fn guides_list(app: AppHandle) -> Result<Vec<decka_core::voice::guides::Recipe>, String> {

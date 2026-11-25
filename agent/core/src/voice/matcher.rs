@@ -556,7 +556,7 @@ impl Table {
     /// What is said during a guide: the whole phrase is "next", "back", "stop" or "done" (T27.5).
     pub fn guide_control(&self, phrase: &str) -> Option<&'static str> {
         let toks = tokens(phrase);
-        self.guide_controls.iter().find(|(_, list)| list.iter().any(|w| *w == toks)).map(|(k, _)| *k)
+        self.guide_controls.iter().find(|(_, list)| list.contains(&toks)).map(|(k, _)| *k)
     }
 
     /// The words of this language that make an element dangerous to press.

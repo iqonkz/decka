@@ -142,6 +142,7 @@ export interface IpcCommands {
   voice_context_set(args: { enabled: boolean }): boolean;
   voice_notices_get(): boolean;                                 // T27.8: short notes of the island about the PC; on by default
   voice_notices_set(args: { enabled: boolean }): boolean;
+  guide_control(args: { kind: "next" | "back" | "stop" | "done" }): void;  // T27.5: a button of the guide card; the PC decides what it means
   guides_list(): SavedGuide[];                                  // T27.6: the saved guides (recipes), local files
   guides_rename(args: { id: string; goal: string }): void;
   guides_delete(args: { id: string }): void;

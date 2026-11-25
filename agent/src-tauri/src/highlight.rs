@@ -67,6 +67,9 @@ pub struct GuideEmitter(pub AppHandle);
 
 impl decka_core::voice::screenrun::GuideSink for GuideEmitter {
     fn event(&self, e: decka_core::voice::screenrun::GuideEvent) {
+        if let Some(shared) = self.0.try_state::<Arc<crate::island::Shared>>() {
+            shared.set_guide(e.active);
+        }
         let _ = self.0.emit_to("island", "guide_step", e);
     }
 }

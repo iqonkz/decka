@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { t, tVoice, type IslandEvent, type LanguageSetting } from "@decka/shared";
-import { Island, useApplyLanguage } from "@decka/ui";
+import { GuidePanel, Island, useApplyLanguage, type GuideStepEvent } from "@decka/ui";
 import { call, listen } from "./ipc";
 
 const HIDDEN: IslandEvent = { mode: "hidden" };
@@ -43,6 +43,8 @@ export default function IslandApp() {
   const [language, setLanguage] = useState<LanguageSetting | undefined>(undefined);
   const [theme, setTheme] = useState<"light" | "dark">(forcedTheme() ?? (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark"));
   const host = useRef<HTMLDivElement>(null);
+  // T27.5: the guide in progress (goal, step, text); its buttons name the control, the PC decides what it means.
+  const [guide, setGuide] = useState<GuideStepEvent | null>(null);
   useApplyLanguage(language, navigator.language);
 
   useEffect(() => {
@@ -64,9 +66,15 @@ export default function IslandApp() {
       if (live) off = fn;
       else fn();
     });
+    let offGuide: (() => void) | undefined;
+    void listen<GuideStepEvent>("guide_step", (e) => setGuide(e.payload.active ? e.payload : null)).then((fn) => {
+      if (live) offGuide = fn;
+      else fn();
+    });
     return () => {
       live = false;
       off?.();
+      offGuide?.();
       media.removeEventListener("change", onTheme);
     };
   }, []);
@@ -76,7 +84,7 @@ export default function IslandApp() {
     const el = host.current;
     if (!el) return;
     const report = () => {
-      const panel = el.querySelector<HTMLElement>(".island-panel, .island-tab-zone");
+      const panel = el.querySelector<HTMLElement>(".island-panel, .island-tab-zone, .m27-guide-card");
       const r = unionRect(panel?.getBoundingClientRect(), el.querySelector<HTMLElement>(".island-lang-menu")?.getBoundingClientRect());
       void call("island_rect", { x: r?.x ?? 0, y: r?.y ?? 0, width: r?.width ?? 0, height: r?.height ?? 0 }).catch(() => {});
     };
@@ -114,6 +122,12 @@ export default function IslandApp() {
         onAction={(kind) => void call("voice_action", { kind: kind as never }).catch(() => {})}
         onChipClick={(command) => void call("voice_chip", { command: command as never }).catch(() => {})}
         onStopSlow={() => void call("voice_cancel").catch(() => {})}
+      />
+      <GuidePanel
+        guide={guide}
+        theme={theme}
+        onBack={() => void call("guide_control", { kind: "back" }).catch(() => {})}
+        onStop={() => void call("guide_control", { kind: "stop" }).catch(() => {})}
       />
       {confirmId && (
         <div className="island-host" data-island-theme={theme} style={{ marginTop: 8, gap: 8 }}>
