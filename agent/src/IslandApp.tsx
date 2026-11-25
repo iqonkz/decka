@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import { t, tVoice, type IslandEvent, type LanguageSetting } from "@decka/shared";
 import { Island, useApplyLanguage } from "@decka/ui";
 import { call, listen } from "./ipc";
@@ -79,7 +79,7 @@ export default function IslandApp() {
   const shown = localized(event);
   const confirmId = event.voice?.phase === "confirm" ? event.voice.confirmId : undefined;
   return (
-    <div ref={host} style={{ width: "100%", paddingTop: 0 }}>
+    <div ref={host} style={{ width: "100%", boxSizing: "border-box", padding: 24 }}>
       <Island
         event={shown}
         theme={theme}

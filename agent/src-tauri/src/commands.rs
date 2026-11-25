@@ -1,4 +1,4 @@
-//! IPC commands of the settings window (PROTOCOL.md 9): names and argument/result shapes mirror
+﻿//! IPC commands of the settings window (PROTOCOL.md 9): names and argument/result shapes mirror
 //! `IpcCommands` in shared/src/ipc.ts. They are reachable only from the window, never over the network.
 
 use decka_core::model::{ActionsFile, ConfigFile, LayoutFile};
@@ -619,7 +619,9 @@ pub fn island_rect(app: AppHandle, x: f64, y: f64, width: f64, height: f64) -> R
         return Err("bad rectangle".into());
     }
     if let Some(shared) = app.try_state::<std::sync::Arc<crate::island::Shared>>() {
-        shared.set_rect(crate::island::Rect { x, y, width, height });
+        let rect = crate::island::Rect { x, y, width, height };
+        shared.set_rect(rect);
+        crate::island::fit(&app, rect);
     }
     Ok(())
 }

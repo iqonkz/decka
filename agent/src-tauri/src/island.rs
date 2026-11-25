@@ -1,4 +1,4 @@
-//! The window of the island (T26.4): one transparent, always-on-top window at the top centre of the main monitor, in place of
+﻿//! The window of the island (T26.4): one transparent, always-on-top window at the top centre of the main monitor, in place of
 //! the pill of the voice and the strip of the lyrics. What it shows is decided by `decka_core::island` (tested there); this file
 //! samples the sources (the voice host, the sections of the agent), polls the cursor, lets clicks through everywhere except on
 //! the visible panel, and sends the event `island_state` to the page.
@@ -42,9 +42,11 @@ fn lines_now(media: &MediaInfo, lyrics: &Value, now: u64) -> Option<Lines> {
 
 
 const LABEL: &str = "island";
-/// Room for the largest panel (440 x 420) and the shadow around it, logical pixels.
+/// The window starts at this size and then follows the visible panel (`island_rect`) plus `PAD` on each side, logical pixels.
 const WIDTH: f64 = 480.0;
 const HEIGHT: f64 = 460.0;
+/// Room for the shadow around the panel; the page pads its host by the same amount (`IslandApp`).
+pub const PAD: f64 = 24.0;
 /// From the top edge of the main monitor.
 const TOP_GAP: f64 = 12.0;
 /// The page needs a moment to start listening: the event is repeated for this long after the window appears.
@@ -60,16 +62,36 @@ pub struct Rect {
 }
 
 /// What the loop shares with the commands and the voice hook.
-#[derive(Default)]
 pub struct Shared {
     rect: Mutex<Option<Rect>>,
+    /// The size the window was last given, logical pixels.
+    size: Mutex<(f64, f64)>,
     /// The last payload of the voice host for the PC window (`None`: idle).
     voice: Mutex<Option<Value>>,
+}
+
+impl Default for Shared {
+    fn default() -> Shared {
+        Shared { rect: Mutex::default(), size: Mutex::new((WIDTH, HEIGHT)), voice: Mutex::default() }
+    }
+}
+
+/// The window size for a panel of this size: the panel plus the shadow margin on every side.
+pub fn window_size(panel_width: f64, panel_height: f64) -> (f64, f64) {
+    (panel_width + 2.0 * PAD, panel_height + 2.0 * PAD)
 }
 
 impl Shared {
     pub fn set_rect(&self, rect: Rect) {
         *self.rect.lock().unwrap() = Some(rect);
+    }
+
+    pub fn size(&self) -> (f64, f64) {
+        *self.size.lock().unwrap()
+    }
+
+    pub fn set_size(&self, size: (f64, f64)) {
+        *self.size.lock().unwrap() = size;
     }
 
     pub fn set_voice(&self, payload: Option<Value>) {
@@ -144,15 +166,34 @@ fn create(app: &AppHandle) -> Option<tauri::WebviewWindow> {
     Some(window)
 }
 
-/// Top centre of the main monitor, `TOP_GAP` below its edge.
-fn place(app: &AppHandle, window: &tauri::WebviewWindow) {
+/// Top centre of the main monitor: the panel (not the window) is `TOP_GAP` below the edge.
+fn place(app: &AppHandle, window: &tauri::WebviewWindow, size: (f64, f64)) {
     let Some(m) = app.primary_monitor().ok().flatten() else { return };
     let scale = m.scale_factor();
-    let width = WIDTH.min(m.size().width as f64 / scale - 16.0).max(320.0);
-    let _ = window.set_size(LogicalSize::new(width, HEIGHT));
+    let width = size.0.min(m.size().width as f64 / scale);
+    let _ = window.set_size(LogicalSize::new(width, size.1));
     let x = m.position().x as f64 + (m.size().width as f64 - width * scale) / 2.0;
-    let y = m.position().y as f64 + TOP_GAP * scale;
+    let y = m.position().y as f64 + (TOP_GAP - PAD) * scale;
     let _ = window.set_position(PhysicalPosition::new(x.round() as i32, y.round() as i32));
+}
+
+/// The page reported a new panel: the window takes its size (T26.F). An empty or unchanged panel changes nothing.
+pub fn fit(app: &AppHandle, rect: Rect) {
+    if rect.width < 1.0 || rect.height < 1.0 {
+        return;
+    }
+    let Some(shared) = app.try_state::<Arc<Shared>>() else { return };
+    let size = window_size(rect.width.ceil(), rect.height.ceil());
+    let old = shared.size();
+    if (size.0 - old.0).abs() < 1.0 && (size.1 - old.1).abs() < 1.0 {
+        return;
+    }
+    shared.set_size(size);
+    if let Some(window) = app.get_webview_window(LABEL) {
+        if window.is_visible().unwrap_or(false) {
+            place(app, &window, size);
+        }
+    }
 }
 
 /// Whether the cursor is on the visible panel.
@@ -223,7 +264,7 @@ pub fn setup(app: &AppHandle, agent: &Agent) -> Arc<Shared> {
                 },
             };
             if !shown {
-                place(&app, &window);
+                place(&app, &window, loop_shared.size());
                 let _ = window.show();
                 shown = true;
                 ignoring = true;
@@ -254,5 +295,16 @@ pub fn setup(app: &AppHandle, agent: &Agent) -> Arc<Shared> {
 pub fn on_voice(app: &AppHandle, payload: Option<Value>) {
     if let Some(shared) = app.try_state::<Arc<Shared>>() {
         shared.set_voice(payload);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn window_is_the_panel_plus_the_shadow_margin() {
+        assert_eq!(window_size(520.0, 230.0), (568.0, 278.0));
+        assert_eq!(window_size(160.0, 24.0), (208.0, 72.0));
     }
 }
