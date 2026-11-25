@@ -29,6 +29,7 @@ pub mod status;
 pub mod timephrase;
 pub mod tools;
 pub mod uia;
+pub mod ui_snapshot;
 pub mod winkeys;
 pub mod winops;
 
