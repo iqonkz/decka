@@ -7,20 +7,22 @@ export interface ModalProps {
   children: ReactNode;
   footer?: ReactNode;
   className?: string;
+  /** Ignore Esc and backdrop clicks (forms where an accidental close would lose input). */
+  persistent?: boolean;
 }
 
 /** Shared modal window matching DESIGN.md §4.15 (radius 16, padding 24, 18/600 title, right-aligned footer). */
-export default function Modal({ title, subtitle, onClose, children, footer, className }: ModalProps) {
+export default function Modal({ title, subtitle, onClose, children, footer, className, persistent }: ModalProps) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape" && !persistent) onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [onClose, persistent]);
 
   return (
-    <div className="modal-backdrop" onPointerDown={onClose}>
+    <div className="modal-backdrop" onPointerDown={persistent ? undefined : onClose}>
       <div
         className={`modal-card${className ? ` ${className}` : ""}`}
         role="dialog"

@@ -369,6 +369,7 @@ export default function IntegrationsTab() {
 
             {editing && (
               <Modal
+                persistent
                 title={editing.index < 0 ? t("integ.add_check") : t("integ.edit_check")}
                 onClose={() => setEditing(null)}
                 footer={
