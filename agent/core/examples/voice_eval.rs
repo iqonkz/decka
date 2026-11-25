@@ -30,6 +30,7 @@ fn context(lang: &str) -> Context {
         confirm_actions: vec![],
         vision_ready: false,
         memory: vec![],
+        weather_place: None,
     }
 }
 

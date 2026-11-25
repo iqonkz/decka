@@ -1,4 +1,4 @@
-﻿//! The window of the island (T26.4): one transparent, always-on-top window at the top centre of the main monitor, in place of
+//! The window of the island (T26.4): one transparent, always-on-top window at the top centre of the main monitor, in place of
 //! the pill of the voice and the strip of the lyrics. What it shows is decided by `decka_core::island` (tested there); this file
 //! samples the sources (the voice host, the sections of the agent), polls the cursor, lets clicks through everywhere except on
 //! the visible panel, and sends the event `island_state` to the page.
@@ -10,7 +10,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use decka_core::island::{voice_view, Inputs, Machine, Mode, VoiceInput, POLL_MS};
-use decka_core::lyrics_overlay::{foreground_is_fullscreen, synced_lines, two_lines, visible, Inputs as LyricsInputs};
+use decka_core::lyrics_overlay::{foreground_is_fullscreen, ms_until_first_line, synced_lines, two_lines, visible, Inputs as LyricsInputs};
 use decka_core::model::MediaInfo;
 use decka_core::voice::host::Host;
 use decka_core::Agent;
@@ -24,6 +24,8 @@ use serde::Serialize;
 struct Lines {
     current: Option<String>,
     next: Option<String>,
+    /// Milliseconds until the first line of the song; `None` once it has started.
+    first_in_ms: Option<u64>,
 }
 
 fn now_ms() -> u64 {
@@ -36,8 +38,9 @@ fn lines_now(media: &MediaInfo, lyrics: &Value, now: u64) -> Option<Lines> {
     let offset = lyrics.get("offsetMs").and_then(Value::as_i64).unwrap_or(0);
     let base = media.position_sec.unwrap_or(0) as i64 * 1000;
     let moved = if media.playing { now.saturating_sub(media.position_at) as i64 } else { 0 };
-    let (current, next) = two_lines(&lines, base + moved + offset);
-    Some(Lines { current, next })
+    let position = base + moved + offset;
+    let (current, next) = two_lines(&lines, position);
+    Some(Lines { current, next, first_in_ms: ms_until_first_line(&lines, position) })
 }
 
 
@@ -107,11 +110,15 @@ struct Sample {
     track: Option<String>,
     fullscreen: bool,
     lyrics: Option<Value>,
+    /// A song is playing (the media section), with or without a lyrics line.
+    playing: bool,
+    /// The output of the PC is muted (`audio.muted`).
+    muted: bool,
 }
 
 impl Default for Sample {
     fn default() -> Sample {
-        Sample { visible: false, mode: decka_core::lyrics_overlay::PcOverlay::Auto, track: None, fullscreen: false, lyrics: None }
+        Sample { visible: false, mode: decka_core::lyrics_overlay::PcOverlay::Auto, track: None, fullscreen: false, lyrics: None, playing: false, muted: false }
     }
 }
 
@@ -141,8 +148,9 @@ fn sample(agent: &Agent, paused_since: &mut Option<Instant>) -> Sample {
     let shown = wanted && visible(&inputs);
     // The same song is the same track: its key is the one the lyrics section carries.
     let track = lyrics.get("trackKey").and_then(Value::as_str).map(str::to_string).or_else(|| media.as_ref().map(|m| format!("{}|{}", m.title, m.artist.clone().unwrap_or_default())));
-    let current = lines.as_ref().map(|l| json!({ "playing": playing, "current": l.current, "next": l.next }));
-    Sample { visible: shown, mode, track, fullscreen, lyrics: current }
+    let current = lines.as_ref().map(|l| json!({ "playing": playing, "current": l.current, "next": l.next, "firstLineInMs": l.first_in_ms }));
+    let muted = store.get("vars").get("audio.muted").and_then(Value::as_bool).unwrap_or(false);
+    Sample { visible: shown, mode, track, fullscreen, lyrics: current, playing, muted }
 }
 
 fn create(app: &AppHandle) -> Option<tauri::WebviewWindow> {
@@ -212,6 +220,7 @@ pub fn setup(app: &AppHandle, agent: &Agent) -> Arc<Shared> {
     let (app, agent, loop_shared) = (app.clone(), agent.clone(), shared.clone());
     tauri::async_runtime::spawn(async move {
         let mut machine = Machine::default();
+        let meter = decka_core::audio::PeakMeter::start();
         let (mut shown, mut ignoring, mut paused_since) = (false, true, None);
         let (mut last_event, mut fresh_until): (Option<Value>, Option<Instant>) = (None, None);
         let (mut tick, mut sampled) = (0u64, Sample::default());
@@ -275,10 +284,16 @@ pub fn setup(app: &AppHandle, agent: &Agent) -> Arc<Shared> {
                 ignoring = !on_panel;
                 let _ = window.set_ignore_cursor_events(ignoring);
             }
+            // The level of the music is read only while a song plays and the panel is open (T26.F.10).
+            let music = sampled.playing && matches!(mode, Mode::Compact | Mode::Expanded);
+            meter.set_active(music);
             let event = json!({
                 "mode": mode,
                 "lyrics": if voice == VoiceInput::Idle || sampled.visible { sampled.lyrics.clone() } else { None },
                 "voice": voice_json,
+                "playing": sampled.playing,
+                "muted": sampled.muted,
+                "musicLevel": if music { decka_core::audio::music_level(meter.level()) } else { 0.0 },
             });
             let repeat = fresh_until.is_some_and(|t| Instant::now() < t) && tick % 5 == 0;
             if last_event.as_ref() != Some(&event) || repeat {

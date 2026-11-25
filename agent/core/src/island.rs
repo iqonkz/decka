@@ -20,6 +20,19 @@ pub const HOVER_GRACE_MS: u64 = 2_000;
 /// The application asks the cursor this often.
 pub const POLL_MS: u64 = 60;
 
+/// The media button of the island window (`media_control { kind }`) as the same media operation the deck buttons use; anything
+/// outside the four names is refused (T26.F.10).
+pub fn media_op(kind: &str) -> Option<crate::model::MediaOp> {
+    use crate::model::MediaOp;
+    Some(match kind {
+        "prev" => MediaOp::Prev,
+        "play_pause" => MediaOp::PlayPause,
+        "next" => MediaOp::Next,
+        "mute" => MediaOp::Mute,
+        _ => return None,
+    })
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Mode {
@@ -160,6 +173,16 @@ impl Machine {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn media_buttons_name_four_operations_and_nothing_else() {
+        use crate::model::MediaOp;
+        assert_eq!(media_op("mute"), Some(MediaOp::Mute), "mute is the toggle of the output");
+        assert_eq!([media_op("prev"), media_op("play_pause"), media_op("next")], [Some(MediaOp::Prev), Some(MediaOp::PlayPause), Some(MediaOp::Next)]);
+        for bad in ["", "vol_up", "shuffle", "Mute", "run:calc", "next "] {
+            assert_eq!(media_op(bad), None, "{bad}");
+        }
+    }
+
     use super::*;
 
     fn song(now_ms: u64) -> Inputs<'static> {

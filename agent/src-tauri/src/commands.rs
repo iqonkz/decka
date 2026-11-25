@@ -1,4 +1,4 @@
-﻿//! IPC commands of the settings window (PROTOCOL.md 9): names and argument/result shapes mirror
+//! IPC commands of the settings window (PROTOCOL.md 9): names and argument/result shapes mirror
 //! `IpcCommands` in shared/src/ipc.ts. They are reachable only from the window, never over the network.
 
 use decka_core::model::{ActionsFile, ConfigFile, LayoutFile};
@@ -623,6 +623,17 @@ pub fn island_rect(app: AppHandle, x: f64, y: f64, width: f64, height: f64) -> R
         shared.set_rect(rect);
         crate::island::fit(&app, rect);
     }
+    Ok(())
+}
+
+/// A media button of the island (T26.F.10): `prev`, `play_pause`, `next`, `mute`. The same operations as the deck buttons; any other
+/// name is refused.
+#[tauri::command]
+pub async fn media_control(app: AppHandle, kind: String) -> Result<(), String> {
+    let op = decka_core::island::media_op(&kind).ok_or_else(|| "unknown media button".to_string())?;
+    let runner = agent(&app)?.runner().clone();
+    let action = decka_core::model::Action::Media { name: "island".into(), toggle_var: None, op };
+    tokio::task::spawn_blocking(move || runner.run("island", &action)).await.map_err(|e| format!("The action did not finish: {e}"))??;
     Ok(())
 }
 

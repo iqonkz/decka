@@ -10,6 +10,7 @@ export type {
   IslandContextChip,
   IslandVoiceState,
   IslandLyricsState,
+  IslandMediaKind,
   IslandEvent,
 } from "@decka/shared";
 /** The words of the compact island when it shows no lyrics: what was heard or answered; "Listening..." only while the microphone records. */

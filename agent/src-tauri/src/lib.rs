@@ -128,6 +128,7 @@ pub fn run() {
             commands::voice_stop,
             commands::voice_action,
             commands::island_rect,
+            commands::media_control,
             commands::voice_context_get,
             commands::voice_context_set,
             commands::voice_chip,

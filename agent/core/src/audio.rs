@@ -91,6 +91,61 @@ pub fn set_volume(percent: u8) -> Result<(), String> {
     }
 }
 
+/// The peak level (0..1) of the default output device, sampled 20 times a second on a thread of its own (T26.F.10). The thread
+/// reads the meter only while `set_active(true)`: the island asks for it while a song plays.
+pub struct PeakMeter {
+    level: Arc<std::sync::atomic::AtomicU32>,
+    active: Arc<AtomicBool>,
+    stop: Arc<AtomicBool>,
+    thread: Option<JoinHandle<()>>,
+}
+
+impl PeakMeter {
+    pub fn start() -> PeakMeter {
+        let (level, active, stop) = (Arc::new(std::sync::atomic::AtomicU32::new(0)), Arc::new(AtomicBool::new(false)), Arc::new(AtomicBool::new(false)));
+        let (l, a, s) = (level.clone(), active.clone(), stop.clone());
+        let thread = std::thread::Builder::new()
+            .name("decka-peak-meter".to_string())
+            .spawn(move || {
+                #[cfg(windows)]
+                win::peak_loop(&l, &a, &s);
+                #[cfg(not(windows))]
+                while !s.load(Ordering::Relaxed) {
+                    let _ = (&l, &a);
+                    std::thread::sleep(Duration::from_millis(100));
+                }
+            })
+            .expect("spawn peak meter thread");
+        PeakMeter { level, active, stop, thread: Some(thread) }
+    }
+
+    pub fn set_active(&self, on: bool) {
+        self.active.store(on, Ordering::Relaxed);
+        if !on {
+            self.level.store(0, Ordering::Relaxed);
+        }
+    }
+
+    /// The last sampled level, 0 when inactive or silent.
+    pub fn level(&self) -> f32 {
+        f32::from_bits(self.level.load(Ordering::Relaxed))
+    }
+}
+
+impl Drop for PeakMeter {
+    fn drop(&mut self) {
+        self.stop.store(true, Ordering::Relaxed);
+        if let Some(t) = self.thread.take() {
+            let _ = t.join();
+        }
+    }
+}
+
+/// The level the island gives the orb: the peak rounded to 2 decimals and clamped to 0..1 (a changed value is a new event).
+pub fn music_level(peak: f32) -> f32 {
+    (peak.clamp(0.0, 1.0) * 100.0).round() / 100.0
+}
+
 pub struct AudioCollector {
     stop: Arc<AtomicBool>,
     thread: Option<JoinHandle<()>>,
@@ -177,6 +232,37 @@ mod win {
         })
     }
 
+    /// Samples the peak of the default output 20 times a second while `active`; the device is looked up again every 2 s.
+    pub fn peak_loop(level: &std::sync::atomic::AtomicU32, active: &std::sync::atomic::AtomicBool, stop: &std::sync::atomic::AtomicBool) {
+        use std::sync::atomic::Ordering;
+        use std::time::{Duration, Instant};
+        use windows::Win32::Media::Audio::Endpoints::IAudioMeterInformation;
+        with_com(|| {
+            let mut meter: Option<IAudioMeterInformation> = None;
+            let mut looked_up = Instant::now() - Duration::from_secs(10);
+            while !stop.load(Ordering::Relaxed) {
+                std::thread::sleep(Duration::from_millis(50));
+                if !active.load(Ordering::Relaxed) {
+                    meter = None;
+                    continue;
+                }
+                if meter.is_none() || looked_up.elapsed() > Duration::from_secs(2) {
+                    looked_up = Instant::now();
+                    // SAFETY: COM calls on this initialised thread; the object lives in `meter` on this thread only.
+                    meter = unsafe {
+                        CoCreateInstance::<_, IMMDeviceEnumerator>(&MMDeviceEnumerator, None, CLSCTX_ALL)
+                            .ok()
+                            .and_then(|e| e.GetDefaultAudioEndpoint(eRender, eConsole).ok())
+                            .and_then(|d| d.Activate::<IAudioMeterInformation>(CLSCTX_ALL, None).ok())
+                    };
+                }
+                // SAFETY: `m` was activated on this thread.
+                let peak = meter.as_ref().and_then(|m| unsafe { m.GetPeakValue().ok() }).unwrap_or(0.0);
+                level.store(peak.clamp(0.0, 1.0).to_bits(), Ordering::Relaxed);
+            }
+        });
+    }
+
     pub fn set_volume(percent: u8) -> Result<(), String> {
         with_com(|| {
             let volume = endpoint(eRender).ok_or("No audio output")?;
@@ -215,6 +301,11 @@ mod tests {
 
     fn json(vars: &BTreeMap<String, VarValue>) -> serde_json::Value {
         serde_json::to_value(vars).unwrap()
+    }
+
+    #[test]
+    fn the_music_level_is_clamped_and_rounded() {
+        assert_eq!([music_level(-0.5), music_level(0.126), music_level(0.5), music_level(3.0)], [0.0, 0.13, 0.5, 1.0]);
     }
 
     #[test]

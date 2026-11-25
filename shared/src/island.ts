@@ -47,13 +47,24 @@ export interface IslandLyricsState {
   playing: boolean;
   current?: string;
   next?: string;
+  /** T26.F.10: milliseconds until the first sung line of a synced song; absent/null once it has started or when the time is unknown. */
+  firstLineInMs?: number | null;
 }
+
+/** The media buttons of the island (`media_control { kind }`): the same operations as the deck buttons; the PC refuses any other name. */
+export type IslandMediaKind = "prev" | "play_pause" | "next" | "mute";
 
 /** The event `island_state` (agent -> window). */
 export interface IslandEvent {
   mode: IslandMode;
   lyrics?: IslandLyricsState | null;
   voice?: IslandVoiceState | null;
+  /** T26.F.10: a song is playing (with or without a lyrics line). */
+  playing?: boolean;
+  /** The output of the PC is muted. */
+  muted?: boolean;
+  /** Peak level of the PC output 0..1 (20 times a second, only while a song plays and the island is open). */
+  musicLevel?: number;
 }
 
 /** The IPC `island_rect` (window -> agent): the visible panel, in CSS pixels from the top-left corner of the window. */

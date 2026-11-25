@@ -3,7 +3,6 @@ import type { ActionsFile } from "./actions";
 import type { LayoutFile } from "./layout";
 import type { ConfigFile, DeviceInfo } from "./config";
 import type { PageTemplate } from "./templates";
-import type { IslandRect } from "./island";
 
 /** One line of the connection check (`diag.rs`); `id` and `status` pick the sentence, `detail` fills it. */
 export interface DiagCheck {
@@ -141,7 +140,8 @@ export interface IpcCommands {
   voice_context_get(): boolean;                                 // T26.7: hints by the active program when the island opens (off by default)
   voice_context_set(args: { enabled: boolean }): boolean;
   voice_chip(args: { command: "translate" | "explain" | "reply" | "error" }): void; // a tap on a hint chip; the PC decides what it does
-  island_rect(args: IslandRect): void;                          // T26.4: the visible panel of the island; the rest of its window lets clicks through
+  media_control(args: { kind: "prev" | "play_pause" | "next" | "mute" }): void;         // T26.F.10: a media button of the island; same operations as the deck buttons
+  island_rect(args: { x: number; y: number; width: number; height: number }): void;                          // T26.4: the visible panel of the island; the rest of its window lets clicks through
   voice_stop(args: Record<string, never>): void;               // the stop button of the PC pill: end the recording now (12.6a)
   voice_remove(): VoiceStatus;
   voice_set(args: VoiceSetArgs): VoiceStatus;                  // an invalid hotkey is an error string

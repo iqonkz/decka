@@ -101,6 +101,12 @@ pub fn two_lines(lines: &[(u64, String)], position_ms: i64) -> (Option<String>, 
 }
 
 /// The synced lines of a `lyrics` section value: `(t, text)` in ms; `None` for plain text or no lyrics.
+/// Milliseconds until the first sung line (T26.F.10): `Some` only before it, `None` once it has started.
+pub fn ms_until_first_line(lines: &[(u64, String)], position_ms: i64) -> Option<u64> {
+    let first = lines.iter().find(|(_, s)| !s.trim().is_empty())?.0 as i64;
+    (position_ms < first).then(|| (first - position_ms.max(0)) as u64)
+}
+
 pub fn synced_lines(lyrics: &Value) -> Option<Vec<(u64, String)>> {
     if lyrics.get("synced").and_then(Value::as_bool) != Some(true) {
         return None;
@@ -116,6 +122,15 @@ pub fn synced_lines(lyrics: &Value) -> Option<Vec<(u64, String)>> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn the_time_to_the_first_line_counts_down_and_ends() {
+        let lines = vec![(0, "  ".to_string()), (12_000, "first".to_string()), (15_000, "second".to_string())];
+        assert_eq!(ms_until_first_line(&lines, 0), Some(12_000));
+        assert_eq!(ms_until_first_line(&lines, 5_000), Some(7_000));
+        assert_eq!(ms_until_first_line(&lines, 12_000), None);
+        assert_eq!(ms_until_first_line(&[], 0), None);
+    }
+
     use super::*;
     use serde_json::json;
 
