@@ -561,7 +561,7 @@ mod tests {
     #[test]
     fn follow_up_phrases_in_en_and_ru() {
         let ru = Table::parse(include_str!("../../../../shared/voice/ru.json")).unwrap();
-        for (t, say, kind) in [(en(), "copy it", "copy"), (en(), "insert it", "insert"), (en(), "read it aloud", "speak"), (en(), "another option", "again"), (ru.clone(), "вставь", "insert"), (ru.clone(), "скопируй", "copy"), (ru.clone(), "озвучь", "speak"), (ru.clone(), "ещё вариант", "again")] {
+        for (t, say, kind) in [(en(), "copy it", "copy"), (en(), "insert it", "insert"), (en(), "speak it", "speak"), (en(), "another option", "again"), (ru.clone(), "вставь", "insert"), (ru.clone(), "скопируй", "copy"), (ru.clone(), "озвучь", "speak"), (ru.clone(), "скопируй", "copy"), (ru.clone(), "ещё вариант", "again")] {
             let i = hit(&t, say);
             assert_eq!((i.tool.as_str(), i.args["kind"].as_str()), ("reply_action", Some(kind)), "{say}");
         }

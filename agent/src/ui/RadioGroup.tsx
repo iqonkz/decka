@@ -25,7 +25,7 @@ export default function RadioGroup<T extends string = string>({
     if (!step || options.length === 0) return;
     e.preventDefault();
     const at = Math.max(0, options.findIndex((o) => o.value === value));
-    const next = options[(at + step + options.length) % options.length];
+    const next = options[(at + step + options.length) % options.length] as RadioOption<T>;
     onChange(next.value);
     const buttons = e.currentTarget.querySelectorAll<HTMLButtonElement>('[role="radio"]');
     buttons[options.indexOf(next)]?.focus();
