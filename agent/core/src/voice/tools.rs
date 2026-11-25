@@ -16,6 +16,8 @@ pub const TOOLS: &[&str] = &[
     "web_search", "open_site", "type_text", "dictate", "timer", "system", "text_transform", "screen_ask",
     "memory_add", "memory_remove", "day_brief", "remind", "reminders_show", "list_add", "list_show", "list_remove", "calc", "ask",
     "lyrics_window", "status", "reply_action",
+    // M27: eyes and hands on the screen, reading aloud, work modes.
+    "find_on_screen", "ui_act", "guide", "guide_record", "guide_control", "read_aloud", "mode_run", "mode_save",
 ];
 
 pub const MAX_TEXT: usize = 2000;
@@ -75,6 +77,14 @@ pub struct Context {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GuideCtl {
+    Next,
+    Back,
+    Stop,
+    Done,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VolumeOp {
     Up,
     Down,
@@ -96,6 +106,22 @@ pub enum ToolCall {
     ReplyAction { kind: super::followup::Kind },
     /// T26.1: a fact about this PC or its widgets, answered from the store by a fixed template (never from the internet).
     Status { topic: super::status::Topic },
+    /// T27.3: highlight the element of the active window that fits `query`; `None` with `next` is "not that one" (the next candidate).
+    FindOnScreen { query: Option<String> },
+    /// T27.4: press, scroll or close a tab. `target: None` is "this" (the last highlight). A dangerous name is pressed only when
+    /// `confirmed` (the pipeline sets it after the "yes").
+    UiAct { target: Option<String>, action: super::screenhelp::UiAction, confirmed: bool },
+    /// T27.5: a guide through the program, step by step.
+    Guide { goal: String },
+    /// T27.6: record the steps of the user as a recipe for `goal`.
+    GuideRecord { goal: String },
+    /// "Next", "back", "stop", "done" during a guide or a recording.
+    GuideControl { kind: GuideCtl },
+    /// T27.9: read the selection (or the element under the cursor) aloud.
+    ReadAloud,
+    /// T27.10: open and arrange the programs of a saved mode / save the present layout as a mode.
+    ModeRun { name: String },
+    ModeSave { name: String },
     Volume(VolumeOp),
     Media(MediaOp),
     GoPage { page_id: String, name: String },
@@ -335,6 +361,67 @@ fn run(tool: &str, args: &serde_json::Map<String, Value>, ctx: &Context) -> Resu
         "window_other_monitor" => {
             only(args, &[])?;
             ready(ToolCall::WindowOtherMonitor, false, "Move the window to the other monitor")
+        }
+        "find_on_screen" => {
+            only(args, &["query", "next"])?;
+            if args.get("next").and_then(Value::as_bool) == Some(true) {
+                if args.contains_key("query") {
+                    return Err(reject("next takes no query"));
+                }
+                ready(ToolCall::FindOnScreen { query: None }, false, "Next candidate")
+            } else {
+                let q = text(args, "query", 100)?.to_string();
+                ready(ToolCall::FindOnScreen { query: Some(q.clone()) }, false, format!("Find {q} on the screen"))
+            }
+        }
+        "ui_act" => {
+            only(args, &["target", "action"])?;
+            let action = text(args, "action", 20).ok().and_then(super::screenhelp::UiAction::parse).ok_or_else(|| reject("unknown action"))?;
+            let target = match args.get("target") {
+                None | Some(Value::Null) => None,
+                Some(_) => {
+                    let t = text(args, "target", 100)?;
+                    (!matches!(t.to_lowercase().as_str(), "this" | "it" | "это" | "это самое")).then(|| t.to_string())
+                }
+            };
+            // A dangerous name that was said is confirmed before anything is pressed; what is only "this" is checked when it runs.
+            let danger = action == super::screenhelp::UiAction::Click && target.as_deref().is_some_and(|t| super::screenhelp::is_dangerous(t, super::screenhelp::DANGER_DEFAULT));
+            let summary = format!("Press {}", target.as_deref().unwrap_or("this"));
+            ready(ToolCall::UiAct { target, action, confirmed: danger }, danger, summary)
+        }
+        "guide" => {
+            only(args, &["goal"])?;
+            let goal = text(args, "goal", 200)?.to_string();
+            ready(ToolCall::Guide { goal: goal.clone() }, false, format!("Guide: {goal}"))
+        }
+        "guide_record" => {
+            only(args, &["goal"])?;
+            let goal = text(args, "goal", 200)?.to_string();
+            ready(ToolCall::GuideRecord { goal: goal.clone() }, false, format!("Record: {goal}"))
+        }
+        "guide_control" => {
+            only(args, &["kind"])?;
+            let kind = match text(args, "kind", 10)? {
+                "next" => GuideCtl::Next,
+                "back" => GuideCtl::Back,
+                "stop" => GuideCtl::Stop,
+                "done" => GuideCtl::Done,
+                _ => return Err(reject("unknown guide control")),
+            };
+            ready(ToolCall::GuideControl { kind }, false, "Guide control")
+        }
+        "read_aloud" => {
+            only(args, &[])?;
+            ready(ToolCall::ReadAloud, false, "Read aloud")
+        }
+        "mode_run" | "mode_save" => {
+            only(args, &["name"])?;
+            let name = text(args, "name", 60)?.to_string();
+            if tool == "mode_run" {
+                ready(ToolCall::ModeRun { name: name.clone() }, false, format!("Mode {name}"))
+            } else {
+                ready(ToolCall::ModeSave { name: name.clone() }, false, format!("Save the layout as {name}"))
+            }
         }
         "which_monitor" => {
             only(args, &[])?;
@@ -584,6 +671,41 @@ fn run_action(a: &ActionRef, ctx: &Context) -> Resolved {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn m27_tools_take_only_their_arguments() {
+        use super::super::screenhelp::UiAction;
+        assert_eq!(ready_of(call("find_on_screen", json!({ "query": "save" }))).call, ToolCall::FindOnScreen { query: Some("save".into()) });
+        assert_eq!(ready_of(call("find_on_screen", json!({ "next": true }))).call, ToolCall::FindOnScreen { query: None });
+        assert!(is_reject(call("find_on_screen", json!({ "next": true, "query": "x" }))));
+        assert!(is_reject(call("find_on_screen", json!({}))));
+        assert!(is_reject(call("find_on_screen", json!({ "query": "x", "x": 1 }))));
+        let v = ready_of(call("ui_act", json!({ "action": "click", "target": "this" })));
+        assert_eq!((v.call.clone(), v.confirm), (ToolCall::UiAct { target: None, action: UiAction::Click, confirmed: false }, false));
+        assert!(matches!(ready_of(call("ui_act", json!({ "action": "scroll_down" }))).call, ToolCall::UiAct { target: None, action: UiAction::ScrollDown, .. }));
+        for bad in [json!({ "action": "drag" }), json!({ "target": "x" }), json!({ "action": "click", "path": "C:\\x" })] {
+            assert!(is_reject(call("ui_act", bad.clone())), "{bad}");
+        }
+        assert_eq!(ready_of(call("guide", json!({ "goal": "save as pdf" }))).call, ToolCall::Guide { goal: "save as pdf".into() });
+        assert!(is_reject(call("guide", json!({}))));
+        assert_eq!(ready_of(call("guide_control", json!({ "kind": "stop" }))).call, ToolCall::GuideControl { kind: GuideCtl::Stop });
+        assert!(is_reject(call("guide_control", json!({ "kind": "rm" }))));
+        assert_eq!(ready_of(call("read_aloud", json!({}))).call, ToolCall::ReadAloud);
+        assert!(is_reject(call("read_aloud", json!({ "text": "x" }))));
+        assert_eq!(ready_of(call("mode_run", json!({ "name": "work" }))).call, ToolCall::ModeRun { name: "work".into() });
+    }
+
+    #[test]
+    fn pressing_a_dangerous_name_waits_for_a_yes_and_runs_only_after_it() {
+        use super::super::screenhelp::UiAction;
+        for name in ["delete all", "Удалить", "send message", "оплатить заказ"] {
+            let v = ready_of(call("ui_act", json!({ "action": "click", "target": name })));
+            assert!(v.confirm, "{name} asks first");
+            assert_eq!(v.call, ToolCall::UiAct { target: Some(name.into()), action: UiAction::Click, confirmed: true }, "the call is marked confirmed only for the run after the yes");
+        }
+        assert!(!ready_of(call("ui_act", json!({ "action": "click", "target": "save" }))).confirm);
+        assert!(!ready_of(call("ui_act", json!({ "action": "scroll_down", "target": "delete" }))).confirm, "scrolling presses nothing");
+    }
+
     #[test]
     fn remind_arguments_are_put_in_shape_before_validation() {
         use crate::assistant::Local;
