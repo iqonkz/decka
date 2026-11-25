@@ -58,7 +58,7 @@ impl Finder {
     }
 
     /// The next candidate, or `None` when there are no more.
-    pub fn next(&mut self) -> Option<u32> {
+    pub fn advance(&mut self) -> Option<u32> {
         if self.at + 1 < self.ranked.len() {
             self.at += 1;
             self.current()
@@ -311,8 +311,8 @@ mod tests {
         let s = snap(&["Save", "Save as PDF"]);
         let mut f = Finder::new(&s, "save");
         assert_eq!(f.current(), Some(1));
-        assert_eq!(f.next(), Some(2));
-        assert_eq!(f.next(), None);
+        assert_eq!(f.advance(), Some(2));
+        assert_eq!(f.advance(), None);
         assert_eq!(f.current(), Some(2), "it stays on the last one");
         assert_eq!(Finder::new(&s, "zebra").current(), None);
     }

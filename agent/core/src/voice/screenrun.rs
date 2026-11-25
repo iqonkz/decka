@@ -125,7 +125,7 @@ impl ScreenRun {
                 *self.finder.lock().unwrap() = Some(finder);
                 id.ok_or("Did not find it on the screen")?
             }
-            None => self.finder.lock().unwrap().as_mut().and_then(Finder::next).ok_or("No other candidates")?,
+            None => self.finder.lock().unwrap().as_mut().and_then(Finder::advance).ok_or("No other candidates")?,
         };
         let e = self.snapshot.lock().unwrap().get(id).cloned().ok_or("Did not find it on the screen")?;
         self.show(&e, &e.name, None);
@@ -337,13 +337,6 @@ fn signature(s: &Snapshot) -> u64 {
     }
     h.finish()
 }
-
-/// `signature` of the window as it was when the step was shown, given the function and the live snapshot: kept as a helper so the
-/// comparison reads in one place.
-fn signature_changed_guard(f: &dyn Fn(&Snapshot) -> u64, live: &Snapshot) -> u64 {
-    f(live)
-}
-
 /// The real windows.
 pub struct WinScreen {
     started: std::time::Instant,

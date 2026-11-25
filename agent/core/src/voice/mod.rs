@@ -21,6 +21,7 @@ pub mod llm;
 pub mod matcher;
 pub mod memory;
 pub mod mic;
+pub mod modes;
 pub mod pipeline;
 pub mod screen;
 pub mod textops;

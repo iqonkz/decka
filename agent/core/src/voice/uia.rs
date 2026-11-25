@@ -54,6 +54,52 @@ fn read_selection() -> Option<String> {
     None
 }
 
+/// The text of the element under the mouse cursor (its text pattern, else its name), for "read aloud" without a selection.
+pub fn text_at_cursor() -> Option<String> {
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let _ = tx.send(read_at_cursor());
+    });
+    rx.recv_timeout(UIA_TIMEOUT).ok().flatten().map(|t| t.trim().to_string()).filter(|t| !t.is_empty())
+}
+
+#[cfg(windows)]
+fn read_at_cursor() -> Option<String> {
+    use windows::Win32::Foundation::POINT;
+    use windows::Win32::System::Com::{CoCreateInstance, CoInitializeEx, CoUninitialize, CLSCTX_INPROC_SERVER, COINIT_MULTITHREADED};
+    use windows::Win32::UI::Accessibility::{CUIAutomation, IUIAutomation, IUIAutomationTextPattern, UIA_TextPatternId};
+    use windows::Win32::UI::WindowsAndMessaging::GetCursorPos;
+
+    // SAFETY: COM calls on a thread of their own; every COM object is dropped inside `read` before `CoUninitialize`.
+    unsafe {
+        let initialised = CoInitializeEx(None, COINIT_MULTITHREADED).is_ok();
+        let read = || -> Option<String> {
+            let mut p = POINT::default();
+            GetCursorPos(&mut p).ok()?;
+            let automation: IUIAutomation = CoCreateInstance(&CUIAutomation, None, CLSCTX_INPROC_SERVER).ok()?;
+            let element = automation.ElementFromPoint(p).ok()?;
+            if let Ok(pattern) = element.GetCurrentPatternAs::<IUIAutomationTextPattern>(UIA_TextPatternId) {
+                if let Ok(t) = pattern.DocumentRange().and_then(|r| r.GetText(MAX_CHARS)) {
+                    if !t.is_empty() {
+                        return Some(t.to_string());
+                    }
+                }
+            }
+            element.CurrentName().ok().map(|s| s.to_string())
+        };
+        let out = read();
+        if initialised {
+            CoUninitialize();
+        }
+        out
+    }
+}
+
+#[cfg(not(windows))]
+fn read_at_cursor() -> Option<String> {
+    None
+}
+
 #[cfg(test)]
 mod tests {
     #[test]

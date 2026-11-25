@@ -457,6 +457,8 @@ struct Inner {
     chunks: Arc<AtomicUsize>,
     /// Counts the changes of the state; the watchdog fires if the count did not move.
     changes: Arc<AtomicU64>,
+    /// M27: the screen help (find, press, guide), once the application has given it a window to highlight in.
+    screen: OnceLock<Arc<super::screenrun::ScreenRun>>,
 }
 
 #[derive(Clone)]
@@ -497,6 +499,7 @@ impl Host {
             last: Mutex::new(None),
             chunks: Arc::new(AtomicUsize::new(0)),
             changes: Arc::new(AtomicU64::new(0)),
+            screen: OnceLock::new(),
         });
         let driver = Driver::new(handle.clone(), inner.clone());
         let _ = inner.driver.set(driver);
@@ -715,6 +718,17 @@ impl Host {
         self.inner.pressed(Pressed::Main);
     }
 
+    /// M27: gives the screen help its highlight (the window of the application) and the sink of the guide events. Once.
+    pub fn attach_screen(&self, highlighter: super::highlight::Highlighter, events: Arc<dyn super::screenrun::GuideSink>, danger: Vec<String>) {
+        let guides = super::guides::Guides::new(self.inner.agent.config_dir());
+        let run = super::screenrun::ScreenRun::new(Arc::new(super::screenrun::WinScreen::new()), highlighter, guides, events, danger);
+        let _ = self.inner.screen.set(Arc::new(run));
+    }
+
+    pub fn screen(&self) -> Option<Arc<super::screenrun::ScreenRun>> {
+        self.inner.screen.get().cloned()
+    }
+
     /// The current state of the pipeline.
     pub fn state(&self) -> State {
         self.inner.driver().state()
@@ -735,6 +749,51 @@ impl Host {
         if s.phase == Phase::Listening && s.source == Some(Source::Pc) && !too_early() {
             driver.handle_event(Event::AudioEnd);
         }
+    }
+}
+
+/// The model of the guide: the chat body goes to the local server, the text of the answer comes back. While it thinks the island
+/// shows the estimate (the slow path).
+struct LlamaAsker {
+    sup: crate::ai::supervisor::Supervisor,
+    slow_since: Arc<Mutex<Option<Instant>>>,
+    slow: Arc<Mutex<super::slowpath::Tracker>>,
+    dir: std::path::PathBuf,
+}
+
+impl super::screenrun::StepAsker for LlamaAsker {
+    fn ask(&self, body: Value) -> BoxFut<Option<String>> {
+        let (sup, since, slow, dir) = (self.sup.clone(), self.slow_since.clone(), self.slow.clone(), self.dir.clone());
+        Box::pin(async move {
+            *since.lock().unwrap() = Some(Instant::now());
+            let started = Instant::now();
+            let content = async {
+                let endpoints = sup.ensure_started().await.ok()?;
+                let client = reqwest::Client::builder().timeout(Duration::from_secs(60)).build().ok()?;
+                let answer = client
+                    .post(format!("http://127.0.0.1:{}/v1/chat/completions", endpoints.llama_port))
+                    .bearer_auth(&endpoints.llama_key)
+                    .header("Content-Type", "application/json")
+                    .body(serde_json::to_vec(&body).ok()?)
+                    .send()
+                    .await
+                    .ok()?;
+                if !answer.status().is_success() {
+                    return None;
+                }
+                let v: Value = serde_json::from_str(&answer.text().await.ok()?).ok()?;
+                sup.touch();
+                v.pointer("/choices/0/message/content")?.as_str().map(str::to_string)
+            }
+            .await;
+            *since.lock().unwrap() = None;
+            if content.is_some() {
+                let mut t = slow.lock().unwrap();
+                t.record(started.elapsed().as_millis() as u64);
+                t.save(&dir);
+            }
+            content
+        })
     }
 }
 
@@ -928,6 +987,7 @@ impl Ports for Inner {
         let (slow, slow_since, slow_dir) = (self.slow.clone(), self.slow_since.clone(), self.agent.config_dir().to_path_buf());
         let handle = self.handle.clone();
         let (sup, lang, service) = (self.service.supervisor().clone(), self.language(), self.service.clone());
+        let screen = self.screen.get().cloned();
         Box::pin(async move {
             if let ToolCall::RunAction { action_id } = &call {
                 return agent.execute(action_id).await.map(|_| String::new()).map_err(|(_, m)| m);
@@ -970,6 +1030,37 @@ impl Ports for Inner {
                         reminder: agent.assistant().upcoming(1).into_iter().next(),
                     };
                     return Ok(super::status::encode(&super::status::answer_for(*topic, &sections, lang, &crate::assistant::Local::now())));
+                }
+                ToolCall::FindOnScreen { .. } | ToolCall::UiAct { .. } | ToolCall::Guide { .. } | ToolCall::GuideRecord { .. } | ToolCall::GuideControl { .. } | ToolCall::ModeRun { .. } | ToolCall::ModeSave { .. } => {
+                    let Some(screen) = screen else { return Err("The screen help is not ready".into()) };
+                    return match call.clone() {
+                        ToolCall::FindOnScreen { query } => tokio::task::spawn_blocking(move || screen.find(query.as_deref())).await.map_err(|e| format!("The action did not finish: {e}"))?,
+                        ToolCall::UiAct { target, action, confirmed } => tokio::task::spawn_blocking(move || screen.act(target.as_deref(), action, confirmed)).await.map_err(|e| format!("The action did not finish: {e}"))?,
+                        ToolCall::Guide { goal } => {
+                            // The model reads the window and answers: the island shows "~N s" for as long as it thinks (slow path).
+                            let asker = LlamaAsker { sup: sup.clone(), slow_since: slow_since.clone(), slow: slow.clone(), dir: slow_dir.clone() };
+                            screen.guide(&goal, super::llm::language_name(lang), &asker).await
+                        }
+                        ToolCall::GuideRecord { goal } => screen.record(&goal).await,
+                        ToolCall::GuideControl { kind } => {
+                            if kind == super::tools::GuideCtl::Stop {
+                                super::speak::stop();
+                            }
+                            screen.control(kind)
+                        }
+                        // T27.10 (modes) is run by the application: it knows the windows.
+                        ToolCall::ModeRun { name } => super::modes::run(&slow_dir, &name),
+                        ToolCall::ModeSave { name } => super::modes::save(&slow_dir, &name),
+                        _ => unreachable!(),
+                    };
+                }
+                ToolCall::ReadAloud => {
+                    return tokio::task::spawn_blocking(|| {
+                        let text = super::uia::selected_text().or_else(super::uia::text_at_cursor).ok_or_else(|| "Nothing to read: select some text first".to_string())?;
+                        super::speak::read_aloud(&text).map(|_| String::new())
+                    })
+                    .await
+                    .map_err(|e| format!("The action did not finish: {e}"))?;
                 }
                 ToolCall::LyricsWindow { show } => {
                     agent.set_lyrics_hidden(!*show);
