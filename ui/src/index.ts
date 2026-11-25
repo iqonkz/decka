@@ -1,6 +1,7 @@
 // @decka/ui: the deck itself (keys, widgets, grid) as presentational components.
 // Data and callbacks come in as props; nothing here knows about sockets, stores or the settings window.
 import "./deck.css";
+import "./m27/m27.css";
 import "./theme/amoled.css";
 import "./theme/studio.css";
 import "./theme/material.css";
@@ -37,3 +38,15 @@ export { averageRgbFromPixels, coverGradient, darkenCoverColor, rgbToHex, rgbToH
 export { effectiveMediaPositionMs, formatOffsetSeconds, selectActiveLyricIndex } from "./widgets/lyricsLogic";
 export { formatRepeatLabel } from "./widgets/repeatLabel";
 export { default as WidgetEmpty } from "./widgets/WidgetEmpty";
+export { default as HighlightOverlay, computeBubblePlacement, type BubblePlacement, type BubbleSide, type HighlightOverlayProps } from "./m27/HighlightOverlay";
+export { default as GuidePanel, type GuidePanelProps } from "./m27/GuidePanel";
+export type {
+  HighlightRect,
+  HighlightEvent,
+  GuideStepEvent,
+  SavedGuideStep,
+  SavedGuide,
+  WorkModeApp,
+  WorkMode,
+  VoiceModelTier,
+} from "./m27/m27Types";

@@ -99,6 +99,16 @@ function t24Shots() {
   out["t24-phone-nolayout-ru"] = [port, "scene=deck&theme=studio&lang=ru&pack=m24-empty-deck"];
   return out;
 }
+function m27Shots() {
+  const overlaySize = { w: 960, h: 540, scale: 1 };
+  const settingsSize = { w: 860, h: 1850, scale: 1 };
+  return {
+    "m27-overlay-dark-ru": [overlaySize, "scene=m27&part=overlay&theme=dark&scheme=dark&lang=ru"],
+    "m27-overlay-light-en": [overlaySize, "scene=m27&part=overlay&theme=light&scheme=light&lang=en"],
+    "m27-settings-dark-ru": [settingsSize, "scene=m27&part=settings&theme=dark&scheme=dark&lang=ru"],
+    "m27-settings-light-en": [settingsSize, "scene=m27&part=settings&theme=light&scheme=light&lang=en"],
+  };
+}
 // T23: the settings window (Russian) in both colour schemes: pages, a search with results and the minimum window width.
 function settingsShots() {
   const out = {};
@@ -150,6 +160,7 @@ const SHOTS = {
   ...settingsShots(),
   ...t235bShots(),
   ...t24Shots(),
+  ...m27Shots(),
   "phone-idle": [PHONE, "scene=phone&state=idle"],
   "phone-listening": [PHONE, "scene=phone&state=listening"],
   "phone-done": [PHONE, "scene=phone&state=done&heard=turn+the+volume+up&reply=Done"],

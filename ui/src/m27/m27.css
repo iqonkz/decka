@@ -1,0 +1,210 @@
+/* M27 visual components: Highlight overlay + Island Guide card (TASKS.md §T27.2b) */
+
+.m27-highlight-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9998;
+  --m27-surface: rgba(28, 31, 39, 0.90);
+  --m27-border: rgba(255, 255, 255, 0.12);
+  --m27-fg: #f4f6fa;
+  --m27-muted: #9aa3b2;
+  --m27-btn-bg: rgba(255, 255, 255, 0.08);
+  --m27-btn-hover: rgba(255, 255, 255, 0.14);
+}
+
+.m27-highlight-layer.is-contained {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  inset: auto;
+}
+
+.m27-highlight-layer[data-m27-theme="light"],
+.m27-guide-card[data-m27-theme="light"] {
+  --m27-surface: rgba(247, 248, 251, 0.90);
+  --m27-border: rgba(0, 0, 0, 0.08);
+  --m27-fg: #14161c;
+  --m27-muted: #5a6270;
+  --m27-btn-bg: rgba(0, 0, 0, 0.06);
+  --m27-btn-hover: rgba(0, 0, 0, 0.12);
+}
+
+@keyframes m27-pulse {
+  0%, 100% {
+    box-shadow: 0 0 12px color-mix(in srgb, var(--m27-accent, #7c5cff) 70%, transparent),
+                inset 0 0 6px color-mix(in srgb, var(--m27-accent, #7c5cff) 25%, transparent);
+    opacity: 1;
+  }
+  50% {
+    box-shadow: 0 0 18px color-mix(in srgb, var(--m27-accent, #7c5cff) 95%, transparent),
+                inset 0 0 8px color-mix(in srgb, var(--m27-accent, #7c5cff) 40%, transparent);
+    opacity: 0.78;
+  }
+}
+
+.m27-highlight-frame {
+  position: absolute;
+  box-sizing: border-box;
+  border: 2px solid var(--m27-accent, #7c5cff);
+  border-radius: 8px;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--m27-accent, #7c5cff) 75%, transparent);
+  animation: m27-pulse 1.2s ease-in-out infinite;
+}
+
+.m27-highlight-layer.is-reduced .m27-highlight-frame {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .m27-highlight-frame {
+    animation: none;
+  }
+}
+
+.m27-bubble {
+  position: absolute;
+  width: max-content;
+  max-width: 280px;
+  box-sizing: border-box;
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: var(--m27-surface);
+  border: 1px solid var(--m27-border);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  color: var(--m27-fg);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.m27-bubble::before {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: var(--m27-surface);
+  transform: rotate(45deg);
+}
+
+.m27-bubble--bottom::before {
+  top: -6px;
+  left: calc(var(--m27-arrow, 28px) - 5px);
+  border-top: 1px solid var(--m27-border);
+  border-left: 1px solid var(--m27-border);
+}
+
+.m27-bubble--top::before {
+  bottom: -6px;
+  left: calc(var(--m27-arrow, 28px) - 5px);
+  border-right: 1px solid var(--m27-border);
+  border-bottom: 1px solid var(--m27-border);
+}
+
+.m27-bubble--right::before {
+  left: -6px;
+  top: calc(var(--m27-arrow, 20px) - 5px);
+  border-left: 1px solid var(--m27-border);
+  border-bottom: 1px solid var(--m27-border);
+}
+
+.m27-bubble--left::before {
+  right: -6px;
+  top: calc(var(--m27-arrow, 20px) - 5px);
+  border-top: 1px solid var(--m27-border);
+  border-right: 1px solid var(--m27-border);
+}
+
+.m27-step-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--m27-accent, #7c5cff);
+  margin-bottom: 3px;
+}
+
+.m27-bubble-text {
+  color: var(--m27-fg);
+  word-break: break-word;
+}
+
+/* Island Guide card */
+.m27-guide-card {
+  width: 440px;
+  max-width: calc(100vw - 24px);
+  box-sizing: border-box;
+  border-radius: 24px;
+  padding: 14px 16px;
+  --m27-surface: rgba(28, 31, 39, 0.90);
+  --m27-border: rgba(255, 255, 255, 0.12);
+  --m27-fg: #f4f6fa;
+  --m27-muted: #9aa3b2;
+  --m27-btn-bg: rgba(255, 255, 255, 0.08);
+  --m27-btn-hover: rgba(255, 255, 255, 0.14);
+  background: var(--m27-surface);
+  border: 1px solid var(--m27-border);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  color: var(--m27-fg);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.m27-guide-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.m27-guide-goal {
+  font-size: 12px;
+  color: var(--m27-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.m27-guide-text {
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--m27-fg);
+}
+
+.m27-guide-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.m27-guide-btn {
+  appearance: none;
+  border: 1px solid var(--m27-border);
+  background: var(--m27-btn-bg);
+  color: var(--m27-fg);
+  font-size: 12px;
+  line-height: 1;
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.m27-guide-btn:hover:not(:disabled) {
+  background: var(--m27-btn-hover);
+}
+
+.m27-guide-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.m27-guide-btn.is-stop {
+  border-color: rgba(239, 68, 68, 0.35);
+}
