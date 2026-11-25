@@ -2,7 +2,6 @@
 import { createRoot } from "react-dom/client";
 import { setLanguage, type Language } from "@decka/shared";
 import { recordSys, resetSysHistory } from "@decka/ui";
-import VoicePill from "../../agent/src/VoicePill";
 import VoiceFab from "../../client/src/voice/VoiceFab";
 import VoiceConfirmSheet from "../../client/src/voice/VoiceConfirmSheet";
 import { setState } from "../../client/src/store/store";
@@ -469,17 +468,8 @@ if (scene === "deck" || scene === "settings") {
   }
 } else {
   // The two bundles have their own style sheets that must not meet: only the scene's one is loaded.
-  if (scene === "pill") await import("../../agent/src/styles.css");
-  else await import("../../client/src/styles.css");
-  if (scene === "pill") {
-    document.body.style.background = "#1b1b22";
-    if (q.get("desk")) {
-      document.body.style.cssText += ";margin:0;min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding-top:150px;box-sizing:border-box;background:radial-gradient(1200px 700px at 20% 15%,#3b4a8c 0%,transparent 60%),radial-gradient(1000px 700px at 85% 90%,#7a3b8c 0%,transparent 55%),linear-gradient(135deg,#141a33,#241437);";
-    }
-    if (q.get("desk")) document.getElementById("root")!.style.zoom = "2";
-    if (q.get("pad")) document.body.style.cssText += ";display:flex;align-items:center;justify-content:center;";
-    root.render(<VoicePill initialData={{ ...info, level: Number(q.get("level") ?? 0.6), hotkey: "Ctrl+Alt+Space" } as never} />);
-  } else {
+  await import("../../client/src/styles.css");
+  {
     document.body.style.background = "#000";
     localStorage.removeItem("decka.voicefab.v1");
     setState({ conn: "online", state: { vars: { "voice.ready": true }, voice: info, layout: { display: { theme: "amoled" }, pages: [] } } as never });

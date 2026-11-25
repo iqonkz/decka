@@ -1,6 +1,5 @@
 mod commands;
 mod island;
-mod lyrics_window;
 mod tray;
 mod voice;
 
@@ -174,7 +173,7 @@ pub fn run() {
                     });
                     agent.start_update_loop();
                     voice::setup(app.handle(), &agent);
-                    lyrics_window::setup(app.handle(), &agent);
+                    island::setup(app.handle(), &agent);
 
                     app.manage(agent);
                 }

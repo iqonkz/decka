@@ -10,14 +10,36 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use decka_core::island::{voice_view, Inputs, Machine, Mode, VoiceInput, POLL_MS};
-use decka_core::lyrics_overlay::{foreground_is_fullscreen, visible, Inputs as LyricsInputs};
+use decka_core::lyrics_overlay::{foreground_is_fullscreen, synced_lines, two_lines, visible, Inputs as LyricsInputs};
 use decka_core::model::MediaInfo;
 use decka_core::voice::host::Host;
 use decka_core::Agent;
 use serde_json::{json, Value};
 use tauri::{AppHandle, Emitter, LogicalSize, Manager, PhysicalPosition, WebviewUrl, WebviewWindowBuilder};
 
-use crate::lyrics_window::{lines_now, now_ms};
+use serde::Serialize;
+
+
+#[derive(Serialize, Clone, PartialEq)]
+struct Lines {
+    current: Option<String>,
+    next: Option<String>,
+}
+
+fn now_ms() -> u64 {
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_millis() as u64)
+}
+
+/// The two lines for the moment `now`: the song position (plus the time since it was reported, while it plays) and the shift.
+fn lines_now(media: &MediaInfo, lyrics: &Value, now: u64) -> Option<Lines> {
+    let lines = synced_lines(lyrics)?;
+    let offset = lyrics.get("offsetMs").and_then(Value::as_i64).unwrap_or(0);
+    let base = media.position_sec.unwrap_or(0) as i64 * 1000;
+    let moved = if media.playing { now.saturating_sub(media.position_at) as i64 } else { 0 };
+    let (current, next) = two_lines(&lines, base + moved + offset);
+    Some(Lines { current, next })
+}
+
 
 const LABEL: &str = "island";
 /// Room for the largest panel (440 x 420) and the shadow around it, logical pixels.

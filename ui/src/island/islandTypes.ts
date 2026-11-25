@@ -1,58 +1,17 @@
-export type OrbState = "idle" | "connecting" | "listening" | "thinking" | "speaking";
+// The event types are shared with the agent (`shared/src/island.ts`, T26.4); only the mapping to the sphere lives here.
+import type { IslandEvent, OrbState } from "@decka/shared";
 
-export type IslandMode = "hidden" | "tab" | "compact" | "expanded";
-
-export type IslandVoicePhase =
-  | "idle"
-  | "loading"
-  | "listening"
-  | "recognizing"
-  | "thinking"
-  | "speaking"
-  | "confirm"
-  | "done"
-  | "error";
-
-export type IslandActionKind = "copy" | "insert" | "speak" | "again" | `lang:${string}`;
-
-export interface IslandSlowProgress {
-  /** Moving average ETA in seconds (default 10 s for 4B, 20 s for 9B). */
-  etaSec: number;
-  /** Elapsed seconds so far (> 2 * etaSec switches label to "Almost there..."). */
-  elapsedSec?: number;
-}
-
-export interface IslandContextChip {
-  label: string;
-  command: string;
-}
-
-export interface IslandVoiceState {
-  active: boolean;
-  phase: IslandVoicePhase;
-  /** Normalized microphone / audio energy 0..1. */
-  level?: number;
-  heard?: string;
-  reply?: string;
-  /** Action buttons shown below the reply (`copy`, `insert`, `speak`, `again`, `lang:<code>`). */
-  actions?: string[];
-  slow?: IslandSlowProgress | null;
-  chips?: IslandContextChip[];
-  confirmId?: string;
-}
-
-export interface IslandLyricsState {
-  playing: boolean;
-  current?: string;
-  next?: string;
-}
-
-export interface IslandEvent {
-  mode: IslandMode;
-  lyrics?: IslandLyricsState | null;
-  voice?: IslandVoiceState | null;
-}
-
+export type {
+  IslandMode,
+  OrbState,
+  IslandVoicePhase,
+  IslandActionKind,
+  IslandSlowProgress,
+  IslandContextChip,
+  IslandVoiceState,
+  IslandLyricsState,
+  IslandEvent,
+} from "@decka/shared";
 /**
  * Maps an island state snapshot into the orb's visual state + error flag (TASKS.md §T26.5b).
  * - loading / starting server -> `connecting`

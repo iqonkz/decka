@@ -113,6 +113,12 @@ function m26Shots() {
     "m26-island-expanded-reply-en": [islandSize, "scene=island&mode=expanded&state=idle&reply=1&lang=en&theme=dark"],
     "m26-island-expanded-reply-light": [islandSize, "scene=island&mode=expanded&state=idle&reply=1&lang=ru&theme=light"],
     "m26-island-expanded-error": [islandSize, "scene=island&mode=expanded&state=error&lang=en&theme=dark"],
+  "m26-island-expanded-reply-ru-dark": [islandSize, "scene=island&mode=expanded&state=idle&reply=1&lang=ru&theme=dark"],
+  "m26-island-expanded-reply-en-light": [islandSize, "scene=island&mode=expanded&state=idle&reply=1&lang=en&theme=light"],
+  "m26-island-expanded-error-ru-light": [islandSize, "scene=island&mode=expanded&state=error&lang=ru&theme=light"],
+  "m26-island-expanded-slow-en-light": [islandSize, "scene=island&mode=expanded&state=thinking&slow=1&lang=en&theme=light"],
+  "m26-island-tab-light": [{ w: 300, h: 100, scale: 2 }, "scene=island&mode=tab&theme=light"],
+  "m26-island-compact-lyrics-light": [{ w: 480, h: 160, scale: 2 }, "scene=island&mode=compact&voiceOff=1&lyrics=1&theme=light"],
   };
 }
 // T23: the settings window (Russian) in both colour schemes: pages, a search with results and the minimum window width.
@@ -140,13 +146,6 @@ function settingsShots() {
   return out;
 }
 const SHOTS = {
-  "pill-listening": [PILL, "scene=pill&state=listening"],
-  "pill-thinking": [PILL, "scene=pill&state=thinking&heard=open+calculator"],
-  "pill-done": [PILL, "scene=pill&state=done&heard=open+calculator&reply=Opened+Calculator"],
-  "pill-confirm": [PILL, "scene=pill&state=confirm&heard=lock+my+pc"],
-  "pill-error": [PILL, "scene=pill&state=error&heard=blah&reply=Didn%27t+get+that"],
-  voice: [PILL, "scene=pill&state=done&heard=open+calculator&reply=Opened+Calculator&pad=1"],
-  "pill-done-ru": [PILL, "scene=pill&state=done&lang=ru&heard=%D0%BE%D1%82%D0%BA%D1%80%D0%BE%D0%B9+%D0%BA%D0%B0%D0%BB%D1%8C%D0%BA%D1%83%D0%BB%D1%8F%D1%82%D0%BE%D1%80&reply=Done"],
   "theme-amoled": [DECK, "scene=deck&theme=amoled"],
   "theme-studio": [DECK, "scene=deck&theme=studio"],
   "theme-material": [DECK, "scene=deck&theme=material"],
@@ -154,15 +153,12 @@ const SHOTS = {
   settings: [{ w: 1100, h: 700, scale: 1 }, "scene=settings&theme=studio"],
   // Landing pictures (T22.3): `click` selects an item of the editor before the shot.
   "pc-editor": [{ w: 1600, h: 1000, scale: 1 }, "scene=settings&theme=studio", ".editor-item::6"],
-  "pc-voice": [{ w: 1600, h: 900, scale: 1 }, "scene=pill&state=done&heard=open+calculator&reply=Opened+Calculator&desk=1"],
   // M22 (T22.S): the new widgets, the windows and the pill labels.
   "m22-widgets": [DECK, "scene=deck&m22=1&theme=glass"],
   "m22-widgets-amoled": [DECK, "scene=deck&m22=1&theme=amoled"],
   "m22-reminders-window": [{ w: 1100, h: 700, scale: 1 }, "scene=settings&theme=studio&go=reminders"],
   "m22-lists-window": [{ w: 1100, h: 700, scale: 1 }, "scene=settings&theme=studio&go=reminders", ".segmented-track button::1"],
   "m22-voice-window": [{ w: 1100, h: 1300, scale: 1 }, "scene=settings&theme=studio&go=voice"],
-  "m22-pill-dictating": [PILL, "scene=pill&state=listening&activity=dictate"],
-  "m22-pill-looking": [PILL, "scene=pill&state=thinking&activity=screen&heard=what+is+on+screen"],
   ...settingsShots(),
   ...t235bShots(),
   ...t24Shots(),

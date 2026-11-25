@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Permissions of the settings window, the voice pill and the lyrics window",
-  "windows": ["settings", "voice-pill", "lyrics"],
+  "description": "Permissions of the settings window, and the island (voice and lyrics)",
+  "windows": ["settings", "island"],
   "permissions": ["core:default", "dialog:allow-open", "updater:default", "process:allow-restart"]
 }

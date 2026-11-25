@@ -5,22 +5,12 @@
 
 use std::path::Path;
 use std::sync::{Arc, OnceLock};
-use std::time::Duration;
 
 use decka_core::ai::download::{parse_manifest, Downloader, ManifestEntry};
 use decka_core::ai::service::{default_root, DetectProbe, VoiceDeps, VoiceService};
 use decka_core::voice::host::{Host, PillCmd};
 use decka_core::Agent;
-use serde_json::Value;
-use tauri::{AppHandle, Emitter, LogicalSize, Manager, PhysicalPosition, WebviewUrl, WebviewWindowBuilder};
-
-const PILL: &str = "voice-pill";
-const PILL_WIDTH: f64 = 360.0;
-/// 64 px for the pill, 160 px with the answer or the confirmation (DESIGN.md 4.12).
-const PILL_HEIGHT: f64 = 64.0;
-const PILL_HEIGHT_OPEN: f64 = 160.0;
-/// From the top edge of the screen, in logical pixels.
-const PILL_TOP: f64 = 24.0;
+use tauri::{AppHandle, Emitter, Manager};
 
 /// `shared/ai/manifest.json`: the bundled resource, or the repository copy when running from a checkout.
 fn load_manifest(app: &AppHandle) -> Vec<ManifestEntry> {
@@ -37,82 +27,13 @@ fn load_manifest(app: &AppHandle) -> Vec<ManifestEntry> {
     Vec::new()
 }
 
-/// The pill window: created on the monitor of the mouse cursor, centred at the top, never taking the focus.
-fn create_pill(app: &AppHandle) -> Option<tauri::WebviewWindow> {
-    let window = WebviewWindowBuilder::new(app, PILL, WebviewUrl::App("index.html?pill=1".into()))
-        .title("Decka voice")
-        .inner_size(PILL_WIDTH, PILL_HEIGHT)
-        .decorations(false)
-        .transparent(true)
-        .shadow(false)
-        .always_on_top(true)
-        .skip_taskbar(true)
-        .resizable(false)
-        .focusable(false)
-        .focused(false)
-        .visible(false)
-        .build()
-        .map_err(|e| tracing::error!("cannot create the voice pill: {e}"))
-        .ok()?;
-    let monitor = app
-        .cursor_position()
-        .ok()
-        .and_then(|p| app.monitor_from_point(p.x, p.y).ok().flatten())
-        .or_else(|| app.primary_monitor().ok().flatten());
-    if let Some(m) = monitor {
-        let scale = m.scale_factor();
-        let x = m.position().x as f64 + (m.size().width as f64 - PILL_WIDTH * scale) / 2.0;
-        let y = m.position().y as f64 + PILL_TOP * scale;
-        let _ = window.set_position(PhysicalPosition::new(x.round() as i32, y.round() as i32));
-    }
-    let _ = window.show();
-    Some(window)
-}
-
-/// Counts the closings of the pill: a window that was created while a close came in is closed again.
-static CLOSED: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-
-fn show_pill(app: &AppHandle, payload: Value) {
-    let epoch = CLOSED.load(std::sync::atomic::Ordering::SeqCst);
-    let (window, fresh) = match app.get_webview_window(PILL) {
-        Some(w) => (w, false),
-        None => match create_pill(app) {
-            Some(w) => (w, true),
-            None => return,
-        },
-    };
-    if CLOSED.load(std::sync::atomic::Ordering::SeqCst) != epoch {
-        let _ = window.destroy();
-        return;
-    }
-    let open = matches!(payload.get("state").and_then(Value::as_str), Some("confirm" | "done" | "error"));
-    let _ = window.set_size(LogicalSize::new(PILL_WIDTH, if open { PILL_HEIGHT_OPEN } else { PILL_HEIGHT }));
-    let _ = window.emit("voice-pill", payload.clone());
-    if fresh {
-        // The page needs a moment to start listening: the first states are repeated until it does.
-        let app = app.clone();
-        tauri::async_runtime::spawn(async move {
-            for ms in [300u64, 700, 1500] {
-                tokio::time::sleep(Duration::from_millis(ms)).await;
-                let Some(w) = app.get_webview_window(PILL) else { return };
-                let _ = w.emit("voice-pill", payload.clone());
-            }
-        });
-    }
-}
-
+/// The voice host shows a request of the PC: the island draws it (T26.4); `idle` takes it away.
 fn pill(app: &AppHandle, cmd: PillCmd) {
     match cmd {
-        PillCmd::Show(payload) => show_pill(app, payload),
-        PillCmd::Destroy => {
-            CLOSED.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-            if let Some(w) = app.get_webview_window(PILL) {
-                let _ = w.destroy();
-            }
-        }
+        PillCmd::Show(payload) => crate::island::on_voice(app, Some(payload)),
+        PillCmd::Destroy => crate::island::on_voice(app, None),
     }
 }
-
 pub fn setup(app: &AppHandle, agent: &Agent) {
     let tauri::async_runtime::RuntimeHandle::Tokio(handle) = tauri::async_runtime::handle();
     let window = app.clone();
