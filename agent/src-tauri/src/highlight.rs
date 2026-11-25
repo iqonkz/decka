@@ -62,6 +62,15 @@ impl HighlightSink for WindowSink {
     }
 }
 
+/// The events of a guide go to the island (`guide_step`), which shows the goal, the step and the buttons.
+pub struct GuideEmitter(pub AppHandle);
+
+impl decka_core::voice::screenrun::GuideSink for GuideEmitter {
+    fn event(&self, e: decka_core::voice::screenrun::GuideEvent) {
+        let _ = self.0.emit_to("island", "guide_step", e);
+    }
+}
+
 /// The highlighter and its watcher: a few looks a second at the focused window and at the left mouse button.
 pub fn setup(app: &AppHandle) -> Highlighter {
     let highlighter = Highlighter::new(Arc::new(WindowSink { app: app.clone() }));

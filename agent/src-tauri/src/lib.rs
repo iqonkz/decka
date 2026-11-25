@@ -185,7 +185,11 @@ pub fn run() {
                     agent.start_update_loop();
                     voice::setup(app.handle(), &agent);
                     island::setup(app.handle(), &agent);
-                    highlight::setup(app.handle());
+                    let highlighter = highlight::setup(app.handle());
+                    if let Some(host) = app.try_state::<decka_core::voice::host::Host>() {
+                        host.attach_screen(highlighter, std::sync::Arc::new(highlight::GuideEmitter(app.handle().clone())), Vec::new());
+                        host.start_notices();
+                    }
 
                     app.manage(agent);
                 }
