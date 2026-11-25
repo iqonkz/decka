@@ -447,16 +447,23 @@ pub struct Lyrics {
     cache: Cache,
     offsets: Mutex<Offsets>,
     current: Mutex<Option<Current>>,
+    /// A search for the lyrics of the current track is running (the island shows three dots).
+    loading: std::sync::atomic::AtomicBool,
 }
 
 impl Lyrics {
+    /// Whether the lyrics of the current track are being searched for right now (T26.F.13).
+    pub fn is_loading(&self) -> bool {
+        self.loading.load(std::sync::atomic::Ordering::Relaxed)
+    }
+
     pub fn new(config_dir: &Path, cache_dir: PathBuf) -> Lyrics {
         Lyrics::with_http(config_dir, cache_dir, Arc::new(RealHttp), LRCLIB.to_string())
     }
 
     /// The network and the address come from the caller (the tests use recorded answers).
     pub fn with_http(config_dir: &Path, cache_dir: PathBuf, http: Arc<dyn Http>, base: String) -> Lyrics {
-        Lyrics { http, base, cache: Cache::new(cache_dir), offsets: Mutex::new(Offsets::load(config_dir)), current: Mutex::new(None) }
+        Lyrics { http, base, cache: Cache::new(cache_dir), offsets: Mutex::new(Offsets::load(config_dir)), current: Mutex::new(None), loading: Default::default() }
     }
 
     fn info(&self, key: &str, found: &Found) -> Value {
@@ -483,7 +490,12 @@ impl Lyrics {
         let now = now_ms();
         let outcome = match self.cache.get(&key, now) {
             Some(o) => o,
-            None => match lookup(self.http.as_ref(), &self.base, &artist, &title, duration).await {
+            None => match {
+                self.loading.store(true, std::sync::atomic::Ordering::Relaxed);
+                let looked = lookup(self.http.as_ref(), &self.base, &artist, &title, duration).await;
+                self.loading.store(false, std::sync::atomic::Ordering::Relaxed);
+                looked
+            } {
                 Ok(o) => {
                     self.cache.put(&key, &o, now);
                     o

@@ -593,6 +593,11 @@ impl Agent {
         self.config().media.and_then(|m| m.lyrics).is_some_and(|l| l.enabled)
     }
 
+    /// A search for the lyrics of the current track is running (T26.F.13).
+    pub fn lyrics_loading(&self) -> bool {
+        self.inner.lyrics.is_loading()
+    }
+
     /// Brings the lyrics section in line with the media session and the switch.
     pub async fn sync_lyrics(&self) {
         let media: Option<crate::model::MediaInfo> = serde_json::from_value(self.inner.store.get("media")).ok();

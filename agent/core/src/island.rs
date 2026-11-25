@@ -22,6 +22,17 @@ pub const POLL_MS: u64 = 60;
 
 /// The media button of the island window (`media_control { kind }`) as the same media operation the deck buttons use; anything
 /// outside the four names is refused (T26.F.10).
+/// The state of the lyrics for the island (`IslandLyricsState.status`): lines found, a search running, or nothing (off / not found).
+pub fn lyrics_status(has_lines: bool, loading: bool) -> &'static str {
+    if has_lines {
+        "ready"
+    } else if loading {
+        "loading"
+    } else {
+        "none"
+    }
+}
+
 pub fn media_op(kind: &str) -> Option<crate::model::MediaOp> {
     use crate::model::MediaOp;
     Some(match kind {
@@ -173,6 +184,11 @@ impl Machine {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn the_lyrics_status_is_loading_only_while_searching() {
+        assert_eq!([lyrics_status(true, true), lyrics_status(false, true), lyrics_status(false, false)], ["ready", "loading", "none"]);
+    }
+
     #[test]
     fn media_buttons_name_four_operations_and_nothing_else() {
         use crate::model::MediaOp;

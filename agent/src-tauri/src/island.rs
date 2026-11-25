@@ -150,7 +150,13 @@ fn sample(agent: &Agent, paused_since: &mut Option<Instant>) -> Sample {
     let shown = wanted && visible(&inputs);
     // The same song is the same track: its key is the one the lyrics section carries.
     let track = lyrics.get("trackKey").and_then(Value::as_str).map(str::to_string).or_else(|| media.as_ref().map(|m| format!("{}|{}", m.title, m.artist.clone().unwrap_or_default())));
-    let current = lines.as_ref().map(|l| json!({ "playing": playing, "current": l.current, "next": l.next, "firstLineInMs": l.first_in_ms }));
+    // A song without lines still reports its lyrics state: three dots while the search runs, then just the track (T26.F.13).
+    let status = decka_core::island::lyrics_status(lines.is_some(), agent.lyrics_enabled() && agent.lyrics_loading());
+    let current = match &lines {
+        Some(l) => Some(json!({ "playing": playing, "status": status, "current": l.current, "next": l.next, "firstLineInMs": l.first_in_ms })),
+        None if media.is_some() => Some(json!({ "playing": playing, "status": status })),
+        None => None,
+    };
     let muted = store.get("vars").get("audio.muted").and_then(Value::as_bool).unwrap_or(false);
     let song = media.as_ref().filter(|m| !m.title.is_empty()).map(|m| json!({ "title": m.title, "artist": m.artist }));
     Sample { visible: shown, mode, track, fullscreen, lyrics: current, playing, muted, track_info: song }

@@ -273,7 +273,7 @@ describe("T26.5b ParticlesOrb & Island", () => {
           mode: "compact",
           playing: true,
           track: { title: "Midnight City", artist: "M83" },
-          lyrics: { playing: true, firstLineInMs: null },
+          lyrics: { playing: true, status: "loading" },
         }}
       />,
     );

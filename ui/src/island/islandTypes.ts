@@ -40,8 +40,8 @@ export function songView(event: IslandEvent): SongView | null {
     muted: Boolean(event.muted),
     title: track?.title,
     artist: track?.artist,
-    nextInSec: typeof ms === "number" ? ms / 1000 : ms === null ? null : undefined,
-    lyricsPending: false,
+    nextInSec: typeof ms === "number" ? ms / 1000 : undefined,
+    lyricsPending: lyrics?.status === "loading",
   };
 }
 

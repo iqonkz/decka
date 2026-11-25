@@ -47,6 +47,8 @@ export interface IslandLyricsState {
   playing: boolean;
   current?: string;
   next?: string;
+  /** T26.F.13: `loading` while the lyrics are being searched for (the island shows three dots), `ready` with lines, `none` when not found or off. */
+  status?: "loading" | "ready" | "none";
   /** T26.F.10: milliseconds until the first sung line of a synced song; absent/null once it has started or when the time is unknown. */
   firstLineInMs?: number | null;
 }
