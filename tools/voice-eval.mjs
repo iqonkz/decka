@@ -193,6 +193,8 @@ async function queryModel(url, apiKey, prompt) {
       { role: "user", content: prompt },
     ],
     temperature: 0.0,
+    // Same as the agent at runtime (ask.rs, brief.rs): Qwen answers without a thinking pass.
+    chat_template_kwargs: { enable_thinking: false },
     response_format: { type: "json_object" },
   };
 
