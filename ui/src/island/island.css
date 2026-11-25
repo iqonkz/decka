@@ -8,6 +8,8 @@
   font-family: "Segoe UI Variable", system-ui, -apple-system, sans-serif;
   --island-bg: rgba(24, 24, 30, 0.9);
   --island-border: rgba(255, 255, 255, 0.12);
+  --island-divider: rgba(255, 255, 255, 0.06);
+  --island-btn-hover: rgba(255, 255, 255, 0.08);
   --island-text: #ffffff;
   --island-muted: rgba(255, 255, 255, 0.6);
   --island-surface: rgba(255, 255, 255, 0.1);
@@ -18,6 +20,8 @@
 .island-host[data-island-theme="light"] {
   --island-bg: rgba(248, 248, 250, 0.9);
   --island-border: rgba(0, 0, 0, 0.08);
+  --island-divider: rgba(0, 0, 0, 0.06);
+  --island-btn-hover: rgba(0, 0, 0, 0.05);
   --island-text: #111116;
   --island-muted: rgba(17, 17, 22, 0.6);
   --island-surface: rgba(0, 0, 0, 0.06);
@@ -281,9 +285,21 @@
 
 .island-heard {
   width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   text-align: left;
   font-size: 13px;
   color: var(--island-muted);
+}
+
+.island-heard-mic {
+  flex: none;
+  color: var(--island-muted);
+}
+
+.island-heard-text {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -300,7 +316,7 @@
   color: var(--island-text);
 }
 
-.island-actions {
+.island-chips {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-start;
@@ -308,36 +324,121 @@
   width: 100%;
 }
 
-.island-action-btn {
-  height: 30px;
-  padding: 0 12px;
-  border: 1px solid var(--island-border);
-  border-radius: 999px;
-  background: var(--island-surface);
-  color: var(--island-text);
+.island-chip {
+  height: 28px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--island-accent) 10%, transparent);
+  color: var(--island-accent);
   font: inherit;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   cursor: pointer;
   transition: background-color 120ms ease;
 }
 
-.island-action-btn:hover {
-  background: var(--island-surface-hover);
+.island-chip:hover {
+  background: color-mix(in srgb, var(--island-accent) 16%, transparent);
+}
+
+.island-chip:focus-visible {
+  outline: 2px solid var(--island-accent);
+  outline-offset: 1px;
+}
+
+.island-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 4px;
+  width: 100%;
+  margin-top: 2px;
+  padding-top: 10px;
+  border-top: 1px solid var(--island-divider);
+}
+
+.island-action-btn {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--island-muted);
+  font: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.island-action-btn:hover,
+.island-action-btn.is-hovered {
+  background: var(--island-btn-hover);
+  color: var(--island-text);
+}
+
+.island-action-btn:focus-visible {
+  outline: 2px solid var(--island-accent);
+  outline-offset: 1px;
+}
+
+.island-action-btn.is-copied {
+  color: var(--island-accent);
+}
+
+.island-actions-sep {
+  width: 1px;
+  height: 16px;
+  margin: 0 4px;
+  background: var(--island-divider);
+  flex: none;
+}
+
+@keyframes island-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.island-icon-spin {
+  animation: island-spin 0.9s linear infinite;
 }
 
 .island-lang-wrap {
   position: relative;
+  margin-inline-start: auto;
+}
+
+.island-lang-btn {
+  width: auto;
+  padding: 0 8px;
+  gap: 5px;
+}
+
+.island-lang-code {
+  font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
 }
 
 .island-lang-menu {
   position: absolute;
-  bottom: calc(100% + 6px);
-  inset-inline-start: 0;
-  min-width: 160px;
-  max-height: 220px;
+  top: calc(100% + 6px);
+  inset-inline-end: 0;
+  min-width: 176px;
+  max-height: 330px;
   overflow-y: auto;
-  padding: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--island-border) transparent;
+  padding: 5px;
   border-radius: 12px;
   background: var(--island-bg);
   border: 1px solid var(--island-border);
@@ -345,7 +446,7 @@
   z-index: 40;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 
 .island-lang-item {
@@ -358,37 +459,24 @@
   font: inherit;
   font-size: 12px;
   text-align: start;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   cursor: pointer;
 }
 
 .island-lang-item:hover {
-  background: var(--island-surface-hover);
+  background: var(--island-btn-hover);
 }
 
-.island-chips {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-start;
-  gap: 6px;
-  width: 100%;
-}
-
-.island-chip {
-  height: 28px;
-  padding: 0 10px;
-  border: 1px solid var(--island-border);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--island-muted);
-  font: inherit;
-  font-size: 12px;
-  cursor: pointer;
-  transition: background-color 120ms ease, color 120ms ease;
-}
-
-.island-chip:hover {
-  background: var(--island-surface);
-  color: var(--island-text);
+.island-lang-item-check {
+  width: 14px;
+  height: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  color: var(--island-accent);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -396,6 +484,7 @@
   .island-panel,
   .island-orb-wrap,
   .island-content-col,
+  .island-icon-spin,
   .island-slow-fill {
     transition: none;
     animation: none;

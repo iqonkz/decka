@@ -1093,4 +1093,6 @@ export const es: Dictionary = {
   "island.connected": "Conectado",
   "island.speaking": "Hablando…",
   "island.replay": "Reproducir transición",
+  "island.copied": "Copiado",
+  "island.stop_speaking": "Detener voz",
 };

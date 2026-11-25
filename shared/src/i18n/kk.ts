@@ -1100,4 +1100,6 @@ export const kk: Dictionary = {
   "island.connected": "Қосылды",
   "island.speaking": "Сөйлеп тұр…",
   "island.replay": "Ауысуды ойнату",
+  "island.copied": "Көшірілді",
+  "island.stop_speaking": "Оқуды тоқтату",
 };

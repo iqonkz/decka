@@ -1,7 +1,7 @@
 ﻿import { describe, expect, it } from "vitest";
 import { renderToString } from "react-dom/server";
 import { setLanguage } from "@decka/shared";
-import Island, { expandedStatusText, hasVoiceContent } from "../src/island/Island";
+import Island, { chipIconKind, expandedStatusText, hasVoiceContent } from "../src/island/Island";
 import ParticlesOrb, { particleCountForSize } from "../src/island/ParticlesOrb";
 import { orbStateFromIsland } from "../src/island/islandTypes";
 
@@ -117,6 +117,53 @@ describe("T26.5b ParticlesOrb & Island", () => {
     expect(expandedHtml).toContain("Answer text");
     expect(expandedHtml).toContain("Translate");
     expect(expandedHtml).toContain("particles-orb");
+
+    // T26.F.9: order heard (no quotes) -> reply -> chips -> icon action bar + feedback states.
+    const idxHeard = expandedHtml.indexOf("island-heard");
+    const idxReply = expandedHtml.indexOf("island-reply");
+    const idxChips = expandedHtml.indexOf("island-chips");
+    const idxActions = expandedHtml.indexOf("island-actions");
+    expect(idxHeard).toBeGreaterThan(-1);
+    expect(idxHeard).toBeLessThan(idxReply);
+    expect(idxReply).toBeLessThan(idxChips);
+    expect(idxChips).toBeLessThan(idxActions);
+    expect(expandedHtml).not.toContain("“what is on screen?”");
+    expect(expandedHtml).toContain('aria-label="Copy"');
+    expect(expandedHtml).toContain('aria-label="Insert"');
+    expect(expandedHtml).toContain('aria-label="Speak"');
+    expect(expandedHtml).toContain('aria-label="Try again"');
+    expect(expandedHtml).toContain("island-actions-sep");
+    expect(expandedHtml).toContain(">EN<");
+    expect(expandedHtml).toContain("island-icon-spin");
+
+    expect(chipIconKind({ label: "Copy snippet", command: "copy" })).toBe("code");
+    expect(chipIconKind({ label: "Перевести", command: "translate" })).toBe("translate");
+    expect(chipIconKind({ label: "Reply", command: "reply" })).toBe("reply");
+    expect(chipIconKind({ label: "What error?", command: "screen_ask" })).toBe("help");
+
+    const copiedAndSpeakingHtml = renderToString(
+      <Island
+        copiedPreview
+        langMenuOpenPreview
+        hoveredAction="insert"
+        event={{
+          mode: "expanded",
+          voice: {
+            active: true,
+            phase: "speaking",
+            heard: "hello",
+            reply: "Hi there",
+            actions: ["copy", "insert", "speak", "again", "lang"],
+          },
+        }}
+      />,
+    );
+    expect(copiedAndSpeakingHtml).toContain("is-copied");
+    expect(copiedAndSpeakingHtml).toContain('aria-label="Copied"');
+    expect(copiedAndSpeakingHtml).toContain('aria-label="Stop speaking"');
+    expect(copiedAndSpeakingHtml).toContain("is-hovered");
+    expect(copiedAndSpeakingHtml).toContain("island-lang-menu");
+    expect(copiedAndSpeakingHtml).toContain("is-current");
 
     const orbHtml = renderToString(<ParticlesOrb state="listening" size={120} level={0.5} />);
     expect(orbHtml).toContain('role="img"');

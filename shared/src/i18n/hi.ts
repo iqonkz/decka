@@ -1093,4 +1093,6 @@ export const hi: Dictionary = {
   "island.connected": "कनेक्टेड",
   "island.speaking": "बोल रहा हूँ…",
   "island.replay": "ट्रांज़िशन चलाएं",
+  "island.copied": "कॉपी हो गया",
+  "island.stop_speaking": "बोलना रोकें",
 };

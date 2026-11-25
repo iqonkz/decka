@@ -1093,4 +1093,6 @@ export const zh: Dictionary = {
   "island.connected": "已连接",
   "island.speaking": "正在播报…",
   "island.replay": "播放过渡",
+  "island.copied": "已复制",
+  "island.stop_speaking": "停止朗读",
 };
