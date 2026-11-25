@@ -207,6 +207,7 @@ input { user-select: text; touch-action: manipulation; }
   .pill-btn { height: 42px; }
   .pill-btn.secondary { height: 38px; }
 }
+.deck-empty-center { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; padding: 20px; box-sizing: border-box; }
 
 /* Connecting skeleton overlay */
 .connecting-screen { position: fixed; inset: 0; background: var(--screen-bg, #000); }

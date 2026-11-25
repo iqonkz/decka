@@ -35,5 +35,5 @@ export { closestWindow, formatReset, windowLabel } from "./widgets/aiModel";
 export { containerDensity, widgetDensityByCells, hasWidgetHeader, type WidgetDensity } from "./widgets/density";
 export { averageRgbFromPixels, coverGradient, darkenCoverColor, rgbToHex, rgbToHsl, hslToRgb, sampleImageColor, COVER_MAX_LIGHTNESS } from "./widgets/coverColor";
 export { effectiveMediaPositionMs, formatOffsetSeconds, selectActiveLyricIndex } from "./widgets/lyricsLogic";
-
+export { formatRepeatLabel } from "./widgets/repeatLabel";
 export { default as WidgetEmpty } from "./widgets/WidgetEmpty";

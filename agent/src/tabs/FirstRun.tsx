@@ -7,6 +7,8 @@ import LanguageOptions from "./LanguageOptions";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
 import EntryIcon from "../ui/EntryIcon";
+import PhIcon from "../ui/PhIcon";
+import { Group, PageHeader, SectionHeader } from "../ui/SettingsGroup";
 import { insertContext, itemsOfSet } from "../editor/catalogUi";
 import { DEFAULT_SETS, planWizard, type WizardPick } from "../editor/wizardPlan";
 import PairingTab from "./PairingTab";
@@ -41,7 +43,7 @@ function safeStorage(): Storage | undefined {
 
 const MAX_PICKS = 20;
 
-/** The first-run guide (DESIGN.md 4.4): pair the phone, pick a look, add programs. Every step can be skipped. */
+/** The first-run guide (DESIGN.md 4.4, 4.7, 4.14-4.15): pair the phone, pick a look, add programs. */
 export default function FirstRun({ onClose, startStep = 0 }: { onClose: () => void; startStep?: number }) {
   const [step, setStep] = useState(startStep);
   const [sets, setSets] = useState<Set<string>>(new Set(DEFAULT_SETS));
@@ -147,103 +149,156 @@ export default function FirstRun({ onClose, startStep = 0 }: { onClose: () => vo
   return (
     <div className="wizard" role="dialog" aria-label={t("wizard.welcome")}>
       <div className="wizard-card">
+        <div className="wizard-topbar">
+          <div className="wizard-steps-bar" aria-hidden="true">
+            {[0, 1, 2].map((n) => (
+              <span
+                key={n}
+                className={`wizard-step-pill${n === step ? " active" : n < step ? " done" : ""}`}
+              />
+            ))}
+          </div>
+          <span className="wizard-step-label">{t("wizard.step", { n: step + 1, title: titles[step] ?? "" })}</span>
+          {step === 0 && (
+            <select
+              className="settings-select wizard-lang"
+              aria-label={t("settings.language")}
+              value={layout?.display.language ?? "auto"}
+              onChange={(e) => chooseLanguage(e.target.value as LanguageSetting)}
+            >
+              <LanguageOptions />
+            </select>
+          )}
+        </div>
+
         {step === 0 && (
-          <select className="wizard-lang" aria-label={t("settings.language")} value={layout?.display.language ?? "auto"} onChange={(e) => chooseLanguage(e.target.value as LanguageSetting)}>
-            <LanguageOptions />
-          </select>
+          <div className="wizard-hero">
+            <img className="logo-wizard" src={logoUrl} width={72} height={72} alt="Decka" />
+            <PageHeader title={t("wizard.welcome")} subtitle={t("wizard.title_pair")} />
+          </div>
         )}
-        {step === 0 && <img className="logo-wizard" src={logoUrl} width={96} height={96} alt="Decka" />}
-        <p className="muted wizard-step">
-          {t("wizard.step", { n: step + 1, title: titles[step] ?? "" })}
-        </p>
+
         {error && <Banner kind="error">{error}</Banner>}
         {message && <Banner kind="success">{message}</Banner>}
 
-        {step === 0 && <PairingTab />}
+        {step === 0 && (
+          <div className="wizard-body">
+            <PairingTab embedded />
+          </div>
+        )}
 
-        {step === 1 && layout && (
-          <>
-            <h2>{t("wizard.title_look")}</h2>
-            <p className="muted">{t("wizard.look_hint")}</p>
-            <ThemeCards value={layout.display.theme ?? "amoled"} display={layout.display} onPick={(theme) => setLayout({ ...layout, display: { ...layout.display, theme } })} />
-            <div className="orientation-cards small" role="radiogroup" aria-label={t("orientation.title")}>
-              {(["landscape", "portrait"] as const).map((o) => (
-                <button
-                  key={o}
-                  type="button"
-                  role="radio"
-                  aria-checked={(layout.display.orientation ?? "landscape") === o}
-                  className={(layout.display.orientation ?? "landscape") === o ? "style-card selected" : "style-card"}
-                  onClick={() => setLayout({ ...layout, display: { ...layout.display, orientation: o } })}
-                >
-                  <svg className="phone-silhouette" width={o === "portrait" ? 18 : 30} height={o === "portrait" ? 30 : 18} viewBox={o === "portrait" ? "0 0 28 48" : "0 0 48 28"} aria-hidden="true">
-                    <rect x="1.5" y="1.5" width={o === "portrait" ? 25 : 45} height={o === "portrait" ? 45 : 25} rx="4" fill="none" stroke="currentColor" strokeWidth="3" />
-                  </svg>
-                  <strong>{t(`orientation.${o}`)}</strong>
-                </button>
-              ))}
-            </div>
-          </>
+        {step === 1 && (
+          <div className="wizard-body">
+            <PageHeader icon="palette" title={t("wizard.title_look")} subtitle={t("wizard.look_hint")} />
+            {layout && (
+              <>
+                <ThemeCards value={layout.display.theme ?? "amoled"} display={layout.display} onPick={(theme) => setLayout({ ...layout, display: { ...layout.display, theme } })} />
+                <SectionHeader title={t("orientation.title")} />
+                <div className="orientation-cards small" role="radiogroup" aria-label={t("orientation.title")}>
+                  {(["landscape", "portrait"] as const).map((o) => {
+                    const selected = (layout.display.orientation ?? "landscape") === o;
+                    return (
+                      <button
+                        key={o}
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        className={selected ? "style-card selected" : "style-card"}
+                        onClick={() => setLayout({ ...layout, display: { ...layout.display, orientation: o } })}
+                      >
+                        {selected && (
+                          <span className="selection-badge">
+                            <PhIcon name="check-circle" size={20} weight="fill" color="var(--accent)" />
+                          </span>
+                        )}
+                        <svg className="phone-silhouette" width={o === "portrait" ? 18 : 30} height={o === "portrait" ? 30 : 18} viewBox={o === "portrait" ? "0 0 28 48" : "0 0 48 28"} aria-hidden="true">
+                          <rect x="1.5" y="1.5" width={o === "portrait" ? 25 : 45} height={o === "portrait" ? 45 : 25} rx="4" fill="none" stroke="currentColor" strokeWidth="3" />
+                        </svg>
+                        <strong>{t(`orientation.${o}`)}</strong>
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
         )}
 
         {step === 2 && (
-          <>
-            <h2>{t("wizard.title_apps")}</h2>
-            <p className="muted">{t("wizard.apps_hint")}</p>
-            <h3>{t("wizard.sets")}</h3>
-            <p className="muted">{t("wizard.sets_hint")}</p>
+          <div className="wizard-body">
+            <PageHeader icon="squares-four" title={t("wizard.title_apps")} subtitle={t("wizard.apps_hint")} />
+            <SectionHeader title={t("wizard.sets")} subtitle={t("wizard.sets_hint")} />
             <div className="wizard-sets">
-              {SETS.filter((s) => s.requires !== "obs" || obsFound).map((s) => (
-                <label key={s.id} className={sets.has(s.id) ? "set-card selected" : "set-card"}>
-                  <span className="set-head">
+              {SETS.filter((s) => s.requires !== "obs" || obsFound).map((s) => {
+                const isSelected = sets.has(s.id);
+                return (
+                  <label key={s.id} className={isSelected ? "set-card selected" : "set-card"}>
+                    {isSelected && (
+                      <span className="selection-badge">
+                        <PhIcon name="check-circle" size={18} weight="fill" color="var(--accent)" />
+                      </span>
+                    )}
+                    <span className="set-head">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={(e) =>
+                          setSets((prev) => {
+                            const next = new Set(prev);
+                            if (e.target.checked) next.add(s.id);
+                            else next.delete(s.id);
+                            return next;
+                          })
+                        }
+                      />
+                      <EntryIcon icon={s.icon} />
+                      <strong>{pickText(s.name, getLanguage())}</strong>
+                    </span>
+                    <small className="muted">{pickText(s.description, getLanguage())}</small>
+                  </label>
+                );
+              })}
+            </div>
+            <SectionHeader title={t("picker.programs")} />
+            <div className="integrations-search wizard-search">
+              <PhIcon name="magnifying-glass" size={16} />
+              <input
+                type="search"
+                aria-label={t("wizard.search")}
+                placeholder={t("wizard.search")}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+            </div>
+            {apps === null && !error && <p className="muted">{t("picker.loading_apps")}</p>}
+            <Group className="wizard-apps-group">
+              <div className="app-list">
+                {shown.map((a) => (
+                  <label key={key(a)} className="app-row">
                     <input
                       type="checkbox"
-                      checked={sets.has(s.id)}
+                      checked={picked.has(key(a))}
+                      disabled={!picked.has(key(a)) && picked.size >= MAX_PICKS}
                       onChange={(e) =>
-                        setSets((prev) => {
+                        setPicked((prev) => {
                           const next = new Set(prev);
-                          if (e.target.checked) next.add(s.id);
-                          else next.delete(s.id);
+                          if (e.target.checked) next.add(key(a));
+                          else next.delete(key(a));
                           return next;
                         })
                       }
                     />
-                    <EntryIcon icon={s.icon} />
-                    <strong>{pickText(s.name, getLanguage())}</strong>
-                  </span>
-                  <small className="muted">{pickText(s.description, getLanguage())}</small>
-                </label>
-              ))}
-            </div>
-            <h3>{t("picker.programs")}</h3>
-            <input aria-label={t("wizard.search")} placeholder={t("wizard.search")} value={query} onChange={(e) => setQuery(e.target.value)} />
-            {apps === null && !error && <p className="muted">{t("picker.loading_apps")}</p>}
-            <div className="app-list">
-              {shown.map((a) => (
-                <label key={key(a)} className="app-row">
-                  <input
-                    type="checkbox"
-                    checked={picked.has(key(a))}
-                    disabled={!picked.has(key(a)) && picked.size >= MAX_PICKS}
-                    onChange={(e) =>
-                      setPicked((prev) => {
-                        const next = new Set(prev);
-                        if (e.target.checked) next.add(key(a));
-                        else next.delete(key(a));
-                        return next;
-                      })
-                    }
-                  />
-                  {a.icon ? <img src={a.icon} width={32} height={32} alt="" /> : <span className="app-noicon" />}
-                  <span className="app-text">
-                    <strong>{a.name}</strong>
-                    <small className="muted">{a.program}</small>
-                  </span>
-                </label>
-              ))}
-            </div>
+                    {a.icon ? <img src={a.icon} width={32} height={32} alt="" /> : <span className="app-noicon" />}
+                    <span className="app-text">
+                      <strong>{a.name}</strong>
+                      <small className="muted">{a.program}</small>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </Group>
             <p className="muted">{t("wizard.selected", { programs: tn("wizard.programs", picked.size), actions: tn("wizard.actions", sets.size), max: MAX_PICKS })}</p>
-          </>
+          </div>
         )}
 
         <div className="row wizard-actions">

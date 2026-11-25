@@ -505,6 +505,7 @@
 .rem-row { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 13px; }
 .rem-time { flex: 0 0 auto; font-variant-numeric: tabular-nums; opacity: 0.6; min-width: 44px; font-size: 12px; }
 .rem-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rem-repeat { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 4px; font-size: 11px; opacity: 0.65; white-space: nowrap; }
 .list-mark { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border: 1.5px solid currentColor; border-radius: 50%; box-sizing: border-box; opacity: 0.85; }
 .list-done { opacity: 0.5; }
 .list-done .rem-text { text-decoration: line-through; }

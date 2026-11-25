@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { locale, t } from "@decka/shared";
+import { locale, t, type ReminderRepeat } from "@decka/shared";
 import PhIcon from "./PhIcon";
 import Button from "./Button";
+import Segmented from "./Segmented";
 
 export function pad2(n: number): string {
   return String(n).padStart(2, "0");
@@ -67,10 +68,12 @@ export function formatReminderLabel(iso: string): string {
 export interface TimePickerPopoverProps {
   value: string;
   onChange: (iso: string) => void;
+  repeat?: ReminderRepeat;
+  onRepeatChange?: (repeat: ReminderRepeat | undefined) => void;
   onClose: () => void;
 }
 
-export default function TimePickerPopover({ value, onChange, onClose }: TimePickerPopoverProps) {
+export default function TimePickerPopover({ value, onChange, repeat, onRepeatChange, onClose }: TimePickerPopoverProps) {
   const popoverRef = useRef<HTMLDivElement>(null);
   const initialDate = parseLocalIso(value);
   const [viewYear, setViewYear] = useState(initialDate.getFullYear());
@@ -179,9 +182,9 @@ export default function TimePickerPopover({ value, onChange, onClose }: TimePick
         </div>
 
         <div className="rem-calendar-weekdays">
-          {["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"].map((d) => (
-            <span key={d} className="rem-cal-weekday">
-              {d}
+          {([1, 2, 3, 4, 5, 6, 0] as const).map((wd) => (
+            <span key={wd} className="rem-cal-weekday">
+              {t(`date.weekday_short.${wd}`)}
             </span>
           ))}
         </div>
@@ -209,6 +212,22 @@ export default function TimePickerPopover({ value, onChange, onClose }: TimePick
           })}
         </div>
       </div>
+
+      {onRepeatChange && (
+        <div className="rem-popover-repeat">
+          <Segmented
+            aria-label={t("rem.repeat_aria")}
+            value={repeat ?? "once"}
+            onChange={(v) => onRepeatChange(v === "once" ? undefined : (v as ReminderRepeat))}
+            options={[
+              { value: "once", label: t("rem.repeat_once") },
+              { value: "daily", label: t("rem.repeat_daily") },
+              { value: "weekdays", label: t("rem.repeat_weekdays") },
+              { value: "weekly", label: t("rem.repeat_weekly") },
+            ]}
+          />
+        </div>
+      )}
 
       {/* Time & Done */}
       <div className="rem-popover-time-row">

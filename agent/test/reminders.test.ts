@@ -1,7 +1,10 @@
+import { createElement } from "react";
 import { describe, expect, test } from "vitest";
+import { renderToString } from "react-dom/server";
 import type { ListRow, ReminderRow } from "@decka/shared";
 import { editItems, isLocalTime, nextHour, visibleReminders } from "../src/tabs/remindersModel";
 import { fromLines, toLines } from "../src/tabs/DictationBlock";
+import TimePickerPopover from "../src/ui/TimePickerPopover";
 
 const list: ListRow = { id: "aaaaaaaaaaaaaaaa", name: "Shopping", items: [{ id: "1", text: "milk", done: false }, { id: "2", text: "bread", done: true }] };
 
@@ -39,5 +42,22 @@ describe("Reminders window model (DATA_MODEL.md 13.7)", () => {
     expect(fromLines("  Kazakhstan \r\n\r\nDecka\n  \nOpenAI  ")).toEqual(["Kazakhstan", "Decka", "OpenAI"]);
     expect(toLines(["a", "b"])).toBe("a\nb");
     expect(fromLines(toLines(["Алматы", "Decka"]))).toEqual(["Алматы", "Decka"]);
+  });
+
+  test("TimePickerPopover renders Once, Daily, Weekdays, Weekly segments when repeat handler is provided", () => {
+    const html = renderToString(
+      createElement(TimePickerPopover, {
+        value: "2026-11-23T09:00",
+        onChange: () => {},
+        repeat: "weekdays",
+        onRepeatChange: () => {},
+        onClose: () => {},
+      }),
+    );
+    expect(html).toContain("rem-popover-repeat");
+    expect(html).toContain("Once");
+    expect(html).toContain("Daily");
+    expect(html).toContain("Weekdays");
+    expect(html).toContain("Weekly");
   });
 });

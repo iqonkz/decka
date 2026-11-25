@@ -75,6 +75,30 @@ function t235bShots() {
   }
   return out;
 }
+function t24Shots() {
+  const out = {};
+  const land = { w: 844, h: 390, scale: 1 };
+  const port = { w: 390, h: 844, scale: 1 };
+  const pc = { w: 1100, h: 800, scale: 1 };
+  out["t24-media-sync-studio"] = [land, "scene=deck&theme=studio&pack=m24-lyrics-sync"];
+  out["t24-media-sync-glass"] = [land, "scene=deck&theme=glass&pack=m24-lyrics-sync"];
+  out["t24-media-plain-studio"] = [land, "scene=deck&theme=studio&pack=m24-lyrics-plain"];
+  out["t24-media-plain-glass"] = [land, "scene=deck&theme=glass&pack=m24-lyrics-plain"];
+  out["t24-weather-hourly"] = [land, "scene=deck&theme=studio&pack=m24-weather-hourly"];
+  out["t24-reminders-phone"] = [land, "scene=deck&theme=studio&pack=m24-rem-repeat"];
+  out["t24-reminders-pc"] = [pc, "scene=settings&theme=studio&lang=ru&go=reminders", ".rem-time-pill::0"];
+  out["t24-integ-lyrics"] = [pc, "scene=settings&theme=studio&lang=ru&go=integrations"];
+  out["t24-focus-switch"] = [pc, "scene=settings&theme=studio&lang=ru&go=look&focus=.settings-switch"];
+  out["t24-focus-segmented"] = [pc, "scene=settings&theme=studio&lang=ru&go=look&focus=.segmented-item"];
+  out["t24-focus-button"] = [pc, "scene=settings&theme=studio&lang=ru&go=integrations&focus=.btn-primary"];
+  for (const step of [0, 1, 2]) {
+    for (const scheme of ["light", "dark"]) {
+      out[`t24-wizard-${step}-${scheme}`] = [pc, `scene=settings&theme=studio&lang=ru&scheme=${scheme}&wizard=${step}`];
+    }
+  }
+  out["t24-phone-nolayout-ru"] = [port, "scene=deck&theme=studio&lang=ru&pack=m24-empty-deck"];
+  return out;
+}
 // T23: the settings window (Russian) in both colour schemes: pages, a search with results and the minimum window width.
 function settingsShots() {
   const out = {};
@@ -125,6 +149,7 @@ const SHOTS = {
   "m22-pill-looking": [PILL, "scene=pill&state=thinking&activity=screen&heard=what+is+on+screen"],
   ...settingsShots(),
   ...t235bShots(),
+  ...t24Shots(),
   "phone-idle": [PHONE, "scene=phone&state=idle"],
   "phone-listening": [PHONE, "scene=phone&state=listening"],
   "phone-done": [PHONE, "scene=phone&state=done&heard=turn+the+volume+up&reply=Done"],
@@ -193,6 +218,17 @@ async function shoot(name, [size, query, click]) {
       await send("Input.dispatchMouseEvent", { type: "mousePressed", x, y, button: "left", clickCount: 1 });
       await send("Input.dispatchMouseEvent", { type: "mouseReleased", x, y, button: "left", clickCount: 1 });
       await sleep(600);
+    }
+    const focusSel = new URLSearchParams(query).get("focus");
+    if (focusSel) {
+      // Send Tab first so Chromium enters keyboard modality and renders :focus-visible rings.
+      await send("Input.dispatchKeyEvent", { type: "keyDown", key: "Tab", code: "Tab", windowsVirtualKeyCode: 9 });
+      await send("Input.dispatchKeyEvent", { type: "keyUp", key: "Tab", code: "Tab", windowsVirtualKeyCode: 9 });
+      await send("Runtime.evaluate", {
+        expression: `(() => { const e = document.querySelector(${JSON.stringify(focusSel)}); if (e) { e.scrollIntoView({ block: "center" }); e.focus({ focusVisible: true }); } return !!e; })()`,
+        returnByValue: true,
+      });
+      await sleep(300);
     }
     const params = { format: "png" };
     if (query.includes("pad=1")) {

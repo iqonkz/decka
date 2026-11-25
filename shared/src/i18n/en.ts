@@ -1052,5 +1052,15 @@ export const en = {
   "look.accent_hex": "HEX color code",
   "rem.prev_month": "Previous month",
   "rem.next_month": "Next month",
+  "rem.repeat_aria": "Repeat",
+  "rem.repeat_once": "Once",
+  "rem.repeat_daily": "Daily",
+  "rem.repeat_weekdays": "Weekdays",
+  "rem.repeat_weekly": "Weekly",
+  "rem.repeat_every_day": "Every day",
+  "rem.repeat_every_weekday": "Every {day}",
+  "phone.no_layout_title": "No buttons yet",
+  "phone.no_layout_body": "Add buttons or widgets in Decka on your PC and they will appear here automatically.",
+  "menu.title": "Menu",
   // @@END
 } as const;
