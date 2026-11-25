@@ -570,5 +570,20 @@
     "args": {
       "name": "жұмыс"
     }
+  },
+  {
+    "say": "қазір ауа райы қалай",
+    "tool": "status",
+    "args": {
+      "topic": "weather"
+    }
+  },
+  {
+    "say": "Парижде ауа райы қандай",
+    "tool": "web_search",
+    "args": {
+      "query": "Парижде ауа райы",
+      "site": "web"
+    }
   }
 ]

@@ -15,6 +15,24 @@
     "stop",
     "don't"
   ],
+  "place_prepositions": [
+    "in",
+    "at",
+    "for"
+  ],
+  "place_postpositions": [],
+  "place_suffixes": [],
+  "place_ignore": [
+    "the",
+    "a",
+    "my",
+    "this",
+    "now",
+    "today",
+    "tomorrow",
+    "here",
+    "outside"
+  ],
   "intents": [
     {
       "tool": "volume",

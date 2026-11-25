@@ -13,6 +13,22 @@
     "detener",
     "parar"
   ],
+  "place_prepositions": [
+    "en",
+    "para"
+  ],
+  "place_postpositions": [],
+  "place_suffixes": [],
+  "place_ignore": [
+    "el",
+    "la",
+    "mi",
+    "este",
+    "hoy",
+    "ahora",
+    "mañana",
+    "afuera"
+  ],
   "intents": [
     {
       "tool": "volume",

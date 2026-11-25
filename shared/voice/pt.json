@@ -14,6 +14,24 @@
     "parar",
     "não quero"
   ],
+  "place_prepositions": [
+    "em",
+    "no",
+    "na",
+    "para"
+  ],
+  "place_postpositions": [],
+  "place_suffixes": [],
+  "place_ignore": [
+    "o",
+    "a",
+    "meu",
+    "este",
+    "hoje",
+    "agora",
+    "amanhã",
+    "fora"
+  ],
   "intents": [
     {
       "tool": "volume",

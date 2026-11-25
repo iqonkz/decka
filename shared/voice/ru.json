@@ -14,6 +14,23 @@
     "стоп",
     "отбой"
   ],
+  "place_prepositions": [
+    "в",
+    "во",
+    "для"
+  ],
+  "place_postpositions": [],
+  "place_suffixes": [],
+  "place_ignore": [
+    "сейчас",
+    "сегодня",
+    "завтра",
+    "моём",
+    "моем",
+    "этом",
+    "улице",
+    "городе"
+  ],
   "intents": [
     {
       "tool": "volume",

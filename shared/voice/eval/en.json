@@ -584,5 +584,20 @@
     "args": {
       "name": "coding"
     }
+  },
+  {
+    "say": "how is the weather",
+    "tool": "status",
+    "args": {
+      "topic": "weather"
+    }
+  },
+  {
+    "say": "what is the weather in Paris",
+    "tool": "web_search",
+    "args": {
+      "query": "weather in Paris",
+      "site": "web"
+    }
   }
 ]

@@ -409,7 +409,7 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
                     // "weather in Paris" is not the weather of the widget: the model searches the web for it (T26.F-6).
                     if intent.tool == "status"
                         && intent.args.get("topic").and_then(|t| t.as_str()) == Some("weather")
-                        && super::status::names_other_place(&text, env.ctx.weather_place.as_deref())
+                        && env.table.names_other_place(&text, env.ctx.weather_place.as_deref())
                     {
                         s.phase = Phase::Thinking;
                         return (s, vec![Effect::AskLlm(text)]);

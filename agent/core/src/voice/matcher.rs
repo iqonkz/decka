@@ -41,6 +41,14 @@ struct RawTable {
     yes: Vec<String>,
     #[serde(default)]
     no: Vec<String>,
+    #[serde(default)]
+    place_prepositions: Vec<String>,
+    #[serde(default)]
+    place_postpositions: Vec<String>,
+    #[serde(default)]
+    place_suffixes: Vec<String>,
+    #[serde(default)]
+    place_ignore: Vec<String>,
     intents: Vec<RawIntent>,
     /// M27: what is said during a guide - `next`, `back`, `stop`, `done`.
     #[serde(default)]
@@ -85,6 +93,10 @@ pub struct Table {
     remind_leads: Vec<Vec<String>>,
     guide_controls: Vec<(&'static str, Vec<Vec<String>>)>,
     danger_words: Vec<String>,
+    place_prepositions: Vec<String>,
+    place_postpositions: Vec<String>,
+    place_suffixes: Vec<String>,
+    place_ignore: Vec<String>,
 }
 
 // ---- Normalisation ----------------------------------------------------------------------------------------------
@@ -404,7 +416,34 @@ impl Table {
             .into_iter()
             .map(|k| (k, words(raw.guide_controls.get(k).cloned().unwrap_or_default())))
             .collect();
-        Ok(Table { lang: raw.lang, yes: words(raw.yes), no: words(raw.no), intents, patterns, calc_leads, remind_leads, guide_controls, danger_words: raw.danger_words })
+        let lower = |v: Vec<String>| v.into_iter().map(|s| s.to_lowercase()).collect();
+        Ok(Table {
+            lang: raw.lang,
+            yes: words(raw.yes),
+            no: words(raw.no),
+            intents,
+            patterns,
+            calc_leads,
+            remind_leads,
+            guide_controls,
+            danger_words: raw.danger_words,
+            place_prepositions: lower(raw.place_prepositions),
+            place_postpositions: lower(raw.place_postpositions),
+            place_suffixes: lower(raw.place_suffixes),
+            place_ignore: lower(raw.place_ignore),
+        })
+    }
+
+    /// Whether a weather phrase names a place other than `configured` according to this language's place rules.
+    pub fn names_other_place(&self, phrase: &str, configured: Option<&str>) -> bool {
+        super::status::names_other_place_with(
+            phrase,
+            configured,
+            &self.place_prepositions,
+            &self.place_postpositions,
+            &self.place_suffixes,
+            &self.place_ignore,
+        )
     }
 
     fn intent(&self, idx: usize, slots: &[(String, Vec<String>)]) -> Option<Intent> {
@@ -680,6 +719,10 @@ mod tests {
                 let want = item.get("args").and_then(|a| a.as_object()).cloned().unwrap_or_default();
                 let slot = per_tool.entry(tool.to_string()).or_default();
                 match table.matches_at(say, &now) {
+                    Match::Hit(i) if i.tool == "status" && i.args.get("topic").and_then(|t| t.as_str()) == Some("weather") && table.names_other_place(say, Some("Almaty")) => {
+                        miss += 1;
+                        slot.2 += 1;
+                    }
                     Match::Hit(i) if i.tool == tool && args_ok(tool, &want, &i.args) => {
                         ok += 1;
                         slot.0 += 1;
@@ -729,6 +772,30 @@ mod tests {
         // A real search request still searches.
         let i = hit(&en, "search for cat videos");
         assert_eq!((i.tool.as_str(), i.args["query"].as_str()), ("web_search", Some("cat videos")));
+    }
+
+    #[test]
+    fn weather_other_place_in_all_11_languages() {
+        let cases: [(&str, &str, &str); 11] = [
+            (include_str!("../../../../shared/voice/en.json"), "how is the weather", "what is the weather in Paris"),
+            (include_str!("../../../../shared/voice/ru.json"), "какая сейчас погода", "погода в Париже"),
+            (include_str!("../../../../shared/voice/de.json"), "wie wird das wetter", "wie ist das wetter in Paris"),
+            (include_str!("../../../../shared/voice/fr.json"), "quel temps fait-il", "quel temps fait-il à Paris"),
+            (include_str!("../../../../shared/voice/es.json"), "cómo está el clima", "qué tiempo hace en París"),
+            (include_str!("../../../../shared/voice/pt.json"), "qual é o clima", "como está o tempo em Paris"),
+            (include_str!("../../../../shared/voice/ar.json"), "ما حالة الطقس", "كيف الطقس في باريس"),
+            (include_str!("../../../../shared/voice/hi.json"), "मौसम बताओ", "पेरिस में मौसम कैसा है"),
+            (include_str!("../../../../shared/voice/ja.json"), "天気はどう", "パリの天気はどう"),
+            (include_str!("../../../../shared/voice/zh.json"), "现在天气如何", "巴黎的天气怎么样"),
+            (include_str!("../../../../shared/voice/kk.json"), "қазір ауа райы қалай", "Парижде ауа райы қандай"),
+        ];
+        for (raw, local, other) in cases {
+            let t = Table::parse(raw).unwrap();
+            let hit_local = hit(&t, local);
+            assert_eq!((hit_local.tool.as_str(), hit_local.args["topic"].as_str()), ("status", Some("weather")), "{}: {local}", t.lang);
+            assert!(!t.names_other_place(local, Some("Almaty")), "{}: {local}", t.lang);
+            assert!(t.names_other_place(other, Some("Almaty")), "{}: {other}", t.lang);
+        }
     }
 
     /// T23.B: the phrases of the owner report go through the real tables, 21:00 on a Tuesday.

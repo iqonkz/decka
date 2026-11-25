@@ -584,5 +584,20 @@
     "args": {
       "name": "работа"
     }
+  },
+  {
+    "say": "какая сейчас погода",
+    "tool": "status",
+    "args": {
+      "topic": "weather"
+    }
+  },
+  {
+    "say": "погода в Париже",
+    "tool": "web_search",
+    "args": {
+      "query": "погода в Париже",
+      "site": "web"
+    }
   }
 ]

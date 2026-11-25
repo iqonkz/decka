@@ -570,5 +570,20 @@
     "args": {
       "name": "作業"
     }
+  },
+  {
+    "say": "天気はどう",
+    "tool": "status",
+    "args": {
+      "topic": "weather"
+    }
+  },
+  {
+    "say": "パリの天気はどう",
+    "tool": "web_search",
+    "args": {
+      "query": "パリの天気",
+      "site": "web"
+    }
   }
 ]

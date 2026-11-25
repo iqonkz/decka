@@ -80,21 +80,94 @@ pub struct Answer {
 }
 
 /// Words that introduce a place ("weather in Paris"), per language; the word after one is the place.
-const PLACE_PREPOSITIONS: &[&str] = &["in", "at", "for", "в", "во", "для", "für", "à", "au", "pour", "en", "em", "para", "في"];
+const PLACE_PREPOSITIONS: &[&str] = &["in", "at", "for", "в", "во", "для", "für", "à", "au", "pour", "en", "em", "no", "na", "para", "في", "在"];
+const PLACE_POSTPOSITIONS: &[&str] = &["में", "पर", "के", "の", "で", "に", "的", "үшін", "бойынша"];
+const PLACE_SUFFIXES: &[&str] = &[];
+const PLACE_IGNORE: &[&str] = &[
+    "the", "a", "my", "this", "now", "today", "tomorrow", "here", "outside",
+    "сейчас", "сегодня", "завтра", "моём", "моем", "этом", "улице", "городе",
+    "der", "die", "das", "heute", "morgen", "jetzt", "meiner", "dieser",
+    "le", "la", "mon", "ce", "maintenant", "aujourdhui", "demain", "dehors",
+    "el", "mi", "este", "hoy", "ahora", "mañana", "afuera",
+    "o", "meu", "hoje", "agora", "amanhã", "fora",
+    "اليوم", "الآن", "غدا", "الخارج", "هذا",
+    "आज", "अभी", "कल", "बाहर", "यहाँ", "इस",
+    "今", "日", "今日", "明日", "ここ", "外",
+    "今", "天", "现", "在", "明", "这",
+    "бүгін", "қазір", "ертең", "осында", "сыртта", "дала", "далада", "ауа", "райы", "ауада",
+];
+
+fn names_other_place_core<S: AsRef<str>>(
+    phrase: &str,
+    configured: Option<&str>,
+    prepositions: &[S],
+    postpositions: &[S],
+    suffixes: &[S],
+    ignore: &[S],
+) -> bool {
+    let toks = super::matcher::tokens(phrase);
+    let is_ignored = |w: &str| ignore.iter().any(|x| x.as_ref() == w);
+    let matches_cfg = |word: &str| {
+        configured.is_some_and(|place| {
+            super::matcher::tokens(place)
+                .iter()
+                .any(|p| super::matcher::trigram_sim(p, word) >= 0.5 || p.starts_with(word) || word.starts_with(p.as_str()))
+        })
+    };
+
+    for (i, t) in toks.iter().enumerate() {
+        if prepositions.iter().any(|p| p.as_ref() == t) {
+            if let Some(word) = toks.get(i + 1) {
+                if !is_ignored(word) && !matches_cfg(word) {
+                    return true;
+                }
+            }
+        }
+        if i > 0 && postpositions.iter().any(|p| p.as_ref() == t) {
+            let word = &toks[i - 1];
+            if !is_ignored(word) && !matches_cfg(word) {
+                return true;
+            }
+        }
+    }
+
+    for tok in &toks {
+        if is_ignored(tok) {
+            continue;
+        }
+        let total = tok.chars().count();
+        let stem = suffixes
+            .iter()
+            .map(AsRef::as_ref)
+            .filter(|s| !s.is_empty() && tok.ends_with(s) && total.saturating_sub(s.chars().count()) >= 3)
+            .max_by_key(|s| s.chars().count())
+            .map(|s| &tok[..tok.len() - s.len()]);
+        if let Some(stem) = stem {
+            if !is_ignored(stem) && !matches_cfg(stem) {
+                return true;
+            }
+        }
+    }
+
+    false
+}
 
 /// Whether a weather phrase names a place other than `configured` (the widget's city): "погода в Париже" with Almaty set.
 /// A place equal to the configured one (up to a case ending) or no place at all is `false`.
 pub fn names_other_place(phrase: &str, configured: Option<&str>) -> bool {
-    let toks = super::matcher::tokens(phrase);
-    let Some(i) = toks.iter().position(|t| PLACE_PREPOSITIONS.contains(&t.as_str())) else { return false };
-    let Some(word) = toks.get(i + 1) else { return false };
-    // Times of the day and similar are not places.
-    if matches!(word.as_str(), "the" | "a" | "my" | "this" | "now" | "today" | "сейчас" | "сегодня" | "завтра" | "моём" | "моем" | "этом") {
-        return false;
-    }
-    let Some(place) = configured else { return true };
-    let place_toks = super::matcher::tokens(place);
-    !place_toks.iter().any(|p| super::matcher::trigram_sim(p, word) >= 0.5 || p.starts_with(word.as_str()) || word.starts_with(p.as_str()))
+    names_other_place_core(phrase, configured, PLACE_PREPOSITIONS, PLACE_POSTPOSITIONS, PLACE_SUFFIXES, PLACE_IGNORE)
+}
+
+/// Per-table version of `names_other_place` backed by `shared/voice/*.json`.
+pub fn names_other_place_with(
+    phrase: &str,
+    configured: Option<&str>,
+    prepositions: &[String],
+    postpositions: &[String],
+    suffixes: &[String],
+    ignore: &[String],
+) -> bool {
+    names_other_place_core(phrase, configured, prepositions, postpositions, suffixes, ignore)
 }
 
 /// Languages that write the decimal comma.

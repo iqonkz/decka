@@ -14,6 +14,22 @@
     "停止",
     "算了"
   ],
+  "place_prepositions": [
+    "在"
+  ],
+  "place_postpositions": [
+    "的"
+  ],
+  "place_suffixes": [],
+  "place_ignore": [
+    "今",
+    "天",
+    "现",
+    "在",
+    "明",
+    "这",
+    "外"
+  ],
   "intents": [
     {
       "tool": "volume",
