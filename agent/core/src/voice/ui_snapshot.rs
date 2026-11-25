@@ -1,4 +1,4 @@
-﻿//! A snapshot of the interactive elements of the active window (T27.1). It is the only thing the screen guide may point at: the
+//! A snapshot of the interactive elements of the active window (T27.1). It is the only thing the screen guide may point at: the
 //! model never names an element, it picks an `id` from this list (the `enum` of its JSON schema). Read through UI Automation on a
 //! thread of its own with a short deadline; nothing is written to disk.
 
@@ -217,6 +217,74 @@ fn read_active_window() -> Option<Snapshot> {
 #[cfg(not(windows))]
 fn read_active_window() -> Option<Snapshot> {
     None
+}
+
+/// Acts on the element at `rect` (T27.4): a click is the `Invoke` of the element when it has one, else a mouse click in the centre
+/// of the rectangle; a scroll is the mouse wheel over it; closing a tab is Ctrl+W of the active program. Blocking, short.
+pub fn perform(rect: Rect, action: super::screenhelp::UiAction) -> Result<String, String> {
+    #[cfg(windows)]
+    {
+        win_perform(rect, action)
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = (rect, action);
+        Err("unsupported platform".into())
+    }
+}
+
+#[cfg(windows)]
+fn win_perform(rect: Rect, action: super::screenhelp::UiAction) -> Result<String, String> {
+    use super::screenhelp::UiAction;
+    use windows::Win32::Foundation::POINT;
+    use windows::Win32::System::Com::{CoCreateInstance, CoInitializeEx, CoUninitialize, CLSCTX_INPROC_SERVER, COINIT_MULTITHREADED};
+    use windows::Win32::UI::Accessibility::{CUIAutomation, IUIAutomation, IUIAutomationInvokePattern, UIA_InvokePatternId};
+    use windows::Win32::UI::Input::KeyboardAndMouse::{keybd_event, mouse_event, KEYEVENTF_KEYUP, MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP, MOUSEEVENTF_WHEEL, VK_CONTROL};
+    use windows::Win32::UI::WindowsAndMessaging::{GetCursorPos, SetCursorPos};
+
+    let (cx, cy) = (rect.x + rect.width / 2, rect.y + rect.height / 2);
+    // SAFETY: plain input calls of this process; COM is initialised and released on this thread.
+    unsafe {
+        match action {
+            UiAction::CloseTab => {
+                keybd_event(VK_CONTROL.0 as u8, 0, Default::default(), 0);
+                keybd_event(b'W', 0, Default::default(), 0);
+                keybd_event(b'W', 0, KEYEVENTF_KEYUP, 0);
+                keybd_event(VK_CONTROL.0 as u8, 0, KEYEVENTF_KEYUP, 0);
+                Ok("Tab closed".into())
+            }
+            UiAction::ScrollDown | UiAction::ScrollUp => {
+                let mut before = POINT::default();
+                let _ = GetCursorPos(&mut before);
+                let _ = SetCursorPos(cx, cy);
+                let delta: i32 = if action == UiAction::ScrollDown { -360 } else { 360 };
+                mouse_event(MOUSEEVENTF_WHEEL, 0, 0, delta, 0);
+                let _ = SetCursorPos(before.x, before.y);
+                Ok("Scrolled".into())
+            }
+            UiAction::Click => {
+                let initialised = CoInitializeEx(None, COINIT_MULTITHREADED).is_ok();
+                let invoked = (|| -> Option<()> {
+                    let automation: IUIAutomation = CoCreateInstance(&CUIAutomation, None, CLSCTX_INPROC_SERVER).ok()?;
+                    let element = automation.ElementFromPoint(POINT { x: cx, y: cy }).ok()?;
+                    let pattern: IUIAutomationInvokePattern = element.GetCurrentPatternAs(UIA_InvokePatternId).ok()?;
+                    pattern.Invoke().ok()
+                })();
+                if initialised {
+                    CoUninitialize();
+                }
+                if invoked.is_none() {
+                    let mut before = POINT::default();
+                    let _ = GetCursorPos(&mut before);
+                    let _ = SetCursorPos(cx, cy);
+                    mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
+                    mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
+                    let _ = SetCursorPos(before.x, before.y);
+                }
+                Ok("Pressed".into())
+            }
+        }
+    }
 }
 
 #[cfg(test)]
