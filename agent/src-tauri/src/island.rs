@@ -162,8 +162,47 @@ fn sample(agent: &Agent, paused_since: &mut Option<Instant>) -> Sample {
     Sample { visible: shown, mode, track, fullscreen, lyrics: current, playing, muted, track_info: song }
 }
 
+/// The glass of the panel (T26.F.3): `css` (the page draws a translucent surface) or `acrylic` (DWM backdrop cut to the rounded panel).
+/// `DECKA_ISLAND_GLASS=acrylic` switches it; the owner picks the default.
+fn acrylic_wanted() -> bool {
+    std::env::var("DECKA_ISLAND_GLASS").is_ok_and(|v| v == "acrylic")
+}
+
+/// Panel radius in CSS pixels, as the page draws it (`island.css`).
+fn panel_radius(mode: Mode) -> i32 {
+    if mode == Mode::Expanded { 24 } else { 22 }
+}
+
+/// Acrylic on the window, cut to the panel; off (and no cut) for the tab, which has no panel.
+fn apply_glass(window: &tauri::WebviewWindow, mode: Mode, rect: Option<Rect>) {
+    let Ok(hwnd) = window.hwnd() else { return };
+    let hwnd = hwnd.0 as isize;
+    match rect {
+        Some(r) if mode != Mode::Tab && r.width > 1.0 => {
+            let scale = window.scale_factor().unwrap_or(1.0);
+            decka_core::glass::set_acrylic(hwnd, true);
+            let px = |v: f64| (v * scale).round() as i32;
+            decka_core::glass::set_region(hwnd, Some((px(r.x), px(r.y), px(r.width), px(r.height))), px(f64::from(panel_radius(mode))));
+        }
+        _ => {
+            decka_core::glass::set_region(hwnd, None, 0);
+            decka_core::glass::set_acrylic(hwnd, false);
+        }
+    }
+}
+
 fn create(app: &AppHandle) -> Option<tauri::WebviewWindow> {
-    let window = WebviewWindowBuilder::new(app, LABEL, WebviewUrl::App("index.html?island=1".into()))
+    let mut url = String::from("index.html?island=1");
+    if acrylic_wanted() {
+        url.push_str("&glass=acrylic");
+    }
+    // For snapshots only: `DECKA_ISLAND_THEME=light|dark` overrides the colour scheme of the system.
+    if let Ok(theme) = std::env::var("DECKA_ISLAND_THEME") {
+        if theme == "light" || theme == "dark" {
+            url.push_str(&format!("&theme={theme}"));
+        }
+    }
+    let window = WebviewWindowBuilder::new(app, LABEL, WebviewUrl::App(url.into()))
         .title("Decka")
         .inner_size(WIDTH, HEIGHT)
         .decorations(false)
@@ -230,6 +269,8 @@ pub fn setup(app: &AppHandle, agent: &Agent) -> Arc<Shared> {
     tauri::async_runtime::spawn(async move {
         let mut machine = Machine::default();
         let meter = decka_core::audio::PeakMeter::start();
+        let acrylic = acrylic_wanted();
+        let mut last_glass: Option<(Mode, Option<(i64, i64, i64, i64)>)> = None;
         let (mut shown, mut ignoring, mut paused_since) = (false, true, None);
         let (mut last_event, mut fresh_until): (Option<Value>, Option<Instant>) = (None, None);
         let (mut tick, mut sampled) = (0u64, Sample::default());
@@ -292,6 +333,13 @@ pub fn setup(app: &AppHandle, agent: &Agent) -> Arc<Shared> {
             if ignoring == on_panel {
                 ignoring = !on_panel;
                 let _ = window.set_ignore_cursor_events(ignoring);
+            }
+            if acrylic {
+                let key = (mode, rect.map(|r| (r.x.round() as i64, r.y.round() as i64, r.width.round() as i64, r.height.round() as i64)));
+                if last_glass != Some(key) {
+                    apply_glass(&window, mode, rect);
+                    last_glass = Some(key);
+                }
             }
             // The level of the music is read only while a song plays and the panel is open (T26.F.10).
             let music = sampled.playing && matches!(mode, Mode::Compact | Mode::Expanded);

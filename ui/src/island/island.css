@@ -6,7 +6,7 @@
   width: 100%;
   box-sizing: border-box;
   font-family: "Segoe UI Variable", system-ui, -apple-system, sans-serif;
-  --island-bg: rgba(24, 24, 30, 0.9);
+  --island-bg: rgba(24, 24, 30, 0.92);
   --island-border: rgba(255, 255, 255, 0.12);
   --island-divider: rgba(255, 255, 255, 0.06);
   --island-btn-hover: rgba(255, 255, 255, 0.08);
@@ -18,7 +18,7 @@
 }
 
 .island-host[data-island-theme="light"] {
-  --island-bg: rgba(248, 248, 250, 0.9);
+  --island-bg: rgba(248, 248, 250, 0.92);
   --island-border: rgba(0, 0, 0, 0.08);
   --island-divider: rgba(0, 0, 0, 0.06);
   --island-btn-hover: rgba(0, 0, 0, 0.05);
@@ -26,6 +26,20 @@
   --island-muted: rgba(17, 17, 22, 0.6);
   --island-surface: rgba(0, 0, 0, 0.06);
   --island-surface-hover: rgba(0, 0, 0, 0.12);
+}
+
+/* T26.F.3: acrylic variant - the system draws the glass, the page only tints it; the window cut hides the shadow anyway. */
+[data-island-glass="acrylic"] .island-host {
+  --island-bg: rgba(24, 24, 30, 0.38);
+}
+
+[data-island-glass="acrylic"] .island-host[data-island-theme="light"] {
+  --island-bg: rgba(248, 248, 250, 0.45);
+}
+
+[data-island-glass="acrylic"] .island-panel {
+  box-shadow: none;
+  border-color: transparent;
 }
 
 .island-tab-zone {
@@ -55,8 +69,8 @@
   border: 1px solid var(--island-border);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
   color: var(--island-text);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   transition:
     width 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
     height 220ms cubic-bezier(0.2, 0.8, 0.2, 1),

@@ -15,6 +15,15 @@ function localized(event: IslandEvent): IslandEvent {
   return { ...event, voice: { ...v, reply: reply || v.reply, chips } };
 }
 
+/** `?theme=light|dark` (snapshots only): the colour scheme of the island regardless of the system. */
+function forcedTheme(): "light" | "dark" | undefined {
+  const v = new URLSearchParams(window.location.search).get("theme");
+  return v === "light" || v === "dark" ? v : undefined;
+}
+
+/** `?glass=acrylic`: the window carries the system acrylic and the page draws only a light tint (T26.F.3). */
+const GLASS = new URLSearchParams(window.location.search).get("glass") === "acrylic" ? "acrylic" : "css";
+
 /** The panel with the language menu while it is open (the menu drops below the panel): the window grows to hold both (T26.F.9). */
 export function unionRect(a: DOMRect | undefined, b: DOMRect | undefined): { x: number; y: number; width: number; height: number } | undefined {
   if (!a) return b;
@@ -32,7 +41,7 @@ export function unionRect(a: DOMRect | undefined, b: DOMRect | undefined): { x: 
 export default function IslandApp() {
   const [event, setEvent] = useState<IslandEvent>(HIDDEN);
   const [language, setLanguage] = useState<LanguageSetting | undefined>(undefined);
-  const [theme, setTheme] = useState<"light" | "dark">(window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+  const [theme, setTheme] = useState<"light" | "dark">(forcedTheme() ?? (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark"));
   const host = useRef<HTMLDivElement>(null);
   useApplyLanguage(language, navigator.language);
 
@@ -47,7 +56,7 @@ export default function IslandApp() {
       () => {},
     );
     const media = window.matchMedia("(prefers-color-scheme: light)");
-    const onTheme = () => setTheme(media.matches ? "light" : "dark");
+    const onTheme = () => setTheme(forcedTheme() ?? (media.matches ? "light" : "dark"));
     media.addEventListener("change", onTheme);
     let off: (() => void) | undefined;
     let live = true;
@@ -97,7 +106,7 @@ export default function IslandApp() {
   const shown = localized(event);
   const confirmId = event.voice?.phase === "confirm" ? event.voice.confirmId : undefined;
   return (
-    <div ref={host} style={{ width: "100%", boxSizing: "border-box", padding: 24 }}>
+    <div ref={host} data-island-glass={GLASS} style={{ width: "100%", boxSizing: "border-box", padding: 24 }}>
       <Island
         event={shown}
         theme={theme}
