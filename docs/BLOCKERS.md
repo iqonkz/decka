@@ -182,3 +182,5 @@ Not a stop, a gap for the architect. DESIGN 4.17 (`Auto`) hides the lyrics windo
 ## 2026-11-25 - T26.1: two gaps in `status` (not stops)
 1. `phone_battery`: the `battery` section holds only PC and Bluetooth devices (`kind: pc|bt`); the phone's own battery is not sent to the PC (PROTOCOL has no such data message). Implemented: the answer lists `bt` devices; empty -> `voice.status.none.phone_battery`. The phone's own charge needs a small data message (`battery_report`) - architect to decide.
 2. The fast path takes `what is the weather in paris today` (up to 4 extra words) as `status weather` and answers with the configured place. A place named in the phrase is not read. Option: patterns with a `{place}` slot that leaves such phrases to the model, or a `status` argument `place` that is refused.
+
+**Решение архитектора 2026-11-25 (вопросы T26.R):** `phone_battery` → `battery` по `BatteryInfo` (T26.F.5); погода с чужим городом — мимо `status` (T26.F.6); `voice.context.enabled` в `config.json` — верно; `always` поверх полноэкранной программы — верно (решение T25.3), `auto` скрывается — верно. Акрил — попытка в T26.F.3.
