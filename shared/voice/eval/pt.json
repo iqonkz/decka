@@ -382,5 +382,58 @@
     "args": {
       "question": "qual é a cotação atual do dólar para o real"
     }
+  },
+  {
+    "say": "me lembra de tomar vitaminas todo dia às 08:30",
+    "tool": "remind",
+    "args": {
+      "text": "tomar vitaminas",
+      "at": "08:30",
+      "repeat": "daily"
+    }
+  },
+  {
+    "say": "cria um lembrete diário às 21:30 para fazer alongamento",
+    "tool": "remind",
+    "args": {
+      "text": "fazer alongamento",
+      "at": "21:30",
+      "repeat": "daily"
+    }
+  },
+  {
+    "say": "me avisa da reunião da equipe nos dias úteis às 09:15",
+    "tool": "remind",
+    "args": {
+      "text": "reunião da equipe",
+      "at": "09:15",
+      "repeat": "weekdays"
+    }
+  },
+  {
+    "say": "lembre-me de mandar o relatório toda segunda às 10:00",
+    "tool": "remind",
+    "args": {
+      "text": "mandar o relatório",
+      "at": "10:00",
+      "repeat": "weekly"
+    }
+  },
+  {
+    "say": "toda sexta-feira às 19:00 me lembra de fazer backup do código",
+    "tool": "remind",
+    "args": {
+      "text": "fazer backup do código",
+      "at": "19:00",
+      "repeat": "weekly"
+    }
+  },
+  {
+    "say": "me lembra de regar as plantas dia sim dia não às 11:00",
+    "tool": "remind",
+    "args": {
+      "text": "regar as plantas",
+      "at": "11:00"
+    }
   }
 ]

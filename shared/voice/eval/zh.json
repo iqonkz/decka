@@ -382,5 +382,58 @@
     "args": {
       "question": "现在的美元对人民币汇率是多少"
     }
+  },
+  {
+    "say": "提醒我每天早上08:30吃维生素",
+    "tool": "remind",
+    "args": {
+      "text": "吃维生素",
+      "at": "08:30",
+      "repeat": "daily"
+    }
+  },
+  {
+    "say": "每天晚上21:30提醒我做睡前拉伸",
+    "tool": "remind",
+    "args": {
+      "text": "做睡前拉伸",
+      "at": "21:30",
+      "repeat": "daily"
+    }
+  },
+  {
+    "say": "工作日09:15提醒我参加晨会",
+    "tool": "remind",
+    "args": {
+      "text": "参加晨会",
+      "at": "09:15",
+      "repeat": "weekdays"
+    }
+  },
+  {
+    "say": "每周一10:00提醒我发送周报",
+    "tool": "remind",
+    "args": {
+      "text": "发送周报",
+      "at": "10:00",
+      "repeat": "weekly"
+    }
+  },
+  {
+    "say": "每个星期五19:00提醒我备份代码",
+    "tool": "remind",
+    "args": {
+      "text": "备份代码",
+      "at": "19:00",
+      "repeat": "weekly"
+    }
+  },
+  {
+    "say": "每隔一天11:00提醒我给阳台的植物浇水",
+    "tool": "remind",
+    "args": {
+      "text": "给阳台的植物浇水",
+      "at": "11:00"
+    }
   }
 ]
