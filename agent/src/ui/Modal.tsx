@@ -20,7 +20,7 @@ export default function Modal({ title, subtitle, onClose, children, footer, clas
   }, [onClose]);
 
   return (
-    <div className="dialog-backdrop" onPointerDown={onClose}>
+    <div className="modal-backdrop" onPointerDown={onClose}>
       <div
         className={`modal-card${className ? ` ${className}` : ""}`}
         role="dialog"

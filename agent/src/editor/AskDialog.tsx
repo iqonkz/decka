@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getLanguage, pickText, t, type Answer, type CatalogItem, type Page } from "@decka/shared";
 import Button from "../ui/Button";
+import Modal from "../ui/Modal";
 import Select from "../ui/Select";
 import { actionFromUrl } from "./addButton";
 import ChordField from "./ChordField";
@@ -57,43 +58,46 @@ export default function AskDialog({ item, pages, currentPageId, obs, onConfirm, 
   const needsObs = (item.ask === "obs_scene" || item.ask === "obs_input") && obs === null;
   const empty = !needsObs && (item.ask === "obs_scene" || item.ask === "obs_input" || item.ask === "page") && options.length === 0;
   return (
-    <div className="dialog-backdrop" onPointerDown={onClose}>
-      <div className="dialog ask-dialog" role="dialog" aria-label={title} onPointerDown={(e) => e.stopPropagation()}>
-        <h2>{pickText(item.name, lang)}</h2>
-        <strong>{title}</strong>
-        {item.ask === "url" && (
-          <input autoFocus placeholder="github.com" aria-label={title} value={url} onChange={(e) => { setUrl(e.target.value); setError(null); }} onKeyDown={(e) => e.key === "Enter" && confirm()} />
-        )}
-        {item.ask === "text" && (
-          <input autoFocus maxLength={item.action?.type === "youtube" ? 200 : 500} aria-label={title} value={text} onChange={(e) => { setText(e.target.value); setError(null); }} onKeyDown={(e) => e.key === "Enter" && confirm()} />
-        )}
-        {item.ask === "keys" && <ChordField keys={keys} onChange={(k) => { setKeys(k); setError(null); }} />}
-        {needsObs && (
-          <>
-            <p className="muted">{t("ask.connect_obs")}</p>
-            <div className="row"><Button onClick={onOpenObs}>{t("ask.open_obs")}</Button></div>
-          </>
-        )}
-        {!needsObs && item.ask !== "url" && item.ask !== "keys" && item.ask !== "text" && (
-          empty ? (
-            <p className="muted">{item.ask === "page" ? t("ask.no_pages") : t("ask.connect_obs")}</p>
-          ) : (
-            <Select
-              autoFocus
-              aria-label={title}
-              value={choice}
-              placeholder={t("ask.choose")}
-              options={options.map((o) => ({ value: o.id, label: o.label }))}
-              onChange={(val) => { setChoice(val); setError(null); }}
-            />
-          )
-        )}
-        {error && <small className="warn-text">{error}</small>}
-        <div className="row">
-          <Button variant="primary" disabled={needsObs || empty} onClick={confirm}>{t("library.add")}</Button>
+    <Modal
+      title={pickText(item.name, lang)}
+      subtitle={title}
+      onClose={onClose}
+      className="ask-dialog"
+      footer={
+        <>
           <Button onClick={onClose}>{t("common.cancel")}</Button>
-        </div>
-      </div>
-    </div>
+          <Button variant="primary" disabled={needsObs || empty} onClick={confirm}>{t("library.add")}</Button>
+        </>
+      }
+    >
+      {item.ask === "url" && (
+        <input autoFocus placeholder="github.com" aria-label={title} value={url} onChange={(e) => { setUrl(e.target.value); setError(null); }} onKeyDown={(e) => e.key === "Enter" && confirm()} />
+      )}
+      {item.ask === "text" && (
+        <input autoFocus maxLength={item.action?.type === "youtube" ? 200 : 500} aria-label={title} value={text} onChange={(e) => { setText(e.target.value); setError(null); }} onKeyDown={(e) => e.key === "Enter" && confirm()} />
+      )}
+      {item.ask === "keys" && <ChordField keys={keys} onChange={(k) => { setKeys(k); setError(null); }} />}
+      {needsObs && (
+        <>
+          <p className="muted">{t("ask.connect_obs")}</p>
+          <div className="row"><Button onClick={onOpenObs}>{t("ask.open_obs")}</Button></div>
+        </>
+      )}
+      {!needsObs && item.ask !== "url" && item.ask !== "keys" && item.ask !== "text" && (
+        empty ? (
+          <p className="muted">{item.ask === "page" ? t("ask.no_pages") : t("ask.connect_obs")}</p>
+        ) : (
+          <Select
+            autoFocus
+            aria-label={title}
+            value={choice}
+            placeholder={t("ask.choose")}
+            options={options.map((o) => ({ value: o.id, label: o.label }))}
+            onChange={(val) => { setChoice(val); setError(null); }}
+          />
+        )
+      )}
+      {error && <small className="warn-text">{error}</small>}
+    </Modal>
   );
 }
