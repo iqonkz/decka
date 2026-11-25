@@ -682,6 +682,158 @@
         "make it sound friendly",
         "make it friendly"
       ]
+    },
+    {
+      "tool": "find_on_screen",
+      "patterns": [
+        "where is {query}",
+        "find {query} on screen",
+        "locate {query} on screen",
+        "highlight {query}"
+      ]
+    },
+    {
+      "tool": "find_on_screen",
+      "args": {
+        "next": true
+      },
+      "patterns": [
+        "wrong one",
+        "not that one",
+        "find next one"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "click",
+        "target": "this"
+      },
+      "patterns": [
+        "click this",
+        "click it",
+        "click here",
+        "tap this"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "click"
+      },
+      "patterns": [
+        "click on screen {target}",
+        "tap on screen {target}",
+        "press on screen {target}"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "scroll_down"
+      },
+      "patterns": [
+        "scroll down",
+        "page down",
+        "scroll down on screen"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "scroll_up"
+      },
+      "patterns": [
+        "scroll up",
+        "page up",
+        "scroll up on screen"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "close_tab"
+      },
+      "patterns": [
+        "close tab",
+        "close this tab",
+        "close current tab"
+      ]
+    },
+    {
+      "tool": "guide",
+      "patterns": [
+        "how do i {goal}",
+        "show me how to {goal}",
+        "guide me to {goal}"
+      ]
+    },
+    {
+      "tool": "guide_record",
+      "patterns": [
+        "remember how to {goal}",
+        "remember how {goal}",
+        "record guide {goal}"
+      ]
+    },
+    {
+      "tool": "read_aloud",
+      "patterns": [
+        "read aloud",
+        "read this aloud",
+        "read selection aloud",
+        "read under cursor"
+      ]
+    },
+    {
+      "tool": "mode_run",
+      "patterns": [
+        "work mode",
+        "start work mode",
+        "start mode {name}",
+        "enable mode {name}"
+      ]
+    },
+    {
+      "tool": "mode_save",
+      "patterns": [
+        "save layout as {name}",
+        "remember layout as {name}"
+      ]
     }
+  ],
+  "guide_controls": {
+    "next": [
+      "next",
+      "next step",
+      "continue"
+    ],
+    "back": [
+      "back",
+      "previous",
+      "previous step"
+    ],
+    "stop": [
+      "stop",
+      "cancel",
+      "end guide"
+    ],
+    "done": [
+      "done",
+      "finished",
+      "ready"
+    ]
+  },
+  "danger_words": [
+    "delete",
+    "remove",
+    "send",
+    "pay",
+    "buy",
+    "purchase",
+    "format",
+    "erase",
+    "transfer",
+    "confirm"
   ]
 }

@@ -517,5 +517,58 @@
     "args": {
       "kind": "speak"
     }
+  },
+  {
+    "say": "où est exporter",
+    "tool": "find_on_screen",
+    "args": {
+      "query": "exporter"
+    }
+  },
+  {
+    "say": "pas celui-là",
+    "tool": "find_on_screen",
+    "args": {
+      "next": true
+    }
+  },
+  {
+    "say": "clique ici",
+    "tool": "ui_act",
+    "args": {
+      "action": "click",
+      "target": "this"
+    }
+  },
+  {
+    "say": "défile vers le bas",
+    "tool": "ui_act",
+    "args": {
+      "action": "scroll_down"
+    }
+  },
+  {
+    "say": "ferme longlet",
+    "tool": "ui_act",
+    "args": {
+      "action": "close_tab"
+    }
+  },
+  {
+    "say": "montre moi comment sauver en pdf",
+    "tool": "guide",
+    "args": {}
+  },
+  {
+    "say": "lis à voix haute",
+    "tool": "read_aloud",
+    "args": {}
+  },
+  {
+    "say": "lance le mode dev",
+    "tool": "mode_run",
+    "args": {
+      "name": "dev"
+    }
   }
 ]

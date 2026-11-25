@@ -383,6 +383,7 @@ pub fn build_context(lang: &str, actions: &ActionsFile, layout: &LayoutFile, ins
         vision_ready: false,
         memory: Vec::new(),
         weather_place: None,
+        guide_running: false,
         lang: lang.to_string(),
         actions: actions.actions.iter().map(|(id, a)| ActionRef { id: id.clone(), name: a.name().to_string() }).collect(),
         buttons,
@@ -956,6 +957,7 @@ impl Ports for Inner {
         let mut ctx = build_context(lang, &self.agent.actions(), &self.agent.layout(), &self.installed.lock().unwrap());
         ctx.vision_ready = self.service.vision_installed();
         ctx.weather_place = self.agent.store().get("weather").get("place").and_then(|p| p.as_str()).map(str::to_string);
+        ctx.guide_running = self.screen.get().is_some_and(|s| s.is_running());
         (self.table(lang), ctx)
     }
 

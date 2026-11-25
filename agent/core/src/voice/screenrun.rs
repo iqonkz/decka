@@ -100,7 +100,7 @@ impl ScreenRun {
     }
 
     fn danger_words(&self) -> Vec<&str> {
-        screenhelp::DANGER_DEFAULT.iter().copied().chain(self.danger.iter().map(String::as_str)).collect()
+        screenhelp::all_danger_words().iter().map(String::as_str).chain(self.danger.iter().map(String::as_str)).collect()
     }
 
     pub fn guides(&self) -> &Guides {

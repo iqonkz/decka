@@ -293,6 +293,7 @@ mod tests {
             vision_ready: false,
             memory: vec![],
         weather_place: None,
+        guide_running: false,
         }
     }
 

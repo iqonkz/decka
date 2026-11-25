@@ -517,5 +517,58 @@
     "args": {
       "kind": "speak"
     }
+  },
+  {
+    "say": "स्क्रीन पर सेव ढूंढें",
+    "tool": "find_on_screen",
+    "args": {
+      "query": "सेव"
+    }
+  },
+  {
+    "say": "यह नहीं",
+    "tool": "find_on_screen",
+    "args": {
+      "next": true
+    }
+  },
+  {
+    "say": "इस पर क्लिक करें",
+    "tool": "ui_act",
+    "args": {
+      "action": "click",
+      "target": "this"
+    }
+  },
+  {
+    "say": "नीचे स्क्रॉल करें",
+    "tool": "ui_act",
+    "args": {
+      "action": "scroll_down"
+    }
+  },
+  {
+    "say": "टैब बंद करें",
+    "tool": "ui_act",
+    "args": {
+      "action": "close_tab"
+    }
+  },
+  {
+    "say": "दिखाओ कि पीडीएफ सेव कैसे करें",
+    "tool": "guide",
+    "args": {}
+  },
+  {
+    "say": "ज़ोर से पढ़ें",
+    "tool": "read_aloud",
+    "args": {}
+  },
+  {
+    "say": "मोड कोडिंग शुरू करें",
+    "tool": "mode_run",
+    "args": {
+      "name": "कोडिंग"
+    }
   }
 ]

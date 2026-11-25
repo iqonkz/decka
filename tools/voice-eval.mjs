@@ -55,6 +55,15 @@ export const VALID_TOOLS = new Set([
   "lyrics_window",
   "status",
   "reply_action",
+  // M27: screen highlight, UI actions, step-by-step guide, read aloud, work modes
+  "find_on_screen",
+  "ui_act",
+  "guide",
+  "guide_record",
+  "read_aloud",
+  "mode_run",
+  "mode_save",
+  "guide_control",
 ]);
 
 // Accuracy targets per DATA_MODEL.md §12.8:

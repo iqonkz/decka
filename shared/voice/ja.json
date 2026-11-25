@@ -547,6 +547,139 @@
         "もう一度",
         "他の言い方"
       ]
+    },
+    {
+      "tool": "find_on_screen",
+      "patterns": [
+        "{query}はどこ",
+        "画面で{query}を探して",
+        "{query}を強調して"
+      ]
+    },
+    {
+      "tool": "find_on_screen",
+      "args": {
+        "next": true
+      },
+      "patterns": [
+        "これじゃない",
+        "次の候補"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "click",
+        "target": "this"
+      },
+      "patterns": [
+        "これをクリック",
+        "ここを押して"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "click"
+      },
+      "patterns": [
+        "画面の{target}をクリック",
+        "画面上の{target}を押して"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "scroll_down"
+      },
+      "patterns": [
+        "下にスクロール",
+        "下へスクロール"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "scroll_up"
+      },
+      "patterns": [
+        "上にスクロール",
+        "上へスクロール"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "close_tab"
+      },
+      "patterns": [
+        "タブを閉じて",
+        "このタブを閉じる"
+      ]
+    },
+    {
+      "tool": "guide",
+      "patterns": [
+        "{goal}のやり方を教えて",
+        "どうやって{goal}"
+      ]
+    },
+    {
+      "tool": "guide_record",
+      "patterns": [
+        "{goal}の手順を覚えて",
+        "{goal}を記録して"
+      ]
+    },
+    {
+      "tool": "read_aloud",
+      "patterns": [
+        "音読して",
+        "声に出して読んで"
+      ]
+    },
+    {
+      "tool": "mode_run",
+      "patterns": [
+        "ワークモード",
+        "モード{name}を開始",
+        "{name}モードに切り替え"
+      ]
+    },
+    {
+      "tool": "mode_save",
+      "patterns": [
+        "この配置を{name}として保存",
+        "レイアウトを{name}で記憶"
+      ]
     }
+  ],
+  "guide_controls": {
+    "next": [
+      "次へ",
+      "進む"
+    ],
+    "back": [
+      "戻る",
+      "前へ"
+    ],
+    "stop": [
+      "停止",
+      "中止"
+    ],
+    "done": [
+      "完了",
+      "終わり"
+    ]
+  },
+  "danger_words": [
+    "削除",
+    "消去",
+    "送信",
+    "支払い",
+    "購入",
+    "フォーマット",
+    "初期化",
+    "送金"
   ]
 }

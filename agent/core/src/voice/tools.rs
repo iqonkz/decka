@@ -74,6 +74,8 @@ pub struct Context {
     pub memory: Vec<String>,
     /// The place of the weather widget (T26.F-6): a phrase naming another city is not answered from it.
     pub weather_place: Option<String>,
+    /// A guide or a recording is running: "next", "back", "stop", "done" mean its controls (T27.5).
+    pub guide_running: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -385,7 +387,7 @@ fn run(tool: &str, args: &serde_json::Map<String, Value>, ctx: &Context) -> Resu
                 }
             };
             // A dangerous name that was said is confirmed before anything is pressed; what is only "this" is checked when it runs.
-            let danger = action == super::screenhelp::UiAction::Click && target.as_deref().is_some_and(|t| super::screenhelp::is_dangerous(t, super::screenhelp::DANGER_DEFAULT));
+            let danger = action == super::screenhelp::UiAction::Click && target.as_deref().is_some_and(|t| super::screenhelp::is_dangerous(t, &super::screenhelp::all_danger_words().iter().map(String::as_str).collect::<Vec<_>>()));
             let summary = format!("Press {}", target.as_deref().unwrap_or("this"));
             ready(ToolCall::UiAct { target, action, confirmed: danger }, danger, summary)
         }
@@ -755,6 +757,7 @@ mod tests {
             vision_ready: false,
             memory: vec![],
         weather_place: None,
+        guide_running: false,
         }
     }
 

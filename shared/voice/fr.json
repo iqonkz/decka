@@ -562,6 +562,139 @@
         "essaie encore",
         "autre variante"
       ]
+    },
+    {
+      "tool": "find_on_screen",
+      "patterns": [
+        "où est {query}",
+        "trouve {query} à lécran",
+        "surligne {query}"
+      ]
+    },
+    {
+      "tool": "find_on_screen",
+      "args": {
+        "next": true
+      },
+      "patterns": [
+        "pas celui-là",
+        "le suivant à lécran"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "click",
+        "target": "this"
+      },
+      "patterns": [
+        "clique ici",
+        "clique sur ceci"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "click"
+      },
+      "patterns": [
+        "clique à lécran sur {target}",
+        "appuie à lécran sur {target}"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "scroll_down"
+      },
+      "patterns": [
+        "défile vers le bas",
+        "descends la page"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "scroll_up"
+      },
+      "patterns": [
+        "défile vers le haut",
+        "monte la page"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "close_tab"
+      },
+      "patterns": [
+        "ferme longlet",
+        "fermer cet onglet"
+      ]
+    },
+    {
+      "tool": "guide",
+      "patterns": [
+        "montre moi comment {goal}",
+        "guide moi pour {goal}"
+      ]
+    },
+    {
+      "tool": "guide_record",
+      "patterns": [
+        "retiens comment {goal}",
+        "enregistre comment {goal}"
+      ]
+    },
+    {
+      "tool": "read_aloud",
+      "patterns": [
+        "lis à voix haute",
+        "lire à haute voix"
+      ]
+    },
+    {
+      "tool": "mode_run",
+      "patterns": [
+        "mode travail",
+        "lance le mode {name}",
+        "active mode {name}"
+      ]
+    },
+    {
+      "tool": "mode_save",
+      "patterns": [
+        "enregistre la disposition comme {name}",
+        "mémorise disposition {name}"
+      ]
     }
+  ],
+  "guide_controls": {
+    "next": [
+      "suivant",
+      "continue"
+    ],
+    "back": [
+      "retour",
+      "précédent"
+    ],
+    "stop": [
+      "stop",
+      "arrêter"
+    ],
+    "done": [
+      "terminé",
+      "fini"
+    ]
+  },
+  "danger_words": [
+    "supprimer",
+    "effacer",
+    "envoyer",
+    "payer",
+    "acheter",
+    "formater",
+    "transférer",
+    "vider"
   ]
 }

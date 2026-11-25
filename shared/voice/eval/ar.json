@@ -517,5 +517,58 @@
     "args": {
       "kind": "speak"
     }
+  },
+  {
+    "say": "أين يوجد تصدير",
+    "tool": "find_on_screen",
+    "args": {
+      "query": "تصدير"
+    }
+  },
+  {
+    "say": "ليس هذا",
+    "tool": "find_on_screen",
+    "args": {
+      "next": true
+    }
+  },
+  {
+    "say": "اضغط هنا",
+    "tool": "ui_act",
+    "args": {
+      "action": "click",
+      "target": "this"
+    }
+  },
+  {
+    "say": "مرر للأسفل",
+    "tool": "ui_act",
+    "args": {
+      "action": "scroll_down"
+    }
+  },
+  {
+    "say": "أغلق التبويب",
+    "tool": "ui_act",
+    "args": {
+      "action": "close_tab"
+    }
+  },
+  {
+    "say": "أرني كيف حفظ ملف",
+    "tool": "guide",
+    "args": {}
+  },
+  {
+    "say": "اقرأ بصوت عال",
+    "tool": "read_aloud",
+    "args": {}
+  },
+  {
+    "say": "شغل وضع البرمجة",
+    "tool": "mode_run",
+    "args": {
+      "name": "البرمجة"
+    }
   }
 ]

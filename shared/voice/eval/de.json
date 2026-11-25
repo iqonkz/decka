@@ -517,5 +517,58 @@
     "args": {
       "kind": "speak"
     }
+  },
+  {
+    "say": "wo ist exportieren",
+    "tool": "find_on_screen",
+    "args": {
+      "query": "exportieren"
+    }
+  },
+  {
+    "say": "nicht das",
+    "tool": "find_on_screen",
+    "args": {
+      "next": true
+    }
+  },
+  {
+    "say": "klicke hier",
+    "tool": "ui_act",
+    "args": {
+      "action": "click",
+      "target": "this"
+    }
+  },
+  {
+    "say": "nach unten scrollen",
+    "tool": "ui_act",
+    "args": {
+      "action": "scroll_down"
+    }
+  },
+  {
+    "say": "tab schließen",
+    "tool": "ui_act",
+    "args": {
+      "action": "close_tab"
+    }
+  },
+  {
+    "say": "zeig mir wie man als pdf speichert",
+    "tool": "guide",
+    "args": {}
+  },
+  {
+    "say": "laut vorlesen",
+    "tool": "read_aloud",
+    "args": {}
+  },
+  {
+    "say": "starte modus arbeit",
+    "tool": "mode_run",
+    "args": {
+      "name": "arbeit"
+    }
   }
 ]

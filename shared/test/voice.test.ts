@@ -25,6 +25,14 @@ const VALID_TOOLS = new Set([
   "lyrics_window",
   "status",
   "reply_action",
+  "find_on_screen",
+  "ui_act",
+  "guide",
+  "guide_record",
+  "read_aloud",
+  "mode_run",
+  "mode_save",
+  "guide_control",
 ]);
 
 const LANGUAGES = ["en", "zh", "hi", "es", "ar", "fr", "pt", "ru", "de", "ja", "kk"];
@@ -48,7 +56,7 @@ describe("Voice phrase tables (T21.3b)", () => {
 
       expect(Array.isArray(content.intents)).toBe(true);
       expect(content.intents.length).toBeGreaterThanOrEqual(10);
-      expect(content.intents.length).toBeLessThanOrEqual(60);
+      expect(content.intents.length).toBeLessThanOrEqual(120);
 
       for (const intent of content.intents) {
         expect(VALID_TOOLS.has(intent.tool)).toBe(true);
@@ -92,6 +100,52 @@ describe("Voice phrase tables (T21.3b)", () => {
         expect(item.say.trim().length).toBeGreaterThan(0);
         expect(VALID_TOOLS.has(item.tool)).toBe(true);
         expect(typeof item.args).toBe("object");
+      }
+    });
+
+    it(`validates M27 screen/ui_act/guide/controls/danger_words phrases and slots for ${lang}`, () => {
+      const table = JSON.parse(fs.readFileSync(path.join(voiceDir, `${lang}.json`), "utf-8"));
+      expect(table.intents.some((i: { tool: string }) => i.tool === "find_on_screen")).toBe(true);
+      expect(table.intents.some((i: { tool: string; args?: { next?: boolean } }) => i.tool === "find_on_screen" && i.args?.next === true)).toBe(true);
+
+      const uiActions = new Set(
+        table.intents
+          .filter((i: { tool: string }) => i.tool === "ui_act")
+          .map((i: { args?: { action?: string } }) => i.args?.action),
+      );
+      expect(uiActions).toEqual(new Set(["click", "scroll_down", "scroll_up", "close_tab"]));
+
+      expect(table.intents.some((i: { tool: string }) => i.tool === "guide")).toBe(true);
+      expect(table.intents.some((i: { tool: string }) => i.tool === "guide_record")).toBe(true);
+      expect(table.intents.some((i: { tool: string }) => i.tool === "read_aloud")).toBe(true);
+      expect(table.intents.some((i: { tool: string }) => i.tool === "mode_run")).toBe(true);
+      expect(table.intents.some((i: { tool: string }) => i.tool === "mode_save")).toBe(true);
+
+      expect(Array.isArray(table.guide_controls?.next) && table.guide_controls.next.length > 0).toBe(true);
+      expect(Array.isArray(table.guide_controls?.back) && table.guide_controls.back.length > 0).toBe(true);
+      expect(Array.isArray(table.guide_controls?.stop) && table.guide_controls.stop.length > 0).toBe(true);
+      expect(Array.isArray(table.guide_controls?.done) && table.guide_controls.done.length > 0).toBe(true);
+
+      expect(Array.isArray(table.danger_words)).toBe(true);
+      expect(table.danger_words.length).toBeGreaterThanOrEqual(7);
+
+      const allowedSlots = new Set([
+        "app", "domain", "expr", "goal", "item", "label", "lang", "list", "n", "name", "query", "target", "text", "time",
+      ]);
+      const seenLiterals = new Map<string, string>();
+      for (const intent of table.intents) {
+        const key = `${intent.tool}:${JSON.stringify(intent.args ?? {})}`;
+        for (const p of intent.patterns) {
+          const slots = [...p.matchAll(/\{([^}]*)\}/g)].map((m: RegExpMatchArray) => m[1]!);
+          expect(p.split("{").length).toBe(p.split("}").length);
+          for (const s of slots) expect(allowedSlots.has(s)).toBe(true);
+          if (slots.length === 0) {
+            const norm = p.toLowerCase().trim().replace(/\s+/g, " ");
+            const prev = seenLiterals.get(norm);
+            if (prev) expect(prev).toBe(key);
+            seenLiterals.set(norm, key);
+          }
+        }
       }
     });
   }

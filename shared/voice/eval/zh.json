@@ -517,5 +517,58 @@
     "args": {
       "kind": "speak"
     }
+  },
+  {
+    "say": "在屏幕上找导出",
+    "tool": "find_on_screen",
+    "args": {
+      "query": "导出"
+    }
+  },
+  {
+    "say": "不是这个",
+    "tool": "find_on_screen",
+    "args": {
+      "next": true
+    }
+  },
+  {
+    "say": "点这个",
+    "tool": "ui_act",
+    "args": {
+      "action": "click",
+      "target": "this"
+    }
+  },
+  {
+    "say": "向下滚动",
+    "tool": "ui_act",
+    "args": {
+      "action": "scroll_down"
+    }
+  },
+  {
+    "say": "关闭标签页",
+    "tool": "ui_act",
+    "args": {
+      "action": "close_tab"
+    }
+  },
+  {
+    "say": "教我怎么导出pdf",
+    "tool": "guide",
+    "args": {}
+  },
+  {
+    "say": "朗读出来",
+    "tool": "read_aloud",
+    "args": {}
+  },
+  {
+    "say": "切换到开发模式",
+    "tool": "mode_run",
+    "args": {
+      "name": "开发"
+    }
   }
 ]

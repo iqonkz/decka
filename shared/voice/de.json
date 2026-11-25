@@ -555,6 +555,139 @@
         "nochmal versuchen",
         "andere option"
       ]
+    },
+    {
+      "tool": "find_on_screen",
+      "patterns": [
+        "wo ist {query}",
+        "finde {query} auf dem bildschirm",
+        "markiere {query}"
+      ]
+    },
+    {
+      "tool": "find_on_screen",
+      "args": {
+        "next": true
+      },
+      "patterns": [
+        "nicht das",
+        "das nächste element"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "click",
+        "target": "this"
+      },
+      "patterns": [
+        "klicke hier",
+        "hier klicken"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "click"
+      },
+      "patterns": [
+        "klicke am bildschirm auf {target}",
+        "drücke am bildschirm {target}"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "scroll_down"
+      },
+      "patterns": [
+        "nach unten scrollen",
+        "runterscrollen"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "scroll_up"
+      },
+      "patterns": [
+        "nach oben scrollen",
+        "hochscrollen"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "close_tab"
+      },
+      "patterns": [
+        "tab schließen",
+        "diesen tab schließen"
+      ]
+    },
+    {
+      "tool": "guide",
+      "patterns": [
+        "zeig mir wie man {goal}",
+        "schritt für schritt {goal}"
+      ]
+    },
+    {
+      "tool": "guide_record",
+      "patterns": [
+        "merk dir wie man {goal}",
+        "speichere anleitung {goal}"
+      ]
+    },
+    {
+      "tool": "read_aloud",
+      "patterns": [
+        "laut vorlesen",
+        "markierung vorlesen"
+      ]
+    },
+    {
+      "tool": "mode_run",
+      "patterns": [
+        "arbeitsmodus",
+        "starte modus {name}",
+        "aktiviere modus {name}"
+      ]
+    },
+    {
+      "tool": "mode_save",
+      "patterns": [
+        "speichere layout als {name}",
+        "merk dir anordnung als {name}"
+      ]
     }
+  ],
+  "guide_controls": {
+    "next": [
+      "weiter",
+      "nächster schritt"
+    ],
+    "back": [
+      "zurück",
+      "vorheriger schritt"
+    ],
+    "stop": [
+      "stopp",
+      "abbrechen"
+    ],
+    "done": [
+      "fertig",
+      "erledigt"
+    ]
+  },
+  "danger_words": [
+    "löschen",
+    "entfernen",
+    "senden",
+    "bezahlen",
+    "kaufen",
+    "formatieren",
+    "überweisen",
+    "leeren"
   ]
 }

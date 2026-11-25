@@ -42,6 +42,12 @@ struct RawTable {
     #[serde(default)]
     no: Vec<String>,
     intents: Vec<RawIntent>,
+    /// M27: what is said during a guide - `next`, `back`, `stop`, `done`.
+    #[serde(default)]
+    guide_controls: std::collections::BTreeMap<String, Vec<String>>,
+    /// M27: words of elements that are dangerous to press (they wait for a "yes").
+    #[serde(default)]
+    danger_words: Vec<String>,
 }
 
 #[derive(Deserialize)]
@@ -77,6 +83,8 @@ pub struct Table {
     calc_leads: Vec<String>,
     /// Lead-ins of the `remind` templates ("напомни мне", "remind me to"), as words.
     remind_leads: Vec<Vec<String>>,
+    guide_controls: Vec<(&'static str, Vec<Vec<String>>)>,
+    danger_words: Vec<String>,
 }
 
 // ---- Normalisation ----------------------------------------------------------------------------------------------
@@ -334,6 +342,8 @@ fn arg_name(tool: &str, slot: &str) -> &'static str {
         ("app", _) | ("name", _) => "name",
         ("label", _) => "label",
         ("query", _) => "query",
+        ("goal", _) => "goal",
+        ("target", _) => "target",
         ("domain", _) => "domain",
         _ => "name",
     }
@@ -390,7 +400,11 @@ impl Table {
             intents.push((def.tool, def.args));
         }
         let words = |v: Vec<String>| v.iter().map(|s| tokens(s)).filter(|t| !t.is_empty()).collect();
-        Ok(Table { lang: raw.lang, yes: words(raw.yes), no: words(raw.no), intents, patterns, calc_leads, remind_leads })
+        let guide_controls = ["next", "back", "stop", "done"]
+            .into_iter()
+            .map(|k| (k, words(raw.guide_controls.get(k).cloned().unwrap_or_default())))
+            .collect();
+        Ok(Table { lang: raw.lang, yes: words(raw.yes), no: words(raw.no), intents, patterns, calc_leads, remind_leads, guide_controls, danger_words: raw.danger_words })
     }
 
     fn intent(&self, idx: usize, slots: &[(String, Vec<String>)]) -> Option<Intent> {
@@ -500,6 +514,17 @@ impl Table {
         unique(scored.iter().filter(|s| best - s.0 < TIE_MARGIN).map(|s| &s.1).collect())
     }
 
+    /// What is said during a guide: the whole phrase is "next", "back", "stop" or "done" (T27.5).
+    pub fn guide_control(&self, phrase: &str) -> Option<&'static str> {
+        let toks = tokens(phrase);
+        self.guide_controls.iter().find(|(_, list)| list.iter().any(|w| *w == toks)).map(|(k, _)| *k)
+    }
+
+    /// The words of this language that make an element dangerous to press.
+    pub fn danger_words(&self) -> &[String] {
+        &self.danger_words
+    }
+
     /// A spoken answer to a confirmation: `Some(true)` yes, `Some(false)` no, `None` neither.
     pub fn answer(&self, phrase: &str) -> Option<bool> {
         let toks = tokens(phrase);
@@ -529,6 +554,26 @@ fn unique(found: Vec<&Intent>) -> Match {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn the_tables_carry_guide_controls_and_danger_words_and_the_m27_phrases_reach_their_tools() {
+        use crate::voice::screenhelp::{all_danger_words, is_dangerous};
+        let ru = Table::parse(crate::voice::host::table_text("ru")).unwrap();
+        assert_eq!([ru.guide_control("стоп"), ru.guide_control("Дальше!"), ru.guide_control("назад"), ru.guide_control("готово"), ru.guide_control("привет")], [Some("stop"), Some("next"), Some("back"), Some("done"), None]);
+        let words: Vec<&str> = all_danger_words().iter().map(String::as_str).collect();
+        assert!(is_dangerous("Удалить всё", &words) && is_dangerous("削除する", &words) && is_dangerous("Delete", &words));
+        assert!(!is_dangerous("Сохранить", &words) && !is_dangerous("保存", &words));
+        let hit = |t: &Table, say: &str| match t.matches(say) {
+            Match::Hit(i) => (i.tool, serde_json::Value::Object(i.args)),
+            other => panic!("{say}: {other:?}"),
+        };
+        assert_eq!(hit(&ru, "где сохранить"), ("find_on_screen".to_string(), serde_json::json!({ "query": "сохранить" })));
+        assert_eq!(hit(&ru, "не то"), ("find_on_screen".to_string(), serde_json::json!({ "next": true })));
+        assert_eq!(hit(&ru, "покажи как сохранить в пдф"), ("guide".to_string(), serde_json::json!({ "goal": "сохранить в пдф" })));
+        assert_eq!(hit(&ru, "нажми это"), ("ui_act".to_string(), serde_json::json!({ "action": "click", "target": "this" })));
+        assert_eq!(hit(&ru, "прокрути вниз"), ("ui_act".to_string(), serde_json::json!({ "action": "scroll_down" })));
+        assert_eq!(hit(&ru, "прочитай вслух").0, "read_aloud");
+    }
+
     use super::*;
 
     fn en() -> Table {

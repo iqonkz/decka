@@ -97,7 +97,27 @@ pub const DANGER_DEFAULT: &[&str] = &[
 ];
 
 pub fn is_dangerous(name: &str, words: &[&str]) -> bool {
-    tokens(name).iter().any(|t| words.iter().any(|w| !w.is_empty() && t.starts_with(w)))
+    let lower = name.to_lowercase();
+    let toks = tokens(name);
+    words.iter().any(|w| {
+        let w = w.trim();
+        // Languages without spaces (Chinese, Japanese): the word is somewhere in the name; the others: a word begins with it.
+        !w.is_empty() && if w.chars().any(|c| (c as u32) >= 0x2E80) { lower.contains(&w.to_lowercase()) } else { toks.iter().any(|t| t.starts_with(&w.to_lowercase())) }
+    })
+}
+
+/// The default words and the `danger_words` of all eleven phrase tables, read once.
+pub fn all_danger_words() -> &'static [String] {
+    static WORDS: std::sync::OnceLock<Vec<String>> = std::sync::OnceLock::new();
+    WORDS.get_or_init(|| {
+        let mut out: Vec<String> = DANGER_DEFAULT.iter().map(|s| s.to_string()).collect();
+        for lang in ["en", "ru", "es", "de", "fr", "pt", "zh", "hi", "ar", "ja", "kk"] {
+            if let Ok(t) = super::matcher::Table::parse(super::host::table_text(lang)) {
+                out.extend(t.danger_words().iter().cloned());
+            }
+        }
+        out
+    })
 }
 
 /// What to do with a command to act on an element.

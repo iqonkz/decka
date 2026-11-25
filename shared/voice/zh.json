@@ -556,6 +556,142 @@
         "再试一次",
         "再来一个"
       ]
+    },
+    {
+      "tool": "find_on_screen",
+      "patterns": [
+        "{query}在哪里",
+        "在屏幕上找{query}",
+        "高亮{query}"
+      ]
+    },
+    {
+      "tool": "find_on_screen",
+      "args": {
+        "next": true
+      },
+      "patterns": [
+        "不是这个",
+        "换下一个"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "click",
+        "target": "this"
+      },
+      "patterns": [
+        "点这个",
+        "点击这里"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "click"
+      },
+      "patterns": [
+        "在屏幕上点击{target}",
+        "点击屏幕上的{target}"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "scroll_down"
+      },
+      "patterns": [
+        "向下滚动",
+        "往下滑"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "scroll_up"
+      },
+      "patterns": [
+        "向上滚动",
+        "往上滑"
+      ]
+    },
+    {
+      "tool": "ui_act",
+      "args": {
+        "action": "close_tab"
+      },
+      "patterns": [
+        "关闭标签页",
+        "关掉当前标签页"
+      ]
+    },
+    {
+      "tool": "guide",
+      "patterns": [
+        "教我怎么{goal}",
+        "怎么{goal}",
+        "带我完成{goal}"
+      ]
+    },
+    {
+      "tool": "guide_record",
+      "patterns": [
+        "记住怎么{goal}",
+        "记录操作{goal}"
+      ]
+    },
+    {
+      "tool": "read_aloud",
+      "patterns": [
+        "朗读出来",
+        "大声读出来",
+        "读一下选区"
+      ]
+    },
+    {
+      "tool": "mode_run",
+      "patterns": [
+        "工作模式",
+        "启动工作模式",
+        "切换到{name}模式"
+      ]
+    },
+    {
+      "tool": "mode_save",
+      "patterns": [
+        "把布局保存为{name}",
+        "记住当前布局为{name}"
+      ]
     }
+  ],
+  "guide_controls": {
+    "next": [
+      "下一步",
+      "继续"
+    ],
+    "back": [
+      "上一步",
+      "返回"
+    ],
+    "stop": [
+      "停止",
+      "取消"
+    ],
+    "done": [
+      "完成",
+      "好了"
+    ]
+  },
+  "danger_words": [
+    "删除",
+    "移除",
+    "发送",
+    "支付",
+    "付款",
+    "购买",
+    "格式化",
+    "清空",
+    "转账"
   ]
 }

@@ -531,5 +531,58 @@
     "args": {
       "kind": "speak"
     }
+  },
+  {
+    "say": "where is export",
+    "tool": "find_on_screen",
+    "args": {
+      "query": "export"
+    }
+  },
+  {
+    "say": "wrong one",
+    "tool": "find_on_screen",
+    "args": {
+      "next": true
+    }
+  },
+  {
+    "say": "click this",
+    "tool": "ui_act",
+    "args": {
+      "action": "click",
+      "target": "this"
+    }
+  },
+  {
+    "say": "scroll down",
+    "tool": "ui_act",
+    "args": {
+      "action": "scroll_down"
+    }
+  },
+  {
+    "say": "close this tab",
+    "tool": "ui_act",
+    "args": {
+      "action": "close_tab"
+    }
+  },
+  {
+    "say": "show me how to save as pdf",
+    "tool": "guide",
+    "args": {}
+  },
+  {
+    "say": "read aloud",
+    "tool": "read_aloud",
+    "args": {}
+  },
+  {
+    "say": "start mode coding",
+    "tool": "mode_run",
+    "args": {
+      "name": "coding"
+    }
   }
 ]

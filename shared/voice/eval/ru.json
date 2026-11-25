@@ -531,5 +531,58 @@
     "args": {
       "kind": "speak"
     }
+  },
+  {
+    "say": "где кнопка экспорт",
+    "tool": "find_on_screen",
+    "args": {
+      "query": "кнопка экспорт"
+    }
+  },
+  {
+    "say": "не то",
+    "tool": "find_on_screen",
+    "args": {
+      "next": true
+    }
+  },
+  {
+    "say": "нажми это",
+    "tool": "ui_act",
+    "args": {
+      "action": "click",
+      "target": "this"
+    }
+  },
+  {
+    "say": "прокрути вниз",
+    "tool": "ui_act",
+    "args": {
+      "action": "scroll_down"
+    }
+  },
+  {
+    "say": "закрой вкладку",
+    "tool": "ui_act",
+    "args": {
+      "action": "close_tab"
+    }
+  },
+  {
+    "say": "покажи как сохранить в pdf",
+    "tool": "guide",
+    "args": {}
+  },
+  {
+    "say": "прочитай вслух",
+    "tool": "read_aloud",
+    "args": {}
+  },
+  {
+    "say": "включи режим работа",
+    "tool": "mode_run",
+    "args": {
+      "name": "работа"
+    }
   }
 ]

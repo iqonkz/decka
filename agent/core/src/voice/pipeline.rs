@@ -397,6 +397,13 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
                 let args = serde_json::json!({ "text": text });
                 return resolve(s, &RawCall { tool: "type_text".into(), args }, now_ms, env, false);
             }
+            // During a guide the words "next", "back", "stop", "done" are its controls, before anything else (T27.5).
+            if env.ctx.guide_running {
+                if let Some(kind) = env.table.guide_control(&text) {
+                    let raw = RawCall { tool: "guide_control".into(), args: serde_json::json!({ "kind": kind }) };
+                    return resolve(s, &raw, now_ms, env, false);
+                }
+            }
             match env.table.matches(&text) {
                 Match::Hit(intent) => {
                     // "weather in Paris" is not the weather of the widget: the model searches the web for it (T26.F-6).
@@ -703,6 +710,28 @@ mod tests {
 
     fn said(text: &str) -> Event {
         Event::Transcript(Ok(text.into()))
+    }
+
+    /// T27.5: while a guide runs, "stop" and "next" are its controls (without the model); otherwise they are ordinary words.
+    #[test]
+    fn during_a_guide_stop_and_next_are_its_controls() {
+        let (t, mut c) = (table(), ctx());
+        let go = |c: &Context, phrase: &str| {
+            let env = Env { table: &t, ctx: c, confirm_ms: CONFIRM_TIMEOUT_MS, dictate: false };
+            let mut state = State::idle();
+            let mut all = Vec::new();
+            for (i, e) in vec![start(Source::Phone), Event::AudioEnd, said(phrase)].into_iter().enumerate() {
+                let (s, fx) = step(&state, e, 1_000 + i as u64, &env);
+                state = s;
+                all.extend(fx);
+            }
+            all
+        };
+        c.guide_running = true;
+        assert!(go(&c, "stop").contains(&Effect::Execute(ToolCall::GuideControl { kind: crate::voice::tools::GuideCtl::Stop })));
+        assert!(go(&c, "next").contains(&Effect::Execute(ToolCall::GuideControl { kind: crate::voice::tools::GuideCtl::Next })));
+        c.guide_running = false;
+        assert!(!go(&c, "next").iter().any(|e| matches!(e, Effect::Execute(ToolCall::GuideControl { .. }))), "no guide: not a control");
     }
 
     /// T23.B: a question the model cannot answer offline asks "search the web?"; the search opens only after a yes.
