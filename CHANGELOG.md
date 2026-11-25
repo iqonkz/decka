@@ -4,6 +4,20 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+### Added
+- **Show me where**: ask `where is Save` and a frame with a short bubble lights up that button in the active window; `not that one` goes to the next candidate. Nothing is guessed: only elements that really exist in the window can be shown.
+- **Press, scroll, close a tab by voice**: `press this`, `press Export on the screen`, `scroll down`, `close the tab`. It acts only when you say so; a button named like Delete, Send, Pay or Buy waits for your "yes" first.
+- **Step by step guide**: `how do I save as PDF` leads you through a program one button at a time, with a card in the island (goal, step, hint, Back, Stop) and `next` / `back` / `stop` by voice. While the assistant thinks it shows how long it will take.
+- **Saved guides**: after a guide you can keep it (`remember how to ...`), or record your own clicks; the next time it runs without the assistant. They are listed, renamed and deleted in Settings -> Voice. Everything stays on this PC.
+- **Read aloud**: `read aloud` reads the selected text (or the text under the mouse) with the Windows voice; `stop` cuts it.
+- **Work modes**: `remember the layout as work` saves the open programs and where they are; `work mode` opens what is missing and puts the windows in place. Only the programs of the saved mode are ever started.
+- **Notices**: short quiet notes on the island when memory or the processor stays overloaded, a device battery is low, the disk is nearly full or an AI limit is almost used up (once in 30 minutes, never over a full-screen program; a switch in Settings -> Voice).
+- **Extended model**: Qwen3.5 9B can be chosen in Settings -> Voice on a PC with 16 GB of memory or 8 GB of video memory (the download size is shown first; one model at a time).
+- **Voice phrases** for all of this in 11 languages; "weather in <city>" understands another city in every language.
+
+### Changed
+- **Voice accuracy**: reminders named with a clock time are understood without a day; more phrases (which monitor, move the window, summarize, formal, casual) are answered instantly without the assistant; short examples help it choose between look-alike commands.
+
 ## 0.40.1 — 2026-11-25
 
 ### Added
