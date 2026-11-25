@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env node
+#!/usr/bin/env node
 // Pictures of the voice pill (PC) and of the voice button, bubble and confirmation sheet (phone) for visual acceptance (T21.S).
 // Builds tools/voice-shots with Vite, serves it, drives headless Chrome/Edge with the DevTools protocol.
 //   node tools/voice-shots.mjs [outDir]      writes pill-*.png (360x160 css px, x3) and phone-*.png (800x360 css px, x2)
@@ -109,6 +109,7 @@ function m26Shots() {
     "m26-island-compact-lyrics": [{ w: 480, h: 160, scale: 2 }, "scene=island&mode=compact&voiceOff=1&lyrics=1&theme=dark"],
     "m26-island-compact-lyrics-hover": [{ w: 480, h: 160, scale: 2 }, "scene=island&mode=compact&voiceOff=1&lyrics=1&hover=1&theme=dark"],
     "t26f-island-compact-lyrics-long-ru": [{ w: 700, h: 200, scale: 2 }, "scene=island&mode=compact&voiceOff=1&lyrics=long&lang=ru&theme=dark"],
+    "t26f-island-compact-lyrics-long-hover-ru": [{ w: 820, h: 200, scale: 2 }, "scene=island&mode=compact&voiceOff=1&lyrics=long&hover=1&lang=ru&theme=dark"],
     "t26f-island-compact-lyrics-mid-ru": [{ w: 700, h: 200, scale: 2 }, "scene=island&mode=compact&voiceOff=1&lyrics=1&lang=ru&theme=dark"],
     "m26-island-compact-voice": [{ w: 480, h: 160, scale: 2 }, "scene=island&mode=compact&state=listening&theme=dark"],
     "m26-island-solo-listening": [{ w: 400, h: 320, scale: 2 }, "scene=island&mode=expanded&state=listening&solo=1&lang=ru&theme=dark"],
