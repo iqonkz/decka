@@ -4,6 +4,14 @@
 
 export type IslandMode = "hidden" | "tab" | "compact" | "expanded" | "orb";
 
+/** T29.5: how the island rests while a song plays (`config.island`). */
+export interface IslandSettings {
+  restingMode: "bar" | "lyrics";
+  /** 6..16. */
+  barHeight: number;
+  barPosition: "left" | "center" | "right";
+}
+
 /** T29.4: the orb of a dictation at the text cursor (`mode: "orb"`); `text` / `key`: the bubble with what went wrong. */
 export interface IslandOrbState {
   phase: "listening" | "thinking" | "done" | "error";
@@ -77,6 +85,9 @@ export interface IslandEvent {
   mode: IslandMode;
   /** Only in `mode: "orb"`. */
   orb?: IslandOrbState | null;
+  /** T29.5: the height and the side of the resting bar (`mode: "tab"`). */
+  barHeight?: number;
+  barPosition?: "left" | "center" | "right";
   lyrics?: IslandLyricsState | null;
   voice?: IslandVoiceState | null;
   /** T26.F.10: the track on the PC (title and artist from the media section); absent when nothing is loaded. */

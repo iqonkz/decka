@@ -8,10 +8,10 @@ use serde_json::{json, Value};
 use crate::lyrics_overlay::PcOverlay;
 use crate::voice::slowpath::Progress;
 
-/// A new track in `auto` mode shows the line this long, then folds into the tab.
-pub const TRACK_COMPACT_MS: u64 = 6_000;
-/// The cursor left the panel: it folds into the tab after this.
-pub const TAB_LEAVE_MS: u64 = 1_500;
+/// T29.5: the cursor rests on the bar this long before it opens into the words.
+pub const BAR_OPEN_MS: u64 = 150;
+/// The cursor left the words: they fold into the bar after this.
+pub const BAR_CLOSE_MS: u64 = 600;
 /// An answer stays this long when nobody points at it; 20 s when it has buttons.
 pub const ANSWER_HOLD_MS: u64 = 8_000;
 pub const ANSWER_HOLD_ACTIONS_MS: u64 = 20_000;
@@ -55,6 +55,65 @@ pub enum Mode {
     Orb,
 }
 
+pub const BAR_HEIGHT: u32 = 10;
+pub const BAR_HEIGHTS: std::ops::RangeInclusive<u32> = 6..=16;
+
+/// Where the bar and the words rest along the top edge.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Align {
+    Left,
+    #[default]
+    Center,
+    Right,
+}
+
+impl Rest {
+    pub fn name(self) -> &'static str {
+        match self {
+            Rest::Bar => "bar",
+            Rest::Lyrics => "lyrics",
+        }
+    }
+}
+
+/// The settings of the island as they are used (`config.island` with the defaults filled in), and as the settings window
+/// reads and writes them.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Settings {
+    #[serde(serialize_with = "rest_name")]
+    pub resting_mode: Rest,
+    pub bar_height: u32,
+    pub bar_position: Align,
+}
+
+fn rest_name<S: serde::Serializer>(rest: &Rest, s: S) -> Result<S::Ok, S::Error> {
+    s.serialize_str(rest.name())
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Settings { resting_mode: Rest::Bar, bar_height: BAR_HEIGHT, bar_position: Align::Center }
+    }
+}
+
+impl Settings {
+    pub fn of(config: Option<&crate::model::IslandConfig>) -> Settings {
+        let defaults = Settings::default();
+        let Some(c) = config else { return defaults };
+        Settings {
+            resting_mode: if c.resting_mode.as_deref() == Some("lyrics") { Rest::Lyrics } else { Rest::Bar },
+            bar_height: c.bar_height.map_or(defaults.bar_height, |h| h.clamp(*BAR_HEIGHTS.start(), *BAR_HEIGHTS.end())),
+            bar_position: match c.bar_position.as_deref() {
+                Some("left") => Align::Left,
+                Some("right") => Align::Right,
+                _ => Align::Center,
+            },
+        }
+    }
+}
+
 /// What the voice assistant is doing.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VoiceInput {
@@ -65,8 +124,18 @@ pub enum VoiceInput {
     Answer { actions: bool },
 }
 
+/// What the island is while a song plays and nobody asks anything (`config.island.rest`).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum Rest {
+    /// A thin bar at the top edge; pointing at it opens the words.
+    #[default]
+    Bar,
+    /// The words all the time.
+    Lyrics,
+}
+
 #[derive(Debug, Clone, Copy)]
-pub struct Inputs<'a> {
+pub struct Inputs {
     pub now_ms: u64,
     pub voice: VoiceInput,
     /// The cursor is inside the visible panel (or the zone of the tab).
@@ -74,8 +143,9 @@ pub struct Inputs<'a> {
     /// `lyrics_overlay::visible`: a synced song plays, the feature is on, not hidden by voice.
     pub lyrics_visible: bool,
     pub lyrics_mode: PcOverlay,
-    /// Identifies the track (changes with the track).
-    pub track: Option<&'a str>,
+    /// A song is playing (or was a moment ago) and the island may say so: the overlay is not off and not hidden by voice.
+    pub music: bool,
+    pub rest: Rest,
     pub fullscreen: bool,
 }
 
@@ -119,9 +189,9 @@ pub fn voice_view(payload: Option<&Value>, slow: Option<Progress>, download: Opt
 
 #[derive(Debug, Default)]
 pub struct Machine {
-    track: Option<String>,
-    compact_until: u64,
-    was_hovered: bool,
+    /// The bar was opened into the words by the cursor.
+    open: bool,
+    hover_since: Option<u64>,
     left_at: Option<u64>,
     answer_since: Option<u64>,
     hold_until: u64,
@@ -132,7 +202,7 @@ impl Machine {
         match i.voice {
             VoiceInput::Active => {
                 self.answer_since = None;
-                self.was_hovered = i.hovered;
+                self.fold();
                 return Mode::Expanded;
             }
             VoiceInput::Answer { actions } => {
@@ -144,7 +214,7 @@ impl Machine {
                     self.hold_until = self.hold_until.max(i.now_ms + HOVER_GRACE_MS);
                 }
                 if i.now_ms < self.hold_until {
-                    self.was_hovered = i.hovered;
+                    self.fold();
                     return Mode::Expanded;
                 }
             }
@@ -153,40 +223,43 @@ impl Machine {
         self.lyrics(i)
     }
 
+    /// Back to the bar: after a request the words are not left open.
+    fn fold(&mut self) {
+        self.open = false;
+        self.hover_since = None;
+        self.left_at = None;
+    }
+
     /// The part of the song: the voice is not on show.
     fn lyrics(&mut self, i: &Inputs) -> Mode {
-        if !i.lyrics_visible {
-            self.track = None;
-            self.was_hovered = i.hovered;
-            self.left_at = None;
-            return Mode::Hidden;
-        }
         // A full-screen program hides it; only `always` is meant to stay over it (DESIGN.md 4.17).
-        if i.fullscreen && i.lyrics_mode != PcOverlay::Always {
+        if (!i.lyrics_visible && !i.music) || (i.fullscreen && i.lyrics_mode != PcOverlay::Always) {
+            self.fold();
             return Mode::Hidden;
         }
-        if i.lyrics_mode == PcOverlay::Always {
+        if i.lyrics_mode == PcOverlay::Always || i.rest == Rest::Lyrics {
             return Mode::Compact;
-        }
-        if self.track.as_deref() != i.track {
-            self.track = i.track.map(str::to_string);
-            self.compact_until = i.now_ms + TRACK_COMPACT_MS;
         }
         if i.hovered {
             self.left_at = None;
-        } else if self.was_hovered {
-            self.left_at = Some(i.now_ms);
+            let since = *self.hover_since.get_or_insert(i.now_ms);
+            self.open |= i.now_ms.saturating_sub(since) >= BAR_OPEN_MS;
+        } else {
+            self.hover_since = None;
+            if self.open {
+                let left = *self.left_at.get_or_insert(i.now_ms);
+                if i.now_ms.saturating_sub(left) >= BAR_CLOSE_MS {
+                    self.fold();
+                }
+            }
         }
-        self.was_hovered = i.hovered;
-        let lingering = self.left_at.is_some_and(|t| i.now_ms.saturating_sub(t) < TAB_LEAVE_MS);
-        if i.now_ms < self.compact_until || i.hovered || lingering {
+        if self.open {
             Mode::Compact
         } else {
             Mode::Tab
         }
     }
 }
-
 #[cfg(test)]
 mod tests {
     #[test]
@@ -206,21 +279,26 @@ mod tests {
 
     use super::*;
 
-    fn song(now_ms: u64) -> Inputs<'static> {
-        Inputs { now_ms, voice: VoiceInput::Idle, hovered: false, lyrics_visible: true, lyrics_mode: PcOverlay::Auto, track: Some("a"), fullscreen: false }
+    fn song(now_ms: u64) -> Inputs {
+        Inputs { now_ms, voice: VoiceInput::Idle, hovered: false, lyrics_visible: true, lyrics_mode: PcOverlay::Auto, music: true, rest: Rest::Bar, fullscreen: false }
+    }
+
+    /// Nothing plays.
+    fn silence(now_ms: u64) -> Inputs {
+        Inputs { lyrics_visible: false, music: false, ..song(now_ms) }
     }
 
     #[test]
     fn nothing_to_show_is_hidden() {
         let mut m = Machine::default();
-        assert_eq!(m.step(&Inputs { lyrics_visible: false, ..song(0) }), Mode::Hidden);
+        assert_eq!(m.step(&silence(0)), Mode::Hidden);
     }
 
     #[test]
     fn voice_is_expanded_and_an_answer_is_held_8_seconds_or_20_with_buttons() {
         let mut m = Machine::default();
         assert_eq!(m.step(&Inputs { voice: VoiceInput::Active, ..song(0) }), Mode::Expanded);
-        let answer = |now, actions| Inputs { voice: VoiceInput::Answer { actions }, lyrics_visible: false, ..song(now) };
+        let answer = |now, actions| Inputs { voice: VoiceInput::Answer { actions }, ..silence(now) };
         assert_eq!(m.step(&answer(1_000, false)), Mode::Expanded);
         assert_eq!(m.step(&answer(8_999, false)), Mode::Expanded);
         assert_eq!(m.step(&answer(9_000, false)), Mode::Hidden, "8 s after the answer, back to what was");
@@ -233,7 +311,7 @@ mod tests {
     #[test]
     fn pointing_at_an_answer_keeps_it_and_it_leaves_two_seconds_after_the_cursor() {
         let mut m = Machine::default();
-        let answer = |now, hovered| Inputs { voice: VoiceInput::Answer { actions: false }, hovered, lyrics_visible: false, ..song(now) };
+        let answer = |now, hovered| Inputs { voice: VoiceInput::Answer { actions: false }, hovered, ..silence(now) };
         assert_eq!(m.step(&answer(0, false)), Mode::Expanded);
         assert_eq!(m.step(&answer(7_000, true)), Mode::Expanded);
         assert_eq!(m.step(&answer(30_000, true)), Mode::Expanded, "held while pointed at");
@@ -242,39 +320,43 @@ mod tests {
     }
 
     #[test]
-    fn an_answer_returns_to_the_song_that_was_playing() {
+    fn a_song_rests_as_the_bar_and_an_answer_returns_to_it() {
         let mut m = Machine::default();
-        assert_eq!(m.step(&song(0)), Mode::Compact);
+        assert_eq!(m.step(&song(0)), Mode::Tab);
+        assert_eq!(m.step(&Inputs { voice: VoiceInput::Active, ..song(500) }), Mode::Expanded);
         assert_eq!(m.step(&Inputs { voice: VoiceInput::Answer { actions: false }, ..song(1_000) }), Mode::Expanded);
-        assert_eq!(m.step(&Inputs { voice: VoiceInput::Answer { actions: false }, ..song(9_000) }), Mode::Tab, "the track is old by now");
+        assert_eq!(m.step(&Inputs { voice: VoiceInput::Answer { actions: false }, ..song(9_000) }), Mode::Tab);
+        // A song without lines still shows the bar.
+        assert_eq!(m.step(&Inputs { lyrics_visible: false, ..song(10_000) }), Mode::Tab);
+        assert_eq!(m.step(&silence(11_000)), Mode::Hidden);
     }
 
     #[test]
-    fn auto_shows_a_new_track_for_six_seconds_then_folds_into_the_tab() {
+    fn the_bar_opens_after_a_short_hover_and_folds_after_the_cursor_left() {
         let mut m = Machine::default();
-        assert_eq!(m.step(&song(0)), Mode::Compact);
-        assert_eq!(m.step(&song(5_999)), Mode::Compact);
-        assert_eq!(m.step(&song(6_000)), Mode::Tab);
-        // The next track opens it again.
-        assert_eq!(m.step(&Inputs { track: Some("b"), ..song(20_000) }), Mode::Compact);
-        assert_eq!(m.step(&Inputs { track: Some("b"), ..song(26_000) }), Mode::Tab);
+        let at = |now, hovered| Inputs { hovered, ..song(now) };
+        assert_eq!(m.step(&at(0, true)), Mode::Tab);
+        assert_eq!(m.step(&at(149, true)), Mode::Tab);
+        assert_eq!(m.step(&at(150, true)), Mode::Compact);
+        assert_eq!(m.step(&at(5_000, false)), Mode::Compact, "just left");
+        assert_eq!(m.step(&at(5_599, false)), Mode::Compact);
+        assert_eq!(m.step(&at(5_600, false)), Mode::Tab);
+        // Passing over it does not open it.
+        assert_eq!(m.step(&at(6_000, true)), Mode::Tab);
+        assert_eq!(m.step(&at(6_060, false)), Mode::Tab);
+        assert_eq!(m.step(&at(6_200, true)), Mode::Tab);
+        // Coming back before the fold keeps it open.
+        assert_eq!(m.step(&at(6_400, true)), Mode::Compact);
+        assert_eq!(m.step(&at(7_000, false)), Mode::Compact);
+        assert_eq!(m.step(&at(7_300, true)), Mode::Compact);
+        assert_eq!(m.step(&at(7_800, false)), Mode::Compact);
     }
 
     #[test]
-    fn pointing_at_the_tab_opens_it_and_it_folds_a_second_and_a_half_after_the_cursor_left() {
+    fn words_all_the_time_by_the_setting_or_the_overlay() {
         let mut m = Machine::default();
-        assert_eq!(m.step(&song(0)), Mode::Compact);
-        assert_eq!(m.step(&song(10_000)), Mode::Tab);
-        assert_eq!(m.step(&Inputs { hovered: true, ..song(10_100) }), Mode::Compact);
-        assert_eq!(m.step(&Inputs { hovered: true, ..song(20_000) }), Mode::Compact);
-        assert_eq!(m.step(&song(20_100)), Mode::Compact, "just left");
-        assert_eq!(m.step(&song(21_599)), Mode::Compact);
-        assert_eq!(m.step(&song(21_600)), Mode::Tab);
-    }
-
-    #[test]
-    fn always_is_compact_and_never_folds_even_over_a_full_screen() {
-        let mut m = Machine::default();
+        assert_eq!(m.step(&Inputs { rest: Rest::Lyrics, ..song(0) }), Mode::Compact);
+        assert_eq!(m.step(&Inputs { rest: Rest::Lyrics, fullscreen: true, ..song(1) }), Mode::Hidden);
         for t in [0, 10_000, 100_000] {
             assert_eq!(m.step(&Inputs { lyrics_mode: PcOverlay::Always, ..song(t) }), Mode::Compact);
         }
@@ -282,20 +364,21 @@ mod tests {
     }
 
     #[test]
-    fn a_full_screen_program_hides_auto_but_not_the_voice() {
+    fn a_full_screen_program_hides_the_bar_but_not_the_voice() {
         let mut m = Machine::default();
         assert_eq!(m.step(&Inputs { fullscreen: true, ..song(0) }), Mode::Hidden);
         assert_eq!(m.step(&Inputs { fullscreen: true, voice: VoiceInput::Active, ..song(1) }), Mode::Expanded);
         assert_eq!(m.step(&Inputs { fullscreen: true, voice: VoiceInput::Answer { actions: false }, ..song(2) }), Mode::Expanded);
     }
-
     #[test]
-    fn the_song_going_away_resets_so_the_next_one_opens_again() {
-        let mut m = Machine::default();
-        assert_eq!(m.step(&song(0)), Mode::Compact);
-        assert_eq!(m.step(&song(10_000)), Mode::Tab);
-        assert_eq!(m.step(&Inputs { lyrics_visible: false, ..song(11_000) }), Mode::Hidden);
-        assert_eq!(m.step(&song(12_000)), Mode::Compact, "the same track again counts as new after a gap");
+    fn the_settings_have_defaults_and_stay_in_range() {
+        use crate::model::IslandConfig;
+        assert_eq!(Settings::of(None), Settings { resting_mode: Rest::Bar, bar_height: 10, bar_position: Align::Center });
+        let c = IslandConfig { resting_mode: Some("lyrics".into()), bar_height: Some(40), bar_position: Some("right".into()) };
+        assert_eq!(Settings::of(Some(&c)), Settings { resting_mode: Rest::Lyrics, bar_height: 16, bar_position: Align::Right });
+        let c = IslandConfig { resting_mode: Some("else".into()), bar_height: Some(1), bar_position: Some("else".into()) };
+        assert_eq!(Settings::of(Some(&c)), Settings { bar_height: 6, ..Settings::default() });
+        assert_eq!(serde_json::to_value(Settings::default()).unwrap(), json!({ "restingMode": "bar", "barHeight": 10, "barPosition": "center" }));
     }
 
     #[test]

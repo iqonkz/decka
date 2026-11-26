@@ -66,6 +66,7 @@ pub fn default_config() -> ConfigFile {
         network: None,
         media: None,
         voice: None,
+        island: None,
     }
 }
 

@@ -44,6 +44,9 @@ export interface IslandProps {
   /** The "Yes" / "No" of a question (`voice.phase === "confirm"`). */
   onConfirm?: (confirmId: string, yes: boolean) => void;
   onTabHover?: () => void;
+  /** T29.5 / T29.10b: top-bar height (6..16 px, default 10) and position. */
+  barHeight?: number;
+  barPosition?: "left" | "center" | "right";
 }
 
 const FLIP_MS = 320;
@@ -138,6 +141,8 @@ export default function Island({
   onStopSlow,
   onConfirm,
   onTabHover,
+  barHeight = 10,
+  barPosition = "center",
 }: IslandProps) {
   const { mode, lyrics, voice } = event;
   const [langMenuOpen, setLangMenuOpen] = useState(false);
@@ -317,15 +322,30 @@ export default function Island({
   const voiceActive = Boolean(voice?.active);
 
   if (mode === "tab") {
+    const clampedHeight = Math.max(6, Math.min(16, barHeight));
+    const levelPct =
+      event.musicLevel !== undefined ? Math.max(12, Math.min(100, Math.round(event.musicLevel * 100))) : 0;
+    const hasMeter = Boolean(event.playing || event.musicLevel !== undefined);
     return (
       <div className="island-host" data-island-theme={theme}>
         <div
-          className="island-tab-zone"
+          className={`island-tab-zone pos-${barPosition}`}
+          style={{ height: clampedHeight + 8 }}
           onPointerEnter={onTabHover}
           role="region"
           aria-label={t("orb.aria")}
         >
-          <div className="island-tab-bar" />
+          <div className="island-tab-bar" style={{ height: clampedHeight }}>
+            {hasMeter && (
+              <div
+                className="island-tab-meter"
+                style={{
+                  width: `${levelPct}%`,
+                  background: `linear-gradient(90deg, ${colorFrom ?? "#22d3ee"}, ${colorTo ?? "#d946ef"})`,
+                }}
+              />
+            )}
+          </div>
         </div>
       </div>
     );

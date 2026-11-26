@@ -621,6 +621,17 @@ pub fn voice_context_set(app: AppHandle, enabled: bool) -> Result<bool, String> 
     agent(&app)?.set_voice_context_enabled(enabled)
 }
 
+/// `config.island` (T29.5): how the island rests while a song plays.
+#[tauri::command]
+pub fn island_config_get(app: AppHandle) -> Result<decka_core::island::Settings, String> {
+    Ok(agent(&app)?.island_settings())
+}
+
+#[tauri::command]
+pub fn island_config_set(app: AppHandle, resting_mode: Option<String>, bar_height: Option<u32>, bar_position: Option<String>) -> Result<decka_core::island::Settings, String> {
+    agent(&app)?.set_island_settings(decka_core::model::IslandConfig { resting_mode, bar_height, bar_position })
+}
+
 /// `voice.duckMusic` (T29.3).
 #[tauri::command]
 pub fn voice_duck_get(app: AppHandle) -> Result<bool, String> {

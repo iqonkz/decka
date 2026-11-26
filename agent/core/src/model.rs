@@ -659,6 +659,24 @@ pub struct ConfigFile {
     /// T26.7: `voice.context.enabled` - hints by the active program when the island opens; absent = off.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub voice: Option<VoiceConfig>,
+    /// T29.5: how the island of the PC rests while a song plays; absent = the bar, 10 px, in the middle.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub island: Option<IslandConfig>,
+}
+
+/// `config.island` (T29.5). Words that are not known fall back to the default.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct IslandConfig {
+    /// `bar` or `lyrics`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resting_mode: Option<String>,
+    /// 6..=16 logical pixels.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bar_height: Option<u32>,
+    /// `left`, `center` or `right`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bar_position: Option<String>,
 }
 
 /// `config.voice`.

@@ -144,6 +144,8 @@ pub fn run() {
             commands::voice_set_model_tier,
             commands::voice_context_get,
             commands::voice_context_set,
+            commands::island_config_get,
+            commands::island_config_set,
             commands::voice_duck_get,
             commands::voice_duck_set,
             commands::voice_chip,

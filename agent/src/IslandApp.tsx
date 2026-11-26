@@ -51,6 +51,10 @@ export default function IslandApp() {
   useEffect(() => {
     document.body.style.background = "transparent";
     document.documentElement.style.background = "transparent";
+    // The window is sized to what it shows (the resting bar is 6..16 px high): never a scroll bar.
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.margin = "0";
     call("get_layout").then(
       (l) => {
         document.documentElement.style.setProperty("--accent", l.display.accent ?? "#7c5cff");
@@ -120,7 +124,7 @@ export default function IslandApp() {
   const orb = event.mode === "orb" ? event.orb : null;
   // T29.4: during a dictation the window is a small orb at the text cursor.
   return (
-    <div ref={host} data-island-glass={GLASS} style={{ width: "100%", boxSizing: "border-box", padding: orb ? 4 : 24 }}>
+    <div ref={host} className={event.mode === "tab" ? "island-bar-host" : undefined} data-island-glass={GLASS} style={{ width: "100%", boxSizing: "border-box", padding: orb ? 4 : event.mode === "tab" ? 0 : 24 }}>
       {orb && (
         <div className="island-orb-host">
           <DictationOrb
@@ -134,6 +138,8 @@ export default function IslandApp() {
       <Island
         event={shown}
         theme={theme}
+        barHeight={event.barHeight}
+        barPosition={event.barPosition}
         onMediaControl={(kind) => void call("media_control", { kind }).catch(() => {})}
         onAction={(kind) => void call("voice_action", { kind: kind as never }).catch(() => {})}
         onChipClick={(command) => void call("voice_chip", { command: command as never }).catch(() => {})}

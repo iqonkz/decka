@@ -4,6 +4,7 @@ import type { LayoutFile } from "./layout";
 import type { ConfigFile, DeviceInfo } from "./config";
 import type { PageTemplate } from "./templates";
 import type { SavedGuide, VoiceModelTier, WorkMode } from "./m27";
+import type { IslandSettings } from "./island";
 
 /** One line of the connection check (`diag.rs`); `id` and `status` pick the sentence, `detail` fills it. */
 export interface DiagCheck {
@@ -160,6 +161,8 @@ export interface IpcCommands {
   voice_action(args: { kind: "copy" | "insert" | "speak" | "again" | `lang:${string}` }): void; // T26.3: a button under the shown answer; the PC decides what it does
   voice_context_get(): boolean;                                 // T26.7: hints by the active program when the island opens (off by default)
   voice_context_set(args: { enabled: boolean }): boolean;
+  island_config_get(): IslandSettings;                          // T29.5: `config.island`
+  island_config_set(args: { restingMode?: IslandSettings["restingMode"]; barHeight?: number; barPosition?: IslandSettings["barPosition"] }): IslandSettings;
   voice_duck_get(): boolean;                                    // T29.3: `voice.duckMusic` (on by default)
   voice_duck_set(args: { enabled: boolean }): boolean;
   voice_notices_get(): boolean;                                 // T27.8: short notes of the island about the PC; on by default

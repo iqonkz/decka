@@ -394,6 +394,8 @@ struct Inner {
     lyrics: crate::lyrics::Lyrics,
     /// T26.0: the lyrics window is hidden by voice until shown again or the agent restarts (never written to config).
     lyrics_hidden: AtomicBool,
+    /// T29.5: the application draws an island, which shows what plays whether or not a phone has a media widget.
+    island: AtomicBool,
     ai_task: Mutex<Option<JoinHandle<()>>>,
     /// Twitch: the polling loop, the sign-in in progress (and its error), the last error and the last good numbers.
     twitch_task: Mutex<Option<JoinHandle<()>>>,
@@ -457,6 +459,7 @@ impl Agent {
                 memory: crate::voice::memory::Memory::load(&config_dir),
                 lyrics: crate::lyrics::Lyrics::new(&config_dir, lyrics_dir(&config_dir, opts.config_dir.is_some())),
                 lyrics_hidden: AtomicBool::new(false),
+                island: AtomicBool::new(false),
                 ai_task: Mutex::new(None),
                 twitch_task: Mutex::new(None),
                 twitch_login_task: Mutex::new(None),
@@ -658,6 +661,30 @@ impl Agent {
         Ok(enabled)
     }
 
+    /// `config.island` (T29.5) with the defaults filled in.
+    pub fn island_settings(&self) -> crate::island::Settings {
+        crate::island::Settings::of(self.config().island.as_ref())
+    }
+
+    /// Changes what is given and keeps the rest; a word or a height outside the allowed ones is refused.
+    pub fn set_island_settings(&self, change: crate::model::IslandConfig) -> Result<crate::island::Settings, String> {
+        if change.resting_mode.as_deref().is_some_and(|m| !["bar", "lyrics"].contains(&m))
+            || change.bar_position.as_deref().is_some_and(|p| !["left", "center", "right"].contains(&p))
+            || change.bar_height.is_some_and(|h| !crate::island::BAR_HEIGHTS.contains(&h))
+        {
+            return Err("Unknown island setting".into());
+        }
+        let mut config = self.config();
+        let island = config.island.get_or_insert_with(Default::default);
+        island.resting_mode = change.resting_mode.or_else(|| island.resting_mode.take());
+        island.bar_height = change.bar_height.or(island.bar_height);
+        island.bar_position = change.bar_position.or_else(|| island.bar_position.take());
+        if let SaveResult::Rejected(issues) = self.write_config(config) {
+            return Err(issues.first().map(|i| i.message.clone()).unwrap_or_default());
+        }
+        Ok(self.island_settings())
+    }
+
     /// `voice.duckMusic` (T29.3): other sounds are turned down while the microphone records; on by default.
     pub fn voice_duck_enabled(&self) -> bool {
         self.config().voice.and_then(|v| v.duck_music).unwrap_or(true)
@@ -703,6 +730,7 @@ impl Agent {
         if let SaveResult::Rejected(issues) = self.write_config(config) {
             return Err(issues.first().map(|i| i.message.clone()).unwrap_or_default());
         }
+        self.restart_if_needed_changed();
         Ok(mode)
     }
 
@@ -1088,7 +1116,15 @@ impl Agent {
 
     /// The collectors the current layout and actions need (DATA_MODEL.md 10.1).
     fn needed_now(&self) -> crate::collectors::needed::Needed {
-        crate::collectors::needed::needed_collectors(&self.layout(), &self.actions())
+        let mut needed = crate::collectors::needed::needed_collectors(&self.layout(), &self.actions());
+        needed.media |= self.inner.island.load(Ordering::SeqCst) && self.lyrics_overlay_mode() != crate::lyrics_overlay::PcOverlay::Off;
+        needed
+    }
+
+    /// The application shows the island of the PC: what plays is read for it (unless its overlay is off).
+    pub fn set_island_present(&self) {
+        self.inner.island.store(true, Ordering::SeqCst);
+        self.restart_if_needed_changed();
     }
 
     /// After the layout or the actions changed: restarts the collectors only when the set they need is not the same.
