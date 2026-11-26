@@ -13,6 +13,12 @@ import DictationBlock from "./DictationBlock";
 import MemoryBlock from "./MemoryBlock";
 import GuidesBlock from "./GuidesBlock";
 import ModesBlock from "./ModesBlock";
+import VoiceCheckPanel from "./VoiceCheckPanel";
+import {
+  voiceErrorCopy,
+  type VoiceCheckStep,
+  type VoiceStatusWithReason,
+} from "./voiceM28Types";
 import { Group, PageHeader, Row, SectionHeader } from "../ui/SettingsGroup";
 import Disclosure from "../ui/Disclosure";
 import Select from "../ui/Select";
@@ -54,31 +60,35 @@ export function formatHardware(hw: { gpu?: string; vramGb?: number; ramGb: numbe
 }
 
 export interface VoiceSectionProps {
-  initialStatus?: VoiceStatus;
+  initialStatus?: VoiceStatusWithReason;
   initialModelTier?: VoiceModelTier;
   initialNotices?: boolean;
+  initialContext?: boolean;
+  initialCheckSteps?: VoiceCheckStep[];
   previewGuides?: SavedGuide[];
   previewModes?: WorkMode[];
   openAdvanced?: boolean;
 }
 
-/** Settings window: More → Voice (DATA_MODEL.md 12.7 + M27 guides, modes, notices, 9B). */
+/** Settings window: More → Voice (DATA_MODEL.md 12.7 + M27/M28 UI). */
 export default function VoiceSection({
   initialStatus,
   initialModelTier,
   initialNotices = true,
+  initialContext = false,
+  initialCheckSteps,
   previewGuides,
   previewModes,
   openAdvanced,
 }: VoiceSectionProps = {}) {
-  const [status, setStatus] = useState<VoiceStatus>(initialStatus ?? DEFAULT_STATUS);
+  const [status, setStatus] = useState<VoiceStatusWithReason>(initialStatus ?? DEFAULT_STATUS);
   const [modelTier, setModelTier] = useState<VoiceModelTier>(initialModelTier ?? (initialStatus?.model ?? "standard"));
   const [noticesEnabled, setNoticesEnabled] = useState<boolean>(initialNotices);
   const [confirm9bOpen, setConfirm9bOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // T26.7: hints by the active program when the island opens (off by default).
-  const [context, setContext] = useState(false);
+  // T26.7 / T28.2b: screen assist (active window on demand, in memory only).
+  const [context, setContext] = useState(initialContext);
 
   useEffect(() => {
     if (initialStatus) return;
@@ -208,18 +218,49 @@ export default function VoiceSection({
         </Group>
       )}
 
-      {status.state === "error" && (
-        <Group>
-          <div style={{ padding: "14px 0" }}>
-            <Banner kind="error">{status.error ?? ""}</Banner>
-            <div style={{ marginTop: 12 }}>
-              <Button variant="primary" disabled={busy} onClick={() => void run("voice_enable")}>
-                {t("voice.turn_on", { size: status.downloadGb || "3.2" })}
-              </Button>
+      {status.state === "error" && (() => {
+        const copy = status.reason ? voiceErrorCopy(status.reason, status.exitCode) : null;
+        return (
+          <Group>
+            <div style={{ padding: "14px 0" }}>
+              <Banner kind="error">
+                {copy ? (
+                  <>
+                    <strong>{copy.reason}</strong>
+                    <div style={{ marginTop: 4 }}>{copy.hint}</div>
+                  </>
+                ) : (
+                  status.error ?? ""
+                )}
+              </Banner>
+              <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
+                {copy ? (
+                  <Button
+                    variant="primary"
+                    disabled={busy}
+                    onClick={() => {
+                      if (copy.action === "switch_light") {
+                        setModelTier("light");
+                        void setConfig({ model: "light" });
+                      } else if (copy.action === "check_mic") {
+                        document.getElementById("voice-check")?.scrollIntoView({ behavior: "smooth" });
+                      } else {
+                        void run("voice_enable");
+                      }
+                    }}
+                  >
+                    {copy.buttonLabel}
+                  </Button>
+                ) : (
+                  <Button variant="primary" disabled={busy} onClick={() => void run("voice_enable")}>
+                    {t("voice.turn_on", { size: status.downloadGb || "3.2" })}
+                  </Button>
+                )}
+              </div>
             </div>
-          </div>
-        </Group>
-      )}
+          </Group>
+        );
+      })()}
 
       {status.state === "ready" && (
         <>
@@ -244,7 +285,7 @@ export default function VoiceSection({
               <Switch checked={status.keepLoaded} onChange={(val) => void setConfig({ keepLoaded: val })} />
             </Row>
 
-            <Row title={t("voice.context")} description={t("voice.context_hint")}>
+            <Row id="section-voice-screen-help" title={t("m28.screen_help_title")} description={t("m28.screen_help_desc")}>
               <Switch
                 checked={context}
                 onChange={(on) =>
@@ -336,6 +377,7 @@ export default function VoiceSection({
         </Modal>
       )}
 
+      <VoiceCheckPanel initialSteps={initialCheckSteps} />
       <DictationBlock />
       <MemoryBlock />
       <GuidesBlock initialGuides={previewGuides} />

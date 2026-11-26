@@ -281,7 +281,17 @@ if (scene === "deck" || scene === "settings") {
       lists_get: M22_LISTS,
       memory_get: [{ id: "4000000000000001", text: "Aigerim is my wife", createdAt: 1 }, { id: "4000000000000002", text: "My project folder is on drive D", createdAt: 2 }],
       voice_dictation_get: { trigger: { kind: "doubleCtrl" }, mode: "clean", dictionary: ["Decka", "Qwen", "Almaty"] },
-      voice_status: { state: "ready", hardware: { ramGb: 32 }, model: "standard", downloadGb: 3.2, hotkey: ["ctrl", "alt", "space"], keepLoaded: false, speak: false, phoneButton: true, mics: ["Microphone (USB)"] },
+      voice_context_get: q.get("context") !== "0",
+      voice_context_set: true,
+      voice_self_check: [
+        { id: "mic", state: "ok", durationMs: 3000, detail: "Уровень сигнала в норме" },
+        { id: "stt", state: "ok", durationMs: 410, detail: "«который час»" },
+        { id: "model", state: "ok", durationMs: 220, detail: "status (time)" },
+        { id: "action", state: "ok", durationMs: 8, detail: "Сухой прогон: показать время" },
+      ],
+      voice_status: q.get("voiceError")
+        ? { state: "error", reason: q.get("voiceError"), hardware: { gpu: "GTX 1050", vramGb: 2, ramGb: 8 }, model: "standard", downloadGb: 3.2, hotkey: ["ctrl", "alt", "space"], keepLoaded: false, speak: false, phoneButton: true, mics: ["Microphone (USB)"] }
+        : { state: "ready", hardware: { ramGb: 32 }, model: "standard", downloadGb: 3.2, hotkey: ["ctrl", "alt", "space"], keepLoaded: false, speak: false, phoneButton: true, mics: ["Microphone (USB)"] },
     };
     (window as never as { __TAURI_EVENT_PLUGIN_INTERNALS__: unknown }).__TAURI_EVENT_PLUGIN_INTERNALS__ = {
       unregisterListener: () => {},
@@ -460,9 +470,10 @@ if (scene === "deck" || scene === "settings") {
         muted: hasSong ? q.get("muted") === "1" : undefined,
         musicLevel: hasSong ? Number(q.get("musicLevel") ?? 0.7) : undefined,
         track: hasSong ? { title: q.get("title") ?? "Midnight City", artist: q.get("artist") ?? "M83" } : undefined,
-        lyrics: q.get("lyrics") === "1line" ? { playing: true, current: isRu ? "В полночном городе огни" : "Waiting in a car" } : q.get("lyrics") === "3lines" ? { playing: true, current: isRu ? "Когда ночь опускается на старый город, и огни одно за другим гаснут в окнах, я всё ещё иду по тихой набережной навстречу рассвету" : "When the night comes down on the old quiet town and the lights go out one by one across every street, I am still walking by the river toward dawn", next: isRu ? "Ждём рассвет у реки" : "Waiting for a ride in the dark" } : q.get("lyrics") === "long" ? { playing: true, current: isRu ? "Когда ночь опускается на старый город, и огни одно за другим гаснут в окнах, я всё ещё иду по набережной к тебе" : "When the night comes down on the old town and the lights go out one by one, I am still walking the river road to you", next: isRu ? "Ждём рассвет у реки" : "Waiting for a ride in the dark" } : hasSong ? (
+        lyrics: q.get("lyrics") === "1line" ? { playing: true, prev: isRu ? "Огни горят в ночи" : "City lights glow", current: isRu ? "В полночном городе огни" : "Waiting in a car", next: isRu ? "Ждём рассвет у реки" : "Waiting for a ride in the dark" } : q.get("lyrics") === "3lines" ? { playing: true, prev: isRu ? "Вечер стих над водой" : "Evening fades by the bay", current: isRu ? "Когда ночь опускается на старый город, и огни одно за другим гаснут в окнах, я всё ещё иду по тихой набережной навстречу рассвету" : "When the night comes down on the old quiet town and the lights go out one by one across every street, I am still walking by the river toward dawn", next: isRu ? "Ждём рассвет у реки" : "Waiting for a ride in the dark" } : q.get("lyrics") === "long" ? { playing: true, prev: isRu ? "Вечер стих над водой" : "Evening fades by the bay", current: isRu ? "Когда ночь опускается на старый город, и огни одно за другим гаснут в окнах" : "When the night comes down on the old town and the lights go out", next: isRu ? "Ждём рассвет у реки" : "Waiting for a ride in the dark" } : hasSong ? (
           songScene === "lyrics" ? {
             playing: q.get("playing") !== "0",
+            prev: isRu ? "Огни горят в ночи" : "City lights glow",
             current: isRu ? "В полночном городе огни" : "Waiting in a car",
             next: isRu ? "Ждём рассвет у реки" : "Waiting for a ride in the dark",
           } : songScene === "countdown" ? {
