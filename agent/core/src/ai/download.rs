@@ -210,8 +210,14 @@ impl Downloader {
                 if cancel.load(Ordering::Relaxed) {
                     return Err(DownloadError::Cancelled);
                 }
-                file.write_all(&chunk)?;
                 done += chunk.len() as u64;
+                // More than the manifest says is a wrong file: it must not fill the disk before the hash is checked.
+                if done > entry.size {
+                    drop(file);
+                    let _ = std::fs::remove_file(&part);
+                    return Err(DownloadError::Damaged);
+                }
+                file.write_all(&chunk)?;
                 progress(done);
             }
             file.flush()?;
@@ -364,6 +370,19 @@ mod tests {
         assert_eq!(err, DownloadError::Damaged);
         assert_eq!(err.to_string(), "Download damaged — try again");
         assert!(!dest.exists() && !part_path(&dest).exists());
+    }
+
+    #[tokio::test]
+    async fn a_file_longer_than_the_manifest_says_is_stopped_and_deleted() {
+        let body = vec![7u8; 200_000];
+        let (url, _) = serve(body.clone(), true).await;
+        let dir = tempfile::tempdir().unwrap();
+        let dest = dir.path().join("m.gguf");
+        let e = entry(&url, &body[..100]);
+        let mut most = 0;
+        let err = Downloader::with_hosts(&["127.0.0.1"]).fetch(&e, &dest, &AtomicBool::new(false), &mut |done| most = most.max(done)).await.unwrap_err();
+        assert_eq!(err, DownloadError::Damaged);
+        assert!(most <= e.size && !dest.exists() && !part_path(&dest).exists(), "{most}");
     }
 
     #[tokio::test]
