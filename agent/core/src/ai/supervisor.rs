@@ -70,7 +70,9 @@ pub fn llama_args(model: &Path, mmproj: Option<&Path>, port: u16, key: &str, ngl
         }
     }
     let ngl = ngl.to_string();
-    for s in ["-c", "4096", "-ngl", ngl.as_str(), "--jinja", "--no-webui", "--host", "127.0.0.1", "--port"] {
+    // T29.A, memory: by default llama-server keeps up to 8 GB of old prompts in the RAM and 32 checkpoints per slot. No
+    // prompt cache and 4 checkpoints are as fast for our few long prompts and take about half a gigabyte less (measured).
+    for s in ["-c", "4096", "-ngl", ngl.as_str(), "--cache-ram", "0", "--ctx-checkpoints", "4", "--jinja", "--no-webui", "--host", "127.0.0.1", "--port"] {
         a.push(s.to_string());
     }
     a.push(port.to_string());
@@ -924,13 +926,13 @@ mod tests {
         let a = llama_args(Path::new("m.gguf"), None, 5555, "k", 99);
         assert_eq!(
             a.join(" "),
-            "-m m.gguf -c 4096 -ngl 99 --jinja --no-webui --host 127.0.0.1 --port 5555 --api-key k"
+            "-m m.gguf -c 4096 -ngl 99 --cache-ram 0 --ctx-checkpoints 4 --jinja --no-webui --host 127.0.0.1 --port 5555 --api-key k"
         );
         let with = llama_args(Path::new("m.gguf"), Some(Path::new("p.gguf")), 5555, "k", 99);
-        assert_eq!(with.join(" "), "-m m.gguf --mmproj p.gguf -c 4096 -ngl 99 --jinja --no-webui --host 127.0.0.1 --port 5555 --api-key k");
+        assert_eq!(with.join(" "), "-m m.gguf --mmproj p.gguf -c 4096 -ngl 99 --cache-ram 0 --ctx-checkpoints 4 --jinja --no-webui --host 127.0.0.1 --port 5555 --api-key k");
         // T28.1: a part of the layers (or none) puts the projector on the processor.
         let part = llama_args(Path::new("m.gguf"), Some(Path::new("p.gguf")), 5555, "k", 18);
-        assert_eq!(part.join(" "), "-m m.gguf --mmproj p.gguf --no-mmproj-offload -c 4096 -ngl 18 --jinja --no-webui --host 127.0.0.1 --port 5555 --api-key k");
+        assert_eq!(part.join(" "), "-m m.gguf --mmproj p.gguf --no-mmproj-offload -c 4096 -ngl 18 --cache-ram 0 --ctx-checkpoints 4 --jinja --no-webui --host 127.0.0.1 --port 5555 --api-key k");
         assert!(!llama_args(Path::new("m.gguf"), None, 5555, "k", 0).contains(&"--no-mmproj-offload".to_string()));
         assert_eq!(whisper_args(Path::new("w.bin"), 6000, 4).join(" "), "-m w.bin --host 127.0.0.1 --port 6000 -t 4");
         assert_eq!(whisper_args(Path::new("w.bin"), 6000, 1).last().unwrap(), "1", "at least one thread");
