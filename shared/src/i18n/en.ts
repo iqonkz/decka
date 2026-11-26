@@ -983,6 +983,7 @@ export const en = {
   "voice.reply.select_text": "Select text first",
   "voice.reply.text_too_long": "The text is too long",
   "voice.reply.no_context": "Nothing to continue",
+  "voice.reply.copied_paste": "Copied: paste with Ctrl+V",
   "voice.context": "Hints from the active program",
   "voice.context_hint": "When the Decka island opens, it looks at the name of the active program and the selected text. Nothing is saved.",
   "voice.chip.translate": "Translate",

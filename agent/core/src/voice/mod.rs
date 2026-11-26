@@ -33,6 +33,7 @@ pub mod screenrun;
 pub mod slowpath;
 pub mod speak;
 pub mod status;
+pub mod target;
 pub mod timephrase;
 pub mod tools;
 pub mod uia;

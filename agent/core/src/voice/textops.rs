@@ -227,10 +227,70 @@ pub fn finish(cb: &dyn Clipboard, keys: &dyn Keys, op: Op, grabbed: &Grabbed, an
     }
 }
 
+/// T29.1: the focus has left the selection that was to be replaced: the result stays on the clipboard for `Ctrl+V` instead.
+pub fn leave_on_clipboard(cb: &dyn Clipboard, op: Op, grabbed: &Grabbed, answer: Option<&str>) -> Result<(), String> {
+    let Some(text) = answer.and_then(|a| accept_transform(op, &grabbed.text, a)) else {
+        clipboard::give_back(cb, grabbed);
+        return Err(NO_ANSWER.to_string());
+    };
+    cb.set(&text)
+}
+
+/// Words that only point at the selection ("translate **this text** into German"): they are not the text itself (T29.1).
+/// The 11 languages of the interface.
+const SELECTION_WORDS: &[&str] = &[
+    "it", "this", "that", "this one", "text", "the text", "this text", "that text", "selection", "the selection", "this selection",
+    "selected", "selected text", "the selected text", "highlighted text", "the highlighted text", "what i selected", "what i have selected",
+    "это", "это всё", "это все", "этот", "этот текст", "текст", "выделенное", "выделенный текст", "этот выделенный текст", "выделенный фрагмент",
+    "выделенный отрывок", "выделенную фразу", "выделенную часть", "выделенное слово", "выделенные слова", "выделение", "то что выделено",
+    "то что выделил", "то что выделила", "то что я выделил", "то что я выделила", "фрагмент", "эту фразу", "этот фрагмент",
+    "das", "dies", "diesen text", "den text", "den markierten text", "markierten text", "die auswahl",
+    "esto", "este texto", "el texto", "el texto seleccionado", "texto seleccionado", "la selección",
+    "ça", "cela", "ce texte", "le texte", "le texte sélectionné", "texte sélectionné", "la sélection",
+    "isso", "isto", "o texto", "o texto selecionado", "texto selecionado", "a seleção",
+    "мұны", "осыны", "мәтінді", "осы мәтінді", "белгіленген мәтінді", "таңдалған мәтінді",
+    "这个", "这段", "这段文字", "这段话", "选中的文字", "选中的文本", "选中的内容", "所选文字", "所选内容",
+    "これ", "それ", "このテキスト", "この文章", "選択したテキスト", "選択範囲", "選んだ文章",
+    "यह", "इसे", "इस टेक्स्ट", "यह टेक्स्ट", "चुना हुआ टेक्स्ट", "चयनित टेक्स्ट",
+    "هذا", "هذا النص", "النص", "النص المحدد", "التحديد",
+];
+
+pub fn is_selection_reference(said: &str) -> bool {
+    let words: Vec<String> = said
+        .split(|c: char| c.is_whitespace() || matches!(c, ',' | '.' | '!' | '?' | '"' | '«' | '»' | '“' | '”' | '\'' | '。' | '、' | '？' | '！' | '，' | '؟'))
+        .filter(|w| !w.is_empty())
+        .map(str::to_lowercase)
+        .collect();
+    let said = words.join(" ");
+    SELECTION_WORDS.contains(&said.as_str())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::voice::clipboard::fakes::Fake;
+
+    #[test]
+    fn words_that_point_at_the_selection_are_not_the_text() {
+        for said in ["this text", "The selected text.", "этот текст", "Выделенный текст", "это", "«то, что я выделил»", "选中的文字。", "النص المحدد"] {
+            assert!(is_selection_reference(said), "{said}");
+        }
+        for said in ["спасибо за помощь", "this is a good day", "text me tomorrow", "это моя кошка", ""] {
+            assert!(!is_selection_reference(said), "{said}");
+        }
+    }
+
+    #[test]
+    fn a_result_that_cannot_replace_its_selection_stays_on_the_clipboard() {
+        let f = Fake::new(Some("mine"), Some("hello there"));
+        let g = take_selection(&f, &f, &no_sleep).unwrap();
+        leave_on_clipboard(&f, Op::Translate, &g, Some("привет")).unwrap();
+        assert_eq!(f.get().as_deref(), Some("привет"));
+        assert!(f.pasted.lock().unwrap().is_empty());
+        let g = Grabbed { text: "hello".into(), previous: Some("mine".into()) };
+        assert_eq!(leave_on_clipboard(&f, Op::Translate, &g, None).unwrap_err(), NO_ANSWER);
+        assert_eq!(f.get().as_deref(), Some("mine"));
+    }
 
     fn no_sleep(_: Duration) {}
 

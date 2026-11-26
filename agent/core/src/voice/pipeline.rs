@@ -36,6 +36,8 @@ pub mod msg {
     pub const NO_SOUND: &str = crate::voice::mic::NO_SOUND;
     pub const WRONG: &str = "Something went wrong, try again";
     pub const ASK_WEB: &str = "I can't know that offline, search the web?";
+    /// T29.1: there was no field to type into; the text waits on the clipboard.
+    pub const COPIED_PASTE: &str = "Copied: paste with Ctrl+V";
     pub use crate::voice::calc::{DIV_ZERO, NOT_NUMBER};
     pub use crate::voice::textops::{NO_ANSWER, NO_CONTEXT, SELECT_FIRST, TOO_LONG};
 }
@@ -60,6 +62,7 @@ pub mod key {
     pub const NOT_NUMBER: &str = "voice.reply.calc_failed";
     /// A confirmation, not a reply: the question "search the web?" after an `ask` the model could not answer.
     pub const ASK_WEB: &str = "voice.confirm.ask_web";
+    pub const COPIED_PASTE: &str = "voice.reply.copied_paste";
     pub const FAIL_VRAM: &str = "m28.err_vram_short";
     pub const FAIL_RAM: &str = "m28.err_ram_short";
     pub const FAIL_MODEL_FILE: &str = "m28.err_model_file_short";
@@ -111,9 +114,10 @@ pub fn understood(v: &Validated) -> ConfirmInfo {
     ConfirmInfo { text: cut(&v.summary), key, args }
 }
 
-/// The i18n key of a fixed failure text of an executor (the English text is its fallback).
-fn executor_key(text: &str) -> Option<&'static str> {
+/// The i18n key of a fixed text of an executor (the English text is its fallback).
+pub(crate) fn executor_key(text: &str) -> Option<&'static str> {
     match text {
+        msg::COPIED_PASTE => Some(key::COPIED_PASTE),
         msg::SELECT_FIRST => Some(key::SELECT_FIRST),
         msg::TOO_LONG => Some(key::TOO_LONG),
         msg::NO_CONTEXT => Some(key::NO_CONTEXT),
@@ -583,6 +587,8 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
             let (k, args, text) = super::status::decode(&reply).unwrap_or(("", Default::default(), String::new()));
             finish_key(s, Phase::Done(text), ReplyKey { key: k, args })
         }
+        // T29.1: whatever the model said with the call, the user must learn that the text is on the clipboard.
+        (Phase::Executing, Event::Executed(Ok(reply))) if reply == msg::COPIED_PASTE => finish_key(s, Phase::Done(reply), ReplyKey::plain(key::COPIED_PASTE)),
         (Phase::Executing, Event::Executed(Ok(reply))) => {
             match (s.say.clone(), reply.is_empty()) {
                 (Some(say), _) => finish(s, Phase::Done(say)),

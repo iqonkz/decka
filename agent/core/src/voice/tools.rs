@@ -538,6 +538,8 @@ fn run(tool: &str, args: &serde_json::Map<String, Value>, ctx: &Context) -> Resu
                 None | Some(Value::Null) => None,
                 Some(_) => Some(text(args, "text", super::textops::MAX_SPOKEN_TEXT)?.to_string()),
             };
+            // T29.1: "translate this text" points at the selection; the words are not what is translated.
+            let said = said.filter(|t| !super::textops::is_selection_reference(t));
             let lang = match args.get("lang") {
                 None | Some(Value::Null) => None,
                 Some(v) => Some(v.as_str().filter(|l| super::textops::LANGS.contains(l)).ok_or_else(|| reject("unknown language"))?.to_string()),

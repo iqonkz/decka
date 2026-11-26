@@ -12,6 +12,7 @@ use serde_json::{json, Value};
 
 use super::check::{CheckPorts, CheckStep, Recording, StepError};
 use super::dictation::{self, DictationSettings, Mode, Trigger};
+use super::target::{self, FocusMemory, Route};
 use super::endpoint::Verdict;
 use super::hotkey::{self, Pressed, Plan, Tracker};
 use super::matcher::Table;
@@ -207,6 +208,26 @@ fn paste_system(_: &str) -> Result<String, String> {
     Err("unsupported platform".into())
 }
 
+/// T29.1: a dictated or inserted text goes where the user was; into the new place only when that is a field; else to the
+/// clipboard, and the answer says so.
+fn deliver(focus: &FocusMemory, text: &str, paste: bool) -> Result<String, String> {
+    let before = focus.remembered();
+    let now = focus.current();
+    let route = target::route(before.as_ref(), now.as_ref());
+    // The kind of the place only, never what is in it.
+    mic::log_line(&format!(
+        "deliver {route:?}: field={:?} same={} class={}",
+        now.as_ref().map(|n| n.edit),
+        before.as_ref().zip(now.as_ref()).is_some_and(|(b, n)| b.same(n)),
+        now.as_ref().map(|n| target::window_class(n.window)).unwrap_or_default(),
+    ));
+    match route {
+        Route::Clipboard => copy_to_clipboard(text).map(|_| super::pipeline::msg::COPIED_PASTE.to_string()),
+        Route::Field if paste || now.is_some_and(|n| target::typing_is_lossy(&target::window_class(n.window))) => paste_system(text),
+        Route::Field => winops::type_text(text).map(|_| String::new()),
+    }
+}
+
 /// `day_brief` (13.5): the facts the agent already has, put into words by the model; the plain facts when the model fails the check.
 async fn day_brief(agent: &Agent, sup: &crate::ai::supervisor::Supervisor, lang: &str) -> Result<String, String> {
     use super::brief;
@@ -250,31 +271,42 @@ enum TextSource<'a> {
 
 /// `text_transform` (13.2): the text is taken, rewritten by the model and pasted back (or shown).
 #[cfg(windows)]
-async fn transform_text(sup: &crate::ai::supervisor::Supervisor, lang: &str, op: super::textops::Op, target: Option<&str>, source: TextSource<'_>, temperature: f64) -> Result<Transformed, String> {
+async fn transform_text(sup: &crate::ai::supervisor::Supervisor, focus: &FocusMemory, lang: &str, op: super::textops::Op, target_lang: Option<&str>, source: TextSource<'_>, temperature: f64) -> Result<Transformed, String> {
     use super::clipboard::{SystemClipboard, SystemKeys};
     use super::textops;
     // A text that was said (T26.2) or continued (T26.3): no capture, the answer is only shown.
     if let TextSource::Given(text) = source {
         let grabbed = textops::source_text(text).ok_or_else(|| textops::SELECT_FIRST.to_string())?;
-        let body = textops::request_body_at(op, target, lang, &grabbed.text, temperature);
+        let body = textops::request_body_at(op, target_lang, lang, &grabbed.text, temperature);
         let answer = super::assist::chat_text(sup, &body, textops::TRANSFORM_TIMEOUT).await;
         return Ok(Transformed { reply: textops::finish_shown(answer.as_deref())?, source: grabbed.text });
     }
-    // UI Automation first: the clipboard stays untouched when the program gives its selection that way.
-    let grabbed = tokio::task::spawn_blocking(|| textops::take_selection_uia_first(&super::uia::selected_text, &SystemClipboard, &SystemKeys, &std::thread::sleep))
-        .await
-        .map_err(|e| format!("The action did not finish: {e}"))??;
-    let body = textops::request_body_at(op, target, lang, &grabbed.text, temperature);
+    // T29.1: from where the user was when the request began. UI Automation first: the clipboard stays untouched when the
+    // program gives its selection that way.
+    let memory = focus.clone();
+    let (grabbed, before) = tokio::task::spawn_blocking(move || {
+        let before = memory.remembered();
+        target::take_selection(&memory, before.as_ref(), &SystemClipboard, &SystemKeys, &std::thread::sleep).map(|g| (g, before))
+    })
+    .await
+    .map_err(|e| format!("The action did not finish: {e}"))??;
+    let body = textops::request_body_at(op, target_lang, lang, &grabbed.text, temperature);
     let answer = super::assist::chat_text(sup, &body, textops::TRANSFORM_TIMEOUT).await;
     let source = grabbed.text.clone();
-    let reply = tokio::task::spawn_blocking(move || textops::finish(&SystemClipboard, &SystemKeys, op, &grabbed, answer.as_deref(), &std::thread::sleep))
-        .await
-        .map_err(|e| format!("The action did not finish: {e}"))??;
+    let memory = focus.clone();
+    let reply = tokio::task::spawn_blocking(move || {
+        if op.replaces() && target::route_replace(before.as_ref(), memory.current().as_ref()) == Route::Clipboard {
+            return textops::leave_on_clipboard(&SystemClipboard, op, &grabbed, answer.as_deref()).map(|_| super::pipeline::msg::COPIED_PASTE.to_string());
+        }
+        textops::finish(&SystemClipboard, &SystemKeys, op, &grabbed, answer.as_deref(), &std::thread::sleep)
+    })
+    .await
+    .map_err(|e| format!("The action did not finish: {e}"))??;
     Ok(Transformed { reply, source })
 }
 
 #[cfg(not(windows))]
-async fn transform_text(_: &crate::ai::supervisor::Supervisor, _: &str, _: super::textops::Op, _: Option<&str>, _: TextSource<'_>, _: f64) -> Result<Transformed, String> {
+async fn transform_text(_: &crate::ai::supervisor::Supervisor, _: &FocusMemory, _: &str, _: super::textops::Op, _: Option<&str>, _: TextSource<'_>, _: f64) -> Result<Transformed, String> {
     Err("unsupported platform".into())
 }
 
@@ -286,7 +318,7 @@ type Answers = Arc<Mutex<super::followup::Memory>>;
 /// A shown answer becomes the context of the next phrase; an answer that replaced the selection ends it.
 fn remember(answers: &Answers, op: super::textops::Op, target: Option<&str>, ui_lang: &str, done: &Transformed) {
     let mut memory = answers.lock().unwrap();
-    if done.reply.is_empty() {
+    if done.reply.is_empty() || done.reply == super::pipeline::msg::COPIED_PASTE {
         memory.clear();
     } else {
         let answer = super::followup::Answer {
@@ -304,6 +336,7 @@ fn remember(answers: &Answers, op: super::textops::Op, target: Option<&str>, ui_
 /// `text_transform` of a call: a rewrite right after an answer continues that answer (T26.3).
 async fn run_transform(
     sup: &crate::ai::supervisor::Supervisor,
+    focus: &FocusMemory,
     answers: &Answers,
     lang: &str,
     op: super::textops::Op,
@@ -313,13 +346,13 @@ async fn run_transform(
     let carried = if said.is_none() { answers.lock().unwrap().fresh(Instant::now()).and_then(|a| super::followup::continued_text(a, op)) } else { None };
     let given = said.map(str::to_string).or(carried);
     let source = given.as_deref().map_or(TextSource::Selection, TextSource::Given);
-    let done = transform_text(sup, lang, op, target, source, 0.2).await?;
+    let done = transform_text(sup, focus, lang, op, target, source, 0.2).await?;
     remember(answers, op, target, lang, &done);
     Ok(done.reply)
 }
 
 /// What to do with the answer that was just shown (T26.3), for a phrase ("insert it") and for the buttons of the PC window.
-async fn reply_action(sup: &crate::ai::supervisor::Supervisor, answers: &Answers, kind: &super::followup::Kind) -> Result<String, String> {
+async fn reply_action(sup: &crate::ai::supervisor::Supervisor, focus: &FocusMemory, answers: &Answers, kind: &super::followup::Kind) -> Result<String, String> {
     use super::followup::Kind;
     use super::textops;
     let Some(answer) = answers.lock().unwrap().fresh(Instant::now()).cloned() else {
@@ -333,9 +366,8 @@ async fn reply_action(sup: &crate::ai::supervisor::Supervisor, answers: &Answers
             Ok(String::new())
         }
         Kind::Insert => {
-            let text = answer.result;
-            tokio::task::spawn_blocking(move || paste_system(&text)).await.map_err(blocking)??;
-            Ok(String::new())
+            let (text, focus) = (answer.result, focus.clone());
+            tokio::task::spawn_blocking(move || deliver(&focus, &text, true)).await.map_err(blocking)?
         }
         Kind::Speak => {
             let text = answer.result;
@@ -343,13 +375,13 @@ async fn reply_action(sup: &crate::ai::supervisor::Supervisor, answers: &Answers
             Ok(String::new())
         }
         Kind::Again => {
-            let done = transform_text(sup, &answer.ui_lang, answer.op, answer.lang.as_deref(), TextSource::Given(&answer.source_text), VARIANT_TEMPERATURE).await?;
+            let done = transform_text(sup, focus, &answer.ui_lang, answer.op, answer.lang.as_deref(), TextSource::Given(&answer.source_text), VARIANT_TEMPERATURE).await?;
             remember(answers, answer.op, answer.lang.as_deref(), &answer.ui_lang, &done);
             Ok(done.reply)
         }
         Kind::Lang(code) => {
             let from = super::followup::continued_text(&answer, textops::Op::Translate).unwrap_or_else(|| answer.result.clone());
-            let done = transform_text(sup, &answer.ui_lang, textops::Op::Translate, Some(code), TextSource::Given(&from), 0.2).await?;
+            let done = transform_text(sup, focus, &answer.ui_lang, textops::Op::Translate, Some(code), TextSource::Given(&from), 0.2).await?;
             remember(answers, textops::Op::Translate, Some(code), &answer.ui_lang, &done);
             Ok(done.reply)
         }
@@ -474,6 +506,8 @@ struct Inner {
     screen: OnceLock<Arc<super::screenrun::ScreenRun>>,
     /// "Check voice" is running (T28.3).
     checking: AtomicBool,
+    /// T29.1: the window and the element that had the focus when the request began.
+    focus: FocusMemory,
 }
 
 #[derive(Clone)]
@@ -516,6 +550,7 @@ impl Host {
             changes: Arc::new(AtomicU64::new(0)),
             screen: OnceLock::new(),
             checking: AtomicBool::new(false),
+            focus: FocusMemory::default(),
         });
         let driver = Driver::new(handle.clone(), inner.clone());
         let _ = inner.driver.set(driver);
@@ -720,7 +755,7 @@ impl Host {
         let inner = self.inner.clone();
         self.inner.handle.spawn(async move {
             let sup = inner.service.supervisor().clone();
-            match reply_action(&sup, &inner.answers, &kind).await {
+            match reply_action(&sup, &inner.focus, &inner.answers, &kind).await {
                 Ok(text) if !text.is_empty() => inner.plate(&text, true, 20),
                 Ok(_) => {}
                 Err(e) => inner.plate(&e, false, 5),
@@ -963,13 +998,15 @@ impl Inner {
         if is_active(&self.driver().state().phase) {
             return;
         }
+        // A fixed phrase is translated by the window ("Copied: paste with Ctrl+V"); a free text is shown as it is.
+        let fixed = super::pipeline::executor_key(text);
         let info = move |state: &'static str, reply: Option<String>| VoiceInfo {
             state,
             id: reply.is_some().then(|| "0000000000000000".to_string()),
             source: reply.is_some().then_some(Source::Pc),
             heard: None,
+            reply_key: fixed.filter(|_| reply.is_some()),
             reply,
-            reply_key: None,
             reply_args: Default::default(),
             confirm: None,
             activity: None,
@@ -1179,6 +1216,7 @@ impl Ports for Inner {
         let handle = self.handle.clone();
         let (sup, lang, service) = (self.service.supervisor().clone(), self.language(), self.service.clone());
         let screen = self.screen.get().cloned();
+        let focus = self.focus.clone();
         Box::pin(async move {
             if let ToolCall::RunAction { action_id } = &call {
                 return agent.execute(action_id).await.map(|_| String::new()).map_err(|(_, m)| m);
@@ -1246,8 +1284,13 @@ impl Ports for Inner {
                     };
                 }
                 ToolCall::ReadAloud => {
-                    return tokio::task::spawn_blocking(|| {
-                        let text = super::uia::selected_text().or_else(super::uia::text_at_cursor).ok_or_else(|| "Nothing to read: select some text first".to_string())?;
+                    return tokio::task::spawn_blocking(move || {
+                        // T29.1: the selection of the place the user was in, then whatever is selected or under the mouse now.
+                        #[cfg(windows)]
+                        let remembered = target::Desk::remembered_selection(&focus).map(|t| t.trim().to_string()).filter(|t| !t.is_empty());
+                        #[cfg(not(windows))]
+                        let remembered: Option<String> = None;
+                        let text = remembered.or_else(super::uia::selected_text).or_else(super::uia::text_at_cursor).ok_or_else(|| "Nothing to read: select some text first".to_string())?;
                         super::speak::read_aloud(&text).map(|_| String::new())
                     })
                     .await
@@ -1260,7 +1303,7 @@ impl Ports for Inner {
                 ToolCall::TypeText { text } => {
                     *dictate.lock().unwrap() = None;
                     let text = text.clone();
-                    return tokio::task::spawn_blocking(move || winops::type_text(&text).map(|_| String::new()))
+                    return tokio::task::spawn_blocking(move || deliver(&focus, &text, false))
                         .await
                         .map_err(|e| format!("The action did not finish: {e}"))?;
                 }
@@ -1320,15 +1363,15 @@ impl Ports for Inner {
                     return answer;
                 }
                 ToolCall::TextTransform { op, lang: target, text } => {
-                    return run_transform(&sup, &answers, lang, *op, target.as_deref(), text.as_deref()).await;
+                    return run_transform(&sup, &focus, &answers, lang, *op, target.as_deref(), text.as_deref()).await;
                 }
                 ToolCall::ReplyAction { kind } => {
-                    return reply_action(&sup, &answers, kind).await;
+                    return reply_action(&sup, &focus, &answers, kind).await;
                 }
                 ToolCall::PasteText { text } => {
                     *dictate.lock().unwrap() = None;
                     let text = text.clone();
-                    return tokio::task::spawn_blocking(move || paste_system(&text))
+                    return tokio::task::spawn_blocking(move || deliver(&focus, &text, true))
                         .await
                         .map_err(|e| format!("The action did not finish: {e}"))?;
                 }
@@ -1485,6 +1528,10 @@ impl Ports for Inner {
         let state = self.driver().state();
         let was_listening = self.last.lock().unwrap().as_ref().is_some_and(|i| i.state == "listening");
         *self.last.lock().unwrap() = Some(info.clone());
+        // T29.1: where the user is as the request begins: text is read from and typed into this place.
+        if info.state == "listening" && !was_listening {
+            self.focus.remember();
+        }
         // Warm-up: the servers start while the phrase is still being recorded (a no-op when they run already).
         if info.state == "listening" && !was_listening {
             let sup = self.service.supervisor().clone();

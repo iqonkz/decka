@@ -1014,6 +1014,7 @@ export const ar: Dictionary = {
   "voice.reply.select_text": "حدّد نصًا أولًا",
   "voice.reply.text_too_long": "النص طويل جدًا",
   "voice.reply.no_context": "لا شيء للمتابعة",
+  "voice.reply.copied_paste": "تم النسخ: الصق بـ Ctrl+V",
   "voice.context": "اقتراحات حسب البرنامج النشط",
   "voice.context_hint": "عند فتح جزيرة Decka ينظر إلى اسم البرنامج النشط والنص المحدد. لا يتم حفظ أي شيء.",
   "voice.chip.translate": "ترجمة",

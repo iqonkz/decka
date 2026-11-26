@@ -974,6 +974,7 @@ export const de: Dictionary = {
   "voice.reply.select_text": "Markieren Sie zuerst einen Text",
   "voice.reply.text_too_long": "Der Text ist zu lang",
   "voice.reply.no_context": "Nichts fortzusetzen",
+  "voice.reply.copied_paste": "Kopiert: mit Strg+V einfügen",
   "voice.context": "Hinweise nach aktivem Programm",
   "voice.context_hint": "Beim Öffnen der Decka-Insel schaut Decka auf den Namen des aktiven Programms und den markierten Text. Es wird nichts gespeichert.",
   "voice.chip.translate": "Übersetzen",

@@ -101,12 +101,22 @@ pub fn volume_text(percent: u8) -> String {
 #[cfg(windows)]
 pub use win::{close_app, move_to_other_monitor, switch_app, which_monitor};
 
-/// Types `text` into the field that has the focus, as Unicode characters (not key chords).
+/// The pause between two typed characters.
+#[cfg(windows)]
+const TYPE_GAP: std::time::Duration = std::time::Duration::from_millis(6);
+
+/// Types `text` into the field that has the focus, as Unicode characters (not key chords), one at a time: sent in one
+/// batch, programs that read the input late (the Notepad of Windows 11) repeat the last character instead of the others.
 #[cfg(windows)]
 pub fn type_text(text: &str) -> Result<(), String> {
     use enigo::{Enigo, Keyboard, Settings};
     let mut enigo = Enigo::new(&Settings::default()).map_err(|e| format!("keyboard unavailable: {e}"))?;
-    enigo.text(text).map_err(|e| e.to_string())
+    let mut one = [0u8; 4];
+    for c in text.chars() {
+        enigo.text(c.encode_utf8(&mut one)).map_err(|e| e.to_string())?;
+        std::thread::sleep(TYPE_GAP);
+    }
+    Ok(())
 }
 
 #[cfg(not(windows))]

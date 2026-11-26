@@ -974,6 +974,7 @@ export const ja: Dictionary = {
   "voice.reply.select_text": "先にテキストを選択してください",
   "voice.reply.text_too_long": "テキストが長すぎます",
   "voice.reply.no_context": "続けられる内容がありません",
+  "voice.reply.copied_paste": "コピーしました: Ctrl+V で貼り付け",
   "voice.context": "アクティブなプログラムに応じたヒント",
   "voice.context_hint": "Decka アイランドを開くとき、アクティブなプログラムの名前と選択中のテキストを確認します。何も保存されません。",
   "voice.chip.translate": "翻訳",

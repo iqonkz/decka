@@ -974,6 +974,7 @@ export const hi: Dictionary = {
   "voice.reply.select_text": "पहले टेक्स्ट चुनें",
   "voice.reply.text_too_long": "टेक्स्ट बहुत लंबा है",
   "voice.reply.no_context": "जारी रखने के लिए कुछ नहीं",
+  "voice.reply.copied_paste": "कॉपी हो गया: Ctrl+V से चिपकाएँ",
   "voice.context": "सक्रिय प्रोग्राम के अनुसार सुझाव",
   "voice.context_hint": "Decka आइलैंड खुलने पर वह सक्रिय प्रोग्राम का नाम और चुना हुआ टेक्स्ट देखता है। कुछ भी सहेजा नहीं जाता।",
   "voice.chip.translate": "अनुवाद करें",

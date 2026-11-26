@@ -12,6 +12,7 @@ use std::time::{Duration, Instant};
 use decka_core::island::{voice_view, Inputs, Machine, Mode, VoiceInput, POLL_MS};
 use decka_core::lyrics_overlay::{foreground_is_fullscreen, ms_until_first_line, previous_line, synced_lines, two_lines, visible, Inputs as LyricsInputs};
 use decka_core::model::MediaInfo;
+use decka_core::overlay;
 use decka_core::voice::host::Host;
 use decka_core::Agent;
 use serde_json::{json, Value};
@@ -231,9 +232,23 @@ fn create(app: &AppHandle) -> Option<tauri::WebviewWindow> {
         .build()
         .map_err(|e| tracing::error!("cannot create the island: {e}"))
         .ok()?;
-    // Clicks go through until the cursor is on the panel.
-    let _ = window.set_ignore_cursor_events(true);
+    // T29.1: never the active window. Clicks go through until the cursor is on the panel.
+    on_hwnd(&window, |hwnd| {
+        overlay::guard(hwnd);
+        overlay::set_click_through(hwnd, true);
+    });
     Some(window)
+}
+
+/// T29.1: an overlay window is shown, hidden and made click-through by `decka_core::overlay` on its own thread; the calls of
+/// the window library for these (`show`, `set_ignore_cursor_events`) would activate it and take the focus from the user.
+pub fn on_hwnd(window: &tauri::WebviewWindow, f: impl FnOnce(isize) + Send + 'static) {
+    let target = window.clone();
+    let _ = window.run_on_main_thread(move || {
+        if let Ok(hwnd) = target.hwnd() {
+            f(hwnd.0 as isize);
+        }
+    });
 }
 
 /// Top centre of the main monitor: the panel (not the window) is `TOP_GAP` below the edge.
@@ -324,7 +339,7 @@ pub fn setup(app: &AppHandle, agent: &Agent) -> Arc<Shared> {
                 meter.set_active(false);
                 if shown {
                     if let Some(w) = &window {
-                        let _ = w.hide();
+                        on_hwnd(w, overlay::hide);
                     }
                     shown = false;
                     last_event = None;
@@ -340,7 +355,10 @@ pub fn setup(app: &AppHandle, agent: &Agent) -> Arc<Shared> {
             };
             if !shown {
                 place(&app, &window, loop_shared.size());
-                let _ = window.show();
+                on_hwnd(&window, |hwnd| {
+                    overlay::set_click_through(hwnd, true);
+                    overlay::show(hwnd);
+                });
                 shown = true;
                 ignoring = true;
                 fresh_until = Some(Instant::now() + FRESH);
@@ -348,7 +366,8 @@ pub fn setup(app: &AppHandle, agent: &Agent) -> Arc<Shared> {
             // Clicks reach the panel only while the cursor is on it.
             if ignoring == on_panel {
                 ignoring = !on_panel;
-                let _ = window.set_ignore_cursor_events(ignoring);
+                let through = ignoring;
+                on_hwnd(&window, move |hwnd| overlay::set_click_through(hwnd, through));
             }
             if acrylic {
                 let key = (mode, rect.map(|r| (r.x.round() as i64, r.y.round() as i64, r.width.round() as i64, r.height.round() as i64)));

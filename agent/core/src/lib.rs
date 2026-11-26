@@ -27,6 +27,7 @@ pub mod media_control;
 pub mod model;
 pub mod netpolicy;
 pub mod obs;
+pub mod overlay;
 pub mod paths;
 pub mod proto;
 pub mod qr;

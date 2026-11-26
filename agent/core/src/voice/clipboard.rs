@@ -154,21 +154,23 @@ mod win {
 
     pub struct SystemKeys;
 
-    fn chord(letter: char) -> Result<(), String> {
+    /// The virtual key of a letter key, the same on every keyboard layout.
+    fn chord(vk: u32) -> Result<(), String> {
         use enigo::{Direction, Enigo, Key, Keyboard, Settings};
         let mut e = Enigo::new(&Settings::default()).map_err(|e| format!("keyboard unavailable: {e}"))?;
         e.key(Key::Control, Direction::Press).map_err(|e| e.to_string())?;
-        let clicked = e.key(Key::Unicode(letter), Direction::Click).map_err(|e| e.to_string());
+        // Never `Key::Unicode`: on a layout without that letter (Russian, Kazakh) it types the letter instead of the chord.
+        let clicked = e.key(Key::Other(vk), Direction::Click).map_err(|e| e.to_string());
         let _ = e.key(Key::Control, Direction::Release);
         clicked
     }
 
     impl Keys for SystemKeys {
         fn copy(&self) -> Result<(), String> {
-            chord('c')
+            chord(0x43) // C
         }
         fn paste(&self) -> Result<(), String> {
-            chord('v')
+            chord(0x56) // V
         }
     }
 }

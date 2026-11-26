@@ -5,9 +5,12 @@
 use std::sync::Arc;
 use std::time::Duration;
 
+use decka_core::overlay;
 use decka_core::voice::highlight::{Highlight, HighlightSink, Highlighter, Watch};
 use serde_json::json;
 use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindowBuilder};
+
+use crate::island::on_hwnd;
 
 const LABEL: &str = "highlight";
 
@@ -33,7 +36,11 @@ fn window(app: &AppHandle) -> Option<tauri::WebviewWindow> {
         .build()
         .map_err(|e| tracing::error!("cannot create the highlight window: {e}"))
         .ok()?;
-    let _ = w.set_ignore_cursor_events(true);
+    // T29.1: never the active window, and every click goes to what is under it.
+    on_hwnd(&w, |hwnd| {
+        overlay::guard(hwnd);
+        overlay::set_click_through(hwnd, true);
+    });
     Some(w)
 }
 
@@ -50,14 +57,14 @@ impl HighlightSink for WindowSink {
         // The page works in CSS pixels from the corner of its own window.
         let rel = |v: i32, o: i32| f64::from(v - o) / scale;
         let rect = json!({ "x": rel(h.rect.x, origin.x), "y": rel(h.rect.y, origin.y), "width": f64::from(h.rect.width) / scale, "height": f64::from(h.rect.height) / scale });
-        let _ = w.show();
+        on_hwnd(&w, overlay::show);
         let _ = w.emit("highlight", json!({ "rect": rect, "text": h.text, "step": h.step, "total": h.total }));
     }
 
     fn clear(&self) {
         if let Some(w) = self.app.get_webview_window(LABEL) {
             let _ = w.emit("highlight_clear", ());
-            let _ = w.hide();
+            on_hwnd(&w, overlay::hide);
         }
     }
 }
