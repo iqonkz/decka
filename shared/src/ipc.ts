@@ -163,6 +163,7 @@ export interface IpcCommands {
   voice_context_set(args: { enabled: boolean }): boolean;
   island_config_get(): IslandSettings;                          // T29.5: `config.island`
   island_config_set(args: { restingMode?: IslandSettings["restingMode"]; barHeight?: number; barPosition?: IslandSettings["barPosition"] }): IslandSettings;
+  voice_speak_reply(args: { text: string }): void;               // T29.8: the shown answer, spoken when "answer aloud" is on
   voice_duck_get(): boolean;                                    // T29.3: `voice.duckMusic` (on by default)
   voice_duck_set(args: { enabled: boolean }): boolean;
   voice_notices_get(): boolean;                                 // T27.8: short notes of the island about the PC; on by default

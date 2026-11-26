@@ -440,6 +440,7 @@ pub fn build_context(lang: &str, actions: &ActionsFile, layout: &LayoutFile, ins
         memory: Vec::new(),
         weather_place: None,
         guide_running: false,
+        speech_interrupted: false,
         full_pages: layout.pages.iter().filter(|p| super::addbutton::free_cell(p, i32::from(layout.grid.cols), i32::from(layout.grid.rows)).is_none()).map(|p| p.id.clone()).collect(),
         current_page: None,
         lang: lang.to_string(),
@@ -532,6 +533,9 @@ struct Inner {
     ducker: super::duck::Ducker,
     /// T29.4: the orb of a dictation.
     orb: Arc<Mutex<super::orb::Orb>>,
+    /// T29.8: the request whose answer was spoken, and whether this request cut a spoken answer short.
+    spoken: Mutex<Option<String>>,
+    interrupted: AtomicBool,
     /// T29.6: the page the voice went to last (a phone does not say which one it shows).
     current_page: Arc<Mutex<Option<String>>>,
     /// T29.6: shows the settings window on a catalog key; the application gives it.
@@ -582,6 +586,8 @@ impl Host {
             download: Arc::default(),
             ducker: super::duck::Ducker::start(&config_dir),
             orb: Arc::default(),
+            spoken: Mutex::new(None),
+            interrupted: AtomicBool::new(false),
             current_page: Arc::default(),
             settings: OnceLock::new(),
         });
@@ -863,6 +869,34 @@ impl Host {
         let since = (*self.inner.slow_since.lock().unwrap())?;
         let eta_sec = self.inner.slow.lock().unwrap().eta_sec(false);
         Some(super::slowpath::Progress { eta_sec, elapsed_sec: since.elapsed().as_secs() as u32 })
+    }
+
+    /// T29.8: speaks the answer of the PC request that is on show, once, when "answer aloud" is on. The window of the island
+    /// gives the text in the language of the interface; anything else than a short answer of the current request is ignored.
+    pub fn speak_answer(&self, text: &str) {
+        let inner = self.inner.clone();
+        let state = inner.driver().state();
+        if !inner.service.status().speak || state.source != Some(Source::Pc) || !matches!(state.phase, Phase::Done(_) | Phase::Failed(_)) {
+            return;
+        }
+        {
+            let mut spoken = inner.spoken.lock().unwrap();
+            if *spoken == state.id {
+                return;
+            }
+            *spoken = state.id;
+        }
+        let (text, lang) = (text.trim().to_string(), inner.language());
+        if text.is_empty() {
+            return;
+        }
+        std::thread::spawn(move || {
+            inner.ducker.hold(super::duck::Who::Speech, inner.agent.voice_duck_enabled());
+            if let Err(e) = super::speak::answer(&text, lang) {
+                tracing::warn!("speaking the answer: {e}");
+            }
+            inner.ducker.hold(super::duck::Who::Speech, false);
+        });
     }
 
     /// T29.6: gives the host a way to open the settings window. Once.
@@ -1208,6 +1242,7 @@ impl Ports for Inner {
         ctx.weather_place = self.agent.store().get("weather").get("place").and_then(|p| p.as_str()).map(str::to_string);
         ctx.guide_running = self.screen.get().is_some_and(|s| s.is_running());
         ctx.current_page = self.current_page.lock().unwrap().clone();
+        ctx.speech_interrupted = self.interrupted.load(Ordering::SeqCst);
         (self.table(lang), ctx)
     }
 
@@ -1506,11 +1541,7 @@ impl Ports for Inner {
 
     fn capture(&self, on: bool) {
         // T29.3: other sounds are quiet for as long as the PC listens.
-        if !on {
-            self.ducker.release();
-        } else if self.agent.voice_duck_enabled() {
-            self.ducker.duck();
-        }
+        self.ducker.hold(super::duck::Who::Microphone, on && self.agent.voice_duck_enabled());
         #[cfg(windows)]
         {
             let mut slot = self.mic.lock().unwrap();
@@ -1630,6 +1661,12 @@ impl Ports for Inner {
         // T29.1: where the user is as the request begins: text is read from and typed into this place.
         if info.state == "listening" && !was_listening {
             self.focus.remember();
+            // T29.8: a new request ends the answer that is being read.
+            self.interrupted.store(super::speak::is_speaking(), Ordering::SeqCst);
+            super::speak::stop();
+        }
+        if info.state == "idle" {
+            super::speak::stop();
         }
         // Warm-up: the servers start while the phrase is still being recorded (a no-op when they run already).
         if info.state == "listening" && !was_listening {

@@ -121,6 +121,11 @@ export default function IslandApp() {
   }, []);
 
   const shown = localized(event);
+  // T29.8: an answer that appears is handed to the PC to be spoken; the PC decides whether it is.
+  const answer = shown.voice?.phase === "done" || shown.voice?.phase === "error" ? (shown.voice.reply ?? "") : "";
+  useEffect(() => {
+    if (answer) void call("voice_speak_reply", { text: answer }).catch(() => {});
+  }, [answer]);
   const orb = event.mode === "orb" ? event.orb : null;
   // T29.4: during a dictation the window is a small orb at the text cursor.
   return (

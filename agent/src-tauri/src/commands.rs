@@ -632,6 +632,14 @@ pub fn island_config_set(app: AppHandle, resting_mode: Option<String>, bar_heigh
     agent(&app)?.set_island_settings(decka_core::model::IslandConfig { resting_mode, bar_height, bar_position })
 }
 
+/// T29.8: the island hands over the answer it shows, in the language of the interface, to be spoken (if that is switched on).
+#[tauri::command]
+pub fn voice_speak_reply(app: AppHandle, text: String) {
+    if let Some(host) = app.try_state::<decka_core::voice::host::Host>() {
+        host.speak_answer(&text);
+    }
+}
+
 /// `voice.duckMusic` (T29.3).
 #[tauri::command]
 pub fn voice_duck_get(app: AppHandle) -> Result<bool, String> {

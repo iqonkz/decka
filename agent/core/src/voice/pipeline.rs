@@ -547,6 +547,10 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
                 let args = serde_json::json!({ "text": text });
                 return resolve(s, &RawCall { tool: "type_text".into(), args }, now_ms, env, false);
             }
+            // T29.8: "stop" said over a spoken answer: the answer is silent already, nothing else is stopped.
+            if env.ctx.speech_interrupted && env.table.guide_control(&text) == Some("stop") {
+                return finish_key(s, Phase::Done(msg::DONE.into()), ReplyKey::plain(key::DONE));
+            }
             // During a guide the words "next", "back", "stop", "done" are its controls, before anything else (T27.5).
             if env.ctx.guide_running {
                 if let Some(kind) = env.table.guide_control(&text) {
@@ -1188,6 +1192,23 @@ mod tests {
         let (s, fx) = go(Event::Confirm { id, yes: false });
         assert!(!adds(&fx) && s.phase == Phase::Done(msg::CANCELLED.into()));
         assert!(!adds(&go(Event::Tick { now_ms: u64::MAX }).1), "a timeout writes nothing");
+    }
+
+    /// T29.8: "stop" over a spoken answer does nothing else (it must not pause the music).
+    #[test]
+    fn stop_said_over_a_spoken_answer_only_stops_it() {
+        let (t, mut c) = (table(), ctx());
+        c.speech_interrupted = true;
+        let env = Env { table: &t, ctx: &c, confirm_ms: CONFIRM_TIMEOUT_MS, dictate: false };
+        let mut state = State::idle();
+        let mut all = Vec::new();
+        for e in [start(Source::Pc), Event::AudioEnd, said("stop")] {
+            let (s, fx) = step(&state, e, 1, &env);
+            state = s;
+            all.extend(fx);
+        }
+        assert!(matches!(state.phase, Phase::Done(_)));
+        assert!(!all.iter().any(|e| matches!(e, Effect::Execute(_) | Effect::AskLlm(_))), "{all:?}");
     }
 
     #[test]

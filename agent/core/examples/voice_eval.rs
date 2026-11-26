@@ -32,6 +32,7 @@ fn context(lang: &str) -> Context {
         memory: vec![],
         weather_place: None,
         guide_running: false,
+        speech_interrupted: false,
         full_pages: vec![],
         current_page: None,
     }

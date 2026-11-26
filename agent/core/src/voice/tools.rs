@@ -78,6 +78,8 @@ pub struct Context {
     pub weather_place: Option<String>,
     /// A guide or a recording is running: "next", "back", "stop", "done" mean its controls (T27.5).
     pub guide_running: bool,
+    /// This request cut a spoken answer short (T29.8): "stop" then means only that.
+    pub speech_interrupted: bool,
     /// The pages without a free cell, and the page the voice went to last (T29.6: a new button goes there).
     pub full_pages: Vec<String>,
     pub current_page: Option<String>,
@@ -826,6 +828,7 @@ mod tests {
             memory: vec![],
         weather_place: None,
         guide_running: false,
+        speech_interrupted: false,
         full_pages: vec![],
         current_page: None,
         }
