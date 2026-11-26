@@ -4,6 +4,20 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+### Added
+- **Check voice**: a button in Settings -> Voice tries the chain step by step — microphone level, a spoken phrase turned into text, the assistant, and what the command would do (nothing is pressed) — with the time and the reason of each failed step.
+- **Command stages on the island**: what was heard, what was understood, then the action.
+
+### Changed
+- **Weak PCs**: the assistant now takes only as much video memory as the card has to spare, runs on the processor when the card is too small or fails to load it (and remembers that), and the settings suggest the light 2B model on a PC with less than 12 GB of memory.
+- **Speech recognition without the assistant**: if the assistant cannot start, recognition and the instant commands keep working.
+- **Island, music**: three centred lines — previous, current, next — in a 440 px panel with larger text; the height no longer jumps.
+
+### Fixed
+- **Voice errors say what is wrong**: video memory, memory, damaged model file (with "Download again"), busy port, stopped process, microphone or recognition, instead of "Voice stopped" or a raw log line.
+- **Voice on a PC with 2 GB of video memory**: the model no longer fails with a loading error because everything was put on the card.
+- **Settings**: a main button under the mouse pointer no longer turns grey with unreadable text.
+
 ## 0.50.0 — 2026-11-26
 
 ### Added
