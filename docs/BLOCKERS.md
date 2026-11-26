@@ -193,3 +193,11 @@ Not a stop, a gap for the architect. DESIGN 4.17 (`Auto`) hides the lyrics windo
 4. **Work mode `focusMinutes` is stored but not started** by `mode_run` (the focus timer is an action of the deck, not a call of the host).
 5. **T27.0 target (90 %) not reached in Russian.** End to end (table, then model) on Qwen3.5 4B: ru 70 % -> 86 %, en 74 % -> 92 %; model only: ru 63.5 % -> 66.7 %, en 64.9 % -> 72.6 % (sets grew from 74 to 84 phrases with the M27 and place phrases). What is left in ru: `list_add`/`list_remove` with a different word for the list, `day_brief` phrased as a question, `memory_remove` "сотри запись", the live-data questions the set wants as `ask` (news, exchange rate: the model rightly searches the web), `remind` with a series.
 6. **Phrase tables of the screen help: "стоп" collides with the general "stop"** only while no guide runs (no collision then); while a guide runs the guide controls win (tested).
+
+## 2026-11-26 · T28.4 «кнопка голосом»: функции нет ни в коде, ни в спецификации — нужно решение архитектора
+
+**Что не так.** T28.4 проверяет «обычная команда → черновик действия» и «запись в `actions.json` — только после „да“ и проверки схемы». Голосового создания кнопки нет: в белом списке инструментов (DATA_MODEL §12.5) нет инструмента, который создаёт или меняет действие, фраз для этого в `shared/voice/*.json` нет, ни один путь голоса не пишет `actions.json` и `layout.json`. Правило «писать только после „да“» выполняется потому, что голос не пишет вовсе.
+
+**Что сделано.** Только тест того, что есть (`tools.rs`, `a_button_by_voice_asks_confirms_and_never_writes_actions`): неоднозначное имя → вопрос «какое?»; нажатие на «удалить / отправить / оплатить» → подтверждение; вызовы вида `create_button` отклоняются. Новый инструмент не заводился: это новая власть голоса (запуск программ, клавиши), это архитектурное решение.
+
+**Что решить, если функция нужна:** имя инструмента и его аргументы; какие типы действий голос вправе создавать (`open_url`? `launch` только из списка программ? `hotkey`?); как показать черновик на острове и подтвердить «да»; куда ставить кнопку в раскладке; ключи i18n. Схема проверки уже есть: `Agent::save_actions` отклоняет неверный файл целиком и возвращает причины.

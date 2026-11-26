@@ -761,6 +761,25 @@ mod tests {
         }
     }
 
+    /// T28.4: an ambiguous name asks which one, a dangerous one waits for "yes", and no tool of voice creates or changes
+    /// an action (nothing of voice writes `actions.json`).
+    #[test]
+    fn a_button_by_voice_asks_confirms_and_never_writes_actions() {
+        match call("open_app", json!({ "name": "chrome" })) {
+            Resolved::Ask { options, .. } => assert_eq!(options.len(), 2, "{options:?}"),
+            other => panic!("{other:?}"),
+        }
+        for name in ["Delete", "Send message", "Pay now", "Удалить", "Отправить", "Оплатить"] {
+            let v = ready_of(call("ui_act", json!({ "action": "click", "target": name })));
+            assert!(v.confirm, "{name}");
+        }
+        assert!(!ready_of(call("ui_act", json!({ "action": "click", "target": "Save" }))).confirm);
+        for tool in ["create_button", "add_action", "save_actions", "write_actions"] {
+            assert!(is_reject(call(tool, json!({ "id": "x", "name": "x" }))), "{tool}");
+        }
+        assert!(TOOLS.iter().all(|t| !t.contains("action") || *t == "run_action" || *t == "reply_action"), "no tool changes actions");
+    }
+
     #[test]
     fn a_kazakh_case_suffix_is_cut_only_when_the_raw_name_matches_nothing() {
         let mut c = ctx();
