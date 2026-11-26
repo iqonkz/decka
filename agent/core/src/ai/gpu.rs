@@ -159,6 +159,29 @@ mod tests {
         assert_eq!(gpu_layers(Some(4.4), false, MODEL_4B, MMPROJ, 32), 32);
     }
 
+    /// `-ngl` of the three models of the manifest on common PCs (their sizes, and `block_count` from their headers:
+    /// 24, 32, 32), without and with the Screen help projector.
+    #[test]
+    fn the_table_of_common_pcs() {
+        let models = [(1_280_835_840u64, 668_227_264u64, 24u32), (MODEL_4B, 672_423_616, 32), (5_680_522_464, 918_166_080, 32)];
+        let row = |vram: Option<f64>, whisper: bool, projector: bool| models.map(|(model, mmproj, layers)| gpu_layers(vram, whisper, model, if projector { mmproj } else { 0 }, layers));
+        let table: [(Option<f64>, bool, [u32; 3], [u32; 3]); 9] = [
+            (None, false, [0, 0, 0], [0, 0, 0]),
+            (Some(2.0), true, [0, 0, 0], [0, 0, 0]),
+            (Some(2.0), false, [10, 0, 0], [10, 0, 0]),
+            (Some(4.0), true, [99, 18, 9], [24, 18, 9]),
+            (Some(4.0), false, [99, 31, 15], [99, 31, 15]),
+            (Some(6.0), true, [99, 99, 21], [99, 99, 21]),
+            (Some(6.0), false, [99, 99, 27], [99, 99, 27]),
+            (Some(8.0), true, [99, 99, 99], [99, 99, 32]),
+            (Some(12.0), true, [99, 99, 99], [99, 99, 99]),
+        ];
+        for (vram, whisper, plain, with_projector) in table {
+            assert_eq!(row(vram, whisper, false), plain, "{vram:?} whisper={whisper}");
+            assert_eq!(row(vram, whisper, true), with_projector, "{vram:?} whisper={whisper}, projector");
+        }
+    }
+
     fn gguf(pairs: &[(&str, u32, Vec<u8>)]) -> Vec<u8> {
         let mut b = b"GGUF".to_vec();
         b.extend(3u32.to_le_bytes());
