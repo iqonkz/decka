@@ -94,7 +94,12 @@ async fn five_hundred_reconnects_and_fifty_abrupt_drops_leak_nothing() {
         if i % 11 == 0 {
             // Some traffic on the way: a press of an unknown action and a ping.
             ws.send(Message::text(json!({ "t": "ping", "ts": i }).to_string())).await.unwrap();
-            assert_eq!(recv(&mut ws).await["t"], "pong");
+            // A `patch` of the live data may arrive first: it is sent whenever a collector has news (T29.A, a flaky run).
+            let mut answer = recv(&mut ws).await;
+            while answer["t"] == "patch" {
+                answer = recv(&mut ws).await;
+            }
+            assert_eq!(answer["t"], "pong", "connection {i}: {answer}");
         }
         if i < 500 {
             let _ = ws.close(None).await;

@@ -347,7 +347,12 @@ async fn garbage_after_auth_gives_bad_message_and_socket_survives() {
     let err = recv(&mut ws).await;
     assert_eq!((err["code"].as_str(), err["fatal"].as_bool()), (Some("BAD_MESSAGE"), Some(false)));
     send(&mut ws, json!({ "t": "ping", "ts": 5 })).await;
-    assert_eq!(recv(&mut ws).await["t"], "pong");
+    // A `patch` of the live data may arrive first.
+    let mut answer = recv(&mut ws).await;
+    while answer["t"] == "patch" {
+        answer = recv(&mut ws).await;
+    }
+    assert_eq!(answer["t"], "pong", "{answer}");
     e.agent.shutdown().await;
 }
 
