@@ -8,7 +8,7 @@ import Banner from "../ui/Banner";
 import Modal from "../ui/Modal";
 import ChordField from "../editor/ChordField";
 import { formatChord } from "../editor/addButton";
-import VoiceHelp from "./VoiceHelp";
+import VoiceCommands from "./VoiceCommands";
 import DictationBlock from "./DictationBlock";
 import MemoryBlock from "./MemoryBlock";
 import GuidesBlock from "./GuidesBlock";
@@ -485,7 +485,7 @@ export default function VoiceSection({
       <GuidesBlock initialGuides={previewGuides} />
       <ModesBlock initialModes={previewModes} />
       <div id="voice-help" style={{ marginTop: 24 }}>
-        <VoiceHelp />
+        <VoiceCommands />
       </div>
     </div>
   );

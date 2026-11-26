@@ -229,6 +229,8 @@ const SHOTS = {
   "t29-confirm-dark": [{ w: 540, h: 240, scale: 2 }, "scene=island&mode=expanded&state=confirm&lang=ru&theme=dark"],
   "t29-voice-settings-light": [{ w: 1100, h: 1100, scale: 1 }, "scene=settings&theme=studio&lang=ru&scheme=light&go=voice"],
   "t29-voice-settings-dark": [{ w: 1100, h: 1100, scale: 1 }, "scene=settings&theme=studio&lang=ru&scheme=dark&go=voice"],
+  "t29-commands-light": [{ w: 1100, h: 900, scale: 1 }, "scene=settings&theme=studio&lang=ru&scheme=light&go=voice&focus=%23voice-commands%20input", "#voice-commands button::0"],
+  "t29-commands-dark": [{ w: 1100, h: 900, scale: 1 }, "scene=settings&theme=studio&lang=ru&scheme=dark&go=voice&focus=%23voice-commands%20input", "#voice-commands button::0"],
   "phone-idle": [PHONE, "scene=phone&state=idle"],
   "phone-listening": [PHONE, "scene=phone&state=listening"],
   "phone-done": [PHONE, "scene=phone&state=done&heard=turn+the+volume+up&reply=Done"],
