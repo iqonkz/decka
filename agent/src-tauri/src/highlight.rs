@@ -2,13 +2,13 @@
 //! The page (`index.html?highlight=1`) draws a frame and a bubble from the event `highlight`; the decision when it ends is
 //! `decka_core::voice::highlight` (tested there); this file feeds it the focused window and the clicks.
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use decka_core::overlay;
 use decka_core::voice::highlight::{Highlight, HighlightSink, Highlighter, Watch};
-use serde_json::json;
-use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindowBuilder};
+use serde_json::{json, Value};
+use tauri::{AppHandle, Emitter, Listener, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindowBuilder};
 
 use crate::island::on_hwnd;
 
@@ -16,6 +16,8 @@ const LABEL: &str = "highlight";
 
 pub struct WindowSink {
     app: AppHandle,
+    /// What is highlighted now: a window that has just been made asks for it when its page listens.
+    current: Arc<Mutex<Option<Value>>>,
 }
 
 fn window(app: &AppHandle) -> Option<tauri::WebviewWindow> {
@@ -57,11 +59,14 @@ impl HighlightSink for WindowSink {
         // The page works in CSS pixels from the corner of its own window.
         let rel = |v: i32, o: i32| f64::from(v - o) / scale;
         let rect = json!({ "x": rel(h.rect.x, origin.x), "y": rel(h.rect.y, origin.y), "width": f64::from(h.rect.width) / scale, "height": f64::from(h.rect.height) / scale });
+        let event = json!({ "rect": rect, "text": h.text, "step": h.step, "total": h.total });
+        *self.current.lock().unwrap() = Some(event.clone());
         on_hwnd(&w, overlay::show);
-        let _ = w.emit("highlight", json!({ "rect": rect, "text": h.text, "step": h.step, "total": h.total }));
+        let _ = w.emit("highlight", event);
     }
 
     fn clear(&self) {
+        *self.current.lock().unwrap() = None;
         if let Some(w) = self.app.get_webview_window(LABEL) {
             let _ = w.emit("highlight_clear", ());
             on_hwnd(&w, overlay::hide);
@@ -83,7 +88,16 @@ impl decka_core::voice::screenrun::GuideSink for GuideEmitter {
 
 /// The highlighter and its watcher: a few looks a second at the focused window and at the left mouse button.
 pub fn setup(app: &AppHandle) -> Highlighter {
-    let highlighter = Highlighter::new(Arc::new(WindowSink { app: app.clone() }));
+    let current: Arc<Mutex<Option<Value>>> = Arc::default();
+    // The first event of a new window is sent before its page exists: the page says when it listens.
+    let (again, emitter) = (current.clone(), app.clone());
+    app.listen_any("highlight_ready", move |_| {
+        let event = again.lock().unwrap().clone();
+        if let Some(event) = event {
+            let _ = emitter.emit("highlight", event);
+        }
+    });
+    let highlighter = Highlighter::new(Arc::new(WindowSink { app: app.clone(), current }));
     app.manage(highlighter.clone());
     let watcher = highlighter.clone();
     let started = std::time::Instant::now();

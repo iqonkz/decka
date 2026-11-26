@@ -24,6 +24,7 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 - A phrase that the recognition repeated several times is used once; "play music" starts the music instead of toggling it.
 - Better contrast and tidier search boxes in the settings window and on the phone.
 - "Where is the Save button?" finds Save: the word "button" is no longer searched for as part of the name; the answers of the screen help are in your language.
+- The frame of the screen help is drawn: its window had no permission to receive what to highlight (since 0.50.0).
 
 ### Changed
 - **Memory**: the model and the speech recognition leave the memory after 10 quiet minutes (Settings -> Voice: 1-60 minutes, or keep them loaded); the island says how long the next load takes. The model server takes about 0.5 GB less.

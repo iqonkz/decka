@@ -1,5 +1,5 @@
 ﻿import { useEffect, useState } from "react";
-import { listen } from "@tauri-apps/api/event";
+import { emit, listen } from "@tauri-apps/api/event";
 import { HighlightOverlay, type HighlightEvent } from "@decka/ui";
 import { call } from "./ipc";
 
@@ -25,8 +25,19 @@ export default function HighlightApp() {
     media.addEventListener("change", onTheme);
     const offs: Array<() => void> = [];
     let live = true;
-    void listen<HighlightEvent>("highlight", (e) => setHighlight(e.payload)).then((f) => (live ? offs.push(f) : f()));
-    void listen("highlight_clear", () => setHighlight(null)).then((f) => (live ? offs.push(f) : f()));
+    const listening = [
+      listen<HighlightEvent>("highlight", (e) => setHighlight(e.payload)),
+      listen("highlight_clear", () => setHighlight(null)),
+    ];
+    Promise.all(listening).then(
+      (unlisten) => {
+        if (!live) return unlisten.forEach((f) => f());
+        offs.push(...unlisten);
+        // The window may be new: what is highlighted now was sent before this page listened.
+        void emit("highlight_ready");
+      },
+      (e) => console.error("highlight window cannot listen", e),
+    );
     return () => {
       live = false;
       offs.forEach((f) => f());
