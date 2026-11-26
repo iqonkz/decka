@@ -104,6 +104,8 @@ export function defaultIconFor(action: Action): string {
       return FALLBACK_APP_ICON;
     case "system":
       return action.op === "sleep" ? "lucide:moon" : "lucide:lock";
+    case "screenshot":
+      return "lucide:camera";
     case "media":
       return presetActions().find((p) => p.action.type === "media" && p.action.op === action.op)?.icon ?? "lucide:play";
     case "audio":

@@ -35,6 +35,7 @@ pub mod ratelimit;
 pub mod safety;
 pub mod secure;
 pub mod server;
+pub mod shot;
 #[cfg(windows)]
 pub mod sta;
 pub mod state;

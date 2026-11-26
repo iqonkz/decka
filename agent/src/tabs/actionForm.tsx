@@ -1,4 +1,4 @@
-import { t, type Action, type MediaOp, type SystemOp } from "@decka/shared";
+import { t, type Action, type MediaOp, type ShotArea, type SystemOp } from "@decka/shared";
 import { useState } from "react";
 import Disclosure from "../ui/Disclosure";
 import Field from "../ui/Field";
@@ -13,13 +13,16 @@ import { applyInstalledApp, applyPickedProgram } from "./programPick";
 export type ActionType = Action["type"];
 
 export const MEDIA_OPS: MediaOp[] = ["play_pause", "next", "prev", "vol_up", "vol_down", "mute"];
-/** The five kinds of action with their labels in the current language. */
+export const SHOT_AREAS: ShotArea[] = ["screen", "window", "region"];
+const SHOT_ICONS: Record<ShotArea, string> = { screen: "monitor", window: "app-window", region: "selection" };
+/** The kinds of action with their labels in the current language. */
 export const actionTypes = (): { id: ActionType; label: string; icon: string }[] => [
   { id: "launch", label: t("form.type_app"), icon: "rocket-launch" },
   { id: "open_url", label: t("form.type_website"), icon: "globe" },
   { id: "hotkey", label: t("form.type_shortcut"), icon: "keyboard" },
   { id: "media", label: t("form.type_media"), icon: "play-circle" },
   { id: "system", label: t("form.type_system"), icon: "power" },
+  { id: "screenshot", label: t("m29.type_screenshot"), icon: "camera" },
 ];
 
 /** Everything the form edits, as strings and booleans. */
@@ -35,6 +38,7 @@ export interface Draft {
   cwd: string;
   hidden: boolean;
   url: string;
+  shotArea: ShotArea;
   toggleVar: string;
 }
 
@@ -50,6 +54,7 @@ export const emptyDraft = (): Draft => ({
   cwd: "",
   hidden: false,
   url: "",
+  shotArea: "screen",
   toggleVar: "",
 });
 
@@ -73,6 +78,9 @@ export function toDraft(id: string, action: Action): Draft {
       break;
     case "system":
       draft.systemOp = action.op;
+      break;
+    case "screenshot":
+      draft.shotArea = action.area;
       break;
     case "audio":
     case "obs":
@@ -112,6 +120,8 @@ export function fromDraft(d: Draft): { action: Action } | { error: string } {
       return { action: { ...base, type: "open_url", url: d.url.trim() } };
     case "system":
       return { action: { ...base, type: "system", op: d.systemOp } };
+    case "screenshot":
+      return { action: { ...base, type: "screenshot", area: d.shotArea } };
     case "audio":
     case "obs":
     case "twitch":
@@ -230,6 +240,22 @@ export default function ActionForm({ draft, onChange }: FormProps) {
             >
               <PhIcon name={p.id === "sleep" ? "moon" : "lock"} size={24} />
               {p.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {draft.type === "screenshot" && (
+        <div className="tile-grid" role="group" aria-label={t("m29.type_screenshot")}>
+          {SHOT_AREAS.map((area) => (
+            <button
+              key={area}
+              type="button"
+              className={draft.shotArea === area ? "on" : ""}
+              onClick={() => onChange({ ...draft, shotArea: area, name: draft.name.trim() === "" || SHOT_AREAS.some((a) => t(`m29.shot_${a}`) === draft.name) ? t(`m29.shot_${area}`) : draft.name })}
+            >
+              <PhIcon name={SHOT_ICONS[area]} size={24} />
+              {t(`m29.shot_${area}`)}
             </button>
           ))}
         </div>

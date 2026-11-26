@@ -13,7 +13,7 @@ mod win {
 
     use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
     use windows::Win32::UI::WindowsAndMessaging::{
-        CallWindowProcW, DefWindowProcW, GetWindowLongPtrW, SetWindowLongPtrW, SetWindowPos, ShowWindow, GWLP_WNDPROC, GWL_EXSTYLE, HWND_TOPMOST,
+        CallWindowProcW, DefWindowProcW, GetWindowLongPtrW, SetWindowDisplayAffinity, SetWindowLongPtrW, SetWindowPos, ShowWindow, GWLP_WNDPROC, GWL_EXSTYLE, HWND_TOPMOST, WDA_EXCLUDEFROMCAPTURE, WDA_NONE,
         MA_NOACTIVATE, SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER, SW_HIDE, SW_SHOWNOACTIVATE,
         WM_MOUSEACTIVATE, WM_NCDESTROY, WNDPROC, WS_EX_LAYERED, WS_EX_NOACTIVATE, WS_EX_TRANSPARENT,
     };
@@ -79,6 +79,16 @@ mod win {
         let _ = unsafe { ShowWindow(handle(hwnd), SW_HIDE) };
     }
 
+    pub fn hide_from_capture(on: bool) -> bool {
+        let guarded: Vec<isize> = previous().lock().map(|m| m.keys().copied().collect()).unwrap_or_default();
+        let affinity = if on { WDA_EXCLUDEFROMCAPTURE } else { WDA_NONE };
+        for hwnd in &guarded {
+            // SAFETY: a window of this process; a window that is gone gives an error.
+            let _ = unsafe { SetWindowDisplayAffinity(handle(*hwnd), affinity) };
+        }
+        !guarded.is_empty()
+    }
+
     pub fn set_click_through(hwnd: isize, on: bool) {
         let window = handle(hwnd);
         let flags = (WS_EX_TRANSPARENT.0 | WS_EX_LAYERED.0) as isize;
@@ -91,6 +101,19 @@ mod win {
                 let _ = SetWindowPos(window, None, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
             }
         }
+    }
+}
+
+/// T29.7: leaves our overlay windows out of screen captures (or puts them back). `true` when there was one.
+pub fn hide_from_capture(on: bool) -> bool {
+    #[cfg(windows)]
+    {
+        win::hide_from_capture(on)
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = on;
+        false
     }
 }
 

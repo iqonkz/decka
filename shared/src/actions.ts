@@ -17,7 +17,8 @@ export type Action =
   | (ActionBase & { type: "obs"; op: ObsOp; scene?: string; input?: string })                   // M15
   | (ActionBase & { type: "twitch"; op: TwitchOp; message?: string })                           // `message`: the text of an announcement, only there
   | (ActionBase & { type: "youtube"; op: YoutubeOp; message?: string })                         // chat: a message in the chat of the live stream, 1..200 (only with chat); start: go live with the scheduled stream; end: end the live stream
-  | (ActionBase & { type: "sequence"; steps: SequenceStep[] });                                 // M15
+  | (ActionBase & { type: "sequence"; steps: SequenceStep[] })                                  // M15
+  | (ActionBase & { type: "screenshot"; area: ShotArea });                                      // M29: to the clipboard and a file
 
 /** `lock`, `sleep`; M17 (DATA_MODEL.md 10.8): the rest. */
 export type SystemOp =
@@ -25,6 +26,7 @@ export type SystemOp =
   | "task_manager" | "settings" | "explorer" | "empty_recycle_bin";
 export type MediaOp = "play_pause" | "next" | "prev" | "vol_up" | "vol_down" | "mute" | "shuffle" | "repeat"; // shuffle, repeat: M15
 export type AudioOp = "mic_toggle" | "out_mute_toggle";
+export type ShotArea = "screen" | "window" | "region";
 export type ObsOp = "record_toggle" | "stream_toggle" | "scene" | "input_mute_toggle" | "save_replay";
 export type TwitchOp = "clip" | "announce";
 export type YoutubeOp = "chat" | "start" | "end";

@@ -984,6 +984,22 @@ mod tests {
     }
 
     #[test]
+    fn screenshots_are_asked_for_without_the_model() {
+        let ru = Table::parse(include_str!("../../../../shared/voice/ru.json")).unwrap();
+        let en = en();
+        let area = |t: &Table, say: &str| match t.matches(say) {
+            Match::Hit(i) if i.tool == "screenshot" => i.args["area"].as_str().unwrap().to_string(),
+            other => panic!("{say:?} -> {other:?}"),
+        };
+        for (say, want) in [("Сделай скриншот.", "screen"), ("скриншот окна", "window"), ("снимок области", "region")] {
+            assert_eq!(area(&ru, say), want, "{say}");
+        }
+        for (say, want) in [("Take a screenshot", "screen"), ("window screenshot", "window"), ("screenshot a region", "region")] {
+            assert_eq!(area(&en, say), want, "{say}");
+        }
+    }
+
+    #[test]
     fn a_button_is_asked_for_by_its_name_and_page() {
         let ru = Table::parse(include_str!("../../../../shared/voice/ru.json")).unwrap();
         let hit = |say: &str| match ru.matches(say) {

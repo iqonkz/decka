@@ -328,6 +328,8 @@ pub fn decode(s: &str) -> Option<(&'static str, BTreeMap<String, String>, String
 
 const ALL_KEYS: &[&str] = &[
     "voice.reply.button_added",
+    "voice.reply.screenshot",
+    "voice.reply.shot_area",
     "voice.reply.setup_button",
     "voice.status.weather",
     "voice.status.weather_precip",

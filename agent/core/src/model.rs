@@ -173,6 +173,22 @@ pub enum Action {
         toggle_var: Option<String>,
         steps: Vec<SequenceStep>,
     },
+    /// M29 (T29.7): a picture of the screen, to the clipboard and a file.
+    Screenshot {
+        name: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        toggle_var: Option<String>,
+        area: ShotArea,
+    },
+}
+
+/// What a `screenshot` action takes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ShotArea {
+    Screen,
+    Window,
+    Region,
 }
 
 impl Action {
@@ -187,7 +203,8 @@ impl Action {
             | Action::Obs { name, .. }
             | Action::Twitch { name, .. }
             | Action::Youtube { name, .. }
-            | Action::Sequence { name, .. } => name,
+            | Action::Sequence { name, .. }
+            | Action::Screenshot { name, .. } => name,
         }
     }
 
@@ -202,7 +219,8 @@ impl Action {
             | Action::Obs { toggle_var, .. }
             | Action::Twitch { toggle_var, .. }
             | Action::Youtube { toggle_var, .. }
-            | Action::Sequence { toggle_var, .. } => toggle_var.as_deref(),
+            | Action::Sequence { toggle_var, .. }
+            | Action::Screenshot { toggle_var, .. } => toggle_var.as_deref(),
         }
     }
 
@@ -219,6 +237,7 @@ impl Action {
             Action::Twitch { .. } => "twitch",
             Action::Youtube { .. } => "youtube",
             Action::Sequence { .. } => "sequence",
+            Action::Screenshot { .. } => "screenshot",
         }
     }
 }

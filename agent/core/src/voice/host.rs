@@ -183,6 +183,13 @@ pub fn tool_action(call: &ToolCall) -> Result<(Action, String), String> {
         ToolCall::Volume(VolumeOp::Up) => media(MediaOp::VolUp, ""),
         ToolCall::Volume(VolumeOp::Down) => media(MediaOp::VolDown, ""),
         ToolCall::Volume(VolumeOp::Mute) => media(MediaOp::Mute, ""),
+        ToolCall::Screenshot(area) => {
+            let (key, text) = match area {
+                crate::model::ShotArea::Region => ("voice.reply.shot_area", "Select the area with the mouse"),
+                _ => ("voice.reply.screenshot", "Screenshot copied and saved"),
+            };
+            Ok((Action::Screenshot { name: "voice".into(), toggle_var: None, area: *area }, super::status::encode(&super::status::Answer { key, args: Default::default(), text: text.into() })))
+        }
         // The rest has no action of its own: `Ports::execute` runs it through `winops`, the timer and the host.
         _ => Err("not an action of its own".into()),
     }

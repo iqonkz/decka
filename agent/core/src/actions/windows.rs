@@ -100,6 +100,7 @@ impl ActionRunner for WindowsRunner {
                 self.send_keys(keyboard::Keys::Hotkey(mapped.ok_or("unknown key name")?))
             }
             Action::Audio { op, .. } => crate::audio::toggle(*op),
+            Action::Screenshot { area, .. } => crate::shot::take(*area),
             // `obs` (T15.6) and `sequence` (run by the agent, it needs the other actions) never reach a runner yet.
             Action::Obs { .. } | Action::Twitch { .. } | Action::Youtube { .. } | Action::Sequence { .. } => Err("not implemented yet".to_string()),
             Action::Media { op, .. } if crate::media_control::session_only(*op) => {

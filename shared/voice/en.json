@@ -324,6 +324,41 @@
       ]
     },
     {
+      "tool": "screenshot",
+      "args": {
+        "area": "screen"
+      },
+      "patterns": [
+        "take a screenshot",
+        "screenshot",
+        "capture the screen",
+        "capture screen"
+      ]
+    },
+    {
+      "tool": "screenshot",
+      "args": {
+        "area": "window"
+      },
+      "patterns": [
+        "screenshot of the window",
+        "window screenshot",
+        "capture this window"
+      ]
+    },
+    {
+      "tool": "screenshot",
+      "args": {
+        "area": "region"
+      },
+      "patterns": [
+        "screenshot a region",
+        "screenshot of an area",
+        "snip the screen",
+        "capture an area"
+      ]
+    },
+    {
       "tool": "add_button",
       "patterns": [
         "add button {name} to page {page}",

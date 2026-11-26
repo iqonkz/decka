@@ -104,6 +104,7 @@ pub fn understood(v: &Validated) -> ConfirmInfo {
         },
         ToolCall::GoPage { name, .. } => with("voice.did.page", "name", name.clone()),
         ToolCall::SetupButton { .. } => plain("voice.did.button"),
+        ToolCall::Screenshot(_) => plain("voice.did.screenshot"),
         ToolCall::ModeRun { name } => with("voice.did.mode", "name", name.clone()),
         ToolCall::Timer { minutes, .. } => with("voice.did.timer", "minutes", minutes.to_string()),
         ToolCall::OpenUrl { .. } => plain("voice.did.web"),

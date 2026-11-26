@@ -137,7 +137,7 @@ pub fn validate_actions(file: &ActionsFile) -> Vec<ValidationIssue> {
                     }
                 }
             }
-            Action::Media { .. } | Action::System { .. } | Action::Audio { .. } => {}
+            Action::Media { .. } | Action::System { .. } | Action::Audio { .. } | Action::Screenshot { .. } => {}
             Action::Obs { op, scene, input, .. } => {
                 // `scene` goes with op `scene` and `input` with `input_mute_toggle`, and with nothing else (DATA_MODEL.md 2.3).
                 for (field, value, needed) in [("scene", scene, *op == ObsOp::Scene), ("input", input, *op == ObsOp::InputMuteToggle)] {

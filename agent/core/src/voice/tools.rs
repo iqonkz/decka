@@ -18,8 +18,8 @@ pub const TOOLS: &[&str] = &[
     "lyrics_window", "status", "reply_action",
     // M27: eyes and hands on the screen, reading aloud, work modes.
     "find_on_screen", "ui_act", "guide", "guide_record", "guide_control", "read_aloud", "mode_run", "mode_save",
-    // M29: a ready-made button of the catalog.
-    "add_button",
+    // M29: a ready-made button of the catalog, a picture of the screen.
+    "add_button", "screenshot",
 ];
 
 pub const MAX_TEXT: usize = 2000;
@@ -142,6 +142,8 @@ pub enum ToolCall {
     AddButton { catalog_id: String, page_id: String },
     /// T29.6: a key that asks for something: the settings window opens on it.
     SetupButton { catalog_id: String },
+    /// T29.7: a picture of the monitor, the window or a chosen area.
+    Screenshot(crate::model::ShotArea),
     Dictate,
     Timer { minutes: u32, label: Option<String> },
     System(SystemOp),
@@ -670,6 +672,20 @@ fn run(tool: &str, args: &serde_json::Map<String, Value>, ctx: &Context) -> Resu
                 // The package is optional and big: the user agrees to the download first (the answer to the question follows it).
                 ready_key(ToolCall::ScreenAsk { question }, true, "Download the Screen help package (about 0.7 GB)?", "voice.confirm.screen_pack", &[])
             }
+        }
+        "screenshot" => {
+            use crate::model::ShotArea;
+            only(args, &["area"])?;
+            let area = match args.get("area") {
+                None | Some(Value::Null) => ShotArea::Screen,
+                Some(v) => match v.as_str() {
+                    Some("screen") => ShotArea::Screen,
+                    Some("window") => ShotArea::Window,
+                    Some("region") => ShotArea::Region,
+                    _ => return Err(reject("unknown area")),
+                },
+            };
+            ready(ToolCall::Screenshot(area), false, "Screenshot")
         }
         "add_button" => {
             use super::addbutton;
