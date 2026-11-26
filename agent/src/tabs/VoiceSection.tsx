@@ -14,11 +14,7 @@ import MemoryBlock from "./MemoryBlock";
 import GuidesBlock from "./GuidesBlock";
 import ModesBlock from "./ModesBlock";
 import VoiceCheckPanel from "./VoiceCheckPanel";
-import {
-  voiceErrorCopy,
-  type VoiceCheckStep,
-  type VoiceStatusWithReason,
-} from "./voiceM28Types";
+import { voiceErrorCopy, type VoiceCheckStep } from "./voiceM28Types";
 import { Group, PageHeader, Row, SectionHeader } from "../ui/SettingsGroup";
 import Disclosure from "../ui/Disclosure";
 import Select from "../ui/Select";
@@ -60,7 +56,7 @@ export function formatHardware(hw: { gpu?: string; vramGb?: number; ramGb: numbe
 }
 
 export interface VoiceSectionProps {
-  initialStatus?: VoiceStatusWithReason;
+  initialStatus?: VoiceStatus;
   initialModelTier?: VoiceModelTier;
   initialNotices?: boolean;
   initialContext?: boolean;
@@ -81,7 +77,7 @@ export default function VoiceSection({
   previewModes,
   openAdvanced,
 }: VoiceSectionProps = {}) {
-  const [status, setStatus] = useState<VoiceStatusWithReason>(initialStatus ?? DEFAULT_STATUS);
+  const [status, setStatus] = useState<VoiceStatus>(initialStatus ?? DEFAULT_STATUS);
   const [modelTier, setModelTier] = useState<VoiceModelTier>(initialModelTier ?? (initialStatus?.model ?? "standard"));
   const [noticesEnabled, setNoticesEnabled] = useState<boolean>(initialNotices);
   const [confirm9bOpen, setConfirm9bOpen] = useState(false);
@@ -127,7 +123,7 @@ export default function VoiceSection({
     };
   }, [initialStatus]);
 
-  async function run(cmd: "voice_enable" | "voice_cancel" | "voice_remove") {
+  async function run(cmd: "voice_enable" | "voice_cancel" | "voice_remove" | "voice_redownload") {
     setBusy(true);
     setError(null);
     try {
@@ -219,7 +215,11 @@ export default function VoiceSection({
       )}
 
       {status.state === "error" && (() => {
-        const copy = status.reason ? voiceErrorCopy(status.reason, status.exitCode) : null;
+        const found = status.reason ? voiceErrorCopy(status.reason, status.exitCode) : null;
+        // The light model is on already: there is nothing to switch to, only another try.
+        const copy = found && found.action === "switch_light" && status.model === "light"
+          ? { ...found, action: "retry" as const, buttonLabel: t("m28.err_btn_retry") }
+          : found;
         return (
           <Group>
             <div style={{ padding: "14px 0" }}>
@@ -244,6 +244,8 @@ export default function VoiceSection({
                         void setConfig({ model: "light" });
                       } else if (copy.action === "check_mic") {
                         document.getElementById("voice-check")?.scrollIntoView({ behavior: "smooth" });
+                      } else if (copy.action === "redownload") {
+                        void run("voice_redownload");
                       } else {
                         void run("voice_enable");
                       }
@@ -261,6 +263,23 @@ export default function VoiceSection({
           </Group>
         );
       })()}
+
+      {/* T28.1: the 4B model on a PC with little memory: offered, never switched by itself. */}
+      {status.suggestLight && status.state !== "downloading" && !(status.state === "error" && (status.reason === "vram" || status.reason === "ram")) && (
+        <Group>
+          <Row id="section-voice-light" title={t("voice.light_better")}>
+            <Button
+              disabled={busy}
+              onClick={() => {
+                setModelTier("light");
+                void setConfig({ model: "light" });
+              }}
+            >
+              {t("m28.err_btn_switch_light")}
+            </Button>
+          </Row>
+        </Group>
+      )}
 
       {status.state === "ready" && (
         <>
@@ -377,7 +396,7 @@ export default function VoiceSection({
         </Modal>
       )}
 
-      <VoiceCheckPanel initialSteps={initialCheckSteps} />
+      {status.state !== "off" && status.state !== "downloading" && <VoiceCheckPanel initialSteps={initialCheckSteps} />}
       <DictationBlock />
       <MemoryBlock />
       <GuidesBlock initialGuides={previewGuides} />

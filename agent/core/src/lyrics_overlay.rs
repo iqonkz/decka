@@ -100,6 +100,13 @@ pub fn two_lines(lines: &[(u64, String)], position_ms: i64) -> (Option<String>, 
     (current.and_then(text), text(next_index))
 }
 
+/// The sung line before the current one at `position_ms` (T28.5b); `None` up to the first line. Taken from the song, so
+/// it is right after a jump too.
+pub fn previous_line(lines: &[(u64, String)], position_ms: i64) -> Option<String> {
+    let started = lines.iter().take_while(|(t, _)| (*t as i64) <= position_ms).count();
+    lines[..started.saturating_sub(1)].iter().rev().map(|(_, s)| s).find(|s| !s.trim().is_empty()).cloned()
+}
+
 /// The synced lines of a `lyrics` section value: `(t, text)` in ms; `None` for plain text or no lyrics.
 /// Milliseconds until the first sung line (T26.F.10): `Some` only before it, `None` once it has started.
 pub fn ms_until_first_line(lines: &[(u64, String)], position_ms: i64) -> Option<u64> {
@@ -206,6 +213,17 @@ mod tests {
         assert_eq!(two_lines(&lines, 60_000), (Some("three".into()), None));
         // A shift of the track moves the position the same way the phone does.
         assert_eq!(two_lines(&lines, 4_600 + 500), (Some("two".into()), Some("three".into())));
+    }
+
+    #[test]
+    fn the_previous_line_follows_the_position_also_after_a_jump() {
+        let lines = vec![(1_000, "one".to_string()), (5_000, "".to_string()), (7_000, "two".to_string()), (9_000, "three".to_string())];
+        assert_eq!(previous_line(&lines, 0), None);
+        assert_eq!(previous_line(&lines, 1_500), None, "the first line has nothing before it");
+        assert_eq!(previous_line(&lines, 7_200), Some("one".into()), "an empty line is passed over");
+        assert_eq!(previous_line(&lines, 60_000), Some("two".into()));
+        assert_eq!(previous_line(&lines, 1_100), None, "after a jump back");
+        assert_eq!(previous_line(&[], 5), None);
     }
 
     #[test]

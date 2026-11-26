@@ -10,7 +10,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use decka_core::island::{voice_view, Inputs, Machine, Mode, VoiceInput, POLL_MS};
-use decka_core::lyrics_overlay::{foreground_is_fullscreen, ms_until_first_line, synced_lines, two_lines, visible, Inputs as LyricsInputs};
+use decka_core::lyrics_overlay::{foreground_is_fullscreen, ms_until_first_line, previous_line, synced_lines, two_lines, visible, Inputs as LyricsInputs};
 use decka_core::model::MediaInfo;
 use decka_core::voice::host::Host;
 use decka_core::Agent;
@@ -22,6 +22,7 @@ use serde::Serialize;
 
 #[derive(Serialize, Clone, PartialEq)]
 struct Lines {
+    prev: Option<String>,
     current: Option<String>,
     next: Option<String>,
     /// Milliseconds until the first line of the song; `None` once it has started.
@@ -40,7 +41,7 @@ fn lines_now(media: &MediaInfo, lyrics: &Value, now: u64) -> Option<Lines> {
     let moved = if media.playing { now.saturating_sub(media.position_at) as i64 } else { 0 };
     let position = base + moved + offset;
     let (current, next) = two_lines(&lines, position);
-    Some(Lines { current, next, first_in_ms: ms_until_first_line(&lines, position) })
+    Some(Lines { prev: previous_line(&lines, position), current, next, first_in_ms: ms_until_first_line(&lines, position) })
 }
 
 
@@ -163,7 +164,7 @@ fn sample(agent: &Agent, paused_since: &mut Option<Instant>) -> Sample {
     // A song without lines still reports its lyrics state: three dots while the search runs, then just the track (T26.F.13).
     let status = decka_core::island::lyrics_status(lines.is_some(), agent.lyrics_enabled() && agent.lyrics_loading());
     let current = match &lines {
-        Some(l) => Some(json!({ "playing": playing, "status": status, "current": l.current, "next": l.next, "firstLineInMs": l.first_in_ms })),
+        Some(l) => Some(json!({ "playing": playing, "status": status, "prev": l.prev, "current": l.current, "next": l.next, "firstLineInMs": l.first_in_ms })),
         None if media.is_some() => Some(json!({ "playing": playing, "status": status })),
         None => None,
     };

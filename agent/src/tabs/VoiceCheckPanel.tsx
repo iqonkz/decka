@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { t, type TranslationKey } from "@decka/shared";
-import { invoke } from "@tauri-apps/api/core";
+import { t, tVoice, type TranslationKey } from "@decka/shared";
+import { call, listen } from "../ipc";
 import Button from "../ui/Button";
 import PhIcon from "../ui/PhIcon";
 import { Group, Row, SectionHeader } from "../ui/SettingsGroup";
@@ -57,6 +57,20 @@ function stepStatusLabel(step: VoiceCheckStep): string {
   return t("m28.check_status_pending");
 }
 
+/** The line under a step: when to speak, why it failed, or what it found; before it ran, what it will do. */
+export function stepLine(step: VoiceCheckStep): string {
+  if (step.listening) return t("voice.check.speak");
+  if (step.state === "error") {
+    if (step.reason) return voiceErrorCopy(step.reason).reason;
+    return tVoice(step.errorKey, undefined, step.error) || step.error || t(STEP_DESC[step.id]);
+  }
+  if (step.understood) {
+    return t("voice.stage.understood", { what: tVoice(step.understood.key, step.understood.args, step.understood.text) || step.understood.text });
+  }
+  if (step.id === "stt" && step.state === "ok" && step.detail) return t("voice.stage.heard", { text: step.detail });
+  return step.detail ?? t(STEP_DESC[step.id]);
+}
+
 /**
  * 4-step "Check voice" diagnostic panel in Settings -> Voice (TASKS.md §T28.3, §T28.2b).
  */
@@ -70,8 +84,11 @@ export default function VoiceCheckPanel({ initialSteps, onRunCheck }: VoiceCheck
   const runCheck = async () => {
     setRunning(true);
     setSteps(VOICE_CHECK_ORDER.map((id, idx) => ({ id, state: idx === 0 ? "running" : "pending" })));
+    let unlisten: (() => void) | undefined;
     try {
-      const res = onRunCheck ? await onRunCheck() : await invoke<VoiceCheckStep[]>("voice_self_check");
+      // Every change of the steps arrives while the check runs (among them "speak now").
+      if (!onRunCheck) unlisten = await listen<VoiceCheckStep[]>("voice-check", (e) => setSteps(e.payload));
+      const res = onRunCheck ? await onRunCheck() : await call("voice_self_check");
       if (Array.isArray(res) && res.length > 0) {
         setSteps(res);
       }
@@ -83,6 +100,7 @@ export default function VoiceCheckPanel({ initialSteps, onRunCheck }: VoiceCheck
         ),
       );
     } finally {
+      unlisten?.();
       setRunning(false);
     }
   };
@@ -98,13 +116,7 @@ export default function VoiceCheckPanel({ initialSteps, onRunCheck }: VoiceCheck
         </Row>
         {VOICE_CHECK_ORDER.map((id) => {
           const step = byId.get(id) ?? { id, state: "pending" as const };
-          const errorLine =
-            step.state === "error"
-              ? step.reason
-                ? voiceErrorCopy(step.reason).reason
-                : step.error ?? t(STEP_DESC[id])
-              : undefined;
-          const desc = errorLine ?? step.detail ?? t(STEP_DESC[id]);
+          const desc = stepLine(step);
           return (
             <Row
               key={id}

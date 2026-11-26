@@ -146,7 +146,6 @@ export default function Island({
   const [stickyContent, setStickyContent] = useState(rawHasContent);
   const prevModeRef = useRef(mode);
   const prevPhaseRef = useRef<IslandVoicePhase | undefined>(voice?.phase);
-  const prevSongRef = useRef<{ trackKey: string; current?: string; prev?: string }>({ trackKey: "" });
 
   // Stay in content layout until leaving expanded OR starting a new voice request (listening/loading with no text).
   if (mode !== "expanded") {
@@ -329,19 +328,9 @@ export default function Island({
 
   if (mode === "compact") {
     const lyrics = songView(event);
-    const trackKey = `${lyrics?.title ?? ""}::${lyrics?.artist ?? ""}`;
-    if (!lyrics) {
-      prevSongRef.current = { trackKey: "" };
-    } else if (prevSongRef.current.trackKey !== trackKey) {
-      prevSongRef.current = { trackKey, current: lyrics.current, prev: lyrics.prev };
-    } else if (lyrics.current && lyrics.current !== prevSongRef.current.current) {
-      prevSongRef.current = {
-        trackKey,
-        prev: lyrics.prev ?? prevSongRef.current.current,
-        current: lyrics.current,
-      };
-    }
-    const prevLyric = lyrics?.prev ?? prevSongRef.current.prev;
+    // The previous line comes from the PC, which knows the song: nothing is remembered here, so a new track, a jump or
+    // a voice request in between never leaves an old line on show.
+    const prevLyric = lyrics?.prev;
     const hasActiveLyric = Boolean(lyrics?.current);
     const hasSong = !voiceActive && Boolean(lyrics);
     const countdownKnown = !hasActiveLyric && typeof lyrics?.nextInSec === "number" && lyrics.nextInSec >= 0;

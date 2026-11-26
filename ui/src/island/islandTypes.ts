@@ -33,10 +33,9 @@ export function songView(event: IslandEvent): SongView | null {
   const { lyrics, track } = event;
   if (!lyrics && !track && !event.playing) return null;
   const ms = lyrics?.firstLineInMs;
-  const prev = (lyrics as { prev?: string } | null | undefined)?.prev;
   return {
     playing: Boolean(event.playing ?? lyrics?.playing),
-    prev,
+    prev: lyrics?.prev ?? undefined,
     current: lyrics?.current,
     next: lyrics?.next,
     musicLevel: event.musicLevel,

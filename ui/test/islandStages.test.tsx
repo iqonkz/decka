@@ -4,6 +4,17 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { setLanguage } from "@decka/shared";
 import { Island } from "../src";
 
+describe("the previous line of a song (T28.5b)", () => {
+  it("is what the PC says it is: none on a new track or at the first line", () => {
+    const song = (title: string, lyrics: { current: string; prev?: string }) =>
+      renderToString(<Island event={{ mode: "compact", playing: true, track: { title, artist: "A" }, lyrics: { playing: true, ...lyrics } }} />);
+    expect(song("One", { current: "second line", prev: "first line" })).toContain("first line");
+    const next = song("Two", { current: "opening line" });
+    expect(next).toContain('island-lyric-prev"></div>');
+    expect(next).not.toContain("first line");
+  });
+});
+
 describe("the stages of a command (T28.3)", () => {
   beforeEach(() => setLanguage("ru"));
 

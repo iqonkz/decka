@@ -1,24 +1,8 @@
-import { t, type VoiceStatus } from "@decka/shared";
+import { t, type VoiceCheckStep, type VoiceErrorReason } from "@decka/shared";
 
-/** Local M28 types for voice failure reasons and 4-step voice check (TASKS.md §T28.2, §T28.3, §T28.2b). */
-export type VoiceErrorReason = "vram" | "ram" | "model_file" | "port" | "crash" | "mic" | "stt";
-
-export interface VoiceStatusWithReason extends VoiceStatus {
-  reason?: VoiceErrorReason;
-  exitCode?: number;
-}
-
-export type VoiceCheckStepId = "mic" | "stt" | "model" | "action";
-export type VoiceCheckStepState = "pending" | "running" | "ok" | "error";
-
-export interface VoiceCheckStep {
-  id: VoiceCheckStepId;
-  state: VoiceCheckStepState;
-  durationMs?: number;
-  detail?: string;
-  reason?: VoiceErrorReason;
-  error?: string;
-}
+/** The words of the voice failure reasons and of `Check voice` (TASKS.md §T28.2, §T28.3, §T28.2b). */
+export type { VoiceCheckStep, VoiceErrorReason };
+export type VoiceCheckStepId = VoiceCheckStep["id"];
 
 export const VOICE_CHECK_ORDER: VoiceCheckStepId[] = ["mic", "stt", "model", "action"];
 

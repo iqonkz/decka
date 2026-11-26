@@ -49,6 +49,8 @@ export interface IslandVoiceState {
 
 export interface IslandLyricsState {
   playing: boolean;
+  /** T28.5b: the sung line before the current one; absent up to the first line. */
+  prev?: string;
   current?: string;
   next?: string;
   /** T26.F.13: `loading` while the lyrics are being searched for (the island shows three dots), `ready` with lines, `none` when not found or off. */

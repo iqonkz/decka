@@ -1110,6 +1110,8 @@ textarea:focus {
   border-color: transparent;
 }
 .btn-primary:hover:not(:disabled) {
+  /* `.btn:hover` is more specific than `.btn-primary`: without this the accent turns grey under white text. */
+  background: var(--accent);
   opacity: 0.9;
 }
 .btn-secondary {

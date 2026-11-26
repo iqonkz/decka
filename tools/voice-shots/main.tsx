@@ -283,11 +283,14 @@ if (scene === "deck" || scene === "settings") {
       voice_dictation_get: { trigger: { kind: "doubleCtrl" }, mode: "clean", dictionary: ["Decka", "Qwen", "Almaty"] },
       voice_context_get: q.get("context") !== "0",
       voice_context_set: true,
+      // The shape of the real answer (`voice::check`); `check=error` is a PC whose model does not fit.
       voice_self_check: [
-        { id: "mic", state: "ok", durationMs: 3000, detail: "Уровень сигнала в норме" },
-        { id: "stt", state: "ok", durationMs: 410, detail: "«который час»" },
-        { id: "model", state: "ok", durationMs: 220, detail: "status (time)" },
-        { id: "action", state: "ok", durationMs: 8, detail: "Сухой прогон: показать время" },
+        { id: "mic", state: "ok", durationMs: 3010, detail: "42 %" },
+        { id: "stt", state: "ok", durationMs: 4120, detail: "открой калькулятор" },
+        q.get("check") === "error"
+          ? { id: "model", state: "error", durationMs: 14200, reason: "vram", error: "Not enough GPU memory for the model", errorKey: "m28.err_vram_short" }
+          : { id: "model", state: "ok", durationMs: 2300, detail: "status" },
+        { id: "action", state: "ok", durationMs: 8, detail: "Open Calculator", understood: { text: "Open Calculator", key: "voice.did.open", args: { name: "Калькулятор" } }, confirm: false },
       ],
       voice_status: q.get("voiceError")
         ? { state: "error", reason: q.get("voiceError"), hardware: { gpu: "GTX 1050", vramGb: 2, ramGb: 8 }, model: "standard", downloadGb: 3.2, hotkey: ["ctrl", "alt", "space"], keepLoaded: false, speak: false, phoneButton: true, mics: ["Microphone (USB)"] }
