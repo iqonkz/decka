@@ -27,14 +27,38 @@ fn score(query: &[String], text: &str) -> f64 {
     if s >= MATCH_THRESHOLD { s } else { 0.0 }
 }
 
+/// What people call the thing and not its name: "where is the Save button" looks for "Save".
+const ELEMENT_WORDS: &[&str] = &[
+    "the", "a", "on", "button", "menu", "item", "tab", "field", "link", "icon",
+    "на", "кнопка", "кнопку", "кнопки", "кнопке", "кнопкой", "меню", "пункт", "вкладка", "вкладку", "поле", "ссылка", "ссылку", "значок", "иконку", "иконка",
+    "батырма", "батырмасы", "батырманы", "батырмасын", "мәзір", "мәзірі", "қойынды",
+    "knopf", "taste", "schaltfläche", "menü", "auf", "die", "den", "der", "das",
+    "el", "la", "botón", "boton", "menú", "en",
+    "le", "bouton", "sur", "o", "botão", "botao", "no",
+    "बटन", "زر",
+];
+/// The same in the languages without spaces.
+const ELEMENT_PARTS: &[&str] = &["按钮", "按鈕", "菜单", "标签页", "ボタン", "メニュー", "タブ"];
+
+/// The query without those words; empty when it was nothing else.
+fn bare(query: &str) -> Vec<String> {
+    let mut rest = query.to_string();
+    for part in ELEMENT_PARTS {
+        rest = rest.replace(part, " ");
+    }
+    tokens(&rest).into_iter().filter(|t| !ELEMENT_WORDS.contains(&t.as_str())).collect()
+}
+
 /// The ids of the elements that fit `query` (by name or automation id), the best first. No model: the synonyms ("save" and
 /// "сохранить") live in the phrase tables.
 pub fn rank(snapshot: &Snapshot, query: &str) -> Vec<u32> {
-    let q = tokens(query);
+    // As said (an element may really be called "Menu"), and without the words that only say what kind of thing it is.
+    let (full, short) = (tokens(query), bare(query));
+    let best = |text: &str| score(&full, text).max(score(&short, text));
     let mut scored: Vec<(f64, u32)> = snapshot
         .elements
         .iter()
-        .map(|e| (score(&q, &e.name).max(score(&q, &e.automation_id)), e.id))
+        .map(|e| (best(&e.name).max(best(&e.automation_id)), e.id))
         .filter(|s| s.0 > 0.0)
         .collect();
     scored.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal).then(a.1.cmp(&b.1)));
@@ -324,6 +348,17 @@ mod tests {
         let mut s = snap(&["", "OK"]);
         s.elements[0].automation_id = "BtnSaveFile".into();
         assert_eq!(rank(&s, "btnsavefile"), vec![1]);
+    }
+
+    #[test]
+    fn the_word_button_does_not_hide_the_element() {
+        let s = snap(&["Файл", "Изменить", "Отправить", "Save"]);
+        for (query, id) in [("кнопка Файл", 1), ("на кнопку «Отправить»", 3), ("the Save button", 4), ("“Save”按钮", 4), ("меню Изменить", 2)] {
+            assert_eq!(rank(&s, query).first(), Some(&id), "{query}");
+        }
+        // A name that is one of those words is still found, and the words alone match nothing else.
+        assert_eq!(rank(&snap(&["OK", "Menu"]), "menu"), vec![2]);
+        assert!(rank(&s, "кнопка").is_empty());
     }
 
     #[test]
