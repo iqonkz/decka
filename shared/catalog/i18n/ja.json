@@ -1,97 +1,478 @@
 {
-  "categories": { "windows": "Windows", "media": "メディア", "sound": "サウンド", "stream": "配信", "widgets": "ウィジェット", "navigation": "移動", "web": "Web", "keys": "キー", "apps": "プログラム" },
+  "categories": {
+    "windows": "Windows",
+    "media": "メディア",
+    "sound": "サウンド",
+    "stream": "配信",
+    "widgets": "ウィジェット",
+    "navigation": "移動",
+    "web": "Web",
+    "keys": "キー",
+    "apps": "プログラム"
+  },
   "items": {
-    "win.lock": { "label": "ロック", "name": "PC をロック" },
-    "win.sleep": { "label": "スリープ", "name": "スリープ" },
-    "win.shutdown": { "label": "シャットダウン", "name": "PC をシャットダウン" },
-    "win.restart": { "label": "再起動", "name": "PC を再起動" },
-    "win.signout": { "label": "サインアウト", "name": "サインアウト" },
-    "win.hibernate": { "label": "休止状態", "name": "休止状態" },
-    "win.displayoff": { "label": "画面オフ", "name": "ディスプレイをオフにする" },
-    "win.recycle": { "label": "ごみ箱", "name": "ごみ箱を空にする" },
-    "win.screenshot": { "label": "スクショ", "name": "スクリーンショット" },
-    "win.taskmgr": { "label": "タスク", "name": "タスク マネージャー" },
-    "win.desktop": { "label": "デスクトップ", "name": "デスクトップを表示" },
-    "win.explorer": { "label": "エクスプローラー", "name": "エクスプローラー" },
-    "win.emoji": { "label": "絵文字", "name": "絵文字パネル" },
-    "win.clipboard": { "label": "クリップボード", "name": "クリップボードの履歴" },
-    "win.settings": { "label": "設定", "name": "Windows の設定" },
-    "media.play": { "label": "再生", "name": "再生 / 一時停止", "states": { "true": "一時停止" } },
-    "media.next": { "label": "次へ", "name": "次のトラック" },
-    "media.prev": { "label": "前へ", "name": "前のトラック" },
-    "media.shuffle": { "label": "シャッフル", "name": "シャッフル" },
-    "media.repeat": { "label": "リピート", "name": "リピート", "states": { "track": "1曲リピート" } },
-    "media.widget": { "label": "プレーヤー", "name": "再生中" },
-    "sound.mic": { "label": "マイク", "name": "マイクをミュート", "states": { "true": "マイクOFF" } },
-    "sound.mute": { "label": "ミュート", "name": "音をミュート" },
-    "sound.volup": { "label": "音量 +", "name": "音量を上げる" },
-    "sound.voldown": { "label": "音量 -", "name": "音量を下げる" },
-    "sound.widget": { "label": "音量", "name": "音量スライダー" },
-    "stream.record": { "label": "録画", "name": "OBS: 録画", "states": { "true": "REC" } },
-    "stream.live": { "label": "配信開始", "name": "OBS: 配信を開始", "states": { "true": "LIVE" } },
-    "stream.replay": { "label": "リプレイ", "name": "OBS: リプレイを保存" },
-    "stream.scene": { "label": "シーン", "name": "OBS: シーンを切り替え" },
-    "stream.mic": { "label": "OBSマイク", "name": "OBS: 音声入力をミュート" },
-    "stream.widget": { "label": "OBS", "name": "OBS の状態" },
-    "widget.clock": { "label": "時計", "name": "時計" },
-    "widget.sys": { "label": "システム", "name": "システム" },
-    "widget.sysgraph": { "label": "負荷グラフ", "name": "グラフ付きシステム" },
-    "widget.weather": { "label": "天気", "name": "天気" },
-    "widget.timer": { "label": "タイマー", "name": "タイマー" },
-    "widget.volume": { "label": "音量", "name": "音量スライダー" },
-    "widget.statuses": { "label": "サービス", "name": "サービス" },
-    "widget.notifications": { "label": "通知", "name": "通知" },
-    "widget.media": { "label": "プレーヤー", "name": "再生中" },
-    "widget.twitch": { "label": "Twitch", "name": "Twitch チャンネル" },
-    "widget.battery": { "label": "バッテリー", "name": "デバイスのバッテリー" },
-    "widget.reminders": { "label": "リマインダー", "name": "次のリマインダー" },
-    "widget.list": { "label": "リスト", "name": "チェック付きリスト" },
-    "widget.mail": { "label": "メール", "name": "未読メール" },
-    "widget.youtube": { "label": "YouTube", "name": "YouTube チャンネル" },
-    "widget.ai": { "label": "AI 上限", "name": "AI の上限（Claude、Codex）" },
-    "widget.context": { "label": "アプリのキー", "name": "前面のプログラムのキー" },
-    "widget.ai.claude": { "label": "Claude", "name": "Claude Code の上限（2x1）" },
-    "widget.ai.codex": { "label": "Codex", "name": "Codex の上限（2x1）" },
-    "twitch.clip": { "label": "クリップ", "name": "Twitch: クリップ" },
-    "twitch.announce": { "label": "お知らせ", "name": "Twitch: チャットでお知らせ" },
-    "youtube.live": { "label": "YT 配信", "name": "YouTube: 配信を開始（予約済み）" },
-    "youtube.end": { "label": "YT 終了", "name": "YouTube: 配信を終了" },
-    "youtube.chat": { "label": "YT チャット", "name": "YouTube: チャットにメッセージ" },
-    "widget.obs": { "label": "OBS", "name": "OBS の状態" },
-    "nav.back": { "label": "戻る", "name": "戻る" },
-    "nav.page": { "label": "ページ", "name": "ページを開く" },
-    "nav.popup": { "label": "グループ", "name": "グループを開く" },
-    "web.site": { "label": "Web", "name": "Web サイトを開く" },
-    "keys.shortcut": { "label": "ショートカット", "name": "キーボード ショートカット" },
-    "keys.sequence": { "label": "シーケンス", "name": "アクションのシーケンス" }
+    "win.lock": {
+      "label": "ロック",
+      "name": "PC をロック"
+    },
+    "win.sleep": {
+      "label": "スリープ",
+      "name": "スリープ"
+    },
+    "win.shutdown": {
+      "label": "シャットダウン",
+      "name": "PC をシャットダウン"
+    },
+    "win.restart": {
+      "label": "再起動",
+      "name": "PC を再起動"
+    },
+    "win.signout": {
+      "label": "サインアウト",
+      "name": "サインアウト"
+    },
+    "win.hibernate": {
+      "label": "休止状態",
+      "name": "休止状態"
+    },
+    "win.displayoff": {
+      "label": "画面オフ",
+      "name": "ディスプレイをオフにする"
+    },
+    "win.recycle": {
+      "label": "ごみ箱",
+      "name": "ごみ箱を空にする"
+    },
+    "win.screenshot": {
+      "label": "スクショ",
+      "name": "スクリーンショット"
+    },
+    "win.taskmgr": {
+      "label": "タスク",
+      "name": "タスク マネージャー"
+    },
+    "win.desktop": {
+      "label": "デスクトップ",
+      "name": "デスクトップを表示"
+    },
+    "win.explorer": {
+      "label": "エクスプローラー",
+      "name": "エクスプローラー"
+    },
+    "win.emoji": {
+      "label": "絵文字",
+      "name": "絵文字パネル"
+    },
+    "win.clipboard": {
+      "label": "クリップボード",
+      "name": "クリップボードの履歴"
+    },
+    "win.settings": {
+      "label": "設定",
+      "name": "Windows の設定"
+    },
+    "media.play": {
+      "label": "再生",
+      "name": "再生 / 一時停止",
+      "states": {
+        "true": "一時停止"
+      }
+    },
+    "media.next": {
+      "label": "次へ",
+      "name": "次のトラック"
+    },
+    "media.prev": {
+      "label": "前へ",
+      "name": "前のトラック"
+    },
+    "media.shuffle": {
+      "label": "シャッフル",
+      "name": "シャッフル"
+    },
+    "media.repeat": {
+      "label": "リピート",
+      "name": "リピート",
+      "states": {
+        "track": "1曲リピート"
+      }
+    },
+    "media.widget": {
+      "label": "プレーヤー",
+      "name": "再生中"
+    },
+    "sound.mic": {
+      "label": "マイク",
+      "name": "マイクをミュート",
+      "states": {
+        "true": "マイクOFF"
+      }
+    },
+    "sound.mute": {
+      "label": "ミュート",
+      "name": "音をミュート"
+    },
+    "sound.volup": {
+      "label": "音量 +",
+      "name": "音量を上げる"
+    },
+    "sound.voldown": {
+      "label": "音量 -",
+      "name": "音量を下げる"
+    },
+    "sound.widget": {
+      "label": "音量",
+      "name": "音量スライダー"
+    },
+    "stream.record": {
+      "label": "録画",
+      "name": "OBS: 録画",
+      "states": {
+        "true": "REC"
+      }
+    },
+    "stream.live": {
+      "label": "配信開始",
+      "name": "OBS: 配信を開始",
+      "states": {
+        "true": "LIVE"
+      }
+    },
+    "stream.replay": {
+      "label": "リプレイ",
+      "name": "OBS: リプレイを保存"
+    },
+    "stream.scene": {
+      "label": "シーン",
+      "name": "OBS: シーンを切り替え"
+    },
+    "stream.mic": {
+      "label": "OBSマイク",
+      "name": "OBS: 音声入力をミュート"
+    },
+    "stream.widget": {
+      "label": "OBS",
+      "name": "OBS の状態"
+    },
+    "widget.clock": {
+      "label": "時計",
+      "name": "時計"
+    },
+    "widget.sys": {
+      "label": "システム",
+      "name": "システム"
+    },
+    "widget.sysgraph": {
+      "label": "負荷グラフ",
+      "name": "グラフ付きシステム"
+    },
+    "widget.weather": {
+      "label": "天気",
+      "name": "天気"
+    },
+    "widget.timer": {
+      "label": "タイマー",
+      "name": "タイマー"
+    },
+    "widget.volume": {
+      "label": "音量",
+      "name": "音量スライダー"
+    },
+    "widget.statuses": {
+      "label": "サービス",
+      "name": "サービス"
+    },
+    "widget.notifications": {
+      "label": "通知",
+      "name": "通知"
+    },
+    "widget.media": {
+      "label": "プレーヤー",
+      "name": "再生中"
+    },
+    "widget.twitch": {
+      "label": "Twitch",
+      "name": "Twitch チャンネル"
+    },
+    "widget.battery": {
+      "label": "バッテリー",
+      "name": "デバイスのバッテリー"
+    },
+    "widget.reminders": {
+      "label": "リマインダー",
+      "name": "次のリマインダー"
+    },
+    "widget.list": {
+      "label": "リスト",
+      "name": "チェック付きリスト"
+    },
+    "widget.mail": {
+      "label": "メール",
+      "name": "未読メール"
+    },
+    "widget.youtube": {
+      "label": "YouTube",
+      "name": "YouTube チャンネル"
+    },
+    "widget.ai": {
+      "label": "AI 上限",
+      "name": "AI の上限（Claude、Codex）"
+    },
+    "widget.context": {
+      "label": "アプリのキー",
+      "name": "前面のプログラムのキー"
+    },
+    "widget.ai.claude": {
+      "label": "Claude",
+      "name": "Claude Code の上限（2x1）"
+    },
+    "widget.ai.codex": {
+      "label": "Codex",
+      "name": "Codex の上限（2x1）"
+    },
+    "twitch.clip": {
+      "label": "クリップ",
+      "name": "Twitch: クリップ"
+    },
+    "twitch.announce": {
+      "label": "お知らせ",
+      "name": "Twitch: チャットでお知らせ"
+    },
+    "youtube.live": {
+      "label": "YT 配信",
+      "name": "YouTube: 配信を開始（予約済み）"
+    },
+    "youtube.end": {
+      "label": "YT 終了",
+      "name": "YouTube: 配信を終了"
+    },
+    "youtube.chat": {
+      "label": "YT チャット",
+      "name": "YouTube: チャットにメッセージ"
+    },
+    "widget.obs": {
+      "label": "OBS",
+      "name": "OBS の状態"
+    },
+    "nav.back": {
+      "label": "戻る",
+      "name": "戻る"
+    },
+    "nav.page": {
+      "label": "ページ",
+      "name": "ページを開く"
+    },
+    "nav.popup": {
+      "label": "グループ",
+      "name": "グループを開く"
+    },
+    "web.site": {
+      "label": "Web",
+      "name": "Web サイトを開く"
+    },
+    "keys.shortcut": {
+      "label": "ショートカット",
+      "name": "キーボード ショートカット"
+    },
+    "keys.sequence": {
+      "label": "シーケンス",
+      "name": "アクションのシーケンス"
+    },
+    "win.screenshot.window": {
+      "label": "ウィンドウ",
+      "name": "アクティブウィンドウを撮影"
+    },
+    "win.screenshot.region": {
+      "label": "範囲撮影",
+      "name": "画面の範囲を撮影"
+    },
+    "web.webhook": {
+      "label": "Webhook",
+      "name": "Webhook（HTTP リクエスト）"
+    }
   },
   "sets": {
-    "media-remote": { "name": "メディア リモコン", "description": "前へ、再生、次へ、シャッフル、リピート、再生中の表示" },
-    "sound": { "name": "サウンド", "description": "マイク、ミュート、音量キー、スライダー" },
-    "windows-tools": { "name": "Windows ツール", "description": "ロック、スクリーンショット、タスク マネージャー、エクスプローラーなど" },
-    "stream": { "name": "配信", "description": "録画、配信開始、リプレイ、シーン、OBS の状態" },
-    "twitch": { "name": "Twitch", "description": "視聴者、フォロワー、クリップ キー" },
-    "youtube": { "name": "YouTube", "description": "チャンネルのライブ視聴者と登録者" },
-    "ai": { "name": "AI コーディング", "description": "Claude Code と Codex の上限をひと目で確認" },
-    "workspace": { "name": "作業デスク", "description": "前面のプログラムのキーと、ロック、タスク マネージャー、メディア、ミュートをいつでも手元に" },
-    "focus": { "name": "集中", "description": "タイマーと時計" }
+    "media-remote": {
+      "name": "メディア リモコン",
+      "description": "前へ、再生、次へ、シャッフル、リピート、再生中の表示"
+    },
+    "sound": {
+      "name": "サウンド",
+      "description": "マイク、ミュート、音量キー、スライダー"
+    },
+    "windows-tools": {
+      "name": "Windows ツール",
+      "description": "ロック、スクリーンショット、タスク マネージャー、エクスプローラーなど"
+    },
+    "stream": {
+      "name": "配信",
+      "description": "録画、配信開始、リプレイ、シーン、OBS の状態"
+    },
+    "twitch": {
+      "name": "Twitch",
+      "description": "視聴者、フォロワー、クリップ キー"
+    },
+    "youtube": {
+      "name": "YouTube",
+      "description": "チャンネルのライブ視聴者と登録者"
+    },
+    "ai": {
+      "name": "AI コーディング",
+      "description": "Claude Code と Codex の上限をひと目で確認"
+    },
+    "workspace": {
+      "name": "作業デスク",
+      "description": "前面のプログラムのキーと、ロック、タスク マネージャー、メディア、ミュートをいつでも手元に"
+    },
+    "focus": {
+      "name": "集中",
+      "description": "タイマーと時計"
+    }
   },
   "templates": {
-    "name": { "browser": "ブラウザー" },
+    "name": {
+      "browser": "ブラウザー"
+    },
     "actions": {
-      "browser": { "tpl-browser-newtab": "新しいタブ", "tpl-browser-closetab": "タブを閉じる", "tpl-browser-reopen": "閉じたタブを開く", "tpl-browser-back": "戻る", "tpl-browser-forward": "進む", "tpl-browser-reload": "再読み込み", "tpl-browser-devtools": "開発者ツール", "tpl-browser-private": "プライベート ウィンドウ", "tpl-browser-bookmark": "このページをブックマーク", "tpl-browser-address": "アドレス バー", "tpl-browser-find": "ページ内を検索", "tpl-browser-downloads": "ダウンロード", "tpl-browser-history": "履歴", "tpl-browser-nexttab": "次のタブ" },
-      "canva": { "tpl-canva-text": "テキスト ボックス", "tpl-canva-rect": "四角形", "tpl-canva-circle": "円", "tpl-canva-line": "線", "tpl-canva-dup": "複製", "tpl-canva-group": "グループ化", "tpl-canva-ungroup": "グループ解除", "tpl-canva-undo": "元に戻す", "tpl-canva-redo": "やり直す", "tpl-canva-delete": "削除", "tpl-canva-lock": "ロック / ロック解除", "tpl-canva-present": "プレゼン" },
-      "discord": { "tpl-discord-mute": "マイクをミュート", "tpl-discord-deafen": "スピーカーをミュート", "tpl-discord-switcher": "クイック スイッチャー", "tpl-discord-inbox": "受信トレイ", "tpl-discord-nextsrv": "次のサーバー", "tpl-discord-prevsrv": "前のサーバー" },
-      "excel": { "tpl-excel-save": "保存", "tpl-excel-undo": "元に戻す", "tpl-excel-redo": "やり直す", "tpl-excel-find": "検索", "tpl-excel-bold": "太字", "tpl-excel-filter": "フィルター オン / オフ", "tpl-excel-edit": "セルを編集", "tpl-excel-fill": "下方向にコピー", "tpl-excel-format": "セルの書式設定", "tpl-excel-sheet": "新しいシート" },
-      "outlook": { "tpl-outlook-new": "新しいメール", "tpl-outlook-reply": "返信", "tpl-outlook-replyall": "全員に返信", "tpl-outlook-forward": "転送", "tpl-outlook-send": "送信", "tpl-outlook-mail": "メール ビュー", "tpl-outlook-calendar": "予定表ビュー", "tpl-outlook-search": "検索", "tpl-outlook-read": "既読にする", "tpl-outlook-delete": "削除" },
-      "powerpoint": { "tpl-powerpoint-start": "スライド ショーを開始", "tpl-powerpoint-current": "現在のスライドから開始", "tpl-powerpoint-prev": "前のスライド", "tpl-powerpoint-next": "次のスライド", "tpl-powerpoint-end": "スライド ショーを終了", "tpl-powerpoint-newslide": "新しいスライド", "tpl-powerpoint-dup": "スライドを複製", "tpl-powerpoint-save": "保存", "tpl-powerpoint-undo": "元に戻す", "tpl-powerpoint-bold": "太字" },
-      "spotify": { "tpl-spotify-prev": "前へ", "tpl-spotify-play": "再生 / 一時停止", "tpl-spotify-next": "次へ", "tpl-spotify-voldown": "音量を下げる", "tpl-spotify-volup": "音量を上げる", "tpl-spotify-mute": "ミュート" },
-      "teams": { "tpl-teams-mute": "ミュート / ミュート解除", "tpl-teams-video": "カメラ オン / オフ", "tpl-teams-share": "画面を共有", "tpl-teams-hand": "手を挙げる / 下げる", "tpl-teams-leave": "会議から退出", "tpl-teams-accept": "ビデオ通話に応答", "tpl-teams-decline": "通話を拒否", "tpl-teams-search": "検索" },
-      "telegram": { "tpl-telegram-search": "検索", "tpl-telegram-next": "次のチャット", "tpl-telegram-prev": "前のチャット", "tpl-telegram-close": "チャットを閉じる", "tpl-telegram-edit": "最後のメッセージを編集", "tpl-telegram-lock": "アプリをロック" },
-      "vscode": { "tpl-vscode-palette": "コマンド パレット", "tpl-vscode-quickopen": "クイック オープン", "tpl-vscode-findall": "ファイル内を検索", "tpl-vscode-git": "ソース管理", "tpl-vscode-sidebar": "サイド バーの切り替え", "tpl-vscode-save": "保存", "tpl-vscode-format": "ドキュメントのフォーマット", "tpl-vscode-run": "デバッグを開始", "tpl-vscode-stop": "デバッグを停止" },
-      "whatsapp": { "tpl-whatsapp-new": "新しいチャット", "tpl-whatsapp-search": "検索", "tpl-whatsapp-next": "次のチャット", "tpl-whatsapp-prev": "前のチャット", "tpl-whatsapp-mute": "チャットをミュート", "tpl-whatsapp-archive": "チャットをアーカイブ", "tpl-whatsapp-group": "新しいグループ", "tpl-whatsapp-close": "チャットを閉じる" },
-      "word": { "tpl-word-bold": "太字", "tpl-word-italic": "斜体", "tpl-word-underline": "下線", "tpl-word-left": "左揃え", "tpl-word-center": "中央揃え", "tpl-word-save": "保存", "tpl-word-undo": "元に戻す", "tpl-word-redo": "やり直す", "tpl-word-find": "検索", "tpl-word-print": "印刷" },
-      "zoom": { "tpl-zoom-mute": "ミュート / ミュート解除", "tpl-zoom-video": "ビデオの開始 / 停止", "tpl-zoom-share": "画面を共有", "tpl-zoom-leave": "会議から退出" }
+      "browser": {
+        "tpl-browser-newtab": "新しいタブ",
+        "tpl-browser-closetab": "タブを閉じる",
+        "tpl-browser-reopen": "閉じたタブを開く",
+        "tpl-browser-back": "戻る",
+        "tpl-browser-forward": "進む",
+        "tpl-browser-reload": "再読み込み",
+        "tpl-browser-devtools": "開発者ツール",
+        "tpl-browser-private": "プライベート ウィンドウ",
+        "tpl-browser-bookmark": "このページをブックマーク",
+        "tpl-browser-address": "アドレス バー",
+        "tpl-browser-find": "ページ内を検索",
+        "tpl-browser-downloads": "ダウンロード",
+        "tpl-browser-history": "履歴",
+        "tpl-browser-nexttab": "次のタブ"
+      },
+      "canva": {
+        "tpl-canva-text": "テキスト ボックス",
+        "tpl-canva-rect": "四角形",
+        "tpl-canva-circle": "円",
+        "tpl-canva-line": "線",
+        "tpl-canva-dup": "複製",
+        "tpl-canva-group": "グループ化",
+        "tpl-canva-ungroup": "グループ解除",
+        "tpl-canva-undo": "元に戻す",
+        "tpl-canva-redo": "やり直す",
+        "tpl-canva-delete": "削除",
+        "tpl-canva-lock": "ロック / ロック解除",
+        "tpl-canva-present": "プレゼン"
+      },
+      "discord": {
+        "tpl-discord-mute": "マイクをミュート",
+        "tpl-discord-deafen": "スピーカーをミュート",
+        "tpl-discord-switcher": "クイック スイッチャー",
+        "tpl-discord-inbox": "受信トレイ",
+        "tpl-discord-nextsrv": "次のサーバー",
+        "tpl-discord-prevsrv": "前のサーバー"
+      },
+      "excel": {
+        "tpl-excel-save": "保存",
+        "tpl-excel-undo": "元に戻す",
+        "tpl-excel-redo": "やり直す",
+        "tpl-excel-find": "検索",
+        "tpl-excel-bold": "太字",
+        "tpl-excel-filter": "フィルター オン / オフ",
+        "tpl-excel-edit": "セルを編集",
+        "tpl-excel-fill": "下方向にコピー",
+        "tpl-excel-format": "セルの書式設定",
+        "tpl-excel-sheet": "新しいシート"
+      },
+      "outlook": {
+        "tpl-outlook-new": "新しいメール",
+        "tpl-outlook-reply": "返信",
+        "tpl-outlook-replyall": "全員に返信",
+        "tpl-outlook-forward": "転送",
+        "tpl-outlook-send": "送信",
+        "tpl-outlook-mail": "メール ビュー",
+        "tpl-outlook-calendar": "予定表ビュー",
+        "tpl-outlook-search": "検索",
+        "tpl-outlook-read": "既読にする",
+        "tpl-outlook-delete": "削除"
+      },
+      "powerpoint": {
+        "tpl-powerpoint-start": "スライド ショーを開始",
+        "tpl-powerpoint-current": "現在のスライドから開始",
+        "tpl-powerpoint-prev": "前のスライド",
+        "tpl-powerpoint-next": "次のスライド",
+        "tpl-powerpoint-end": "スライド ショーを終了",
+        "tpl-powerpoint-newslide": "新しいスライド",
+        "tpl-powerpoint-dup": "スライドを複製",
+        "tpl-powerpoint-save": "保存",
+        "tpl-powerpoint-undo": "元に戻す",
+        "tpl-powerpoint-bold": "太字"
+      },
+      "spotify": {
+        "tpl-spotify-prev": "前へ",
+        "tpl-spotify-play": "再生 / 一時停止",
+        "tpl-spotify-next": "次へ",
+        "tpl-spotify-voldown": "音量を下げる",
+        "tpl-spotify-volup": "音量を上げる",
+        "tpl-spotify-mute": "ミュート"
+      },
+      "teams": {
+        "tpl-teams-mute": "ミュート / ミュート解除",
+        "tpl-teams-video": "カメラ オン / オフ",
+        "tpl-teams-share": "画面を共有",
+        "tpl-teams-hand": "手を挙げる / 下げる",
+        "tpl-teams-leave": "会議から退出",
+        "tpl-teams-accept": "ビデオ通話に応答",
+        "tpl-teams-decline": "通話を拒否",
+        "tpl-teams-search": "検索"
+      },
+      "telegram": {
+        "tpl-telegram-search": "検索",
+        "tpl-telegram-next": "次のチャット",
+        "tpl-telegram-prev": "前のチャット",
+        "tpl-telegram-close": "チャットを閉じる",
+        "tpl-telegram-edit": "最後のメッセージを編集",
+        "tpl-telegram-lock": "アプリをロック"
+      },
+      "vscode": {
+        "tpl-vscode-palette": "コマンド パレット",
+        "tpl-vscode-quickopen": "クイック オープン",
+        "tpl-vscode-findall": "ファイル内を検索",
+        "tpl-vscode-git": "ソース管理",
+        "tpl-vscode-sidebar": "サイド バーの切り替え",
+        "tpl-vscode-save": "保存",
+        "tpl-vscode-format": "ドキュメントのフォーマット",
+        "tpl-vscode-run": "デバッグを開始",
+        "tpl-vscode-stop": "デバッグを停止"
+      },
+      "whatsapp": {
+        "tpl-whatsapp-new": "新しいチャット",
+        "tpl-whatsapp-search": "検索",
+        "tpl-whatsapp-next": "次のチャット",
+        "tpl-whatsapp-prev": "前のチャット",
+        "tpl-whatsapp-mute": "チャットをミュート",
+        "tpl-whatsapp-archive": "チャットをアーカイブ",
+        "tpl-whatsapp-group": "新しいグループ",
+        "tpl-whatsapp-close": "チャットを閉じる"
+      },
+      "word": {
+        "tpl-word-bold": "太字",
+        "tpl-word-italic": "斜体",
+        "tpl-word-underline": "下線",
+        "tpl-word-left": "左揃え",
+        "tpl-word-center": "中央揃え",
+        "tpl-word-save": "保存",
+        "tpl-word-undo": "元に戻す",
+        "tpl-word-redo": "やり直す",
+        "tpl-word-find": "検索",
+        "tpl-word-print": "印刷"
+      },
+      "zoom": {
+        "tpl-zoom-mute": "ミュート / ミュート解除",
+        "tpl-zoom-video": "ビデオの開始 / 停止",
+        "tpl-zoom-share": "画面を共有",
+        "tpl-zoom-leave": "会議から退出"
+      }
     }
   }
 }

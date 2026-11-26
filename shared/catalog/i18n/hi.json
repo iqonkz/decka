@@ -1,97 +1,478 @@
 {
-  "categories": { "windows": "Windows", "media": "मीडिया", "sound": "ध्वनि", "stream": "स्ट्रीम", "widgets": "विजेट", "navigation": "नेविगेशन", "web": "वेब", "keys": "कुंजियाँ", "apps": "ऐप" },
+  "categories": {
+    "windows": "Windows",
+    "media": "मीडिया",
+    "sound": "ध्वनि",
+    "stream": "स्ट्रीम",
+    "widgets": "विजेट",
+    "navigation": "नेविगेशन",
+    "web": "वेब",
+    "keys": "कुंजियाँ",
+    "apps": "ऐप"
+  },
   "items": {
-    "win.lock": { "label": "लॉक", "name": "पीसी लॉक करें" },
-    "win.sleep": { "label": "स्लीप", "name": "स्लीप" },
-    "win.shutdown": { "label": "बंद करें", "name": "पीसी बंद करें" },
-    "win.restart": { "label": "रीस्टार्ट", "name": "पीसी रीस्टार्ट करें" },
-    "win.signout": { "label": "साइन आउट", "name": "साइन आउट" },
-    "win.hibernate": { "label": "हाइबरनेट", "name": "हाइबरनेट" },
-    "win.displayoff": { "label": "स्क्रीन बंद", "name": "डिस्प्ले बंद करें" },
-    "win.recycle": { "label": "रीसायकल", "name": "रीसायकल बिन खाली करें" },
-    "win.screenshot": { "label": "स्क्रीनशॉट", "name": "स्क्रीनशॉट" },
-    "win.taskmgr": { "label": "टास्क", "name": "टास्क मैनेजर" },
-    "win.desktop": { "label": "डेस्कटॉप", "name": "डेस्कटॉप दिखाएँ" },
-    "win.explorer": { "label": "एक्सप्लोरर", "name": "फ़ाइल एक्सप्लोरर" },
-    "win.emoji": { "label": "इमोजी", "name": "इमोजी पैनल" },
-    "win.clipboard": { "label": "क्लिपबोर्ड", "name": "क्लिपबोर्ड इतिहास" },
-    "win.settings": { "label": "सेटिंग", "name": "Windows सेटिंग" },
-    "media.play": { "label": "चलाएँ", "name": "चलाएँ / रोकें", "states": { "true": "रोकें" } },
-    "media.next": { "label": "अगला", "name": "अगला ट्रैक" },
-    "media.prev": { "label": "पिछला", "name": "पिछला ट्रैक" },
-    "media.shuffle": { "label": "शफ़ल", "name": "शफ़ल" },
-    "media.repeat": { "label": "दोहराएँ", "name": "दोहराएँ", "states": { "track": "1 दोहराएँ" } },
-    "media.widget": { "label": "प्लेयर", "name": "अभी चल रहा है" },
-    "sound.mic": { "label": "माइक", "name": "माइक्रोफ़ोन म्यूट करें", "states": { "true": "माइक बंद" } },
-    "sound.mute": { "label": "म्यूट", "name": "आवाज़ म्यूट करें" },
-    "sound.volup": { "label": "आवाज़ +", "name": "आवाज़ बढ़ाएँ" },
-    "sound.voldown": { "label": "आवाज़ -", "name": "आवाज़ घटाएँ" },
-    "sound.widget": { "label": "आवाज़", "name": "आवाज़ स्लाइडर" },
-    "stream.record": { "label": "रिकॉर्ड", "name": "OBS: रिकॉर्ड", "states": { "true": "REC" } },
-    "stream.live": { "label": "लाइव जाएँ", "name": "OBS: लाइव जाएँ", "states": { "true": "LIVE" } },
-    "stream.replay": { "label": "रीप्ले", "name": "OBS: रीप्ले सहेजें" },
-    "stream.scene": { "label": "दृश्य", "name": "OBS: दृश्य बदलें" },
-    "stream.mic": { "label": "OBS माइक", "name": "OBS: ऑडियो इनपुट म्यूट करें" },
-    "stream.widget": { "label": "OBS", "name": "OBS की स्थिति" },
-    "widget.clock": { "label": "घड़ी", "name": "घड़ी" },
-    "widget.sys": { "label": "सिस्टम", "name": "सिस्टम" },
-    "widget.sysgraph": { "label": "लोड ग्राफ़", "name": "ग्राफ़ के साथ सिस्टम" },
-    "widget.weather": { "label": "मौसम", "name": "मौसम" },
-    "widget.timer": { "label": "टाइमर", "name": "टाइमर" },
-    "widget.volume": { "label": "आवाज़", "name": "आवाज़ स्लाइडर" },
-    "widget.statuses": { "label": "सेवाएँ", "name": "सेवाएँ" },
-    "widget.notifications": { "label": "सूचनाएँ", "name": "सूचनाएँ" },
-    "widget.media": { "label": "प्लेयर", "name": "अभी चल रहा है" },
-    "widget.twitch": { "label": "Twitch", "name": "Twitch चैनल" },
-    "widget.battery": { "label": "बैटरी", "name": "डिवाइस की बैटरी" },
-    "widget.reminders": { "label": "रिमाइंडर", "name": "अगले रिमाइंडर" },
-    "widget.list": { "label": "सूची", "name": "टिक वाली सूची" },
-    "widget.mail": { "label": "मेल", "name": "अपठित मेल" },
-    "widget.youtube": { "label": "YouTube", "name": "YouTube चैनल" },
-    "widget.ai": { "label": "AI सीमाएँ", "name": "AI सीमाएँ (Claude, Codex)" },
-    "widget.context": { "label": "ऐप कुंजियाँ", "name": "सामने वाले ऐप की कुंजियाँ" },
-    "widget.ai.claude": { "label": "Claude", "name": "Claude Code की सीमाएँ (2x1)" },
-    "widget.ai.codex": { "label": "Codex", "name": "Codex की सीमाएँ (2x1)" },
-    "twitch.clip": { "label": "क्लिप", "name": "Twitch: क्लिप" },
-    "twitch.announce": { "label": "चैट घोषणा", "name": "Twitch: चैट में घोषणा" },
-    "youtube.live": { "label": "YT लाइव", "name": "YouTube: लाइव जाएँ (निर्धारित स्ट्रीम)" },
-    "youtube.end": { "label": "YT समाप्त", "name": "YouTube: स्ट्रीम समाप्त करें" },
-    "youtube.chat": { "label": "YT चैट", "name": "YouTube: चैट में संदेश" },
-    "widget.obs": { "label": "OBS", "name": "OBS की स्थिति" },
-    "nav.back": { "label": "वापस", "name": "वापस" },
-    "nav.page": { "label": "पेज", "name": "पेज खोलें" },
-    "nav.popup": { "label": "समूह", "name": "समूह खोलें" },
-    "web.site": { "label": "वेबसाइट", "name": "वेबसाइट खोलें" },
-    "keys.shortcut": { "label": "शॉर्टकट", "name": "कीबोर्ड शॉर्टकट" },
-    "keys.sequence": { "label": "अनुक्रम", "name": "क्रियाओं का अनुक्रम" }
+    "win.lock": {
+      "label": "लॉक",
+      "name": "पीसी लॉक करें"
+    },
+    "win.sleep": {
+      "label": "स्लीप",
+      "name": "स्लीप"
+    },
+    "win.shutdown": {
+      "label": "बंद करें",
+      "name": "पीसी बंद करें"
+    },
+    "win.restart": {
+      "label": "रीस्टार्ट",
+      "name": "पीसी रीस्टार्ट करें"
+    },
+    "win.signout": {
+      "label": "साइन आउट",
+      "name": "साइन आउट"
+    },
+    "win.hibernate": {
+      "label": "हाइबरनेट",
+      "name": "हाइबरनेट"
+    },
+    "win.displayoff": {
+      "label": "स्क्रीन बंद",
+      "name": "डिस्प्ले बंद करें"
+    },
+    "win.recycle": {
+      "label": "रीसायकल",
+      "name": "रीसायकल बिन खाली करें"
+    },
+    "win.screenshot": {
+      "label": "स्क्रीनशॉट",
+      "name": "स्क्रीनशॉट"
+    },
+    "win.taskmgr": {
+      "label": "टास्क",
+      "name": "टास्क मैनेजर"
+    },
+    "win.desktop": {
+      "label": "डेस्कटॉप",
+      "name": "डेस्कटॉप दिखाएँ"
+    },
+    "win.explorer": {
+      "label": "एक्सप्लोरर",
+      "name": "फ़ाइल एक्सप्लोरर"
+    },
+    "win.emoji": {
+      "label": "इमोजी",
+      "name": "इमोजी पैनल"
+    },
+    "win.clipboard": {
+      "label": "क्लिपबोर्ड",
+      "name": "क्लिपबोर्ड इतिहास"
+    },
+    "win.settings": {
+      "label": "सेटिंग",
+      "name": "Windows सेटिंग"
+    },
+    "media.play": {
+      "label": "चलाएँ",
+      "name": "चलाएँ / रोकें",
+      "states": {
+        "true": "रोकें"
+      }
+    },
+    "media.next": {
+      "label": "अगला",
+      "name": "अगला ट्रैक"
+    },
+    "media.prev": {
+      "label": "पिछला",
+      "name": "पिछला ट्रैक"
+    },
+    "media.shuffle": {
+      "label": "शफ़ल",
+      "name": "शफ़ल"
+    },
+    "media.repeat": {
+      "label": "दोहराएँ",
+      "name": "दोहराएँ",
+      "states": {
+        "track": "1 दोहराएँ"
+      }
+    },
+    "media.widget": {
+      "label": "प्लेयर",
+      "name": "अभी चल रहा है"
+    },
+    "sound.mic": {
+      "label": "माइक",
+      "name": "माइक्रोफ़ोन म्यूट करें",
+      "states": {
+        "true": "माइक बंद"
+      }
+    },
+    "sound.mute": {
+      "label": "म्यूट",
+      "name": "आवाज़ म्यूट करें"
+    },
+    "sound.volup": {
+      "label": "आवाज़ +",
+      "name": "आवाज़ बढ़ाएँ"
+    },
+    "sound.voldown": {
+      "label": "आवाज़ -",
+      "name": "आवाज़ घटाएँ"
+    },
+    "sound.widget": {
+      "label": "आवाज़",
+      "name": "आवाज़ स्लाइडर"
+    },
+    "stream.record": {
+      "label": "रिकॉर्ड",
+      "name": "OBS: रिकॉर्ड",
+      "states": {
+        "true": "REC"
+      }
+    },
+    "stream.live": {
+      "label": "लाइव जाएँ",
+      "name": "OBS: लाइव जाएँ",
+      "states": {
+        "true": "LIVE"
+      }
+    },
+    "stream.replay": {
+      "label": "रीप्ले",
+      "name": "OBS: रीप्ले सहेजें"
+    },
+    "stream.scene": {
+      "label": "दृश्य",
+      "name": "OBS: दृश्य बदलें"
+    },
+    "stream.mic": {
+      "label": "OBS माइक",
+      "name": "OBS: ऑडियो इनपुट म्यूट करें"
+    },
+    "stream.widget": {
+      "label": "OBS",
+      "name": "OBS की स्थिति"
+    },
+    "widget.clock": {
+      "label": "घड़ी",
+      "name": "घड़ी"
+    },
+    "widget.sys": {
+      "label": "सिस्टम",
+      "name": "सिस्टम"
+    },
+    "widget.sysgraph": {
+      "label": "लोड ग्राफ़",
+      "name": "ग्राफ़ के साथ सिस्टम"
+    },
+    "widget.weather": {
+      "label": "मौसम",
+      "name": "मौसम"
+    },
+    "widget.timer": {
+      "label": "टाइमर",
+      "name": "टाइमर"
+    },
+    "widget.volume": {
+      "label": "आवाज़",
+      "name": "आवाज़ स्लाइडर"
+    },
+    "widget.statuses": {
+      "label": "सेवाएँ",
+      "name": "सेवाएँ"
+    },
+    "widget.notifications": {
+      "label": "सूचनाएँ",
+      "name": "सूचनाएँ"
+    },
+    "widget.media": {
+      "label": "प्लेयर",
+      "name": "अभी चल रहा है"
+    },
+    "widget.twitch": {
+      "label": "Twitch",
+      "name": "Twitch चैनल"
+    },
+    "widget.battery": {
+      "label": "बैटरी",
+      "name": "डिवाइस की बैटरी"
+    },
+    "widget.reminders": {
+      "label": "रिमाइंडर",
+      "name": "अगले रिमाइंडर"
+    },
+    "widget.list": {
+      "label": "सूची",
+      "name": "टिक वाली सूची"
+    },
+    "widget.mail": {
+      "label": "मेल",
+      "name": "अपठित मेल"
+    },
+    "widget.youtube": {
+      "label": "YouTube",
+      "name": "YouTube चैनल"
+    },
+    "widget.ai": {
+      "label": "AI सीमाएँ",
+      "name": "AI सीमाएँ (Claude, Codex)"
+    },
+    "widget.context": {
+      "label": "ऐप कुंजियाँ",
+      "name": "सामने वाले ऐप की कुंजियाँ"
+    },
+    "widget.ai.claude": {
+      "label": "Claude",
+      "name": "Claude Code की सीमाएँ (2x1)"
+    },
+    "widget.ai.codex": {
+      "label": "Codex",
+      "name": "Codex की सीमाएँ (2x1)"
+    },
+    "twitch.clip": {
+      "label": "क्लिप",
+      "name": "Twitch: क्लिप"
+    },
+    "twitch.announce": {
+      "label": "चैट घोषणा",
+      "name": "Twitch: चैट में घोषणा"
+    },
+    "youtube.live": {
+      "label": "YT लाइव",
+      "name": "YouTube: लाइव जाएँ (निर्धारित स्ट्रीम)"
+    },
+    "youtube.end": {
+      "label": "YT समाप्त",
+      "name": "YouTube: स्ट्रीम समाप्त करें"
+    },
+    "youtube.chat": {
+      "label": "YT चैट",
+      "name": "YouTube: चैट में संदेश"
+    },
+    "widget.obs": {
+      "label": "OBS",
+      "name": "OBS की स्थिति"
+    },
+    "nav.back": {
+      "label": "वापस",
+      "name": "वापस"
+    },
+    "nav.page": {
+      "label": "पेज",
+      "name": "पेज खोलें"
+    },
+    "nav.popup": {
+      "label": "समूह",
+      "name": "समूह खोलें"
+    },
+    "web.site": {
+      "label": "वेबसाइट",
+      "name": "वेबसाइट खोलें"
+    },
+    "keys.shortcut": {
+      "label": "शॉर्टकट",
+      "name": "कीबोर्ड शॉर्टकट"
+    },
+    "keys.sequence": {
+      "label": "अनुक्रम",
+      "name": "क्रियाओं का अनुक्रम"
+    },
+    "win.screenshot.window": {
+      "label": "विंडो शॉट",
+      "name": "सक्रिय विंडो स्क्रीनशॉट"
+    },
+    "win.screenshot.region": {
+      "label": "क्षेत्र शॉट",
+      "name": "स्क्रीन क्षेत्र स्क्रीनशॉट"
+    },
+    "web.webhook": {
+      "label": "Webhook",
+      "name": "Webhook (HTTP अनुरोध)"
+    }
   },
   "sets": {
-    "media-remote": { "name": "मीडिया रिमोट", "description": "पिछला, चलाएँ, अगला, शफ़ल, दोहराएँ और “अभी चल रहा है”" },
-    "sound": { "name": "ध्वनि", "description": "माइक्रोफ़ोन, म्यूट, आवाज़ की कुंजियाँ और एक स्लाइडर" },
-    "windows-tools": { "name": "Windows टूल", "description": "लॉक, स्क्रीनशॉट, टास्क मैनेजर, एक्सप्लोरर और बहुत कुछ" },
-    "stream": { "name": "स्ट्रीमिंग", "description": "रिकॉर्ड, लाइव जाएँ, रीप्ले, दृश्य और OBS की स्थिति" },
-    "twitch": { "name": "Twitch", "description": "दर्शक, फ़ॉलोअर और एक क्लिप कुंजी" },
-    "youtube": { "name": "YouTube", "description": "आपके चैनल के लाइव दर्शक और सब्सक्राइबर" },
-    "ai": { "name": "AI कोडिंग", "description": "Claude Code और Codex की सीमाएँ एक नज़र में" },
-    "workspace": { "name": "कार्य-डेस्क", "description": "सामने वाले प्रोग्राम की कुंजियाँ, साथ में लॉक, टास्क मैनेजर, मीडिया और म्यूट हमेशा हाथ में" },
-    "focus": { "name": "फ़ोकस", "description": "एक टाइमर और एक घड़ी" }
+    "media-remote": {
+      "name": "मीडिया रिमोट",
+      "description": "पिछला, चलाएँ, अगला, शफ़ल, दोहराएँ और “अभी चल रहा है”"
+    },
+    "sound": {
+      "name": "ध्वनि",
+      "description": "माइक्रोफ़ोन, म्यूट, आवाज़ की कुंजियाँ और एक स्लाइडर"
+    },
+    "windows-tools": {
+      "name": "Windows टूल",
+      "description": "लॉक, स्क्रीनशॉट, टास्क मैनेजर, एक्सप्लोरर और बहुत कुछ"
+    },
+    "stream": {
+      "name": "स्ट्रीमिंग",
+      "description": "रिकॉर्ड, लाइव जाएँ, रीप्ले, दृश्य और OBS की स्थिति"
+    },
+    "twitch": {
+      "name": "Twitch",
+      "description": "दर्शक, फ़ॉलोअर और एक क्लिप कुंजी"
+    },
+    "youtube": {
+      "name": "YouTube",
+      "description": "आपके चैनल के लाइव दर्शक और सब्सक्राइबर"
+    },
+    "ai": {
+      "name": "AI कोडिंग",
+      "description": "Claude Code और Codex की सीमाएँ एक नज़र में"
+    },
+    "workspace": {
+      "name": "कार्य-डेस्क",
+      "description": "सामने वाले प्रोग्राम की कुंजियाँ, साथ में लॉक, टास्क मैनेजर, मीडिया और म्यूट हमेशा हाथ में"
+    },
+    "focus": {
+      "name": "फ़ोकस",
+      "description": "एक टाइमर और एक घड़ी"
+    }
   },
   "templates": {
-    "name": { "browser": "ब्राउज़र" },
+    "name": {
+      "browser": "ब्राउज़र"
+    },
     "actions": {
-      "browser": { "tpl-browser-newtab": "नया टैब", "tpl-browser-closetab": "टैब बंद करें", "tpl-browser-reopen": "बंद टैब फिर खोलें", "tpl-browser-back": "पीछे", "tpl-browser-forward": "आगे", "tpl-browser-reload": "फिर से लोड करें", "tpl-browser-devtools": "डेवलपर टूल", "tpl-browser-private": "निजी विंडो", "tpl-browser-bookmark": "इस पेज को बुकमार्क करें", "tpl-browser-address": "पता बार", "tpl-browser-find": "पेज में खोजें", "tpl-browser-downloads": "डाउनलोड", "tpl-browser-history": "इतिहास", "tpl-browser-nexttab": "अगला टैब" },
-      "canva": { "tpl-canva-text": "टेक्स्ट बॉक्स", "tpl-canva-rect": "आयत", "tpl-canva-circle": "वृत्त", "tpl-canva-line": "रेखा", "tpl-canva-dup": "डुप्लिकेट", "tpl-canva-group": "समूह बनाएँ", "tpl-canva-ungroup": "समूह हटाएँ", "tpl-canva-undo": "पूर्ववत करें", "tpl-canva-redo": "फिर से करें", "tpl-canva-delete": "हटाएँ", "tpl-canva-lock": "लॉक / अनलॉक", "tpl-canva-present": "प्रस्तुत करें" },
-      "discord": { "tpl-discord-mute": "माइक्रोफ़ोन म्यूट करें", "tpl-discord-deafen": "आवाज़ बंद करें", "tpl-discord-switcher": "त्वरित स्विचर", "tpl-discord-inbox": "इनबॉक्स", "tpl-discord-nextsrv": "अगला सर्वर", "tpl-discord-prevsrv": "पिछला सर्वर" },
-      "excel": { "tpl-excel-save": "सहेजें", "tpl-excel-undo": "पूर्ववत करें", "tpl-excel-redo": "फिर से करें", "tpl-excel-find": "खोजें", "tpl-excel-bold": "बोल्ड", "tpl-excel-filter": "फ़िल्टर चालू / बंद", "tpl-excel-edit": "सेल संपादित करें", "tpl-excel-fill": "नीचे भरें", "tpl-excel-format": "सेल फ़ॉर्मैट", "tpl-excel-sheet": "नई शीट" },
-      "outlook": { "tpl-outlook-new": "नया मेल", "tpl-outlook-reply": "जवाब दें", "tpl-outlook-replyall": "सबको जवाब दें", "tpl-outlook-forward": "फ़ॉरवर्ड करें", "tpl-outlook-send": "भेजें", "tpl-outlook-mail": "मेल दृश्य", "tpl-outlook-calendar": "कैलेंडर दृश्य", "tpl-outlook-search": "खोजें", "tpl-outlook-read": "पढ़ा हुआ चिह्नित करें", "tpl-outlook-delete": "हटाएँ" },
-      "powerpoint": { "tpl-powerpoint-start": "स्लाइड शो शुरू करें", "tpl-powerpoint-current": "इस स्लाइड से शुरू करें", "tpl-powerpoint-prev": "पिछली स्लाइड", "tpl-powerpoint-next": "अगली स्लाइड", "tpl-powerpoint-end": "स्लाइड शो समाप्त करें", "tpl-powerpoint-newslide": "नई स्लाइड", "tpl-powerpoint-dup": "स्लाइड डुप्लिकेट करें", "tpl-powerpoint-save": "सहेजें", "tpl-powerpoint-undo": "पूर्ववत करें", "tpl-powerpoint-bold": "बोल्ड" },
-      "spotify": { "tpl-spotify-prev": "पिछला", "tpl-spotify-play": "चलाएँ / रोकें", "tpl-spotify-next": "अगला", "tpl-spotify-voldown": "आवाज़ घटाएँ", "tpl-spotify-volup": "आवाज़ बढ़ाएँ", "tpl-spotify-mute": "म्यूट" },
-      "teams": { "tpl-teams-mute": "म्यूट / अनम्यूट", "tpl-teams-video": "कैमरा चालू / बंद", "tpl-teams-share": "स्क्रीन साझा करें", "tpl-teams-hand": "हाथ उठाएँ / नीचे करें", "tpl-teams-leave": "मीटिंग छोड़ें", "tpl-teams-accept": "वीडियो कॉल स्वीकार करें", "tpl-teams-decline": "कॉल अस्वीकार करें", "tpl-teams-search": "खोजें" },
-      "telegram": { "tpl-telegram-search": "खोजें", "tpl-telegram-next": "अगली चैट", "tpl-telegram-prev": "पिछली चैट", "tpl-telegram-close": "चैट बंद करें", "tpl-telegram-edit": "आख़िरी संदेश संपादित करें", "tpl-telegram-lock": "ऐप लॉक करें" },
-      "vscode": { "tpl-vscode-palette": "कमांड पैलेट", "tpl-vscode-quickopen": "त्वरित खोलें", "tpl-vscode-findall": "फ़ाइलों में खोजें", "tpl-vscode-git": "सोर्स कंट्रोल", "tpl-vscode-sidebar": "साइडबार चालू / बंद", "tpl-vscode-save": "सहेजें", "tpl-vscode-format": "दस्तावेज़ फ़ॉर्मैट करें", "tpl-vscode-run": "डीबगिंग शुरू करें", "tpl-vscode-stop": "डीबगिंग रोकें" },
-      "whatsapp": { "tpl-whatsapp-new": "नई चैट", "tpl-whatsapp-search": "खोजें", "tpl-whatsapp-next": "अगली चैट", "tpl-whatsapp-prev": "पिछली चैट", "tpl-whatsapp-mute": "चैट म्यूट करें", "tpl-whatsapp-archive": "चैट संग्रहीत करें", "tpl-whatsapp-group": "नया समूह", "tpl-whatsapp-close": "चैट बंद करें" },
-      "word": { "tpl-word-bold": "बोल्ड", "tpl-word-italic": "इटैलिक", "tpl-word-underline": "रेखांकित", "tpl-word-left": "बाएँ संरेखित", "tpl-word-center": "केंद्र में", "tpl-word-save": "सहेजें", "tpl-word-undo": "पूर्ववत करें", "tpl-word-redo": "फिर से करें", "tpl-word-find": "खोजें", "tpl-word-print": "प्रिंट करें" },
-      "zoom": { "tpl-zoom-mute": "म्यूट / अनम्यूट", "tpl-zoom-video": "वीडियो शुरू / बंद करें", "tpl-zoom-share": "स्क्रीन साझा करें", "tpl-zoom-leave": "मीटिंग छोड़ें" }
+      "browser": {
+        "tpl-browser-newtab": "नया टैब",
+        "tpl-browser-closetab": "टैब बंद करें",
+        "tpl-browser-reopen": "बंद टैब फिर खोलें",
+        "tpl-browser-back": "पीछे",
+        "tpl-browser-forward": "आगे",
+        "tpl-browser-reload": "फिर से लोड करें",
+        "tpl-browser-devtools": "डेवलपर टूल",
+        "tpl-browser-private": "निजी विंडो",
+        "tpl-browser-bookmark": "इस पेज को बुकमार्क करें",
+        "tpl-browser-address": "पता बार",
+        "tpl-browser-find": "पेज में खोजें",
+        "tpl-browser-downloads": "डाउनलोड",
+        "tpl-browser-history": "इतिहास",
+        "tpl-browser-nexttab": "अगला टैब"
+      },
+      "canva": {
+        "tpl-canva-text": "टेक्स्ट बॉक्स",
+        "tpl-canva-rect": "आयत",
+        "tpl-canva-circle": "वृत्त",
+        "tpl-canva-line": "रेखा",
+        "tpl-canva-dup": "डुप्लिकेट",
+        "tpl-canva-group": "समूह बनाएँ",
+        "tpl-canva-ungroup": "समूह हटाएँ",
+        "tpl-canva-undo": "पूर्ववत करें",
+        "tpl-canva-redo": "फिर से करें",
+        "tpl-canva-delete": "हटाएँ",
+        "tpl-canva-lock": "लॉक / अनलॉक",
+        "tpl-canva-present": "प्रस्तुत करें"
+      },
+      "discord": {
+        "tpl-discord-mute": "माइक्रोफ़ोन म्यूट करें",
+        "tpl-discord-deafen": "आवाज़ बंद करें",
+        "tpl-discord-switcher": "त्वरित स्विचर",
+        "tpl-discord-inbox": "इनबॉक्स",
+        "tpl-discord-nextsrv": "अगला सर्वर",
+        "tpl-discord-prevsrv": "पिछला सर्वर"
+      },
+      "excel": {
+        "tpl-excel-save": "सहेजें",
+        "tpl-excel-undo": "पूर्ववत करें",
+        "tpl-excel-redo": "फिर से करें",
+        "tpl-excel-find": "खोजें",
+        "tpl-excel-bold": "बोल्ड",
+        "tpl-excel-filter": "फ़िल्टर चालू / बंद",
+        "tpl-excel-edit": "सेल संपादित करें",
+        "tpl-excel-fill": "नीचे भरें",
+        "tpl-excel-format": "सेल फ़ॉर्मैट",
+        "tpl-excel-sheet": "नई शीट"
+      },
+      "outlook": {
+        "tpl-outlook-new": "नया मेल",
+        "tpl-outlook-reply": "जवाब दें",
+        "tpl-outlook-replyall": "सबको जवाब दें",
+        "tpl-outlook-forward": "फ़ॉरवर्ड करें",
+        "tpl-outlook-send": "भेजें",
+        "tpl-outlook-mail": "मेल दृश्य",
+        "tpl-outlook-calendar": "कैलेंडर दृश्य",
+        "tpl-outlook-search": "खोजें",
+        "tpl-outlook-read": "पढ़ा हुआ चिह्नित करें",
+        "tpl-outlook-delete": "हटाएँ"
+      },
+      "powerpoint": {
+        "tpl-powerpoint-start": "स्लाइड शो शुरू करें",
+        "tpl-powerpoint-current": "इस स्लाइड से शुरू करें",
+        "tpl-powerpoint-prev": "पिछली स्लाइड",
+        "tpl-powerpoint-next": "अगली स्लाइड",
+        "tpl-powerpoint-end": "स्लाइड शो समाप्त करें",
+        "tpl-powerpoint-newslide": "नई स्लाइड",
+        "tpl-powerpoint-dup": "स्लाइड डुप्लिकेट करें",
+        "tpl-powerpoint-save": "सहेजें",
+        "tpl-powerpoint-undo": "पूर्ववत करें",
+        "tpl-powerpoint-bold": "बोल्ड"
+      },
+      "spotify": {
+        "tpl-spotify-prev": "पिछला",
+        "tpl-spotify-play": "चलाएँ / रोकें",
+        "tpl-spotify-next": "अगला",
+        "tpl-spotify-voldown": "आवाज़ घटाएँ",
+        "tpl-spotify-volup": "आवाज़ बढ़ाएँ",
+        "tpl-spotify-mute": "म्यूट"
+      },
+      "teams": {
+        "tpl-teams-mute": "म्यूट / अनम्यूट",
+        "tpl-teams-video": "कैमरा चालू / बंद",
+        "tpl-teams-share": "स्क्रीन साझा करें",
+        "tpl-teams-hand": "हाथ उठाएँ / नीचे करें",
+        "tpl-teams-leave": "मीटिंग छोड़ें",
+        "tpl-teams-accept": "वीडियो कॉल स्वीकार करें",
+        "tpl-teams-decline": "कॉल अस्वीकार करें",
+        "tpl-teams-search": "खोजें"
+      },
+      "telegram": {
+        "tpl-telegram-search": "खोजें",
+        "tpl-telegram-next": "अगली चैट",
+        "tpl-telegram-prev": "पिछली चैट",
+        "tpl-telegram-close": "चैट बंद करें",
+        "tpl-telegram-edit": "आख़िरी संदेश संपादित करें",
+        "tpl-telegram-lock": "ऐप लॉक करें"
+      },
+      "vscode": {
+        "tpl-vscode-palette": "कमांड पैलेट",
+        "tpl-vscode-quickopen": "त्वरित खोलें",
+        "tpl-vscode-findall": "फ़ाइलों में खोजें",
+        "tpl-vscode-git": "सोर्स कंट्रोल",
+        "tpl-vscode-sidebar": "साइडबार चालू / बंद",
+        "tpl-vscode-save": "सहेजें",
+        "tpl-vscode-format": "दस्तावेज़ फ़ॉर्मैट करें",
+        "tpl-vscode-run": "डीबगिंग शुरू करें",
+        "tpl-vscode-stop": "डीबगिंग रोकें"
+      },
+      "whatsapp": {
+        "tpl-whatsapp-new": "नई चैट",
+        "tpl-whatsapp-search": "खोजें",
+        "tpl-whatsapp-next": "अगली चैट",
+        "tpl-whatsapp-prev": "पिछली चैट",
+        "tpl-whatsapp-mute": "चैट म्यूट करें",
+        "tpl-whatsapp-archive": "चैट संग्रहीत करें",
+        "tpl-whatsapp-group": "नया समूह",
+        "tpl-whatsapp-close": "चैट बंद करें"
+      },
+      "word": {
+        "tpl-word-bold": "बोल्ड",
+        "tpl-word-italic": "इटैलिक",
+        "tpl-word-underline": "रेखांकित",
+        "tpl-word-left": "बाएँ संरेखित",
+        "tpl-word-center": "केंद्र में",
+        "tpl-word-save": "सहेजें",
+        "tpl-word-undo": "पूर्ववत करें",
+        "tpl-word-redo": "फिर से करें",
+        "tpl-word-find": "खोजें",
+        "tpl-word-print": "प्रिंट करें"
+      },
+      "zoom": {
+        "tpl-zoom-mute": "म्यूट / अनम्यूट",
+        "tpl-zoom-video": "वीडियो शुरू / बंद करें",
+        "tpl-zoom-share": "स्क्रीन साझा करें",
+        "tpl-zoom-leave": "मीटिंग छोड़ें"
+      }
     }
   }
 }

@@ -60,6 +60,10 @@ export interface VoiceSectionProps {
   initialModelTier?: VoiceModelTier;
   initialNotices?: boolean;
   initialContext?: boolean;
+  initialDuckMusic?: boolean;
+  initialIslandRest?: "bar" | "lyrics";
+  initialIslandBarHeight?: number;
+  initialIslandBarPosition?: "left" | "center" | "right";
   initialCheckSteps?: VoiceCheckStep[];
   previewGuides?: SavedGuide[];
   previewModes?: WorkMode[];
@@ -72,6 +76,10 @@ export default function VoiceSection({
   initialModelTier,
   initialNotices = true,
   initialContext = false,
+  initialDuckMusic = true,
+  initialIslandRest = "bar",
+  initialIslandBarHeight = 10,
+  initialIslandBarPosition = "center",
   initialCheckSteps,
   previewGuides,
   previewModes,
@@ -80,6 +88,10 @@ export default function VoiceSection({
   const [status, setStatus] = useState<VoiceStatus>(initialStatus ?? DEFAULT_STATUS);
   const [modelTier, setModelTier] = useState<VoiceModelTier>(initialModelTier ?? (initialStatus?.model ?? "standard"));
   const [noticesEnabled, setNoticesEnabled] = useState<boolean>(initialNotices);
+  const [duckMusic, setDuckMusic] = useState<boolean>(initialDuckMusic);
+  const [islandRest, setIslandRest] = useState<"bar" | "lyrics">(initialIslandRest);
+  const [islandBarHeight, setIslandBarHeight] = useState<number>(initialIslandBarHeight);
+  const [islandBarPosition, setIslandBarPosition] = useState<"left" | "center" | "right">(initialIslandBarPosition);
   const [confirm9bOpen, setConfirm9bOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -326,6 +338,77 @@ export default function VoiceSection({
                 onChange={(val) => {
                   setNoticesEnabled(val);
                   invoke("voice_notices_set", { enabled: val }).catch(() => {});
+                }}
+              />
+            </Row>
+
+            <Row id="section-voice-duck" title={t("m29.voice_duck")} description={t("m29.voice_duck_hint")}>
+              <Switch
+                checked={duckMusic}
+                onChange={(val) => {
+                  setDuckMusic(val);
+                  invoke("voice_duck_set", { enabled: val }).catch(() => {});
+                }}
+              />
+            </Row>
+
+            <Row id="section-voice-speak" title={t("m29.voice_speak")} description={t("m29.voice_speak_hint")}>
+              <Switch checked={status.speak} onChange={(val) => void setConfig({ speak: val })} />
+            </Row>
+          </Group>
+
+          <SectionHeader title={t("m29.island_title")} />
+          <Group>
+            <Row id="section-island-rest" title={t("m29.island_rest")}>
+              <Select
+                aria-label={t("m29.island_rest")}
+                value={islandRest}
+                options={[
+                  { value: "bar", label: t("m29.island_rest_bar") },
+                  { value: "lyrics", label: t("m29.island_rest_lyrics") },
+                ]}
+                onChange={(val) => {
+                  const next = val as "bar" | "lyrics";
+                  setIslandRest(next);
+                  invoke("island_config_set", { restingMode: next }).catch(() => {});
+                }}
+              />
+            </Row>
+
+            <Row id="section-island-bar-height" title={t("m29.island_bar_height")}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <input
+                  type="range"
+                  aria-label={t("m29.island_bar_height")}
+                  min={6}
+                  max={16}
+                  step={1}
+                  value={islandBarHeight}
+                  onChange={(e) => {
+                    const next = Number(e.target.value);
+                    setIslandBarHeight(next);
+                    invoke("island_config_set", { barHeight: next }).catch(() => {});
+                  }}
+                />
+                <span style={{ fontSize: "var(--font-sm)", minWidth: 42, textAlign: "right", color: "var(--text-muted)" }}>
+                  {islandBarHeight} px
+                </span>
+              </div>
+            </Row>
+
+            <Row id="section-island-bar-pos" title={t("m29.island_bar_pos")}>
+              <Select
+                aria-label={t("m29.island_bar_pos")}
+                value={islandBarPosition}
+                options={[
+                  { value: "left", label: t("m29.island_pos_left") },
+                  { value: "center", label: t("m29.island_pos_center") },
+                  { value: "right", label: t("m29.island_pos_right") },
+                ]}
+                onChange={(val) => {
+                  const next = val as "left" | "center" | "right";
+                  setIslandBarPosition(next);
+                  invoke("island_config_set", { barPosition: next }).catch(() => {});
                 }}
               />
             </Row>

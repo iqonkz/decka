@@ -79,7 +79,10 @@
         "play",
         "pause",
         "play pause",
-        "stop playback"
+        "stop playback",
+        "play music",
+        "put on music",
+        "start music"
       ]
     },
     {
@@ -675,7 +678,9 @@
     },
     {
       "tool": "text_transform",
-      "args": { "op": "summarize" },
+      "args": {
+        "op": "summarize"
+      },
       "patterns": [
         "provide the key takeaways",
         "key takeaways of this",
@@ -685,7 +690,9 @@
     },
     {
       "tool": "text_transform",
-      "args": { "op": "formal" },
+      "args": {
+        "op": "formal"
+      },
       "patterns": [
         "turn this into professional business language",
         "make this sound professional",
@@ -694,7 +701,9 @@
     },
     {
       "tool": "text_transform",
-      "args": { "op": "casual" },
+      "args": {
+        "op": "casual"
+      },
       "patterns": [
         "make this sound like a friendly chat message",
         "make it sound friendly",
@@ -817,6 +826,44 @@
       "patterns": [
         "save layout as {name}",
         "remember layout as {name}"
+      ]
+    },
+    {
+      "tool": "screenshot",
+      "args": {
+        "area": "screen"
+      },
+      "patterns": [
+        "take a screenshot",
+        "screenshot",
+        "capture screen"
+      ]
+    },
+    {
+      "tool": "add_button",
+      "patterns": [
+        "add button {name}",
+        "add key {name}"
+      ]
+    },
+    {
+      "tool": "system_theme",
+      "args": {
+        "mode": "light"
+      },
+      "patterns": [
+        "enable windows light theme",
+        "switch windows to light theme"
+      ]
+    },
+    {
+      "tool": "system_theme",
+      "args": {
+        "mode": "dark"
+      },
+      "patterns": [
+        "enable windows dark theme",
+        "switch windows to dark theme"
       ]
     }
   ],

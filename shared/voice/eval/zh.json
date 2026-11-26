@@ -585,5 +585,33 @@
       "query": "巴黎天气",
       "site": "web"
     }
+  },
+  {
+    "say": "放首歌",
+    "tool": "media",
+    "args": {
+      "op": "play_pause"
+    }
+  },
+  {
+    "say": "截图",
+    "tool": "screenshot",
+    "args": {
+      "area": "screen"
+    }
+  },
+  {
+    "say": "添加按钮 Spotify",
+    "tool": "add_button",
+    "args": {
+      "catalogId": "apps.spotify"
+    }
+  },
+  {
+    "say": "开启windows深色主题",
+    "tool": "system_theme",
+    "args": {
+      "mode": "dark"
+    }
   }
 ]

@@ -585,5 +585,33 @@
       "query": "wetter in Paris",
       "site": "web"
     }
+  },
+  {
+    "say": "mach musik an",
+    "tool": "media",
+    "args": {
+      "op": "play_pause"
+    }
+  },
+  {
+    "say": "mach einen screenshot",
+    "tool": "screenshot",
+    "args": {
+      "area": "screen"
+    }
+  },
+  {
+    "say": "füge taste Spotify hinzu",
+    "tool": "add_button",
+    "args": {
+      "catalogId": "apps.spotify"
+    }
+  },
+  {
+    "say": "dunkles windows design aktivieren",
+    "tool": "system_theme",
+    "args": {
+      "mode": "dark"
+    }
   }
 ]

@@ -335,7 +335,7 @@ if (scene === "deck" || scene === "settings") {
     </div>,
   );
 } else if (scene === "island") {
-  const { Island, ParticlesOrb } = await import("../../ui/src");
+  const { Island, ParticlesOrb, DictationOrb } = await import("../../ui/src");
   const { useState } = await import("react");
   const themeMode = (q.get("theme") ?? "dark") as "light" | "dark";
   document.body.style.cssText =
@@ -446,7 +446,18 @@ if (scene === "deck" || scene === "settings") {
     const phase = (q.get("state") ?? "listening") as "idle" | "loading" | "listening" | "thinking" | "speaking" | "error";
     const isRu = q.get("lang") === "ru";
     const showOrbRow = q.get("orbRow") === "1";
-    if (showOrbRow) {
+    if (q.get("dictation") === "1") {
+      root.render(
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", position: "relative" }}>
+          <DictationOrb
+            state={(q.get("state") ?? "listening") as "idle" | "listening" | "thinking" | "speaking" | "error"}
+            level={0.65}
+            error={q.get("error") === "1" ? (isRu ? "Нет активного поля ввода" : "No active text field") : null}
+            theme={themeMode}
+          />
+        </div>,
+      );
+    } else if (showOrbRow) {
       const states = ["idle", "connecting", "listening", "thinking", "speaking"] as const;
       root.render(
         <div style={{ display: "flex", gap: 20, padding: 24, alignItems: "center", justifyContent: "center", minHeight: "100vh", boxSizing: "border-box" }}>
@@ -490,7 +501,11 @@ if (scene === "deck" || scene === "settings") {
           active: true,
           phase,
           level: Number(q.get("level") ?? 0.6),
-          ...(isSolo ? {} : {
+          ...(phase === "confirm" ? {
+            heard: isRu ? "Перезагрузить компьютер" : "Restart the computer",
+            confirmId: "demo-confirm",
+            confirm: { text: isRu ? "Перезагрузить компьютер?" : "Restart the computer?" },
+          } : isSolo ? {} : {
             heard: q.get("heard") ?? (isRu ? "Что на экране?" : "What is on my screen?"),
             reply: hasReply ? (q.get("replyText") ?? (isRu ? "На экране открыт список задач и терминал." : "A task list and terminal window are open on your screen.")) : undefined,
             actions: hasReply && phase !== "error" ? ["copy", "insert", "speak", "again", "lang:en", "lang:ru"] : undefined,
@@ -500,16 +515,19 @@ if (scene === "deck" || scene === "settings") {
         },
       };
       root.render(
-        <div style={{ display: "flex", justifyContent: "center", paddingTop: 28 }}>
+        <div style={{ display: "flex", justifyContent: "center", paddingTop: mode === "tab" ? 0 : 28 }}>
           <Island
             event={evt}
             theme={themeMode}
+            barHeight={q.get("barHeight") ? Number(q.get("barHeight")) : 10}
+            barPosition={(q.get("barPos") as "left" | "center" | "right" | null) ?? "center"}
             hovered={q.get("hover") === "1"}
             transitionPreview={transitionPreview}
             hoveredAction={q.get("hoverBtn") ?? undefined}
             copiedPreview={q.get("copied") === "1"}
             langMenuOpenPreview={q.get("langMenu") === "1"}
             onAction={() => {}}
+            onConfirm={() => {}}
             onChipClick={() => {}}
             onStopSlow={() => {}}
           />

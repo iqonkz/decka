@@ -78,7 +78,9 @@
         "lecture",
         "pause",
         "reprendre",
-        "arrêter"
+        "arrêter",
+        "mets de la musique",
+        "lance la musique"
       ]
     },
     {
@@ -684,6 +686,40 @@
       "patterns": [
         "enregistre la disposition comme {name}",
         "mémorise disposition {name}"
+      ]
+    },
+    {
+      "tool": "screenshot",
+      "args": {
+        "area": "screen"
+      },
+      "patterns": [
+        "fais une capture d'écran",
+        "capture écran"
+      ]
+    },
+    {
+      "tool": "add_button",
+      "patterns": [
+        "ajoute le bouton {name}"
+      ]
+    },
+    {
+      "tool": "system_theme",
+      "args": {
+        "mode": "light"
+      },
+      "patterns": [
+        "active le thème clair windows"
+      ]
+    },
+    {
+      "tool": "system_theme",
+      "args": {
+        "mode": "dark"
+      },
+      "patterns": [
+        "active le thème sombre windows"
       ]
     }
   ],
