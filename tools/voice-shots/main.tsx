@@ -273,7 +273,7 @@ if (scene === "deck" || scene === "settings") {
       lyrics_set: true,
       get_actions: demoActions(actionsFx.default as { version: number; actions: Record<string, unknown> }),
       get_update_status: { state: "idle" },
-      get_status: { version: "0.22.0", focusApp: null, listening: { bind: "0.0.0.0", port: 9247 }, lanIps: ["192.168.1.20"], clients: [{ deviceId: "demo", name: "Phone", remote: "192.168.1.31", connectedAt: Date.now() }], usb: { enabled: false, adbFound: false, devices: [] }, configDir: "C:\\Users\\demo\\AppData\\Roaming\\Decka" },
+      get_status: { version: (await import("../../package.json")).default.version, focusApp: null, listening: { bind: "0.0.0.0", port: 9247 }, lanIps: ["192.168.1.20"], clients: [{ deviceId: "demo", name: "Phone", remote: "192.168.1.31", connectedAt: Date.now() }], usb: { enabled: false, adbFound: false, devices: [] }, configDir: "C:\\Users\\demo\\AppData\\Roaming\\Decka" },
       list_window_apps: ["code.exe", "chrome.exe", "obs64.exe"],
       get_templates: [],
       get_config: (await import("../../shared/fixtures/config.example.json")).default,
@@ -680,7 +680,7 @@ if (scene === "deck" || scene === "settings") {
       conn: "online",
       via: "lan",
       agentName: "DESKTOP-MAIN",
-      agentVersion: "0.22.0",
+      agentVersion: (await import("../../package.json")).default.version,
       state: fx as never,
       toasts: [{ id: 1, level: "success", title: "Saved", body: "Layout updated on PC", until: Date.now() + 60_000 }],
     });

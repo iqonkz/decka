@@ -44,35 +44,15 @@ export default function VoiceCommands({ initialQuery = "" }: VoiceCommandsProps 
   return (
     <div id="voice-commands">
       <SectionHeader title={t("m29.cmd_title")} />
-      <div style={{ position: "relative", marginBottom: 12 }}>
-        <Search
-          size={15}
-          aria-hidden="true"
-          style={{
-            position: "absolute",
-            left: 11,
-            top: "50%",
-            transform: "translateY(-50%)",
-            color: "var(--text-muted)",
-            pointerEvents: "none",
-          }}
-        />
+      <div className="integrations-search">
+        <Search size={16} aria-hidden="true" style={{ color: "var(--muted)", flex: "none" }} />
         <input
           type="search"
+          className="integrations-search-input"
           aria-label={t("m29.cmd_search")}
           placeholder={t("m29.cmd_search")}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          style={{
-            width: "100%",
-            boxSizing: "border-box",
-            padding: "8px 12px 8px 34px",
-            borderRadius: "var(--r-control)",
-            border: "1px solid var(--border)",
-            background: "var(--bg-surface)",
-            color: "var(--text)",
-            fontSize: "var(--font-sm)",
-          }}
         />
       </div>
 

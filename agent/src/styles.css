@@ -425,9 +425,7 @@ th { color: var(--muted); font-weight: 600; font-size: 12px; }
   position: sticky;
   top: 0;
   z-index: 20;
-  background: color-mix(in srgb, var(--bg) 85%, transparent);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: var(--bg);
   border-bottom: 1px solid var(--border);
   padding: 20px 0 16px;
   margin-bottom: 24px;
@@ -748,9 +746,11 @@ select.settings-select,
 }
 
 /* The :not() chain lifts the specificity above the global input rule (line ~918), which would otherwise win. */
-.integrations-search input:not([type="checkbox"]):not([type="radio"]):not([type="color"]) {
+.page-container .integrations-search input:not([type="checkbox"]):not([type="radio"]):not([type="color"]) {
   flex: 1;
   border: none;
+  border-radius: 0;
+  box-shadow: none;
   background: transparent;
   color: var(--text);
   font: inherit;
@@ -790,7 +790,7 @@ select.settings-select,
 }
 
 .integrations-chip.active {
-  background: var(--accent);
+  background: color-mix(in srgb, var(--accent) 85%, #000);
   color: #ffffff;
 }
 
@@ -1057,7 +1057,7 @@ select.settings-select,
 .template-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
 .template-card { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
 
-input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not(.sidebar-search-input):not(.page-tab-input),
+input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not(.sidebar-search-input):not(.page-tab-input):not(.integrations-search-input),
 textarea {
   height: 36px;
   padding: 0 12px;
@@ -1073,7 +1073,7 @@ textarea {
   height: auto;
   padding: 8px 12px;
 }
-input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not(.sidebar-search-input):not(.page-tab-input):focus,
+input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not(.sidebar-search-input):not(.page-tab-input):not(.integrations-search-input):focus,
 textarea:focus {
   outline: none;
   border-color: var(--accent);
@@ -1083,6 +1083,7 @@ textarea:focus {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   height: 32px;
   padding: 0 16px;
   border-radius: 999px;
@@ -1105,13 +1106,13 @@ textarea:focus {
   cursor: not-allowed;
 }
 .btn-primary {
-  background: var(--accent);
+  background: color-mix(in srgb, var(--accent) 85%, #000);
   color: #fff;
   border-color: transparent;
 }
 .btn-primary:hover:not(:disabled) {
   /* `.btn:hover` is more specific than `.btn-primary`: without this the accent turns grey under white text. */
-  background: var(--accent);
+  background: color-mix(in srgb, var(--accent) 85%, #000);
   opacity: 0.9;
 }
 .btn-secondary {

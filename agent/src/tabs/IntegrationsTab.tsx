@@ -400,6 +400,7 @@ export default function IntegrationsTab() {
         <PhIcon name="magnifying-glass" size={16} />
         <input
           type="search"
+          className="integrations-search-input"
           placeholder={t("sidebar.search")}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}

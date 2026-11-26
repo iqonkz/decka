@@ -136,7 +136,7 @@ input { user-select: text; touch-action: manipulation; }
   box-sizing: border-box;
 }
 .pill-btn.primary {
-  background: var(--accent, #7c5cff);
+  background: color-mix(in srgb, var(--accent, #7c5cff) 85%, #000);
   color: #fff;
 }
 .pill-btn.secondary {
@@ -163,6 +163,7 @@ input { user-select: text; touch-action: manipulation; }
   font-size: 15px;
 }
 .field.code { text-align: center; letter-spacing: 0.18em; font-variant-numeric: tabular-nums; }
+.field::placeholder { color: #9ca3af; opacity: 1; }
 .error { margin: 0; color: #f87171; font-size: 13px; }
 
 /* QR viewfinder overlay (DESIGN.md 4.16) */
