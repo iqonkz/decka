@@ -4,7 +4,7 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
-## 0.50.0 — 2026-11-25
+## 0.50.0 — 2026-11-26
 
 ### Added
 - **Show me where**: ask `where is Save` and a frame with a short bubble lights up that button in the active window; `not that one` goes to the next candidate. Nothing is guessed: only elements that really exist in the window can be shown.
@@ -19,6 +19,10 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ### Changed
 - **Voice accuracy**: reminders named with a clock time are understood without a day; more phrases (which monitor, move the window, summarize, formal, casual) are answered instantly without the assistant; short examples help it choose between look-alike commands.
+
+### Fixed
+- **Island readability**: the compact island with song lyrics no longer lets the wallpaper show through; only its text and orb dim at rest.
+- **Idle island**: a hidden island stops listening to the music level and reporting its size, so it costs nothing while you don't see it.
 
 ## 0.40.1 — 2026-11-25
 
