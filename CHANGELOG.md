@@ -4,6 +4,22 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+### Added
+- **Dictation orb**: while you dictate there is only a 24 px orb next to the text cursor; if there is nowhere to type, the text waits on the clipboard and a bubble says so.
+- **The island rests as a thin bar** at the top edge while music plays; pointing at it opens three lines of lyrics. Settings -> Voice: bar or lyrics, height, left / centre / right.
+- **Music is turned down while Decka listens** (to 20 %) and comes back; a setting turns this off.
+- **Answers aloud** (off by default): a short answer is read by the Windows voice of your language; a new request or "stop" cuts it.
+- **Screenshots**: "take a screenshot", "window screenshot", "screenshot a region" and three new keys; to the clipboard and `%TEMP%\Decka\shots` (kept 7 days).
+- **Windows light / dark theme by voice**.
+- **Add a button by voice**: ready-made keys of the library, shown as a draft and saved only after "yes".
+- **Webhook key**: an HTTP GET or POST set up on the PC; plain `http://` only to this PC and the local network.
+- **What you can say**: the full command list with search in Settings -> Voice; a **Screen help** page in the menu; every integration has a card.
+
+### Fixed
+- **The island no longer takes the focus**: dictation types into your field and "translate the selected text" works on the selection, not on the words "this text".
+- **Dictation and text commands with a Russian or Kazakh keyboard layout**: `Ctrl+C` / `Ctrl+V` were typed as letters. The Windows 11 Notepad no longer garbles dictated text.
+- **"Yes" answers a question on the PC**: say it, or press the button inside the island; the Screen help download shows its percent.
+- A phrase that the recognition repeated several times is used once; "play music" starts the music instead of toggling it.
 ## 0.50.1 — 2026-11-26
 
 ### Added

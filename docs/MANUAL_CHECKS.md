@@ -317,3 +317,21 @@ Everything below needs a PC with a microphone and the voice models installed (`M
 - PENDING (owner): 0.50 extended model (T27.7): on a PC with 16 GB RAM the settings offer "Extended"; the download size is shown first; after it the server restarts and the 4B file is removed.
 - PENDING (owner): 0.50.1 voice on a weak PC (T28.R, work PC with 8 GB RAM and 2 GB video memory) — **publish the release only after this**. (1) Install the draft, Settings -> Voice: with the 4B model the line "For this PC the light 2B model is better" and its button are shown; nothing switches by itself. (2) `Check voice` with 4B, then with 2B: all four steps are OK with their times; speak when the second step says "Speak now". (3) Say a command by the hotkey: the island shows Heard -> Understood -> the answer. (4) Attach `%LOCALAPPDATA%\Decka\logs\voice.log` if a step fails, and say which reason the panel shows. Watch in particular: on a 2 GB **NVIDIA** card the speech recognition still runs on the card (the rule is unchanged) — a step 2 failure there is the first thing to report.
 - PENDING (owner): 0.50.1 CPU of the island and the M27 live run (T27.F items 2 and 3, not done on the development PC).
+
+## 0.51.0 (M29)
+
+- PENDING (owner): 0.51 (1) Диктовка в Блокноте: поставь курсор в текст, начни диктовку, скажи «раз, два, три» → у курсора маленький орб (большого острова нет), текст напечатан в этом же поле, Блокнот остаётся активным.
+- PENDING (owner): 0.51 (2) Диктовка в поле на сайте; пока идёт распознавание, щёлкни по пустому месту страницы → пузырь «Скопировано: вставь Ctrl+V», `Ctrl+V` вставляет сказанное.
+- PENDING (owner): 0.51 (3) Раскладка русская: выдели фразу, скажи «переведи выделенный текст на английский» → выделение заменяется переводом (не словами «this text»), прежний буфер обмена на месте.
+- PENDING (owner): 0.51 (4) Пакет «Помощь по экрану» удалён: «что на экране» → вопрос с кнопками «Да» / «Нет» внутри панели; скажи «да» → полоса загрузки с процентами, потом ответ про окно.
+- PENDING (owner): 0.51 (5) Включи музыку, нажми клавишу голоса → музыка тише (около 20 %), после записи прежняя; выключатель «Приглушать музыку» отключает это.
+- PENDING (owner): 0.51 (6) Играет музыка → у верхнего края полоса 10 px; наведи и подожди → три строки песни; убери мышь → снова полоса; в полноэкранном видео полосы нет; высота и позиция из настроек действуют.
+- PENDING (owner): 0.51 (7) «включи светлую тему», потом «включи тёмную тему» → меняется тема Windows, остров говорит, какую включил; «тема декки» → открываются настройки вида Decka.
+- PENDING (owner): 0.51 (8) «сделай скриншот», «скриншот окна», «снимок области» (выдели мышью, потом ещё раз с `Esc`) → картинка вставляется `Ctrl+V` и лежит в `%TEMP%\Decka\shots`; после `Esc` ничего не создано.
+- PENDING (owner): 0.51 (9) «добавь кнопку блокировки» → в острове черновик (значок, подпись, страница) → «да» → кнопка на телефоне; на полной странице → «На странице нет места»; «добавь кнопку открыть сайт» → окно настроек с этим пунктом.
+- PENDING (owner): 0.51 (10) Настройки → Голос → «Отвечать голосом» вкл; «сколько свободной памяти» → ответ читается вслух, музыка на это время тише; нажатие клавиши голоса прерывает чтение.
+- PENDING (owner): 0.51 (11) Настройки → Голос → «Что можно сказать» → 11 свёрнутых групп; поиск «скриншот» раскрывает нужную; пометки «без ИИ / нужен ИИ» видны.
+- PENDING (owner): 0.51 (12) Меню → «Помощь по экрану»: переключатель, «Скачать» показывает проценты, «Удалить» удаляет; Интеграции: карточки всех интеграций с верным состоянием «подключено / не настроено».
+- PENDING (owner): 0.51 (13) Библиотека → «Вебхук»: адрес `https://…` или `http://192.168.…` → нажатие на телефоне срабатывает (ошибочный код показывается тостом); `http://example.com` не сохраняется.
+- PENDING (owner): 0.51 (14) Настройки → Голос → выгрузка модели через 1 минуту: через минуту без голоса `llama-server` и `whisper-server` пропали из диспетчера задач; следующая команда загружает их («Загружаю модель…») и выполняется.
+- PENDING (owner): 0.51 (15) «заблокируй компьютер» → нажми мышью «Нет» в острове → «Отменено», активное окно не изменилось, компьютер не заблокирован.
