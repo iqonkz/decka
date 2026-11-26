@@ -302,6 +302,14 @@ impl State {
     }
 }
 
+/// What `voice.log` says about an execution: never the text of the result or of the error.
+fn executed_line(r: &Result<String, String>) -> &'static str {
+    match r {
+        Ok(_) => "executed: ok",
+        Err(_) => "executed: error",
+    }
+}
+
 /// The variant of an event without its payload (for `voice.log`).
 fn event_name(e: &Event) -> &'static str {
     match e {
@@ -572,9 +580,10 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
                     let raw = RawCall { tool: intent.tool, args: serde_json::Value::Object(intent.args) };
                     // A template can swallow a phrase meant for another tool ("open main page" is no program): the
                     // model gets the phrase before it is given up on.
-                    if let Resolved::Reject(why) = validate(&raw, env.ctx) {
+                    if let Resolved::Reject(_) = validate(&raw, env.ctx) {
                         if !cfg!(test) {
-                            super::mic::log_line(&format!("table hit {} but refused: {why} (apps known: {})", raw.tool, env.ctx.apps.len()));
+                            // The reason can quote the user's words: only the tool is written down.
+                            super::mic::log_line(&format!("table hit {} but refused (apps known: {})", raw.tool, env.ctx.apps.len()));
                         }
                         s.phase = Phase::Thinking;
                         return (s, vec![Effect::AskLlm(text)]);
@@ -755,7 +764,8 @@ impl Driver {
             match &event {
                 Event::LlmAnswer(Some((call, _))) => super::mic::log_line(&format!("model chose tool {}", call.tool)),
                 Event::LlmAnswer(None) => super::mic::log_line("model gave no usable answer"),
-                Event::Executed(r) => super::mic::log_line(&format!("executed: {}", match r { Ok(m) => format!("ok {m}"), Err(e) => format!("error {e}") })),
+                // The outcome only: the text of a result can be a translation, a screen answer or a remembered fact.
+                Event::Executed(r) => super::mic::log_line(executed_line(r)),
                 _ => {}
             }
         }
@@ -834,6 +844,14 @@ impl Driver {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_log_of_an_execution_never_holds_its_text() {
+        for r in [Ok("My password is hunter2".to_string()), Err("no program called secret-plan".to_string())] {
+            let line = executed_line(&r);
+            assert!(line == "executed: ok" || line == "executed: error", "{line}");
+        }
+    }
     use crate::voice::tools::{ActionRef, AppRef};
     use serde_json::json;
 

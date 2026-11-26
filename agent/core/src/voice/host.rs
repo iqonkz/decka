@@ -549,6 +549,9 @@ pub struct Host {
 
 impl Host {
     pub fn new(handle: tokio::runtime::Handle, agent: Agent, service: VoiceService, pill: PillHook) -> Host {
+        if !cfg!(test) {
+            mic::scrub_old_log();
+        }
         let dictation = DictationSettings::load(agent.config_dir());
         let config_dir = agent.config_dir().to_path_buf();
         let inner = Arc::new(Inner {

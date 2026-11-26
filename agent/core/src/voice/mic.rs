@@ -42,6 +42,42 @@ pub fn log_line(line: &str) {
     }
 }
 
+/// Versions before 0.51.0 wrote the texts of results into `voice.log`: those lines are cut to their first words.
+/// `None`: nothing to cut.
+pub fn scrub_log(text: &str) -> Option<String> {
+    let mut changed = false;
+    let lines: Vec<String> = text
+        .lines()
+        .map(|line| {
+            for (mark, keep) in [(" executed: ok ", " executed: ok"), (" executed: error ", " executed: error"), (" but refused: ", " but refused")] {
+                if let Some(at) = line.find(mark) {
+                    changed = true;
+                    return format!("{}{keep}", &line[..at]);
+                }
+            }
+            // The following lines of a text with line breaks have no time stamp.
+            if line.split(' ').next().is_some_and(|t| t.len() >= 10 && t.bytes().all(|b| b.is_ascii_digit())) {
+                line.to_string()
+            } else {
+                changed = true;
+                String::new()
+            }
+        })
+        .filter(|l| !l.is_empty())
+        .collect();
+    changed.then(|| lines.into_iter().map(|l| l + "\n").collect())
+}
+
+/// Rewrites an old `voice.log` once, at the start of the voice host.
+pub fn scrub_old_log() {
+    let Some(base) = std::env::var_os("LOCALAPPDATA").map(std::path::PathBuf::from).or_else(dirs::data_local_dir) else { return };
+    let path = base.join("Decka").join("logs").join("voice.log");
+    let Ok(bytes) = std::fs::read(&path) else { return };
+    if let Some(clean) = scrub_log(&String::from_utf8_lossy(&bytes)) {
+        let _ = std::fs::write(&path, clean);
+    }
+}
+
 /// The error text that means "no microphone gave any sound" (the pipeline turns it into its own message).
 pub const NO_SOUND: &str = "Microphone gives no sound — choose it in More → Voice";
 
@@ -574,6 +610,16 @@ mod tests {
         let rec = recording(&[(0.5, 0.0, 0.004), (2.0, 0.08, 0.004), (5.0, 0.0, 0.017)]);
         let end = ends_at(&rec).expect("the recording never ended");
         assert!(end <= 4.5 + 0.1, "the verdict came at {end} s");
+    }
+
+    #[test]
+    fn an_old_log_loses_the_texts_of_results_and_keeps_the_rest() {
+        let old = "1790000000 event Executed t=1ms executing -> done\n1790000001 executed: ok Translation: my secret\nsecond line of the secret\n1790000002 table hit open_app but refused: no program called secret (apps known: 3)\n1790000003 executed: error no list called secret\n";
+        assert_eq!(
+            scrub_log(old).unwrap(),
+            "1790000000 event Executed t=1ms executing -> done\n1790000001 executed: ok\n1790000002 table hit open_app but refused\n1790000003 executed: error\n"
+        );
+        assert_eq!(scrub_log("1790000000 executed: ok\n1790000001   chunk rms=0.1\n"), None);
     }
 
     #[test]
