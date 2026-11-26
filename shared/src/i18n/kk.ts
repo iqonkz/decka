@@ -982,6 +982,7 @@ export const kk: Dictionary = {
   "voice.reply.text_too_long": "Мәтін тым ұзын",
   "voice.reply.no_context": "Жалғастыратын ештеңе жоқ",
   "voice.reply.copied_paste": "Көшірілді: Ctrl+V арқылы қой",
+  "m29.screen_pack_downloading": "«Экран көмегі» пакеті жүктелуде: {pct}%",
   "voice.context": "Белсенді бағдарламаға қарай кеңестер",
   "voice.context_hint": "Decka аралы ашылғанда белсенді бағдарламаның атын және таңдалған мәтінді қарайды. Ешнәрсе сақталмайды.",
   "voice.chip.translate": "Аудару",

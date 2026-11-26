@@ -984,6 +984,7 @@ export const en = {
   "voice.reply.text_too_long": "The text is too long",
   "voice.reply.no_context": "Nothing to continue",
   "voice.reply.copied_paste": "Copied: paste with Ctrl+V",
+  "m29.screen_pack_downloading": "Downloading the Screen help package: {pct}%",
   "voice.context": "Hints from the active program",
   "voice.context_hint": "When the Decka island opens, it looks at the name of the active program and the selected text. Nothing is saved.",
   "voice.chip.translate": "Translate",

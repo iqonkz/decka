@@ -975,6 +975,7 @@ export const zh: Dictionary = {
   "voice.reply.text_too_long": "文本太长",
   "voice.reply.no_context": "没有可继续的内容",
   "voice.reply.copied_paste": "已复制：按 Ctrl+V 粘贴",
+  "m29.screen_pack_downloading": "正在下载屏幕帮助包：{pct}%",
   "voice.context": "根据当前程序给出提示",
   "voice.context_hint": "打开 Decka 岛时，会查看当前程序的名称和选中的文字。不保存任何内容。",
   "voice.chip.translate": "翻译",

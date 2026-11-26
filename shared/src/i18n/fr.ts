@@ -975,6 +975,7 @@ export const fr: Dictionary = {
   "voice.reply.text_too_long": "Le texte est trop long",
   "voice.reply.no_context": "Rien à poursuivre",
   "voice.reply.copied_paste": "Copié : collez avec Ctrl+V",
+  "m29.screen_pack_downloading": "Téléchargement du pack d’aide à l’écran : {pct} %",
   "voice.context": "Suggestions selon le programme actif",
   "voice.context_hint": "À l'ouverture de l'île Decka, elle regarde le nom du programme actif et le texte sélectionné. Rien n'est enregistré.",
   "voice.chip.translate": "Traduire",

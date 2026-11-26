@@ -90,6 +90,8 @@ pub fn understood(v: &Validated) -> ConfirmInfo {
     let plain = |key: &'static str| (Some(key), BTreeMap::new());
     let with = |key: &'static str, name: &str, value: String| (Some(key), BTreeMap::from([(name.to_string(), value)]));
     let (key, args) = match &v.call {
+        // The question of a screen request is about the download; what was understood is still a look at the screen.
+        ToolCall::ScreenAsk { .. } => plain("voice.did.screen"),
         _ if v.confirm && v.key.is_some() => (v.key, v.args.clone()),
         ToolCall::OpenApp { name, .. } => with("voice.did.open", "name", name.clone()),
         ToolCall::SwitchApp { name, .. } => with("voice.did.switch", "name", name.clone()),
@@ -104,7 +106,7 @@ pub fn understood(v: &Validated) -> ConfirmInfo {
         ToolCall::OpenUrl { .. } => plain("voice.did.web"),
         ToolCall::TypeText { .. } | ToolCall::PasteText { .. } | ToolCall::Dictate => plain("voice.did.type"),
         ToolCall::Volume(_) => plain("voice.did.volume"),
-        ToolCall::Media(_) => plain("voice.did.media"),
+        ToolCall::Media(_) | ToolCall::MediaPlay => plain("voice.did.media"),
         ToolCall::ScreenAsk { .. } | ToolCall::FindOnScreen { .. } | ToolCall::UiAct { .. } | ToolCall::ReadAloud => plain("voice.did.screen"),
         ToolCall::Guide { .. } | ToolCall::GuideRecord { .. } | ToolCall::GuideControl { .. } => plain("voice.did.guide"),
         ToolCall::Ask { .. } | ToolCall::Calc { .. } | ToolCall::Status { .. } => plain("voice.did.question"),
@@ -159,6 +161,20 @@ pub enum Source {
     Phone,
 }
 
+/// The microphone while a question waits for its "yes" or "no" (T29.2).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Ear {
+    /// Only the buttons and the keys answer (a phone, or the microphone failed).
+    Off,
+    /// The PC records the answer.
+    Open,
+    /// The recorded answer is being recognised.
+    Busy,
+}
+
+/// The recognition of an answer that was said just before the deadline still gets this long.
+const ANSWER_GRACE_MS: u64 = 5_000;
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Phase {
     Idle,
@@ -168,7 +184,7 @@ pub enum Phase {
     Loading,
     /// Waiting for the model's answer.
     Thinking,
-    Confirming { call: Validated, deadline_ms: u64 },
+    Confirming { call: Validated, deadline_ms: u64, ear: Ear },
     Executing,
     Done(String),
     Failed(String),
@@ -195,6 +211,11 @@ pub struct State {
 impl State {
     pub fn idle() -> State {
         State { phase: Phase::Idle, id: None, source: None, heard: None, say: None, reply_key: None, activity: None, actions: false, understood: None }
+    }
+
+    /// Whether sound is being recorded now: the phrase, or the answer to a question.
+    pub fn is_hearing(&self) -> bool {
+        matches!(self.phase, Phase::Listening | Phase::Confirming { ear: Ear::Open, .. })
     }
 }
 
@@ -412,18 +433,44 @@ fn finish_key(mut s: State, phase: Phase, key: ReplyKey) -> (State, Vec<Effect>)
 }
 
 /// Runs a tool call through `validate` and moves to confirm, execute, a question or a failure.
-fn resolve(mut s: State, raw: &RawCall, now_ms: u64, env: &Env, from_model: bool) -> (State, Vec<Effect>) {
+fn resolve(s: State, raw: &RawCall, now_ms: u64, env: &Env, from_model: bool) -> (State, Vec<Effect>) {
     match validate(raw, env.ctx) {
-        Resolved::Ready(v) if v.confirm => {
-            let deadline_ms = now_ms + env.confirm_ms;
-            s.phase = Phase::Confirming { call: v, deadline_ms };
-            (s, vec![Effect::ScheduleTick(env.confirm_ms)])
-        }
+        Resolved::Ready(v) if v.confirm => confirming(s, v, now_ms, env),
         Resolved::Ready(v) => executing(s, &v),
         Resolved::Ask { question, options } => finish_key(s, Phase::Done(question), ReplyKey::with(key::WHICH, "options", &options.iter().take(3).cloned().collect::<Vec<_>>().join(" / "))),
         Resolved::Reject(_) if from_model => finish_key(s, Phase::Failed(msg::DIDNT_GET.into()), ReplyKey::plain(key::DIDNT_GET)),
         Resolved::Reject(why) => finish_key(s, Phase::Failed(format!("Can't do that: {why}")), ReplyKey::with(key::CANT, "why", &why)),
     }
+}
+
+/// Asks the question. A request of the PC also listens for the spoken answer, and gets half as long again to say it.
+fn confirming(mut s: State, call: Validated, now_ms: u64, env: &Env) -> (State, Vec<Effect>) {
+    let pc = s.source == Some(Source::Pc);
+    let window = if pc { env.confirm_ms + env.confirm_ms / 2 } else { env.confirm_ms };
+    s.phase = Phase::Confirming { call, deadline_ms: now_ms + window, ear: if pc { Ear::Open } else { Ear::Off } };
+    let mut effects = vec![Effect::ScheduleTick(window)];
+    if pc {
+        effects.insert(0, Effect::StartCapture);
+    }
+    (s, effects)
+}
+
+/// A "yes": the microphone closes and the call runs. A "no": the microphone closes.
+fn answered(s: State, call: &Validated, yes: bool) -> (State, Vec<Effect>) {
+    let pc = s.source == Some(Source::Pc);
+    let (next, mut effects) = if yes { executing(s, call) } else { finish_key(s, Phase::Done(msg::CANCELLED.into()), ReplyKey::plain(key::CANCELLED)) };
+    if pc {
+        effects.insert(0, Effect::StopCapture);
+    }
+    (next, effects)
+}
+
+/// The same question with the microphone in another state.
+fn hearing(mut s: State, ear: Ear) -> State {
+    if let Phase::Confirming { ear: now, .. } = &mut s.phase {
+        *now = ear;
+    }
+    s
 }
 
 /// The state machine. Events that make no sense in the current phase change nothing.
@@ -548,22 +595,26 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
             }
         },
         (Phase::Thinking | Phase::Loading | Phase::Transcribing, Event::ModelFailed(why)) => no_answer(s, env, why),
-        // A spoken yes or no while a confirmation is open.
-        (Phase::Confirming { call, .. }, Event::Transcript(Ok(text))) => match env.table.answer(&text) {
-            Some(true) => executing(s, call),
-            Some(false) => finish_key(s, Phase::Done(msg::CANCELLED.into()), ReplyKey::plain(key::CANCELLED)),
+        // The PC recorded an answer: recognise it; the deadline waits for the recognition.
+        (Phase::Confirming { call, deadline_ms, ear: Ear::Open }, Event::AudioEnd) => {
+            let deadline_ms = (*deadline_ms).max(now_ms + ANSWER_GRACE_MS);
+            let mut s = s;
+            s.phase = Phase::Confirming { call: call.clone(), deadline_ms, ear: Ear::Busy };
+            (s, vec![Effect::StopCapture, Effect::Transcribe, Effect::ScheduleTick(deadline_ms - now_ms)])
+        }
+        // Silence: keep listening until the deadline.
+        (Phase::Confirming { ear: Ear::Open, .. }, Event::NoSpeech) => (s, vec![Effect::StopCapture, Effect::StartCapture]),
+        // Without a microphone the buttons and the keys still answer.
+        (Phase::Confirming { ear: Ear::Open, .. }, Event::CaptureFailed(_)) => (hearing(s, Ear::Off), vec![Effect::StopCapture]),
+        (Phase::Confirming { ear: Ear::Busy, .. }, Event::Transcript(Err(_)) | Event::ModelFailed(_)) => (hearing(s, Ear::Off), Vec::new()),
+        // A spoken yes or no while a confirmation is open; anything else is not an answer.
+        (Phase::Confirming { call, ear, .. }, Event::Transcript(Ok(text))) => match env.table.answer(&text) {
+            Some(yes) => answered(s, call, yes),
+            None if *ear == Ear::Busy => (hearing(s, Ear::Open), vec![Effect::StartCapture]),
             None => (s, Vec::new()),
         },
-        (Phase::Confirming { call, .. }, Event::Confirm { id, yes }) if state.id.as_deref() == Some(id.as_str()) => {
-            if yes {
-                executing(s, call)
-            } else {
-                finish_key(s, Phase::Done(msg::CANCELLED.into()), ReplyKey::plain(key::CANCELLED))
-            }
-        }
-        (Phase::Confirming { deadline_ms, .. }, Event::Tick { now_ms }) if now_ms >= *deadline_ms => {
-            finish_key(s, Phase::Done(msg::CANCELLED.into()), ReplyKey::plain(key::CANCELLED))
-        }
+        (Phase::Confirming { call, .. }, Event::Confirm { id, yes }) if state.id.as_deref() == Some(id.as_str()) => answered(s, call, yes),
+        (Phase::Confirming { call, deadline_ms, .. }, Event::Tick { now_ms }) if now_ms >= *deadline_ms => answered(s, call, false),
         // The model cannot know the answer offline: the pill asks, and only a yes searches the web (DATA_MODEL.md 12.5).
         (Phase::Executing, Event::Executed(Ok(reply))) if super::ask::web_question(&reply).is_some() => {
             let query = super::ask::web_question(&reply).unwrap_or_default();
@@ -576,8 +627,7 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
                     v.args.clear();
                     let mut s = s;
                     s.say = None;
-                    s.phase = Phase::Confirming { call: v, deadline_ms: now_ms + env.confirm_ms };
-                    (s, vec![Effect::ScheduleTick(env.confirm_ms)])
+                    confirming(s, v, now_ms, env)
                 }
                 _ => finish_key(s, Phase::Failed(msg::DIDNT_GET.into()), ReplyKey::plain(key::DIDNT_GET)),
             }
@@ -673,14 +723,14 @@ impl Driver {
     /// The endpoint's count of speech so far in the running recording.
     pub fn note_speech(&self, ms: u32) {
         let mut sh = self.shared.lock().unwrap();
-        if sh.state.phase == Phase::Listening {
+        if sh.state.is_hearing() {
             sh.speech_ms = Some(ms);
         }
     }
 
     pub fn push_audio(&self, pcm: &[u8]) {
         let mut sh = self.shared.lock().unwrap();
-        if sh.state.phase == Phase::Listening {
+        if sh.state.is_hearing() {
             sh.audio.extend_from_slice(pcm);
         }
     }
@@ -706,14 +756,20 @@ impl Driver {
         let (info, effects, pcm) = {
             let mut sh = self.shared.lock().unwrap();
             let before = phase_name(&sh.state.phase);
-            let event = if sh.state.phase == Phase::Listening { audio_end_or_no_speech(event, sh.speech_ms) } else { event };
+            let event = match event {
+                // A "yes" is shorter than a phrase has to be: whatever speech there was in an answer is recognised.
+                Event::NoSpeech if matches!(sh.state.phase, Phase::Confirming { ear: Ear::Open, .. }) && sh.speech_ms.is_some_and(|ms| ms > 0) => Event::AudioEnd,
+                event if sh.state.is_hearing() => audio_end_or_no_speech(event, sh.speech_ms),
+                event => event,
+            };
             let (next, effects) = step(&sh.state, event, now_ms, &env);
             if name != "Tick" && !cfg!(test) {
                 // Names only: never sound or text.
                 super::mic::log_line(&format!("event {name} t={now_ms}ms {before} -> {}", phase_name(&next.phase)));
             }
             let changed = next != sh.state;
-            if matches!(next.phase, Phase::Listening) && !matches!(sh.state.phase, Phase::Listening) {
+            // A new recording starts empty (a phone request has no capture of its own).
+            if effects.contains(&Effect::StartCapture) || (next.is_hearing() && !sh.state.is_hearing()) {
                 sh.audio.clear();
                 sh.speech_ms = None;
             }
@@ -1060,6 +1116,48 @@ mod tests {
         let mut mumble = go();
         mumble.push(said("hmm let me think"));
         assert!(matches!(run(mumble).0.phase, Phase::Confirming { .. }), "neither yes nor no: keep waiting");
+    }
+
+    /// T29.2: the PC listens for the answer; "yes" runs the call, silence and other words keep the question open.
+    #[test]
+    fn the_pc_hears_a_spoken_yes() {
+        let ask = vec![start(Source::Pc), Event::AudioEnd, said("lock computer")];
+        let (s, fx) = run(ask.clone());
+        assert!(matches!(s.phase, Phase::Confirming { ear: Ear::Open, .. }) && s.is_hearing());
+        assert!(fx.ends_with(&[Effect::StartCapture, Effect::ScheduleTick(CONFIRM_TIMEOUT_MS * 3 / 2)]), "{fx:?}");
+
+        let mut yes = ask.clone();
+        yes.extend([Event::AudioEnd, said("yes")]);
+        let (s, fx) = run(yes);
+        assert_eq!(s.phase, Phase::Executing);
+        assert!(fx.ends_with(&[Effect::StopCapture, Effect::Execute(ToolCall::System(crate::model::SystemOp::Lock))]), "{fx:?}");
+
+        let mut other = ask.clone();
+        other.extend([Event::AudioEnd, said("what was that again")]);
+        let (s, fx) = run(other);
+        assert!(matches!(s.phase, Phase::Confirming { ear: Ear::Open, .. }), "listens again");
+        assert_eq!(fx.last(), Some(&Effect::StartCapture));
+
+        let mut silence = ask.clone();
+        silence.push(Event::NoSpeech);
+        let (s, fx) = run(silence);
+        assert!(matches!(s.phase, Phase::Confirming { ear: Ear::Open, .. }));
+        assert!(fx.ends_with(&[Effect::StopCapture, Effect::StartCapture]));
+
+        // No microphone: the question stays for the buttons.
+        let mut deaf = ask.clone();
+        deaf.extend([Event::CaptureFailed("gone".into()), Event::Confirm { id: "00112233aabbccdd".into(), yes: true }]);
+        assert_eq!(run(deaf).0.phase, Phase::Executing);
+
+        // An answer said just before the deadline is still recognised.
+        let (t, c) = (table(), ctx());
+        let env = Env { table: &t, ctx: &c, confirm_ms: 10_000, dictate: false };
+        let (s, _) = run(ask);
+        let Phase::Confirming { deadline_ms, .. } = s.phase.clone() else { panic!() };
+        let (s, _) = step(&s, Event::AudioEnd, deadline_ms - 100, &env);
+        let (s, _) = step(&s, Event::Tick { now_ms: deadline_ms }, deadline_ms, &env);
+        assert!(matches!(s.phase, Phase::Confirming { ear: Ear::Busy, .. }));
+        assert_eq!(step(&s, said("yes"), deadline_ms + 900, &env).0.phase, Phase::Executing);
     }
 
     #[test]

@@ -13,6 +13,8 @@ use serde::Deserialize;
 use serde_json::{json, Map, Value};
 
 pub const FUZZY_THRESHOLD: f64 = 0.8;
+/// The longest answer to a question: "yes, do it" in any of the languages.
+const MAX_ANSWER_WORDS: usize = 3;
 /// Filler words allowed in front of an exact template ("can you open calculator").
 const MAX_LEAD: usize = 3;
 /// Extra words a fuzzy match tolerates around the template.
@@ -567,6 +569,10 @@ impl Table {
     /// A spoken answer to a confirmation: `Some(true)` yes, `Some(false)` no, `None` neither.
     pub fn answer(&self, phrase: &str) -> Option<bool> {
         let toks = tokens(phrase);
+        // An answer is short. A sentence that merely begins with "yes" (a song, a talk in the room) confirms nothing.
+        if toks.len() > MAX_ANSWER_WORDS {
+            return None;
+        }
         let first = |list: &Vec<Vec<String>>| list.iter().any(|w| toks.len() >= w.len() && toks[..w.len()] == w[..]);
         match (first(&self.yes), first(&self.no)) {
             (true, false) => Some(true),
@@ -913,6 +919,7 @@ mod tests {
         assert_eq!(t.answer("no"), Some(false));
         assert_eq!(t.answer("don't"), Some(false));
         assert_eq!(t.answer("maybe later"), None);
+        assert_eq!(t.answer("yes I told her yesterday"), None, "talk in the room is not an answer");
     }
 
     #[test]
@@ -972,6 +979,26 @@ mod tests {
         // Every other language misses at most one of its ten phrases.
         for (lang, misses) in &per_lang_misses {
             assert!(*misses <= 1, "{lang} missed {misses} of 10");
+        }
+    }
+
+    /// T29.2: "play music" starts it (no model needed); "pause the music" stays the toggle.
+    #[test]
+    fn play_music_is_a_start_and_pause_stays_a_toggle() {
+        let ru = Table::parse(include_str!("../../../../shared/voice/ru.json")).unwrap();
+        let en = en();
+        let op = |t: &Table, say: &str| match t.matches(say) {
+            Match::Hit(i) if i.tool == "media" => i.args["op"].as_str().unwrap().to_string(),
+            other => panic!("{say:?} -> {other:?}"),
+        };
+        for say in ["Поставь музыку.", "включи музыку", "Продолжи музыку"] {
+            assert_eq!(op(&ru, say), "play", "{say}");
+        }
+        for say in ["Play music", "play the music", "resume music"] {
+            assert_eq!(op(&en, say), "play", "{say}");
+        }
+        for (t, say) in [(&ru, "поставь музыку на паузу"), (&ru, "пауза"), (&en, "pause the music"), (&en, "pause")] {
+            assert_eq!(op(t, say), "play_pause", "{say}");
         }
     }
 

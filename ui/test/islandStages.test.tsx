@@ -35,6 +35,20 @@ describe("the stages of a command (T28.3)", () => {
     expect(doing).toBeGreaterThan(understood);
   });
 
+  it("T29.2: Yes and No of a question are inside the panel, and a download shows how far it is", () => {
+    const ask = renderToString(<Island event={{ mode: "expanded", voice: { active: true, phase: "confirm", reply: "Скачать пакет?", confirmId: "ab" } }} />);
+    const panel = ask.indexOf("island-panel");
+    expect(panel).toBeGreaterThan(-1);
+    expect(ask.indexOf("island-confirm-btn")).toBeGreaterThan(panel);
+    expect(ask).toContain("Да");
+    expect(ask).toContain("Нет");
+    const done = renderToString(<Island event={{ mode: "expanded", voice: { active: false, phase: "done", reply: "Готово", confirmId: "ab" } }} />);
+    expect(done).not.toContain("island-confirm");
+    const loading = renderToString(<Island event={{ mode: "expanded", voice: { active: true, phase: "thinking", download: { pct: 42 } } }} />);
+    expect(loading).toContain("42%");
+    expect(loading).toContain("width:42%");
+  });
+
   it("a phrase that is not a command yet is shown as it was heard", () => {
     const html = renderToString(<Island event={{ mode: "expanded", voice: { active: true, phase: "thinking", heard: "что на экране" } }} />);
     expect(html).toContain("что на экране");

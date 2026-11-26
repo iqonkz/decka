@@ -544,6 +544,41 @@
   transition: width 300ms linear;
 }
 
+/* T29.2: "Yes" / "No" of a question, inside the panel (clicks pass through everything outside it). */
+.island-confirm {
+  width: 100%;
+  display: flex;
+  gap: 8px;
+}
+
+.island-confirm-btn {
+  height: 32px;
+  min-width: 72px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--island-surface);
+  color: var(--island-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.island-confirm-btn:hover {
+  background: var(--island-surface-hover);
+}
+
+.island-confirm-btn.is-yes {
+  background: var(--island-accent);
+  color: #ffffff;
+}
+
+.island-confirm-btn:focus-visible {
+  outline: 2px solid var(--island-accent);
+  outline-offset: 2px;
+}
+
 .island-heard {
   width: 100%;
   display: flex;

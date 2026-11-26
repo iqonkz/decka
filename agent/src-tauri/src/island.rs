@@ -322,7 +322,7 @@ pub fn setup(app: &AppHandle, agent: &Agent) -> Arc<Shared> {
             let (voice, voice_json) = {
                 let payload = loop_shared.voice.lock().unwrap().clone();
                 let chips = host.as_ref().map(|h| h.context_chips()).unwrap_or_default();
-                voice_view(payload.as_ref(), slow, &chips)
+                voice_view(payload.as_ref(), slow, host.as_ref().and_then(|h| h.download_progress()), &chips)
             };
             let mode = machine.step(&Inputs {
                 now_ms: started.elapsed().as_millis() as u64,

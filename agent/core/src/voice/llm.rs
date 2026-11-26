@@ -58,7 +58,7 @@ fn args_schema(tool: &str, ctx: &Context) -> Value {
         }
         "open_app" | "switch_app" | "close_app" | "go_page" => obj(json!({ "name": s }), &["name"]),
         "volume" => obj(json!({ "op": { "enum": ["up", "down", "mute", "set"] }, "value": { "type": "integer", "minimum": 0, "maximum": 100 } }), &["op"]),
-        "media" => obj(json!({ "op": { "enum": ["play_pause", "next", "prev", "shuffle", "repeat"] } }), &["op"]),
+        "media" => obj(json!({ "op": { "enum": ["play", "play_pause", "next", "prev", "shuffle", "repeat"] } }), &["op"]),
         "web_search" => obj(json!({ "query": { "type": "string", "minLength": 1, "maxLength": MAX_QUERY }, "site": { "enum": ["web", "youtube", "maps"] } }), &["query", "site"]),
         "open_site" => obj(json!({ "domain": { "type": "string", "minLength": 3, "maxLength": 253 } }), &["domain"]),
         "type_text" => obj(json!({ "text": { "type": "string", "minLength": 1, "maxLength": MAX_TEXT } }), &["text"]),

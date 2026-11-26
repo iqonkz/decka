@@ -79,7 +79,7 @@ pub struct Inputs<'a> {
 
 /// The voice part of the event `island_state` (shared `IslandVoiceState`) and what the machine needs to know of it, made of
 /// the payload the voice host sends to the PC window (`host::pill_payload`). `None` payload: nothing is going on.
-pub fn voice_view(payload: Option<&Value>, slow: Option<Progress>, chips: &[Value]) -> (VoiceInput, Option<Value>) {
+pub fn voice_view(payload: Option<&Value>, slow: Option<Progress>, download: Option<u8>, chips: &[Value]) -> (VoiceInput, Option<Value>) {
     let Some(p) = payload else { return (VoiceInput::Idle, None) };
     let state = p.get("state").and_then(Value::as_str).unwrap_or("idle");
     let actions: Vec<Value> = p.get("actions").and_then(Value::as_array).cloned().unwrap_or_default();
@@ -105,6 +105,9 @@ pub fn voice_view(payload: Option<&Value>, slow: Option<Progress>, chips: &[Valu
     }
     if let Some(s) = slow {
         o.insert("slow".into(), json!({ "etaSec": s.eta_sec, "elapsedSec": s.elapsed_sec }));
+    }
+    if let Some(pct) = download {
+        o.insert("download".into(), json!({ "pct": pct }));
     }
     if !chips.is_empty() && phase == "listening" {
         o.insert("chips".into(), Value::Array(chips.to_vec()));
@@ -295,28 +298,30 @@ mod tests {
 
     #[test]
     fn the_voice_payload_becomes_the_voice_of_the_event() {
-        let none = voice_view(None, None, &[]);
+        let none = voice_view(None, None, None, &[]);
         assert_eq!((none.0, none.1), (VoiceInput::Idle, None));
         let idle = json!({ "state": "idle" });
-        assert_eq!(voice_view(Some(&idle), None, &[]).0, VoiceInput::Idle);
+        assert_eq!(voice_view(Some(&idle), None, None, &[]).0, VoiceInput::Idle);
         let listening = json!({ "state": "listening", "level": 0.4, "id": "a1", "hotkey": "Ctrl+Alt+Space", "source": "pc" });
-        let (input, v) = voice_view(Some(&listening), None, &[json!({ "label": "Translate", "command": "translate" })]);
+        let (input, v) = voice_view(Some(&listening), None, None, &[json!({ "label": "Translate", "command": "translate" })]);
         let v = v.unwrap();
         assert_eq!(input, VoiceInput::Active);
         assert_eq!((v["active"].clone(), v["phase"].clone(), v["level"].clone()), (json!(true), json!("listening"), json!(0.4)));
         assert!(v.get("confirmId").is_none() && v.get("hotkey").is_none() && v.get("source").is_none(), "only what the island shows");
         assert_eq!(v["chips"][0]["label"], "Translate", "chips are offered while it listens");
         let done = json!({ "state": "done", "reply": "It is about cats.", "actions": ["copy", "insert"], "replyKey": "voice.status.cpu", "replyArgs": { "pct": "23" } });
-        let (input, v) = voice_view(Some(&done), None, &[json!({ "label": "x" })]);
+        let (input, v) = voice_view(Some(&done), None, None, &[json!({ "label": "x" })]);
         let v = v.unwrap();
         assert_eq!(input, VoiceInput::Answer { actions: true });
         assert_eq!((v["active"].clone(), v["actions"].clone(), v["replyArgs"]["pct"].clone()), (json!(false), json!(["copy", "insert"]), json!("23")));
         assert!(v.get("chips").is_none());
         let plain = json!({ "state": "error", "reply": "Nothing to continue" });
-        assert_eq!(voice_view(Some(&plain), None, &[]).0, VoiceInput::Answer { actions: false });
+        assert_eq!(voice_view(Some(&plain), None, None, &[]).0, VoiceInput::Answer { actions: false });
         let confirm = json!({ "state": "confirm", "id": "c9", "confirm": { "text": "Lock the computer", "key": "voice.confirm.lock" } });
-        assert_eq!(voice_view(Some(&confirm), None, &[]).1.unwrap()["confirmId"], "c9");
-        let slow = voice_view(Some(&json!({ "state": "thinking" })), Some(Progress { eta_sec: 10, elapsed_sec: 3 }), &[]).1.unwrap();
+        assert_eq!(voice_view(Some(&confirm), None, None, &[]).1.unwrap()["confirmId"], "c9");
+        let slow = voice_view(Some(&json!({ "state": "thinking" })), Some(Progress { eta_sec: 10, elapsed_sec: 3 }), None, &[]).1.unwrap();
         assert_eq!(slow["slow"], json!({ "etaSec": 10, "elapsedSec": 3 }));
+        let loading = voice_view(Some(&json!({ "state": "thinking" })), None, Some(42), &[]).1.unwrap();
+        assert_eq!(loading["download"], json!({ "pct": 42 }));
     }
 }

@@ -437,11 +437,18 @@ impl VoiceService {
 
     /// Downloads the Screen help package (after the user agreed to it) and restarts the model server with it.
     pub async fn install_vision(&self) -> Result<(), String> {
+        self.install_vision_with(&mut |_| {}).await
+    }
+
+    /// `install_vision` that reports how far the download is, in percent (T29.2: the island shows it).
+    pub async fn install_vision_with(&self, percent: &mut (dyn FnMut(u8) + Send)) -> Result<(), String> {
         let entry = self.vision_entry().cloned().ok_or("The Screen help package is not available")?;
         if !is_present(&self.inner.root, &entry) {
             let dest = target_of(&self.inner.root, &entry);
             let cancel = AtomicBool::new(false);
-            self.inner.downloader.fetch(&entry, &dest, &cancel, &mut |_| {}).await.map_err(|e| e.to_string())?;
+            let total = entry.size.max(1);
+            percent(0);
+            self.inner.downloader.fetch(&entry, &dest, &cancel, &mut |done| percent((done.saturating_mul(100) / total).min(100) as u8)).await.map_err(|e| e.to_string())?;
         }
         // The server loads the projector at its start: the running one is stopped, the next request starts it again.
         self.configure_supervisor();

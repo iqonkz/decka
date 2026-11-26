@@ -131,6 +131,8 @@ pub enum ToolCall {
     TypeText { text: String },
     /// A long dictation, pasted through the clipboard. Never named by the model: only the pipeline makes it (DATA_MODEL.md 13.1).
     PasteText { text: String },
+    /// `media {op: "play"}` (T29.2): start what is paused.
+    MediaPlay,
     Dictate,
     Timer { minutes: u32, label: Option<String> },
     System(SystemOp),
@@ -471,6 +473,10 @@ fn run(tool: &str, args: &serde_json::Map<String, Value>, ctx: &Context) -> Resu
         }
         "media" => {
             only(args, &["op"])?;
+            // T29.2: "play music" only ever starts; it is not the play/pause toggle.
+            if args.get("op").and_then(Value::as_str) == Some("play") {
+                return Ok(ready(ToolCall::MediaPlay, false, "Media"));
+            }
             let op = match args.get("op").and_then(Value::as_str).unwrap_or_default() {
                 "play_pause" => MediaOp::PlayPause,
                 "next" => MediaOp::Next,

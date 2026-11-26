@@ -36,6 +36,7 @@ pub mod status;
 pub mod target;
 pub mod timephrase;
 pub mod tools;
+pub mod transcript;
 pub mod uia;
 pub mod ui_snapshot;
 pub mod winkeys;

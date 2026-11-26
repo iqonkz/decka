@@ -17,7 +17,7 @@ use super::endpoint::Verdict;
 use super::hotkey::{self, Pressed, Plan, Tracker};
 use super::matcher::Table;
 use super::mic;
-use super::pipeline::{key, msg, BoxFut, Driver, Event, Phase, Ports, Source, State, VoiceInfo};
+use super::pipeline::{key, msg, BoxFut, Driver, Ear, Event, Phase, Ports, Source, State, VoiceInfo};
 use super::winops;
 use super::tools::{ActionRef, AppRef, ButtonRef, Context, PageRef, RawCall, ToolCall, VolumeOp};
 use crate::agent::Agent;
@@ -137,7 +137,7 @@ fn is_active(p: &Phase) -> bool {
 pub fn press_event(state: &State, id: String) -> Option<Event> {
     match (&state.phase, state.source) {
         (Phase::Idle | Phase::Done(_) | Phase::Failed(_), _) => Some(Event::Start { id, source: Source::Pc }),
-        (Phase::Listening, Some(Source::Pc)) => Some(Event::AudioEnd),
+        (Phase::Listening | Phase::Confirming { ear: Ear::Open, .. }, Some(Source::Pc)) => Some(Event::AudioEnd),
         (Phase::Transcribing | Phase::Loading | Phase::Thinking, _) => Some(Event::Cancel),
         _ => None,
     }
@@ -241,12 +241,19 @@ async fn day_brief(agent: &Agent, sup: &crate::ai::supervisor::Supervisor, lang:
     Ok(answer.and_then(|a| brief::check_brief(&facts, &a)).unwrap_or_else(|| brief::facts_text(&facts, &lists)))
 }
 
-/// `screen_ask` (13.3): the Screen help package (downloaded once, with the consent given in the confirmation), a picture of the
-/// active window in memory, one question to the model on this PC.
-async fn screen_ask(service: &VoiceService, sup: &crate::ai::supervisor::Supervisor, lang: &str, question: &str) -> Result<String, String> {
-    if !service.vision_installed() {
-        service.install_vision().await?;
+/// The Screen help package, downloaded once with the consent given in the confirmation; `download` holds the percent while
+/// it comes, for the island (T29.2).
+async fn screen_pack(service: &VoiceService, download: &Mutex<Option<u8>>) -> Result<(), String> {
+    if service.vision_installed() {
+        return Ok(());
     }
+    let result = service.install_vision_with(&mut |p| *download.lock().unwrap() = Some(p)).await;
+    *download.lock().unwrap() = None;
+    result
+}
+
+/// `screen_ask` (13.3): a picture of the active window in memory, one question to the model on this PC.
+async fn screen_ask(sup: &crate::ai::supervisor::Supervisor, lang: &str, question: &str) -> Result<String, String> {
     // The picture is taken after the download and the restart of the server, so that it is the window the user is looking at now.
     let data_url = tokio::task::spawn_blocking(super::screen::capture_data_url).await.map_err(|e| format!("The action did not finish: {e}"))??;
     let body = super::screen::request_body(question, lang, &data_url);
@@ -508,6 +515,8 @@ struct Inner {
     checking: AtomicBool,
     /// T29.1: the window and the element that had the focus when the request began.
     focus: FocusMemory,
+    /// T29.2: the percent of the Screen help package while it is downloaded for a question.
+    download: Arc<Mutex<Option<u8>>>,
 }
 
 #[derive(Clone)]
@@ -551,6 +560,7 @@ impl Host {
             screen: OnceLock::new(),
             checking: AtomicBool::new(false),
             focus: FocusMemory::default(),
+            download: Arc::default(),
         });
         let driver = Driver::new(handle.clone(), inner.clone());
         let _ = inner.driver.set(driver);
@@ -832,12 +842,17 @@ impl Host {
         Some(super::slowpath::Progress { eta_sec, elapsed_sec: since.elapsed().as_secs() as u32 })
     }
 
+    /// The download that a question waits for, in percent, for the island.
+    pub fn download_progress(&self) -> Option<u8> {
+        *self.inner.download.lock().unwrap()
+    }
+
     /// `voice_stop` of the pill (IPC): the click on the stop button or on the pill ends the recording of the PC at once.
     pub fn stop(&self) {
         let driver = self.inner.driver();
         let s = driver.state();
         mic::log_line("voice_stop from the pill");
-        if s.phase == Phase::Listening && s.source == Some(Source::Pc) && !too_early() {
+        if s.is_hearing() && s.source == Some(Source::Pc) && !too_early() {
             driver.handle_event(Event::AudioEnd);
         }
     }
@@ -1177,11 +1192,12 @@ impl Ports for Inner {
             }
             // A recognition that could not start has a fixed reason (T28.2); anything else keeps its own text.
             let reason = |e: String| sup.failure_of(Server::Stt).map_or(e, |f| super::pipeline::failure_msg(f.reason).to_string());
+            // T29.2: a phrase that the recognition repeats is kept once.
             if !dictating {
-                return sup.transcribe(&pcm, lang).await.map_err(reason);
+                return sup.transcribe(&pcm, lang).await.map(|t| super::transcript::collapse_repeats(&t)).map_err(reason);
             }
             let prompt = dictation::whisper_prompt(&settings.dictionary);
-            let raw = sup.transcribe_prompted(&pcm, lang, prompt.as_deref()).await.map_err(reason)?;
+            let raw = sup.transcribe_prompted(&pcm, lang, prompt.as_deref()).await.map(|t| super::transcript::collapse_repeats(&t)).map_err(reason)?;
             if settings.mode == Mode::Clean && !raw.is_empty() {
                 Ok(super::assist::clean_dictation(&sup, lang, &raw, &settings.dictionary).await)
             } else {
@@ -1217,6 +1233,7 @@ impl Ports for Inner {
         let (sup, lang, service) = (self.service.supervisor().clone(), self.language(), self.service.clone());
         let screen = self.screen.get().cloned();
         let focus = self.focus.clone();
+        let download = self.download.clone();
         Box::pin(async move {
             if let ToolCall::RunAction { action_id } = &call {
                 return agent.execute(action_id).await.map(|_| String::new()).map_err(|(_, m)| m);
@@ -1296,6 +1313,18 @@ impl Ports for Inner {
                     .await
                     .map_err(|e| format!("The action did not finish: {e}"))?;
                 }
+                ToolCall::MediaPlay => {
+                    let runner = agent.runner().clone();
+                    return tokio::task::spawn_blocking(move || {
+                        if crate::media_control::resume() == crate::media_control::SessionOutcome::Done {
+                            return Ok(String::new());
+                        }
+                        // No session, or it refused: the key, as for a button of the deck.
+                        runner.run("voice", &Action::Media { name: "voice".into(), toggle_var: None, op: MediaOp::PlayPause }).map(|_| String::new())
+                    })
+                    .await
+                    .map_err(|e| format!("The action did not finish: {e}"))?;
+                }
                 ToolCall::LyricsWindow { show } => {
                     agent.set_lyrics_hidden(!*show);
                     return Ok(if *show { "Lyrics shown".into() } else { "Lyrics hidden".into() });
@@ -1350,10 +1379,11 @@ impl Ports for Inner {
                     };
                 }
                 ToolCall::ScreenAsk { question } => {
+                    screen_pack(&service, &download).await?;
                     // The slow path: the island shows "Looking at the screen..." with the estimate until this ends.
                     *slow_since.lock().unwrap() = Some(Instant::now());
                     let started = Instant::now();
-                    let answer = screen_ask(&service, &sup, lang, question).await;
+                    let answer = screen_ask(&sup, lang, question).await;
                     *slow_since.lock().unwrap() = None;
                     if answer.is_ok() {
                         let mut tracker = slow.lock().unwrap();
@@ -1434,14 +1464,14 @@ impl Ports for Inner {
                         for chunk in pcm.chunks(super::MAX_CHUNK_BYTES) {
                             std::thread::sleep(Duration::from_millis(100));
                             let s = driver.state();
-                            if s.phase != Phase::Listening || s.id != id {
+                            if !s.is_hearing() || s.id != id {
                                 return;
                             }
                             driver.push_audio(chunk);
                         }
                         std::thread::sleep(Duration::from_millis(300));
                         let s = driver.state();
-                        if s.phase == Phase::Listening && s.id == id {
+                        if s.is_hearing() && s.id == id {
                             driver.handle_event(Event::AudioEnd);
                         }
                     });
@@ -1486,7 +1516,7 @@ impl Ports for Inner {
                             Verdict::NoSpeech => Event::NoSpeech,
                         };
                         // Once, and not on the audio thread: the event stops the capture, which waits for this very thread.
-                        if feed.state().phase == Phase::Listening && !decided.swap(true, Ordering::SeqCst) {
+                        if feed.state().is_hearing() && !decided.swap(true, Ordering::SeqCst) {
                             let driver = feed.clone();
                             std::thread::spawn(move || driver.handle_event(event));
                         }
@@ -1647,7 +1677,8 @@ mod tests {
     #[test]
     fn esc_cancels_or_says_no_and_enter_says_yes_only_in_a_confirmation() {
         let call = crate::voice::tools::Validated { call: ToolCall::Dictate, confirm: true, summary: "x".into(), key: None, args: Default::default() };
-        let confirming = state(Phase::Confirming { call, deadline_ms: 1 }, Source::Pc);
+        let confirming = state(Phase::Confirming { call, deadline_ms: 1, ear: Ear::Open }, Source::Pc);
+        assert_eq!(press_event(&confirming, "x".into()), Some(Event::AudioEnd), "the hotkey ends the spoken answer");
         assert_eq!(esc_event(&confirming), Some(Event::Confirm { id: "0011223344556677".into(), yes: false }));
         assert_eq!(enter_event(&confirming), Some(Event::Confirm { id: "0011223344556677".into(), yes: true }));
         assert_eq!(esc_event(&state(Phase::Listening, Source::Pc)), Some(Event::Cancel));

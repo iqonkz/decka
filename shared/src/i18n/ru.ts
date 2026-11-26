@@ -1006,6 +1006,7 @@ export const ru: Record<Base | ExtraPlural, string> = {
   "voice.reply.text_too_long": "Текст слишком длинный",
   "voice.reply.no_context": "Нечего продолжать",
   "voice.reply.copied_paste": "Скопировано: вставь Ctrl+V",
+  "m29.screen_pack_downloading": "Загружаю пакет «Помощь по экрану»: {pct}%",
   "voice.context": "Подсказки по контексту",
   "voice.context_hint": "При открытии острова Decka смотрит название активной программы и выделенный текст. Ничего не сохраняется.",
   "voice.chip.translate": "Перевести",

@@ -975,6 +975,7 @@ export const pt: Dictionary = {
   "voice.reply.text_too_long": "O texto é muito longo",
   "voice.reply.no_context": "Nada para continuar",
   "voice.reply.copied_paste": "Copiado: cole com Ctrl+V",
+  "m29.screen_pack_downloading": "Baixando o pacote de ajuda na tela: {pct}%",
   "voice.context": "Sugestões pelo programa ativo",
   "voice.context_hint": "Ao abrir a ilha do Decka, ele olha o nome do programa ativo e o texto selecionado. Nada é salvo.",
   "voice.chip.translate": "Traduzir",

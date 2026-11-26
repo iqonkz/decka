@@ -34,6 +34,8 @@ export interface IslandVoiceState {
   /** Buttons under the reply: `copy`, `insert`, `speak`, `again`, `lang` (the list of languages). */
   actions?: string[];
   slow?: IslandSlowProgress | null;
+  /** T29.2: the Screen help package is being downloaded for this question. */
+  download?: { pct: number } | null;
   chips?: IslandContextChip[];
   confirmId?: string;
   /** A fixed phrase of the agent as an i18n key with its arguments (`voice.reply.*`, `voice.status.*`); `reply` is the fallback text. */

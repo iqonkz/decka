@@ -79,13 +79,26 @@ pub fn try_session(op: MediaOp) -> SessionOutcome {
     }
 }
 
+/// "Play music" (T29.2): starts the current media session if it is paused; a playing one is left alone. Blocks for at most
+/// about 2 s. Anything but `Done` leaves it to the play/pause key.
+pub fn resume() -> SessionOutcome {
+    #[cfg(windows)]
+    {
+        win::resume()
+    }
+    #[cfg(not(windows))]
+    {
+        SessionOutcome::NoSession
+    }
+}
+
 #[cfg(windows)]
 mod win {
     use std::sync::mpsc::{self, Sender};
     use std::sync::{Mutex, OnceLock};
     use std::time::{Duration, Instant};
 
-    use windows::Media::Control::GlobalSystemMediaTransportControlsSessionManager;
+    use windows::Media::Control::{GlobalSystemMediaTransportControlsSessionManager, GlobalSystemMediaTransportControlsSessionPlaybackStatus as Playback};
     use windows::Media::MediaPlaybackAutoRepeatMode;
     use windows::Win32::System::WinRT::{RoInitialize, RO_INIT_MULTITHREADED};
 
@@ -96,7 +109,8 @@ mod win {
     const SETTLE: Duration = Duration::from_millis(150);
 
     struct Job {
-        op: MediaOp,
+        /// `None`: resume.
+        op: Option<MediaOp>,
         reply: Sender<SessionOutcome>,
     }
 
@@ -131,7 +145,7 @@ mod win {
             .clone()
     }
 
-    fn run(manager: &mut Option<GlobalSystemMediaTransportControlsSessionManager>, op: MediaOp) -> SessionOutcome {
+    fn run(manager: &mut Option<GlobalSystemMediaTransportControlsSessionManager>, op: Option<MediaOp>) -> SessionOutcome {
         if manager.is_none() {
             match GlobalSystemMediaTransportControlsSessionManager::RequestAsync().and_then(|r| r.join()) {
                 Ok(m) => *manager = Some(m),
@@ -145,6 +159,13 @@ mod win {
             return SessionOutcome::NoSession;
         };
         let started = match op {
+            None => {
+                if session.GetPlaybackInfo().and_then(|i| i.PlaybackStatus()).is_ok_and(|s| s == Playback::Playing) {
+                    return SessionOutcome::Done;
+                }
+                session.TryPlayAsync()
+            }
+            Some(op) => match op {
             MediaOp::PlayPause => session.TryTogglePlayPauseAsync(),
             MediaOp::Next => session.TrySkipNextAsync(),
             MediaOp::Prev => session.TrySkipPreviousAsync(),
@@ -171,6 +192,7 @@ mod win {
                 })
             }
             _ => return SessionOutcome::Error,
+            },
         };
         // Waits for the operation, but never longer than TIMEOUT (`AsyncStatus::Started` is 0).
         let waited = started.and_then(|o| {
@@ -196,6 +218,14 @@ mod win {
     }
 
     pub fn try_session(op: MediaOp) -> SessionOutcome {
+        send(Some(op))
+    }
+
+    pub fn resume() -> SessionOutcome {
+        send(None)
+    }
+
+    fn send(op: Option<MediaOp>) -> SessionOutcome {
         let (reply, answer) = mpsc::channel();
         if worker().send(Job { op, reply }).is_err() {
             return SessionOutcome::Error;

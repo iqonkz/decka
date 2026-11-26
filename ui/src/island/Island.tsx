@@ -41,6 +41,8 @@ export interface IslandProps {
   onChipClick?: (command: string) => void;
   onMediaControl?: (action: IslandMediaKind) => void;
   onStopSlow?: () => void;
+  /** The "Yes" / "No" of a question (`voice.phase === "confirm"`). */
+  onConfirm?: (confirmId: string, yes: boolean) => void;
   onTabHover?: () => void;
 }
 
@@ -52,7 +54,7 @@ const ORB_CONTENT_SIZE = 72;
 export function hasVoiceContent(event: IslandEvent): boolean {
   const v = event.voice;
   if (!v) return false;
-  return Boolean(v.heard || v.reply || v.slow);
+  return Boolean(v.heard || v.reply || v.slow || v.download || (v.phase === "confirm" && v.confirmId));
 }
 
 export function expandedStatusText(phase?: IslandVoicePhase): string {
@@ -134,6 +136,7 @@ export default function Island({
   onChipClick,
   onMediaControl,
   onStopSlow,
+  onConfirm,
   onTabHover,
 }: IslandProps) {
   const { mode, lyrics, voice } = event;
@@ -142,6 +145,7 @@ export default function Island({
   const copyTimerRef = useRef<number | null>(null);
   const langRef = useRef<HTMLDivElement>(null);
 
+  const confirmId = voice?.phase === "confirm" ? voice.confirmId : undefined;
   const rawHasContent = mode === "expanded" && hasVoiceContent(event);
   const [stickyContent, setStickyContent] = useState(rawHasContent);
   const prevModeRef = useRef(mode);
@@ -591,6 +595,28 @@ export default function Island({
             {voice?.executing && <div className="island-content-status island-doing">{t("voice.stage.doing")}</div>}
 
             {voice?.reply && <div className="island-reply">{voice.reply}</div>}
+
+            {voice?.download && (
+              <div className="island-slow island-slow-expanded">
+                <div className="island-slow-row">
+                  <span>{t("m29.screen_pack_downloading", { pct: Math.round(voice.download.pct) })}</span>
+                </div>
+                <div className="island-slow-track">
+                  <div className="island-slow-fill" style={{ width: `${Math.max(2, Math.min(100, voice.download.pct))}%` }} />
+                </div>
+              </div>
+            )}
+
+            {confirmId && (
+              <div className="island-confirm">
+                <button type="button" className="island-confirm-btn is-yes" onClick={() => onConfirm?.(confirmId, true)}>
+                  {t("voice.yes")}
+                </button>
+                <button type="button" className="island-confirm-btn" onClick={() => onConfirm?.(confirmId, false)}>
+                  {t("voice.no")}
+                </button>
+              </div>
+            )}
 
             {visibleChips(voice?.chips, voice?.reply).length > 0 && (
               <div className="island-chips">

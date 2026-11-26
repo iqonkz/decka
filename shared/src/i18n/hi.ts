@@ -975,6 +975,7 @@ export const hi: Dictionary = {
   "voice.reply.text_too_long": "टेक्स्ट बहुत लंबा है",
   "voice.reply.no_context": "जारी रखने के लिए कुछ नहीं",
   "voice.reply.copied_paste": "कॉपी हो गया: Ctrl+V से चिपकाएँ",
+  "m29.screen_pack_downloading": "स्क्रीन सहायता पैकेज डाउनलोड हो रहा है: {pct}%",
   "voice.context": "सक्रिय प्रोग्राम के अनुसार सुझाव",
   "voice.context_hint": "Decka आइलैंड खुलने पर वह सक्रिय प्रोग्राम का नाम और चुना हुआ टेक्स्ट देखता है। कुछ भी सहेजा नहीं जाता।",
   "voice.chip.translate": "अनुवाद करें",

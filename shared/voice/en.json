@@ -73,11 +73,28 @@
     {
       "tool": "media",
       "args": {
+        "op": "play"
+      },
+      "patterns": [
+        "play music",
+        "play the music",
+        "resume music",
+        "resume the music",
+        "start the music",
+        "put on music",
+        "put some music on"
+      ]
+    },
+    {
+      "tool": "media",
+      "args": {
         "op": "play_pause"
       },
       "patterns": [
         "play",
         "pause",
+        "pause the music",
+        "pause music",
         "play pause",
         "stop playback"
       ]
