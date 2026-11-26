@@ -41,8 +41,13 @@ const server = createServer((req, res) => {
   const path = normalize(decodeURIComponent((req.url ?? "/").split("?")[0])).replace(/^[\\/]+/, "") || "index.html";
   let file = join(dist, path);
   // The settings window loads Phosphor icons from /phosphor (copied by agent/scripts/copy-phosphor.mjs, not in git).
-  if (!existsSync(file) && path.startsWith("phosphor")) file = join(root, "agent", "public", path);
-  if (!(file.startsWith(dist) || file.startsWith(join(root, "agent", "public"))) || !existsSync(file)) return res.writeHead(404).end();
+  const phosphorDir = join(root, "agent", "public", "phosphor");
+  const nmPhosphorDir = join(root, "node_modules", "@phosphor-icons", "core", "assets");
+  if (!existsSync(file) && path.startsWith("phosphor")) {
+    const pub = join(root, "agent", "public", path);
+    file = existsSync(pub) ? pub : join(nmPhosphorDir, path.replace(/^phosphor[\\/]/, ""));
+  }
+  if (!(file.startsWith(dist) || file.startsWith(phosphorDir) || file.startsWith(nmPhosphorDir)) || !existsSync(file)) return res.writeHead(404).end();
   res.writeHead(200, { "content-type": MIME[extname(file)] ?? "application/octet-stream" }).end(readFileSync(file));
 });
 await new Promise((r) => server.listen(0, "127.0.0.1", r));
@@ -202,6 +207,42 @@ function settingsShots() {
   }
   return out;
 }
+function audit2Shots() {
+  const out = {};
+  const pc = { w: 1100, h: 860, scale: 1 };
+  const port = { w: 390, h: 844, scale: 1 };
+  const land = { w: 844, h: 390, scale: 1 };
+  const isl = { w: 560, h: 240, scale: 2 };
+  const islTab = { w: 320, h: 64, scale: 2 };
+  for (const scheme of ["light", "dark"]) {
+    for (const lang of ["ru", "en"]) {
+      for (const page of ["look", "phone", "voice", "screen_help", "reminders", "integrations", "actions", "settings", "about", "deck"]) {
+        if (lang === "en" && !["voice", "screen_help", "integrations", "settings"].includes(page)) continue;
+        out[`a2-${page}-${lang}-${scheme}`] = [pc, `scene=settings&theme=studio&lang=${lang}&scheme=${scheme}&go=${page}`];
+      }
+      out[`a2-commands-${lang}-${scheme}`] = [pc, `scene=settings&theme=studio&lang=${lang}&scheme=${scheme}&go=voice&focus=%23voice-commands%20input`, "#voice-commands button::0"];
+    }
+    out[`a2-isl-tab-${scheme}`] = [islTab, `scene=island&mode=tab&voiceOff=1&songScene=lyrics&musicLevel=0.72&theme=${scheme}`];
+    out[`a2-isl-countdown-${scheme}`] = [{ w: 540, h: 180, scale: 2 }, `scene=island&mode=compact&voiceOff=1&songScene=countdown&nextInSec=12&lang=ru&theme=${scheme}`];
+    out[`a2-isl-lyrics-${scheme}`] = [{ w: 540, h: 180, scale: 2 }, `scene=island&mode=compact&voiceOff=1&lyrics=1line&lang=ru&theme=${scheme}`];
+    out[`a2-isl-hover-${scheme}`] = [{ w: 540, h: 180, scale: 2 }, `scene=island&mode=compact&voiceOff=1&lyrics=1line&hover=1&lang=ru&theme=${scheme}`];
+    out[`a2-isl-listen-${scheme}`] = [isl, `scene=island&mode=expanded&state=listening&solo=1&lang=ru&theme=${scheme}`];
+    out[`a2-isl-think-${scheme}`] = [isl, `scene=island&mode=expanded&state=thinking&lang=ru&theme=${scheme}`];
+    out[`a2-isl-reply-${scheme}`] = [isl, `scene=island&mode=expanded&state=done&reply=1&lang=ru&theme=${scheme}`];
+    out[`a2-isl-confirm-${scheme}`] = [isl, `scene=island&mode=expanded&state=confirm&lang=ru&theme=${scheme}`];
+    out[`a2-isl-error-${scheme}`] = [isl, `scene=island&mode=expanded&state=error&lang=ru&theme=${scheme}`];
+    out[`a2-isl-guide-${scheme}`] = [{ w: 960, h: 540, scale: 1 }, `scene=m27&part=overlay&theme=${scheme}&scheme=${scheme}&lang=ru`];
+  }
+  for (const lang of ["ru", "en"]) {
+    out[`a2-ph-grid-${lang}`] = [land, `scene=deck&theme=studio&lang=${lang}`];
+    out[`a2-ph-widgets-${lang}`] = [{ w: 1100, h: 640, scale: 1 }, `scene=deck&theme=amoled&pack=sml1&lang=${lang}`];
+    out[`a2-ph-pair-${lang}`] = [port, `scene=service&screen=pair&lang=${lang}`];
+    out[`a2-ph-link-${lang}`] = [port, `scene=service&screen=link&lang=${lang}`];
+    out[`a2-ph-menu-${lang}`] = [port, `scene=service&screen=menu&lang=${lang}`];
+  }
+  return out;
+}
+
 const SHOTS = {
   "theme-amoled": [DECK, "scene=deck&theme=amoled"],
   "theme-studio": [DECK, "scene=deck&theme=studio"],
@@ -235,6 +276,7 @@ const SHOTS = {
   "t29-screen-help-dark": [{ w: 1100, h: 800, scale: 1 }, "scene=settings&theme=studio&lang=ru&scheme=dark&go=screen_help"],
   "t29-integrations-light": [{ w: 1100, h: 950, scale: 1 }, "scene=settings&theme=studio&lang=ru&scheme=light&go=integrations"],
   "t29-integrations-dark": [{ w: 1100, h: 950, scale: 1 }, "scene=settings&theme=studio&lang=ru&scheme=dark&go=integrations"],
+  ...audit2Shots(),
   "phone-idle": [PHONE, "scene=phone&state=idle"],
   "phone-listening": [PHONE, "scene=phone&state=listening"],
   "phone-done": [PHONE, "scene=phone&state=done&heard=turn+the+volume+up&reply=Done"],

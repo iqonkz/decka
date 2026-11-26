@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { sameMinor, t } from "@decka/shared";
+import pkg from "../../package.json";
 import { connectAgain, startAppUpdate } from "../app/controller";
 import { isNewerVersion } from "../update/apkAssembler";
 import { hiddenStripApps, setStripMode, useStripModes } from "../deck/stripMode";
@@ -29,7 +30,7 @@ export default function PhoneMenu({ reduced, onToggleReduced, haptics, onToggleH
   const agentVersion = useAppState((s) => s.agentVersion);
   const offered = useAppState((s) => s.state?.update?.app);
   const appUpdate = useAppState((s) => s.appUpdate);
-  const appVer = import.meta.env.VITE_APP_VERSION || "0.22.0";
+  const appVer = import.meta.env.VITE_APP_VERSION || pkg.version;
   // A new app is offered only on the phone (the system installer), and only when it is newer than this one.
   const newApp = isNative() && offered && isNewerVersion(offered.version, appVer) ? offered : null;
   const [turn, setTurn] = useState<Turn>(() => loadTurn());

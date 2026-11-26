@@ -75,7 +75,7 @@ function About({ updates }: { updates: Updates }) {
             <p className="muted" style={{ margin: 0, fontSize: 12 }}>{t("about.licence")}</p>
           </div>
         </div>
-        <Row title={t("about.run_setup")}>
+        <Row title={t("sidebar.item.settings")}>
           <Button onClick={() => window.dispatchEvent(new CustomEvent("decka:run-setup", { detail: { step: 0 } }))}>
             {t("about.run_setup")}
           </Button>

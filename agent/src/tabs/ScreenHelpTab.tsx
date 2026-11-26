@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { t } from "@decka/shared";
+import { locale, t } from "@decka/shared";
 import { invoke } from "@tauri-apps/api/core";
 import { call } from "../ipc";
 import Banner from "../ui/Banner";
@@ -60,12 +60,20 @@ export default function ScreenHelpTab({
     }
   }
 
-  const examples = [
-    "Что сейчас на экране?",
-    "Где кнопка «Сохранить»?",
-    "Нажми на кнопку «Отправить»",
-    "Покажи по шагам, как экспортировать файл",
-  ];
+  const isRu = locale() === "ru";
+  const examples = isRu
+    ? [
+        "Что сейчас на экране?",
+        "Где кнопка «Сохранить»?",
+        "Нажми на кнопку «Отправить»",
+        "Покажи по шагам, как экспортировать файл",
+      ]
+    : [
+        "What is on my screen?",
+        "Where is the Save button?",
+        "Click the Send button",
+        "Guide me step by step to export a file",
+      ];
 
   return (
     <div className="page-container">
