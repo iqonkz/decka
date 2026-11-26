@@ -28,6 +28,8 @@ export function describeAction(action: Action | undefined): string {
       return action.op === "sleep" ? t("preset.sleep") : t("preset.lock");
     case "screenshot":
       return t(`m29.shot_${action.area}`);
+    case "http":
+      return action.name;
     case "audio":
     case "obs":
     case "twitch":

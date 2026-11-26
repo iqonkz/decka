@@ -216,6 +216,45 @@ export function validateLayout(layout: LayoutFile, actions: ActionsFile): Valida
   return issues;
 }
 
+/** Headers that belong to the connection (webhook.rs). */
+const OWN_HEADER = /^(host|content-length|transfer-encoding|connection|upgrade|te|trailer|keep-alive|proxy-.*)$/i;
+
+/** This computer or the local network (the same ranges as webhook.rs; `host` as `URL` normalises it). */
+function isLocalHost(host: string): boolean {
+  if (host.startsWith("[")) {
+    const ip = host.slice(1, -1).toLowerCase();
+    const mapped = /^::ffff:([0-9a-f]{1,4}):[0-9a-f]{1,4}$/.exec(ip);
+    if (mapped) {
+      const high = parseInt(mapped[1]!, 16);
+      return isLocalHost(`${high >> 8}.${high & 255}.0.0`);
+    }
+    return ip === "::1" || /^f[cd][0-9a-f]{2}:/.test(ip) || /^fe[89ab][0-9a-f]:/.test(ip);
+  }
+  const v4 = /^(\d+)\.(\d+)\.(\d+)\.(\d+)$/.exec(host);
+  if (v4) {
+    const [a, b] = [Number(v4[1]), Number(v4[2])];
+    return a === 127 || a === 10 || (a === 192 && b === 168) || (a === 172 && b >= 16 && b <= 31) || (a === 169 && b === 254);
+  }
+  const name = host.replace(/\.$/, "").toLowerCase();
+  return !name.includes(".") || [".local", ".lan", ".home", ".home.arpa", ".internal", ".localhost"].some((s) => name.endsWith(s));
+}
+
+/** Why a webhook address is refused; `null` when it may be used (`http://` only to this computer and the local network). */
+export function webhookUrlProblem(text: string): string | null {
+  const invalid = "url must be a valid http or https URL";
+  if (text.length > 2000) return "url is too long";
+  let url: URL;
+  try {
+    url = new URL(text);
+  } catch {
+    return invalid;
+  }
+  if ((url.protocol !== "http:" && url.protocol !== "https:") || url.hostname === "") return invalid;
+  if (url.username !== "" || url.password !== "") return "put a password into a header, not into the url";
+  if (url.protocol === "http:" && !isLocalHost(url.hostname)) return "http:// is only for this computer and the local network - use https://";
+  return null;
+}
+
 export function validateActions(actions: ActionsFile): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   for (const [id, action] of Object.entries(actions.actions)) {
@@ -243,6 +282,16 @@ export function validateActions(actions: ActionsFile): ValidationIssue[] {
       };
       need("scene", "scene");
       need("input", "input_mute_toggle");
+    }
+    if (action.type === "http") {
+      const problem = webhookUrlProblem(action.url);
+      if (problem) issues.push({ path: `${base}/url`, message: problem });
+      if (action.method === "GET" && action.body !== undefined) issues.push({ path: `${base}/body`, message: "body is only allowed with POST" });
+      for (const [name, value] of Object.entries(action.headers ?? {})) {
+        // eslint-disable-next-line no-control-regex
+        if (!/^[A-Za-z0-9!#$%&'*+.^_`|~-]{1,64}$/.test(name) || OWN_HEADER.test(name)) issues.push({ path: `${base}/headers/${esc(name)}`, message: "invalid header name" });
+        else if (value.length > 500 || /[\u0000-\u0008\u000a-\u001f\u007f]/.test(value)) issues.push({ path: `${base}/headers/${esc(name)}`, message: "invalid header value" });
+      }
     }
     if (action.type === "twitch") {
       // The text goes with `announce` and with nothing else.

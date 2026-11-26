@@ -1,4 +1,4 @@
-import { t, type Action, type MediaOp, type ShotArea, type SystemOp } from "@decka/shared";
+import { t, type Action, type HttpMethod, type MediaOp, type ShotArea, type SystemOp } from "@decka/shared";
 import { useState } from "react";
 import Disclosure from "../ui/Disclosure";
 import Field from "../ui/Field";
@@ -23,7 +23,19 @@ export const actionTypes = (): { id: ActionType; label: string; icon: string }[]
   { id: "media", label: t("form.type_media"), icon: "play-circle" },
   { id: "system", label: t("form.type_system"), icon: "power" },
   { id: "screenshot", label: t("m29.type_screenshot"), icon: "camera" },
+  { id: "http", label: t("m29.type_webhook"), icon: "link" },
 ];
+
+/** `Name: value` lines -> headers; `null` when a line has no name and colon. */
+export function parseHeaders(text: string): Record<string, string> | null {
+  const out: Record<string, string> = {};
+  for (const line of text.split(/\r?\n/).map((l) => l.trim()).filter((l) => l !== "")) {
+    const colon = line.indexOf(":");
+    if (colon <= 0) return null;
+    out[line.slice(0, colon).trim()] = line.slice(colon + 1).trim();
+  }
+  return out;
+}
 
 /** Everything the form edits, as strings and booleans. */
 export interface Draft {
@@ -39,6 +51,9 @@ export interface Draft {
   hidden: boolean;
   url: string;
   shotArea: ShotArea;
+  method: HttpMethod;
+  body: string;
+  headersText: string;
   toggleVar: string;
 }
 
@@ -55,6 +70,9 @@ export const emptyDraft = (): Draft => ({
   hidden: false,
   url: "",
   shotArea: "screen",
+  method: "GET",
+  body: "",
+  headersText: "",
   toggleVar: "",
 });
 
@@ -81,6 +99,12 @@ export function toDraft(id: string, action: Action): Draft {
       break;
     case "screenshot":
       draft.shotArea = action.area;
+      break;
+    case "http":
+      draft.url = action.url;
+      draft.method = action.method;
+      draft.body = action.body ?? "";
+      draft.headersText = Object.entries(action.headers ?? {}).map(([name, value]) => `${name}: ${value}`).join("\n");
       break;
     case "audio":
     case "obs":
@@ -122,6 +146,20 @@ export function fromDraft(d: Draft): { action: Action } | { error: string } {
       return { action: { ...base, type: "system", op: d.systemOp } };
     case "screenshot":
       return { action: { ...base, type: "screenshot", area: d.shotArea } };
+    case "http": {
+      const headers = parseHeaders(d.headersText);
+      if (!headers) return { error: t("m29.webhook_headers_error") };
+      return {
+        action: {
+          ...base,
+          type: "http",
+          method: d.method,
+          url: d.url.trim(),
+          ...(d.method === "POST" && d.body !== "" ? { body: d.body } : {}),
+          ...(Object.keys(headers).length > 0 ? { headers } : {}),
+        },
+      };
+    }
     case "audio":
     case "obs":
     case "twitch":
@@ -259,6 +297,29 @@ export default function ActionForm({ draft, onChange }: FormProps) {
             </button>
           ))}
         </div>
+      )}
+
+      {draft.type === "http" && (
+        <>
+          <div className="tile-grid" role="group" aria-label={t("m29.webhook_method")}>
+            {(["GET", "POST"] as const).map((method) => (
+              <button key={method} type="button" className={draft.method === method ? "on" : ""} onClick={() => set("method", method)}>
+                {method}
+              </button>
+            ))}
+          </div>
+          <Field label={t("form.address")} hint={t("m29.webhook_url_hint")}>
+            <input value={draft.url} onChange={(e) => set("url", e.target.value)} placeholder="https://example.com/hook" />
+          </Field>
+          {draft.method === "POST" && (
+            <Field label={t("m29.webhook_body")}>
+              <textarea rows={3} value={draft.body} maxLength={4096} onChange={(e) => set("body", e.target.value)} />
+            </Field>
+          )}
+          <Field label={t("m29.webhook_headers")} hint={t("m29.webhook_headers_hint")}>
+            <textarea rows={2} value={draft.headersText} onChange={(e) => set("headersText", e.target.value)} placeholder="Content-Type: application/json" />
+          </Field>
+        </>
       )}
 
       <Disclosure title={t("common.more_options")}>

@@ -28,6 +28,8 @@ const ATTRIBUTE_EXAMPLES = new Set([
   "XXXX-XXXX", // pairing code mask
   "192.168.1.10", // address example
   "github.com", // address example
+  "https://example.com/hook", // webhook address example
+  "Content-Type: application/json", // webhook header example
   "code.exe", // program example
   "audio.muted", // variable example
   "true", // value example

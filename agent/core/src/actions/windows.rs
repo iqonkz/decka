@@ -101,6 +101,11 @@ impl ActionRunner for WindowsRunner {
             }
             Action::Audio { op, .. } => crate::audio::toggle(*op),
             Action::Screenshot { area, .. } => crate::shot::take(*area),
+            Action::Http { method, url, body, headers, .. } => {
+                let code = crate::webhook::send(*method, url, body.as_deref(), headers.as_ref())?;
+                tracing::info!("webhook answered {code}");
+                crate::webhook::outcome(code)
+            }
             // `obs` (T15.6) and `sequence` (run by the agent, it needs the other actions) never reach a runner yet.
             Action::Obs { .. } | Action::Twitch { .. } | Action::Youtube { .. } | Action::Sequence { .. } => Err("not implemented yet".to_string()),
             Action::Media { op, .. } if crate::media_control::session_only(*op) => {

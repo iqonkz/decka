@@ -138,6 +138,26 @@ pub fn validate_actions(file: &ActionsFile) -> Vec<ValidationIssue> {
                 }
             }
             Action::Media { .. } | Action::System { .. } | Action::Audio { .. } | Action::Screenshot { .. } => {}
+            Action::Http { method, url, body, headers, .. } => {
+                if let Err(why) = crate::webhook::check_url(url) {
+                    out.push(issue(format!("{base}/url"), why));
+                }
+                match body {
+                    Some(_) if *method == HttpMethod::Get => out.push(issue(format!("{base}/body"), "body is only allowed with POST")),
+                    Some(b) if chars(b) > crate::webhook::MAX_BODY => out.push(issue(format!("{base}/body"), "body must be at most 4096 characters")),
+                    _ => {}
+                }
+                if let Some(headers) = headers {
+                    if headers.len() > crate::webhook::MAX_HEADERS {
+                        out.push(issue(format!("{base}/headers"), "at most 10 headers"));
+                    }
+                    for (name, value) in headers {
+                        if let Err(why) = crate::webhook::check_header(name, value) {
+                            out.push(issue(format!("{base}/headers/{}", esc(name)), why));
+                        }
+                    }
+                }
+            }
             Action::Obs { op, scene, input, .. } => {
                 // `scene` goes with op `scene` and `input` with `input_mute_toggle`, and with nothing else (DATA_MODEL.md 2.3).
                 for (field, value, needed) in [("scene", scene, *op == ObsOp::Scene), ("input", input, *op == ObsOp::InputMuteToggle)] {

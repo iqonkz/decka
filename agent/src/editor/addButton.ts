@@ -106,6 +106,8 @@ export function defaultIconFor(action: Action): string {
       return action.op === "sleep" ? "lucide:moon" : "lucide:lock";
     case "screenshot":
       return "lucide:camera";
+    case "http":
+      return "lucide:link";
     case "media":
       return presetActions().find((p) => p.action.type === "media" && p.action.op === action.op)?.icon ?? "lucide:play";
     case "audio":

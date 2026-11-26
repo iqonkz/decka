@@ -180,6 +180,25 @@ pub enum Action {
         toggle_var: Option<String>,
         area: ShotArea,
     },
+    /// M29 (T29.9): a webhook; the rules are in `webhook`.
+    Http {
+        name: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        toggle_var: Option<String>,
+        method: HttpMethod,
+        url: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        body: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        headers: Option<BTreeMap<String, String>>,
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "UPPERCASE")]
+pub enum HttpMethod {
+    Get,
+    Post,
 }
 
 /// What a `screenshot` action takes.
@@ -204,7 +223,8 @@ impl Action {
             | Action::Twitch { name, .. }
             | Action::Youtube { name, .. }
             | Action::Sequence { name, .. }
-            | Action::Screenshot { name, .. } => name,
+            | Action::Screenshot { name, .. }
+            | Action::Http { name, .. } => name,
         }
     }
 
@@ -220,7 +240,8 @@ impl Action {
             | Action::Twitch { toggle_var, .. }
             | Action::Youtube { toggle_var, .. }
             | Action::Sequence { toggle_var, .. }
-            | Action::Screenshot { toggle_var, .. } => toggle_var.as_deref(),
+            | Action::Screenshot { toggle_var, .. }
+            | Action::Http { toggle_var, .. } => toggle_var.as_deref(),
         }
     }
 
@@ -238,6 +259,7 @@ impl Action {
             Action::Youtube { .. } => "youtube",
             Action::Sequence { .. } => "sequence",
             Action::Screenshot { .. } => "screenshot",
+            Action::Http { .. } => "http",
         }
     }
 }
