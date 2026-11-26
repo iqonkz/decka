@@ -418,6 +418,17 @@ pub fn goto_value(page_id: &str, seq: u64) -> String {
     format!("{page_id}#{seq}")
 }
 
+/// True when a spoken word alone must not run this action: it ends the session or throws files away (itself or one of the
+/// steps of a sequence). A misheard phrase must not switch the PC off.
+fn ends_work(id: &str, actions: &ActionsFile, depth: u8) -> bool {
+    use crate::model::{Action, SequenceStep, SystemOp};
+    match actions.actions.get(id) {
+        Some(Action::System { op, .. }) => matches!(op, SystemOp::Shutdown | SystemOp::Restart | SystemOp::Signout | SystemOp::Hibernate | SystemOp::Sleep | SystemOp::EmptyRecycleBin),
+        Some(Action::Sequence { steps, .. }) if depth < 4 => steps.iter().any(|s| matches!(s, SequenceStep::Run { action_id } if ends_work(action_id, actions, depth + 1))),
+        _ => false,
+    }
+}
+
 /// What exists on this PC now (DATA_MODEL.md 12.5): the lists the tools check names against.
 pub fn build_context(lang: &str, actions: &ActionsFile, layout: &LayoutFile, installed: &[InstalledApp]) -> Context {
     let mut buttons = Vec::new();
@@ -433,6 +444,12 @@ pub fn build_context(lang: &str, actions: &ActionsFile, layout: &LayoutFile, ins
                     confirm_actions.push(action_id.clone());
                 }
             }
+        }
+    }
+    // T29.A: shutting down and the like ask "yes" by voice also when the key itself is not marked.
+    for id in actions.actions.keys() {
+        if !confirm_actions.contains(id) && ends_work(id, actions, 0) {
+            confirm_actions.push(id.clone());
         }
     }
     Context {
@@ -1888,6 +1905,20 @@ mod tests {
         assert_eq!(c.lang, "kk");
         assert_eq!(c.buttons, [ButtonRef { label: "Lock".into(), action_id: "lock".into() }], "a button without a label cannot be named");
         assert_eq!(c.confirm_actions, ["lock"]);
+        // T29.A: a key that ends the session asks by voice even when nobody marked it, also from inside a sequence.
+        let risky: ActionsFile = serde_json::from_value(json!({ "version": 1, "actions": {
+            "off": { "type": "system", "name": "Off", "op": "shutdown" },
+            "bin": { "type": "system", "name": "Bin", "op": "empty_recycle_bin" },
+            "night": { "type": "sequence", "name": "Night", "steps": [{ "delayMs": 10 }, { "actionId": "off" }] },
+            "calm": { "type": "sequence", "name": "Calm", "steps": [{ "actionId": "tasks" }] },
+            "tasks": { "type": "system", "name": "Tasks", "op": "task_manager" },
+            "loop": { "type": "sequence", "name": "Loop", "steps": [{ "actionId": "loop" }] }
+        } }))
+        .unwrap();
+        let mut asked = build_context("en", &risky, &layout, &[]).confirm_actions;
+        asked.retain(|id| risky.actions.contains_key(id));
+        asked.sort();
+        assert_eq!(asked, ["bin", "night", "off"]);
         assert_eq!(c.pages, [PageRef { id: "main".into(), name: "Main".into() }], "popups are not pages to go to");
         assert_eq!((c.actions.len(), c.apps.len()), (1, 1));
     }
