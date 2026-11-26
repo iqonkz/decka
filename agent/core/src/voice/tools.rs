@@ -19,7 +19,7 @@ pub const TOOLS: &[&str] = &[
     // M27: eyes and hands on the screen, reading aloud, work modes.
     "find_on_screen", "ui_act", "guide", "guide_record", "guide_control", "read_aloud", "mode_run", "mode_save",
     // M29: a ready-made button of the catalog, a picture of the screen.
-    "add_button", "screenshot",
+    "add_button", "screenshot", "system_theme",
 ];
 
 pub const MAX_TEXT: usize = 2000;
@@ -146,6 +146,10 @@ pub enum ToolCall {
     SetupButton { catalog_id: String },
     /// T29.7: a picture of the monitor, the window or a chosen area.
     Screenshot(crate::model::ShotArea),
+    /// T29.11: the light or dark theme of Windows.
+    SystemTheme(crate::wintheme::Wanted),
+    /// T29.11: "the theme of Decka" is a setting of the application: the settings open on it.
+    AppearanceSettings,
     Dictate,
     Timer { minutes: u32, label: Option<String> },
     System(SystemOp),
@@ -675,6 +679,22 @@ fn run(tool: &str, args: &serde_json::Map<String, Value>, ctx: &Context) -> Resu
                 ready_key(ToolCall::ScreenAsk { question }, true, "Download the Screen help package (about 0.7 GB)?", "voice.confirm.screen_pack", &[])
             }
         }
+        "system_theme" => {
+            use crate::wintheme::Wanted;
+            only(args, &["mode", "target"])?;
+            match args.get("target").and_then(Value::as_str) {
+                None | Some("windows") => {}
+                Some("decka") => return Ok(ready(ToolCall::AppearanceSettings, false, "The theme of Decka")),
+                Some(_) => return Err(reject("unknown theme target")),
+            }
+            let mode = match args.get("mode").and_then(Value::as_str) {
+                Some("light") => Wanted::Light,
+                Some("dark") => Wanted::Dark,
+                Some("toggle") => Wanted::Toggle,
+                _ => return Err(reject("unknown theme")),
+            };
+            ready(ToolCall::SystemTheme(mode), false, "Windows theme")
+        }
         "screenshot" => {
             use crate::model::ShotArea;
             only(args, &["area"])?;
@@ -1141,6 +1161,20 @@ mod tests {
         let there = Context { current_page: Some("media".into()), ..c };
         let r = ready_of(validate(&RawCall { tool: "add_button".into(), args: json!({ "catalogId": "win.lock" }) }, &there));
         assert_eq!(r.call, ToolCall::AddButton { catalog_id: "win.lock".into(), page_id: "media".into() });
+    }
+
+    /// T29.11: the theme of Windows needs no "yes"; "the theme of Decka" opens the settings instead.
+    #[test]
+    fn the_windows_theme_and_the_theme_of_decka_are_different_things() {
+        use crate::wintheme::Wanted;
+        for (mode, want) in [("light", Wanted::Light), ("dark", Wanted::Dark), ("toggle", Wanted::Toggle)] {
+            let r = ready_of(call("system_theme", json!({ "mode": mode })));
+            assert_eq!((r.confirm, r.call), (false, ToolCall::SystemTheme(want)));
+        }
+        assert_eq!(ready_of(call("system_theme", json!({ "mode": "dark", "target": "decka" }))).call, ToolCall::AppearanceSettings);
+        for bad in [json!({}), json!({ "mode": "blue" }), json!({ "mode": "dark", "target": "office" }), json!({ "mode": "dark", "path": "x" })] {
+            assert!(is_reject(call("system_theme", bad.clone())), "{bad}");
+        }
     }
 
     #[test]

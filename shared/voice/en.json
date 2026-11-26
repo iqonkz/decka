@@ -324,6 +324,60 @@
       ]
     },
     {
+      "tool": "system_theme",
+      "args": {
+        "mode": "dark"
+      },
+      "patterns": [
+        "dark theme",
+        "dark mode",
+        "turn on dark mode",
+        "switch to dark theme",
+        "switch to dark mode",
+        "enable windows dark theme",
+        "switch windows to dark theme"
+      ]
+    },
+    {
+      "tool": "system_theme",
+      "args": {
+        "mode": "light"
+      },
+      "patterns": [
+        "light theme",
+        "light mode",
+        "turn on light mode",
+        "switch to light theme",
+        "switch to light mode",
+        "enable windows light theme",
+        "switch windows to light theme"
+      ]
+    },
+    {
+      "tool": "system_theme",
+      "args": {
+        "mode": "toggle"
+      },
+      "patterns": [
+        "toggle theme",
+        "toggle dark mode",
+        "change windows theme",
+        "switch the theme"
+      ]
+    },
+    {
+      "tool": "system_theme",
+      "args": {
+        "mode": "toggle",
+        "target": "decka"
+      },
+      "patterns": [
+        "decka theme",
+        "change the decka theme",
+        "open the decka theme"
+      ]
+    },
+    {
       "tool": "screenshot",
       "args": {
         "area": "screen"
@@ -336,6 +390,60 @@
       ]
     },
     {
+      "tool": "system_theme",
+      "args": {
+        "mode": "dark"
+      },
+      "patterns": [
+        "dark theme",
+        "dark mode",
+        "turn on dark mode",
+        "switch to dark theme",
+        "switch to dark mode",
+        "enable windows dark theme",
+        "switch windows to dark theme"
+      ]
+    },
+    {
+      "tool": "system_theme",
+      "args": {
+        "mode": "light"
+      },
+      "patterns": [
+        "light theme",
+        "light mode",
+        "turn on light mode",
+        "switch to light theme",
+        "switch to light mode",
+        "enable windows light theme",
+        "switch windows to light theme"
+      ]
+    },
+    {
+      "tool": "system_theme",
+      "args": {
+        "mode": "toggle"
+      },
+      "patterns": [
+        "toggle theme",
+        "toggle dark mode",
+        "change windows theme",
+        "switch the theme"
+      ]
+    },
+    {
+      "tool": "system_theme",
+      "args": {
+        "mode": "toggle",
+        "target": "decka"
+      },
+      "patterns": [
+        "decka theme",
+        "change the decka theme",
+        "open the decka theme"
+      ]
+    },
+    {
       "tool": "screenshot",
       "args": {
         "area": "window"
@@ -344,6 +452,60 @@
         "screenshot of the window",
         "window screenshot",
         "capture this window"
+      ]
+    },
+    {
+      "tool": "system_theme",
+      "args": {
+        "mode": "dark"
+      },
+      "patterns": [
+        "dark theme",
+        "dark mode",
+        "turn on dark mode",
+        "switch to dark theme",
+        "switch to dark mode",
+        "enable windows dark theme",
+        "switch windows to dark theme"
+      ]
+    },
+    {
+      "tool": "system_theme",
+      "args": {
+        "mode": "light"
+      },
+      "patterns": [
+        "light theme",
+        "light mode",
+        "turn on light mode",
+        "switch to light theme",
+        "switch to light mode",
+        "enable windows light theme",
+        "switch windows to light theme"
+      ]
+    },
+    {
+      "tool": "system_theme",
+      "args": {
+        "mode": "toggle"
+      },
+      "patterns": [
+        "toggle theme",
+        "toggle dark mode",
+        "change windows theme",
+        "switch the theme"
+      ]
+    },
+    {
+      "tool": "system_theme",
+      "args": {
+        "mode": "toggle",
+        "target": "decka"
+      },
+      "patterns": [
+        "decka theme",
+        "change the decka theme",
+        "open the decka theme"
       ]
     },
     {

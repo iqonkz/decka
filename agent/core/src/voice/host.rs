@@ -1514,6 +1514,17 @@ impl Ports for Inner {
                     .await
                     .map_err(|e| format!("The action did not finish: {e}"))?;
                 }
+                ToolCall::SystemTheme(wanted) => {
+                    let wanted = *wanted;
+                    let light = tokio::task::spawn_blocking(move || crate::wintheme::apply(wanted)).await.map_err(|e| format!("The action did not finish: {e}"))??;
+                    let (key, text) = if light { ("voice.reply.theme_light", "Switched Windows to the light theme") } else { ("voice.reply.theme_dark", "Switched Windows to the dark theme") };
+                    return Ok(super::status::encode(&super::status::Answer { key, args: Default::default(), text: text.into() }));
+                }
+                ToolCall::AppearanceSettings => {
+                    let Some(open) = settings else { return Err("Open Decka settings to change its theme".into()) };
+                    open("appearance");
+                    return Ok(super::status::encode(&super::status::Answer { key: "voice.reply.theme_decka", args: Default::default(), text: "The theme of Decka is chosen in its settings".into() }));
+                }
                 ToolCall::SetupButton { catalog_id } => {
                     let Some(open) = settings else { return Err("Open Decka settings to add this button".into()) };
                     let name = super::addbutton::catalog(lang).into_iter().find(|e| e.id == *catalog_id).map(|e| e.name).unwrap_or_default();

@@ -983,6 +983,25 @@ mod tests {
         }
     }
 
+    /// T29.11: the theme of Windows is switched without the model; "the theme of Decka" is another thing.
+    #[test]
+    fn the_windows_theme_is_asked_for_without_the_model() {
+        let ru = Table::parse(include_str!("../../../../shared/voice/ru.json")).unwrap();
+        let en = en();
+        let theme = |t: &Table, say: &str| match t.matches(say) {
+            Match::Hit(i) if i.tool == "system_theme" => (i.args["mode"].as_str().unwrap().to_string(), i.args.get("target").and_then(|v| v.as_str()).map(String::from)),
+            other => panic!("{say:?} -> {other:?}"),
+        };
+        for (say, mode) in [("Включи тёмную тему.", "dark"), ("включи темную тему виндовс", "dark"), ("светлая тема", "light"), ("Включи светлую тему Windows", "light"), ("переключи тему", "toggle")] {
+            assert_eq!(theme(&ru, say), (mode.to_string(), None), "{say}");
+        }
+        for (say, mode) in [("Dark mode", "dark"), ("switch to light theme", "light"), ("toggle theme", "toggle")] {
+            assert_eq!(theme(&en, say), (mode.to_string(), None), "{say}");
+        }
+        assert_eq!(theme(&ru, "смени тему декки").1.as_deref(), Some("decka"));
+        assert_eq!(theme(&en, "decka theme").1.as_deref(), Some("decka"));
+    }
+
     #[test]
     fn screenshots_are_asked_for_without_the_model() {
         let ru = Table::parse(include_str!("../../../../shared/voice/ru.json")).unwrap();

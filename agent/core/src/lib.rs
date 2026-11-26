@@ -53,6 +53,7 @@ pub mod validate;
 pub mod voice;
 pub mod watch;
 pub mod weather;
+pub mod wintheme;
 pub mod webhook;
 pub mod youtube;
 
