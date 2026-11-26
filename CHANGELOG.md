@@ -22,6 +22,15 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 - **Dictation and text commands with a Russian or Kazakh keyboard layout**: `Ctrl+C` / `Ctrl+V` were typed as letters. The Windows 11 Notepad no longer garbles dictated text.
 - **"Yes" answers a question on the PC**: say it, or press the button inside the island; the Screen help download shows its percent.
 - A phrase that the recognition repeated several times is used once; "play music" starts the music instead of toggling it.
+- Better contrast and tidier search boxes in the settings window and on the phone.
+
+### Changed
+- **Memory**: the model and the speech recognition leave the memory after 10 quiet minutes (Settings -> Voice: 1-60 minutes, or keep them loaded); the island says how long the next load takes. The model server takes about 0.5 GB less.
+
+### Security
+- `voice.log` no longer holds the texts of answers; texts written by earlier versions are removed at the first start.
+- Shutting down, restarting, signing out, sleeping and emptying the recycle bin by voice always ask "yes".
+- Updated `url` and `cookie` (RustSec advisories); a download longer than expected is stopped; the island window has fewer permissions.
 
 ## 0.50.1 — 2026-11-26
 
