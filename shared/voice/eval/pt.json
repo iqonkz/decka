@@ -585,5 +585,33 @@
       "query": "tempo em Paris",
       "site": "web"
     }
+  },
+  {
+    "say": "coloca música",
+    "tool": "media",
+    "args": {
+      "op": "play_pause"
+    }
+  },
+  {
+    "say": "tire um print",
+    "tool": "screenshot",
+    "args": {
+      "area": "screen"
+    }
+  },
+  {
+    "say": "adicione o botão Spotify",
+    "tool": "add_button",
+    "args": {
+      "catalogId": "apps.spotify"
+    }
+  },
+  {
+    "say": "ativar tema escuro do windows",
+    "tool": "system_theme",
+    "args": {
+      "mode": "dark"
+    }
   }
 ]

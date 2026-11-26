@@ -40,6 +40,7 @@ export function sidebarGroups(updateAvailable?: boolean): SidebarGroupDef[] {
       titleKey: "sidebar.group.assistant",
       items: [
         { id: "voice", titleKey: "sidebar.item.voice", icon: "microphone" },
+        { id: "screen_help", titleKey: "sidebar.item.screen_help", icon: "monitor" },
         { id: "reminders", titleKey: "sidebar.item.reminders", icon: "bell" },
       ],
     },
@@ -64,7 +65,7 @@ export function sidebarGroups(updateAvailable?: boolean): SidebarGroupDef[] {
 
 export interface SidebarProps {
   activePage: SearchTargetPage;
-  onNavigate: (target: { tab: "deck" | "look" | "phone" | "more"; section?: "actions" | "integrations" | "settings" | "voice" | "reminders" | "about" }) => void;
+  onNavigate: (target: { tab: "deck" | "look" | "phone" | "more"; section?: "actions" | "integrations" | "settings" | "voice" | "screen_help" | "reminders" | "about" }) => void;
   updateAvailable?: boolean;
 }
 

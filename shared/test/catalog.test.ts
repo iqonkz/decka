@@ -371,7 +371,7 @@ describe("insertItem", () => {
 
 describe("the library", () => {
   test("a search finds names and labels in both languages and whole categories", () => {
-    expect(searchCatalog("screenshot").map((i) => i.id)).toEqual(["win.screenshot"]);
+    expect(searchCatalog("screenshot").map((i) => i.id)).toEqual(["win.screenshot", "win.screenshot.window", "win.screenshot.region"]);
     expect(searchCatalog("Снимок").map((i) => i.id)).toContain("win.screenshot");
     expect(searchCatalog("повтор").map((i) => i.id)).toEqual(expect.arrayContaining(["media.repeat", "stream.replay"]));
     expect(searchCatalog("stream").map((i) => i.id)).toEqual(expect.arrayContaining(["stream.record", "stream.live", "stream.scene"]));

@@ -585,5 +585,33 @@
       "query": "météo à Paris",
       "site": "web"
     }
+  },
+  {
+    "say": "mets de la musique",
+    "tool": "media",
+    "args": {
+      "op": "play_pause"
+    }
+  },
+  {
+    "say": "fais une capture d'écran",
+    "tool": "screenshot",
+    "args": {
+      "area": "screen"
+    }
+  },
+  {
+    "say": "ajoute le bouton Spotify",
+    "tool": "add_button",
+    "args": {
+      "catalogId": "apps.spotify"
+    }
+  },
+  {
+    "say": "active le thème sombre windows",
+    "tool": "system_theme",
+    "args": {
+      "mode": "dark"
+    }
   }
 ]

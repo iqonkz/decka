@@ -72,8 +72,6 @@ describe("M28 Settings UI (T28.2b)", () => {
         }}
       />,
     );
-    expect(html).toContain("Помощь по экрану");
-    expect(html).toContain("Читает только активное окно, только по запросу и только в памяти");
     expect(html).toContain("1. Микрофон");
     expect(html).toContain("2. Распознавание");
     expect(html).toContain("3. Модель");

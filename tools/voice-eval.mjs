@@ -63,6 +63,9 @@ export const VALID_TOOLS = new Set([
   "read_aloud",
   "mode_run",
   "mode_save",
+  "screenshot",
+  "add_button",
+  "system_theme",
   "guide_control",
 ]);
 

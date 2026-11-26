@@ -1,97 +1,478 @@
 {
-  "categories": { "windows": "Windows", "media": "Multimédia", "sound": "Son", "stream": "Streaming", "widgets": "Widgets", "navigation": "Navigation", "web": "Web", "keys": "Touches", "apps": "Programmes" },
+  "categories": {
+    "windows": "Windows",
+    "media": "Multimédia",
+    "sound": "Son",
+    "stream": "Streaming",
+    "widgets": "Widgets",
+    "navigation": "Navigation",
+    "web": "Web",
+    "keys": "Touches",
+    "apps": "Programmes"
+  },
   "items": {
-    "win.lock": { "label": "Verrouiller", "name": "Verrouiller le PC" },
-    "win.sleep": { "label": "Veille", "name": "Mettre en veille" },
-    "win.shutdown": { "label": "Éteindre", "name": "Éteindre le PC" },
-    "win.restart": { "label": "Redémarrer", "name": "Redémarrer le PC" },
-    "win.signout": { "label": "Déconnexion", "name": "Fermer la session" },
-    "win.hibernate": { "label": "Hiberner", "name": "Mettre en hibernation" },
-    "win.displayoff": { "label": "Écran", "name": "Éteindre l'écran" },
-    "win.recycle": { "label": "Corbeille", "name": "Vider la corbeille" },
-    "win.screenshot": { "label": "Capture", "name": "Capture d'écran" },
-    "win.taskmgr": { "label": "Tâches", "name": "Gestionnaire des tâches" },
-    "win.desktop": { "label": "Bureau", "name": "Afficher le bureau" },
-    "win.explorer": { "label": "Explorateur", "name": "Explorateur de fichiers" },
-    "win.emoji": { "label": "Émoji", "name": "Panneau des émojis" },
-    "win.clipboard": { "label": "Presse-pap.", "name": "Historique du presse-papiers" },
-    "win.settings": { "label": "Paramètres", "name": "Paramètres Windows" },
-    "media.play": { "label": "Lecture", "name": "Lecture / Pause", "states": { "true": "Pause" } },
-    "media.next": { "label": "Suivant", "name": "Piste suivante" },
-    "media.prev": { "label": "Précédent", "name": "Piste précédente" },
-    "media.shuffle": { "label": "Aléatoire", "name": "Lecture aléatoire" },
-    "media.repeat": { "label": "Répéter", "name": "Répéter", "states": { "track": "Répéter 1" } },
-    "media.widget": { "label": "Lecteur", "name": "En lecture" },
-    "sound.mic": { "label": "Micro", "name": "Couper le microphone", "states": { "true": "Micro coupé" } },
-    "sound.mute": { "label": "Muet", "name": "Couper le son" },
-    "sound.volup": { "label": "Vol +", "name": "Volume +" },
-    "sound.voldown": { "label": "Vol -", "name": "Volume -" },
-    "sound.widget": { "label": "Volume", "name": "Curseur de volume" },
-    "stream.record": { "label": "Enregistrer", "name": "OBS : enregistrer", "states": { "true": "REC" } },
-    "stream.live": { "label": "En direct", "name": "OBS : passer en direct", "states": { "true": "LIVE" } },
-    "stream.replay": { "label": "Replay", "name": "OBS : enregistrer le replay" },
-    "stream.scene": { "label": "Scène", "name": "OBS : changer de scène" },
-    "stream.mic": { "label": "Micro OBS", "name": "OBS : couper l'entrée audio" },
-    "stream.widget": { "label": "OBS", "name": "État d'OBS" },
-    "widget.clock": { "label": "Horloge", "name": "Horloge" },
-    "widget.sys": { "label": "Système", "name": "Système" },
-    "widget.sysgraph": { "label": "Graphique", "name": "Système avec graphique" },
-    "widget.weather": { "label": "Météo", "name": "Météo" },
-    "widget.timer": { "label": "Minuteur", "name": "Minuteur" },
-    "widget.volume": { "label": "Volume", "name": "Curseur de volume" },
-    "widget.statuses": { "label": "Services", "name": "Services" },
-    "widget.notifications": { "label": "Notifs", "name": "Notifications" },
-    "widget.media": { "label": "Lecteur", "name": "En lecture" },
-    "widget.twitch": { "label": "Twitch", "name": "Chaîne Twitch" },
-    "widget.battery": { "label": "Batterie", "name": "Batterie des appareils" },
-    "widget.reminders": { "label": "Rappels", "name": "Prochains rappels" },
-    "widget.list": { "label": "Liste", "name": "Liste avec coches" },
-    "widget.mail": { "label": "Messagerie", "name": "Messages non lus" },
-    "widget.youtube": { "label": "YouTube", "name": "Chaîne YouTube" },
-    "widget.ai": { "label": "Limites IA", "name": "Limites d'IA (Claude, Codex)" },
-    "widget.context": { "label": "Touches app", "name": "Touches du programme au premier plan" },
-    "widget.ai.claude": { "label": "Claude", "name": "Limites de Claude Code (2x1)" },
-    "widget.ai.codex": { "label": "Codex", "name": "Limites de Codex (2x1)" },
-    "twitch.clip": { "label": "Clip", "name": "Twitch : clip" },
-    "twitch.announce": { "label": "Annonce", "name": "Twitch : annonce dans le chat" },
-    "youtube.live": { "label": "YT direct", "name": "YouTube : passer en direct (planifié)" },
-    "youtube.end": { "label": "YT fin", "name": "YouTube : terminer le direct" },
-    "youtube.chat": { "label": "YT chat", "name": "YouTube : message dans le chat" },
-    "widget.obs": { "label": "OBS", "name": "État d'OBS" },
-    "nav.back": { "label": "Retour", "name": "Retour" },
-    "nav.page": { "label": "Page", "name": "Ouvrir une page" },
-    "nav.popup": { "label": "Groupe", "name": "Ouvrir un groupe" },
-    "web.site": { "label": "Site web", "name": "Ouvrir un site web" },
-    "keys.shortcut": { "label": "Raccourci", "name": "Raccourci clavier" },
-    "keys.sequence": { "label": "Séquence", "name": "Séquence d'actions" }
+    "win.lock": {
+      "label": "Verrouiller",
+      "name": "Verrouiller le PC"
+    },
+    "win.sleep": {
+      "label": "Veille",
+      "name": "Mettre en veille"
+    },
+    "win.shutdown": {
+      "label": "Éteindre",
+      "name": "Éteindre le PC"
+    },
+    "win.restart": {
+      "label": "Redémarrer",
+      "name": "Redémarrer le PC"
+    },
+    "win.signout": {
+      "label": "Déconnexion",
+      "name": "Fermer la session"
+    },
+    "win.hibernate": {
+      "label": "Hiberner",
+      "name": "Mettre en hibernation"
+    },
+    "win.displayoff": {
+      "label": "Écran",
+      "name": "Éteindre l'écran"
+    },
+    "win.recycle": {
+      "label": "Corbeille",
+      "name": "Vider la corbeille"
+    },
+    "win.screenshot": {
+      "label": "Capture",
+      "name": "Capture d'écran"
+    },
+    "win.taskmgr": {
+      "label": "Tâches",
+      "name": "Gestionnaire des tâches"
+    },
+    "win.desktop": {
+      "label": "Bureau",
+      "name": "Afficher le bureau"
+    },
+    "win.explorer": {
+      "label": "Explorateur",
+      "name": "Explorateur de fichiers"
+    },
+    "win.emoji": {
+      "label": "Émoji",
+      "name": "Panneau des émojis"
+    },
+    "win.clipboard": {
+      "label": "Presse-pap.",
+      "name": "Historique du presse-papiers"
+    },
+    "win.settings": {
+      "label": "Paramètres",
+      "name": "Paramètres Windows"
+    },
+    "media.play": {
+      "label": "Lecture",
+      "name": "Lecture / Pause",
+      "states": {
+        "true": "Pause"
+      }
+    },
+    "media.next": {
+      "label": "Suivant",
+      "name": "Piste suivante"
+    },
+    "media.prev": {
+      "label": "Précédent",
+      "name": "Piste précédente"
+    },
+    "media.shuffle": {
+      "label": "Aléatoire",
+      "name": "Lecture aléatoire"
+    },
+    "media.repeat": {
+      "label": "Répéter",
+      "name": "Répéter",
+      "states": {
+        "track": "Répéter 1"
+      }
+    },
+    "media.widget": {
+      "label": "Lecteur",
+      "name": "En lecture"
+    },
+    "sound.mic": {
+      "label": "Micro",
+      "name": "Couper le microphone",
+      "states": {
+        "true": "Micro coupé"
+      }
+    },
+    "sound.mute": {
+      "label": "Muet",
+      "name": "Couper le son"
+    },
+    "sound.volup": {
+      "label": "Vol +",
+      "name": "Volume +"
+    },
+    "sound.voldown": {
+      "label": "Vol -",
+      "name": "Volume -"
+    },
+    "sound.widget": {
+      "label": "Volume",
+      "name": "Curseur de volume"
+    },
+    "stream.record": {
+      "label": "Enregistrer",
+      "name": "OBS : enregistrer",
+      "states": {
+        "true": "REC"
+      }
+    },
+    "stream.live": {
+      "label": "En direct",
+      "name": "OBS : passer en direct",
+      "states": {
+        "true": "LIVE"
+      }
+    },
+    "stream.replay": {
+      "label": "Replay",
+      "name": "OBS : enregistrer le replay"
+    },
+    "stream.scene": {
+      "label": "Scène",
+      "name": "OBS : changer de scène"
+    },
+    "stream.mic": {
+      "label": "Micro OBS",
+      "name": "OBS : couper l'entrée audio"
+    },
+    "stream.widget": {
+      "label": "OBS",
+      "name": "État d'OBS"
+    },
+    "widget.clock": {
+      "label": "Horloge",
+      "name": "Horloge"
+    },
+    "widget.sys": {
+      "label": "Système",
+      "name": "Système"
+    },
+    "widget.sysgraph": {
+      "label": "Graphique",
+      "name": "Système avec graphique"
+    },
+    "widget.weather": {
+      "label": "Météo",
+      "name": "Météo"
+    },
+    "widget.timer": {
+      "label": "Minuteur",
+      "name": "Minuteur"
+    },
+    "widget.volume": {
+      "label": "Volume",
+      "name": "Curseur de volume"
+    },
+    "widget.statuses": {
+      "label": "Services",
+      "name": "Services"
+    },
+    "widget.notifications": {
+      "label": "Notifs",
+      "name": "Notifications"
+    },
+    "widget.media": {
+      "label": "Lecteur",
+      "name": "En lecture"
+    },
+    "widget.twitch": {
+      "label": "Twitch",
+      "name": "Chaîne Twitch"
+    },
+    "widget.battery": {
+      "label": "Batterie",
+      "name": "Batterie des appareils"
+    },
+    "widget.reminders": {
+      "label": "Rappels",
+      "name": "Prochains rappels"
+    },
+    "widget.list": {
+      "label": "Liste",
+      "name": "Liste avec coches"
+    },
+    "widget.mail": {
+      "label": "Messagerie",
+      "name": "Messages non lus"
+    },
+    "widget.youtube": {
+      "label": "YouTube",
+      "name": "Chaîne YouTube"
+    },
+    "widget.ai": {
+      "label": "Limites IA",
+      "name": "Limites d'IA (Claude, Codex)"
+    },
+    "widget.context": {
+      "label": "Touches app",
+      "name": "Touches du programme au premier plan"
+    },
+    "widget.ai.claude": {
+      "label": "Claude",
+      "name": "Limites de Claude Code (2x1)"
+    },
+    "widget.ai.codex": {
+      "label": "Codex",
+      "name": "Limites de Codex (2x1)"
+    },
+    "twitch.clip": {
+      "label": "Clip",
+      "name": "Twitch : clip"
+    },
+    "twitch.announce": {
+      "label": "Annonce",
+      "name": "Twitch : annonce dans le chat"
+    },
+    "youtube.live": {
+      "label": "YT direct",
+      "name": "YouTube : passer en direct (planifié)"
+    },
+    "youtube.end": {
+      "label": "YT fin",
+      "name": "YouTube : terminer le direct"
+    },
+    "youtube.chat": {
+      "label": "YT chat",
+      "name": "YouTube : message dans le chat"
+    },
+    "widget.obs": {
+      "label": "OBS",
+      "name": "État d'OBS"
+    },
+    "nav.back": {
+      "label": "Retour",
+      "name": "Retour"
+    },
+    "nav.page": {
+      "label": "Page",
+      "name": "Ouvrir une page"
+    },
+    "nav.popup": {
+      "label": "Groupe",
+      "name": "Ouvrir un groupe"
+    },
+    "web.site": {
+      "label": "Site web",
+      "name": "Ouvrir un site web"
+    },
+    "keys.shortcut": {
+      "label": "Raccourci",
+      "name": "Raccourci clavier"
+    },
+    "keys.sequence": {
+      "label": "Séquence",
+      "name": "Séquence d'actions"
+    },
+    "win.screenshot.window": {
+      "label": "Fenêtre",
+      "name": "Capture de la fenêtre active"
+    },
+    "win.screenshot.region": {
+      "label": "Zone",
+      "name": "Capture d'une zone d'écran"
+    },
+    "web.webhook": {
+      "label": "Webhook",
+      "name": "Webhook (requête HTTP)"
+    }
   },
   "sets": {
-    "media-remote": { "name": "Télécommande multimédia", "description": "Précédent, lecture, suivant, aléatoire, répéter et En lecture" },
-    "sound": { "name": "Son", "description": "Microphone, muet, touches de volume et un curseur" },
-    "windows-tools": { "name": "Outils Windows", "description": "Verrouiller, capture, Gestionnaire des tâches, Explorateur et plus" },
-    "stream": { "name": "Streaming", "description": "Enregistrer, passer en direct, replay, scènes et état d'OBS" },
-    "twitch": { "name": "Twitch", "description": "Spectateurs, abonnés et une touche de clip" },
-    "youtube": { "name": "YouTube", "description": "Spectateurs en direct et abonnés de votre chaîne" },
-    "ai": { "name": "Programmation avec l'IA", "description": "Les limites de Claude Code et de Codex d'un coup d'œil" },
-    "workspace": { "name": "Bureau de travail", "description": "Touches du programme au premier plan, plus verrouillage, Gestionnaire des tâches, multimédia et muet toujours à portée" },
-    "focus": { "name": "Concentration", "description": "Un minuteur et une horloge" }
+    "media-remote": {
+      "name": "Télécommande multimédia",
+      "description": "Précédent, lecture, suivant, aléatoire, répéter et En lecture"
+    },
+    "sound": {
+      "name": "Son",
+      "description": "Microphone, muet, touches de volume et un curseur"
+    },
+    "windows-tools": {
+      "name": "Outils Windows",
+      "description": "Verrouiller, capture, Gestionnaire des tâches, Explorateur et plus"
+    },
+    "stream": {
+      "name": "Streaming",
+      "description": "Enregistrer, passer en direct, replay, scènes et état d'OBS"
+    },
+    "twitch": {
+      "name": "Twitch",
+      "description": "Spectateurs, abonnés et une touche de clip"
+    },
+    "youtube": {
+      "name": "YouTube",
+      "description": "Spectateurs en direct et abonnés de votre chaîne"
+    },
+    "ai": {
+      "name": "Programmation avec l'IA",
+      "description": "Les limites de Claude Code et de Codex d'un coup d'œil"
+    },
+    "workspace": {
+      "name": "Bureau de travail",
+      "description": "Touches du programme au premier plan, plus verrouillage, Gestionnaire des tâches, multimédia et muet toujours à portée"
+    },
+    "focus": {
+      "name": "Concentration",
+      "description": "Un minuteur et une horloge"
+    }
   },
   "templates": {
-    "name": { "browser": "Navigateur" },
+    "name": {
+      "browser": "Navigateur"
+    },
     "actions": {
-      "browser": { "tpl-browser-newtab": "Nouvel onglet", "tpl-browser-closetab": "Fermer l'onglet", "tpl-browser-reopen": "Rouvrir l'onglet fermé", "tpl-browser-back": "Précédent", "tpl-browser-forward": "Suivant", "tpl-browser-reload": "Actualiser", "tpl-browser-devtools": "Outils de développement", "tpl-browser-private": "Fenêtre privée", "tpl-browser-bookmark": "Ajouter cette page aux favoris", "tpl-browser-address": "Barre d'adresse", "tpl-browser-find": "Rechercher dans la page", "tpl-browser-downloads": "Téléchargements", "tpl-browser-history": "Historique", "tpl-browser-nexttab": "Onglet suivant" },
-      "canva": { "tpl-canva-text": "Zone de texte", "tpl-canva-rect": "Rectangle", "tpl-canva-circle": "Cercle", "tpl-canva-line": "Ligne", "tpl-canva-dup": "Dupliquer", "tpl-canva-group": "Grouper", "tpl-canva-ungroup": "Dissocier", "tpl-canva-undo": "Annuler", "tpl-canva-redo": "Rétablir", "tpl-canva-delete": "Supprimer", "tpl-canva-lock": "Verrouiller / déverrouiller", "tpl-canva-present": "Présenter" },
-      "discord": { "tpl-discord-mute": "Couper le microphone", "tpl-discord-deafen": "Couper le son", "tpl-discord-switcher": "Sélecteur rapide", "tpl-discord-inbox": "Boîte de réception", "tpl-discord-nextsrv": "Serveur suivant", "tpl-discord-prevsrv": "Serveur précédent" },
-      "excel": { "tpl-excel-save": "Enregistrer", "tpl-excel-undo": "Annuler", "tpl-excel-redo": "Rétablir", "tpl-excel-find": "Rechercher", "tpl-excel-bold": "Gras", "tpl-excel-filter": "Filtre activé / désactivé", "tpl-excel-edit": "Modifier la cellule", "tpl-excel-fill": "Recopier vers le bas", "tpl-excel-format": "Format de cellule", "tpl-excel-sheet": "Nouvelle feuille" },
-      "outlook": { "tpl-outlook-new": "Nouveau message", "tpl-outlook-reply": "Répondre", "tpl-outlook-replyall": "Répondre à tous", "tpl-outlook-forward": "Transférer", "tpl-outlook-send": "Envoyer", "tpl-outlook-mail": "Vue Courrier", "tpl-outlook-calendar": "Vue Calendrier", "tpl-outlook-search": "Rechercher", "tpl-outlook-read": "Marquer comme lu", "tpl-outlook-delete": "Supprimer" },
-      "powerpoint": { "tpl-powerpoint-start": "Démarrer le diaporama", "tpl-powerpoint-current": "Démarrer à partir de cette diapositive", "tpl-powerpoint-prev": "Diapositive précédente", "tpl-powerpoint-next": "Diapositive suivante", "tpl-powerpoint-end": "Terminer le diaporama", "tpl-powerpoint-newslide": "Nouvelle diapositive", "tpl-powerpoint-dup": "Dupliquer la diapositive", "tpl-powerpoint-save": "Enregistrer", "tpl-powerpoint-undo": "Annuler", "tpl-powerpoint-bold": "Gras" },
-      "spotify": { "tpl-spotify-prev": "Précédent", "tpl-spotify-play": "Lecture / Pause", "tpl-spotify-next": "Suivant", "tpl-spotify-voldown": "Volume -", "tpl-spotify-volup": "Volume +", "tpl-spotify-mute": "Muet" },
-      "teams": { "tpl-teams-mute": "Couper / rétablir le micro", "tpl-teams-video": "Caméra activée / désactivée", "tpl-teams-share": "Partager l'écran", "tpl-teams-hand": "Lever / baisser la main", "tpl-teams-leave": "Quitter la réunion", "tpl-teams-accept": "Accepter l'appel vidéo", "tpl-teams-decline": "Refuser l'appel", "tpl-teams-search": "Rechercher" },
-      "telegram": { "tpl-telegram-search": "Rechercher", "tpl-telegram-next": "Discussion suivante", "tpl-telegram-prev": "Discussion précédente", "tpl-telegram-close": "Fermer la discussion", "tpl-telegram-edit": "Modifier le dernier message", "tpl-telegram-lock": "Verrouiller l'application" },
-      "vscode": { "tpl-vscode-palette": "Palette de commandes", "tpl-vscode-quickopen": "Ouverture rapide", "tpl-vscode-findall": "Rechercher dans les fichiers", "tpl-vscode-git": "Contrôle de code source", "tpl-vscode-sidebar": "Afficher / masquer la barre latérale", "tpl-vscode-save": "Enregistrer", "tpl-vscode-format": "Mettre en forme le document", "tpl-vscode-run": "Démarrer le débogage", "tpl-vscode-stop": "Arrêter le débogage" },
-      "whatsapp": { "tpl-whatsapp-new": "Nouvelle discussion", "tpl-whatsapp-search": "Rechercher", "tpl-whatsapp-next": "Discussion suivante", "tpl-whatsapp-prev": "Discussion précédente", "tpl-whatsapp-mute": "Mettre la discussion en sourdine", "tpl-whatsapp-archive": "Archiver la discussion", "tpl-whatsapp-group": "Nouveau groupe", "tpl-whatsapp-close": "Fermer la discussion" },
-      "word": { "tpl-word-bold": "Gras", "tpl-word-italic": "Italique", "tpl-word-underline": "Souligné", "tpl-word-left": "Aligner à gauche", "tpl-word-center": "Centrer", "tpl-word-save": "Enregistrer", "tpl-word-undo": "Annuler", "tpl-word-redo": "Rétablir", "tpl-word-find": "Rechercher", "tpl-word-print": "Imprimer" },
-      "zoom": { "tpl-zoom-mute": "Couper / rétablir le micro", "tpl-zoom-video": "Démarrer / arrêter la vidéo", "tpl-zoom-share": "Partager l'écran", "tpl-zoom-leave": "Quitter la réunion" }
+      "browser": {
+        "tpl-browser-newtab": "Nouvel onglet",
+        "tpl-browser-closetab": "Fermer l'onglet",
+        "tpl-browser-reopen": "Rouvrir l'onglet fermé",
+        "tpl-browser-back": "Précédent",
+        "tpl-browser-forward": "Suivant",
+        "tpl-browser-reload": "Actualiser",
+        "tpl-browser-devtools": "Outils de développement",
+        "tpl-browser-private": "Fenêtre privée",
+        "tpl-browser-bookmark": "Ajouter cette page aux favoris",
+        "tpl-browser-address": "Barre d'adresse",
+        "tpl-browser-find": "Rechercher dans la page",
+        "tpl-browser-downloads": "Téléchargements",
+        "tpl-browser-history": "Historique",
+        "tpl-browser-nexttab": "Onglet suivant"
+      },
+      "canva": {
+        "tpl-canva-text": "Zone de texte",
+        "tpl-canva-rect": "Rectangle",
+        "tpl-canva-circle": "Cercle",
+        "tpl-canva-line": "Ligne",
+        "tpl-canva-dup": "Dupliquer",
+        "tpl-canva-group": "Grouper",
+        "tpl-canva-ungroup": "Dissocier",
+        "tpl-canva-undo": "Annuler",
+        "tpl-canva-redo": "Rétablir",
+        "tpl-canva-delete": "Supprimer",
+        "tpl-canva-lock": "Verrouiller / déverrouiller",
+        "tpl-canva-present": "Présenter"
+      },
+      "discord": {
+        "tpl-discord-mute": "Couper le microphone",
+        "tpl-discord-deafen": "Couper le son",
+        "tpl-discord-switcher": "Sélecteur rapide",
+        "tpl-discord-inbox": "Boîte de réception",
+        "tpl-discord-nextsrv": "Serveur suivant",
+        "tpl-discord-prevsrv": "Serveur précédent"
+      },
+      "excel": {
+        "tpl-excel-save": "Enregistrer",
+        "tpl-excel-undo": "Annuler",
+        "tpl-excel-redo": "Rétablir",
+        "tpl-excel-find": "Rechercher",
+        "tpl-excel-bold": "Gras",
+        "tpl-excel-filter": "Filtre activé / désactivé",
+        "tpl-excel-edit": "Modifier la cellule",
+        "tpl-excel-fill": "Recopier vers le bas",
+        "tpl-excel-format": "Format de cellule",
+        "tpl-excel-sheet": "Nouvelle feuille"
+      },
+      "outlook": {
+        "tpl-outlook-new": "Nouveau message",
+        "tpl-outlook-reply": "Répondre",
+        "tpl-outlook-replyall": "Répondre à tous",
+        "tpl-outlook-forward": "Transférer",
+        "tpl-outlook-send": "Envoyer",
+        "tpl-outlook-mail": "Vue Courrier",
+        "tpl-outlook-calendar": "Vue Calendrier",
+        "tpl-outlook-search": "Rechercher",
+        "tpl-outlook-read": "Marquer comme lu",
+        "tpl-outlook-delete": "Supprimer"
+      },
+      "powerpoint": {
+        "tpl-powerpoint-start": "Démarrer le diaporama",
+        "tpl-powerpoint-current": "Démarrer à partir de cette diapositive",
+        "tpl-powerpoint-prev": "Diapositive précédente",
+        "tpl-powerpoint-next": "Diapositive suivante",
+        "tpl-powerpoint-end": "Terminer le diaporama",
+        "tpl-powerpoint-newslide": "Nouvelle diapositive",
+        "tpl-powerpoint-dup": "Dupliquer la diapositive",
+        "tpl-powerpoint-save": "Enregistrer",
+        "tpl-powerpoint-undo": "Annuler",
+        "tpl-powerpoint-bold": "Gras"
+      },
+      "spotify": {
+        "tpl-spotify-prev": "Précédent",
+        "tpl-spotify-play": "Lecture / Pause",
+        "tpl-spotify-next": "Suivant",
+        "tpl-spotify-voldown": "Volume -",
+        "tpl-spotify-volup": "Volume +",
+        "tpl-spotify-mute": "Muet"
+      },
+      "teams": {
+        "tpl-teams-mute": "Couper / rétablir le micro",
+        "tpl-teams-video": "Caméra activée / désactivée",
+        "tpl-teams-share": "Partager l'écran",
+        "tpl-teams-hand": "Lever / baisser la main",
+        "tpl-teams-leave": "Quitter la réunion",
+        "tpl-teams-accept": "Accepter l'appel vidéo",
+        "tpl-teams-decline": "Refuser l'appel",
+        "tpl-teams-search": "Rechercher"
+      },
+      "telegram": {
+        "tpl-telegram-search": "Rechercher",
+        "tpl-telegram-next": "Discussion suivante",
+        "tpl-telegram-prev": "Discussion précédente",
+        "tpl-telegram-close": "Fermer la discussion",
+        "tpl-telegram-edit": "Modifier le dernier message",
+        "tpl-telegram-lock": "Verrouiller l'application"
+      },
+      "vscode": {
+        "tpl-vscode-palette": "Palette de commandes",
+        "tpl-vscode-quickopen": "Ouverture rapide",
+        "tpl-vscode-findall": "Rechercher dans les fichiers",
+        "tpl-vscode-git": "Contrôle de code source",
+        "tpl-vscode-sidebar": "Afficher / masquer la barre latérale",
+        "tpl-vscode-save": "Enregistrer",
+        "tpl-vscode-format": "Mettre en forme le document",
+        "tpl-vscode-run": "Démarrer le débogage",
+        "tpl-vscode-stop": "Arrêter le débogage"
+      },
+      "whatsapp": {
+        "tpl-whatsapp-new": "Nouvelle discussion",
+        "tpl-whatsapp-search": "Rechercher",
+        "tpl-whatsapp-next": "Discussion suivante",
+        "tpl-whatsapp-prev": "Discussion précédente",
+        "tpl-whatsapp-mute": "Mettre la discussion en sourdine",
+        "tpl-whatsapp-archive": "Archiver la discussion",
+        "tpl-whatsapp-group": "Nouveau groupe",
+        "tpl-whatsapp-close": "Fermer la discussion"
+      },
+      "word": {
+        "tpl-word-bold": "Gras",
+        "tpl-word-italic": "Italique",
+        "tpl-word-underline": "Souligné",
+        "tpl-word-left": "Aligner à gauche",
+        "tpl-word-center": "Centrer",
+        "tpl-word-save": "Enregistrer",
+        "tpl-word-undo": "Annuler",
+        "tpl-word-redo": "Rétablir",
+        "tpl-word-find": "Rechercher",
+        "tpl-word-print": "Imprimer"
+      },
+      "zoom": {
+        "tpl-zoom-mute": "Couper / rétablir le micro",
+        "tpl-zoom-video": "Démarrer / arrêter la vidéo",
+        "tpl-zoom-share": "Partager l'écran",
+        "tpl-zoom-leave": "Quitter la réunion"
+      }
     }
   }
 }

@@ -99,7 +99,9 @@
         "reanudar",
         "pausa la música actual",
         "pausar la música",
-        "detener reproducción"
+        "detener reproducción",
+        "pon música",
+        "reproduce música"
       ]
     },
     {
@@ -797,6 +799,40 @@
       "patterns": [
         "guarda diseño como {name}",
         "recuerda disposición como {name}"
+      ]
+    },
+    {
+      "tool": "screenshot",
+      "args": {
+        "area": "screen"
+      },
+      "patterns": [
+        "haz una captura de pantalla",
+        "captura de pantalla"
+      ]
+    },
+    {
+      "tool": "add_button",
+      "patterns": [
+        "añade el botón {name}"
+      ]
+    },
+    {
+      "tool": "system_theme",
+      "args": {
+        "mode": "light"
+      },
+      "patterns": [
+        "activa el tema claro de windows"
+      ]
+    },
+    {
+      "tool": "system_theme",
+      "args": {
+        "mode": "dark"
+      },
+      "patterns": [
+        "activa el tema oscuro de windows"
       ]
     }
   ],

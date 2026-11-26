@@ -585,5 +585,33 @@
       "query": "الطقس في باريس",
       "site": "web"
     }
+  },
+  {
+    "say": "شغل الموسيقى",
+    "tool": "media",
+    "args": {
+      "op": "play_pause"
+    }
+  },
+  {
+    "say": "التقط صورة للشاشة",
+    "tool": "screenshot",
+    "args": {
+      "area": "screen"
+    }
+  },
+  {
+    "say": "أضف زر Spotify",
+    "tool": "add_button",
+    "args": {
+      "catalogId": "apps.spotify"
+    }
+  },
+  {
+    "say": "تفعيل الوضع الداكن في ويندوز",
+    "tool": "system_theme",
+    "args": {
+      "mode": "dark"
+    }
   }
 ]

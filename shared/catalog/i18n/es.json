@@ -1,97 +1,478 @@
 {
-  "categories": { "windows": "Windows", "media": "Multimedia", "sound": "Sonido", "stream": "Streaming", "widgets": "Widgets", "navigation": "Navegación", "web": "Web", "keys": "Teclas", "apps": "Programas" },
+  "categories": {
+    "windows": "Windows",
+    "media": "Multimedia",
+    "sound": "Sonido",
+    "stream": "Streaming",
+    "widgets": "Widgets",
+    "navigation": "Navegación",
+    "web": "Web",
+    "keys": "Teclas",
+    "apps": "Programas"
+  },
   "items": {
-    "win.lock": { "label": "Bloquear", "name": "Bloquear PC" },
-    "win.sleep": { "label": "Suspender", "name": "Suspender" },
-    "win.shutdown": { "label": "Apagar", "name": "Apagar PC" },
-    "win.restart": { "label": "Reiniciar", "name": "Reiniciar PC" },
-    "win.signout": { "label": "Salir", "name": "Cerrar sesión" },
-    "win.hibernate": { "label": "Hibernar", "name": "Hibernar" },
-    "win.displayoff": { "label": "Pantalla", "name": "Apagar la pantalla" },
-    "win.recycle": { "label": "Papelera", "name": "Vaciar la papelera" },
-    "win.screenshot": { "label": "Captura", "name": "Captura de pantalla" },
-    "win.taskmgr": { "label": "Tareas", "name": "Administrador de tareas" },
-    "win.desktop": { "label": "Escritorio", "name": "Mostrar el escritorio" },
-    "win.explorer": { "label": "Explorador", "name": "Explorador de archivos" },
-    "win.emoji": { "label": "Emoji", "name": "Panel de emoji" },
-    "win.clipboard": { "label": "Portapapeles", "name": "Historial del portapapeles" },
-    "win.settings": { "label": "Ajustes", "name": "Configuración de Windows" },
-    "media.play": { "label": "Play", "name": "Reproducir / Pausa", "states": { "true": "Pausa" } },
-    "media.next": { "label": "Siguiente", "name": "Pista siguiente" },
-    "media.prev": { "label": "Anterior", "name": "Pista anterior" },
-    "media.shuffle": { "label": "Aleatorio", "name": "Aleatorio" },
-    "media.repeat": { "label": "Repetir", "name": "Repetir", "states": { "track": "Repetir 1" } },
-    "media.widget": { "label": "Reproductor", "name": "Reproduciendo" },
-    "sound.mic": { "label": "Micro", "name": "Silenciar micrófono", "states": { "true": "Sin micro" } },
-    "sound.mute": { "label": "Silencio", "name": "Silenciar sonido" },
-    "sound.volup": { "label": "Vol +", "name": "Subir volumen" },
-    "sound.voldown": { "label": "Vol -", "name": "Bajar volumen" },
-    "sound.widget": { "label": "Volumen", "name": "Control de volumen" },
-    "stream.record": { "label": "Grabar", "name": "OBS: grabar", "states": { "true": "REC" } },
-    "stream.live": { "label": "En directo", "name": "OBS: emitir en directo", "states": { "true": "LIVE" } },
-    "stream.replay": { "label": "Replay", "name": "OBS: guardar replay" },
-    "stream.scene": { "label": "Escena", "name": "OBS: cambiar de escena" },
-    "stream.mic": { "label": "Micro OBS", "name": "OBS: silenciar entrada de audio" },
-    "stream.widget": { "label": "OBS", "name": "Estado de OBS" },
-    "widget.clock": { "label": "Reloj", "name": "Reloj" },
-    "widget.sys": { "label": "Sistema", "name": "Sistema" },
-    "widget.sysgraph": { "label": "Carga", "name": "Sistema con gráfico" },
-    "widget.weather": { "label": "Tiempo", "name": "Tiempo" },
-    "widget.timer": { "label": "Temporizador", "name": "Temporizador" },
-    "widget.volume": { "label": "Volumen", "name": "Control de volumen" },
-    "widget.statuses": { "label": "Servicios", "name": "Servicios" },
-    "widget.notifications": { "label": "Avisos", "name": "Notificaciones" },
-    "widget.media": { "label": "Reproductor", "name": "Reproduciendo" },
-    "widget.twitch": { "label": "Twitch", "name": "Canal de Twitch" },
-    "widget.battery": { "label": "Batería", "name": "Batería de dispositivos" },
-    "widget.reminders": { "label": "Avisos", "name": "Próximos recordatorios" },
-    "widget.list": { "label": "Lista", "name": "Lista con marcas" },
-    "widget.mail": { "label": "Correo", "name": "Correo sin leer" },
-    "widget.youtube": { "label": "YouTube", "name": "Canal de YouTube" },
-    "widget.ai": { "label": "Límites IA", "name": "Límites de IA (Claude, Codex)" },
-    "widget.context": { "label": "Teclas app", "name": "Teclas del programa en primer plano" },
-    "widget.ai.claude": { "label": "Claude", "name": "Límites de Claude Code (2x1)" },
-    "widget.ai.codex": { "label": "Codex", "name": "Límites de Codex (2x1)" },
-    "twitch.clip": { "label": "Clip", "name": "Twitch: clip" },
-    "twitch.announce": { "label": "Anuncio", "name": "Twitch: anunciar en el chat" },
-    "youtube.live": { "label": "YT directo", "name": "YouTube: emitir en directo (programado)" },
-    "youtube.end": { "label": "YT fin", "name": "YouTube: terminar la emisión" },
-    "youtube.chat": { "label": "YT chat", "name": "YouTube: mensaje en el chat" },
-    "widget.obs": { "label": "OBS", "name": "Estado de OBS" },
-    "nav.back": { "label": "Atrás", "name": "Atrás" },
-    "nav.page": { "label": "Página", "name": "Abrir página" },
-    "nav.popup": { "label": "Grupo", "name": "Abrir grupo" },
-    "web.site": { "label": "Sitio web", "name": "Abrir sitio web" },
-    "keys.shortcut": { "label": "Atajo", "name": "Atajo de teclado" },
-    "keys.sequence": { "label": "Secuencia", "name": "Secuencia de acciones" }
+    "win.lock": {
+      "label": "Bloquear",
+      "name": "Bloquear PC"
+    },
+    "win.sleep": {
+      "label": "Suspender",
+      "name": "Suspender"
+    },
+    "win.shutdown": {
+      "label": "Apagar",
+      "name": "Apagar PC"
+    },
+    "win.restart": {
+      "label": "Reiniciar",
+      "name": "Reiniciar PC"
+    },
+    "win.signout": {
+      "label": "Salir",
+      "name": "Cerrar sesión"
+    },
+    "win.hibernate": {
+      "label": "Hibernar",
+      "name": "Hibernar"
+    },
+    "win.displayoff": {
+      "label": "Pantalla",
+      "name": "Apagar la pantalla"
+    },
+    "win.recycle": {
+      "label": "Papelera",
+      "name": "Vaciar la papelera"
+    },
+    "win.screenshot": {
+      "label": "Captura",
+      "name": "Captura de pantalla"
+    },
+    "win.taskmgr": {
+      "label": "Tareas",
+      "name": "Administrador de tareas"
+    },
+    "win.desktop": {
+      "label": "Escritorio",
+      "name": "Mostrar el escritorio"
+    },
+    "win.explorer": {
+      "label": "Explorador",
+      "name": "Explorador de archivos"
+    },
+    "win.emoji": {
+      "label": "Emoji",
+      "name": "Panel de emoji"
+    },
+    "win.clipboard": {
+      "label": "Portapapeles",
+      "name": "Historial del portapapeles"
+    },
+    "win.settings": {
+      "label": "Ajustes",
+      "name": "Configuración de Windows"
+    },
+    "media.play": {
+      "label": "Play",
+      "name": "Reproducir / Pausa",
+      "states": {
+        "true": "Pausa"
+      }
+    },
+    "media.next": {
+      "label": "Siguiente",
+      "name": "Pista siguiente"
+    },
+    "media.prev": {
+      "label": "Anterior",
+      "name": "Pista anterior"
+    },
+    "media.shuffle": {
+      "label": "Aleatorio",
+      "name": "Aleatorio"
+    },
+    "media.repeat": {
+      "label": "Repetir",
+      "name": "Repetir",
+      "states": {
+        "track": "Repetir 1"
+      }
+    },
+    "media.widget": {
+      "label": "Reproductor",
+      "name": "Reproduciendo"
+    },
+    "sound.mic": {
+      "label": "Micro",
+      "name": "Silenciar micrófono",
+      "states": {
+        "true": "Sin micro"
+      }
+    },
+    "sound.mute": {
+      "label": "Silencio",
+      "name": "Silenciar sonido"
+    },
+    "sound.volup": {
+      "label": "Vol +",
+      "name": "Subir volumen"
+    },
+    "sound.voldown": {
+      "label": "Vol -",
+      "name": "Bajar volumen"
+    },
+    "sound.widget": {
+      "label": "Volumen",
+      "name": "Control de volumen"
+    },
+    "stream.record": {
+      "label": "Grabar",
+      "name": "OBS: grabar",
+      "states": {
+        "true": "REC"
+      }
+    },
+    "stream.live": {
+      "label": "En directo",
+      "name": "OBS: emitir en directo",
+      "states": {
+        "true": "LIVE"
+      }
+    },
+    "stream.replay": {
+      "label": "Replay",
+      "name": "OBS: guardar replay"
+    },
+    "stream.scene": {
+      "label": "Escena",
+      "name": "OBS: cambiar de escena"
+    },
+    "stream.mic": {
+      "label": "Micro OBS",
+      "name": "OBS: silenciar entrada de audio"
+    },
+    "stream.widget": {
+      "label": "OBS",
+      "name": "Estado de OBS"
+    },
+    "widget.clock": {
+      "label": "Reloj",
+      "name": "Reloj"
+    },
+    "widget.sys": {
+      "label": "Sistema",
+      "name": "Sistema"
+    },
+    "widget.sysgraph": {
+      "label": "Carga",
+      "name": "Sistema con gráfico"
+    },
+    "widget.weather": {
+      "label": "Tiempo",
+      "name": "Tiempo"
+    },
+    "widget.timer": {
+      "label": "Temporizador",
+      "name": "Temporizador"
+    },
+    "widget.volume": {
+      "label": "Volumen",
+      "name": "Control de volumen"
+    },
+    "widget.statuses": {
+      "label": "Servicios",
+      "name": "Servicios"
+    },
+    "widget.notifications": {
+      "label": "Avisos",
+      "name": "Notificaciones"
+    },
+    "widget.media": {
+      "label": "Reproductor",
+      "name": "Reproduciendo"
+    },
+    "widget.twitch": {
+      "label": "Twitch",
+      "name": "Canal de Twitch"
+    },
+    "widget.battery": {
+      "label": "Batería",
+      "name": "Batería de dispositivos"
+    },
+    "widget.reminders": {
+      "label": "Avisos",
+      "name": "Próximos recordatorios"
+    },
+    "widget.list": {
+      "label": "Lista",
+      "name": "Lista con marcas"
+    },
+    "widget.mail": {
+      "label": "Correo",
+      "name": "Correo sin leer"
+    },
+    "widget.youtube": {
+      "label": "YouTube",
+      "name": "Canal de YouTube"
+    },
+    "widget.ai": {
+      "label": "Límites IA",
+      "name": "Límites de IA (Claude, Codex)"
+    },
+    "widget.context": {
+      "label": "Teclas app",
+      "name": "Teclas del programa en primer plano"
+    },
+    "widget.ai.claude": {
+      "label": "Claude",
+      "name": "Límites de Claude Code (2x1)"
+    },
+    "widget.ai.codex": {
+      "label": "Codex",
+      "name": "Límites de Codex (2x1)"
+    },
+    "twitch.clip": {
+      "label": "Clip",
+      "name": "Twitch: clip"
+    },
+    "twitch.announce": {
+      "label": "Anuncio",
+      "name": "Twitch: anunciar en el chat"
+    },
+    "youtube.live": {
+      "label": "YT directo",
+      "name": "YouTube: emitir en directo (programado)"
+    },
+    "youtube.end": {
+      "label": "YT fin",
+      "name": "YouTube: terminar la emisión"
+    },
+    "youtube.chat": {
+      "label": "YT chat",
+      "name": "YouTube: mensaje en el chat"
+    },
+    "widget.obs": {
+      "label": "OBS",
+      "name": "Estado de OBS"
+    },
+    "nav.back": {
+      "label": "Atrás",
+      "name": "Atrás"
+    },
+    "nav.page": {
+      "label": "Página",
+      "name": "Abrir página"
+    },
+    "nav.popup": {
+      "label": "Grupo",
+      "name": "Abrir grupo"
+    },
+    "web.site": {
+      "label": "Sitio web",
+      "name": "Abrir sitio web"
+    },
+    "keys.shortcut": {
+      "label": "Atajo",
+      "name": "Atajo de teclado"
+    },
+    "keys.sequence": {
+      "label": "Secuencia",
+      "name": "Secuencia de acciones"
+    },
+    "win.screenshot.window": {
+      "label": "Ventana",
+      "name": "Capturar ventana activa"
+    },
+    "win.screenshot.region": {
+      "label": "Área",
+      "name": "Capturar área de pantalla"
+    },
+    "web.webhook": {
+      "label": "Webhook",
+      "name": "Webhook (petición HTTP)"
+    }
   },
   "sets": {
-    "media-remote": { "name": "Mando multimedia", "description": "Anterior, reproducir, siguiente, aleatorio, repetir y Reproduciendo" },
-    "sound": { "name": "Sonido", "description": "Micrófono, silencio, teclas de volumen y un control deslizante" },
-    "windows-tools": { "name": "Herramientas de Windows", "description": "Bloquear, captura, Administrador de tareas, Explorador y más" },
-    "stream": { "name": "Streaming", "description": "Grabar, emitir, replay, escenas y estado de OBS" },
-    "twitch": { "name": "Twitch", "description": "Espectadores, seguidores y una tecla de clip" },
-    "youtube": { "name": "YouTube", "description": "Espectadores en directo y suscriptores de tu canal" },
-    "ai": { "name": "Programación con IA", "description": "Límites de Claude Code y Codex de un vistazo" },
-    "workspace": { "name": "Escritorio de trabajo", "description": "Teclas del programa en primer plano, más bloquear, Administrador de tareas, multimedia y silencio siempre a mano" },
-    "focus": { "name": "Concentración", "description": "Un temporizador y un reloj" }
+    "media-remote": {
+      "name": "Mando multimedia",
+      "description": "Anterior, reproducir, siguiente, aleatorio, repetir y Reproduciendo"
+    },
+    "sound": {
+      "name": "Sonido",
+      "description": "Micrófono, silencio, teclas de volumen y un control deslizante"
+    },
+    "windows-tools": {
+      "name": "Herramientas de Windows",
+      "description": "Bloquear, captura, Administrador de tareas, Explorador y más"
+    },
+    "stream": {
+      "name": "Streaming",
+      "description": "Grabar, emitir, replay, escenas y estado de OBS"
+    },
+    "twitch": {
+      "name": "Twitch",
+      "description": "Espectadores, seguidores y una tecla de clip"
+    },
+    "youtube": {
+      "name": "YouTube",
+      "description": "Espectadores en directo y suscriptores de tu canal"
+    },
+    "ai": {
+      "name": "Programación con IA",
+      "description": "Límites de Claude Code y Codex de un vistazo"
+    },
+    "workspace": {
+      "name": "Escritorio de trabajo",
+      "description": "Teclas del programa en primer plano, más bloquear, Administrador de tareas, multimedia y silencio siempre a mano"
+    },
+    "focus": {
+      "name": "Concentración",
+      "description": "Un temporizador y un reloj"
+    }
   },
   "templates": {
-    "name": { "browser": "Navegador" },
+    "name": {
+      "browser": "Navegador"
+    },
     "actions": {
-      "browser": { "tpl-browser-newtab": "Pestaña nueva", "tpl-browser-closetab": "Cerrar pestaña", "tpl-browser-reopen": "Reabrir pestaña cerrada", "tpl-browser-back": "Atrás", "tpl-browser-forward": "Adelante", "tpl-browser-reload": "Recargar", "tpl-browser-devtools": "Herramientas de desarrollo", "tpl-browser-private": "Ventana privada", "tpl-browser-bookmark": "Marcar esta página", "tpl-browser-address": "Barra de direcciones", "tpl-browser-find": "Buscar en la página", "tpl-browser-downloads": "Descargas", "tpl-browser-history": "Historial", "tpl-browser-nexttab": "Pestaña siguiente" },
-      "canva": { "tpl-canva-text": "Cuadro de texto", "tpl-canva-rect": "Rectángulo", "tpl-canva-circle": "Círculo", "tpl-canva-line": "Línea", "tpl-canva-dup": "Duplicar", "tpl-canva-group": "Agrupar", "tpl-canva-ungroup": "Desagrupar", "tpl-canva-undo": "Deshacer", "tpl-canva-redo": "Rehacer", "tpl-canva-delete": "Eliminar", "tpl-canva-lock": "Bloquear / desbloquear", "tpl-canva-present": "Presentar" },
-      "discord": { "tpl-discord-mute": "Silenciar micrófono", "tpl-discord-deafen": "Ensordecer", "tpl-discord-switcher": "Cambio rápido", "tpl-discord-inbox": "Bandeja de entrada", "tpl-discord-nextsrv": "Servidor siguiente", "tpl-discord-prevsrv": "Servidor anterior" },
-      "excel": { "tpl-excel-save": "Guardar", "tpl-excel-undo": "Deshacer", "tpl-excel-redo": "Rehacer", "tpl-excel-find": "Buscar", "tpl-excel-bold": "Negrita", "tpl-excel-filter": "Filtro sí / no", "tpl-excel-edit": "Editar celda", "tpl-excel-fill": "Rellenar hacia abajo", "tpl-excel-format": "Formato de celdas", "tpl-excel-sheet": "Hoja nueva" },
-      "outlook": { "tpl-outlook-new": "Correo nuevo", "tpl-outlook-reply": "Responder", "tpl-outlook-replyall": "Responder a todos", "tpl-outlook-forward": "Reenviar", "tpl-outlook-send": "Enviar", "tpl-outlook-mail": "Vista de correo", "tpl-outlook-calendar": "Vista de calendario", "tpl-outlook-search": "Buscar", "tpl-outlook-read": "Marcar como leído", "tpl-outlook-delete": "Eliminar" },
-      "powerpoint": { "tpl-powerpoint-start": "Iniciar presentación", "tpl-powerpoint-current": "Desde esta diapositiva", "tpl-powerpoint-prev": "Diapositiva anterior", "tpl-powerpoint-next": "Diapositiva siguiente", "tpl-powerpoint-end": "Terminar presentación", "tpl-powerpoint-newslide": "Diapositiva nueva", "tpl-powerpoint-dup": "Duplicar diapositiva", "tpl-powerpoint-save": "Guardar", "tpl-powerpoint-undo": "Deshacer", "tpl-powerpoint-bold": "Negrita" },
-      "spotify": { "tpl-spotify-prev": "Anterior", "tpl-spotify-play": "Reproducir / Pausa", "tpl-spotify-next": "Siguiente", "tpl-spotify-voldown": "Bajar volumen", "tpl-spotify-volup": "Subir volumen", "tpl-spotify-mute": "Silenciar" },
-      "teams": { "tpl-teams-mute": "Silenciar / activar micro", "tpl-teams-video": "Cámara sí / no", "tpl-teams-share": "Compartir pantalla", "tpl-teams-hand": "Levantar / bajar la mano", "tpl-teams-leave": "Salir de la reunión", "tpl-teams-accept": "Aceptar videollamada", "tpl-teams-decline": "Rechazar llamada", "tpl-teams-search": "Buscar" },
-      "telegram": { "tpl-telegram-search": "Buscar", "tpl-telegram-next": "Chat siguiente", "tpl-telegram-prev": "Chat anterior", "tpl-telegram-close": "Cerrar el chat", "tpl-telegram-edit": "Editar el último mensaje", "tpl-telegram-lock": "Bloquear la app" },
-      "vscode": { "tpl-vscode-palette": "Paleta de comandos", "tpl-vscode-quickopen": "Abrir rápido", "tpl-vscode-findall": "Buscar en archivos", "tpl-vscode-git": "Control de código fuente", "tpl-vscode-sidebar": "Mostrar / ocultar barra lateral", "tpl-vscode-save": "Guardar", "tpl-vscode-format": "Dar formato al documento", "tpl-vscode-run": "Iniciar depuración", "tpl-vscode-stop": "Detener depuración" },
-      "whatsapp": { "tpl-whatsapp-new": "Chat nuevo", "tpl-whatsapp-search": "Buscar", "tpl-whatsapp-next": "Chat siguiente", "tpl-whatsapp-prev": "Chat anterior", "tpl-whatsapp-mute": "Silenciar chat", "tpl-whatsapp-archive": "Archivar chat", "tpl-whatsapp-group": "Grupo nuevo", "tpl-whatsapp-close": "Cerrar el chat" },
-      "word": { "tpl-word-bold": "Negrita", "tpl-word-italic": "Cursiva", "tpl-word-underline": "Subrayado", "tpl-word-left": "Alinear a la izquierda", "tpl-word-center": "Centrar", "tpl-word-save": "Guardar", "tpl-word-undo": "Deshacer", "tpl-word-redo": "Rehacer", "tpl-word-find": "Buscar", "tpl-word-print": "Imprimir" },
-      "zoom": { "tpl-zoom-mute": "Silenciar / activar micro", "tpl-zoom-video": "Iniciar / detener vídeo", "tpl-zoom-share": "Compartir pantalla", "tpl-zoom-leave": "Salir de la reunión" }
+      "browser": {
+        "tpl-browser-newtab": "Pestaña nueva",
+        "tpl-browser-closetab": "Cerrar pestaña",
+        "tpl-browser-reopen": "Reabrir pestaña cerrada",
+        "tpl-browser-back": "Atrás",
+        "tpl-browser-forward": "Adelante",
+        "tpl-browser-reload": "Recargar",
+        "tpl-browser-devtools": "Herramientas de desarrollo",
+        "tpl-browser-private": "Ventana privada",
+        "tpl-browser-bookmark": "Marcar esta página",
+        "tpl-browser-address": "Barra de direcciones",
+        "tpl-browser-find": "Buscar en la página",
+        "tpl-browser-downloads": "Descargas",
+        "tpl-browser-history": "Historial",
+        "tpl-browser-nexttab": "Pestaña siguiente"
+      },
+      "canva": {
+        "tpl-canva-text": "Cuadro de texto",
+        "tpl-canva-rect": "Rectángulo",
+        "tpl-canva-circle": "Círculo",
+        "tpl-canva-line": "Línea",
+        "tpl-canva-dup": "Duplicar",
+        "tpl-canva-group": "Agrupar",
+        "tpl-canva-ungroup": "Desagrupar",
+        "tpl-canva-undo": "Deshacer",
+        "tpl-canva-redo": "Rehacer",
+        "tpl-canva-delete": "Eliminar",
+        "tpl-canva-lock": "Bloquear / desbloquear",
+        "tpl-canva-present": "Presentar"
+      },
+      "discord": {
+        "tpl-discord-mute": "Silenciar micrófono",
+        "tpl-discord-deafen": "Ensordecer",
+        "tpl-discord-switcher": "Cambio rápido",
+        "tpl-discord-inbox": "Bandeja de entrada",
+        "tpl-discord-nextsrv": "Servidor siguiente",
+        "tpl-discord-prevsrv": "Servidor anterior"
+      },
+      "excel": {
+        "tpl-excel-save": "Guardar",
+        "tpl-excel-undo": "Deshacer",
+        "tpl-excel-redo": "Rehacer",
+        "tpl-excel-find": "Buscar",
+        "tpl-excel-bold": "Negrita",
+        "tpl-excel-filter": "Filtro sí / no",
+        "tpl-excel-edit": "Editar celda",
+        "tpl-excel-fill": "Rellenar hacia abajo",
+        "tpl-excel-format": "Formato de celdas",
+        "tpl-excel-sheet": "Hoja nueva"
+      },
+      "outlook": {
+        "tpl-outlook-new": "Correo nuevo",
+        "tpl-outlook-reply": "Responder",
+        "tpl-outlook-replyall": "Responder a todos",
+        "tpl-outlook-forward": "Reenviar",
+        "tpl-outlook-send": "Enviar",
+        "tpl-outlook-mail": "Vista de correo",
+        "tpl-outlook-calendar": "Vista de calendario",
+        "tpl-outlook-search": "Buscar",
+        "tpl-outlook-read": "Marcar como leído",
+        "tpl-outlook-delete": "Eliminar"
+      },
+      "powerpoint": {
+        "tpl-powerpoint-start": "Iniciar presentación",
+        "tpl-powerpoint-current": "Desde esta diapositiva",
+        "tpl-powerpoint-prev": "Diapositiva anterior",
+        "tpl-powerpoint-next": "Diapositiva siguiente",
+        "tpl-powerpoint-end": "Terminar presentación",
+        "tpl-powerpoint-newslide": "Diapositiva nueva",
+        "tpl-powerpoint-dup": "Duplicar diapositiva",
+        "tpl-powerpoint-save": "Guardar",
+        "tpl-powerpoint-undo": "Deshacer",
+        "tpl-powerpoint-bold": "Negrita"
+      },
+      "spotify": {
+        "tpl-spotify-prev": "Anterior",
+        "tpl-spotify-play": "Reproducir / Pausa",
+        "tpl-spotify-next": "Siguiente",
+        "tpl-spotify-voldown": "Bajar volumen",
+        "tpl-spotify-volup": "Subir volumen",
+        "tpl-spotify-mute": "Silenciar"
+      },
+      "teams": {
+        "tpl-teams-mute": "Silenciar / activar micro",
+        "tpl-teams-video": "Cámara sí / no",
+        "tpl-teams-share": "Compartir pantalla",
+        "tpl-teams-hand": "Levantar / bajar la mano",
+        "tpl-teams-leave": "Salir de la reunión",
+        "tpl-teams-accept": "Aceptar videollamada",
+        "tpl-teams-decline": "Rechazar llamada",
+        "tpl-teams-search": "Buscar"
+      },
+      "telegram": {
+        "tpl-telegram-search": "Buscar",
+        "tpl-telegram-next": "Chat siguiente",
+        "tpl-telegram-prev": "Chat anterior",
+        "tpl-telegram-close": "Cerrar el chat",
+        "tpl-telegram-edit": "Editar el último mensaje",
+        "tpl-telegram-lock": "Bloquear la app"
+      },
+      "vscode": {
+        "tpl-vscode-palette": "Paleta de comandos",
+        "tpl-vscode-quickopen": "Abrir rápido",
+        "tpl-vscode-findall": "Buscar en archivos",
+        "tpl-vscode-git": "Control de código fuente",
+        "tpl-vscode-sidebar": "Mostrar / ocultar barra lateral",
+        "tpl-vscode-save": "Guardar",
+        "tpl-vscode-format": "Dar formato al documento",
+        "tpl-vscode-run": "Iniciar depuración",
+        "tpl-vscode-stop": "Detener depuración"
+      },
+      "whatsapp": {
+        "tpl-whatsapp-new": "Chat nuevo",
+        "tpl-whatsapp-search": "Buscar",
+        "tpl-whatsapp-next": "Chat siguiente",
+        "tpl-whatsapp-prev": "Chat anterior",
+        "tpl-whatsapp-mute": "Silenciar chat",
+        "tpl-whatsapp-archive": "Archivar chat",
+        "tpl-whatsapp-group": "Grupo nuevo",
+        "tpl-whatsapp-close": "Cerrar el chat"
+      },
+      "word": {
+        "tpl-word-bold": "Negrita",
+        "tpl-word-italic": "Cursiva",
+        "tpl-word-underline": "Subrayado",
+        "tpl-word-left": "Alinear a la izquierda",
+        "tpl-word-center": "Centrar",
+        "tpl-word-save": "Guardar",
+        "tpl-word-undo": "Deshacer",
+        "tpl-word-redo": "Rehacer",
+        "tpl-word-find": "Buscar",
+        "tpl-word-print": "Imprimir"
+      },
+      "zoom": {
+        "tpl-zoom-mute": "Silenciar / activar micro",
+        "tpl-zoom-video": "Iniciar / detener vídeo",
+        "tpl-zoom-share": "Compartir pantalla",
+        "tpl-zoom-leave": "Salir de la reunión"
+      }
     }
   }
 }

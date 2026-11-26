@@ -5,6 +5,7 @@ export type SearchTargetPage =
   | "look"
   | "phone"
   | "voice"
+  | "screen_help"
   | "reminders"
   | "integrations"
   | "actions"
@@ -36,6 +37,10 @@ export const SEARCH_REGISTRY: SearchEntry[] = [
   {
     id: "voice", page: "voice", titleKey: "sidebar.item.voice", keywords: ["assistant", "speech", "whisper", "qwen", "microphone"],
     keyKeys: ["voice.mic", "voice.hotkey", "dict.title", "mem.title"],
+  },
+  {
+    id: "screen_help", page: "screen_help", titleKey: "sidebar.item.screen_help", keywords: ["screen", "assist", "pack", "uia"],
+    keyKeys: ["m28.screen_help_title", "m29.screen_pack_title"],
   },
   { id: "reminders", page: "reminders", titleKey: "sidebar.item.reminders", keywords: ["tasks", "schedule"], keyKeys: ["rem.tab_reminders", "rem.tab_lists"] },
   {
@@ -106,7 +111,7 @@ export function searchRegistry(
 }
 
 /** Map target search page to internal tab and optional more section. */
-export function targetForPage(page: SearchTargetPage): { tab: "deck" | "look" | "phone" | "more"; section?: "actions" | "integrations" | "settings" | "voice" | "reminders" | "about" } {
+export function targetForPage(page: SearchTargetPage): { tab: "deck" | "look" | "phone" | "more"; section?: "actions" | "integrations" | "settings" | "voice" | "screen_help" | "reminders" | "about" } {
   switch (page) {
     case "deck":
       return { tab: "deck" };

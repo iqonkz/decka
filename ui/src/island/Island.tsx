@@ -16,6 +16,7 @@ import {
   SkipForward,
   Square,
   Volume2,
+  X,
 } from "lucide-react";
 import { LANGUAGE_NAMES, LANGUAGES, locale, t, type Language } from "@decka/shared";
 import { formatTime } from "../widgets/mediaPos";
@@ -39,9 +40,13 @@ export interface IslandProps {
   langMenuOpenPreview?: boolean;
   onAction?: (kind: string) => void;
   onChipClick?: (command: string) => void;
+  onConfirm?: (yes: boolean) => void;
   onMediaControl?: (action: IslandMediaKind) => void;
   onStopSlow?: () => void;
   onTabHover?: () => void;
+  /** T29.5 / T29.10b: top-bar height (6..16 px, default 10) and position. */
+  barHeight?: number;
+  barPosition?: "left" | "center" | "right";
 }
 
 const FLIP_MS = 320;
@@ -52,7 +57,7 @@ const ORB_CONTENT_SIZE = 72;
 export function hasVoiceContent(event: IslandEvent): boolean {
   const v = event.voice;
   if (!v) return false;
-  return Boolean(v.heard || v.reply || v.slow);
+  return Boolean(v.heard || v.reply || v.slow || v.confirm || v.phase === "confirm");
 }
 
 export function expandedStatusText(phase?: IslandVoicePhase): string {
@@ -132,9 +137,12 @@ export default function Island({
   langMenuOpenPreview = false,
   onAction,
   onChipClick,
+  onConfirm,
   onMediaControl,
   onStopSlow,
   onTabHover,
+  barHeight = 10,
+  barPosition = "center",
 }: IslandProps) {
   const { mode, lyrics, voice } = event;
   const [langMenuOpen, setLangMenuOpen] = useState(false);
@@ -312,15 +320,30 @@ export default function Island({
   const voiceActive = Boolean(voice?.active);
 
   if (mode === "tab") {
+    const clampedHeight = Math.max(6, Math.min(16, barHeight));
+    const levelPct =
+      event.musicLevel !== undefined ? Math.max(12, Math.min(100, Math.round(event.musicLevel * 100))) : 0;
+    const hasMeter = Boolean(event.playing || event.musicLevel !== undefined);
     return (
       <div className="island-host" data-island-theme={theme}>
         <div
-          className="island-tab-zone"
+          className={`island-tab-zone pos-${barPosition}`}
+          style={{ height: clampedHeight + 8 }}
           onPointerEnter={onTabHover}
           role="region"
           aria-label={t("orb.aria")}
         >
-          <div className="island-tab-bar" />
+          <div className="island-tab-bar" style={{ height: clampedHeight }}>
+            {hasMeter && (
+              <div
+                className="island-tab-meter"
+                style={{
+                  width: `${levelPct}%`,
+                  background: `linear-gradient(90deg, ${colorFrom ?? "#22d3ee"}, ${colorTo ?? "#d946ef"})`,
+                }}
+              />
+            )}
+          </div>
         </div>
       </div>
     );
@@ -591,6 +614,34 @@ export default function Island({
             {voice?.executing && <div className="island-content-status island-doing">{t("voice.stage.doing")}</div>}
 
             {voice?.reply && <div className="island-reply">{voice.reply}</div>}
+            {!voice?.reply && voice?.confirm?.text && <div className="island-reply">{voice.confirm.text}</div>}
+
+            {(voice?.phase === "confirm" || Boolean(voice?.confirm)) && (
+              <div className="island-confirm-row">
+                <button
+                  type="button"
+                  className="island-confirm-btn is-yes"
+                  onClick={() => {
+                    onConfirm?.(true);
+                    onAction?.("confirm_yes");
+                  }}
+                >
+                  <Check size={14} strokeWidth={1.75} aria-hidden="true" />
+                  <span>{t("island.yes")}</span>
+                </button>
+                <button
+                  type="button"
+                  className="island-confirm-btn is-no"
+                  onClick={() => {
+                    onConfirm?.(false);
+                    onAction?.("confirm_no");
+                  }}
+                >
+                  <X size={14} strokeWidth={1.75} aria-hidden="true" />
+                  <span>{t("island.no")}</span>
+                </button>
+              </div>
+            )}
 
             {visibleChips(voice?.chips, voice?.reply).length > 0 && (
               <div className="island-chips">
