@@ -281,7 +281,17 @@ if (scene === "deck" || scene === "settings") {
       lists_get: M22_LISTS,
       memory_get: [{ id: "4000000000000001", text: "Aigerim is my wife", createdAt: 1 }, { id: "4000000000000002", text: "My project folder is on drive D", createdAt: 2 }],
       voice_dictation_get: { trigger: { kind: "doubleCtrl" }, mode: "clean", dictionary: ["Decka", "Qwen", "Almaty"] },
-      voice_status: { state: "ready", hardware: { ramGb: 32 }, model: "standard", downloadGb: 3.2, hotkey: ["ctrl", "alt", "space"], keepLoaded: false, speak: false, phoneButton: true, mics: ["Microphone (USB)"] },
+      voice_context_get: q.get("context") !== "0",
+      voice_context_set: true,
+      voice_self_check: [
+        { id: "mic", state: "ok", durationMs: 3000, detail: "Уровень сигнала в норме" },
+        { id: "stt", state: "ok", durationMs: 410, detail: "«который час»" },
+        { id: "model", state: "ok", durationMs: 220, detail: "status (time)" },
+        { id: "action", state: "ok", durationMs: 8, detail: "Сухой прогон: показать время" },
+      ],
+      voice_status: q.get("voiceError")
+        ? { state: "error", reason: q.get("voiceError"), hardware: { gpu: "GTX 1050", vramGb: 2, ramGb: 8 }, model: "standard", downloadGb: 3.2, hotkey: ["ctrl", "alt", "space"], keepLoaded: false, speak: false, phoneButton: true, mics: ["Microphone (USB)"] }
+        : { state: "ready", hardware: { ramGb: 32 }, model: "standard", downloadGb: 3.2, hotkey: ["ctrl", "alt", "space"], keepLoaded: false, speak: false, phoneButton: true, mics: ["Microphone (USB)"] },
     };
     (window as never as { __TAURI_EVENT_PLUGIN_INTERNALS__: unknown }).__TAURI_EVENT_PLUGIN_INTERNALS__ = {
       unregisterListener: () => {},

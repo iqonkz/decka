@@ -2103,3 +2103,47 @@ textarea { width: 100%; box-sizing: border-box; font: inherit; }
   border-color: var(--accent);
   background: radial-gradient(circle, var(--accent) 45%, transparent 50%);
 }
+
+.voice-check-step-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.voice-check-status {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.voice-check-status.is-ok {
+  color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 12%, transparent);
+}
+
+.voice-check-status.is-error {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+}
+
+.voice-check-status.is-running {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.voice-check-status.is-pending {
+  color: var(--muted);
+  background: color-mix(in srgb, var(--muted) 10%, transparent);
+}
+
+@keyframes voice-check-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.voice-check-spin {
+  animation: voice-check-spin 0.9s linear infinite;
+}

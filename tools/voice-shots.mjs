@@ -156,6 +156,10 @@ function m26Shots() {
     "t26f14-compact-long-hover-ru-light": [{ w: 600, h: 260, scale: 2 }, "scene=island&mode=compact&voiceOff=1&lyrics=3lines&hover=1&lang=ru&theme=light"],
     "t26f14-compact-countdown-hover-ru-dark": [{ w: 600, h: 200, scale: 2 }, "scene=island&mode=compact&voiceOff=1&songScene=countdown&hover=1&lang=ru&theme=dark"],
     "t26f14-compact-countdown-hover-ru-light": [{ w: 600, h: 200, scale: 2 }, "scene=island&mode=compact&voiceOff=1&songScene=countdown&hover=1&lang=ru&theme=light"],
+    "m28-voice-ready-light": [{ w: 1100, h: 1150, scale: 1 }, "scene=settings&theme=studio&lang=ru&scheme=light&go=voice", "#voice-check button.btn-primary::0"],
+    "m28-voice-ready-dark": [{ w: 1100, h: 1150, scale: 1 }, "scene=settings&theme=studio&lang=ru&scheme=dark&go=voice", "#voice-check button.btn-primary::0"],
+    "m28-voice-error-light": [{ w: 1100, h: 900, scale: 1 }, "scene=settings&theme=studio&lang=ru&scheme=light&go=voice&voiceError=vram"],
+    "m28-voice-error-dark": [{ w: 1100, h: 900, scale: 1 }, "scene=settings&theme=studio&lang=ru&scheme=dark&go=voice&voiceError=model_file"],
   };
 }
 function m27Shots() {
