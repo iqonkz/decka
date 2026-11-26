@@ -433,6 +433,8 @@ pub fn build_context(lang: &str, actions: &ActionsFile, layout: &LayoutFile, ins
         memory: Vec::new(),
         weather_place: None,
         guide_running: false,
+        full_pages: layout.pages.iter().filter(|p| super::addbutton::free_cell(p, i32::from(layout.grid.cols), i32::from(layout.grid.rows)).is_none()).map(|p| p.id.clone()).collect(),
+        current_page: None,
         lang: lang.to_string(),
         actions: actions.actions.iter().map(|(id, a)| ActionRef { id: id.clone(), name: a.name().to_string() }).collect(),
         buttons,
@@ -469,6 +471,8 @@ pub fn is_on(status: &VoiceStatus) -> bool {
 // ---- The glue ---------------------------------------------------------------------------------------------------
 
 pub type PillHook = Arc<dyn Fn(PillCmd) + Send + Sync>;
+/// Opens the settings window at a target (`keys:catalog:<id>`).
+pub type SettingsHook = Arc<dyn Fn(&str) + Send + Sync>;
 
 struct Inner {
     handle: tokio::runtime::Handle,
@@ -521,6 +525,10 @@ struct Inner {
     ducker: super::duck::Ducker,
     /// T29.4: the orb of a dictation.
     orb: Arc<Mutex<super::orb::Orb>>,
+    /// T29.6: the page the voice went to last (a phone does not say which one it shows).
+    current_page: Arc<Mutex<Option<String>>>,
+    /// T29.6: shows the settings window on a catalog key; the application gives it.
+    settings: OnceLock<SettingsHook>,
 }
 
 #[derive(Clone)]
@@ -567,6 +575,8 @@ impl Host {
             download: Arc::default(),
             ducker: super::duck::Ducker::start(&config_dir),
             orb: Arc::default(),
+            current_page: Arc::default(),
+            settings: OnceLock::new(),
         });
         let driver = Driver::new(handle.clone(), inner.clone());
         let _ = inner.driver.set(driver);
@@ -846,6 +856,11 @@ impl Host {
         let since = (*self.inner.slow_since.lock().unwrap())?;
         let eta_sec = self.inner.slow.lock().unwrap().eta_sec(false);
         Some(super::slowpath::Progress { eta_sec, elapsed_sec: since.elapsed().as_secs() as u32 })
+    }
+
+    /// T29.6: gives the host a way to open the settings window. Once.
+    pub fn attach_settings(&self, open: SettingsHook) {
+        let _ = self.inner.settings.set(open);
     }
 
     /// T29.4: the orb of a dictation, while there is one: the island window shows it at the caret instead of the panel.
@@ -1185,6 +1200,7 @@ impl Ports for Inner {
         ctx.vision_ready = self.service.vision_installed();
         ctx.weather_place = self.agent.store().get("weather").get("place").and_then(|p| p.as_str()).map(str::to_string);
         ctx.guide_running = self.screen.get().is_some_and(|s| s.is_running());
+        ctx.current_page = self.current_page.lock().unwrap().clone();
         (self.table(lang), ctx)
     }
 
@@ -1250,6 +1266,7 @@ impl Ports for Inner {
         let screen = self.screen.get().cloned();
         let focus = self.focus.clone();
         let download = self.download.clone();
+        let (current_page, settings) = (self.current_page.clone(), self.settings.get().cloned());
         Box::pin(async move {
             if let ToolCall::RunAction { action_id } = &call {
                 return agent.execute(action_id).await.map(|_| String::new()).map_err(|(_, m)| m);
@@ -1439,7 +1456,30 @@ impl Ports for Inner {
                     });
                     return Ok(winops::timer_set_text(minutes));
                 }
+                ToolCall::AddButton { catalog_id, page_id } => {
+                    let (new_actions, new_layout) = super::addbutton::build(lang, catalog_id, page_id, &agent.actions(), &agent.layout())?;
+                    let name = super::addbutton::catalog(lang).into_iter().find(|e| e.id == *catalog_id).map(|e| e.name).unwrap_or_default();
+                    // The checked saves: a file that is not right is refused as a whole. The action goes first, the button needs it.
+                    return tokio::task::spawn_blocking(move || {
+                        let refused = |r: crate::agent::SaveResult| match r {
+                            crate::agent::SaveResult::Saved => Ok(()),
+                            crate::agent::SaveResult::Rejected(issues) => Err(format!("Not saved: {}", issues.first().map_or_else(String::new, |i| i.message.clone()))),
+                        };
+                        refused(agent.save_actions(new_actions))?;
+                        refused(agent.save_layout(new_layout))?;
+                        Ok(super::status::encode(&super::status::Answer { key: "voice.reply.button_added", args: [("name".to_string(), name.clone())].into(), text: format!("Added the button {name}") }))
+                    })
+                    .await
+                    .map_err(|e| format!("The action did not finish: {e}"))?;
+                }
+                ToolCall::SetupButton { catalog_id } => {
+                    let Some(open) = settings else { return Err("Open Decka settings to add this button".into()) };
+                    let name = super::addbutton::catalog(lang).into_iter().find(|e| e.id == *catalog_id).map(|e| e.name).unwrap_or_default();
+                    open(&format!("keys:catalog:{catalog_id}"));
+                    return Ok(super::status::encode(&super::status::Answer { key: "voice.reply.setup_button", args: [("name".to_string(), name.clone())].into(), text: format!("Finish the button {name} in the settings") }));
+                }
                 ToolCall::GoPage { page_id, name } => {
+                    *current_page.lock().unwrap() = Some(page_id.clone());
                     let value = goto_value(page_id, goto_seq.fetch_add(1, Ordering::SeqCst) + 1);
                     agent.store().update_vars(|vars| {
                         vars.insert("voice.goto".to_string(), VarValue::Str(value));

@@ -196,6 +196,12 @@ pub fn run() {
                     if let Some(host) = app.try_state::<decka_core::voice::host::Host>() {
                         host.attach_screen(highlighter, std::sync::Arc::new(highlight::GuideEmitter(app.handle().clone())), Vec::new());
                         host.start_notices();
+                        // T29.6: a button that asks for something is finished in the settings window.
+                        let handle = app.handle().clone();
+                        host.attach_settings(std::sync::Arc::new(move |target: &str| {
+                            let (app, target) = (handle.clone(), target.to_string());
+                            let _ = handle.run_on_main_thread(move || tray::show_settings_at(&app, &target));
+                        }));
                     }
 
                     app.manage(agent);

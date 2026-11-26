@@ -355,6 +355,7 @@ fn arg_name(tool: &str, slot: &str) -> &'static str {
         ("n", _) => "minutes",
         ("app", _) | ("name", _) => "name",
         ("label", _) => "label",
+        ("page", _) => "page",
         ("query", _) => "query",
         ("goal", _) => "goal",
         ("target", _) => "target",
@@ -980,6 +981,17 @@ mod tests {
         for (lang, misses) in &per_lang_misses {
             assert!(*misses <= 1, "{lang} missed {misses} of 10");
         }
+    }
+
+    #[test]
+    fn a_button_is_asked_for_by_its_name_and_page() {
+        let ru = Table::parse(include_str!("../../../../shared/voice/ru.json")).unwrap();
+        let hit = |say: &str| match ru.matches(say) {
+            Match::Hit(i) => (i.tool, i.args.get("name").and_then(|v| v.as_str()).map(String::from), i.args.get("page").and_then(|v| v.as_str()).map(String::from)),
+            other => panic!("{say:?} -> {other:?}"),
+        };
+        assert_eq!(hit("добавь кнопку блокировки"), ("add_button".into(), Some("блокировки".into()), None));
+        assert_eq!(hit("добавь кнопку калькулятор на страницу медиа"), ("add_button".into(), Some("калькулятор".into()), Some("медиа".into())));
     }
 
     /// T29.2: "play music" starts it (no model needed); "pause the music" stays the toggle.

@@ -22,6 +22,7 @@ import { formatTime } from "../widgets/mediaPos";
 import { compactVoiceText, orbStateFromIsland, songView, type IslandContextChip, type IslandEvent, type IslandMediaKind, type IslandVoicePhase } from "./islandTypes";
 import { compactWidth, currentWraps } from "./compactWidth";
 import ParticlesOrb from "./ParticlesOrb";
+import Icon from "../Icon";
 import "./island.css";
 
 export interface IslandProps {
@@ -151,6 +152,8 @@ export default function Island({
   const langRef = useRef<HTMLDivElement>(null);
 
   const confirmId = voice?.phase === "confirm" ? voice.confirmId : undefined;
+  // T29.6: the button that is about to be made: its icon, caption and page.
+  const draft = voice?.confirm?.args;
   const rawHasContent = mode === "expanded" && hasVoiceContent(event);
   const [stickyContent, setStickyContent] = useState(rawHasContent);
   const prevModeRef = useRef(mode);
@@ -625,6 +628,16 @@ export default function Island({
                 <div className="island-slow-track">
                   <div className="island-slow-fill" style={{ width: `${Math.max(2, Math.min(100, voice.download.pct))}%` }} />
                 </div>
+              </div>
+            )}
+
+            {confirmId && draft?.icon && (
+              <div className="island-draft">
+                <span className="island-draft-key">
+                  <Icon icon={draft.icon} size={20} />
+                  <span className="island-draft-label">{draft.label}</span>
+                </span>
+                <span className="island-draft-page">{draft.page}</span>
               </div>
             )}
 

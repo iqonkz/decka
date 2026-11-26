@@ -18,6 +18,8 @@ pub const TOOLS: &[&str] = &[
     "lyrics_window", "status", "reply_action",
     // M27: eyes and hands on the screen, reading aloud, work modes.
     "find_on_screen", "ui_act", "guide", "guide_record", "guide_control", "read_aloud", "mode_run", "mode_save",
+    // M29: a ready-made button of the catalog.
+    "add_button",
 ];
 
 pub const MAX_TEXT: usize = 2000;
@@ -76,6 +78,9 @@ pub struct Context {
     pub weather_place: Option<String>,
     /// A guide or a recording is running: "next", "back", "stop", "done" mean its controls (T27.5).
     pub guide_running: bool,
+    /// The pages without a free cell, and the page the voice went to last (T29.6: a new button goes there).
+    pub full_pages: Vec<String>,
+    pub current_page: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -133,6 +138,10 @@ pub enum ToolCall {
     PasteText { text: String },
     /// `media {op: "play"}` (T29.2): start what is paused.
     MediaPlay,
+    /// T29.6: a ready-made button of the catalog on a page (after a yes).
+    AddButton { catalog_id: String, page_id: String },
+    /// T29.6: a key that asks for something: the settings window opens on it.
+    SetupButton { catalog_id: String },
     Dictate,
     Timer { minutes: u32, label: Option<String> },
     System(SystemOp),
@@ -662,6 +671,41 @@ fn run(tool: &str, args: &serde_json::Map<String, Value>, ctx: &Context) -> Resu
                 ready_key(ToolCall::ScreenAsk { question }, true, "Download the Screen help package (about 0.7 GB)?", "voice.confirm.screen_pack", &[])
             }
         }
+        "add_button" => {
+            use super::addbutton;
+            only(args, &["catalogId", "name", "page"])?;
+            let entries = addbutton::catalog(&ctx.lang);
+            let entry = match args.get("catalogId") {
+                Some(Value::String(id)) => entries.iter().find(|e| e.id == *id && e.is_button()).ok_or_else(|| reject("not a button of the catalog"))?,
+                _ => {
+                    let spoken = text(args, "name", 100)?;
+                    match addbutton::find(&ctx.lang, spoken, &entries).as_slice() {
+                        [] => return Err(reject("no such button in the catalog")),
+                        [one] => one,
+                        many => return Ok(ask(many.iter().map(|e| e.name.clone()).collect())),
+                    }
+                }
+            };
+            // A key that needs a URL, keys or a name is finished by hand: voice brings none of these.
+            if entry.asks() {
+                return Ok(ready(ToolCall::SetupButton { catalog_id: entry.id.clone() }, false, format!("Set up {}", entry.name)));
+            }
+            let page = match args.get("page") {
+                None | Some(Value::Null) => ctx.current_page.as_ref().and_then(|id| ctx.pages.iter().find(|p| p.id == *id)).or_else(|| ctx.pages.first()),
+                Some(_) => {
+                    let name = text(args, "page", 100)?;
+                    best(&ctx.lang, name, &ctx.pages, |p| p.name.as_str(), |p| p.id.clone()).first().map(|i| &ctx.pages[*i])
+                }
+            };
+            let page = page.ok_or_else(|| reject("no such page"))?;
+            let call = ToolCall::AddButton { catalog_id: entry.id.clone(), page_id: page.id.clone() };
+            // Nothing to ask when there is no place: the executor says so.
+            if ctx.full_pages.contains(&page.id) {
+                return Ok(ready(call, false, addbutton::NO_ROOM));
+            }
+            let icon = entry.icon();
+            ready_key(call, true, format!("Add {} to the page {}?", entry.name, page.name), "voice.confirm.add_button", &[("name", &entry.name), ("page", &page.name), ("label", &entry.label), ("icon", &icon)])
+        }
         "system" => {
             only(args, &["op"])?;
             // Only the harmless pair; shutdown, restart and the like are not voice tools.
@@ -766,6 +810,8 @@ mod tests {
             memory: vec![],
         weather_place: None,
         guide_running: false,
+        full_pages: vec![],
+        current_page: None,
         }
     }
 
@@ -1049,6 +1095,33 @@ mod tests {
         assert!(is_reject(with(true, json!({ "question": "" }))));
         assert!(is_reject(with(true, json!({ "question": "x".repeat(301) }))));
         assert!(is_reject(with(true, json!({ "question": "a", "window": "b" }))), "no field to choose a window");
+    }
+
+    /// T29.6: a catalog key becomes a draft that waits for "yes"; a key that asks goes to the settings; nothing else is made.
+    #[test]
+    fn add_button_takes_catalog_keys_only_and_waits_for_yes() {
+        let c = Context { lang: "ru".into(), pages: vec![PageRef { id: "main".into(), name: "Главная".into() }, PageRef { id: "media".into(), name: "Медиа".into() }], ..Default::default() };
+        let add = |args: serde_json::Value| validate(&RawCall { tool: "add_button".into(), args }, &c);
+        let r = ready_of(add(json!({ "name": "блокировки" })));
+        assert!(r.confirm);
+        assert_eq!(r.call, ToolCall::AddButton { catalog_id: "win.lock".into(), page_id: "main".into() });
+        assert_eq!((r.key, r.args.get("icon").map(String::as_str), r.args.get("page").map(String::as_str)), (Some("voice.confirm.add_button"), Some("lucide:lock"), Some("Главная")));
+        let r = ready_of(add(json!({ "catalogId": "win.lock", "page": "медиа" })));
+        assert_eq!(r.call, ToolCall::AddButton { catalog_id: "win.lock".into(), page_id: "media".into() });
+        // A key that asks for a URL is finished in the settings, without a confirmation.
+        let r = ready_of(add(json!({ "catalogId": "web.site" })));
+        assert_eq!((r.confirm, r.call), (false, ToolCall::SetupButton { catalog_id: "web.site".into() }));
+        for bad in [json!({ "catalogId": "nope" }), json!({ "catalogId": "widget.clock" }), json!({ "name": "формат диска" }), json!({ "catalogId": "win.lock", "url": "x" }), json!({ "catalogId": "win.lock", "page": "нет такой" })] {
+            assert!(is_reject(add(bad.clone())), "{bad}");
+        }
+        // A full page: no question, the executor answers "No space on the page".
+        let full = Context { full_pages: vec!["main".into()], ..c.clone() };
+        let r = ready_of(validate(&RawCall { tool: "add_button".into(), args: json!({ "catalogId": "win.lock" }) }, &full));
+        assert!(!r.confirm);
+        // The page the voice went to last is the one.
+        let there = Context { current_page: Some("media".into()), ..c };
+        let r = ready_of(validate(&RawCall { tool: "add_button".into(), args: json!({ "catalogId": "win.lock" }) }, &there));
+        assert_eq!(r.call, ToolCall::AddButton { catalog_id: "win.lock".into(), page_id: "media".into() });
     }
 
     #[test]

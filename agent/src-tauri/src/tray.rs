@@ -23,10 +23,29 @@ struct TrayItems {
 /// Shows the settings window. It is destroyed when closed (DATA_MODEL.md 10.1: no WebView2 processes while it is shut),
 /// so it is created again here from the same config entry.
 pub fn show_settings(app: &AppHandle) {
+    open_settings(app, None);
+}
+
+/// T29.6: shows the settings window at a target of the window (`keys:catalog:<id>`): a window that is open hears the event, a
+/// new one finds the target in its address.
+pub fn show_settings_at(app: &AppHandle, target: &str) {
+    open_settings(app, Some(target));
+}
+
+fn open_settings(app: &AppHandle, target: Option<&str>) {
     let window = match app.get_webview_window("settings") {
-        Some(w) => w,
+        Some(w) => {
+            if let Some(target) = target {
+                let _ = app.emit("decka://navigate", target);
+            }
+            w
+        }
         None => {
-            let Some(cfg) = app.config().app.windows.iter().find(|w| w.label == "settings").cloned() else { return };
+            let Some(mut cfg) = app.config().app.windows.iter().find(|w| w.label == "settings").cloned() else { return };
+            // Only the characters of a catalog id: the target goes into the address as it is.
+            if let Some(target) = target.filter(|t| t.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, ':' | '.' | '_' | '-'))) {
+                cfg.url = tauri::WebviewUrl::App(format!("index.html?go={target}").into());
+            }
             match tauri::WebviewWindowBuilder::from_config(app, &cfg).and_then(|b| b.build()) {
                 Ok(w) => w,
                 Err(e) => {

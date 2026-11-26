@@ -608,6 +608,40 @@
   outline-offset: 2px;
 }
 
+/* T29.6: the draft of a new button, as it will look on the deck. */
+.island-draft {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.island-draft-key {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: var(--island-surface);
+  color: var(--island-text);
+}
+
+.island-draft-label {
+  max-width: 56px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+.island-draft-page {
+  font-size: 13px;
+  color: var(--island-muted);
+}
+
 .island-dictation-wrap {
   display: inline-flex;
   align-items: center;

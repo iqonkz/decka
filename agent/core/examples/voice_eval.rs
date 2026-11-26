@@ -32,6 +32,8 @@ fn context(lang: &str) -> Context {
         memory: vec![],
         weather_place: None,
         guide_running: false,
+        full_pages: vec![],
+        current_page: None,
     }
 }
 

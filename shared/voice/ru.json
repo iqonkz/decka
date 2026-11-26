@@ -317,6 +317,14 @@
       ]
     },
     {
+      "tool": "add_button",
+      "patterns": [
+        "добавь кнопку {name} на страницу {page}",
+        "добавь кнопку {name}",
+        "создай кнопку {name}"
+      ]
+    },
+    {
       "tool": "screen_ask",
       "patterns": [
         "что на экране",

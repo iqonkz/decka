@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { t, type LanguageSetting, type WindowTheme } from "@decka/shared";
 import { useApplyLanguage } from "@decka/ui";
 import { call, onNavigate } from "./ipc";
+import { requestCatalogItem } from "./editor/pendingCatalog";
 import { LANGUAGE_EVENT } from "./language";
 import { useApplyWindowTheme, WINDOW_THEME_EVENT } from "./windowTheme";
 import ToastContainer from "./ui/Toast";
@@ -70,7 +71,13 @@ export default function App() {
     if (!r) return;
     setTab(r.tab);
     if (r.section) setSection(r.section);
+    requestCatalogItem(target);
   }, []);
+  // A window that was created for a target finds it in its address (`?go=`).
+  useEffect(() => {
+    const go = new URLSearchParams(window.location.search).get("go");
+    if (go) open(go);
+  }, [open]);
   const [firstRun, setFirstRun] = useState(false);
   const [wizardStep, setWizardStep] = useState(0);
 

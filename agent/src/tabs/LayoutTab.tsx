@@ -13,6 +13,7 @@ import { canRedo, canUndo, itemAt, moveItem, nearestFreeCell, newHistory, pushHi
 import EditorCanvas from "./EditorCanvas";
 import { useDragSession, type Cell } from "./useDragSession";
 import Library from "./Library";
+import { CATALOG_EVENT, takeCatalogItem } from "../editor/pendingCatalog";
 import AskDialog from "../editor/AskDialog";
 import SequenceEditor from "../editor/SequenceEditor";
 import { insertContext, itemsOfSet, loadIntegrations, loadObs, type Integrations } from "../editor/catalogUi";
@@ -183,6 +184,20 @@ export default function LayoutTab() {
     const timer = window.setTimeout(() => saveRef.current(), 600);
     return () => window.clearTimeout(timer);
   }, [dirty, layout, actions, tick]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // T29.6: a key asked for by voice, taken once the editor has its files.
+  const ready = layout !== null && actions !== null;
+  const placeRef = useRef<(itemId: string) => void>(() => {});
+  useEffect(() => {
+    if (!ready) return;
+    const take = () => {
+      const id = takeCatalogItem();
+      if (id !== null) placeRef.current(id);
+    };
+    take();
+    window.addEventListener(CATALOG_EVENT, take);
+    return () => window.removeEventListener(CATALOG_EVENT, take);
+  }, [ready]);
 
   if (error) return <Banner kind="error">{error}</Banner>;
   if (!layout || !actions) return <p>{t("common.loading")}</p>;
@@ -447,6 +462,7 @@ export default function LayoutTab() {
     }
     await finishCatalog(item, {}, cell);
   }
+  placeRef.current = (itemId) => void placeCatalog(itemId);
   async function finishCatalog(item: CatalogItem, answer: Answer, cell?: { x: number; y: number }) {
     const ctx = await insertContext([item], layout!, null);
     await applyInsert(insertItem(layout!, actions!, page!.id, item.id, answer, ctx, cell));

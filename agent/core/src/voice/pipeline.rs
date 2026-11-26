@@ -63,6 +63,7 @@ pub mod key {
     /// A confirmation, not a reply: the question "search the web?" after an `ask` the model could not answer.
     pub const ASK_WEB: &str = "voice.confirm.ask_web";
     pub const COPIED_PASTE: &str = "voice.reply.copied_paste";
+    pub const NO_ROOM: &str = "voice.reply.no_room";
     pub const FAIL_VRAM: &str = "m28.err_vram_short";
     pub const FAIL_RAM: &str = "m28.err_ram_short";
     pub const FAIL_MODEL_FILE: &str = "m28.err_model_file_short";
@@ -92,6 +93,7 @@ pub fn understood(v: &Validated) -> ConfirmInfo {
     let (key, args) = match &v.call {
         // The question of a screen request is about the download; what was understood is still a look at the screen.
         ToolCall::ScreenAsk { .. } => plain("voice.did.screen"),
+        ToolCall::AddButton { .. } => plain("voice.did.button"),
         _ if v.confirm && v.key.is_some() => (v.key, v.args.clone()),
         ToolCall::OpenApp { name, .. } => with("voice.did.open", "name", name.clone()),
         ToolCall::SwitchApp { name, .. } => with("voice.did.switch", "name", name.clone()),
@@ -101,6 +103,7 @@ pub fn understood(v: &Validated) -> ConfirmInfo {
             None => (None, BTreeMap::new()),
         },
         ToolCall::GoPage { name, .. } => with("voice.did.page", "name", name.clone()),
+        ToolCall::SetupButton { .. } => plain("voice.did.button"),
         ToolCall::ModeRun { name } => with("voice.did.mode", "name", name.clone()),
         ToolCall::Timer { minutes, .. } => with("voice.did.timer", "minutes", minutes.to_string()),
         ToolCall::OpenUrl { .. } => plain("voice.did.web"),
@@ -120,6 +123,7 @@ pub fn understood(v: &Validated) -> ConfirmInfo {
 pub(crate) fn executor_key(text: &str) -> Option<&'static str> {
     match text {
         msg::COPIED_PASTE => Some(key::COPIED_PASTE),
+        crate::voice::addbutton::NO_ROOM => Some(key::NO_ROOM),
         msg::SELECT_FIRST => Some(key::SELECT_FIRST),
         msg::TOO_LONG => Some(key::TOO_LONG),
         msg::NO_CONTEXT => Some(key::NO_CONTEXT),
@@ -1158,6 +1162,31 @@ mod tests {
         let (s, _) = step(&s, Event::Tick { now_ms: deadline_ms }, deadline_ms, &env);
         assert!(matches!(s.phase, Phase::Confirming { ear: Ear::Busy, .. }));
         assert_eq!(step(&s, said("yes"), deadline_ms + 900, &env).0.phase, Phase::Executing);
+    }
+
+    /// T29.6: a new button is written only after a "yes".
+    #[test]
+    fn a_button_is_added_only_after_a_yes() {
+        let add = RawCall { tool: "add_button".into(), args: json!({ "catalogId": "win.lock" }) };
+        let (t, mut c) = (table(), ctx());
+        c.pages = vec![crate::voice::tools::PageRef { id: "main".into(), name: "Main".into() }];
+        let env = Env { table: &t, ctx: &c, confirm_ms: CONFIRM_TIMEOUT_MS, dictate: false };
+        let go = |last: Event| {
+            let mut state = State::idle();
+            let mut all = Vec::new();
+            for e in [start(Source::Phone), Event::AudioEnd, said("make me one"), Event::LlmAnswer(Some((add.clone(), None))), last] {
+                let (s, fx) = step(&state, e, 1_000, &env);
+                state = s;
+                all.extend(fx);
+            }
+            (state, all)
+        };
+        let adds = |fx: &[Effect]| fx.iter().any(|e| matches!(e, Effect::Execute(ToolCall::AddButton { .. })));
+        let id = "00112233aabbccdd".to_string();
+        assert!(adds(&go(Event::Confirm { id: id.clone(), yes: true }).1));
+        let (s, fx) = go(Event::Confirm { id, yes: false });
+        assert!(!adds(&fx) && s.phase == Phase::Done(msg::CANCELLED.into()));
+        assert!(!adds(&go(Event::Tick { now_ms: u64::MAX }).1), "a timeout writes nothing");
     }
 
     #[test]

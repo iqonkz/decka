@@ -30,6 +30,9 @@ const VALID_TOOLS = new Set([
   "guide",
   "guide_record",
   "read_aloud",
+  "screenshot",
+  "add_button",
+  "system_theme",
   "mode_run",
   "mode_save",
   "guide_control",
@@ -137,7 +140,7 @@ describe("Voice phrase tables (T21.3b)", () => {
       expect(table.danger_words.length).toBeGreaterThanOrEqual(7);
 
       const allowedSlots = new Set([
-        "app", "domain", "expr", "goal", "item", "label", "lang", "list", "n", "name", "query", "target", "text", "time",
+        "app", "domain", "expr", "goal", "item", "label", "lang", "list", "n", "name", "page", "query", "target", "text", "time",
       ]);
       const seenLiterals = new Map<string, string>();
       for (const intent of table.intents) {

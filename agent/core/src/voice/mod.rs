@@ -4,6 +4,7 @@
 //! The phone sends audio and answers; it never says what to run. Every message passes `VoiceHub`, which checks the shape
 //! and the limits, and only then reaches the pipeline (ARCHITECTURE.md S24).
 
+pub mod addbutton;
 pub mod assist;
 pub mod audio;
 pub mod ask;
