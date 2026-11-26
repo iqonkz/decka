@@ -25,6 +25,7 @@ pub mod memory;
 pub mod mic;
 pub mod modes;
 pub mod notices;
+pub mod orb;
 pub mod pipeline;
 pub mod screen;
 pub mod textops;

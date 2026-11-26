@@ -2,7 +2,15 @@
 // The agent decides the mode (a pure state machine in decka-core) and sends `island_state`; the page only draws it and reports the
 // rectangle of its visible panel (`island_rect`) so that the rest of the window lets clicks through.
 
-export type IslandMode = "hidden" | "tab" | "compact" | "expanded";
+export type IslandMode = "hidden" | "tab" | "compact" | "expanded" | "orb";
+
+/** T29.4: the orb of a dictation at the text cursor (`mode: "orb"`); `text` / `key`: the bubble with what went wrong. */
+export interface IslandOrbState {
+  phase: "listening" | "thinking" | "done" | "error";
+  level?: number;
+  text?: string | null;
+  key?: string | null;
+}
 
 /** The states of the sphere (`ParticlesOrb`). */
 export type OrbState = "idle" | "connecting" | "listening" | "thinking" | "speaking";
@@ -67,6 +75,8 @@ export type IslandMediaKind = "prev" | "play_pause" | "next" | "mute";
 /** The event `island_state` (agent -> window). */
 export interface IslandEvent {
   mode: IslandMode;
+  /** Only in `mode: "orb"`. */
+  orb?: IslandOrbState | null;
   lyrics?: IslandLyricsState | null;
   voice?: IslandVoiceState | null;
   /** T26.F.10: the track on the PC (title and artist from the media section); absent when nothing is loaded. */

@@ -310,7 +310,8 @@ export default function Island({
     [],
   );
 
-  if (mode === "hidden") return null;
+  // The orb of a dictation is drawn by `DictationOrb`, not by the island.
+  if (mode === "hidden" || mode === "orb") return null;
 
   const { orbState, isError } = orbStateFromIsland(event);
   const voiceActive = Boolean(voice?.active);

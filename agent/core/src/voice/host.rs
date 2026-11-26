@@ -519,6 +519,8 @@ struct Inner {
     download: Arc<Mutex<Option<u8>>>,
     /// T29.3: turns other sounds down while the PC records.
     ducker: super::duck::Ducker,
+    /// T29.4: the orb of a dictation.
+    orb: Arc<Mutex<super::orb::Orb>>,
 }
 
 #[derive(Clone)]
@@ -564,6 +566,7 @@ impl Host {
             focus: FocusMemory::default(),
             download: Arc::default(),
             ducker: super::duck::Ducker::start(&config_dir),
+            orb: Arc::default(),
         });
         let driver = Driver::new(handle.clone(), inner.clone());
         let _ = inner.driver.set(driver);
@@ -843,6 +846,11 @@ impl Host {
         let since = (*self.inner.slow_since.lock().unwrap())?;
         let eta_sec = self.inner.slow.lock().unwrap().eta_sec(false);
         Some(super::slowpath::Progress { eta_sec, elapsed_sec: since.elapsed().as_secs() as u32 })
+    }
+
+    /// T29.4: the orb of a dictation, while there is one: the island window shows it at the caret instead of the panel.
+    pub fn orb(&self) -> Option<super::orb::View> {
+        self.inner.orb.lock().unwrap().view(Instant::now())
     }
 
     /// The program is ending: the volumes that were turned down come back first.
@@ -1584,6 +1592,23 @@ impl Ports for Inner {
                     mic::log_line(&format!("warm-up failed: {e}"));
                 }
             });
+        }
+        // T29.4: a dictation of the PC shows the orb at the caret; a result that must be read becomes its bubble.
+        if state.source != Some(Source::Phone) {
+            let bubble = match info.state {
+                "error" => info.reply.clone().map(|text| super::orb::Bubble { text, key: info.reply_key }),
+                "done" if info.reply_key == Some(key::COPIED_PASTE) => info.reply.clone().map(|text| super::orb::Bubble { text, key: info.reply_key }),
+                _ => None,
+            };
+            let appeared = self.orb.lock().unwrap().on_state(info.state, info.activity == Some("dictate"), bubble, Instant::now());
+            if appeared {
+                let orb = self.orb.clone();
+                std::thread::spawn(move || {
+                    if let Some(at) = super::orb::caret_anchor() {
+                        orb.lock().unwrap().set_anchor(at);
+                    }
+                });
+            }
         }
         if matches!(info.state, "idle" | "done" | "error") {
             // The request that was a dictation is over.

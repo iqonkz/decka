@@ -14,6 +14,7 @@ use decka_core::lyrics_overlay::{foreground_is_fullscreen, ms_until_first_line, 
 use decka_core::model::MediaInfo;
 use decka_core::overlay;
 use decka_core::voice::host::Host;
+use decka_core::voice::orb;
 use decka_core::Agent;
 use serde_json::{json, Value};
 use tauri::{AppHandle, Emitter, LogicalSize, Manager, PhysicalPosition, WebviewUrl, WebviewWindowBuilder};
@@ -75,11 +76,13 @@ pub struct Shared {
     voice: Mutex<Option<Value>>,
     /// A guide is running: the window stays up to show its card even when the island itself has nothing to say (T27.5).
     guide: std::sync::atomic::AtomicBool,
+    /// T29.4: the window stands by the caret as the orb of a dictation.
+    orb: std::sync::atomic::AtomicBool,
 }
 
 impl Default for Shared {
     fn default() -> Shared {
-        Shared { rect: Mutex::default(), size: Mutex::new((WIDTH, HEIGHT)), voice: Mutex::default(), guide: Default::default() }
+        Shared { rect: Mutex::default(), size: Mutex::new((WIDTH, HEIGHT)), voice: Mutex::default(), guide: Default::default(), orb: Default::default() }
     }
 }
 
@@ -107,6 +110,10 @@ impl Shared {
 
     pub fn guide_on(&self) -> bool {
         self.guide.load(std::sync::atomic::Ordering::Relaxed)
+    }
+
+    pub fn orb_on(&self) -> bool {
+        self.orb.load(std::sync::atomic::Ordering::Relaxed)
     }
 
     pub fn set_voice(&self, payload: Option<Value>) {
@@ -193,7 +200,7 @@ fn apply_glass(window: &tauri::WebviewWindow, mode: Mode, rect: Option<Rect>) {
     let Ok(hwnd) = window.hwnd() else { return };
     let hwnd = hwnd.0 as isize;
     match rect {
-        Some(r) if mode != Mode::Tab && r.width > 1.0 => {
+        Some(r) if !matches!(mode, Mode::Tab | Mode::Orb) && r.width > 1.0 => {
             let scale = window.scale_factor().unwrap_or(1.0);
             decka_core::glass::set_acrylic(hwnd, true);
             let px = |v: f64| (v * scale).round() as i32;
@@ -262,6 +269,25 @@ fn place(app: &AppHandle, window: &tauri::WebviewWindow, size: (f64, f64)) {
     let _ = window.set_position(PhysicalPosition::new(x.round() as i32, y.round() as i32));
 }
 
+/// T29.4: the window of the orb, logical pixels: the orb and room for a bubble to its right. The page pads it by `ORB_PAD`.
+const ORB_SIZE: (f64, f64) = (360.0, 48.0);
+const ORB_PAD: f64 = 4.0;
+
+/// Next to the text cursor, on the monitor that holds it.
+fn place_orb(app: &AppHandle, window: &tauri::WebviewWindow, anchor: (i32, i32)) {
+    let monitor = app.monitor_from_point(f64::from(anchor.0), f64::from(anchor.1)).ok().flatten().or_else(|| app.primary_monitor().ok().flatten());
+    let Some(m) = monitor else { return };
+    let scale = m.scale_factor();
+    let size = ((ORB_SIZE.0 * scale).round() as i32, (ORB_SIZE.1 * scale).round() as i32);
+    let (left, top) = (m.position().x, m.position().y);
+    let screen = (left, top, left + m.size().width as i32, top + m.size().height as i32);
+    let gap = ((orb::GAP - ORB_PAD) * scale).round() as i32;
+    let (x, y) = orb::origin(anchor, size, gap, screen);
+    // Position first: a move to a monitor with another scale changes the size in logical pixels.
+    let _ = window.set_position(PhysicalPosition::new(x, y));
+    let _ = window.set_size(LogicalSize::new(ORB_SIZE.0, ORB_SIZE.1));
+}
+
 /// The page reported a new panel: the window takes its size (T26.F). An empty or unchanged panel changes nothing.
 pub fn fit(app: &AppHandle, rect: Rect) {
     if rect.width < 1.0 || rect.height < 1.0 {
@@ -274,6 +300,9 @@ pub fn fit(app: &AppHandle, rect: Rect) {
         return;
     }
     shared.set_size(size);
+    if shared.orb_on() {
+        return;
+    }
     if let Some(window) = app.get_webview_window(LABEL) {
         if window.is_visible().unwrap_or(false) {
             place(app, &window, size);
@@ -303,6 +332,8 @@ pub fn setup(app: &AppHandle, agent: &Agent) -> Arc<Shared> {
         let (mut shown, mut ignoring, mut paused_since) = (false, true, None);
         let (mut last_event, mut fresh_until): (Option<Value>, Option<Instant>) = (None, None);
         let (mut tick, mut sampled) = (0u64, Sample::default());
+        // The caret the orb stands at now; `None`: the window is at the top, as the island.
+        let mut orb_at: Option<(i32, i32)> = None;
         let started = Instant::now();
         loop {
             tokio::time::sleep(Duration::from_millis(POLL_MS)).await;
@@ -319,12 +350,15 @@ pub fn setup(app: &AppHandle, agent: &Agent) -> Arc<Shared> {
 
             let host = app.try_state::<Host>();
             let slow = host.as_ref().and_then(|h| h.slow_progress());
+            // T29.4: a dictation is the orb at the caret, not the panel.
+            let orb = host.as_ref().and_then(|h| h.orb());
+            let level = loop_shared.voice.lock().unwrap().as_ref().and_then(|p| p.get("level").and_then(Value::as_f64)).unwrap_or(0.0);
             let (voice, voice_json) = {
-                let payload = loop_shared.voice.lock().unwrap().clone();
+                let payload = loop_shared.voice.lock().unwrap().clone().filter(|_| orb.is_none());
                 let chips = host.as_ref().map(|h| h.context_chips()).unwrap_or_default();
                 voice_view(payload.as_ref(), slow, host.as_ref().and_then(|h| h.download_progress()), &chips)
             };
-            let mode = machine.step(&Inputs {
+            let island = machine.step(&Inputs {
                 now_ms: started.elapsed().as_millis() as u64,
                 voice,
                 hovered: on_panel,
@@ -333,6 +367,15 @@ pub fn setup(app: &AppHandle, agent: &Agent) -> Arc<Shared> {
                 track: sampled.track.as_deref(),
                 fullscreen: sampled.fullscreen,
             });
+            let anchor = orb.as_ref().and_then(|o| o.anchor);
+            let mode = match &orb {
+                // Until the caret is found nothing is shown.
+                Some(_) if anchor.is_none() => Mode::Hidden,
+                Some(_) => Mode::Orb,
+                None => island,
+            };
+            loop_shared.orb.store(mode == Mode::Orb, std::sync::atomic::Ordering::Relaxed);
+            let on_panel = on_panel && mode != Mode::Orb;
 
             if mode == Mode::Hidden && !loop_shared.guide_on() {
                 // T27.F.2: a hidden island reads no WASAPI peak (the meter used to stay on after compact -> hidden).
@@ -353,8 +396,22 @@ pub fn setup(app: &AppHandle, agent: &Agent) -> Arc<Shared> {
                     None => continue,
                 },
             };
+            match anchor.filter(|_| mode == Mode::Orb) {
+                Some(at) if orb_at != Some(at) => {
+                    place_orb(&app, &window, at);
+                    orb_at = Some(at);
+                }
+                // Back from the orb: to the top of the screen again.
+                None if orb_at.is_some() => {
+                    orb_at = None;
+                    place(&app, &window, loop_shared.size());
+                }
+                _ => {}
+            }
             if !shown {
-                place(&app, &window, loop_shared.size());
+                if orb_at.is_none() {
+                    place(&app, &window, loop_shared.size());
+                }
                 on_hwnd(&window, |hwnd| {
                     overlay::set_click_through(hwnd, true);
                     overlay::show(hwnd);
@@ -387,6 +444,7 @@ pub fn setup(app: &AppHandle, agent: &Agent) -> Arc<Shared> {
                 "muted": sampled.muted,
                 "track": sampled.track_info,
                 "musicLevel": if music { decka_core::audio::music_level(meter.level()) } else { 0.0 },
+                "orb": orb.as_ref().map(|o| json!({ "phase": o.phase.name(), "level": level, "text": o.bubble.as_ref().map(|b| &b.text), "key": o.bubble.as_ref().and_then(|b| b.key) })),
             });
             let repeat = fresh_until.is_some_and(|t| Instant::now() < t) && tick % 5 == 0;
             if last_event.as_ref() != Some(&event) || repeat {

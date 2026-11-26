@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { tVoice, type IslandEvent, type LanguageSetting } from "@decka/shared";
-import { GuidePanel, Island, useApplyLanguage, type GuideStepEvent } from "@decka/ui";
+import { DictationOrb, GuidePanel, Island, useApplyLanguage, type GuideStepEvent } from "@decka/ui";
 import { call, listen } from "./ipc";
 
 const HIDDEN: IslandEvent = { mode: "hidden" };
@@ -117,8 +117,20 @@ export default function IslandApp() {
   }, []);
 
   const shown = localized(event);
+  const orb = event.mode === "orb" ? event.orb : null;
+  // T29.4: during a dictation the window is a small orb at the text cursor.
   return (
-    <div ref={host} data-island-glass={GLASS} style={{ width: "100%", boxSizing: "border-box", padding: 24 }}>
+    <div ref={host} data-island-glass={GLASS} style={{ width: "100%", boxSizing: "border-box", padding: orb ? 4 : 24 }}>
+      {orb && (
+        <div className="island-orb-host">
+          <DictationOrb
+            theme={theme}
+            state={orb.phase === "listening" ? "listening" : orb.phase === "thinking" ? "thinking" : "idle"}
+            level={orb.level}
+            error={orb.phase === "error" ? (tVoice(orb.key ?? undefined, undefined, orb.text ?? undefined) ?? orb.text) : null}
+          />
+        </div>
+      )}
       <Island
         event={shown}
         theme={theme}

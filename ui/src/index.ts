@@ -40,6 +40,7 @@ export { effectiveMediaPositionMs, formatOffsetSeconds, selectActiveLyricIndex }
 export { formatRepeatLabel } from "./widgets/repeatLabel";
 export { default as WidgetEmpty } from "./widgets/WidgetEmpty";
 export { default as ParticlesOrb, particleCountForSize, type ParticlesOrbProps } from "./island/ParticlesOrb";
+export { default as DictationOrb, type DictationOrbProps } from "./island/DictationOrb";
 export { default as Island, chipIconKind, expandedStatusText, hasVoiceContent, type IslandProps } from "./island/Island";
 export {
   orbStateFromIsland,

@@ -51,6 +51,8 @@ pub enum Mode {
     Tab,
     Compact,
     Expanded,
+    /// T29.4: a dictation - the window is a small orb at the text cursor (decided by the application from `voice::orb`).
+    Orb,
 }
 
 /// What the voice assistant is doing.
