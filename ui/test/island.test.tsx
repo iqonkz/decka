@@ -13,13 +13,13 @@ describe("T26.5b ParticlesOrb & Island", () => {
     expect(particleCountForSize(32)).toBe(160);
   });
 
-  it("T26.F-8/14: compact width is fixed at 520 px for song and long current lines wrap", () => {
+  it("T28.5b: compact width is fixed at 440 px for song and wraps current onto lines 2-3 when longer", () => {
     const m = (text: string) => text.length * 8;
-    expect(compactWidth("Hi", "yo", m)).toBe(520);
-    expect(compactWidth("x".repeat(40), "y", m)).toBe(520);
-    expect(compactWidth("x", "y".repeat(200), m)).toBe(520);
-    expect(currentWraps("x".repeat(60), m)).toBe(true);
-    expect(currentWraps("x".repeat(40), m)).toBe(false);
+    expect(compactWidth("Hi", "yo", m)).toBe(440);
+    expect(compactWidth("x".repeat(40), "y", m)).toBe(440);
+    expect(compactWidth("x", "y".repeat(200), m)).toBe(440);
+    expect(currentWraps("x".repeat(50), m)).toBe(true);
+    expect(currentWraps("x".repeat(30), m)).toBe(false);
   });
 
   it("T26.F.12: a song without a current line, with the voice idle, is not listening", () => {
@@ -305,5 +305,46 @@ describe("T26.5b ParticlesOrb & Island", () => {
       <Island event={{ mode: "compact", lyrics: { playing: true } }} />,
     );
     expect(emptySongHtml).not.toContain("Listening");
+  });
+
+  it("T28.5b: renders 3 centered lines (prev/current/next) and hides next when long current wraps to 2 lines", () => {
+    const threeLinesHtml = renderToString(
+      <Island
+        event={{
+          mode: "compact",
+          playing: true,
+          lyrics: {
+            playing: true,
+            prev: "Prev line",
+            current: "Current line",
+            next: "Next line",
+          } as never,
+        }}
+      />,
+    );
+    expect(threeLinesHtml).toContain("--cw:440px");
+    expect(threeLinesHtml).toContain("island-lyric-prev");
+    expect(threeLinesHtml).toContain("Prev line");
+    expect(threeLinesHtml).toContain("Current line");
+    expect(threeLinesHtml).toContain("Next line");
+    expect(threeLinesHtml).not.toContain("is-two-line");
+
+    const wrappedHtml = renderToString(
+      <Island
+        event={{
+          mode: "compact",
+          playing: true,
+          lyrics: {
+            playing: true,
+            prev: "Prev line",
+            current: "This current lyric line is definitely much longer than one compact line width",
+            next: "Next hidden",
+          } as never,
+        }}
+      />,
+    );
+    expect(wrappedHtml).toContain("is-two-line");
+    expect(wrappedHtml).toContain("Prev line");
+    expect(wrappedHtml).not.toContain("Next hidden");
   });
 });

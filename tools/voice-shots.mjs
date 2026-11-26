@@ -160,6 +160,10 @@ function m26Shots() {
     "m28-voice-ready-dark": [{ w: 1100, h: 1150, scale: 1 }, "scene=settings&theme=studio&lang=ru&scheme=dark&go=voice", "#voice-check button.btn-primary::0"],
     "m28-voice-error-light": [{ w: 1100, h: 900, scale: 1 }, "scene=settings&theme=studio&lang=ru&scheme=light&go=voice&voiceError=vram"],
     "m28-voice-error-dark": [{ w: 1100, h: 900, scale: 1 }, "scene=settings&theme=studio&lang=ru&scheme=dark&go=voice&voiceError=model_file"],
+    "t285b-compact-short-light": [{ w: 540, h: 180, scale: 2 }, "scene=island&mode=compact&voiceOff=1&lyrics=1line&lang=ru&theme=light"],
+    "t285b-compact-short-dark": [{ w: 540, h: 180, scale: 2 }, "scene=island&mode=compact&voiceOff=1&lyrics=1line&lang=ru&theme=dark"],
+    "t285b-compact-long-light": [{ w: 540, h: 180, scale: 2 }, "scene=island&mode=compact&voiceOff=1&lyrics=long&lang=ru&theme=light"],
+    "t285b-compact-long-dark": [{ w: 540, h: 180, scale: 2 }, "scene=island&mode=compact&voiceOff=1&lyrics=long&lang=ru&theme=dark"],
   };
 }
 function m27Shots() {

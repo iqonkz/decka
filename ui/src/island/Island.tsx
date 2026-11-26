@@ -146,6 +146,7 @@ export default function Island({
   const [stickyContent, setStickyContent] = useState(rawHasContent);
   const prevModeRef = useRef(mode);
   const prevPhaseRef = useRef<IslandVoicePhase | undefined>(voice?.phase);
+  const prevSongRef = useRef<{ trackKey: string; current?: string; prev?: string }>({ trackKey: "" });
 
   // Stay in content layout until leaving expanded OR starting a new voice request (listening/loading with no text).
   if (mode !== "expanded") {
@@ -328,6 +329,19 @@ export default function Island({
 
   if (mode === "compact") {
     const lyrics = songView(event);
+    const trackKey = `${lyrics?.title ?? ""}::${lyrics?.artist ?? ""}`;
+    if (!lyrics) {
+      prevSongRef.current = { trackKey: "" };
+    } else if (prevSongRef.current.trackKey !== trackKey) {
+      prevSongRef.current = { trackKey, current: lyrics.current, prev: lyrics.prev };
+    } else if (lyrics.current && lyrics.current !== prevSongRef.current.current) {
+      prevSongRef.current = {
+        trackKey,
+        prev: lyrics.prev ?? prevSongRef.current.current,
+        current: lyrics.current,
+      };
+    }
+    const prevLyric = lyrics?.prev ?? prevSongRef.current.prev;
     const hasActiveLyric = Boolean(lyrics?.current);
     const hasSong = !voiceActive && Boolean(lyrics);
     const countdownKnown = !hasActiveLyric && typeof lyrics?.nextInSec === "number" && lyrics.nextInSec >= 0;
@@ -341,9 +355,9 @@ export default function Island({
         ? Boolean(lyrics?.next)
         : countdownKnown || countdownUnknown || Boolean(lyrics?.artist)
       : false;
-    // T26.F.14: fixed 520px panel, 48px orb on left with overlay controls on hover, left-aligned text on right.
+    // T28.5b: fixed 440px panel, 3-line centered text column (prev/current/next or 2-line wrapped current).
     const lyricLines = hasSong && hasActiveLyric ? { current: lyrics?.current, next: lyrics?.next } : { current: trackSummary || lyrics?.title, next: lyrics?.artist };
-    const wraps = hasSong && currentWraps(lyricLines.current);
+    const wraps = hasSong && hasActiveLyric && currentWraps(lyricLines.current);
     const panelWidth = hasSong ? compactWidth(lyricLines.current, lyricLines.next) : undefined;
     const slow = voice?.slow;
     const slowOverdue = slow && (slow.elapsedSec ?? 0) > slow.etaSec * 2;
@@ -415,10 +429,17 @@ export default function Island({
               </div>
             ) : hasSong ? (
               hasActiveLyric ? (
-                <>
-                  <div className="island-lyric-current">{lyrics?.current}</div>
-                  {lyrics?.next && <div className="island-lyric-next">{lyrics.next}</div>}
-                </>
+                <div className="island-lyrics-track" key={lyrics?.current}>
+                  <div className="island-lyric-dim island-lyric-prev">{prevLyric ?? ""}</div>
+                  {wraps ? (
+                    <div className="island-lyric-current is-two-line">{lyrics?.current}</div>
+                  ) : (
+                    <>
+                      <div className="island-lyric-current">{lyrics?.current}</div>
+                      <div className="island-lyric-dim island-lyric-next">{lyrics?.next ?? ""}</div>
+                    </>
+                  )}
+                </div>
               ) : countdownKnown ? (
                 <>
                   <div className="island-lyric-current island-song-title-row">
