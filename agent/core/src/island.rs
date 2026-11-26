@@ -90,7 +90,7 @@ pub fn voice_view(payload: Option<&Value>, slow: Option<Progress>, chips: &[Valu
     };
     let mut v = json!({ "active": input == VoiceInput::Active, "phase": phase });
     let o = v.as_object_mut().expect("an object");
-    for (from, to) in [("level", "level"), ("heard", "heard"), ("reply", "reply"), ("replyKey", "replyKey"), ("replyArgs", "replyArgs"), ("confirm", "confirm"), ("id", "confirmId")] {
+    for (from, to) in [("level", "level"), ("heard", "heard"), ("understood", "understood"), ("executing", "executing"), ("reply", "reply"), ("replyKey", "replyKey"), ("replyArgs", "replyArgs"), ("confirm", "confirm"), ("id", "confirmId")] {
         match p.get(from) {
             // The id is only a handle of the confirmation.
             Some(_) if to == "confirmId" && phase != "confirm" => {}

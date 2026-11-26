@@ -24,6 +24,27 @@ use crate::state::{Store, MAX_NOTIFICATIONS};
 /// Notification body limit (PROTOCOL.md 5).
 const MAX_BODY_CHARS: usize = 500;
 
+/// The `ai` section of a PC where the coding helpers were never turned on: it only carries what the agent notes there.
+fn ai_off() -> AiConfig {
+    AiConfig {
+        claude: AiClaudeConfig { enabled: false, approvals: true, timeout_sec: 120, account_limits: false },
+        codex: AiCodexConfig { enabled: false, approvals: None },
+        hook_token: None,
+        rules: Vec::new(),
+        replies: None,
+        gpu_layers: None,
+    }
+}
+
+impl crate::ai::service::LayerMemory for Agent {
+    fn load(&self) -> Option<GpuLayers> {
+        self.config().ai.and_then(|a| a.gpu_layers)
+    }
+    fn save(&self, value: Option<GpuLayers>) {
+        self.set_gpu_layers(value);
+    }
+}
+
 pub struct AgentOptions {
     pub config_dir: Option<PathBuf>,
     pub client_dist: Option<PathBuf>,
@@ -1917,6 +1938,7 @@ impl Agent {
             hook_token: None,
             rules: Vec::new(),
             replies: None,
+            gpu_layers: None,
         });
         let token = ai.hook_token.get_or_insert_with(config::generate_api_token).clone();
         ai.claude.enabled = true;
@@ -2163,6 +2185,12 @@ impl Agent {
         }
         // The hook token is created by `cc_install` only; the window never sees it and cannot change it.
         let before = self.config();
+        // `ai.gpuLayers` is the agent's own note (T28.1): a saved form neither changes nor drops it.
+        match (config.ai.as_mut(), before.ai.as_ref().and_then(|a| a.gpu_layers.clone())) {
+            (Some(ai), kept) => ai.gpu_layers = kept,
+            (None, Some(kept)) => config.ai = Some(AiConfig { gpu_layers: Some(kept), ..ai_off() }),
+            (None, None) => {}
+        }
         if let Some(ai) = config.ai.as_mut() {
             ai.hook_token = before.ai.as_ref().and_then(|a| a.hook_token.clone());
             // The rules of "Always allow" change only through the phone and the rules list, never through a saved form.
@@ -2209,6 +2237,19 @@ impl Agent {
             self.publish_status();
         }
         result
+    }
+
+    /// T28.1: writes or removes `ai.gpuLayers`; nothing else of the settings changes.
+    pub fn set_gpu_layers(&self, value: Option<GpuLayers>) {
+        let mut config = self.config();
+        match (config.ai.as_mut(), value) {
+            (Some(ai), value) => ai.gpu_layers = value,
+            (None, Some(value)) => config.ai = Some(AiConfig { gpu_layers: Some(value), ..ai_off() }),
+            (None, None) => return,
+        }
+        if let SaveResult::Rejected(issues) = self.write_config(config) {
+            tracing::warn!("ai.gpuLayers was not saved: {issues:?}");
+        }
     }
 
     /// Replaces the API token; scripts that use the old one stop working immediately.

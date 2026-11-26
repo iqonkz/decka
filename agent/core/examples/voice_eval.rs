@@ -64,7 +64,7 @@ async fn main() {
             let manifest = parse_manifest(&std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../shared/ai/manifest.json")).expect("manifest")).expect("manifest parses");
             let service = VoiceService::new(
                 tokio::runtime::Handle::current(),
-                VoiceDeps { root: default_root(), settings_path: settings.join("voice.json"), manifest, hardware: Arc::new(DetectProbe), mics: Arc::new(Vec::new), downloader: Downloader::default(), emit: Arc::new(|_| {}) },
+                VoiceDeps { root: default_root(), settings_path: settings.join("voice.json"), manifest, hardware: Arc::new(DetectProbe), mics: Arc::new(Vec::new), downloader: Downloader::default(), layers: Arc::new(decka_core::ai::service::NoLayerMemory), emit: Arc::new(|_| {}) },
             )
             .expect("service");
             service.set(VoiceSetArgs { model: Some(model), keep_loaded: Some(true), ..Default::default() }).expect("model");

@@ -20,7 +20,14 @@ const MAX_TEXT: usize = 300;
 /// Texts the user sees (PROTOCOL.md 3, DATA_MODEL.md 12.4).
 pub mod msg {
     pub const DIDNT_CATCH: &str = "Didn't catch that";
-    pub const DIDNT_GET: &str = "Didn't get that вЂ” try again";
+    pub const DIDNT_GET: &str = "Didn't get that — try again";
+    /// T28.2: why the model or the recognition does not work (the texts of `m28.err_*_short`).
+    pub const FAIL_VRAM: &str = "Not enough GPU memory for the model";
+    pub const FAIL_RAM: &str = "Not enough RAM for the model";
+    pub const FAIL_MODEL_FILE: &str = "Voice model file is damaged";
+    pub const FAIL_PORT: &str = "Voice server port is busy";
+    pub const FAIL_CRASH: &str = "Voice server stopped unexpectedly";
+    pub const FAIL_STT: &str = "Speech recognition failed to start";
     pub const CANCELLED: &str = "Cancelled";
     pub const DONE: &str = "Done";
     pub const NO_MIC: &str = "No microphone found";
@@ -53,6 +60,55 @@ pub mod key {
     pub const NOT_NUMBER: &str = "voice.reply.calc_failed";
     /// A confirmation, not a reply: the question "search the web?" after an `ask` the model could not answer.
     pub const ASK_WEB: &str = "voice.confirm.ask_web";
+    pub const FAIL_VRAM: &str = "m28.err_vram_short";
+    pub const FAIL_RAM: &str = "m28.err_ram_short";
+    pub const FAIL_MODEL_FILE: &str = "m28.err_model_file_short";
+    pub const FAIL_PORT: &str = "m28.err_port_short";
+    pub const FAIL_CRASH: &str = "m28.err_crash_short";
+    pub const FAIL_STT: &str = "m28.err_stt_short";
+}
+
+/// The short text of a failure of the servers (T28.2); the island shows its key.
+pub fn failure_msg(reason: crate::ai::failure::Reason) -> &'static str {
+    use crate::ai::failure::Reason;
+    match reason {
+        Reason::Vram => msg::FAIL_VRAM,
+        Reason::Ram => msg::FAIL_RAM,
+        Reason::ModelFile => msg::FAIL_MODEL_FILE,
+        Reason::Port => msg::FAIL_PORT,
+        Reason::Crash => msg::FAIL_CRASH,
+        Reason::Mic => msg::MIC_UNAVAILABLE,
+        Reason::Stt => msg::FAIL_STT,
+    }
+}
+
+/// "Understood: ..." (T28.3): what a call is going to do, as an i18n key with the English text as its fallback.
+pub fn understood(v: &Validated) -> ConfirmInfo {
+    let plain = |key: &'static str| (Some(key), BTreeMap::new());
+    let with = |key: &'static str, name: &str, value: String| (Some(key), BTreeMap::from([(name.to_string(), value)]));
+    let (key, args) = match &v.call {
+        _ if v.confirm && v.key.is_some() => (v.key, v.args.clone()),
+        ToolCall::OpenApp { name, .. } => with("voice.did.open", "name", name.clone()),
+        ToolCall::SwitchApp { name, .. } => with("voice.did.switch", "name", name.clone()),
+        ToolCall::CloseApp { name, .. } => with("voice.did.close", "name", name.clone()),
+        ToolCall::RunAction { .. } => match v.args.get("name") {
+            Some(name) => with("voice.did.run", "name", name.clone()),
+            None => (None, BTreeMap::new()),
+        },
+        ToolCall::GoPage { name, .. } => with("voice.did.page", "name", name.clone()),
+        ToolCall::ModeRun { name } => with("voice.did.mode", "name", name.clone()),
+        ToolCall::Timer { minutes, .. } => with("voice.did.timer", "minutes", minutes.to_string()),
+        ToolCall::OpenUrl { .. } => plain("voice.did.web"),
+        ToolCall::TypeText { .. } | ToolCall::PasteText { .. } | ToolCall::Dictate => plain("voice.did.type"),
+        ToolCall::Volume(_) => plain("voice.did.volume"),
+        ToolCall::Media(_) => plain("voice.did.media"),
+        ToolCall::ScreenAsk { .. } | ToolCall::FindOnScreen { .. } | ToolCall::UiAct { .. } | ToolCall::ReadAloud => plain("voice.did.screen"),
+        ToolCall::Guide { .. } | ToolCall::GuideRecord { .. } | ToolCall::GuideControl { .. } => plain("voice.did.guide"),
+        ToolCall::Ask { .. } | ToolCall::Calc { .. } | ToolCall::Status { .. } => plain("voice.did.question"),
+        ToolCall::TextTransform { .. } | ToolCall::ReplyAction { .. } => plain("voice.did.text"),
+        _ => (None, BTreeMap::new()),
+    };
+    ConfirmInfo { text: cut(&v.summary), key, args }
 }
 
 /// The i18n key of a fixed failure text of an executor (the English text is its fallback).
@@ -64,6 +120,13 @@ fn executor_key(text: &str) -> Option<&'static str> {
         msg::NO_ANSWER => Some(key::DIDNT_GET),
         msg::DIV_ZERO => Some(key::DIV_ZERO),
         msg::NOT_NUMBER => Some(key::NOT_NUMBER),
+        msg::FAIL_VRAM => Some(key::FAIL_VRAM),
+        msg::FAIL_RAM => Some(key::FAIL_RAM),
+        msg::FAIL_MODEL_FILE => Some(key::FAIL_MODEL_FILE),
+        msg::FAIL_PORT => Some(key::FAIL_PORT),
+        msg::FAIL_CRASH => Some(key::FAIL_CRASH),
+        msg::FAIL_STT => Some(key::FAIL_STT),
+        msg::MIC_UNAVAILABLE => Some(key::MIC_UNAVAILABLE),
         _ => None,
     }
 }
@@ -121,11 +184,13 @@ pub struct State {
     pub activity: Option<&'static str>,
     /// T26.3: the shown answer can be continued; the window of the PC offers `followup::ACTIONS` under it.
     pub actions: bool,
+    /// T28.3: what the phrase was understood as (`Heard` -> `Understood` -> doing it), set when a call starts.
+    pub understood: Option<ConfirmInfo>,
 }
 
 impl State {
     pub fn idle() -> State {
-        State { phase: Phase::Idle, id: None, source: None, heard: None, say: None, reply_key: None, activity: None, actions: false }
+        State { phase: Phase::Idle, id: None, source: None, heard: None, say: None, reply_key: None, activity: None, actions: false, understood: None }
     }
 }
 
@@ -153,6 +218,11 @@ pub struct VoiceInfo {
     /// T26.3: what can be done with the shown answer. Only for the window of the PC (`pill_payload`); the phones do not get it.
     #[serde(skip)]
     pub actions: Vec<&'static str>,
+    /// T28.3: what was understood and whether it is being done now; for the window of the PC only.
+    #[serde(skip)]
+    pub understood: Option<ConfirmInfo>,
+    #[serde(skip)]
+    pub executing: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -195,6 +265,8 @@ impl State {
             confirm,
             activity: self.activity.filter(|_| matches!(state, "listening" | "recognizing" | "thinking" | "loading")),
             actions: if self.actions && state == "done" { super::followup::ACTIONS.to_vec() } else { Vec::new() },
+            understood: self.understood.clone().filter(|_| !idle),
+            executing: self.phase == Phase::Executing,
         }
     }
 }
@@ -254,6 +326,8 @@ pub enum Event {
     Watchdog,
     /// The model's answer: a tool call (with its short text) or nothing usable.
     LlmAnswer(Option<(RawCall, Option<String>)>),
+    /// The model cannot answer at all (T28.2): the fixed text that says why.
+    ModelFailed(&'static str),
     Confirm { id: String, yes: bool },
     Tick { now_ms: u64 },
     Executed(Result<String, String>),
@@ -284,8 +358,25 @@ fn describe(i: &Intent) -> String {
     if arg.is_empty() { i.tool.replace('_', " ") } else { format!("{} {arg}", i.tool.replace('_', " ")) }
 }
 
+/// The model gave nothing: say why the table's own reading was refused, when there was one, else `otherwise`.
+fn no_answer(s: State, env: &Env, otherwise: &str) -> (State, Vec<Effect>) {
+    let table_reject = s.heard.as_deref().and_then(|h| match env.table.matches(h) {
+        Match::Hit(i) => match validate(&RawCall { tool: i.tool, args: serde_json::Value::Object(i.args) }, env.ctx) {
+            Resolved::Reject(why) => Some(why),
+            _ => None,
+        },
+        _ => None,
+    });
+    match table_reject {
+        Some(why) => finish_key(s, Phase::Failed(format!("Can't do that: {why}")), ReplyKey::with(key::CANT, "why", &why)),
+        None => finish_key(s, Phase::Failed(otherwise.to_string()), ReplyKey::plain(executor_key(otherwise).unwrap_or(key::DIDNT_GET))),
+    }
+}
+
 /// Starts a call; the pill says what is going on while it runs.
-fn executing(mut s: State, call: ToolCall) -> (State, Vec<Effect>) {
+fn executing(mut s: State, v: &Validated) -> (State, Vec<Effect>) {
+    let call = v.call.clone();
+    s.understood = Some(understood(v));
     s.phase = Phase::Executing;
     if matches!(call, ToolCall::ScreenAsk { .. }) {
         s.activity = Some("screen");
@@ -324,7 +415,7 @@ fn resolve(mut s: State, raw: &RawCall, now_ms: u64, env: &Env, from_model: bool
             s.phase = Phase::Confirming { call: v, deadline_ms };
             (s, vec![Effect::ScheduleTick(env.confirm_ms)])
         }
-        Resolved::Ready(v) => executing(s, v.call),
+        Resolved::Ready(v) => executing(s, &v),
         Resolved::Ask { question, options } => finish_key(s, Phase::Done(question), ReplyKey::with(key::WHICH, "options", &options.iter().take(3).cloned().collect::<Vec<_>>().join(" / "))),
         Resolved::Reject(_) if from_model => finish_key(s, Phase::Failed(msg::DIDNT_GET.into()), ReplyKey::plain(key::DIDNT_GET)),
         Resolved::Reject(why) => finish_key(s, Phase::Failed(format!("Can't do that: {why}")), ReplyKey::with(key::CANT, "why", &why)),
@@ -337,7 +428,7 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
     match (&state.phase, event) {
         (Phase::Idle | Phase::Done(_) | Phase::Failed(_), Event::Start { id, source }) => {
             let effects = if source == Source::Pc { vec![Effect::StartCapture] } else { Vec::new() };
-            (State { phase: Phase::Listening, id: Some(id), source: Some(source), heard: None, say: None, reply_key: None, activity: env.dictate.then_some("dictate"), actions: false }, effects)
+            (State { phase: Phase::Listening, id: Some(id), source: Some(source), heard: None, say: None, reply_key: None, activity: env.dictate.then_some("dictate"), actions: false, understood: None }, effects)
         }
         (Phase::Idle, Event::Cancel) => (s, Vec::new()),
         (Phase::Listening, Event::CaptureFailed(e)) if e == msg::NO_SOUND => {
@@ -380,7 +471,10 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
             (s, vec![Effect::StopCapture, Effect::Transcribe])
         }
         (Phase::Transcribing | Phase::Thinking, Event::ModelLoading) => finish(s, Phase::Loading),
-        (Phase::Transcribing | Phase::Loading, Event::Transcript(Err(e))) => finish(s, Phase::Failed(e)),
+        (Phase::Transcribing | Phase::Loading, Event::Transcript(Err(e))) => match executor_key(&e) {
+            Some(k) => finish_key(s, Phase::Failed(e), ReplyKey::plain(k)),
+            None => finish(s, Phase::Failed(e)),
+        },
         (Phase::Transcribing | Phase::Loading, Event::Transcript(Ok(text))) => {
             let text = text.trim().to_string();
             if text.is_empty() {
@@ -438,20 +532,7 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
             }
         }
         (Phase::Thinking | Phase::Loading | Phase::Transcribing, Event::LlmAnswer(answer)) => match answer {
-            None => {
-                // No answer from the model: say why the table's own reading was refused, when there was one.
-                let table_reject = s.heard.as_deref().and_then(|h| match env.table.matches(h) {
-                    Match::Hit(i) => match validate(&RawCall { tool: i.tool, args: serde_json::Value::Object(i.args) }, env.ctx) {
-                        Resolved::Reject(why) => Some(why),
-                        _ => None,
-                    },
-                    _ => None,
-                });
-                match table_reject {
-                    Some(why) => finish_key(s, Phase::Failed(format!("Can't do that: {why}")), ReplyKey::with(key::CANT, "why", &why)),
-                    None => finish_key(s, Phase::Failed(msg::DIDNT_GET.into()), ReplyKey::plain(key::DIDNT_GET)),
-                }
-            }
+            None => no_answer(s, env, msg::DIDNT_GET),
             // The model may remember something only when the user asked for it in so many words (13.6).
             Some((raw, _)) if raw.tool == "memory_add" && !s.heard.as_deref().is_some_and(super::memory::asks_to_remember) => {
                 finish_key(s, Phase::Failed(msg::DIDNT_GET.into()), ReplyKey::plain(key::DIDNT_GET))
@@ -462,15 +543,16 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
                 resolve(s, &raw, now_ms, env, true)
             }
         },
+        (Phase::Thinking | Phase::Loading | Phase::Transcribing, Event::ModelFailed(why)) => no_answer(s, env, why),
         // A spoken yes or no while a confirmation is open.
         (Phase::Confirming { call, .. }, Event::Transcript(Ok(text))) => match env.table.answer(&text) {
-            Some(true) => executing(s, call.call.clone()),
+            Some(true) => executing(s, call),
             Some(false) => finish_key(s, Phase::Done(msg::CANCELLED.into()), ReplyKey::plain(key::CANCELLED)),
             None => (s, Vec::new()),
         },
         (Phase::Confirming { call, .. }, Event::Confirm { id, yes }) if state.id.as_deref() == Some(id.as_str()) => {
             if yes {
-                executing(s, call.call.clone())
+                executing(s, call)
             } else {
                 finish_key(s, Phase::Done(msg::CANCELLED.into()), ReplyKey::plain(key::CANCELLED))
             }
@@ -532,6 +614,10 @@ pub trait Ports: Send + Sync + 'static {
     fn transcribe(&self, pcm: Vec<u8>) -> BoxFut<Result<String, String>>;
     /// The AI path; `None` = no usable answer.
     fn ask_llm(&self, text: String, ctx: Context) -> BoxFut<Option<(RawCall, Option<String>)>>;
+    /// Why the model cannot answer at all, after `ask_llm` gave nothing (default: it can).
+    fn model_failure(&self) -> Option<&'static str> {
+        None
+    }
     /// Runs a validated call with Decka's own executors; the text is the result for the user.
     fn execute(&self, call: ToolCall) -> BoxFut<Result<String, String>>;
     /// The PC microphone on (`true`) or off.
@@ -652,7 +738,8 @@ impl Driver {
                 let ctx = ctx.clone();
                 self.handle.spawn(async move {
                     let a = me.ports.ask_llm(text, ctx).await;
-                    me.handle_event(Event::LlmAnswer(a));
+                    let failed = if a.is_none() { me.ports.model_failure() } else { None };
+                    me.handle_event(failed.map_or(Event::LlmAnswer(a), Event::ModelFailed));
                 });
             }
             Effect::Execute(call) => {
@@ -858,10 +945,11 @@ mod tests {
         let ordinary = Env { table: &t, ctx: &c, confirm_ms: CONFIRM_TIMEOUT_MS, dictate: false };
         assert_eq!(step(&State::idle(), start(Source::Pc), 1, &ordinary).0.info().activity, None);
         // The screen: the call that looks at it marks the request, any other call does not.
-        let (s, fx) = executing(State::idle(), ToolCall::ScreenAsk { question: "what is this".into() });
+        let call = |call: ToolCall| Validated { call, confirm: false, summary: "x".into(), key: None, args: Default::default() };
+        let (s, fx) = executing(State::idle(), &call(ToolCall::ScreenAsk { question: "what is this".into() }));
         assert_eq!((s.phase.clone(), s.info().state, s.info().activity), (Phase::Executing, "thinking", Some("screen")));
         assert_eq!(fx.len(), 1);
-        assert_eq!(executing(State::idle(), ToolCall::DayBrief).0.info().activity, None);
+        assert_eq!(executing(State::idle(), &call(ToolCall::DayBrief)).0.info().activity, None);
         // It is part of the section the phone gets only while it runs.
         assert_eq!(serde_json::to_value(s.info()).unwrap()["activity"], "screen");
         assert!(serde_json::to_value(State::idle().info()).unwrap().get("activity").is_none());
@@ -1052,6 +1140,55 @@ mod tests {
         assert_eq!(long.info().reply.unwrap().chars().count(), 300);
     }
 
+    /// T28.2: a failure of the servers is a fixed phrase with its key, never the raw line of the process.
+    #[test]
+    fn a_failed_server_says_why_with_a_key() {
+        use crate::ai::failure::Reason;
+        let thinking = vec![start(Source::Pc), Event::AudioEnd, said("hm")];
+        for (reason, expected) in [
+            (Reason::Vram, "m28.err_vram_short"),
+            (Reason::Ram, "m28.err_ram_short"),
+            (Reason::ModelFile, "m28.err_model_file_short"),
+            (Reason::Port, "m28.err_port_short"),
+            (Reason::Crash, "m28.err_crash_short"),
+            (Reason::Stt, "m28.err_stt_short"),
+            (Reason::Mic, "voice.reply.mic_unavailable"),
+        ] {
+            let mut events = thinking.clone();
+            events.push(Event::ModelFailed(failure_msg(reason)));
+            let (s, _) = run(events);
+            assert_eq!((s.info().state, s.info().reply_key), ("error", Some(expected)), "{reason:?}");
+        }
+        // Also while the pill says "loading".
+        let (s, _) = run(vec![start(Source::Pc), Event::AudioEnd, said("hm"), Event::ModelLoading, Event::ModelFailed(msg::FAIL_RAM)]);
+        assert_eq!(s.info().reply.as_deref(), Some("Not enough RAM for the model"));
+        // The recognition that could not start.
+        let (s, _) = run(vec![start(Source::Pc), Event::AudioEnd, Event::Transcript(Err(msg::FAIL_STT.into()))]);
+        assert_eq!(s.info().reply_key, Some("m28.err_stt_short"));
+        // A phrase of the tables needs no model.
+        assert_eq!(run(vec![start(Source::Pc), Event::AudioEnd, said("volume up")]).0.phase, Phase::Executing);
+    }
+
+    /// T28.3: "Heard" -> "Understood" -> doing it; the stages are for the window of the PC, not for the phones.
+    #[test]
+    fn a_command_shows_what_was_heard_understood_and_that_it_is_being_done() {
+        let (s, _) = run(vec![start(Source::Pc), Event::AudioEnd]);
+        assert_eq!((s.info().heard, s.info().understood, s.info().executing), (None, None, false));
+        let (s, _) = run(vec![start(Source::Pc), Event::AudioEnd, said("volume up")]);
+        let info = s.info();
+        assert_eq!((info.heard.as_deref(), info.understood.as_ref().and_then(|u| u.key), info.executing), (Some("volume up"), Some("voice.did.volume"), true));
+        let phone = serde_json::to_value(&info).unwrap();
+        assert!(phone.get("understood").is_none() && phone.get("executing").is_none());
+        let pill = crate::voice::host::pill_payload(&info, &[], 0.0);
+        assert_eq!((pill["understood"]["key"].as_str(), pill["executing"].as_bool()), (Some("voice.did.volume"), Some(true)));
+        // The result keeps what was understood; nothing is being done any more.
+        let (done, _) = run(vec![start(Source::Pc), Event::AudioEnd, said("volume up"), Event::Executed(Ok(String::new()))]);
+        assert_eq!((done.info().understood.is_some(), done.info().executing), (true, false));
+        // After a "yes" the confirmed call is named by its own key.
+        let (s, _) = run(vec![start(Source::Pc), Event::AudioEnd, said("lock computer"), Event::Confirm { id: "00112233aabbccdd".into(), yes: true }]);
+        assert_eq!(s.info().understood.and_then(|u| u.key), Some("voice.confirm.lock"));
+    }
+
     // ---- Driver on fakes ----
 
     #[derive(Default)]
@@ -1060,6 +1197,7 @@ mod tests {
         published: Mutex<Vec<VoiceInfo>>,
         heard: Mutex<Vec<usize>>,
         transcript: Mutex<String>,
+        broken_model: Mutex<Option<&'static str>>,
     }
 
     impl Ports for Fake {
@@ -1073,6 +1211,9 @@ mod tests {
         }
         fn ask_llm(&self, _: String, _: Context) -> BoxFut<Option<(RawCall, Option<String>)>> {
             Box::pin(async { None })
+        }
+        fn model_failure(&self) -> Option<&'static str> {
+            *self.broken_model.lock().unwrap()
         }
         fn execute(&self, call: ToolCall) -> BoxFut<Result<String, String>> {
             self.executed.lock().unwrap().push(call);
@@ -1108,6 +1249,20 @@ mod tests {
         assert_eq!(fake.executed.lock().unwrap().len(), 1);
         let states: Vec<_> = fake.published.lock().unwrap().iter().map(|i| i.state).collect();
         assert_eq!(states, ["listening", "recognizing", "thinking", "done"]);
+    }
+
+    #[tokio::test]
+    async fn the_driver_asks_why_when_the_model_gives_nothing() {
+        let fake = Arc::new(Fake::default());
+        *fake.transcript.lock().unwrap() = "something the tables do not know".into();
+        *fake.broken_model.lock().unwrap() = Some(msg::FAIL_VRAM);
+        let d = Driver::new(tokio::runtime::Handle::current(), fake.clone());
+        d.handle_event(start(Source::Phone));
+        d.push_audio(&[0u8; 3200]);
+        d.handle_event(Event::AudioEnd);
+        settle(&fake, "error").await;
+        assert_eq!(fake.published.lock().unwrap().last().unwrap().reply_key, Some("m28.err_vram_short"));
+        assert!(fake.executed.lock().unwrap().is_empty());
     }
 
     /// T23.B: the pill hung in `Listening…` after several commands in a row. Ten requests with every kind of ending,

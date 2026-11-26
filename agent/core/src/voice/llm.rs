@@ -269,8 +269,8 @@ pub async fn ask_at(port: u16, key: &str, text: &str, ctx: &Context, lang: &str)
 
 /// The AI path of the host: starts the servers when they are not running, then `ask_at`.
 pub async fn ask(sup: &Supervisor, lang: &str, text: &str, ctx: &Context) -> Option<(RawCall, Option<String>)> {
-    let endpoints = sup.ensure_started().await.map_err(|e| tracing::warn!("voice model: {e}")).ok()?;
-    let answer = ask_at(endpoints.llama_port, &endpoints.llama_key, text, ctx, lang).await;
+    let (port, key) = sup.ensure_llm().await.map_err(|f| tracing::warn!("voice model: {}", f.detail)).ok()?;
+    let answer = ask_at(port, &key, text, ctx, lang).await;
     sup.touch();
     answer
 }

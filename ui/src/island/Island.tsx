@@ -564,6 +564,7 @@ export default function Island({
             ) : (
               voiceActive &&
               !voice?.reply &&
+              !voice?.executing &&
               voice?.phase !== "done" &&
               voice?.phase !== "idle" && <div className="island-content-status">{statusLabel}</div>
             )}
@@ -571,9 +572,13 @@ export default function Island({
             {voice?.heard && (
               <div className="island-heard">
                 <Mic size={12} strokeWidth={1.75} className="island-heard-mic" aria-hidden="true" />
-                <span className="island-heard-text">{voice.heard}</span>
+                {/* T28.3: a command shows its stages, "Heard" -> "Understood" -> "Doing it". */}
+                <span className="island-heard-text">{voice.understood ? t("voice.stage.heard", { text: voice.heard }) : voice.heard}</span>
               </div>
             )}
+
+            {voice?.understood && <div className="island-understood">{t("voice.stage.understood", { what: voice.understood.text })}</div>}
+            {voice?.executing && <div className="island-content-status island-doing">{t("voice.stage.doing")}</div>}
 
             {voice?.reply && <div className="island-reply">{voice.reply}</div>}
 

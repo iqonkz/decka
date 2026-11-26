@@ -516,6 +516,14 @@
   white-space: nowrap;
 }
 
+.island-understood {
+  width: 100%;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--island-text);
+}
+
 .island-reply {
   width: 100%;
   text-align: left;

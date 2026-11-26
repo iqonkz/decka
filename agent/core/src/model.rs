@@ -902,6 +902,20 @@ pub struct AiConfig {
     /// The ready answers of "Deny and say" (0..4 texts); absent = the built-in three.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub replies: Option<Vec<String>>,
+    /// T28.1: the local model could not load on the video card; written by the agent only.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub gpu_layers: Option<GpuLayers>,
+}
+
+/// `config.ai.gpuLayers`: the layers a model runs with on a video card, after a failed start. Another model or another card
+/// forgets it.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct GpuLayers {
+    /// The file name of the model.
+    pub model: String,
+    /// `<name>|<video memory in GB>`.
+    pub gpu: String,
+    pub layers: u32,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

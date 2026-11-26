@@ -124,6 +124,8 @@ pub fn run() {
             commands::voice_enable,
             commands::voice_cancel,
             commands::voice_remove,
+            commands::voice_redownload,
+            commands::voice_self_check,
             commands::voice_set,
             commands::voice_confirm,
             commands::voice_stop,

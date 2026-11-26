@@ -9,6 +9,7 @@ pub mod audio;
 pub mod ask;
 pub mod brief;
 pub mod calc;
+pub mod check;
 pub mod clipboard;
 pub mod context;
 pub mod dictation;

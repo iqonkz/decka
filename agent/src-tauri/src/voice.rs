@@ -46,6 +46,7 @@ pub fn setup(app: &AppHandle, agent: &Agent) {
         hardware: Arc::new(DetectProbe),
         mics: Arc::new(decka_core::voice::mic::list_mics),
         downloader: Downloader::default(),
+        layers: Arc::new(agent.clone()),
         emit: Arc::new(move |status| {
             let _ = window.emit("voice-status", status.clone());
             if let Some(host) = cell.get() {

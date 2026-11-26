@@ -10,15 +10,17 @@ use std::time::{Duration, Instant};
 
 use serde_json::{json, Value};
 
+use super::check::{CheckPorts, CheckStep, Recording, StepError};
 use super::dictation::{self, DictationSettings, Mode, Trigger};
 use super::endpoint::Verdict;
 use super::hotkey::{self, Pressed, Plan, Tracker};
 use super::matcher::Table;
 use super::mic;
-use super::pipeline::{msg, BoxFut, Driver, Event, Phase, Ports, Source, State, VoiceInfo};
+use super::pipeline::{key, msg, BoxFut, Driver, Event, Phase, Ports, Source, State, VoiceInfo};
 use super::winops;
 use super::tools::{ActionRef, AppRef, ButtonRef, Context, PageRef, RawCall, ToolCall, VolumeOp};
 use crate::agent::Agent;
+use crate::ai::failure::{Reason, Server};
 use crate::ai::service::{VoiceService, VoiceSetArgs, VoiceState, VoiceStatus};
 use crate::ai::supervisor::SupState;
 use crate::installed::InstalledApp;
@@ -33,7 +35,8 @@ pub const WATCHDOG_MS: u64 = 30_000;
 pub fn watchdog_ms(phase: &Phase) -> u64 {
     match phase {
         Phase::Listening => 30_000,
-        Phase::Loading => 120_000,
+        // Two starts of the model (on the card, then on the processor, T28.1) of up to `READY_TIMEOUT` each.
+        Phase::Loading => 250_000,
         // The request has its own limit (15 s on a GPU, up to 60 s on a CPU, `supervisor::stt_timeout`): this is the backstop.
         Phase::Transcribing => 61_000,
         Phase::Thinking => 20_000,
@@ -105,6 +108,13 @@ pub fn pill_payload(info: &VoiceInfo, hotkey: &[String], level: f32) -> Value {
         o.insert("hotkey".into(), json!(hotkey::format_chord(hotkey)));
         // T26.3: the actions under a shown answer (the window of the PC only).
         o.insert("actions".into(), json!(info.actions));
+        // T28.3: the stages of a command, "Heard" -> "Understood" -> "Doing it" (the window of the PC only).
+        if let Some(u) = &info.understood {
+            o.insert("understood".into(), json!(u));
+        }
+        if info.executing {
+            o.insert("executing".into(), json!(true));
+        }
     }
     v
 }
@@ -410,9 +420,11 @@ pub fn table_text(lang: &str) -> &'static str {
     }
 }
 
-/// Whether voice control is on for this PC: the models are there (the servers start with the first request).
+/// Whether voice control is on for this PC: the models are there (the servers start with the first request). A server
+/// that failed does not turn it off (T28.2): the hotkey still answers, the island says why, and the recognition and the
+/// phrase tables work without the model.
 pub fn is_on(status: &VoiceStatus) -> bool {
-    matches!(status.state, VoiceState::Ready | VoiceState::Loading)
+    matches!(status.state, VoiceState::Ready | VoiceState::Loading) || status.reason.is_some()
 }
 
 // ---- The glue ---------------------------------------------------------------------------------------------------
@@ -460,6 +472,8 @@ struct Inner {
     changes: Arc<AtomicU64>,
     /// M27: the screen help (find, press, guide), once the application has given it a window to highlight in.
     screen: OnceLock<Arc<super::screenrun::ScreenRun>>,
+    /// "Check voice" is running (T28.3).
+    checking: AtomicBool,
 }
 
 #[derive(Clone)]
@@ -501,6 +515,7 @@ impl Host {
             chunks: Arc::new(AtomicUsize::new(0)),
             changes: Arc::new(AtomicU64::new(0)),
             screen: OnceLock::new(),
+            checking: AtomicBool::new(false),
         });
         let driver = Driver::new(handle.clone(), inner.clone());
         let _ = inner.driver.set(driver);
@@ -714,6 +729,29 @@ impl Host {
         Ok(())
     }
 
+    /// `voice_self_check` (T28.3): microphone, recognition, model and a dry run of the action; `progress` gets every
+    /// change. Nothing is executed. A server that had given up gets another try.
+    pub async fn self_check(&self, progress: CheckProgress) -> Result<Vec<CheckStep>, String> {
+        let inner = self.inner.clone();
+        if !is_on(&inner.service.status()) {
+            return Err("Voice control is not installed".into());
+        }
+        let phase = inner.driver().state().phase;
+        if is_active(&phase) || matches!(phase, Phase::Confirming { .. }) {
+            return Err("A voice request is running".into());
+        }
+        if inner.checking.swap(true, Ordering::SeqCst) {
+            return Err("The check is running already".into());
+        }
+        let _running = Checking(inner.clone());
+        let sup = inner.service.supervisor().clone();
+        if sup.failure_of(Server::Llm).is_some() || sup.failure_of(Server::Stt).is_some() {
+            sup.retry().await;
+        }
+        let lang = inner.language();
+        Ok(super::check::run(&HostCheck { inner, progress }, lang).await)
+    }
+
     /// Starts or ends a PC voice request, as if the hotkey were pressed.
     pub fn trigger(&self) {
         self.inner.pressed(Pressed::Main);
@@ -790,11 +828,11 @@ impl super::screenrun::StepAsker for LlamaAsker {
             *since.lock().unwrap() = Some(Instant::now());
             let started = Instant::now();
             let content = async {
-                let endpoints = sup.ensure_started().await.ok()?;
+                let (port, key) = sup.ensure_llm().await.ok()?;
                 let client = reqwest::Client::builder().timeout(Duration::from_secs(60)).build().ok()?;
                 let answer = client
-                    .post(format!("http://127.0.0.1:{}/v1/chat/completions", endpoints.llama_port))
-                    .bearer_auth(&endpoints.llama_key)
+                    .post(format!("http://127.0.0.1:{port}/v1/chat/completions"))
+                    .bearer_auth(&key)
                     .header("Content-Type", "application/json")
                     .body(serde_json::to_vec(&body).ok()?)
                     .send()
@@ -877,6 +915,10 @@ impl Inner {
     }
 
     fn pressed(&self, p: Pressed) {
+        // "Check voice" holds the microphone.
+        if self.checking.load(Ordering::SeqCst) {
+            return;
+        }
         if p == Pressed::Dictate {
             return self.start_dictation();
         }
@@ -932,6 +974,8 @@ impl Inner {
             confirm: None,
             activity: None,
             actions: if actions && state == "done" { super::followup::ACTIONS.to_vec() } else { Vec::new() },
+            understood: None,
+            executing: false,
         };
         self.show(&info("done", Some(text.chars().take(200).collect())), 0.0);
         let weak = Arc::downgrade(self);
@@ -952,6 +996,117 @@ impl Inner {
             let pill = self.pill.clone();
             pill_worker(Box::new(move || pill(cmd)));
         }
+    }
+}
+
+// ---- "Check voice" (T28.3) --------------------------------------------------------------------------------------
+
+pub type CheckProgress = Arc<dyn Fn(&[CheckStep]) + Send + Sync>;
+
+/// Clears `checking`, also when the check is abandoned.
+struct Checking(Arc<Inner>);
+
+impl Drop for Checking {
+    fn drop(&mut self) {
+        self.0.checking.store(false, Ordering::SeqCst);
+    }
+}
+
+/// A recording of the PC microphone for the check: `max` long, or until the pause after speech when `to_the_pause`.
+#[cfg(windows)]
+fn record_for_check(wanted: Option<String>, max: Duration, to_the_pause: bool) -> Result<Recording, StepError> {
+    // The test input of `capture` (T21.11) stands in for the microphone here too.
+    if let Some(bytes) = std::env::var_os("DECKA_VOICE_WAV").and_then(|p| std::fs::read(p).ok()) {
+        return Ok(Recording { pcm: bytes.get(44..).unwrap_or_default().to_vec(), level: 0.5, sound: true, speech: true });
+    }
+    let failed = |e: String| {
+        let error_key = if e == msg::NO_MIC { key::NO_MIC } else if e == msg::NO_SOUND { key::NO_SOUND } else { key::MIC_UNAVAILABLE };
+        StepError { reason: Some(Reason::Mic), error: e, error_key: Some(error_key) }
+    };
+    let got = Arc::new(Mutex::new(Recording::default()));
+    let (tx, rx) = std::sync::mpsc::channel::<Result<(), String>>();
+    let (sink, done, broke) = (got.clone(), tx.clone(), tx);
+    let microphone = mic::start(
+        wanted,
+        false,
+        move |fed| {
+            let mut r = sink.lock().unwrap();
+            r.pcm.extend_from_slice(&fed.pcm);
+            r.level = r.level.max(fed.level);
+            r.sound |= fed.decision.rms >= mic::DIGITAL_SILENCE;
+            r.speech |= fed.decision.speech_ms > 0;
+            if to_the_pause && fed.verdict != Verdict::Continue {
+                let _ = done.send(Ok(()));
+            }
+        },
+        move |e| {
+            let _ = broke.send(Err(e));
+        },
+        |_| {},
+    )
+    .map_err(failed)?;
+    let ended = rx.recv_timeout(max);
+    drop(microphone);
+    let recording = got.lock().unwrap().clone();
+    match ended {
+        Ok(Err(e)) if !recording.sound => Err(failed(e)),
+        _ => Ok(recording),
+    }
+}
+
+#[cfg(not(windows))]
+fn record_for_check(_: Option<String>, _: Duration, _: bool) -> Result<Recording, StepError> {
+    Err(StepError::reason(Reason::Mic))
+}
+
+struct HostCheck {
+    inner: Arc<Inner>,
+    progress: CheckProgress,
+}
+
+impl HostCheck {
+    fn record(&self, max: Duration, to_the_pause: bool) -> BoxFut<Result<Recording, StepError>> {
+        let wanted = self.inner.service.status().mic;
+        Box::pin(async move { tokio::task::spawn_blocking(move || record_for_check(wanted, max, to_the_pause)).await.unwrap_or_else(|_| Err(StepError::reason(Reason::Mic))) })
+    }
+}
+
+impl CheckPorts for HostCheck {
+    fn env(&self) -> (Arc<Table>, Context) {
+        Ports::env(&*self.inner)
+    }
+
+    fn record_level(&self) -> BoxFut<Result<Recording, StepError>> {
+        self.record(Duration::from_secs(3), false)
+    }
+
+    fn start_stt(&self) -> BoxFut<Result<(), StepError>> {
+        let sup = self.inner.service.supervisor().clone();
+        Box::pin(async move { sup.ensure_stt().await.map(|_| ()).map_err(|f| StepError::reason(f.reason)) })
+    }
+
+    fn record_phrase(&self) -> BoxFut<Result<Recording, StepError>> {
+        self.record(Duration::from_secs(10), true)
+    }
+
+    fn transcribe(&self, pcm: Vec<u8>) -> BoxFut<Result<String, StepError>> {
+        let (sup, lang) = (self.inner.service.supervisor().clone(), self.inner.language());
+        Box::pin(async move { sup.transcribe(&pcm, lang).await.map_err(|e| sup.failure_of(Server::Stt).map_or_else(|| StepError::text(e, None), |f| StepError::reason(f.reason))) })
+    }
+
+    fn ask_model(&self, phrase: String, ctx: Context) -> BoxFut<Result<RawCall, StepError>> {
+        let (sup, lang) = (self.inner.service.supervisor().clone(), self.inner.language());
+        Box::pin(async move {
+            // Starting it waits for `/health`.
+            let (port, secret) = sup.ensure_llm().await.map_err(|f| StepError::reason(f.reason))?;
+            let answer = super::llm::ask_at(port, &secret, &phrase, &ctx, lang).await;
+            sup.touch();
+            answer.map(|(call, _)| call).ok_or_else(|| StepError::text(msg::DIDNT_GET, Some(key::DIDNT_GET)))
+        })
+    }
+
+    fn progress(&self, steps: &[CheckStep]) {
+        (self.progress)(steps);
     }
 }
 
@@ -979,15 +1134,17 @@ impl Ports for Inner {
             if pcm.len() < super::MAX_CHUNK_BYTES / 2 {
                 return Ok(String::new());
             }
-            // The warm-up has not finished by the end of the phrase: only now the pill says so.
-            if sup.state() == SupState::Loading {
+            // The warm-up of the recognition has not finished by the end of the phrase: only now the pill says so.
+            if sup.state() == SupState::Loading && !sup.is_up(Server::Stt) {
                 driver.handle_event(Event::ModelLoading);
             }
+            // A recognition that could not start has a fixed reason (T28.2); anything else keeps its own text.
+            let reason = |e: String| sup.failure_of(Server::Stt).map_or(e, |f| super::pipeline::failure_msg(f.reason).to_string());
             if !dictating {
-                return sup.transcribe(&pcm, lang).await;
+                return sup.transcribe(&pcm, lang).await.map_err(reason);
             }
             let prompt = dictation::whisper_prompt(&settings.dictionary);
-            let raw = sup.transcribe_prompted(&pcm, lang, prompt.as_deref()).await?;
+            let raw = sup.transcribe_prompted(&pcm, lang, prompt.as_deref()).await.map_err(reason)?;
             if settings.mode == Mode::Clean && !raw.is_empty() {
                 Ok(super::assist::clean_dictation(&sup, lang, &raw, &settings.dictionary).await)
             } else {
@@ -1000,7 +1157,18 @@ impl Ports for Inner {
         let (sup, lang) = (self.service.supervisor().clone(), self.language());
         // Up to 20 facts that fit the phrase go with it (13.6); the phrase itself is not stored.
         ctx.memory = self.agent.memory().for_phrase(&text);
-        Box::pin(async move { super::llm::ask(&sup, lang, &text, &ctx).await })
+        let driver = self.driver().clone();
+        Box::pin(async move {
+            // The recognition may be ready long before the model: the wait for the model has its own, longer watchdog.
+            if !sup.is_up(Server::Llm) && sup.failure_of(Server::Llm).is_none() {
+                driver.handle_event(Event::ModelLoading);
+            }
+            super::llm::ask(&sup, lang, &text, &ctx).await
+        })
+    }
+
+    fn model_failure(&self) -> Option<&'static str> {
+        self.service.supervisor().failure_of(Server::Llm).map(|f| super::pipeline::failure_msg(f.reason))
     }
 
     fn execute(&self, call: ToolCall) -> BoxFut<Result<String, String>> {
@@ -1380,11 +1548,11 @@ mod tests {
     use crate::model::SystemOp;
 
     fn state(phase: Phase, source: Source) -> State {
-        State { phase, id: Some("0011223344556677".into()), source: Some(source), heard: None, say: None, reply_key: None, activity: None, actions: false }
+        State { phase, id: Some("0011223344556677".into()), source: Some(source), heard: None, say: None, reply_key: None, activity: None, actions: false, understood: None }
     }
 
     fn info(state: &'static str, source: Option<Source>) -> VoiceInfo {
-        VoiceInfo { state, id: Some("x".into()), source, heard: None, reply: None, reply_key: None, reply_args: Default::default(), confirm: None, activity: None, actions: Vec::new() }
+        VoiceInfo { state, id: Some("x".into()), source, heard: None, reply: None, reply_key: None, reply_args: Default::default(), confirm: None, activity: None, actions: Vec::new(), understood: None, executing: false }
     }
 
     /// T23.B: a wave of request N queued after the `Destroy` of request N must not bring the pill back.

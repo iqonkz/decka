@@ -1,18 +1,24 @@
 //! Supervisor of the two local servers behind voice control (DATA_MODEL.md 12.3): `llama-server` and `whisper-server`
 //! as hidden child processes inside a Job Object (they die with the agent), on free 127.0.0.1 ports, `llama-server`
 //! behind a random key per launch. Lazy start, unload after idle, restart with back-off, stop after repeated crashes.
+//! The two are independent (T28.3): the recognition works while the model cannot load.
 //!
-//! The decisions (`on_crash`, `idle_expired`, argument lists) are pure functions; Windows and process calls are thin.
+//! The decisions (`on_crash`, `idle_expired`, `with_cpu_fallback`, argument lists) are plain functions; Windows and process
+//! calls are thin.
 
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use tokio::sync::{watch, Mutex as AsyncMutex};
 
+use super::failure::{after_cpu_retry, classify, stronger, Failure, Reason, Server};
+use super::gpu::ALL_LAYERS;
+
 pub const RESTART_DELAYS_MS: [u64; 3] = [2_000, 5_000, 15_000];
 pub const CRASH_WINDOW_MS: u64 = 10 * 60 * 1000;
-/// More crashes than this inside `CRASH_WINDOW_MS` stop the servers until a manual retry.
+/// More crashes than this inside `CRASH_WINDOW_MS` stop the server until a manual retry.
 pub const MAX_CRASHES: usize = 3;
 pub const IDLE_MS: u64 = 10 * 60 * 1000;
 pub const READY_TIMEOUT: Duration = Duration::from_secs(120);
@@ -41,15 +47,20 @@ pub fn idle_expired(last_used_ms: u64, now_ms: u64, keep_loaded: bool, running: 
     running && !keep_loaded && now_ms.saturating_sub(last_used_ms) >= IDLE_MS
 }
 
-pub fn llama_args(model: &Path, mmproj: Option<&Path>, port: u16, key: &str) -> Vec<String> {
+/// `ngl` layers go to the video card (T28.1); with less than all of them the projector stays on the processor.
+pub fn llama_args(model: &Path, mmproj: Option<&Path>, port: u16, key: &str, ngl: u32) -> Vec<String> {
     let mut a: Vec<String> = ["-m"].iter().map(|s| s.to_string()).collect();
     a.push(model.display().to_string());
     // The optional Screen help package (DATA_MODEL.md 13.3): the projector that lets the model read an image.
     if let Some(p) = mmproj {
         a.push("--mmproj".into());
         a.push(p.display().to_string());
+        if ngl < ALL_LAYERS {
+            a.push("--no-mmproj-offload".into());
+        }
     }
-    for s in ["-c", "4096", "-ngl", "99", "--jinja", "--no-webui", "--host", "127.0.0.1", "--port"] {
+    let ngl = ngl.to_string();
+    for s in ["-c", "4096", "-ngl", ngl.as_str(), "--jinja", "--no-webui", "--host", "127.0.0.1", "--port"] {
         a.push(s.to_string());
     }
     a.push(port.to_string());
@@ -170,8 +181,8 @@ pub enum SupState {
     Idle,
     Loading,
     Ready,
-    /// Gave up after repeated crashes or could not start; holds the last stderr line.
-    Stopped(String),
+    /// A server gave up after repeated crashes or could not start. The other one may still work (the model's comes first).
+    Stopped(Failure),
 }
 
 #[derive(Debug, Clone)]
@@ -180,6 +191,8 @@ pub struct SupervisorConfig {
     pub llama_model: PathBuf,
     /// The projector of the Screen help package, when it is installed.
     pub mmproj: Option<PathBuf>,
+    /// Layers of the model on the video card (`-ngl`, `gpu::gpu_layers`).
+    pub ngl: u32,
     pub whisper_exe: PathBuf,
     pub whisper_model: PathBuf,
     pub keep_loaded: bool,
@@ -187,14 +200,43 @@ pub struct SupervisorConfig {
     pub whisper_gpu: bool,
 }
 
+/// One attempt with `ngl` layers; if it fails and layers were on the card, one more entirely on the processor (T28.1).
+/// Both attempts are logged. Returns what started and the layers it runs with.
+pub async fn with_cpu_fallback<T, F, Fut>(ngl: u32, mut attempt: F) -> Result<(T, u32), Failure>
+where
+    F: FnMut(u32) -> Fut,
+    Fut: std::future::Future<Output = Result<T, Failure>>,
+{
+    let first = match attempt(ngl).await {
+        Ok(started) => return Ok((started, ngl)),
+        Err(f) => f,
+    };
+    tracing::warn!(target: "voice", "model start with -ngl {ngl} failed ({:?}, exit {:?}): {}", first.reason, first.code, first.detail);
+    if ngl == 0 {
+        return Err(first);
+    }
+    match attempt(0).await {
+        Ok(started) => {
+            tracing::info!(target: "voice", "model start with -ngl 0 succeeded");
+            Ok((started, 0))
+        }
+        Err(second) => {
+            tracing::warn!(target: "voice", "model start with -ngl 0 failed ({:?}, exit {:?}): {}", second.reason, second.code, second.detail);
+            Err(after_cpu_retry(&first, second))
+        }
+    }
+}
+
 #[derive(Default)]
 struct Tail {
     last: String,
     logged: usize,
+    /// The line that says the most about a failure.
+    hint: Option<(Reason, String)>,
 }
 
 struct Spec {
-    name: &'static str,
+    server: Server,
     exe: PathBuf,
     args: Vec<String>,
     port: u16,
@@ -202,17 +244,48 @@ struct Spec {
 }
 
 struct Live {
-    endpoints: Endpoints,
-    /// Dropping the sender (or sending) tells the monitors to kill their child and exit.
+    port: u16,
+    key: String,
+    /// Dropping the sender (or sending) tells the monitor to kill its child and exit.
     stop: watch::Sender<bool>,
 }
+
+/// One of the two servers: it starts, fails and restarts on its own.
+#[derive(Default)]
+struct Slot {
+    live: AsyncMutex<Option<Live>>,
+    failure: Mutex<Option<Failure>>,
+    crashes: Mutex<Vec<u64>>,
+    starting: AtomicBool,
+    up: AtomicBool,
+}
+
+/// `starting` of a slot, cleared also when the start is abandoned.
+struct Starting<'a>(&'a AtomicBool);
+
+impl<'a> Starting<'a> {
+    fn new(flag: &'a AtomicBool) -> Starting<'a> {
+        flag.store(true, Ordering::SeqCst);
+        Starting(flag)
+    }
+}
+
+impl Drop for Starting<'_> {
+    fn drop(&mut self) {
+        self.0.store(false, Ordering::SeqCst);
+    }
+}
+
+/// Told the model file that runs on the processor only because the card could not take it.
+pub type CpuFallbackHook = Arc<dyn Fn(&Path) + Send + Sync>;
 
 struct Inner {
     job: Job,
     cfg: Mutex<Option<SupervisorConfig>>,
-    live: AsyncMutex<Option<Live>>,
+    llm: Slot,
+    stt: Slot,
     state: watch::Sender<SupState>,
-    crashes: Mutex<Vec<u64>>,
+    on_cpu_fallback: Mutex<Option<CpuFallbackHook>>,
     t0: Instant,
     last_used_ms: Mutex<u64>,
 }
@@ -224,20 +297,29 @@ pub struct Supervisor {
     handle: tokio::runtime::Handle,
 }
 
+fn plain_failure(server: Server, detail: impl Into<String>) -> Failure {
+    Failure { server, reason: if server == Server::Llm { Reason::Crash } else { Reason::Stt }, code: None, detail: detail.into() }
+}
+
+const NOT_INSTALLED: &str = "Voice control is not installed";
+
 impl Supervisor {
     pub fn new(handle: tokio::runtime::Handle) -> std::io::Result<Supervisor> {
-        Ok(Supervisor {
+        let sup = Supervisor {
             inner: Arc::new(Inner {
                 job: Job::new()?,
                 cfg: Mutex::new(None),
-                live: AsyncMutex::new(None),
+                llm: Slot::default(),
+                stt: Slot::default(),
                 state: watch::channel(SupState::Idle).0,
-                crashes: Mutex::new(Vec::new()),
+                on_cpu_fallback: Mutex::new(None),
                 t0: Instant::now(),
                 last_used_ms: Mutex::new(0),
             }),
             handle,
-        })
+        };
+        sup.spawn_idle_watch();
+        Ok(sup)
     }
 
     pub fn subscribe(&self) -> watch::Receiver<SupState> {
@@ -248,9 +330,66 @@ impl Supervisor {
         self.inner.state.borrow().clone()
     }
 
-    /// Sets the files to run. A changed config takes effect at the next start.
+    fn slot(&self, server: Server) -> &Slot {
+        match server {
+            Server::Llm => &self.inner.llm,
+            Server::Stt => &self.inner.stt,
+        }
+    }
+
+    /// Why this server is down until `retry`; `None` while it works or has not been asked for.
+    pub fn failure_of(&self, server: Server) -> Option<Failure> {
+        self.slot(server).failure.lock().unwrap().clone()
+    }
+
+    /// The server answers requests now.
+    pub fn is_up(&self, server: Server) -> bool {
+        self.slot(server).up.load(Ordering::SeqCst)
+    }
+
+    fn compute_state(&self) -> SupState {
+        let slots = [&self.inner.llm, &self.inner.stt];
+        if slots.iter().any(|s| s.starting.load(Ordering::SeqCst)) {
+            SupState::Loading
+        } else if let Some(f) = slots.iter().find_map(|s| s.failure.lock().unwrap().clone()) {
+            SupState::Stopped(f)
+        } else if slots.iter().any(|s| s.up.load(Ordering::SeqCst)) {
+            SupState::Ready
+        } else {
+            SupState::Idle
+        }
+    }
+
+    fn publish(&self) {
+        self.inner.state.send_if_modified(|state| {
+            let next = self.compute_state();
+            let changed = *state != next;
+            *state = next;
+            changed
+        });
+    }
+
+    /// Sets the files to run. A changed config takes effect at the next start and forgets the failure of what changed.
     pub fn configure(&self, cfg: Option<SupervisorConfig>) {
-        *self.inner.cfg.lock().unwrap() = cfg;
+        let (llm_changed, stt_changed) = {
+            let mut current = self.inner.cfg.lock().unwrap();
+            let llm = |c: &SupervisorConfig| (c.llama_exe.clone(), c.llama_model.clone(), c.mmproj.clone(), c.ngl);
+            let stt = |c: &SupervisorConfig| (c.whisper_exe.clone(), c.whisper_model.clone(), c.whisper_gpu);
+            let changed = (current.as_ref().map(llm) != cfg.as_ref().map(llm), current.as_ref().map(stt) != cfg.as_ref().map(stt));
+            *current = cfg;
+            changed
+        };
+        for (changed, slot) in [(llm_changed, &self.inner.llm), (stt_changed, &self.inner.stt)] {
+            if changed {
+                *slot.failure.lock().unwrap() = None;
+                slot.crashes.lock().unwrap().clear();
+            }
+        }
+        self.publish();
+    }
+
+    pub fn set_cpu_fallback_hook(&self, hook: CpuFallbackHook) {
+        *self.inner.on_cpu_fallback.lock().unwrap() = Some(hook);
     }
 
     pub fn set_keep_loaded(&self, keep: bool) {
@@ -268,174 +407,224 @@ impl Supervisor {
         *self.inner.last_used_ms.lock().unwrap() = self.now_ms();
     }
 
-    /// Lazy start: returns the endpoints, starting both servers on the first call and waiting until they are healthy.
+    /// Lazy start of both servers; the error is the model's when both failed.
     pub async fn ensure_started(&self) -> Result<Endpoints, String> {
-        let mut live = self.inner.live.lock().await;
+        let (llm, stt) = tokio::join!(self.ensure_llm(), self.ensure_stt());
+        let (llama_port, llama_key) = llm.map_err(|f| f.detail)?;
+        let (whisper_port, whisper_gpu) = stt.map_err(|f| f.detail)?;
+        Ok(Endpoints { llama_port, llama_key, whisper_port, whisper_gpu })
+    }
+
+    /// The model server (port and key), started on the first call; waits until it is healthy.
+    pub async fn ensure_llm(&self) -> Result<(u16, String), Failure> {
+        self.ensure(Server::Llm).await
+    }
+
+    /// The recognition server (port, whether it runs on the card), started on the first call. It does not need the model.
+    pub async fn ensure_stt(&self) -> Result<(u16, bool), Failure> {
+        let (port, _) = self.ensure(Server::Stt).await?;
+        let gpu = self.inner.cfg.lock().unwrap().as_ref().is_some_and(|c| c.whisper_gpu);
+        Ok((port, gpu))
+    }
+
+    async fn ensure(&self, server: Server) -> Result<(u16, String), Failure> {
+        let slot = self.slot(server);
+        let mut live = slot.live.lock().await;
         self.touch();
+        if let Some(f) = self.failure_of(server) {
+            return Err(f); // needs a manual `retry`
+        }
         if let Some(l) = live.as_ref() {
-            if let SupState::Stopped(msg) = self.state() {
-                return Err(msg);
+            return Ok((l.port, l.key.clone()));
+        }
+        if self.inner.cfg.lock().unwrap().is_none() {
+            return Err(plain_failure(server, NOT_INSTALLED));
+        }
+        let port = free_port().map_err(|e| plain_failure(server, e.to_string()))?;
+        let key = new_key();
+        let started = {
+            let _starting = Starting::new(&slot.starting);
+            self.publish();
+            self.launch(server, port, &key).await
+        };
+        let result = match started {
+            Ok(running) => {
+                let (stop, stop_rx) = watch::channel(false);
+                slot.up.store(true, Ordering::SeqCst);
+                self.spawn_monitor(server, port, key.clone(), running, stop_rx);
+                *live = Some(Live { port, key: key.clone(), stop });
+                Ok((port, key))
             }
-            return Ok(l.endpoints.clone());
-        }
-        if let SupState::Stopped(msg) = self.state() {
-            return Err(msg); // needs a manual `retry`
-        }
-        let cfg = self.inner.cfg.lock().unwrap().clone().ok_or_else(|| "Voice control is not installed".to_string())?;
-        self.inner.state.send_replace(SupState::Loading);
-
-        let endpoints = Endpoints {
-            llama_port: free_port().map_err(|e| e.to_string())?,
-            llama_key: new_key(),
-            whisper_port: free_port().map_err(|e| e.to_string())?,
-            whisper_gpu: cfg.whisper_gpu,
-        };
-        let llama = Spec {
-            name: "llama-server",
-            exe: cfg.llama_exe.clone(),
-            args: llama_args(&cfg.llama_model, cfg.mmproj.as_deref(), endpoints.llama_port, &endpoints.llama_key),
-            port: endpoints.llama_port,
-            health: "/health",
-        };
-        let whisper = Spec {
-            name: "whisper-server",
-            exe: cfg.whisper_exe.clone(),
-            args: whisper_args(&cfg.whisper_model, endpoints.whisper_port, physical_cores()),
-            port: endpoints.whisper_port,
-            health: "/",
-        };
-
-        let (llama_run, whisper_run) = tokio::join!(self.start_server(&llama), self.start_server(&whisper));
-        let (llama_run, whisper_run) = match (llama_run, whisper_run) {
-            (Ok(a), Ok(b)) => (a, b),
-            (a, b) => {
-                // One failed: kill the other (dropping it kills the child) and report the first error.
-                let msg = a.err().or(b.err()).unwrap_or_default();
-                self.inner.state.send_replace(SupState::Stopped(msg.clone()));
-                return Err(msg);
+            Err(f) => {
+                *slot.failure.lock().unwrap() = Some(f.clone());
+                Err(f)
             }
         };
-
-        // The first run on a video card compiles its kernels (tens of seconds, once): a silent second here, so that it
-        // happens while the model is "loading" and not inside the first phrase.
-        if cfg.whisper_gpu {
-            warm_whisper(endpoints.whisper_port).await;
-        }
-
-        let (stop_tx, stop_rx) = watch::channel(false);
-        self.spawn_monitor(llama, llama_run, stop_rx.clone());
-        self.spawn_monitor(whisper, whisper_run, stop_rx.clone());
-        self.spawn_idle_watch(stop_rx);
-        *live = Some(Live { endpoints: endpoints.clone(), stop: stop_tx });
-        self.inner.state.send_replace(SupState::Ready);
-        Ok(endpoints)
+        self.publish();
+        result
     }
 
-    /// Unloads both servers (idle, `Remove`, shutdown). Does not clear a `Stopped` state.
+    /// Starts one server and waits until it answers.
+    async fn launch(&self, server: Server, port: u16, key: &str) -> Result<Running, Failure> {
+        let Some(cfg) = self.inner.cfg.lock().unwrap().clone() else { return Err(plain_failure(server, NOT_INSTALLED)) };
+        match server {
+            Server::Llm => {
+                let (running, used) = with_cpu_fallback(cfg.ngl, |ngl| {
+                    let spec = Spec { server, exe: cfg.llama_exe.clone(), args: llama_args(&cfg.llama_model, cfg.mmproj.as_deref(), port, key, ngl), port, health: "/health" };
+                    async move { self.start_server(&spec).await }
+                })
+                .await?;
+                if used != cfg.ngl {
+                    self.remember_cpu(&cfg.llama_model);
+                }
+                Ok(running)
+            }
+            Server::Stt => {
+                let spec = Spec { server, exe: cfg.whisper_exe.clone(), args: whisper_args(&cfg.whisper_model, port, physical_cores()), port, health: "/" };
+                let running = self.start_server(&spec).await?;
+                // The first run on a video card compiles its kernels (tens of seconds, once): a silent second here, so that
+                // it happens while the recognition is "loading" and not inside the first phrase.
+                if cfg.whisper_gpu {
+                    warm_whisper(port).await;
+                }
+                Ok(running)
+            }
+        }
+    }
+
+    fn remember_cpu(&self, model: &Path) {
+        if let Some(c) = self.inner.cfg.lock().unwrap().as_mut().filter(|c| c.llama_model == model) {
+            c.ngl = 0;
+        }
+        let hook = self.inner.on_cpu_fallback.lock().unwrap().clone();
+        if let Some(hook) = hook {
+            hook(model);
+        }
+    }
+
+    /// Unloads both servers (idle, `Remove`, shutdown). Does not forget a failure.
     pub async fn stop(&self) {
-        if let Some(live) = self.inner.live.lock().await.take() {
-            let _ = live.stop.send(true);
+        for slot in [&self.inner.llm, &self.inner.stt] {
+            if let Some(live) = slot.live.lock().await.take() {
+                let _ = live.stop.send(true);
+            }
+            slot.up.store(false, Ordering::SeqCst);
         }
-        if !matches!(self.state(), SupState::Stopped(_)) {
-            self.inner.state.send_replace(SupState::Idle);
-        }
+        self.publish();
     }
 
-    /// `Retry` after the servers gave up: forgets the crash history; the next request starts them again.
+    /// `Retry` after a server gave up: forgets the failures and the crash history; the next request starts again.
     pub async fn retry(&self) {
         self.stop().await;
-        self.inner.crashes.lock().unwrap().clear();
-        self.inner.state.send_replace(SupState::Idle);
+        for slot in [&self.inner.llm, &self.inner.stt] {
+            *slot.failure.lock().unwrap() = None;
+            slot.crashes.lock().unwrap().clear();
+        }
+        self.publish();
     }
 
-    async fn start_server(&self, spec: &Spec) -> Result<Running, String> {
+    async fn start_server(&self, spec: &Spec) -> Result<Running, Failure> {
+        let name = spec.server.name();
         let mut cmd = tokio::process::Command::new(&spec.exe);
         cmd.args(&spec.args)
             .stdin(std::process::Stdio::null())
-            .stdout(std::process::Stdio::null())
+            .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped())
             .kill_on_drop(true);
         #[cfg(windows)]
         cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
-        let mut child = cmd.spawn().map_err(|e| format!("{}: {e}", spec.name))?;
+        let mut child = cmd.spawn().map_err(|e| plain_failure(spec.server, format!("{name}: {e}")))?;
         #[cfg(windows)]
         if let Some(h) = child.raw_handle() {
             if let Err(e) = self.inner.job.assign(h) {
-                tracing::warn!("{}: could not join the job object: {e}", spec.name);
+                tracing::warn!("{name}: could not join the job object: {e}");
             }
         }
         let tail = Arc::new(Mutex::new(Tail::default()));
-        if let Some(stderr) = child.stderr.take() {
-            let tail = tail.clone();
-            let name = spec.name;
-            self.handle.spawn(read_stderr(stderr, tail, name));
+        let mut readers = Vec::new();
+        if let Some(out) = child.stdout.take() {
+            readers.push(self.handle.spawn(read_output(out, tail.clone(), name)));
         }
-        match wait_healthy(spec.port, spec.health, READY_TIMEOUT, &mut child).await {
-            Ok(()) => Ok(Running { child, tail }),
+        if let Some(err) = child.stderr.take() {
+            readers.push(self.handle.spawn(read_output(err, tail.clone(), name)));
+        }
+        let mut running = Running { child, tail, readers };
+        match wait_healthy(spec.port, spec.health, READY_TIMEOUT, &mut running.child).await {
+            Ok(()) => Ok(running),
             Err(why) => {
-                let last = tail.lock().unwrap().last.clone();
-                let _ = child.start_kill();
-                Err(if last.is_empty() { format!("{}: {why}", spec.name) } else { last })
+                let code = running.child.try_wait().ok().flatten().and_then(|s| s.code());
+                let _ = running.child.start_kill();
+                Err(running.failure(spec.server, code, &why).await)
             }
         }
     }
 
-    fn spawn_monitor(&self, spec: Spec, mut running: Running, mut stop: watch::Receiver<bool>) {
+    fn spawn_monitor(&self, server: Server, port: u16, key: String, mut running: Running, mut stop: watch::Receiver<bool>) {
         let me = self.clone();
         self.handle.spawn(async move {
             loop {
-                tokio::select! {
-                    _ = running.child.wait() => {}
+                let status = tokio::select! {
+                    status = running.child.wait() => status.ok(),
                     _ = stop.changed() => {
                         let _ = running.child.start_kill();
                         return;
                     }
-                }
+                };
                 // The child exited by itself: a crash.
-                let last = running.tail.lock().unwrap().last.clone();
-                let decision = on_crash(&mut me.inner.crashes.lock().unwrap(), me.now_ms());
-                match decision {
-                    CrashDecision::GiveUp => {
-                        let msg = if last.is_empty() { format!("{} stopped", spec.name) } else { last };
-                        me.inner.state.send_replace(SupState::Stopped(msg));
-                        // Take the other server down too; `live` stays set so `ensure_started` reports the error.
-                        if let Some(l) = me.inner.live.lock().await.as_ref() {
-                            let _ = l.stop.send(true);
-                        }
+                let slot = me.slot(server);
+                slot.up.store(false, Ordering::SeqCst);
+                let mut failure = running.failure(server, status.and_then(|s| s.code()), "stopped").await;
+                tracing::warn!(target: "voice", "{} stopped (exit {:?}): {}", server.name(), failure.code, failure.detail);
+                running = loop {
+                    let decision = on_crash(&mut slot.crashes.lock().unwrap(), me.now_ms());
+                    let CrashDecision::Restart { after_ms } = decision else {
+                        *slot.failure.lock().unwrap() = Some(failure);
+                        me.publish();
                         return;
-                    }
-                    CrashDecision::Restart { after_ms } => {
-                        me.inner.state.send_replace(SupState::Loading);
-                        tokio::select! {
-                            _ = tokio::time::sleep(Duration::from_millis(after_ms)) => {}
-                            _ = stop.changed() => return,
+                    };
+                    let started = {
+                        let _starting = Starting::new(&slot.starting);
+                        me.publish();
+                        let stopped = tokio::select! {
+                            _ = tokio::time::sleep(Duration::from_millis(after_ms)) => false,
+                            _ = stop.changed() => true,
+                        };
+                        if stopped { None } else { Some(me.launch(server, port, &key).await) }
+                    };
+                    match started {
+                        // Stopped while waiting or starting: dropping the child kills it.
+                        None => {
+                            me.publish();
+                            return;
                         }
-                        match me.start_server(&spec).await {
-                            Ok(r) => {
-                                running = r;
-                                me.inner.state.send_replace(SupState::Ready);
+                        Some(Ok(next)) => {
+                            if stop.has_changed().unwrap_or(true) {
+                                me.publish();
+                                return;
                             }
-                            Err(_) => continue_as_crash(&mut running),
+                            break next;
                         }
+                        Some(Err(f)) => failure = f,
                     }
-                }
+                };
+                slot.up.store(true, Ordering::SeqCst);
+                me.publish();
             }
         });
     }
 
-    fn spawn_idle_watch(&self, mut stop: watch::Receiver<bool>) {
-        let me = self.clone();
+    /// One watch for the life of the supervisor: unloads the servers after ten quiet minutes.
+    fn spawn_idle_watch(&self) {
+        let (inner, handle) = (Arc::downgrade(&self.inner), self.handle.clone());
         self.handle.spawn(async move {
             loop {
-                tokio::select! {
-                    _ = tokio::time::sleep(IDLE_CHECK) => {}
-                    _ = stop.changed() => return,
-                }
+                tokio::time::sleep(IDLE_CHECK).await;
+                let Some(inner) = inner.upgrade() else { return };
+                let me = Supervisor { inner, handle: handle.clone() };
                 let keep = me.inner.cfg.lock().unwrap().as_ref().is_some_and(|c| c.keep_loaded);
                 let last = *me.inner.last_used_ms.lock().unwrap();
-                if idle_expired(last, me.now_ms(), keep, true) {
+                if idle_expired(last, me.now_ms(), keep, me.is_up(Server::Llm) || me.is_up(Server::Stt)) {
                     me.stop().await;
-                    return;
                 }
             }
         });
@@ -445,18 +634,28 @@ impl Supervisor {
 struct Running {
     child: tokio::process::Child,
     tail: Arc<Mutex<Tail>>,
+    readers: Vec<tokio::task::JoinHandle<()>>,
 }
 
-/// A failed restart counts as another crash of the same server: make the child "exit" at once so the loop decides again.
-fn continue_as_crash(running: &mut Running) {
-    let _ = running.child.start_kill();
+impl Running {
+    /// Why it failed, after its output has been read to the end.
+    async fn failure(&mut self, server: Server, code: Option<i32>, why: &str) -> Failure {
+        for reader in self.readers.drain(..) {
+            let _ = tokio::time::timeout(Duration::from_secs(2), reader).await;
+        }
+        let tail = self.tail.lock().unwrap();
+        classify(server, tail.hint.clone(), code, &tail.last, why)
+    }
 }
 
-async fn read_stderr(stderr: tokio::process::ChildStderr, tail: Arc<Mutex<Tail>>, name: &'static str) {
+async fn read_output(out: impl tokio::io::AsyncRead + Unpin, tail: Arc<Mutex<Tail>>, name: &'static str) {
     use tokio::io::{AsyncBufReadExt, BufReader};
-    let mut lines = BufReader::new(stderr).lines();
-    while let Ok(Some(line)) = lines.next_line().await {
-        let line = line.trim().to_string();
+    let mut reader = BufReader::new(out);
+    let mut raw = Vec::new();
+    // Bytes, not `lines()`: a path in another code page must not end the reading.
+    while reader.read_until(b'\n', &mut raw).await.is_ok_and(|n| n > 0) {
+        let line = String::from_utf8_lossy(&raw).trim().to_string();
+        raw.clear();
         if line.is_empty() {
             continue;
         }
@@ -465,6 +664,7 @@ async fn read_stderr(stderr: tokio::process::ChildStderr, tail: Arc<Mutex<Tail>>
             t.logged += 1;
             tracing::info!(target: "voice", "{name}: {line}");
         }
+        t.hint = stronger(t.hint.take(), &line);
         t.last = line;
     }
 }
@@ -570,20 +770,20 @@ async fn warm_whisper(port: u16) {
 }
 
 impl Supervisor {
-    /// Recognises 16 kHz mono PCM16 with `whisper-server` (started lazily; the first call waits for the models).
+    /// Recognises 16 kHz mono PCM16 with `whisper-server` (started lazily; the first call waits for it, not for the model).
     pub async fn transcribe(&self, pcm: &[u8], language: &str) -> Result<String, String> {
         self.transcribe_prompted(pcm, language, None).await
     }
 
     /// `transcribe` with a prompt for whisper (the dictionary of a dictation).
     pub async fn transcribe_prompted(&self, pcm: &[u8], language: &str, prompt: Option<&str>) -> Result<String, String> {
-        let endpoints = self.ensure_started().await?;
+        let (port, gpu) = self.ensure_stt().await.map_err(|f| f.detail)?;
         let samples: Vec<i16> = pcm.as_chunks::<2>().0.iter().map(|b| i16::from_le_bytes([b[0], b[1]])).collect();
         let wav = crate::voice::audio::encode_wav_pcm16(&samples, 16_000);
         let boundary = format!("decka{}", new_key());
         let body = whisper_multipart_prompted(&boundary, &wav, language, audio_ctx(samples.len() as f64 / 16_000.0), prompt);
-        let client = reqwest::Client::builder().timeout(stt_timeout(endpoints.whisper_gpu, samples.len() as f64 / 16_000.0)).build().map_err(|e| e.to_string())?;
-        let url = format!("http://127.0.0.1:{}/inference", endpoints.whisper_port);
+        let client = reqwest::Client::builder().timeout(stt_timeout(gpu, samples.len() as f64 / 16_000.0)).build().map_err(|e| e.to_string())?;
+        let url = format!("http://127.0.0.1:{port}/inference");
         let answer = client
             .post(url)
             .header("Content-Type", format!("multipart/form-data; boundary={boundary}"))
@@ -676,15 +876,46 @@ mod tests {
 
     #[test]
     fn server_arguments_follow_section_12_3() {
-        let a = llama_args(Path::new("m.gguf"), None, 5555, "k");
+        let a = llama_args(Path::new("m.gguf"), None, 5555, "k", 99);
         assert_eq!(
             a.join(" "),
             "-m m.gguf -c 4096 -ngl 99 --jinja --no-webui --host 127.0.0.1 --port 5555 --api-key k"
         );
-        let with = llama_args(Path::new("m.gguf"), Some(Path::new("p.gguf")), 5555, "k");
+        let with = llama_args(Path::new("m.gguf"), Some(Path::new("p.gguf")), 5555, "k", 99);
         assert_eq!(with.join(" "), "-m m.gguf --mmproj p.gguf -c 4096 -ngl 99 --jinja --no-webui --host 127.0.0.1 --port 5555 --api-key k");
+        // T28.1: a part of the layers (or none) puts the projector on the processor.
+        let part = llama_args(Path::new("m.gguf"), Some(Path::new("p.gguf")), 5555, "k", 18);
+        assert_eq!(part.join(" "), "-m m.gguf --mmproj p.gguf --no-mmproj-offload -c 4096 -ngl 18 --jinja --no-webui --host 127.0.0.1 --port 5555 --api-key k");
+        assert!(!llama_args(Path::new("m.gguf"), None, 5555, "k", 0).contains(&"--no-mmproj-offload".to_string()));
         assert_eq!(whisper_args(Path::new("w.bin"), 6000, 4).join(" "), "-m w.bin --host 127.0.0.1 --port 6000 -t 4");
         assert_eq!(whisper_args(Path::new("w.bin"), 6000, 1).last().unwrap(), "1", "at least one thread");
+    }
+
+    fn failed(reason: Reason) -> Failure {
+        Failure { server: Server::Llm, reason, code: Some(1), detail: format!("{reason:?}") }
+    }
+
+    /// Runs `with_cpu_fallback` over a script of results; returns the outcome and the `-ngl` of every attempt.
+    async fn attempts(ngl: u32, script: Vec<Result<(), Failure>>) -> (Result<u32, Failure>, Vec<u32>) {
+        let tried = std::cell::RefCell::new(Vec::new());
+        let mut script = script.into_iter();
+        let result = with_cpu_fallback(ngl, |n| {
+            tried.borrow_mut().push(n);
+            std::future::ready(script.next().expect("no further attempt"))
+        })
+        .await;
+        (result.map(|(_, used)| used), tried.into_inner())
+    }
+
+    #[tokio::test]
+    async fn a_failed_start_is_retried_once_on_the_processor() {
+        assert_eq!(attempts(99, vec![Ok(())]).await, (Ok(99), vec![99]));
+        assert_eq!(attempts(99, vec![Err(failed(Reason::Crash)), Ok(())]).await, (Ok(0), vec![99, 0]), "after a crash");
+        assert_eq!(attempts(18, vec![Err(failed(Reason::Vram)), Ok(())]).await, (Ok(0), vec![18, 0]));
+        let (result, tried) = attempts(99, vec![Err(failed(Reason::Vram)), Err(failed(Reason::Crash))]).await;
+        assert_eq!((result.unwrap_err().reason, tried), (Reason::Vram, vec![99, 0]), "only one retry");
+        let (result, tried) = attempts(0, vec![Err(failed(Reason::Ram))]).await;
+        assert_eq!((result.unwrap_err().reason, tried), (Reason::Ram, vec![0]), "already on the processor");
     }
 
     #[test]
@@ -726,23 +957,40 @@ mod tests {
         assert_eq!(sup.state(), SupState::Idle);
     }
 
-    #[tokio::test]
-    async fn a_missing_executable_stops_with_a_message_and_retry_clears_it() {
-        let sup = Supervisor::new(tokio::runtime::Handle::current()).unwrap();
-        sup.configure(Some(SupervisorConfig {
+    fn missing() -> SupervisorConfig {
+        SupervisorConfig {
             llama_exe: PathBuf::from("Z:\\nope\\llama-server.exe"),
             llama_model: PathBuf::from("m"),
-        mmproj: None,
+            mmproj: None,
+            ngl: 99,
             whisper_exe: PathBuf::from("Z:\\nope\\whisper-server.exe"),
             whisper_model: PathBuf::from("w"),
             keep_loaded: false,
             whisper_gpu: false,
-        }));
+        }
+    }
+
+    #[tokio::test]
+    async fn a_missing_executable_stops_with_a_message_and_retry_clears_it() {
+        let sup = Supervisor::new(tokio::runtime::Handle::current()).unwrap();
+        sup.configure(Some(missing()));
         let err = sup.ensure_started().await.unwrap_err();
         assert!(err.contains("server"), "{err}");
         assert!(matches!(sup.state(), SupState::Stopped(_)));
         assert!(sup.ensure_started().await.is_err(), "no new attempts before Retry");
+        assert_eq!(sup.failure_of(Server::Llm).map(|f| f.reason), Some(Reason::Crash));
+        assert_eq!(sup.failure_of(Server::Stt).map(|f| f.reason), Some(Reason::Stt));
         sup.retry().await;
         assert_eq!(sup.state(), SupState::Idle);
+    }
+
+    #[tokio::test]
+    async fn the_servers_fail_apart_and_another_model_forgets_the_failure_of_the_model() {
+        let sup = Supervisor::new(tokio::runtime::Handle::current()).unwrap();
+        sup.configure(Some(missing()));
+        assert!(sup.ensure_llm().await.is_err());
+        assert_eq!(sup.failure_of(Server::Stt), None, "the recognition was not asked for and is not blamed");
+        sup.configure(Some(SupervisorConfig { llama_model: PathBuf::from("other"), ..missing() }));
+        assert_eq!((sup.failure_of(Server::Llm), sup.state()), (None, SupState::Idle));
     }
 }

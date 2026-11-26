@@ -29,10 +29,10 @@ pub async fn chat_text_at(port: u16, key: &str, body: &Value, timeout: Duration)
     dictation::parse_clean_completion(&answer.text().await.ok()?).filter(|t| !t.is_empty())
 }
 
-/// Starts the servers when they are not running, then `chat_text_at`.
+/// Starts the model server when it is not running, then `chat_text_at`.
 pub async fn chat_text(sup: &Supervisor, body: &Value, timeout: Duration) -> Option<String> {
-    let endpoints = sup.ensure_started().await.map_err(|e| tracing::warn!("assistant model: {e}")).ok()?;
-    let answer = chat_text_at(endpoints.llama_port, &endpoints.llama_key, body, timeout).await;
+    let (port, key) = sup.ensure_llm().await.map_err(|f| tracing::warn!("assistant model: {}", f.detail)).ok()?;
+    let answer = chat_text_at(port, &key, body, timeout).await;
     sup.touch();
     answer
 }

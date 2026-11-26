@@ -41,6 +41,10 @@ export interface IslandVoiceState {
   replyArgs?: Record<string, string>;
   /** What the confirmation asks (`phase: "confirm"`): free text or an i18n key (`voice.confirm.*`) with its arguments. */
   confirm?: { text: string; key?: string; args?: Record<string, string> };
+  /** T28.3: what the phrase was understood as (a command that is being run or was run). */
+  understood?: { text: string; key?: string; args?: Record<string, string> };
+  /** T28.3: the understood command is being run now. */
+  executing?: boolean;
 }
 
 export interface IslandLyricsState {

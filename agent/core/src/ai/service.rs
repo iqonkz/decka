@@ -9,8 +9,14 @@ use std::time::{Duration, Instant};
 use serde::{Deserialize, Serialize};
 
 use super::download::{extract_archive, Downloader, ManifestEntry};
+use super::failure::{Failure, Reason, Server};
+use super::gpu;
 use super::hardware::{detect_hardware, HardwareInfo};
 use super::supervisor::{SupState, Supervisor, SupervisorConfig};
+use crate::model::GpuLayers;
+
+/// With less memory than this the 4B model is a poor fit: the settings offer the light 2B one (T28.1).
+pub const LIGHT_UNDER_RAM_GB: f64 = 12.0;
 
 // ---- Contract types (mirror `VoiceStatus` in shared/src/ipc.ts) --------------------------------------------------
 
@@ -58,6 +64,14 @@ pub struct VoiceStatus {
     pub mics: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
+    /// T28.2: why a server does not work; `error` keeps the raw line.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reason: Option<Reason>,
+    /// The exit code of the process that stopped.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub exit_code: Option<i32>,
+    /// T28.1: the 4B model on a PC with little memory — offer the light one (never switched by itself).
+    pub suggest_light: bool,
 }
 
 /// Arguments of `voice_set`; every field is optional.
@@ -180,6 +194,33 @@ pub fn default_root() -> PathBuf {
     dirs::data_local_dir().unwrap_or_else(|| PathBuf::from(".")).join("Decka").join("ai")
 }
 
+// ---- Layers on the video card ------------------------------------------------------------------------------------
+
+/// Where "this model runs on the processor on this card" is kept (`config.json`, `ai.gpuLayers`).
+pub trait LayerMemory: Send + Sync {
+    fn load(&self) -> Option<GpuLayers>;
+    fn save(&self, value: Option<GpuLayers>);
+}
+
+/// Remembers nothing (the examples).
+pub struct NoLayerMemory;
+
+impl LayerMemory for NoLayerMemory {
+    fn load(&self) -> Option<GpuLayers> {
+        None
+    }
+    fn save(&self, _: Option<GpuLayers>) {}
+}
+
+/// The video card as the memory of the layers knows it: another card (or another amount of memory) forgets it.
+pub fn gpu_key(hw: &HardwareInfo) -> String {
+    format!("{}|{:.1}", hw.gpu.as_deref().unwrap_or(""), hw.vram_gb.unwrap_or(0.0))
+}
+
+fn file_name(path: &Path) -> String {
+    path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default()
+}
+
 // ---- Service ----------------------------------------------------------------------------------------------------
 
 type Emit = Arc<dyn Fn(VoiceStatus) + Send + Sync>;
@@ -208,6 +249,7 @@ struct Inner {
     mics: Arc<dyn Fn() -> Vec<String> + Send + Sync>,
     downloader: Downloader,
     supervisor: Supervisor,
+    layers: Arc<dyn LayerMemory>,
     emit: Emit,
     state: Mutex<State>,
 }
@@ -226,6 +268,7 @@ pub struct VoiceDeps {
     pub hardware: Arc<dyn HardwareProbe>,
     pub mics: Arc<dyn Fn() -> Vec<String> + Send + Sync>,
     pub downloader: Downloader,
+    pub layers: Arc<dyn LayerMemory>,
     /// Called after every change (the window event `voice-status`).
     pub emit: Emit,
 }
@@ -245,11 +288,19 @@ impl VoiceService {
                 mics: deps.mics,
                 downloader: deps.downloader,
                 supervisor,
+                layers: deps.layers,
                 emit: deps.emit,
                 state: Mutex::new(State { settings, download: None, last_error: None, hotkey_error: None }),
             }),
             handle,
         };
+        // The card could not take the model: remembered, so that the next start goes to the processor at once.
+        let weak = Arc::downgrade(&svc.inner);
+        svc.inner.supervisor.set_cpu_fallback_hook(Arc::new(move |model: &Path| {
+            let Some(inner) = weak.upgrade() else { return };
+            let hw = inner.hardware_cache.get_or_init(|| inner.hardware.probe());
+            inner.layers.save(Some(GpuLayers { model: file_name(model), gpu: gpu_key(hw), layers: 0 }));
+        }));
         svc.configure_supervisor();
         // Every supervisor state change reaches the window.
         let watcher = svc.clone();
@@ -300,15 +351,73 @@ impl VoiceService {
         let llama_exe = find_file(&target_of(root, files[0]), "llama-server.exe")?;
         let whisper_exe = find_file(&target_of(root, files[1]), "whisper-server.exe")?;
         let keep_loaded = self.inner.state.lock().unwrap().settings.keep_loaded;
+        let llama_model = target_of(root, files[2]);
+        let mmproj = self.vision_entry().filter(|e| is_present(root, e)).map(|e| target_of(root, e));
+        let whisper_gpu = files[1].id == "whisper-runtime-cuda";
+        let ngl = self.gpu_layers(&llama_model, mmproj.as_deref(), whisper_gpu);
         Some(SupervisorConfig {
             llama_exe,
-            llama_model: target_of(root, files[2]),
-            mmproj: self.vision_entry().filter(|e| is_present(root, e)).map(|e| target_of(root, e)),
+            llama_model,
+            mmproj,
+            ngl,
             whisper_exe,
             whisper_model: target_of(root, files[3]),
             keep_loaded,
-            whisper_gpu: files[1].id == "whisper-runtime-cuda",
+            whisper_gpu,
         })
+    }
+
+    /// `-ngl` for this model on this card: what was remembered after a failed start, else the share that fits (T28.1).
+    fn gpu_layers(&self, model: &Path, mmproj: Option<&Path>, whisper_gpu: bool) -> u32 {
+        let hw = self.hardware();
+        if let Some(kept) = self.inner.layers.load() {
+            if kept.model == file_name(model) && kept.gpu == gpu_key(&hw) {
+                return kept.layers;
+            }
+            // Another model or another video card: try the card again.
+            self.inner.layers.save(None);
+        }
+        let size = |p: &Path| std::fs::metadata(p).map_or(0, |m| m.len());
+        let count = gpu::gguf_layer_count(model).unwrap_or(gpu::DEFAULT_LAYER_COUNT);
+        gpu::gpu_layers(hw.vram_gb, whisper_gpu, size(model), mmproj.map_or(0, size), count)
+    }
+
+    /// `Download again` of a damaged model file (T28.2): removes what the failure names and fetches it once more.
+    pub async fn redownload(&self) -> Result<VoiceStatus, String> {
+        let broken: Vec<Failure> = [Server::Llm, Server::Stt]
+            .iter()
+            .filter_map(|s| self.inner.supervisor.failure_of(*s))
+            .filter(|f| f.reason == Reason::ModelFile)
+            .collect();
+        if broken.is_empty() {
+            return Err("No damaged model file".into());
+        }
+        self.inner.supervisor.stop().await;
+        let files: Vec<ManifestEntry> = plan(&self.inner.manifest, self.model(), self.whisper_gpu()).into_iter().cloned().collect();
+        if files.len() != 4 {
+            return Err("The voice package list is incomplete".into());
+        }
+        let mut vision = false;
+        for failure in &broken {
+            let line = failure.detail.to_ascii_lowercase();
+            let entry = match failure.server {
+                // The projector of Screen help names itself in the line; anything else is the model.
+                Server::Llm if ["mmproj", "multimodal", "clip"].iter().any(|n| line.contains(n)) => {
+                    vision = true;
+                    self.vision_entry().cloned()
+                }
+                Server::Llm => Some(files[2].clone()),
+                Server::Stt => Some(files[3].clone()),
+            };
+            if let Some(e) = entry {
+                std::fs::remove_file(target_of(&self.inner.root, &e)).or_else(|err| if err.kind() == std::io::ErrorKind::NotFound { Ok(()) } else { Err(err.to_string()) })?;
+            }
+        }
+        self.inner.supervisor.retry().await;
+        if vision {
+            self.install_vision().await?;
+        }
+        Ok(self.enable())
     }
 
     /// The projector of the optional Screen help package for the chosen model (DATA_MODEL.md 13.3).
@@ -347,6 +456,7 @@ impl VoiceService {
         let sup = self.inner.supervisor.state();
         let st = self.inner.state.lock().unwrap();
         let total: u64 = plan(&self.inner.manifest, model, self.whisper_gpu()).iter().map(|e| e.size).sum();
+        let mut failure = None;
         let (state, progress, error) = if let Some(d) = &st.download {
             (VoiceState::Downloading, Some(d.progress.clone()), None)
         } else if let Some(msg) = &st.last_error {
@@ -356,11 +466,18 @@ impl VoiceService {
         } else {
             match sup {
                 SupState::Loading => (VoiceState::Loading, None, None),
-                SupState::Stopped(msg) => (VoiceState::Error, None, Some(format!("Voice control stopped: {msg}"))),
+                SupState::Stopped(f) => {
+                    let detail = format!("Voice control stopped: {}", f.detail);
+                    failure = Some(f);
+                    (VoiceState::Error, None, Some(detail))
+                }
                 SupState::Idle | SupState::Ready => (VoiceState::Ready, None, None),
             }
         };
         VoiceStatus {
+            reason: failure.as_ref().map(|f| f.reason),
+            exit_code: failure.as_ref().and_then(|f| f.code),
+            suggest_light: model == ModelChoice::Standard && hw.ram_gb < LIGHT_UNDER_RAM_GB,
             state,
             progress,
             hardware: hw,
@@ -705,7 +822,57 @@ mod tests {
         assert!(partial.speak && partial.phone_button);
     }
 
+    #[derive(Default)]
+    struct Kept(Mutex<Option<GpuLayers>>);
+    impl LayerMemory for Kept {
+        fn load(&self) -> Option<GpuLayers> {
+            self.0.lock().unwrap().clone()
+        }
+        fn save(&self, value: Option<GpuLayers>) {
+            *self.0.lock().unwrap() = value;
+        }
+    }
+
+    #[tokio::test]
+    async fn the_processor_is_remembered_for_one_model_on_one_card() {
+        let dir = tempfile::tempdir().unwrap();
+        let memory = Arc::new(Kept::default());
+        let (svc, _) = service_with(dir.path(), hw(Some(8.0), 16.0), memory.clone());
+        let model = dir.path().join("m.gguf");
+        std::fs::write(&model, b"x").unwrap();
+        assert_eq!(svc.gpu_layers(&model, None, false), gpu::ALL_LAYERS);
+        let kept = GpuLayers { model: "m.gguf".into(), gpu: gpu_key(&hw(Some(8.0), 16.0)), layers: 0 };
+        memory.save(Some(kept.clone()));
+        assert_eq!(svc.gpu_layers(&model, None, false), 0);
+        assert_eq!(memory.load(), Some(kept.clone()), "it stays");
+        // Another model: forgotten.
+        let other = dir.path().join("other.gguf");
+        std::fs::write(&other, b"x").unwrap();
+        assert_eq!(svc.gpu_layers(&other, None, false), gpu::ALL_LAYERS);
+        assert_eq!(memory.load(), None);
+        // Another card: forgotten.
+        memory.save(Some(GpuLayers { gpu: "old card|2.0".into(), ..kept }));
+        assert_eq!(svc.gpu_layers(&model, None, false), gpu::ALL_LAYERS);
+        assert_eq!(memory.load(), None);
+    }
+
+    #[tokio::test]
+    async fn the_light_model_is_offered_only_for_the_4b_model_on_a_pc_with_little_memory() {
+        let dir = tempfile::tempdir().unwrap();
+        let (svc, _) = service(dir.path(), hw(Some(8.0), 7.9));
+        assert_eq!((svc.status().model, svc.status().suggest_light), (ModelChoice::Standard, true));
+        svc.set(VoiceSetArgs { model: Some(ModelChoice::Light), ..Default::default() }).unwrap();
+        assert!(!svc.status().suggest_light);
+        let (roomy, _) = service(&dir.path().join("b"), hw(Some(8.0), 15.8));
+        assert!(!roomy.status().suggest_light);
+        assert!(roomy.redownload().await.is_err(), "nothing is damaged");
+    }
+
     fn service(dir: &Path, hardware: HardwareInfo) -> (VoiceService, Arc<Mutex<Vec<VoiceStatus>>>) {
+        service_with(dir, hardware, Arc::new(Kept::default()))
+    }
+
+    fn service_with(dir: &Path, hardware: HardwareInfo, layers: Arc<dyn LayerMemory>) -> (VoiceService, Arc<Mutex<Vec<VoiceStatus>>>) {
         let seen = Arc::new(Mutex::new(Vec::new()));
         let sink = seen.clone();
         let svc = VoiceService::new(
@@ -717,6 +884,7 @@ mod tests {
                 hardware: Arc::new(Fixed(hardware)),
                 mics: Arc::new(|| vec!["Mic A".to_string()]),
                 downloader: Downloader::with_hosts(&["127.0.0.1"]),
+                layers,
                 emit: Arc::new(move |s| sink.lock().unwrap().push(s)),
             },
         )

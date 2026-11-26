@@ -88,6 +88,24 @@ export interface VoiceStatus {
   mic?: string;
   mics: string[];
   error?: string;
+  reason?: VoiceErrorReason;       // T28.2: why a local server does not work; `error` keeps the raw line
+  exitCode?: number;               // of the process that stopped
+  suggestLight?: boolean;          // T28.1: the 4B model on a PC with little memory; the user switches, never the agent
+}
+/** T28.2: the reason of a failure of voice control. */
+export type VoiceErrorReason = "vram" | "ram" | "model_file" | "port" | "crash" | "mic" | "stt";
+/** T28.3: a step of `Check voice`; `voice_self_check` returns all four, the window event `voice-check` carries every change. */
+export interface VoiceCheckStep {
+  id: "mic" | "stt" | "model" | "action";
+  state: "pending" | "running" | "ok" | "error";
+  durationMs?: number;
+  detail?: string;                 // the level, the recognised text, the tool, what would be done (English)
+  reason?: VoiceErrorReason;
+  error?: string;                  // English; `errorKey` translates a fixed phrase
+  errorKey?: string;
+  understood?: { text: string; key?: string; args?: Record<string, string> };   // the action step, for translation
+  confirm?: boolean;               // the action would ask for a "yes" first
+  listening?: boolean;             // the microphone is open for the phrase: speak now
 }
 /** M22 (DATA_MODEL.md 13.7): the rows of the Reminders window. */
 /** 0.23 (DATA_MODEL.md 13.4): a repeating reminder; absent = once. */
@@ -136,6 +154,8 @@ export interface IpcCommands {
   voice_status(): VoiceStatus;
   voice_enable(): VoiceStatus;                                 // Turn on voice control / Retry
   voice_cancel(): VoiceStatus;
+  voice_redownload(): VoiceStatus;                             // T28.2: removes the damaged model file and downloads it again
+  voice_self_check(): VoiceCheckStep[];                        // T28.3: microphone, recognition, model, dry run; nothing is executed
   voice_confirm(args: { id: string; yes: boolean }): void;     // the Yes/No of the PC pill (the pill window arrives with C2)
   voice_action(args: { kind: "copy" | "insert" | "speak" | "again" | `lang:${string}` }): void; // T26.3: a button under the shown answer; the PC decides what it does
   voice_context_get(): boolean;                                 // T26.7: hints by the active program when the island opens (off by default)

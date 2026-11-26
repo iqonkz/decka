@@ -31,6 +31,7 @@ async fn main() {
             hardware: Arc::new(DetectProbe),
             mics: Arc::new(Vec::new),
             downloader: Downloader::default(),
+            layers: Arc::new(decka_core::ai::service::NoLayerMemory),
             emit: Arc::new(|_| {}),
         },
     )

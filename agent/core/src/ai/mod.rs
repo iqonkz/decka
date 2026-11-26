@@ -4,6 +4,8 @@
 
 // M21 voice package: downloader, server supervisor and the settings-window service (DATA_MODEL.md 12).
 pub mod download;
+pub mod failure;
+pub mod gpu;
 pub mod hardware;
 pub mod service;
 pub mod supervisor;

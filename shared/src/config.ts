@@ -50,6 +50,7 @@ export interface AiConfig {
   hookToken?: string;
   replies?: string[];                                 // ready answers of "Deny and say", at most 4 of 1..120 characters; absent = three built-in ones
   rules?: AiRule[];                                   // what the phone's "Always allow" remembered; removed in the window
+  gpuLayers?: { model: string; gpu: string; layers: number };   // T28.1: the local model on this card, written by the agent only
 }
 /** `kind`: `command` (value = the first words), `project` (value = the folder), `host` (value = the site), `tool` (value empty). */
 export interface AiRule { id: string; provider: "claude" | "codex"; tool: string; kind: "command" | "project" | "host" | "tool"; value: string; createdAt: number; sessionId?: string; expiresAt?: number; source?: string; } // M18: from a phone = one session, 8 h, source "Phone <name>"

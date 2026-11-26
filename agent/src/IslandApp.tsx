@@ -12,7 +12,8 @@ function localized(event: IslandEvent): IslandEvent {
   const reply = v.phase === "confirm" ? tVoice(v.confirm?.key, v.confirm?.args, v.confirm?.text) : tVoice(v.replyKey, v.replyArgs, v.reply);
   // Hint chips carry an i18n key as their label.
   const chips = v.chips?.map((c) => ({ ...c, label: c.label.startsWith("voice.chip.") ? (tVoice(c.label, undefined, c.label) ?? c.label) : c.label }));
-  return { ...event, voice: { ...v, reply: reply || v.reply, chips } };
+  const understood = v.understood && { ...v.understood, text: tVoice(v.understood.key, v.understood.args, v.understood.text) ?? v.understood.text };
+  return { ...event, voice: { ...v, reply: reply || v.reply, chips, understood } };
 }
 
 /** `?theme=light|dark` (snapshots only): the colour scheme of the island regardless of the system. */

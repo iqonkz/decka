@@ -7,7 +7,7 @@ use decka_core::agent::{AgentStatus, DeviceInfo, PairingInfo, TestActionResult};
 use decka_core::model::NotifLevel;
 use decka_core::{Agent, SaveResult};
 use serde::Serialize;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 
 fn agent(app: &AppHandle) -> Result<Agent, String> {
     app.try_state::<Agent>().map(|s| s.inner().clone()).ok_or_else(|| "the Decka agent did not start".to_string())
@@ -559,6 +559,23 @@ pub fn voice_status(app: AppHandle) -> Result<decka_core::ai::service::VoiceStat
 #[tauri::command]
 pub fn voice_enable(app: AppHandle) -> Result<decka_core::ai::service::VoiceStatus, String> {
     Ok(voice(&app)?.enable())
+}
+
+/// `Download again` of a damaged model file (T28.2).
+#[tauri::command]
+pub async fn voice_redownload(app: AppHandle) -> Result<decka_core::ai::service::VoiceStatus, String> {
+    voice(&app)?.redownload().await
+}
+
+/// `Check voice` (T28.3): the four steps; every change also goes to the window as the event `voice-check`. A dry run.
+#[tauri::command]
+pub async fn voice_self_check(app: AppHandle) -> Result<Vec<decka_core::voice::check::CheckStep>, String> {
+    let host = app.try_state::<decka_core::voice::host::Host>().ok_or_else(|| "voice control did not start".to_string())?.inner().clone();
+    let window = app.clone();
+    host.self_check(std::sync::Arc::new(move |steps: &[decka_core::voice::check::CheckStep]| {
+        let _ = window.emit("voice-check", steps.to_vec());
+    }))
+    .await
 }
 
 #[tauri::command]
