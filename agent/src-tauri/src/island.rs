@@ -319,6 +319,8 @@ pub fn setup(app: &AppHandle, agent: &Agent) -> Arc<Shared> {
             });
 
             if mode == Mode::Hidden && !loop_shared.guide_on() {
+                // T27.F.2: a hidden island reads no WASAPI peak (the meter used to stay on after compact -> hidden).
+                meter.set_active(false);
                 if shown {
                     if let Some(w) = &window {
                         let _ = w.hide();

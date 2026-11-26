@@ -84,6 +84,8 @@ export default function IslandApp() {
     const el = host.current;
     if (!el) return;
     const report = () => {
+      // T27.F.2: a hidden window has no panel to measure; no timers or IPC while it is hidden.
+      if (document.visibilityState === "hidden") return;
       const panel = el.querySelector<HTMLElement>(".island-panel, .island-tab-zone, .m27-guide-card");
       const r = unionRect(panel?.getBoundingClientRect(), el.querySelector<HTMLElement>(".island-lang-menu")?.getBoundingClientRect());
       void call("island_rect", { x: r?.x ?? 0, y: r?.y ?? 0, width: r?.width ?? 0, height: r?.height ?? 0 }).catch(() => {});
@@ -102,7 +104,9 @@ export default function IslandApp() {
       window.setTimeout(() => window.clearInterval(fast), 320);
     };
     el.addEventListener("transitionrun", onTransition);
+    document.addEventListener("visibilitychange", report);
     return () => {
+      document.removeEventListener("visibilitychange", report);
       ro.disconnect();
       mo.disconnect();
       window.clearInterval(timer);
