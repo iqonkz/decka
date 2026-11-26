@@ -98,8 +98,12 @@
   height: 72px;
 }
 
-.island-compact.is-lyrics {
+/* T27.F.1: the resting dim touches only the text and the orb. An opacity on the panel itself would multiply the
+   background alpha (0.96 * 0.8 = 0.77) and let the wallpaper through; the panel background stays >= 0.92. */
+.island-compact.is-lyrics .island-compact-text,
+.island-compact.is-lyrics .island-orb-wrap {
   opacity: 0.8;
+  transition: opacity 150ms ease, filter 200ms ease;
 }
 
 /* T26.F.14: two-column song compact (fixed 520px; left col 48px orb with hover controls overlay; right col text). */
@@ -159,9 +163,9 @@
   max-height: calc(1.3em * 3);
 }
 
-.island-compact.is-lyrics:hover,
-.island-compact.is-lyrics:focus-within,
-.island-compact.is-lyrics.is-hovered {
+.island-compact.is-lyrics:hover .island-compact-text,
+.island-compact.is-lyrics:focus-within .island-compact-text,
+.island-compact.is-lyrics.is-hovered .island-compact-text {
   opacity: 1;
 }
 

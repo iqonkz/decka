@@ -102,7 +102,14 @@ function t24Shots() {
 function m26Shots() {
   const islandSize = { w: 600, h: 420, scale: 2 };
   const orbRowSize = { w: 760, h: 200, scale: 2 };
+  const wallSheets = {};
+  for (const theme of ["dark", "light"]) {
+    for (const hover of [0, 1]) {
+      wallSheets[`t27f-sheet-compact-${theme}-${hover ? "hover" : "rest"}`] = [{ w: 800, h: 160, scale: 1 }, `scene=island&mode=compact&voiceOff=1&lyrics=1&wall=1&hover=${hover}&theme=${theme}`];
+    }
+  }
   return {
+    ...wallSheets,
     "m26-orb-states-dark": [orbRowSize, "scene=island&orbRow=1&theme=dark"],
     "m26-orb-states-light": [orbRowSize, "scene=island&orbRow=1&theme=light"],
     "m26-island-tab": [{ w: 300, h: 100, scale: 2 }, "scene=island&mode=tab&theme=dark"],
@@ -149,6 +156,8 @@ function m26Shots() {
     "t26f14-compact-long-hover-ru-light": [{ w: 600, h: 260, scale: 2 }, "scene=island&mode=compact&voiceOff=1&lyrics=3lines&hover=1&lang=ru&theme=light"],
     "t26f14-compact-countdown-hover-ru-dark": [{ w: 600, h: 200, scale: 2 }, "scene=island&mode=compact&voiceOff=1&songScene=countdown&hover=1&lang=ru&theme=dark"],
     "t26f14-compact-countdown-hover-ru-light": [{ w: 600, h: 200, scale: 2 }, "scene=island&mode=compact&voiceOff=1&songScene=countdown&hover=1&lang=ru&theme=light"],
+  };
+}
 function m27Shots() {
   const overlaySize = { w: 960, h: 540, scale: 1 };
   const settingsSize = { w: 860, h: 1850, scale: 1 };

@@ -329,6 +329,10 @@ if (scene === "deck" || scene === "settings") {
     themeMode === "light"
       ? "margin:0;min-height:100vh;background:linear-gradient(135deg,#e8eef8,#f3e8ff);font-family:system-ui,-apple-system,sans-serif;"
       : "margin:0;min-height:100vh;background:radial-gradient(900px 600px at 20% 20%,#1e2b4f 0%,transparent 65%),radial-gradient(900px 600px at 80% 85%,#3b1c54 0%,transparent 65%),#0b0d14;font-family:system-ui,-apple-system,sans-serif;";
+  // T27.F.1: a loud wallpaper (hard colour bands), so any alpha leaking through the panel is obvious.
+  if (q.get("wall")) {
+    document.body.style.background = "repeating-linear-gradient(90deg,#ff2d95 0 40px,#ffe600 40px 80px,#00e5ff 80px 120px,#39ff14 120px 160px)";
+  }
   if (q.get("interactive")) {
     const { t: tr } = await import("@decka/shared");
     function IslandDemoApp() {
