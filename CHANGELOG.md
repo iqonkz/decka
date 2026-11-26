@@ -4,6 +4,8 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+## 0.51.0 — 2026-11-26
+
 ### Added
 - **Dictation orb**: while you dictate there is only a 24 px orb next to the text cursor; if there is nowhere to type, the text waits on the clipboard and a bubble says so.
 - **The island rests as a thin bar** at the top edge while music plays; pointing at it opens three lines of lyrics. Settings -> Voice: bar or lyrics, height, left / centre / right.
@@ -20,6 +22,7 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 - **Dictation and text commands with a Russian or Kazakh keyboard layout**: `Ctrl+C` / `Ctrl+V` were typed as letters. The Windows 11 Notepad no longer garbles dictated text.
 - **"Yes" answers a question on the PC**: say it, or press the button inside the island; the Screen help download shows its percent.
 - A phrase that the recognition repeated several times is used once; "play music" starts the music instead of toggling it.
+
 ## 0.50.1 — 2026-11-26
 
 ### Added
