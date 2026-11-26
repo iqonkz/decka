@@ -517,6 +517,8 @@ struct Inner {
     focus: FocusMemory,
     /// T29.2: the percent of the Screen help package while it is downloaded for a question.
     download: Arc<Mutex<Option<u8>>>,
+    /// T29.3: turns other sounds down while the PC records.
+    ducker: super::duck::Ducker,
 }
 
 #[derive(Clone)]
@@ -561,6 +563,7 @@ impl Host {
             checking: AtomicBool::new(false),
             focus: FocusMemory::default(),
             download: Arc::default(),
+            ducker: super::duck::Ducker::start(&config_dir),
         });
         let driver = Driver::new(handle.clone(), inner.clone());
         let _ = inner.driver.set(driver);
@@ -840,6 +843,11 @@ impl Host {
         let since = (*self.inner.slow_since.lock().unwrap())?;
         let eta_sec = self.inner.slow.lock().unwrap().eta_sec(false);
         Some(super::slowpath::Progress { eta_sec, elapsed_sec: since.elapsed().as_secs() as u32 })
+    }
+
+    /// The program is ending: the volumes that were turned down come back first.
+    pub fn quit(&self) {
+        self.inner.ducker.quit();
     }
 
     /// The download that a question waits for, in percent, for the island.
@@ -1442,6 +1450,12 @@ impl Ports for Inner {
     }
 
     fn capture(&self, on: bool) {
+        // T29.3: other sounds are quiet for as long as the PC listens.
+        if !on {
+            self.ducker.release();
+        } else if self.agent.voice_duck_enabled() {
+            self.ducker.duck();
+        }
         #[cfg(windows)]
         {
             let mut slot = self.mic.lock().unwrap();

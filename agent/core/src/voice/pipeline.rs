@@ -107,7 +107,7 @@ pub fn understood(v: &Validated) -> ConfirmInfo {
         ToolCall::TypeText { .. } | ToolCall::PasteText { .. } | ToolCall::Dictate => plain("voice.did.type"),
         ToolCall::Volume(_) => plain("voice.did.volume"),
         ToolCall::Media(_) | ToolCall::MediaPlay => plain("voice.did.media"),
-        ToolCall::ScreenAsk { .. } | ToolCall::FindOnScreen { .. } | ToolCall::UiAct { .. } | ToolCall::ReadAloud => plain("voice.did.screen"),
+        ToolCall::FindOnScreen { .. } | ToolCall::UiAct { .. } | ToolCall::ReadAloud => plain("voice.did.screen"),
         ToolCall::Guide { .. } | ToolCall::GuideRecord { .. } | ToolCall::GuideControl { .. } => plain("voice.did.guide"),
         ToolCall::Ask { .. } | ToolCall::Calc { .. } | ToolCall::Status { .. } => plain("voice.did.question"),
         ToolCall::TextTransform { .. } | ToolCall::ReplyAction { .. } => plain("voice.did.text"),

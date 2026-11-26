@@ -160,6 +160,8 @@ export interface IpcCommands {
   voice_action(args: { kind: "copy" | "insert" | "speak" | "again" | `lang:${string}` }): void; // T26.3: a button under the shown answer; the PC decides what it does
   voice_context_get(): boolean;                                 // T26.7: hints by the active program when the island opens (off by default)
   voice_context_set(args: { enabled: boolean }): boolean;
+  voice_duck_get(): boolean;                                    // T29.3: `voice.duckMusic` (on by default)
+  voice_duck_set(args: { enabled: boolean }): boolean;
   voice_notices_get(): boolean;                                 // T27.8: short notes of the island about the PC; on by default
   voice_notices_set(args: { enabled: boolean }): boolean;
   guide_control(args: { kind: "next" | "back" | "stop" | "done" }): void;  // T27.5: a button of the guide card; the PC decides what it means

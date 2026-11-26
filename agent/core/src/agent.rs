@@ -658,6 +658,20 @@ impl Agent {
         Ok(enabled)
     }
 
+    /// `voice.duckMusic` (T29.3): other sounds are turned down while the microphone records; on by default.
+    pub fn voice_duck_enabled(&self) -> bool {
+        self.config().voice.and_then(|v| v.duck_music).unwrap_or(true)
+    }
+
+    pub fn set_voice_duck_enabled(&self, enabled: bool) -> Result<bool, String> {
+        let mut config = self.config();
+        config.voice.get_or_insert_with(Default::default).duck_music = Some(enabled);
+        if let SaveResult::Rejected(issues) = self.write_config(config) {
+            return Err(issues.first().map(|i| i.message.clone()).unwrap_or_default());
+        }
+        Ok(enabled)
+    }
+
     pub fn set_voice_context_enabled(&self, enabled: bool) -> Result<bool, String> {
         let mut config = self.config();
         config.voice.get_or_insert_with(Default::default).context.get_or_insert_with(Default::default).enabled = enabled;

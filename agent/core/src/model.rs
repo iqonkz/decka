@@ -669,6 +669,9 @@ pub struct VoiceConfig {
     /// T27.8: `voice.notices.enabled`, on by default; absent = on.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub notices: Option<VoiceNoticesConfig>,
+    /// T29.3: `voice.duckMusic`, other sounds are turned down while the microphone records; absent = on.
+    #[serde(default, rename = "duckMusic", skip_serializing_if = "Option::is_none")]
+    pub duck_music: Option<bool>,
 }
 
 /// `config.voice.notices`: short notes of the island about the state of the PC.

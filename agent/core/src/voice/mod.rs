@@ -13,6 +13,7 @@ pub mod check;
 pub mod clipboard;
 pub mod context;
 pub mod dictation;
+pub mod duck;
 pub mod endpoint;
 pub mod host;
 pub mod guides;

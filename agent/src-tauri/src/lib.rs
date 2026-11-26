@@ -144,6 +144,8 @@ pub fn run() {
             commands::voice_set_model_tier,
             commands::voice_context_get,
             commands::voice_context_set,
+            commands::voice_duck_get,
+            commands::voice_duck_set,
             commands::voice_chip,
         ])
         .setup(|app| {
@@ -209,12 +211,21 @@ pub fn run() {
         })
         .build(tauri::generate_context!())
         .expect("error while building Decka")
-        .run(|_app, event| {
-            // The last window going away must not end the app: it lives in the tray (`code` is set only by `exit`).
-            if let tauri::RunEvent::ExitRequested { api, code, .. } = event {
-                if code.is_none() {
-                    api.prevent_exit();
+        .run(|app, event| {
+            match event {
+                // The last window going away must not end the app: it lives in the tray (`code` is set only by `exit`).
+                tauri::RunEvent::ExitRequested { api, code, .. } => {
+                    if code.is_none() {
+                        api.prevent_exit();
+                    }
                 }
+                // T29.3: sounds that were turned down come back before the process is gone.
+                tauri::RunEvent::Exit => {
+                    if let Some(host) = app.try_state::<decka_core::voice::host::Host>() {
+                        host.quit();
+                    }
+                }
+                _ => {}
             }
         });
 }

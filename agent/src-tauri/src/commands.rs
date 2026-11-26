@@ -621,6 +621,17 @@ pub fn voice_context_set(app: AppHandle, enabled: bool) -> Result<bool, String> 
     agent(&app)?.set_voice_context_enabled(enabled)
 }
 
+/// `voice.duckMusic` (T29.3).
+#[tauri::command]
+pub fn voice_duck_get(app: AppHandle) -> Result<bool, String> {
+    Ok(agent(&app)?.voice_duck_enabled())
+}
+
+#[tauri::command]
+pub fn voice_duck_set(app: AppHandle, enabled: bool) -> Result<bool, String> {
+    agent(&app)?.set_voice_duck_enabled(enabled)
+}
+
 /// A tap on a hint chip of the island (T26.7): `translate`, `explain`, `reply` or `error`; the PC decides what it means.
 #[tauri::command]
 pub async fn voice_chip(app: AppHandle, command: String) -> Result<(), String> {
