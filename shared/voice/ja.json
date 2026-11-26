@@ -71,6 +71,16 @@
     {
       "tool": "media",
       "args": {
+        "op": "play"
+      },
+      "patterns": [
+        "音楽をかけて",
+        "音楽を再生"
+      ]
+    },
+    {
+      "tool": "media",
+      "args": {
         "op": "play_pause"
       },
       "patterns": [
@@ -666,6 +676,40 @@
       "patterns": [
         "この配置を{name}として保存",
         "レイアウトを{name}で記憶"
+      ]
+    },
+    {
+      "tool": "screenshot",
+      "args": {
+        "area": "screen"
+      },
+      "patterns": [
+        "スクリーンショットを撮って",
+        "スクショ"
+      ]
+    },
+    {
+      "tool": "add_button",
+      "patterns": [
+        "ボタン {name} を追加"
+      ]
+    },
+    {
+      "tool": "system_theme",
+      "args": {
+        "mode": "light"
+      },
+      "patterns": [
+        "windowsをライトテーマにして"
+      ]
+    },
+    {
+      "tool": "system_theme",
+      "args": {
+        "mode": "dark"
+      },
+      "patterns": [
+        "windowsをダークテーマにして"
       ]
     }
   ],

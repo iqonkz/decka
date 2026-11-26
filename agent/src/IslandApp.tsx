@@ -149,7 +149,9 @@ export default function IslandApp() {
         onAction={(kind) => void call("voice_action", { kind: kind as never }).catch(() => {})}
         onChipClick={(command) => void call("voice_chip", { command: command as never }).catch(() => {})}
         onStopSlow={() => void call("voice_cancel").catch(() => {})}
-        onConfirm={(id, yes) => void call("voice_confirm", { id, yes }).catch(() => {})}
+        onConfirm={(id, yes) => {
+          if (id) void call("voice_confirm", { id, yes }).catch(() => {});
+        }}
       />
       <GuidePanel
         guide={guide}

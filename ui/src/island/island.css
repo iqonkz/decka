@@ -573,41 +573,6 @@
   transition: width 300ms linear;
 }
 
-/* T29.2: "Yes" / "No" of a question, inside the panel (clicks pass through everything outside it). */
-.island-confirm {
-  width: 100%;
-  display: flex;
-  gap: 8px;
-}
-
-.island-confirm-btn {
-  height: 32px;
-  min-width: 72px;
-  padding: 0 16px;
-  border: 0;
-  border-radius: 16px;
-  background: var(--island-surface);
-  color: var(--island-text);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.island-confirm-btn:hover {
-  background: var(--island-surface-hover);
-}
-
-.island-confirm-btn.is-yes {
-  background: var(--island-accent);
-  color: #ffffff;
-}
-
-.island-confirm-btn:focus-visible {
-  outline: 2px solid var(--island-accent);
-  outline-offset: 2px;
-}
-
 /* T29.6: the draft of a new button, as it will look on the deck. */
 .island-draft {
   width: 100%;
@@ -640,30 +605,6 @@
 .island-draft-page {
   font-size: 13px;
   color: var(--island-muted);
-}
-
-.island-dictation-wrap {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  pointer-events: none;
-}
-
-.island-dictation-wrap.is-positioned {
-  position: fixed;
-  z-index: 9999;
-}
-
-.island-dictation-bubble {
-  padding: 6px 10px;
-  border-radius: 10px;
-  background: var(--island-bg);
-  border: 1px solid var(--island-border);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
-  color: var(--island-text);
-  font-size: 12px;
-  line-height: 1.3;
-  white-space: nowrap;
 }
 
 /* T29.4: the window of the orb starts at the text cursor, so the orb sits in its left corner, not in the middle. */
@@ -744,6 +685,75 @@
 .island-chip:focus-visible {
   outline: 2px solid var(--island-accent);
   outline-offset: 1px;
+}
+
+.island-confirm-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.island-confirm-btn {
+  height: 30px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 0;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: background-color 120ms ease, opacity 120ms ease;
+}
+
+.island-confirm-btn.is-yes {
+  background: var(--island-accent);
+  color: #fff;
+}
+
+.island-confirm-btn.is-yes:hover {
+  opacity: 0.9;
+}
+
+.island-confirm-btn.is-no {
+  background: var(--island-btn-hover);
+  color: var(--island-text);
+}
+
+.island-confirm-btn.is-no:hover {
+  background: color-mix(in srgb, var(--island-text) 14%, transparent);
+}
+
+.island-confirm-btn:focus-visible {
+  outline: 2px solid var(--island-accent);
+  outline-offset: 1px;
+}
+
+.island-dictation-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.island-dictation-wrap.is-positioned {
+  position: fixed;
+  z-index: 9999;
+}
+
+.island-dictation-bubble {
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: var(--island-bg);
+  border: 1px solid var(--island-border);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  color: var(--island-text);
+  font-size: 12px;
+  line-height: 1.3;
+  white-space: nowrap;
 }
 
 .island-actions {

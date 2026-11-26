@@ -82,7 +82,8 @@
         "resume the music",
         "start the music",
         "put on music",
-        "put some music on"
+        "put some music on",
+        "start music"
       ]
     },
     {
@@ -150,7 +151,10 @@
       "patterns": [
         "go to page {name}",
         "open page {name}",
-        "page {name}"
+        "page {name}",
+        "open {name} page",
+        "go to {name} page",
+        "switch to {name} page"
       ]
     },
     {
@@ -266,7 +270,10 @@
         "make it formal",
         "more formal",
         "rewrite formally",
-        "make formal"
+        "make formal",
+        "turn this into professional business language",
+        "make this sound professional",
+        "business language"
       ]
     },
     {
@@ -278,7 +285,10 @@
         "make it casual",
         "more casual",
         "make informal",
-        "rewrite casually"
+        "rewrite casually",
+        "make this sound like a friendly chat message",
+        "make it sound friendly",
+        "make it friendly"
       ]
     },
     {
@@ -290,7 +300,11 @@
         "summarize this",
         "summarize text",
         "summarize selection",
-        "give a summary"
+        "give a summary",
+        "provide the key takeaways",
+        "key takeaways of this",
+        "give me the key points",
+        "key points of this article"
       ]
     },
     {
@@ -390,60 +404,6 @@
       ]
     },
     {
-      "tool": "system_theme",
-      "args": {
-        "mode": "dark"
-      },
-      "patterns": [
-        "dark theme",
-        "dark mode",
-        "turn on dark mode",
-        "switch to dark theme",
-        "switch to dark mode",
-        "enable windows dark theme",
-        "switch windows to dark theme"
-      ]
-    },
-    {
-      "tool": "system_theme",
-      "args": {
-        "mode": "light"
-      },
-      "patterns": [
-        "light theme",
-        "light mode",
-        "turn on light mode",
-        "switch to light theme",
-        "switch to light mode",
-        "enable windows light theme",
-        "switch windows to light theme"
-      ]
-    },
-    {
-      "tool": "system_theme",
-      "args": {
-        "mode": "toggle"
-      },
-      "patterns": [
-        "toggle theme",
-        "toggle dark mode",
-        "change windows theme",
-        "switch the theme"
-      ]
-    },
-    {
-      "tool": "system_theme",
-      "args": {
-        "mode": "toggle",
-        "target": "decka"
-      },
-      "patterns": [
-        "decka theme",
-        "change the decka theme",
-        "open the decka theme"
-      ]
-    },
-    {
       "tool": "screenshot",
       "args": {
         "area": "window"
@@ -452,60 +412,6 @@
         "screenshot of the window",
         "window screenshot",
         "capture this window"
-      ]
-    },
-    {
-      "tool": "system_theme",
-      "args": {
-        "mode": "dark"
-      },
-      "patterns": [
-        "dark theme",
-        "dark mode",
-        "turn on dark mode",
-        "switch to dark theme",
-        "switch to dark mode",
-        "enable windows dark theme",
-        "switch windows to dark theme"
-      ]
-    },
-    {
-      "tool": "system_theme",
-      "args": {
-        "mode": "light"
-      },
-      "patterns": [
-        "light theme",
-        "light mode",
-        "turn on light mode",
-        "switch to light theme",
-        "switch to light mode",
-        "enable windows light theme",
-        "switch windows to light theme"
-      ]
-    },
-    {
-      "tool": "system_theme",
-      "args": {
-        "mode": "toggle"
-      },
-      "patterns": [
-        "toggle theme",
-        "toggle dark mode",
-        "change windows theme",
-        "switch the theme"
-      ]
-    },
-    {
-      "tool": "system_theme",
-      "args": {
-        "mode": "toggle",
-        "target": "decka"
-      },
-      "patterns": [
-        "decka theme",
-        "change the decka theme",
-        "open the decka theme"
       ]
     },
     {
@@ -665,14 +571,6 @@
         "begin dictation",
         "dictation mode",
         "dictate"
-      ]
-    },
-    {
-      "tool": "go_page",
-      "patterns": [
-        "open {name} page",
-        "go to {name} page",
-        "switch to {name} page"
       ]
     },
     {
@@ -895,34 +793,6 @@
         "what monitor is this",
         "which screen is this",
         "which monitor am i on"
-      ]
-    },
-    {
-      "tool": "text_transform",
-      "args": { "op": "summarize" },
-      "patterns": [
-        "provide the key takeaways",
-        "key takeaways of this",
-        "give me the key points",
-        "key points of this article"
-      ]
-    },
-    {
-      "tool": "text_transform",
-      "args": { "op": "formal" },
-      "patterns": [
-        "turn this into professional business language",
-        "make this sound professional",
-        "business language"
-      ]
-    },
-    {
-      "tool": "text_transform",
-      "args": { "op": "casual" },
-      "patterns": [
-        "make this sound like a friendly chat message",
-        "make it sound friendly",
-        "make it friendly"
       ]
     },
     {

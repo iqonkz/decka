@@ -68,6 +68,16 @@
     {
       "tool": "media",
       "args": {
+        "op": "play"
+      },
+      "patterns": [
+        "شغل الموسيقى",
+        "تشغيل الموسيقى"
+      ]
+    },
+    {
+      "tool": "media",
+      "args": {
         "op": "play_pause"
       },
       "patterns": [
@@ -670,6 +680,40 @@
       "patterns": [
         "احفظ الترتيب باسم {name}",
         "تذكر التخطيط باسم {name}"
+      ]
+    },
+    {
+      "tool": "screenshot",
+      "args": {
+        "area": "screen"
+      },
+      "patterns": [
+        "التقط صورة للشاشة",
+        "لقطة شاشة"
+      ]
+    },
+    {
+      "tool": "add_button",
+      "patterns": [
+        "أضف زر {name}"
+      ]
+    },
+    {
+      "tool": "system_theme",
+      "args": {
+        "mode": "light"
+      },
+      "patterns": [
+        "تفعيل الوضع الفاتح في ويندوز"
+      ]
+    },
+    {
+      "tool": "system_theme",
+      "args": {
+        "mode": "dark"
+      },
+      "patterns": [
+        "تفعيل الوضع الداكن في ويندوز"
       ]
     }
   ],

@@ -599,5 +599,31 @@
       "query": "weather in Paris",
       "site": "web"
     }
+  },
+  {
+    "say": "play music",
+    "tool": "media",
+    "args": {
+      "op": "play"
+    }
+  },
+  {
+    "say": "take a screenshot",
+    "tool": "screenshot",
+    "args": {
+      "area": "screen"
+    }
+  },
+  {
+    "say": "add button Spotify",
+    "tool": "add_button",
+    "args": {}
+  },
+  {
+    "say": "enable windows dark theme",
+    "tool": "system_theme",
+    "args": {
+      "mode": "dark"
+    }
   }
 ]

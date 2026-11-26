@@ -640,6 +640,27 @@ pub fn voice_speak_reply(app: AppHandle, text: String) {
     }
 }
 
+/// T29.13b: the Screen help package of the settings page.
+#[tauri::command]
+pub fn voice_context_pack_status(app: AppHandle) -> Result<decka_core::ai::service::VisionPack, String> {
+    Ok(voice(&app)?.vision_pack())
+}
+
+/// Downloads the package; the answer comes when it is on the disk (the page asks for the percent meanwhile).
+#[tauri::command]
+pub async fn voice_context_pack_download(app: AppHandle) -> Result<decka_core::ai::service::VisionPack, String> {
+    let service = voice(&app)?;
+    service.install_vision().await?;
+    Ok(service.vision_pack())
+}
+
+#[tauri::command]
+pub async fn voice_context_pack_remove(app: AppHandle) -> Result<decka_core::ai::service::VisionPack, String> {
+    let service = voice(&app)?;
+    service.remove_vision().await?;
+    Ok(service.vision_pack())
+}
+
 /// `voice.duckMusic` (T29.3).
 #[tauri::command]
 pub fn voice_duck_get(app: AppHandle) -> Result<bool, String> {

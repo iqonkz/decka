@@ -585,5 +585,31 @@
       "query": "पेरिस में मौसम",
       "site": "web"
     }
+  },
+  {
+    "say": "गाना चलाओ",
+    "tool": "media",
+    "args": {
+      "op": "play"
+    }
+  },
+  {
+    "say": "स्क्रीनशॉट लो",
+    "tool": "screenshot",
+    "args": {
+      "area": "screen"
+    }
+  },
+  {
+    "say": "बटन Spotify जोड़ो",
+    "tool": "add_button",
+    "args": {}
+  },
+  {
+    "say": "विंडोज़ डार्क थीम चालू करो",
+    "tool": "system_theme",
+    "args": {
+      "mode": "dark"
+    }
   }
 ]

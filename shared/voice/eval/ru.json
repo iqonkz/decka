@@ -599,5 +599,31 @@
       "query": "погода в Париже",
       "site": "web"
     }
+  },
+  {
+    "say": "поставь музыку",
+    "tool": "media",
+    "args": {
+      "op": "play"
+    }
+  },
+  {
+    "say": "сделай скриншот",
+    "tool": "screenshot",
+    "args": {
+      "area": "screen"
+    }
+  },
+  {
+    "say": "добавь кнопку Spotify",
+    "tool": "add_button",
+    "args": {}
+  },
+  {
+    "say": "включи тёмную тему windows",
+    "tool": "system_theme",
+    "args": {
+      "mode": "dark"
+    }
   }
 ]

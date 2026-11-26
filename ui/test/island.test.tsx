@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { renderToString } from "react-dom/server";
 import { setLanguage } from "@decka/shared";
 import Island, { chipIconKind, expandedStatusText, hasCodeBlock, hasVoiceContent, visibleChips } from "../src/island/Island";
+import DictationOrb from "../src/island/DictationOrb";
 import { compactWidth, currentWraps } from "../src/island/compactWidth";
 import ParticlesOrb, { particleCountForSize } from "../src/island/ParticlesOrb";
 import { compactVoiceText, orbStateFromIsland } from "../src/island/islandTypes";
@@ -346,5 +347,52 @@ describe("T26.5b ParticlesOrb & Island", () => {
     expect(wrappedHtml).toContain("is-two-line");
     expect(wrappedHtml).toContain("Prev line");
     expect(wrappedHtml).not.toContain("Next hidden");
+  });
+
+  it("renders M29 Yes/No confirm buttons inside expanded panel, 10px notch tab bar with musicLevel, and 24px DictationOrb", () => {
+    const confirmHtml = renderToString(
+      <Island
+        event={{
+          mode: "expanded",
+          voice: {
+            active: true,
+            phase: "confirm",
+            level: 0,
+            heard: "Перезагрузить компьютер",
+            confirmId: "c1",
+            confirm: { text: "Перезагрузить компьютер?", key: "voice.confirm.action" },
+          },
+        }}
+        onConfirm={() => {}}
+      />,
+    );
+    expect(confirmHtml).toContain("island-confirm-row");
+    expect(confirmHtml).toContain("island-confirm-btn");
+    expect(confirmHtml).toContain("is-yes");
+    expect(confirmHtml).toContain("is-no");
+
+    const tabHtml = renderToString(
+      <Island
+        event={{
+          mode: "tab",
+          playing: true,
+          musicLevel: 0.72,
+          track: { title: "Midnight City", artist: "M83" },
+        }}
+        barHeight={10}
+        barPosition="center"
+      />,
+    );
+    expect(tabHtml).toContain("island-tab-zone");
+    expect(tabHtml).toContain("island-tab-bar");
+    expect(tabHtml).toContain("island-tab-meter");
+    expect(tabHtml).toContain("height:10px");
+
+    const orbHtml = renderToString(
+      <DictationOrb state="listening" level={0.6} error="Нет активного поля ввода" x={100} y={200} />,
+    );
+    expect(orbHtml).toContain("island-dictation-wrap");
+    expect(orbHtml).toContain("island-dictation-bubble");
+    expect(orbHtml).toContain("Нет активного поля ввода");
   });
 });

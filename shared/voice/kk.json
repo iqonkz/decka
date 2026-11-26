@@ -92,6 +92,16 @@
     {
       "tool": "media",
       "args": {
+        "op": "play"
+      },
+      "patterns": [
+        "музыка қос",
+        "әуен қос"
+      ]
+    },
+    {
+      "tool": "media",
+      "args": {
         "op": "play_pause"
       },
       "patterns": [
@@ -766,6 +776,40 @@
       "patterns": [
         "орналасуды {name} деп сақта",
         "қазіргі орналасуды {name} ретінде есте сақта"
+      ]
+    },
+    {
+      "tool": "screenshot",
+      "args": {
+        "area": "screen"
+      },
+      "patterns": [
+        "скриншот жаса",
+        "экран суреті"
+      ]
+    },
+    {
+      "tool": "add_button",
+      "patterns": [
+        "{name} батырмасын қос"
+      ]
+    },
+    {
+      "tool": "system_theme",
+      "args": {
+        "mode": "light"
+      },
+      "patterns": [
+        "windows жарық тақырыбын қос"
+      ]
+    },
+    {
+      "tool": "system_theme",
+      "args": {
+        "mode": "dark"
+      },
+      "patterns": [
+        "windows қараңғы тақырыбын қос"
       ]
     }
   ],

@@ -69,6 +69,16 @@
     {
       "tool": "media",
       "args": {
+        "op": "play"
+      },
+      "patterns": [
+        "coloca música",
+        "tocar música"
+      ]
+    },
+    {
+      "tool": "media",
+      "args": {
         "op": "play_pause"
       },
       "patterns": [
@@ -689,6 +699,40 @@
       "patterns": [
         "salve layout como {name}",
         "lembre disposição como {name}"
+      ]
+    },
+    {
+      "tool": "screenshot",
+      "args": {
+        "area": "screen"
+      },
+      "patterns": [
+        "tire um print",
+        "captura de tela"
+      ]
+    },
+    {
+      "tool": "add_button",
+      "patterns": [
+        "adicione o botão {name}"
+      ]
+    },
+    {
+      "tool": "system_theme",
+      "args": {
+        "mode": "light"
+      },
+      "patterns": [
+        "ativar tema claro do windows"
+      ]
+    },
+    {
+      "tool": "system_theme",
+      "args": {
+        "mode": "dark"
+      },
+      "patterns": [
+        "ativar tema escuro do windows"
       ]
     }
   ],

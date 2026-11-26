@@ -2,7 +2,7 @@
 //! settings, removal. It owns the downloader and the supervisor; it never touches the network channel to the phone.
 
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -252,6 +252,27 @@ struct Inner {
     layers: Arc<dyn LayerMemory>,
     emit: Emit,
     state: Mutex<State>,
+    /// The percent of a running download of the Screen help package, `IDLE` when none runs.
+    vision_percent: AtomicU8,
+}
+
+const IDLE: u8 = u8::MAX;
+
+/// The Screen help package as the settings page shows it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+pub struct VisionPack {
+    pub installed: bool,
+    pub size: u64,
+    pub percent: Option<u8>,
+}
+
+/// Ends the "a download runs" mark, also when the download is abandoned.
+struct Downloading<'a>(&'a AtomicU8);
+
+impl Drop for Downloading<'_> {
+    fn drop(&mut self) {
+        self.0.store(IDLE, Ordering::SeqCst);
+    }
 }
 
 #[derive(Clone)]
@@ -290,6 +311,7 @@ impl VoiceService {
                 supervisor,
                 layers: deps.layers,
                 emit: deps.emit,
+                vision_percent: AtomicU8::new(IDLE),
                 state: Mutex::new(State { settings, download: None, last_error: None, hotkey_error: None }),
             }),
             handle,
@@ -430,6 +452,30 @@ impl VoiceService {
         self.inner.manifest.iter().find(|e| e.id == id)
     }
 
+    /// The package for the settings page: on the disk, its size, and how far a running download is.
+    pub fn vision_pack(&self) -> VisionPack {
+        let percent = self.inner.vision_percent.load(Ordering::SeqCst);
+        VisionPack { installed: self.vision_installed(), size: self.vision_entry().map_or(0, |e| e.size), percent: (percent != IDLE).then_some(percent) }
+    }
+
+    /// Deletes the package (the model file only; voice control stays). The server restarts without it at the next request.
+    pub async fn remove_vision(&self) -> Result<(), String> {
+        if self.inner.vision_percent.load(Ordering::SeqCst) != IDLE {
+            return Err("The Screen help package is being downloaded".into());
+        }
+        let entry = self.vision_entry().cloned().ok_or("The Screen help package is not available")?;
+        // The running server holds the file.
+        self.inner.supervisor.stop().await;
+        let path = target_of(&self.inner.root, &entry);
+        match std::fs::remove_file(&path) {
+            Ok(()) => {}
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) => return Err(format!("Cannot delete the package: {e}")),
+        }
+        self.configure_supervisor();
+        Ok(())
+    }
+
     /// Whether the Screen help package is on the disk.
     pub fn vision_installed(&self) -> bool {
         self.vision_entry().is_some_and(|e| is_present(&self.inner.root, e))
@@ -444,11 +490,25 @@ impl VoiceService {
     pub async fn install_vision_with(&self, percent: &mut (dyn FnMut(u8) + Send)) -> Result<(), String> {
         let entry = self.vision_entry().cloned().ok_or("The Screen help package is not available")?;
         if !is_present(&self.inner.root, &entry) {
+            // One download at a time: the settings page and a spoken "yes" would write the same file.
+            if self.inner.vision_percent.compare_exchange(IDLE, 0, Ordering::SeqCst, Ordering::SeqCst).is_err() {
+                return Err("The Screen help package is being downloaded already".into());
+            }
+            let _running = Downloading(&self.inner.vision_percent);
             let dest = target_of(&self.inner.root, &entry);
             let cancel = AtomicBool::new(false);
             let total = entry.size.max(1);
             percent(0);
-            self.inner.downloader.fetch(&entry, &dest, &cancel, &mut |done| percent((done.saturating_mul(100) / total).min(100) as u8)).await.map_err(|e| e.to_string())?;
+            let shared = &self.inner.vision_percent;
+            self.inner
+                .downloader
+                .fetch(&entry, &dest, &cancel, &mut |done| {
+                    let p = (done.saturating_mul(100) / total).min(100) as u8;
+                    shared.store(p, Ordering::SeqCst);
+                    percent(p)
+                })
+                .await
+                .map_err(|e| e.to_string())?;
         }
         // The server loads the projector at its start: the running one is stopped, the next request starts it again.
         self.configure_supervisor();

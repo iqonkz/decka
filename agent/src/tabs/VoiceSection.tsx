@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
-import { t, type VoiceStatus } from "@decka/shared";
+import { t, type IslandSettings, type VoiceStatus } from "@decka/shared";
 import type { SavedGuide, VoiceModelTier, WorkMode } from "@decka/ui";
-import { invoke } from "@tauri-apps/api/core";
 import { call, onVoiceStatus } from "../ipc";
 import Button from "../ui/Button";
 import Banner from "../ui/Banner";
 import Modal from "../ui/Modal";
 import ChordField from "../editor/ChordField";
 import { formatChord } from "../editor/addButton";
-import VoiceHelp from "./VoiceHelp";
+import VoiceCommands from "./VoiceCommands";
+import { loadVoiceExtras, saveDuckMusic, saveIsland } from "./voiceExtras";
 import DictationBlock from "./DictationBlock";
 import MemoryBlock from "./MemoryBlock";
 import GuidesBlock from "./GuidesBlock";
@@ -60,6 +60,10 @@ export interface VoiceSectionProps {
   initialModelTier?: VoiceModelTier;
   initialNotices?: boolean;
   initialContext?: boolean;
+  initialDuckMusic?: boolean;
+  initialIslandRest?: "bar" | "lyrics";
+  initialIslandBarHeight?: number;
+  initialIslandBarPosition?: "left" | "center" | "right";
   initialCheckSteps?: VoiceCheckStep[];
   previewGuides?: SavedGuide[];
   previewModes?: WorkMode[];
@@ -71,7 +75,10 @@ export default function VoiceSection({
   initialStatus,
   initialModelTier,
   initialNotices = true,
-  initialContext = false,
+  initialDuckMusic = true,
+  initialIslandRest = "bar",
+  initialIslandBarHeight = 10,
+  initialIslandBarPosition = "center",
   initialCheckSteps,
   previewGuides,
   previewModes,
@@ -80,22 +87,26 @@ export default function VoiceSection({
   const [status, setStatus] = useState<VoiceStatus>(initialStatus ?? DEFAULT_STATUS);
   const [modelTier, setModelTier] = useState<VoiceModelTier>(initialModelTier ?? (initialStatus?.model ?? "standard"));
   const [noticesEnabled, setNoticesEnabled] = useState<boolean>(initialNotices);
+  const [duckMusic, setDuckMusic] = useState<boolean>(initialDuckMusic);
+  const [island, setIsland] = useState<IslandSettings>({ restingMode: initialIslandRest, barHeight: initialIslandBarHeight, barPosition: initialIslandBarPosition });
   const [confirm9bOpen, setConfirm9bOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // T26.7 / T28.2b: screen assist (active window on demand, in memory only).
-  const [context, setContext] = useState(initialContext);
 
   useEffect(() => {
     if (initialStatus) return;
     let active = true;
-    call("voice_context_get").then(
-      (on) => active && setContext(on),
-      () => {},
-    );
     call("voice_notices_get").then(
       (on) => active && setNoticesEnabled(on),
-      () => {},
+      (e) => active && setError(String(e)),
+    );
+    loadVoiceExtras(call).then(
+      (extras) => {
+        if (!active) return;
+        setDuckMusic(extras.duckMusic);
+        setIsland(extras.island);
+      },
+      (e) => active && setError(String(e)),
     );
     call("voice_status").then(
       (s) => {
@@ -151,6 +162,37 @@ export default function VoiceSection({
     } catch (e) {
       setError(String(e));
     }
+  }
+
+  /** A change is shown at once and put back when the PC refuses it. */
+  function changeDuck(enabled: boolean) {
+    const before = duckMusic;
+    setError(null);
+    setDuckMusic(enabled);
+    saveDuckMusic(call, enabled).then(setDuckMusic, (e) => {
+      setDuckMusic(before);
+      setError(String(e));
+    });
+  }
+
+  function changeIsland(change: Partial<IslandSettings>) {
+    const before = island;
+    setError(null);
+    setIsland({ ...island, ...change });
+    saveIsland(call, change).then(setIsland, (e) => {
+      setIsland(before);
+      setError(String(e));
+    });
+  }
+
+  function changeNotices(enabled: boolean) {
+    const before = noticesEnabled;
+    setError(null);
+    setNoticesEnabled(enabled);
+    call("voice_notices_set", { enabled }).then(setNoticesEnabled, (e) => {
+      setNoticesEnabled(before);
+      setError(String(e));
+    });
   }
 
   return (
@@ -304,18 +346,6 @@ export default function VoiceSection({
               <Switch checked={status.keepLoaded} onChange={(val) => void setConfig({ keepLoaded: val })} />
             </Row>
 
-            <Row id="section-voice-screen-help" title={t("m28.screen_help_title")} description={t("m28.screen_help_desc")}>
-              <Switch
-                checked={context}
-                onChange={(on) =>
-                  void call("voice_context_set", { enabled: on }).then(
-                    (v) => setContext(v),
-                    (e) => setError(String(e)),
-                  )
-                }
-              />
-            </Row>
-
             <Row title={t("voice.phone_button")}>
               <Switch checked={status.phoneButton} onChange={(val) => void setConfig({ phoneButton: val })} />
             </Row>
@@ -323,9 +353,65 @@ export default function VoiceSection({
             <Row title={t("m27.notices_title")} description={t("m27.notices_desc")}>
               <Switch
                 checked={noticesEnabled}
+                onChange={changeNotices}
+              />
+            </Row>
+
+            <Row id="section-voice-duck" title={t("m29.voice_duck")} description={t("m29.voice_duck_hint")}>
+              <Switch checked={duckMusic} onChange={changeDuck} />
+            </Row>
+
+            <Row id="section-voice-speak" title={t("m29.voice_speak")} description={t("m29.voice_speak_hint")}>
+              <Switch checked={status.speak} onChange={(val) => void setConfig({ speak: val })} />
+            </Row>
+          </Group>
+
+          <SectionHeader title={t("m29.island_title")} />
+          <Group>
+            <Row id="section-island-rest" title={t("m29.island_rest")}>
+              <Select
+                aria-label={t("m29.island_rest")}
+                value={island.restingMode}
+                options={[
+                  { value: "bar", label: t("m29.island_rest_bar") },
+                  { value: "lyrics", label: t("m29.island_rest_lyrics") },
+                ]}
                 onChange={(val) => {
-                  setNoticesEnabled(val);
-                  invoke("voice_notices_set", { enabled: val }).catch(() => {});
+                  changeIsland({ restingMode: val as IslandSettings["restingMode"] });
+                }}
+              />
+            </Row>
+
+            <Row id="section-island-bar-height" title={t("m29.island_bar_height")}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <input
+                  type="range"
+                  aria-label={t("m29.island_bar_height")}
+                  min={6}
+                  max={16}
+                  step={1}
+                  value={island.barHeight}
+                  onChange={(e) => {
+                    changeIsland({ barHeight: Number(e.target.value) });
+                  }}
+                />
+                <span style={{ fontSize: "var(--font-sm)", minWidth: 42, textAlign: "right", color: "var(--text-muted)" }}>
+                  {island.barHeight} px
+                </span>
+              </div>
+            </Row>
+
+            <Row id="section-island-bar-pos" title={t("m29.island_bar_pos")}>
+              <Select
+                aria-label={t("m29.island_bar_pos")}
+                value={island.barPosition}
+                options={[
+                  { value: "left", label: t("m29.island_pos_left") },
+                  { value: "center", label: t("m29.island_pos_center") },
+                  { value: "right", label: t("m29.island_pos_right") },
+                ]}
+                onChange={(val) => {
+                  changeIsland({ barPosition: val as IslandSettings["barPosition"] });
                 }}
               />
             </Row>
@@ -384,7 +470,10 @@ export default function VoiceSection({
                 onClick={() => {
                   setModelTier("9b");
                   setConfirm9bOpen(false);
-                  invoke("voice_set_model_tier", { model: "9b" }).catch(() => {});
+                  call("voice_set_model_tier", { model: "9b" }).then(setModelTier, (e) => {
+                    setModelTier(status.model);
+                    setError(String(e));
+                  });
                 }}
               >
                 {t("m27.model_9b_confirm_ok", { size: MODEL_9B_GB })}
@@ -402,7 +491,7 @@ export default function VoiceSection({
       <GuidesBlock initialGuides={previewGuides} />
       <ModesBlock initialModes={previewModes} />
       <div id="voice-help" style={{ marginTop: 24 }}>
-        <VoiceHelp />
+        <VoiceCommands />
       </div>
     </div>
   );

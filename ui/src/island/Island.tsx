@@ -16,6 +16,7 @@ import {
   SkipForward,
   Square,
   Volume2,
+  X,
 } from "lucide-react";
 import { LANGUAGE_NAMES, LANGUAGES, locale, t, type Language } from "@decka/shared";
 import { formatTime } from "../widgets/mediaPos";
@@ -58,7 +59,7 @@ const ORB_CONTENT_SIZE = 72;
 export function hasVoiceContent(event: IslandEvent): boolean {
   const v = event.voice;
   if (!v) return false;
-  return Boolean(v.heard || v.reply || v.slow || v.download || (v.phase === "confirm" && v.confirmId));
+  return Boolean(v.heard || v.reply || v.slow || v.download || v.confirm || v.phase === "confirm");
 }
 
 export function expandedStatusText(phase?: IslandVoicePhase): string {
@@ -619,6 +620,7 @@ export default function Island({
             {voice?.executing && <div className="island-content-status island-doing">{t("voice.stage.doing")}</div>}
 
             {voice?.reply && <div className="island-reply">{voice.reply}</div>}
+            {!voice?.reply && voice?.confirm?.text && <div className="island-reply">{voice.confirm.text}</div>}
 
             {voice?.download && (
               <div className="island-slow island-slow-expanded">
@@ -641,17 +643,19 @@ export default function Island({
               </div>
             )}
 
-            {confirmId && (
-              <div className="island-confirm">
-                <button type="button" className="island-confirm-btn is-yes" onClick={() => onConfirm?.(confirmId, true)}>
-                  {t("voice.yes")}
+            {/* T29.2: inside the panel - a click outside it passes through the window. */}
+            {(voice?.phase === "confirm" || Boolean(voice?.confirm)) && (
+              <div className="island-confirm-row">
+                <button type="button" className="island-confirm-btn is-yes" onClick={() => onConfirm?.(voice?.confirmId ?? "", true)}>
+                  <Check size={14} strokeWidth={1.75} aria-hidden="true" />
+                  <span>{t("island.yes")}</span>
                 </button>
-                <button type="button" className="island-confirm-btn" onClick={() => onConfirm?.(confirmId, false)}>
-                  {t("voice.no")}
+                <button type="button" className="island-confirm-btn is-no" onClick={() => onConfirm?.(voice?.confirmId ?? "", false)}>
+                  <X size={14} strokeWidth={1.75} aria-hidden="true" />
+                  <span>{t("island.no")}</span>
                 </button>
               </div>
             )}
-
             {visibleChips(voice?.chips, voice?.reply).length > 0 && (
               <div className="island-chips">
                 {visibleChips(voice?.chips, voice?.reply).map((chip, idx) => (

@@ -85,6 +85,16 @@
     {
       "tool": "media",
       "args": {
+        "op": "play"
+      },
+      "patterns": [
+        "गाना चलाओ",
+        "म्यूजिक चलाओ"
+      ]
+    },
+    {
+      "tool": "media",
+      "args": {
         "op": "play_pause"
       },
       "patterns": [
@@ -757,6 +767,40 @@
       "patterns": [
         "लेआउट को {name} के रूप में सहेजें",
         "इसे {name} मोड के रूप में याद रखें"
+      ]
+    },
+    {
+      "tool": "screenshot",
+      "args": {
+        "area": "screen"
+      },
+      "patterns": [
+        "स्क्रीनशॉट लो",
+        "स्क्रीन कैप्चर करो"
+      ]
+    },
+    {
+      "tool": "add_button",
+      "patterns": [
+        "बटन {name} जोड़ो"
+      ]
+    },
+    {
+      "tool": "system_theme",
+      "args": {
+        "mode": "light"
+      },
+      "patterns": [
+        "विंडोज़ लाइट थीम चालू करो"
+      ]
+    },
+    {
+      "tool": "system_theme",
+      "args": {
+        "mode": "dark"
+      },
+      "patterns": [
+        "विंडोज़ डार्क थीम चालू करो"
       ]
     }
   ],

@@ -66,6 +66,16 @@
     {
       "tool": "media",
       "args": {
+        "op": "play"
+      },
+      "patterns": [
+        "mach musik an",
+        "musik abspielen"
+      ]
+    },
+    {
+      "tool": "media",
+      "args": {
         "op": "play_pause"
       },
       "patterns": [
@@ -675,6 +685,40 @@
       "patterns": [
         "speichere layout als {name}",
         "merk dir anordnung als {name}"
+      ]
+    },
+    {
+      "tool": "screenshot",
+      "args": {
+        "area": "screen"
+      },
+      "patterns": [
+        "mach einen screenshot",
+        "bildschirmfoto"
+      ]
+    },
+    {
+      "tool": "add_button",
+      "patterns": [
+        "füge taste {name} hinzu"
+      ]
+    },
+    {
+      "tool": "system_theme",
+      "args": {
+        "mode": "light"
+      },
+      "patterns": [
+        "helles windows design aktivieren"
+      ]
+    },
+    {
+      "tool": "system_theme",
+      "args": {
+        "mode": "dark"
+      },
+      "patterns": [
+        "dunkles windows design aktivieren"
       ]
     }
   ],

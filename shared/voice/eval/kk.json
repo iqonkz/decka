@@ -585,5 +585,31 @@
       "query": "Парижде ауа райы",
       "site": "web"
     }
+  },
+  {
+    "say": "музыка қос",
+    "tool": "media",
+    "args": {
+      "op": "play"
+    }
+  },
+  {
+    "say": "скриншот жаса",
+    "tool": "screenshot",
+    "args": {
+      "area": "screen"
+    }
+  },
+  {
+    "say": "Spotify батырмасын қос",
+    "tool": "add_button",
+    "args": {}
+  },
+  {
+    "say": "windows қараңғы тақырыбын қос",
+    "tool": "system_theme",
+    "args": {
+      "mode": "dark"
+    }
   }
 ]

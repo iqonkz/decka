@@ -6,6 +6,15 @@ import type { PageTemplate } from "./templates";
 import type { SavedGuide, VoiceModelTier, WorkMode } from "./m27";
 import type { IslandSettings } from "./island";
 
+/** T29.13b: the Screen help package on this PC. */
+export interface VisionPack {
+  installed: boolean;
+  /** Bytes. */
+  size: number;
+  /** A download that runs now, in percent. */
+  percent: number | null;
+}
+
 /** One line of the connection check (`diag.rs`); `id` and `status` pick the sentence, `detail` fills it. */
 export interface DiagCheck {
   id: "server" | "bind" | "address" | "reach" | "firewall" | "clients";
@@ -164,6 +173,9 @@ export interface IpcCommands {
   island_config_get(): IslandSettings;                          // T29.5: `config.island`
   island_config_set(args: { restingMode?: IslandSettings["restingMode"]; barHeight?: number; barPosition?: IslandSettings["barPosition"] }): IslandSettings;
   voice_speak_reply(args: { text: string }): void;               // T29.8: the shown answer, spoken when "answer aloud" is on
+  voice_context_pack_status(): VisionPack;                       // T29.13b: the Screen help package
+  voice_context_pack_download(): VisionPack;
+  voice_context_pack_remove(): VisionPack;
   voice_duck_get(): boolean;                                    // T29.3: `voice.duckMusic` (on by default)
   voice_duck_set(args: { enabled: boolean }): boolean;
   voice_notices_get(): boolean;                                 // T27.8: short notes of the island about the PC; on by default

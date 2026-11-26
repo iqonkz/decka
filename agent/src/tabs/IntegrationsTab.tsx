@@ -20,6 +20,7 @@ import Switch from "../ui/Switch";
 import Disclosure from "../ui/Disclosure";
 import Modal from "../ui/Modal";
 import {
+  buildIntegrationsList,
   filterIntegrations,
   type IntegrationCategory,
   type IntegrationDef,
@@ -76,11 +77,17 @@ export default function IntegrationsTab() {
   const [searchQuery, setSearchQuery] = useState("");
   const [lyricsEnabled, setLyricsEnabled] = useState(false);
   const [lyricsPc, setLyricsPc] = useState<LyricsPcOverlay>("auto");
+  const [use, setUse] = useState({ webhooks: false, batteryWidget: false });
 
   const load = useCallback(async () => {
     const c = await call("get_config");
     const s = await call("get_status");
     const lyr = await lyricsGet();
+    const [actions, layout] = await Promise.all([call("get_actions"), call("get_layout")]);
+    setUse({
+      webhooks: Object.values(actions.actions).some((a) => a.type === "http"),
+      batteryWidget: layout.pages.some((p) => p.items.some((item) => item.kind === "battery")),
+    });
     setConfig(c);
     setChecks(c.collectors.checks);
     setPort(s.listening?.port ?? c.port);
@@ -118,110 +125,8 @@ export default function IntegrationsTab() {
 
   const integrationsList: IntegrationDef[] = useMemo(() => {
     if (!config) return [];
-    return [
-      {
-        id: "obs",
-        name: "OBS Studio",
-        titleKey: "integ.catalog_title",
-        descKey: "integ.item_obs_desc",
-        category: "streaming",
-        icon: "broadcast",
-        connected: Boolean(config.obs?.enabled),
-        keywords: ["obs", "stream", "scenes", "recording", "broadcast"],
-      },
-      {
-        id: "twitch",
-        name: "Twitch",
-        titleKey: "integ.catalog_title",
-        descKey: "integ.item_twitch_desc",
-        category: "streaming",
-        icon: "chat-circle-text",
-        connected: Boolean(config.twitch?.enabled),
-        keywords: ["twitch", "stream", "chat", "live"],
-      },
-      {
-        id: "youtube",
-        name: "YouTube",
-        titleKey: "integ.catalog_title",
-        descKey: "integ.item_youtube_desc",
-        category: "streaming",
-        icon: "play-circle",
-        connected: Boolean(config.youtube?.enabled),
-        keywords: ["youtube", "video", "broadcast", "subscribers"],
-      },
-      {
-        id: "mail",
-        name: t("integ.item_mail_name"),
-        titleKey: "integ.catalog_title",
-        descKey: "integ.item_mail_desc",
-        category: "notifications",
-        icon: "envelope",
-        connected: Boolean(config.mail?.accounts && config.mail.accounts.length > 0),
-        keywords: ["email", "mail", "gmail", "imap", "unread"],
-      },
-      {
-        id: "winnotif",
-        name: t("winnotif.title"),
-        titleKey: "winnotif.title",
-        descKey: "integ.item_winnotif_desc",
-        category: "notifications",
-        icon: "bell",
-        connected: Boolean(config.windowsNotifications?.enabled),
-        keywords: ["windows", "notifications", "alerts", "toasts"],
-      },
-      {
-        id: "weather",
-        name: t("weather.title"),
-        titleKey: "weather.title",
-        descKey: "integ.item_weather_desc",
-        category: "data",
-        icon: "cloud-sun",
-        connected: Boolean(config.weather?.enabled && config.weather?.place),
-        keywords: ["weather", "temperature", "forecast", "city"],
-      },
-      {
-        id: "checks",
-        name: t("integ.checks"),
-        titleKey: "integ.checks",
-        descKey: "integ.item_checks_desc",
-        category: "data",
-        icon: "pulse",
-        connected: Boolean(checks.length > 0),
-        keywords: ["checks", "http", "uptime", "server", "ping"],
-      },
-      {
-        id: "ai",
-        name: t("integ.item_ai_name"),
-        titleKey: "integ.catalog_title",
-        descKey: "integ.item_ai_desc",
-        category: "data",
-        icon: "brain",
-        connected: Boolean(config.ai?.claude?.enabled || config.ai?.codex?.enabled),
-        keywords: ["ai", "claude", "codex", "llm", "limits"],
-      },
-      {
-        id: "lyrics",
-        name: t("integ.item_lyrics_name"),
-        titleKey: "integ.item_lyrics_name",
-        descKey: "integ.item_lyrics_desc",
-        category: "data",
-        icon: "music-notes",
-        connected: lyricsEnabled,
-        toggle: true,
-        keywords: ["lyrics", "lrclib", "songs", "music", "synced", "текст", "песни"],
-      },
-      {
-        id: "api_token",
-        name: t("integ.api_token"),
-        titleKey: "integ.api_token",
-        descKey: "integ.item_api_desc",
-        category: "developers",
-        icon: "key",
-        connected: Boolean(config.apiToken),
-        keywords: ["api", "token", "auth", "developer", "key", "curl", "powershell", "examples", "webhook"],
-      },
-    ];
-  }, [config, checks.length, lyricsEnabled]);
+    return buildIntegrationsList(config, checks.length, lyricsEnabled, use);
+  }, [config, checks.length, lyricsEnabled, use]);
 
   const filteredIntegrations = useMemo(() => {
     return filterIntegrations(integrationsList, filterChip, searchQuery);
@@ -289,6 +194,26 @@ export default function IntegrationsTab() {
         {activeIntegration === "weather" && <WeatherSection config={config} onSaved={load} />}
         {activeIntegration === "ai" && <AiSection config={config} onSaved={load} />}
         {activeIntegration === "lyrics" && <LyricsSection enabled={lyricsEnabled} onToggle={(v) => void toggleLyrics(v)} pcOverlay={lyricsPc} onPcOverlay={(m) => void changeLyricsPc(m)} />}
+        {activeIntegration === "bluetooth" && (
+          <div>
+            <PageHeader title={t("m29.integ_bt_name")} subtitle={t("m29.integ_bt_desc")} />
+            <Group>
+              <div style={{ padding: "14px 16px", fontSize: "var(--font-sm)", color: "var(--text-muted)" }}>
+                {t("m29.integ_bt_hint")}
+              </div>
+            </Group>
+          </div>
+        )}
+        {activeIntegration === "webhook" && (
+          <div>
+            <PageHeader title={t("m29.integ_webhook_name")} subtitle={t("m29.integ_webhook_desc")} />
+            <Group>
+              <div style={{ padding: "14px 16px", fontSize: "var(--font-sm)", color: "var(--text-muted)" }}>
+                {t("m29.integ_webhook_hint")}
+              </div>
+            </Group>
+          </div>
+        )}
 
         {activeIntegration === "api_token" && (
           <div>

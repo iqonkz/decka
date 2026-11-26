@@ -69,6 +69,16 @@
     {
       "tool": "media",
       "args": {
+        "op": "play"
+      },
+      "patterns": [
+        "放首歌",
+        "播放音乐"
+      ]
+    },
+    {
+      "tool": "media",
+      "args": {
         "op": "play_pause"
       },
       "patterns": [
@@ -77,7 +87,9 @@
         "继续播放",
         "停止播放",
         "暂停当前播放",
-        "暂停播放"
+        "暂停播放",
+        "暂停播放音乐",
+        "暂停音乐"
       ]
     },
     {
@@ -678,6 +690,40 @@
       "patterns": [
         "把布局保存为{name}",
         "记住当前布局为{name}"
+      ]
+    },
+    {
+      "tool": "screenshot",
+      "args": {
+        "area": "screen"
+      },
+      "patterns": [
+        "截图",
+        "截屏"
+      ]
+    },
+    {
+      "tool": "add_button",
+      "patterns": [
+        "添加按钮 {name}"
+      ]
+    },
+    {
+      "tool": "system_theme",
+      "args": {
+        "mode": "light"
+      },
+      "patterns": [
+        "开启windows浅色主题"
+      ]
+    },
+    {
+      "tool": "system_theme",
+      "args": {
+        "mode": "dark"
+      },
+      "patterns": [
+        "开启windows深色主题"
       ]
     }
   ],

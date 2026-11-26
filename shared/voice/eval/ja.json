@@ -585,5 +585,31 @@
       "query": "パリの天気",
       "site": "web"
     }
+  },
+  {
+    "say": "音楽をかけて",
+    "tool": "media",
+    "args": {
+      "op": "play"
+    }
+  },
+  {
+    "say": "スクリーンショットを撮って",
+    "tool": "screenshot",
+    "args": {
+      "area": "screen"
+    }
+  },
+  {
+    "say": "ボタン Spotify を追加",
+    "tool": "add_button",
+    "args": {}
+  },
+  {
+    "say": "windowsをダークテーマにして",
+    "tool": "system_theme",
+    "args": {
+      "mode": "dark"
+    }
   }
 ]

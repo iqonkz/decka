@@ -1,97 +1,478 @@
 {
-  "categories": { "windows": "Windows", "media": "Медиа", "sound": "Дыбыс", "stream": "Стрим", "widgets": "Виджеттер", "navigation": "Өту", "web": "Сайттар", "keys": "Пернелер", "apps": "Бағдарламалар" },
+  "categories": {
+    "windows": "Windows",
+    "media": "Медиа",
+    "sound": "Дыбыс",
+    "stream": "Стрим",
+    "widgets": "Виджеттер",
+    "navigation": "Өту",
+    "web": "Сайттар",
+    "keys": "Пернелер",
+    "apps": "Бағдарламалар"
+  },
   "items": {
-    "win.lock": { "label": "Бұғаттау", "name": "ДК-ні бұғаттау" },
-    "win.sleep": { "label": "Ұйқы", "name": "Ұйқы режимі" },
-    "win.shutdown": { "label": "Өшіру", "name": "ДК-ні өшіру" },
-    "win.restart": { "label": "Қайта қосу", "name": "ДК-ні қайта қосу" },
-    "win.signout": { "label": "Шығу", "name": "Есептік жазбадан шығу" },
-    "win.hibernate": { "label": "Гибернация", "name": "Гибернация" },
-    "win.displayoff": { "label": "Экран", "name": "Экранды өшіру" },
-    "win.recycle": { "label": "Себет", "name": "Себетті тазалау" },
-    "win.screenshot": { "label": "Скриншот", "name": "Экран суреті" },
-    "win.taskmgr": { "label": "Тапсырма", "name": "Тапсырмалар диспетчері" },
-    "win.desktop": { "label": "Жұмыс үстелі", "name": "Жұмыс үстелін көрсету" },
-    "win.explorer": { "label": "Зерттеуші", "name": "Файл зерттеушісі" },
-    "win.emoji": { "label": "Эмодзи", "name": "Эмодзи тақтасы" },
-    "win.clipboard": { "label": "Буфер", "name": "Буфер тарихы" },
-    "win.settings": { "label": "Параметр", "name": "Windows параметрлері" },
-    "media.play": { "label": "Ойнату", "name": "Ойнату / Кідірту", "states": { "true": "Кідірту" } },
-    "media.next": { "label": "Келесі", "name": "Келесі трек" },
-    "media.prev": { "label": "Алдыңғы", "name": "Алдыңғы трек" },
-    "media.shuffle": { "label": "Араластыру", "name": "Араластыру" },
-    "media.repeat": { "label": "Қайталау", "name": "Қайталау", "states": { "track": "1 қайталау" } },
-    "media.widget": { "label": "Плеер", "name": "Қазір ойнап тұр" },
-    "sound.mic": { "label": "Микрофон", "name": "Микрофонды өшіру", "states": { "true": "Мик. өшті" } },
-    "sound.mute": { "label": "Дыбыссыз", "name": "Дыбысты өшіру" },
-    "sound.volup": { "label": "Дыбыс +", "name": "Дыбысты көтеру" },
-    "sound.voldown": { "label": "Дыбыс -", "name": "Дыбысты азайту" },
-    "sound.widget": { "label": "Дыбыс", "name": "Дыбыс сырғытпасы" },
-    "stream.record": { "label": "Жазу", "name": "OBS: жазу", "states": { "true": "REC" } },
-    "stream.live": { "label": "Эфирге", "name": "OBS: эфирге шығу", "states": { "true": "LIVE" } },
-    "stream.replay": { "label": "Қайталау", "name": "OBS: қайталауды сақтау" },
-    "stream.scene": { "label": "Сцена", "name": "OBS: сценаны ауыстыру" },
-    "stream.mic": { "label": "OBS микр.", "name": "OBS: аудио кірісін өшіру" },
-    "stream.widget": { "label": "OBS", "name": "OBS күйі" },
-    "widget.clock": { "label": "Сағат", "name": "Сағат" },
-    "widget.sys": { "label": "Жүйе", "name": "Жүйе" },
-    "widget.sysgraph": { "label": "Жүктеме", "name": "Графигі бар жүйе" },
-    "widget.weather": { "label": "Ауа райы", "name": "Ауа райы" },
-    "widget.timer": { "label": "Таймер", "name": "Таймер" },
-    "widget.volume": { "label": "Дыбыс", "name": "Дыбыс сырғытпасы" },
-    "widget.statuses": { "label": "Сервистер", "name": "Сервистер" },
-    "widget.notifications": { "label": "Хабарлар", "name": "Хабарландырулар" },
-    "widget.media": { "label": "Плеер", "name": "Қазір ойнап тұр" },
-    "widget.twitch": { "label": "Twitch", "name": "Twitch арнасы" },
-    "widget.battery": { "label": "Батарея", "name": "Құрылғы батареясы" },
-    "widget.reminders": { "label": "Еске салулар", "name": "Алдағы еске салулар" },
-    "widget.list": { "label": "Тізім", "name": "Белгілері бар тізім" },
-    "widget.mail": { "label": "Пошта", "name": "Оқылмаған пошта" },
-    "widget.youtube": { "label": "YouTube", "name": "YouTube арнасы" },
-    "widget.ai": { "label": "ЖИ лимит", "name": "ЖИ лимиттері (Claude, Codex)" },
-    "widget.context": { "label": "Бағд. перне", "name": "Алдыңғы қатардағы бағдарлама батырмалары" },
-    "widget.ai.claude": { "label": "Claude", "name": "Claude Code лимиттері (2x1)" },
-    "widget.ai.codex": { "label": "Codex", "name": "Codex лимиттері (2x1)" },
-    "twitch.clip": { "label": "Клип", "name": "Twitch: клип" },
-    "twitch.announce": { "label": "Чатқа жазу", "name": "Twitch: чатқа хабарландыру" },
-    "youtube.live": { "label": "YT эфир", "name": "YouTube: эфирге шығу (жоспарланған)" },
-    "youtube.end": { "label": "YT аяқтау", "name": "YouTube: эфирді аяқтау" },
-    "youtube.chat": { "label": "YT чат", "name": "YouTube: чатқа хабарлама" },
-    "widget.obs": { "label": "OBS", "name": "OBS күйі" },
-    "nav.back": { "label": "Артқа", "name": "Артқа" },
-    "nav.page": { "label": "Бет", "name": "Бетті ашу" },
-    "nav.popup": { "label": "Топ", "name": "Топты ашу" },
-    "web.site": { "label": "Сайт", "name": "Сайтты ашу" },
-    "keys.shortcut": { "label": "Тіркесім", "name": "Перне тіркесімі" },
-    "keys.sequence": { "label": "Тізбек", "name": "Әрекеттер тізбегі" }
+    "win.lock": {
+      "label": "Бұғаттау",
+      "name": "ДК-ні бұғаттау"
+    },
+    "win.sleep": {
+      "label": "Ұйқы",
+      "name": "Ұйқы режимі"
+    },
+    "win.shutdown": {
+      "label": "Өшіру",
+      "name": "ДК-ні өшіру"
+    },
+    "win.restart": {
+      "label": "Қайта қосу",
+      "name": "ДК-ні қайта қосу"
+    },
+    "win.signout": {
+      "label": "Шығу",
+      "name": "Есептік жазбадан шығу"
+    },
+    "win.hibernate": {
+      "label": "Гибернация",
+      "name": "Гибернация"
+    },
+    "win.displayoff": {
+      "label": "Экран",
+      "name": "Экранды өшіру"
+    },
+    "win.recycle": {
+      "label": "Себет",
+      "name": "Себетті тазалау"
+    },
+    "win.screenshot": {
+      "label": "Скриншот",
+      "name": "Экран суреті"
+    },
+    "win.taskmgr": {
+      "label": "Тапсырма",
+      "name": "Тапсырмалар диспетчері"
+    },
+    "win.desktop": {
+      "label": "Жұмыс үстелі",
+      "name": "Жұмыс үстелін көрсету"
+    },
+    "win.explorer": {
+      "label": "Зерттеуші",
+      "name": "Файл зерттеушісі"
+    },
+    "win.emoji": {
+      "label": "Эмодзи",
+      "name": "Эмодзи тақтасы"
+    },
+    "win.clipboard": {
+      "label": "Буфер",
+      "name": "Буфер тарихы"
+    },
+    "win.settings": {
+      "label": "Параметр",
+      "name": "Windows параметрлері"
+    },
+    "media.play": {
+      "label": "Ойнату",
+      "name": "Ойнату / Кідірту",
+      "states": {
+        "true": "Кідірту"
+      }
+    },
+    "media.next": {
+      "label": "Келесі",
+      "name": "Келесі трек"
+    },
+    "media.prev": {
+      "label": "Алдыңғы",
+      "name": "Алдыңғы трек"
+    },
+    "media.shuffle": {
+      "label": "Араластыру",
+      "name": "Араластыру"
+    },
+    "media.repeat": {
+      "label": "Қайталау",
+      "name": "Қайталау",
+      "states": {
+        "track": "1 қайталау"
+      }
+    },
+    "media.widget": {
+      "label": "Плеер",
+      "name": "Қазір ойнап тұр"
+    },
+    "sound.mic": {
+      "label": "Микрофон",
+      "name": "Микрофонды өшіру",
+      "states": {
+        "true": "Мик. өшті"
+      }
+    },
+    "sound.mute": {
+      "label": "Дыбыссыз",
+      "name": "Дыбысты өшіру"
+    },
+    "sound.volup": {
+      "label": "Дыбыс +",
+      "name": "Дыбысты көтеру"
+    },
+    "sound.voldown": {
+      "label": "Дыбыс -",
+      "name": "Дыбысты азайту"
+    },
+    "sound.widget": {
+      "label": "Дыбыс",
+      "name": "Дыбыс сырғытпасы"
+    },
+    "stream.record": {
+      "label": "Жазу",
+      "name": "OBS: жазу",
+      "states": {
+        "true": "REC"
+      }
+    },
+    "stream.live": {
+      "label": "Эфирге",
+      "name": "OBS: эфирге шығу",
+      "states": {
+        "true": "LIVE"
+      }
+    },
+    "stream.replay": {
+      "label": "Қайталау",
+      "name": "OBS: қайталауды сақтау"
+    },
+    "stream.scene": {
+      "label": "Сцена",
+      "name": "OBS: сценаны ауыстыру"
+    },
+    "stream.mic": {
+      "label": "OBS микр.",
+      "name": "OBS: аудио кірісін өшіру"
+    },
+    "stream.widget": {
+      "label": "OBS",
+      "name": "OBS күйі"
+    },
+    "widget.clock": {
+      "label": "Сағат",
+      "name": "Сағат"
+    },
+    "widget.sys": {
+      "label": "Жүйе",
+      "name": "Жүйе"
+    },
+    "widget.sysgraph": {
+      "label": "Жүктеме",
+      "name": "Графигі бар жүйе"
+    },
+    "widget.weather": {
+      "label": "Ауа райы",
+      "name": "Ауа райы"
+    },
+    "widget.timer": {
+      "label": "Таймер",
+      "name": "Таймер"
+    },
+    "widget.volume": {
+      "label": "Дыбыс",
+      "name": "Дыбыс сырғытпасы"
+    },
+    "widget.statuses": {
+      "label": "Сервистер",
+      "name": "Сервистер"
+    },
+    "widget.notifications": {
+      "label": "Хабарлар",
+      "name": "Хабарландырулар"
+    },
+    "widget.media": {
+      "label": "Плеер",
+      "name": "Қазір ойнап тұр"
+    },
+    "widget.twitch": {
+      "label": "Twitch",
+      "name": "Twitch арнасы"
+    },
+    "widget.battery": {
+      "label": "Батарея",
+      "name": "Құрылғы батареясы"
+    },
+    "widget.reminders": {
+      "label": "Еске салулар",
+      "name": "Алдағы еске салулар"
+    },
+    "widget.list": {
+      "label": "Тізім",
+      "name": "Белгілері бар тізім"
+    },
+    "widget.mail": {
+      "label": "Пошта",
+      "name": "Оқылмаған пошта"
+    },
+    "widget.youtube": {
+      "label": "YouTube",
+      "name": "YouTube арнасы"
+    },
+    "widget.ai": {
+      "label": "ЖИ лимит",
+      "name": "ЖИ лимиттері (Claude, Codex)"
+    },
+    "widget.context": {
+      "label": "Бағд. перне",
+      "name": "Алдыңғы қатардағы бағдарлама батырмалары"
+    },
+    "widget.ai.claude": {
+      "label": "Claude",
+      "name": "Claude Code лимиттері (2x1)"
+    },
+    "widget.ai.codex": {
+      "label": "Codex",
+      "name": "Codex лимиттері (2x1)"
+    },
+    "twitch.clip": {
+      "label": "Клип",
+      "name": "Twitch: клип"
+    },
+    "twitch.announce": {
+      "label": "Чатқа жазу",
+      "name": "Twitch: чатқа хабарландыру"
+    },
+    "youtube.live": {
+      "label": "YT эфир",
+      "name": "YouTube: эфирге шығу (жоспарланған)"
+    },
+    "youtube.end": {
+      "label": "YT аяқтау",
+      "name": "YouTube: эфирді аяқтау"
+    },
+    "youtube.chat": {
+      "label": "YT чат",
+      "name": "YouTube: чатқа хабарлама"
+    },
+    "widget.obs": {
+      "label": "OBS",
+      "name": "OBS күйі"
+    },
+    "nav.back": {
+      "label": "Артқа",
+      "name": "Артқа"
+    },
+    "nav.page": {
+      "label": "Бет",
+      "name": "Бетті ашу"
+    },
+    "nav.popup": {
+      "label": "Топ",
+      "name": "Топты ашу"
+    },
+    "web.site": {
+      "label": "Сайт",
+      "name": "Сайтты ашу"
+    },
+    "keys.shortcut": {
+      "label": "Тіркесім",
+      "name": "Перне тіркесімі"
+    },
+    "keys.sequence": {
+      "label": "Тізбек",
+      "name": "Әрекеттер тізбегі"
+    },
+    "win.screenshot.window": {
+      "label": "Терезе",
+      "name": "Белсенді терезе скриншоты"
+    },
+    "win.screenshot.region": {
+      "label": "Аймақ",
+      "name": "Экран аймағы скриншоты"
+    },
+    "web.webhook": {
+      "label": "Webhook",
+      "name": "Webhook (HTTP сұрауы)"
+    }
   },
   "sets": {
-    "media-remote": { "name": "Медиа пульті", "description": "Алдыңғы, ойнату, келесі, араластыру, қайталау және «Қазір ойнап тұр»" },
-    "sound": { "name": "Дыбыс", "description": "Микрофон, дыбыссыз, дыбыс пернелері және сырғытпа" },
-    "windows-tools": { "name": "Windows құралдары", "description": "Бұғаттау, скриншот, Тапсырмалар диспетчері, Зерттеуші және т.б." },
-    "stream": { "name": "Стримінг", "description": "Жазу, эфирге шығу, қайталау, сценалар және OBS күйі" },
-    "twitch": { "name": "Twitch", "description": "Көрермендер, жазылушылар және клип батырмасы" },
-    "youtube": { "name": "YouTube", "description": "Тікелей эфир көрермендері және арнаңыздың жазылушылары" },
-    "ai": { "name": "ЖИ бағдарламалау", "description": "Claude Code және Codex лимиттері бір қарауда" },
-    "workspace": { "name": "Жұмыс үстелі", "description": "Алдыңғы қатардағы бағдарлама батырмалары, сонымен бірге бұғаттау, Тапсырмалар диспетчері, медиа және дыбыссыз әрдайым қол созым жерде" },
-    "focus": { "name": "Зейін", "description": "Таймер және сағат" }
+    "media-remote": {
+      "name": "Медиа пульті",
+      "description": "Алдыңғы, ойнату, келесі, араластыру, қайталау және «Қазір ойнап тұр»"
+    },
+    "sound": {
+      "name": "Дыбыс",
+      "description": "Микрофон, дыбыссыз, дыбыс пернелері және сырғытпа"
+    },
+    "windows-tools": {
+      "name": "Windows құралдары",
+      "description": "Бұғаттау, скриншот, Тапсырмалар диспетчері, Зерттеуші және т.б."
+    },
+    "stream": {
+      "name": "Стримінг",
+      "description": "Жазу, эфирге шығу, қайталау, сценалар және OBS күйі"
+    },
+    "twitch": {
+      "name": "Twitch",
+      "description": "Көрермендер, жазылушылар және клип батырмасы"
+    },
+    "youtube": {
+      "name": "YouTube",
+      "description": "Тікелей эфир көрермендері және арнаңыздың жазылушылары"
+    },
+    "ai": {
+      "name": "ЖИ бағдарламалау",
+      "description": "Claude Code және Codex лимиттері бір қарауда"
+    },
+    "workspace": {
+      "name": "Жұмыс үстелі",
+      "description": "Алдыңғы қатардағы бағдарлама батырмалары, сонымен бірге бұғаттау, Тапсырмалар диспетчері, медиа және дыбыссыз әрдайым қол созым жерде"
+    },
+    "focus": {
+      "name": "Зейін",
+      "description": "Таймер және сағат"
+    }
   },
   "templates": {
-    "name": { "browser": "Браузер" },
+    "name": {
+      "browser": "Браузер"
+    },
     "actions": {
-      "browser": { "tpl-browser-newtab": "Жаңа қойынды", "tpl-browser-closetab": "Қойындыны жабу", "tpl-browser-reopen": "Жабылған қойындыны ашу", "tpl-browser-back": "Артқа", "tpl-browser-forward": "Алға", "tpl-browser-reload": "Қайта жүктеу", "tpl-browser-devtools": "Әзірлеуші құралдары", "tpl-browser-private": "Жеке терезе", "tpl-browser-bookmark": "Бетті бетбелгіге қосу", "tpl-browser-address": "Мекенжай жолағы", "tpl-browser-find": "Беттен іздеу", "tpl-browser-downloads": "Жүктеулер", "tpl-browser-history": "Тарих", "tpl-browser-nexttab": "Келесі қойынды" },
-      "canva": { "tpl-canva-text": "Мәтін өрісі", "tpl-canva-rect": "Тіктөртбұрыш", "tpl-canva-circle": "Шеңбер", "tpl-canva-line": "Сызық", "tpl-canva-dup": "Көшірме жасау", "tpl-canva-group": "Топтау", "tpl-canva-ungroup": "Топтан шығару", "tpl-canva-undo": "Болдырмау", "tpl-canva-redo": "Қайталау", "tpl-canva-delete": "Жою", "tpl-canva-lock": "Бұғаттау / ашу", "tpl-canva-present": "Көрсету" },
-      "discord": { "tpl-discord-mute": "Микрофонды өшіру", "tpl-discord-deafen": "Дыбысты өшіру", "tpl-discord-switcher": "Жылдам ауыстыру", "tpl-discord-inbox": "Кіріс жәшігі", "tpl-discord-nextsrv": "Келесі сервер", "tpl-discord-prevsrv": "Алдыңғы сервер" },
-      "excel": { "tpl-excel-save": "Сақтау", "tpl-excel-undo": "Болдырмау", "tpl-excel-redo": "Қайталау", "tpl-excel-find": "Табу", "tpl-excel-bold": "Жуан", "tpl-excel-filter": "Сүзгі қосу / өшіру", "tpl-excel-edit": "Ұяшықты өзгерту", "tpl-excel-fill": "Төмен толтыру", "tpl-excel-format": "Ұяшық пішімі", "tpl-excel-sheet": "Жаңа парақ" },
-      "outlook": { "tpl-outlook-new": "Жаңа хат", "tpl-outlook-reply": "Жауап беру", "tpl-outlook-replyall": "Барлығына жауап", "tpl-outlook-forward": "Жіберу (қайта)", "tpl-outlook-send": "Жіберу", "tpl-outlook-mail": "Пошта көрінісі", "tpl-outlook-calendar": "Күнтізбе көрінісі", "tpl-outlook-search": "Іздеу", "tpl-outlook-read": "Оқылды деп белгілеу", "tpl-outlook-delete": "Жою" },
-      "powerpoint": { "tpl-powerpoint-start": "Көрсетілімді бастау", "tpl-powerpoint-current": "Осы слайдтан бастау", "tpl-powerpoint-prev": "Алдыңғы слайд", "tpl-powerpoint-next": "Келесі слайд", "tpl-powerpoint-end": "Көрсетілімді аяқтау", "tpl-powerpoint-newslide": "Жаңа слайд", "tpl-powerpoint-dup": "Слайдтың көшірмесі", "tpl-powerpoint-save": "Сақтау", "tpl-powerpoint-undo": "Болдырмау", "tpl-powerpoint-bold": "Жуан" },
-      "spotify": { "tpl-spotify-prev": "Алдыңғы", "tpl-spotify-play": "Ойнату / Кідірту", "tpl-spotify-next": "Келесі", "tpl-spotify-voldown": "Дыбысты азайту", "tpl-spotify-volup": "Дыбысты көтеру", "tpl-spotify-mute": "Дыбыссыз" },
-      "teams": { "tpl-teams-mute": "Микрофонды өшіру / қосу", "tpl-teams-video": "Камераны қосу / өшіру", "tpl-teams-share": "Экранды бөлісу", "tpl-teams-hand": "Қол көтеру / түсіру", "tpl-teams-leave": "Кездесуден шығу", "tpl-teams-accept": "Бейне қоңырауды қабылдау", "tpl-teams-decline": "Қоңырауды қабылдамау", "tpl-teams-search": "Іздеу" },
-      "telegram": { "tpl-telegram-search": "Іздеу", "tpl-telegram-next": "Келесі чат", "tpl-telegram-prev": "Алдыңғы чат", "tpl-telegram-close": "Чатты жабу", "tpl-telegram-edit": "Соңғы хабарламаны өзгерту", "tpl-telegram-lock": "Қолданбаны бұғаттау" },
-      "vscode": { "tpl-vscode-palette": "Командалар палитрасы", "tpl-vscode-quickopen": "Жылдам ашу", "tpl-vscode-findall": "Файлдардан іздеу", "tpl-vscode-git": "Бастапқы код басқаруы", "tpl-vscode-sidebar": "Бүйір панелін көрсету / жасыру", "tpl-vscode-save": "Сақтау", "tpl-vscode-format": "Құжатты пішімдеу", "tpl-vscode-run": "Жөндеуді бастау", "tpl-vscode-stop": "Жөндеуді тоқтату" },
-      "whatsapp": { "tpl-whatsapp-new": "Жаңа чат", "tpl-whatsapp-search": "Іздеу", "tpl-whatsapp-next": "Келесі чат", "tpl-whatsapp-prev": "Алдыңғы чат", "tpl-whatsapp-mute": "Чаттың дыбысын өшіру", "tpl-whatsapp-archive": "Чатты мұрағаттау", "tpl-whatsapp-group": "Жаңа топ", "tpl-whatsapp-close": "Чатты жабу" },
-      "word": { "tpl-word-bold": "Жуан", "tpl-word-italic": "Көлбеу", "tpl-word-underline": "Асты сызылған", "tpl-word-left": "Солға туралау", "tpl-word-center": "Ортаға туралау", "tpl-word-save": "Сақтау", "tpl-word-undo": "Болдырмау", "tpl-word-redo": "Қайталау", "tpl-word-find": "Табу", "tpl-word-print": "Басып шығару" },
-      "zoom": { "tpl-zoom-mute": "Микрофонды өшіру / қосу", "tpl-zoom-video": "Бейнені бастау / тоқтату", "tpl-zoom-share": "Экранды бөлісу", "tpl-zoom-leave": "Кездесуден шығу" }
+      "browser": {
+        "tpl-browser-newtab": "Жаңа қойынды",
+        "tpl-browser-closetab": "Қойындыны жабу",
+        "tpl-browser-reopen": "Жабылған қойындыны ашу",
+        "tpl-browser-back": "Артқа",
+        "tpl-browser-forward": "Алға",
+        "tpl-browser-reload": "Қайта жүктеу",
+        "tpl-browser-devtools": "Әзірлеуші құралдары",
+        "tpl-browser-private": "Жеке терезе",
+        "tpl-browser-bookmark": "Бетті бетбелгіге қосу",
+        "tpl-browser-address": "Мекенжай жолағы",
+        "tpl-browser-find": "Беттен іздеу",
+        "tpl-browser-downloads": "Жүктеулер",
+        "tpl-browser-history": "Тарих",
+        "tpl-browser-nexttab": "Келесі қойынды"
+      },
+      "canva": {
+        "tpl-canva-text": "Мәтін өрісі",
+        "tpl-canva-rect": "Тіктөртбұрыш",
+        "tpl-canva-circle": "Шеңбер",
+        "tpl-canva-line": "Сызық",
+        "tpl-canva-dup": "Көшірме жасау",
+        "tpl-canva-group": "Топтау",
+        "tpl-canva-ungroup": "Топтан шығару",
+        "tpl-canva-undo": "Болдырмау",
+        "tpl-canva-redo": "Қайталау",
+        "tpl-canva-delete": "Жою",
+        "tpl-canva-lock": "Бұғаттау / ашу",
+        "tpl-canva-present": "Көрсету"
+      },
+      "discord": {
+        "tpl-discord-mute": "Микрофонды өшіру",
+        "tpl-discord-deafen": "Дыбысты өшіру",
+        "tpl-discord-switcher": "Жылдам ауыстыру",
+        "tpl-discord-inbox": "Кіріс жәшігі",
+        "tpl-discord-nextsrv": "Келесі сервер",
+        "tpl-discord-prevsrv": "Алдыңғы сервер"
+      },
+      "excel": {
+        "tpl-excel-save": "Сақтау",
+        "tpl-excel-undo": "Болдырмау",
+        "tpl-excel-redo": "Қайталау",
+        "tpl-excel-find": "Табу",
+        "tpl-excel-bold": "Жуан",
+        "tpl-excel-filter": "Сүзгі қосу / өшіру",
+        "tpl-excel-edit": "Ұяшықты өзгерту",
+        "tpl-excel-fill": "Төмен толтыру",
+        "tpl-excel-format": "Ұяшық пішімі",
+        "tpl-excel-sheet": "Жаңа парақ"
+      },
+      "outlook": {
+        "tpl-outlook-new": "Жаңа хат",
+        "tpl-outlook-reply": "Жауап беру",
+        "tpl-outlook-replyall": "Барлығына жауап",
+        "tpl-outlook-forward": "Жіберу (қайта)",
+        "tpl-outlook-send": "Жіберу",
+        "tpl-outlook-mail": "Пошта көрінісі",
+        "tpl-outlook-calendar": "Күнтізбе көрінісі",
+        "tpl-outlook-search": "Іздеу",
+        "tpl-outlook-read": "Оқылды деп белгілеу",
+        "tpl-outlook-delete": "Жою"
+      },
+      "powerpoint": {
+        "tpl-powerpoint-start": "Көрсетілімді бастау",
+        "tpl-powerpoint-current": "Осы слайдтан бастау",
+        "tpl-powerpoint-prev": "Алдыңғы слайд",
+        "tpl-powerpoint-next": "Келесі слайд",
+        "tpl-powerpoint-end": "Көрсетілімді аяқтау",
+        "tpl-powerpoint-newslide": "Жаңа слайд",
+        "tpl-powerpoint-dup": "Слайдтың көшірмесі",
+        "tpl-powerpoint-save": "Сақтау",
+        "tpl-powerpoint-undo": "Болдырмау",
+        "tpl-powerpoint-bold": "Жуан"
+      },
+      "spotify": {
+        "tpl-spotify-prev": "Алдыңғы",
+        "tpl-spotify-play": "Ойнату / Кідірту",
+        "tpl-spotify-next": "Келесі",
+        "tpl-spotify-voldown": "Дыбысты азайту",
+        "tpl-spotify-volup": "Дыбысты көтеру",
+        "tpl-spotify-mute": "Дыбыссыз"
+      },
+      "teams": {
+        "tpl-teams-mute": "Микрофонды өшіру / қосу",
+        "tpl-teams-video": "Камераны қосу / өшіру",
+        "tpl-teams-share": "Экранды бөлісу",
+        "tpl-teams-hand": "Қол көтеру / түсіру",
+        "tpl-teams-leave": "Кездесуден шығу",
+        "tpl-teams-accept": "Бейне қоңырауды қабылдау",
+        "tpl-teams-decline": "Қоңырауды қабылдамау",
+        "tpl-teams-search": "Іздеу"
+      },
+      "telegram": {
+        "tpl-telegram-search": "Іздеу",
+        "tpl-telegram-next": "Келесі чат",
+        "tpl-telegram-prev": "Алдыңғы чат",
+        "tpl-telegram-close": "Чатты жабу",
+        "tpl-telegram-edit": "Соңғы хабарламаны өзгерту",
+        "tpl-telegram-lock": "Қолданбаны бұғаттау"
+      },
+      "vscode": {
+        "tpl-vscode-palette": "Командалар палитрасы",
+        "tpl-vscode-quickopen": "Жылдам ашу",
+        "tpl-vscode-findall": "Файлдардан іздеу",
+        "tpl-vscode-git": "Бастапқы код басқаруы",
+        "tpl-vscode-sidebar": "Бүйір панелін көрсету / жасыру",
+        "tpl-vscode-save": "Сақтау",
+        "tpl-vscode-format": "Құжатты пішімдеу",
+        "tpl-vscode-run": "Жөндеуді бастау",
+        "tpl-vscode-stop": "Жөндеуді тоқтату"
+      },
+      "whatsapp": {
+        "tpl-whatsapp-new": "Жаңа чат",
+        "tpl-whatsapp-search": "Іздеу",
+        "tpl-whatsapp-next": "Келесі чат",
+        "tpl-whatsapp-prev": "Алдыңғы чат",
+        "tpl-whatsapp-mute": "Чаттың дыбысын өшіру",
+        "tpl-whatsapp-archive": "Чатты мұрағаттау",
+        "tpl-whatsapp-group": "Жаңа топ",
+        "tpl-whatsapp-close": "Чатты жабу"
+      },
+      "word": {
+        "tpl-word-bold": "Жуан",
+        "tpl-word-italic": "Көлбеу",
+        "tpl-word-underline": "Асты сызылған",
+        "tpl-word-left": "Солға туралау",
+        "tpl-word-center": "Ортаға туралау",
+        "tpl-word-save": "Сақтау",
+        "tpl-word-undo": "Болдырмау",
+        "tpl-word-redo": "Қайталау",
+        "tpl-word-find": "Табу",
+        "tpl-word-print": "Басып шығару"
+      },
+      "zoom": {
+        "tpl-zoom-mute": "Микрофонды өшіру / қосу",
+        "tpl-zoom-video": "Бейнені бастау / тоқтату",
+        "tpl-zoom-share": "Экранды бөлісу",
+        "tpl-zoom-leave": "Кездесуден шығу"
+      }
     }
   }
 }
