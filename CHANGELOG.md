@@ -4,6 +4,8 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+## 0.50.1 — 2026-11-26
+
 ### Added
 - **Check voice**: a button in Settings -> Voice tries the chain step by step — microphone level, a spoken phrase turned into text, the assistant, and what the command would do (nothing is pressed) — with the time and the reason of each failed step.
 - **Command stages on the island**: what was heard, what was understood, then the action.
