@@ -748,9 +748,11 @@ select.settings-select,
 }
 
 /* The :not() chain lifts the specificity above the global input rule (line ~918), which would otherwise win. */
-.integrations-search input:not([type="checkbox"]):not([type="radio"]):not([type="color"]) {
+.page-container .integrations-search input:not([type="checkbox"]):not([type="radio"]):not([type="color"]) {
   flex: 1;
   border: none;
+  border-radius: 0;
+  box-shadow: none;
   background: transparent;
   color: var(--text);
   font: inherit;
@@ -790,7 +792,7 @@ select.settings-select,
 }
 
 .integrations-chip.active {
-  background: var(--accent);
+  background: color-mix(in srgb, var(--accent) 85%, #000);
   color: #ffffff;
 }
 
@@ -1105,13 +1107,13 @@ textarea:focus {
   cursor: not-allowed;
 }
 .btn-primary {
-  background: var(--accent);
+  background: color-mix(in srgb, var(--accent) 85%, #000);
   color: #fff;
   border-color: transparent;
 }
 .btn-primary:hover:not(:disabled) {
   /* `.btn:hover` is more specific than `.btn-primary`: without this the accent turns grey under white text. */
-  background: var(--accent);
+  background: color-mix(in srgb, var(--accent) 85%, #000);
   opacity: 0.9;
 }
 .btn-secondary {
