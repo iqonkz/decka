@@ -126,6 +126,21 @@ pub(crate) fn executor_key(text: &str) -> Option<&'static str> {
     match text {
         msg::COPIED_PASTE => Some(key::COPIED_PASTE),
         crate::voice::addbutton::NO_ROOM => Some(key::NO_ROOM),
+        // T29.A: the fixed answers of the screen help, the memory and the window tools in the language of the user.
+        "Did not find it on the screen" | "Not found on the screen" => Some("voice.reply.not_found_screen"),
+        "No other candidates" => Some("voice.reply.no_candidates"),
+        "Cannot read this window" | "No window to look at" => Some("voice.reply.cannot_read_window"),
+        "Cannot see any buttons in this window" => Some("voice.reply.no_buttons"),
+        "No guide is running" => Some("voice.reply.no_guide"),
+        "A guide is already running" => Some("voice.reply.guide_busy"),
+        "The assistant could not choose a step" | "The assistant did not answer" => Some("voice.reply.no_step"),
+        "I do not remember that" => Some("voice.reply.no_memory"),
+        "The memory is full: forget something first" => Some("voice.reply.memory_full"),
+        "That fact is already there" => Some("voice.reply.known_fact"),
+        "There is no active window" => Some("voice.reply.no_window"),
+        "There is only one monitor" => Some("voice.reply.one_monitor"),
+        "Too many timers are running" => Some("voice.reply.timers_full"),
+        "That button cannot be added by voice" => Some("voice.reply.cannot_add_button"),
         msg::SELECT_FIRST => Some(key::SELECT_FIRST),
         msg::TOO_LONG => Some(key::TOO_LONG),
         msg::NO_CONTEXT => Some(key::NO_CONTEXT),
@@ -656,6 +671,11 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
             let (k, args, text) = super::status::decode(&reply).unwrap_or(("", Default::default(), String::new()));
             finish_key(s, Phase::Done(text), ReplyKey { key: k, args })
         }
+        // T27.3: the element that was found, by its name.
+        (Phase::Executing, Event::Executed(Ok(reply))) if reply.starts_with("Here: ") => {
+            let name = reply.trim_start_matches("Here: ").to_string();
+            finish_key(s, Phase::Done(reply), ReplyKey::with("voice.reply.found_here", "name", &name))
+        }
         // T29.1: whatever the model said with the call, the user must learn that the text is on the clipboard.
         (Phase::Executing, Event::Executed(Ok(reply))) if reply == msg::COPIED_PASTE => finish_key(s, Phase::Done(reply), ReplyKey::plain(key::COPIED_PASTE)),
         (Phase::Executing, Event::Executed(Ok(reply))) => {
@@ -844,6 +864,22 @@ impl Driver {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_fixed_answers_of_the_tools_have_a_key_in_the_dictionary() {
+        let english = include_str!("../../../../shared/src/i18n/en.ts");
+        let found = [
+            "Did not find it on the screen", "Not found on the screen", "No other candidates", "Cannot read this window", "No window to look at",
+            "Cannot see any buttons in this window", "No guide is running", "A guide is already running", "The assistant could not choose a step",
+            "The assistant did not answer", "I do not remember that", "The memory is full: forget something first", "That fact is already there",
+            "There is no active window", "There is only one monitor", "Too many timers are running", "That button cannot be added by voice",
+        ];
+        for text in found {
+            let key = executor_key(text).unwrap_or_else(|| panic!("no key: {text}"));
+            assert!(english.contains(&format!("\"{key}\"")), "{key} is not in en.ts");
+        }
+        assert!(english.contains("\"voice.reply.found_here\""));
+    }
 
     #[test]
     fn the_log_of_an_execution_never_holds_its_text() {
