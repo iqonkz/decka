@@ -316,18 +316,6 @@ export default function VoiceSection({
               <Switch checked={status.keepLoaded} onChange={(val) => void setConfig({ keepLoaded: val })} />
             </Row>
 
-            <Row id="section-voice-screen-help" title={t("m28.screen_help_title")} description={t("m28.screen_help_desc")}>
-              <Switch
-                checked={context}
-                onChange={(on) =>
-                  void call("voice_context_set", { enabled: on }).then(
-                    (v) => setContext(v),
-                    (e) => setError(String(e)),
-                  )
-                }
-              />
-            </Row>
-
             <Row title={t("voice.phone_button")}>
               <Switch checked={status.phoneButton} onChange={(val) => void setConfig({ phoneButton: val })} />
             </Row>

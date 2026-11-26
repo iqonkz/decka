@@ -1,4 +1,4 @@
-import { t, type TranslationKey } from "@decka/shared";
+import { t, type ConfigFile, type TranslationKey } from "@decka/shared";
 
 export type IntegrationCategory = "streaming" | "notifications" | "data" | "developers";
 export type IntegrationFilterChip = "all" | "connected" | IntegrationCategory;
@@ -56,4 +56,134 @@ export function filterIntegrations(
 
     return true;
   });
+}
+
+export function buildIntegrationsList(
+  config: ConfigFile,
+  checksCount: number,
+  lyricsEnabled: boolean,
+): IntegrationDef[] {
+  return [
+    {
+      id: "obs",
+      name: "OBS Studio",
+      titleKey: "integ.catalog_title",
+      descKey: "integ.item_obs_desc",
+      category: "streaming",
+      icon: "broadcast",
+      connected: Boolean(config.obs?.enabled),
+      keywords: ["obs", "stream", "scenes", "recording", "broadcast"],
+    },
+    {
+      id: "twitch",
+      name: "Twitch",
+      titleKey: "integ.catalog_title",
+      descKey: "integ.item_twitch_desc",
+      category: "streaming",
+      icon: "chat-circle-text",
+      connected: Boolean(config.twitch?.enabled),
+      keywords: ["twitch", "stream", "chat", "live"],
+    },
+    {
+      id: "youtube",
+      name: "YouTube",
+      titleKey: "integ.catalog_title",
+      descKey: "integ.item_youtube_desc",
+      category: "streaming",
+      icon: "play-circle",
+      connected: Boolean(config.youtube?.enabled),
+      keywords: ["youtube", "video", "broadcast", "subscribers"],
+    },
+    {
+      id: "mail",
+      name: t("integ.item_mail_name"),
+      titleKey: "integ.catalog_title",
+      descKey: "integ.item_mail_desc",
+      category: "notifications",
+      icon: "envelope",
+      connected: Boolean(config.mail?.accounts && config.mail.accounts.length > 0),
+      keywords: ["email", "mail", "gmail", "imap", "unread"],
+    },
+    {
+      id: "winnotif",
+      name: t("winnotif.title"),
+      titleKey: "winnotif.title",
+      descKey: "integ.item_winnotif_desc",
+      category: "notifications",
+      icon: "bell",
+      connected: Boolean(config.windowsNotifications?.enabled),
+      keywords: ["windows", "notifications", "alerts", "toasts"],
+    },
+    {
+      id: "weather",
+      name: t("weather.title"),
+      titleKey: "weather.title",
+      descKey: "integ.item_weather_desc",
+      category: "data",
+      icon: "cloud-sun",
+      connected: Boolean(config.weather?.enabled && config.weather?.place),
+      keywords: ["weather", "temperature", "forecast", "city"],
+    },
+    {
+      id: "checks",
+      name: t("integ.checks"),
+      titleKey: "integ.checks",
+      descKey: "integ.item_checks_desc",
+      category: "data",
+      icon: "pulse",
+      connected: Boolean(checksCount > 0),
+      keywords: ["checks", "http", "uptime", "server", "ping"],
+    },
+    {
+      id: "ai",
+      name: t("integ.item_ai_name"),
+      titleKey: "integ.catalog_title",
+      descKey: "integ.item_ai_desc",
+      category: "data",
+      icon: "brain",
+      connected: Boolean(config.ai?.claude?.enabled || config.ai?.codex?.enabled),
+      keywords: ["ai", "claude", "codex", "llm", "limits"],
+    },
+    {
+      id: "lyrics",
+      name: t("integ.item_lyrics_name"),
+      titleKey: "integ.item_lyrics_name",
+      descKey: "integ.item_lyrics_desc",
+      category: "data",
+      icon: "music-notes",
+      connected: lyricsEnabled,
+      toggle: true,
+      keywords: ["lyrics", "lrclib", "songs", "music", "synced", "текст", "песни"],
+    },
+    {
+      id: "bluetooth",
+      name: t("m29.integ_bt_name"),
+      titleKey: "m29.integ_bt_name",
+      descKey: "m29.integ_bt_desc",
+      category: "data",
+      icon: "bluetooth",
+      connected: Boolean(config.collectors.sys.enabled),
+      keywords: ["bluetooth", "battery", "headphones", "device"],
+    },
+    {
+      id: "webhook",
+      name: t("m29.integ_webhook_name"),
+      titleKey: "m29.integ_webhook_name",
+      descKey: "m29.integ_webhook_desc",
+      category: "developers",
+      icon: "link",
+      connected: Boolean(config.apiToken),
+      keywords: ["webhook", "http", "request", "post"],
+    },
+    {
+      id: "api_token",
+      name: t("integ.api_token"),
+      titleKey: "integ.api_token",
+      descKey: "integ.item_api_desc",
+      category: "developers",
+      icon: "key",
+      connected: Boolean(config.apiToken),
+      keywords: ["api", "token", "auth", "developer", "key", "curl", "powershell", "examples", "http"],
+    },
+  ];
 }

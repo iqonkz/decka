@@ -1,8 +1,10 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { CATALOG, setLanguage } from "@decka/shared";
+import { CATALOG, setLanguage, type ConfigFile } from "@decka/shared";
 import VoiceSection from "../src/tabs/VoiceSection";
 import VoiceCommands from "../src/tabs/VoiceCommands";
+import ScreenHelpTab from "../src/tabs/ScreenHelpTab";
+import { buildIntegrationsList } from "../src/tabs/integrationsCatalog";
 import { VOICE_COMMAND_GROUPS, WHITELISTED_VOICE_TOOLS } from "../src/tabs/voiceCommandsData";
 
 describe("M29.10b Voice & Island settings + Catalog", () => {
@@ -76,5 +78,48 @@ describe("M29.12b Voice command reference", () => {
     expect(searchHtml).toContain('aria-expanded="true"');
     expect(searchHtml).toContain("Сделай скриншот");
     expect(searchHtml).toContain("работает без ИИ");
+  });
+});
+
+describe("M29.13b Screen assist page & Integrations completeness", () => {
+  it("renders ScreenHelpTab with toggle, pack status, privacy rules, and examples", () => {
+    setLanguage("ru");
+    const html = renderToStaticMarkup(
+      <ScreenHelpTab initialEnabled={true} initialPackReady={false} initialPackSize="1.8 GB" />,
+    );
+    expect(html).toContain("Помощь по экрану");
+    expect(html).toContain("Пакет анализа экрана");
+    expect(html).toContain("Скачать");
+    expect(html).toContain("Что читается");
+    expect(html).toContain("Что сейчас на экране?");
+  });
+
+  it("provides an integration card for every config.json integration section", () => {
+    setLanguage("ru");
+    const sampleConfig: ConfigFile = {
+      version: 1,
+      agentName: "PC",
+      port: 9247,
+      bind: "0.0.0.0",
+      apiToken: "dk_test",
+      autostart: false,
+      usb: { enabled: false, adbPath: "adb" },
+      collectors: { sys: { enabled: true, intervalSec: 2 }, checks: [] },
+      obs: { enabled: true, port: 4455 },
+      twitch: { enabled: false, clientId: "" },
+      youtube: { enabled: false, clientId: "" },
+      mail: { accounts: [] },
+      windowsNotifications: { enabled: false, exclude: [] },
+      weather: { enabled: false, place: "", lat: 0, lon: 0, units: "metric" },
+      ai: { claude: { enabled: false, approvals: true, timeoutSec: 60 }, codex: { enabled: false } },
+    };
+    const cards = buildIntegrationsList(sampleConfig, 0, true);
+    const ids = new Set(cards.map((c) => c.id));
+    for (const required of ["obs", "twitch", "youtube", "mail", "winnotif", "weather", "checks", "ai", "lyrics", "bluetooth", "webhook", "api_token"]) {
+      expect(ids.has(required), `Missing integration card: ${required}`).toBe(true);
+    }
+    expect(cards.find((c) => c.id === "obs")?.connected).toBe(true);
+    expect(cards.find((c) => c.id === "lyrics")?.connected).toBe(true);
+    expect(cards.find((c) => c.id === "twitch")?.connected).toBe(false);
   });
 });
