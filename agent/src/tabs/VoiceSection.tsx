@@ -29,6 +29,7 @@ const DEFAULT_STATUS: VoiceStatus = {
   downloadGb: 3.2,
   hotkey: ["ctrl", "alt", "space"],
   keepLoaded: false,
+  unloadAfterMin: 10,
   speak: false,
   phoneButton: true,
   mics: [],
@@ -53,6 +54,18 @@ export function formatHardware(hw: { gpu?: string; vramGb?: number; ramGb: numbe
         : "voice.model_standard_short",
   );
   return t("voice.hw_summary", { details: parts.join(", "), model: modelName });
+}
+
+/** The quiet minutes shown in the list: the old "keep loaded" switch is the same as 0. */
+export const unloadChoice = (s: Pick<VoiceStatus, "keepLoaded" | "unloadAfterMin">): number => (s.keepLoaded ? 0 : s.unloadAfterMin);
+
+export function unloadOptions(current: number): { value: string; label: string }[] {
+  const minutes = [1, 5, 10, 30, 60];
+  if (current > 0 && !minutes.includes(current)) minutes.push(current);
+  return [
+    ...minutes.sort((a, b) => a - b).map((n) => ({ value: String(n), label: t("voice.unload_min", { n }) })),
+    { value: "0", label: t("voice.keep_loaded") },
+  ];
 }
 
 export interface VoiceSectionProps {
@@ -151,6 +164,7 @@ export default function VoiceSection({
     model?: "standard" | "light";
     hotkey?: string[];
     keepLoaded?: boolean;
+    unloadAfterMin?: number;
     speak?: boolean;
     phoneButton?: boolean;
     mic?: string;
@@ -342,8 +356,13 @@ export default function VoiceSection({
               />
             </Row>
 
-            <Row title={t("voice.keep_loaded")} description={t("voice.keep_loaded_hint")}>
-              <Switch checked={status.keepLoaded} onChange={(val) => void setConfig({ keepLoaded: val })} />
+            <Row id="section-voice-unload" title={t("voice.unload_after")} description={t("voice.unload_after_hint")}>
+              <Select
+                aria-label={t("voice.unload_after")}
+                value={String(unloadChoice(status))}
+                options={unloadOptions(unloadChoice(status))}
+                onChange={(val) => void setConfig({ unloadAfterMin: Number(val), keepLoaded: false })}
+              />
             </Row>
 
             <Row title={t("voice.phone_button")}>

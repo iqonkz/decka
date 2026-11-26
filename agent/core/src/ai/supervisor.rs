@@ -42,9 +42,19 @@ pub fn on_crash(history: &mut Vec<u64>, now_ms: u64) -> CrashDecision {
     }
 }
 
-/// True when the servers should be unloaded: running, not pinned by `Keep the model loaded`, idle for 10 minutes.
-pub fn idle_expired(last_used_ms: u64, now_ms: u64, keep_loaded: bool, running: bool) -> bool {
-    running && !keep_loaded && now_ms.saturating_sub(last_used_ms) >= IDLE_MS
+/// True when the servers should be unloaded: running and idle for `after_ms` (0 = they are kept loaded).
+pub fn idle_expired(last_used_ms: u64, now_ms: u64, after_ms: u64, running: bool) -> bool {
+    running && after_ms > 0 && now_ms.saturating_sub(last_used_ms) >= after_ms
+}
+
+/// How long the start of a server probably takes, in seconds: the last one measured, else guessed from the size of its
+/// model (about 300 MB a second from the disk and 3 s on top).
+pub fn load_estimate_sec(last_ms: u64, model_bytes: u64) -> u64 {
+    if last_ms > 0 {
+        last_ms.div_ceil(1000)
+    } else {
+        model_bytes / 300_000_000 + 3
+    }
 }
 
 /// `ngl` layers go to the video card (T28.1); with less than all of them the projector stays on the processor.
@@ -195,7 +205,8 @@ pub struct SupervisorConfig {
     pub ngl: u32,
     pub whisper_exe: PathBuf,
     pub whisper_model: PathBuf,
-    pub keep_loaded: bool,
+    /// Quiet time after which both servers are unloaded (`voice.unloadAfterMin`); 0 = never.
+    pub unload_after_ms: u64,
     /// whisper_exe is the GPU build.
     pub whisper_gpu: bool,
 }
@@ -258,6 +269,9 @@ struct Slot {
     crashes: Mutex<Vec<u64>>,
     starting: AtomicBool,
     up: AtomicBool,
+    /// When the running start began, and how long the last successful one took (ms).
+    since: Mutex<Option<Instant>>,
+    last_load_ms: std::sync::atomic::AtomicU64,
 }
 
 /// `starting` of a slot, cleared also when the start is abandoned.
@@ -392,10 +406,25 @@ impl Supervisor {
         *self.inner.on_cpu_fallback.lock().unwrap() = Some(hook);
     }
 
-    pub fn set_keep_loaded(&self, keep: bool) {
+    pub fn set_unload_after(&self, ms: u64) {
         if let Some(c) = self.inner.cfg.lock().unwrap().as_mut() {
-            c.keep_loaded = keep;
+            c.unload_after_ms = ms;
         }
+    }
+
+    /// While a server starts: the seconds that are probably left (at least 1).
+    pub fn loading_eta_sec(&self) -> Option<u32> {
+        let cfg = self.inner.cfg.lock().unwrap().clone()?;
+        [(&self.inner.llm, &cfg.llama_model), (&self.inner.stt, &cfg.whisper_model)]
+            .into_iter()
+            .filter(|(slot, _)| slot.starting.load(Ordering::SeqCst))
+            .filter_map(|(slot, model)| {
+                let since = (*slot.since.lock().unwrap())?;
+                let size = std::fs::metadata(model).map_or(0, |m| m.len());
+                let expected = load_estimate_sec(slot.last_load_ms.load(Ordering::SeqCst), size);
+                Some(expected.saturating_sub(since.elapsed().as_secs()).max(1) as u32)
+            })
+            .max()
     }
 
     fn now_ms(&self) -> u64 {
@@ -442,7 +471,9 @@ impl Supervisor {
         }
         let port = free_port().map_err(|e| plain_failure(server, e.to_string()))?;
         let key = new_key();
+        let began = Instant::now();
         let started = {
+            *slot.since.lock().unwrap() = Some(began);
             let _starting = Starting::new(&slot.starting);
             self.publish();
             self.launch(server, port, &key).await
@@ -453,6 +484,9 @@ impl Supervisor {
                 slot.up.store(true, Ordering::SeqCst);
                 self.spawn_monitor(server, port, key.clone(), running, stop_rx);
                 *live = Some(Live { port, key: key.clone(), stop });
+                slot.last_load_ms.store(began.elapsed().as_millis().max(1) as u64, Ordering::SeqCst);
+                // The quiet time counts from the moment the server can be asked, not from the start of a slow load.
+                self.touch();
                 Ok((port, key))
             }
             Err(f) => {
@@ -583,6 +617,7 @@ impl Supervisor {
                         return;
                     };
                     let started = {
+                        *slot.since.lock().unwrap() = Some(Instant::now());
                         let _starting = Starting::new(&slot.starting);
                         me.publish();
                         let stopped = tokio::select! {
@@ -613,7 +648,7 @@ impl Supervisor {
         });
     }
 
-    /// One watch for the life of the supervisor: unloads the servers after ten quiet minutes.
+    /// One watch for the life of the supervisor: unloads the servers after the quiet time of the settings.
     fn spawn_idle_watch(&self) {
         let (inner, handle) = (Arc::downgrade(&self.inner), self.handle.clone());
         self.handle.spawn(async move {
@@ -621,9 +656,11 @@ impl Supervisor {
                 tokio::time::sleep(IDLE_CHECK).await;
                 let Some(inner) = inner.upgrade() else { return };
                 let me = Supervisor { inner, handle: handle.clone() };
-                let keep = me.inner.cfg.lock().unwrap().as_ref().is_some_and(|c| c.keep_loaded);
+                let after = me.inner.cfg.lock().unwrap().as_ref().map_or(IDLE_MS, |c| c.unload_after_ms);
                 let last = *me.inner.last_used_ms.lock().unwrap();
-                if idle_expired(last, me.now_ms(), keep, me.is_up(Server::Llm) || me.is_up(Server::Stt)) {
+                // Never in the middle of a start: stopping waits for it and would throw the fresh server away.
+                let starting = me.inner.llm.starting.load(Ordering::SeqCst) || me.inner.stt.starting.load(Ordering::SeqCst);
+                if !starting && idle_expired(last, me.now_ms(), after, me.is_up(Server::Llm) || me.is_up(Server::Stt)) {
                     me.stop().await;
                 }
             }
@@ -866,12 +903,20 @@ mod tests {
     }
 
     #[test]
-    fn idle_unload_needs_running_no_pin_and_ten_quiet_minutes() {
-        assert!(idle_expired(0, IDLE_MS, false, true));
-        assert!(!idle_expired(0, IDLE_MS - 1, false, true));
-        assert!(!idle_expired(0, IDLE_MS * 5, true, true), "Keep the model loaded");
-        assert!(!idle_expired(0, IDLE_MS * 5, false, false), "nothing to unload");
-        assert!(!idle_expired(IDLE_MS, 0, false, true), "clock going backwards is not idle");
+    fn idle_unload_needs_a_running_server_and_the_quiet_time_of_the_settings() {
+        assert!(idle_expired(0, IDLE_MS, IDLE_MS, true));
+        assert!(!idle_expired(0, IDLE_MS - 1, IDLE_MS, true));
+        assert!(idle_expired(0, 60_000, 60_000, true), "one minute");
+        assert!(!idle_expired(0, IDLE_MS * 50, 0, true), "0 keeps the model loaded");
+        assert!(!idle_expired(0, IDLE_MS * 5, IDLE_MS, false), "nothing to unload");
+        assert!(!idle_expired(IDLE_MS, 0, IDLE_MS, true), "clock going backwards is not idle");
+    }
+
+    #[test]
+    fn the_load_estimate_is_the_last_load_else_a_guess_from_the_size() {
+        assert_eq!(load_estimate_sec(0, 0), 3);
+        assert_eq!(load_estimate_sec(0, 3_000_000_000), 13);
+        assert_eq!(load_estimate_sec(7_200, 3_000_000_000), 8);
     }
 
     #[test]
@@ -965,7 +1010,7 @@ mod tests {
             ngl: 99,
             whisper_exe: PathBuf::from("Z:\\nope\\whisper-server.exe"),
             whisper_model: PathBuf::from("w"),
-            keep_loaded: false,
+            unload_after_ms: IDLE_MS,
             whisper_gpu: false,
         }
     }

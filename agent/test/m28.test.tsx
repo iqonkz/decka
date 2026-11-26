@@ -37,6 +37,8 @@ describe("M28 Settings UI (T28.2b)", () => {
           downloadGb: 3.2,
           hotkey: ["ctrl", "alt", "space"],
           keepLoaded: false,
+
+          unloadAfterMin: 10,
           speak: false,
           phoneButton: true,
           mics: [],
@@ -66,6 +68,8 @@ describe("M28 Settings UI (T28.2b)", () => {
           downloadGb: 1.8,
           hotkey: ["ctrl", "alt", "space"],
           keepLoaded: false,
+
+          unloadAfterMin: 10,
           speak: false,
           phoneButton: true,
           mics: ["USB Mic"],

@@ -93,6 +93,7 @@ export interface VoiceStatus {
   downloadGb: number;
   hotkey: string[];
   keepLoaded: boolean;
+  unloadAfterMin: number;          // T29.A: minutes without voice before the model leaves the memory; 0 = never
   speak: boolean;
   phoneButton: boolean;
   mic?: string;
@@ -155,6 +156,7 @@ export interface VoiceSetArgs {
   model?: VoiceModelTier;
   hotkey?: string[];
   keepLoaded?: boolean;
+  unloadAfterMin?: number;
   speak?: boolean;
   phoneButton?: boolean;
   mic?: string;

@@ -548,6 +548,11 @@ pub struct Host {
 }
 
 impl Host {
+    /// While the model or the recognition is being loaded: the seconds that are probably left.
+    pub fn loading_eta_sec(&self) -> Option<u32> {
+        self.inner.service.supervisor().loading_eta_sec()
+    }
+
     pub fn new(handle: tokio::runtime::Handle, agent: Agent, service: VoiceService, pill: PillHook) -> Host {
         if !cfg!(test) {
             mic::scrub_old_log();

@@ -52,6 +52,8 @@ export interface IslandVoiceState {
   slow?: IslandSlowProgress | null;
   /** T29.2: the Screen help package is being downloaded for this question. */
   download?: { pct: number } | null;
+  /** T29.A: the model is being loaded into the memory; the seconds that are probably left. */
+  loading?: { etaSec: number } | null;
   chips?: IslandContextChip[];
   confirmId?: string;
   /** A fixed phrase of the agent as an i18n key with its arguments (`voice.reply.*`, `voice.status.*`); `reply` is the fallback text. */

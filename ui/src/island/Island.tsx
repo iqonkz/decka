@@ -62,7 +62,8 @@ export function hasVoiceContent(event: IslandEvent): boolean {
   return Boolean(v.heard || v.reply || v.slow || v.download || v.confirm || v.phase === "confirm");
 }
 
-export function expandedStatusText(phase?: IslandVoicePhase): string {
+export function expandedStatusText(phase?: IslandVoicePhase, loading?: { etaSec: number } | null): string {
+  if (phase === "loading" && loading) return t("m29.model_loading", { sec: loading.etaSec });
   switch (phase) {
     case "listening":
       return t("voice.listening");
@@ -510,7 +511,7 @@ export default function Island({
   const showLang = actions.some((a) => a === "lang" || a.startsWith("lang:"));
   const hasGroup1 = hasCopy || hasInsert || hasSpeak;
   const hasActions = hasGroup1 || hasAgain || showLang;
-  const statusLabel = expandedStatusText(voice?.phase);
+  const statusLabel = expandedStatusText(voice?.phase, voice?.loading);
   const currentLang = locale();
   const isCopied = copied || copiedPreview;
   const isSpeaking = voice?.phase === "speaking";

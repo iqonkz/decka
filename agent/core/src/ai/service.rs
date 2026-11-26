@@ -57,6 +57,8 @@ pub struct VoiceStatus {
     pub download_gb: f64,
     pub hotkey: Vec<String>,
     pub keep_loaded: bool,
+    /// Minutes without voice after which the model and the recognition leave the memory; 0 = never.
+    pub unload_after_min: u32,
     pub speak: bool,
     pub phone_button: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -81,6 +83,7 @@ pub struct VoiceSetArgs {
     pub model: Option<ModelChoice>,
     pub hotkey: Option<Vec<String>>,
     pub keep_loaded: Option<bool>,
+    pub unload_after_min: Option<u32>,
     pub speak: Option<bool>,
     pub phone_button: Option<bool>,
     pub mic: Option<String>,
@@ -93,10 +96,25 @@ pub struct VoiceSettings {
     pub model: Option<ModelChoice>,
     pub hotkey: Vec<String>,
     pub keep_loaded: bool,
+    pub unload_after_min: u32,
     pub speak: bool,
     pub phone_button: bool,
     pub mic: Option<String>,
 }
+
+impl VoiceSettings {
+    /// The quiet time for the supervisor in ms; 0 when the model is kept loaded.
+    pub fn unload_after_ms(&self) -> u64 {
+        if self.keep_loaded {
+            0
+        } else {
+            u64::from(self.unload_after_min) * 60_000
+        }
+    }
+}
+
+pub const DEFAULT_UNLOAD_MIN: u32 = 10;
+pub const MAX_UNLOAD_MIN: u32 = 240;
 
 impl Default for VoiceSettings {
     fn default() -> Self {
@@ -104,6 +122,7 @@ impl Default for VoiceSettings {
             model: None,
             hotkey: vec!["ctrl".into(), "alt".into(), "space".into()],
             keep_loaded: false,
+            unload_after_min: DEFAULT_UNLOAD_MIN,
             speak: false,
             phone_button: true,
             mic: None,
@@ -372,7 +391,7 @@ impl VoiceService {
         let root = &self.inner.root;
         let llama_exe = find_file(&target_of(root, files[0]), "llama-server.exe")?;
         let whisper_exe = find_file(&target_of(root, files[1]), "whisper-server.exe")?;
-        let keep_loaded = self.inner.state.lock().unwrap().settings.keep_loaded;
+        let unload_after_ms = self.inner.state.lock().unwrap().settings.unload_after_ms();
         let llama_model = target_of(root, files[2]);
         let mmproj = self.vision_entry().filter(|e| is_present(root, e)).map(|e| target_of(root, e));
         let whisper_gpu = files[1].id == "whisper-runtime-cuda";
@@ -384,7 +403,7 @@ impl VoiceService {
             ngl,
             whisper_exe,
             whisper_model: target_of(root, files[3]),
-            keep_loaded,
+            unload_after_ms,
             whisper_gpu,
         })
     }
@@ -552,6 +571,7 @@ impl VoiceService {
             download_gb: total as f64 / 1e9,
             hotkey: st.settings.hotkey.clone(),
             keep_loaded: st.settings.keep_loaded,
+            unload_after_min: st.settings.unload_after_min,
             speak: st.settings.speak,
             phone_button: st.settings.phone_button,
             mic: st.settings.mic.clone(),
@@ -742,6 +762,9 @@ impl VoiceService {
             if let Some(v) = args.keep_loaded {
                 st.settings.keep_loaded = v;
             }
+            if let Some(v) = args.unload_after_min {
+                st.settings.unload_after_min = v.min(MAX_UNLOAD_MIN);
+            }
             if let Some(v) = args.speak {
                 st.settings.speak = v;
             }
@@ -764,7 +787,8 @@ impl VoiceService {
             }
         }
         self.save_settings();
-        self.inner.supervisor.set_keep_loaded(self.inner.state.lock().unwrap().settings.keep_loaded);
+        let unload_after_ms = self.inner.state.lock().unwrap().settings.unload_after_ms();
+        self.inner.supervisor.set_unload_after(unload_after_ms);
         if switch_model {
             let sup = self.inner.supervisor.clone();
             let me = self.clone();
@@ -885,6 +909,11 @@ mod tests {
         let s = VoiceSettings::default();
         assert_eq!(s.hotkey, ["ctrl", "alt", "space"]);
         assert!(s.phone_button && !s.keep_loaded && !s.speak && s.model.is_none());
+        // T29.A: ten quiet minutes by default; 0 minutes and the old switch both keep the model.
+        assert_eq!((s.unload_after_min, s.unload_after_ms()), (10, 600_000));
+        assert_eq!(VoiceSettings { unload_after_min: 0, ..s.clone() }.unload_after_ms(), 0);
+        assert_eq!(VoiceSettings { keep_loaded: true, ..s.clone() }.unload_after_ms(), 0);
+        assert_eq!(VoiceSettings { unload_after_min: 1, ..s }.unload_after_ms(), 60_000);
         let partial: VoiceSettings = serde_json::from_str(r#"{"speak":true}"#).unwrap();
         assert!(partial.speak && partial.phone_button);
     }
@@ -978,6 +1007,8 @@ mod tests {
     async fn set_saves_settings_validates_the_hotkey_and_emits() {
         let dir = tempfile::tempdir().unwrap();
         let (svc, seen) = service(dir.path(), hw(None, 8.0));
+        assert_eq!(svc.set(VoiceSetArgs { unload_after_min: Some(100_000), ..Default::default() }).unwrap().unload_after_min, MAX_UNLOAD_MIN);
+        assert_eq!(svc.set(VoiceSetArgs { unload_after_min: Some(1), ..Default::default() }).unwrap().unload_after_min, 1);
         let s = svc.set(VoiceSetArgs { speak: Some(true), keep_loaded: Some(true), hotkey: Some(vec!["Ctrl".into(), "F9".into()]), ..Default::default() }).unwrap();
         assert!(s.speak && s.keep_loaded);
         assert_eq!(s.hotkey, ["ctrl", "f9"]);

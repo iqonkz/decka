@@ -74,6 +74,9 @@ describe("T26.5b ParticlesOrb & Island", () => {
     expect(hasVoiceContent({ mode: "expanded", voice: { active: true, phase: "listening", heard: "Привет" } })).toBe(true);
     expect(expandedStatusText("listening")).toBe("Слушаю…");
     expect(expandedStatusText("loading")).toBe("Подключено");
+    expect(expandedStatusText("loading", { etaSec: 12 })).toBe("Загружаю модель… ~12 с");
+    // The seconds belong to the load only.
+    expect(expandedStatusText("listening", { etaSec: 12 })).toBe("Слушаю…");
 
     const soloHtml = renderToString(
       <Island event={{ mode: "expanded", voice: { active: true, phase: "listening", level: 0.5 } }} />,

@@ -29,7 +29,7 @@ fn installed() -> SupervisorConfig {
         ngl: gpu::ALL_LAYERS,
         whisper_exe: find_file(&whisper, "whisper-server.exe").expect("whisper-server.exe"),
         whisper_model: root.join("models").join("ggml-large-v3-turbo-q5_0.bin"),
-        keep_loaded: false,
+        unload_after_ms: 600_000,
         whisper_gpu,
     }
 }
