@@ -4,6 +4,8 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+## 0.61.0 — 2026-11-27
+
 ### Added
 - **Check connection** for mail: five steps (server address, connection, encryption, sign-in, inbox) with the time of each; every failure says why (wrong password, app password needed, OAuth only, encryption, server, no answer) and what to do.
 - **Save a problem report** (About): a ZIP on the desktop with versions, hardware, the end of the logs without your texts, settings without passwords and the result of "Check voice". Nothing is sent anywhere.
