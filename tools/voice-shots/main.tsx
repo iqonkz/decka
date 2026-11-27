@@ -283,6 +283,8 @@ if (scene === "deck" || scene === "settings") {
       voice_dictation_get: { trigger: { kind: "doubleCtrl" }, mode: "clean", dictionary: ["Decka", "Qwen", "Almaty"] },
       voice_context_get: q.get("context") !== "0",
       voice_context_set: true,
+      notes_keep_audio_get: false,
+      ha_get: { url: "http://homeassistant.local:8123", hasToken: true, connected: true, entities: [{ id: "light.bedroom", name: "Свет в спальне", enabled: true }, { id: "switch.desk", name: "Розетка стола", enabled: true }, { id: "scene.movie", name: "Сцена «Кино»", enabled: false }] },
       notes_list: [
         {
           id: "n1",
@@ -537,8 +539,8 @@ if (scene === "deck" || scene === "settings") {
             barPosition={(q.get("barPos") as "left" | "center" | "right" | null) ?? "center"}
             recording={q.get("rec") === "1" ? { active: true, elapsedSec: 125 } : null}
             memoryProcesses={q.get("mem") === "1" ? [
-              { pid: 101, name: "chrome.exe", mb: 2450 },
-              { pid: 202, name: "Code.exe", mb: 1320 },
+              { pid: 101, name: "Google Chrome", mb: 2450 },
+              { pid: 202, name: "Visual Studio Code", mb: 1320 },
               { pid: 303, name: "obs64.exe", mb: 640 },
             ] : undefined}
             onCloseProcess={() => {}}
