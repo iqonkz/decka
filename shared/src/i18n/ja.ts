@@ -1385,4 +1385,13 @@ export const ja: Dictionary = {
   "ha.search": "デバイスを検索",
   "ha.choose_hint": "音声で操作し、キーに状態を表示するデバイスを選んで（最大100台）保存してください",
   "ha.empty": "アドレスとトークンを保存するとデバイスが表示されます",
+  "m31.wizard_voice_title": "音声",
+  "m31.wizard_voice_hint": "PCに合うモデルを選んでAIをダウンロードするか、スキップして後で設定します。",
+  "m31.wizard_voice_recommended": "推奨",
+  "m31.wizard_voice_ready": "音声操作の準備ができました。",
+  "m31.wizard_done_title": "完了",
+  "m31.wizard_done_hint": "準備完了です。次のように話しかけてみてください:",
+  "m31.wizard_phrase_1": "音量を上げて",
+  "m31.wizard_phrase_2": "明日の天気は",
+  "m31.wizard_phrase_3": "会議メモを録音して",
 };

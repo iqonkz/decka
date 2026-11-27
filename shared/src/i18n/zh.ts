@@ -1385,4 +1385,13 @@ export const zh: Dictionary = {
   "ha.search": "查找设备",
   "ha.choose_hint": "勾选可语音控制、按键显示状态的设备（最多 100 个），然后保存",
   "ha.empty": "保存地址和令牌后即可看到设备",
+  "m31.wizard_voice_title": "语音",
+  "m31.wizard_voice_hint": "根据电脑硬件选择模型并下载 AI，或跳过稍后启用。",
+  "m31.wizard_voice_recommended": "推荐",
+  "m31.wizard_voice_ready": "语音控制已准备就绪。",
+  "m31.wizard_done_title": "完成",
+  "m31.wizard_done_hint": "设置完成，试试对它说：",
+  "m31.wizard_phrase_1": "调大音量",
+  "m31.wizard_phrase_2": "明天天气怎么样",
+  "m31.wizard_phrase_3": "记录一条会议笔记",
 };

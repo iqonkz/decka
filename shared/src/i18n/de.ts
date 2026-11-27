@@ -1385,4 +1385,13 @@ export const de: Dictionary = {
   "ha.search": "Gerät suchen",
   "ha.choose_hint": "Markiere Geräte für Sprachsteuerung und Tastenstatus (höchstens 100) und speichere",
   "ha.empty": "Speichere Adresse und Token, um die Geräte zu sehen",
+  "m31.wizard_voice_title": "Sprache",
+  "m31.wizard_voice_hint": "Wähle ein Modell für deinen PC und lade die KI herunter, oder überspringe den Schritt.",
+  "m31.wizard_voice_recommended": "Empfohlen",
+  "m31.wizard_voice_ready": "Sprachsteuerung ist einsatzbereit.",
+  "m31.wizard_done_title": "Fertig",
+  "m31.wizard_done_hint": "Alles bereit. Probiere diese Sprachbefehle:",
+  "m31.wizard_phrase_1": "Lauter stellen",
+  "m31.wizard_phrase_2": "Wie wird das Wetter morgen",
+  "m31.wizard_phrase_3": "Besprechungsnotiz aufnehmen",
 };

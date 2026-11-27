@@ -1385,4 +1385,13 @@ export const fr: Dictionary = {
   "ha.search": "Rechercher un appareil",
   "ha.choose_hint": "Cochez les appareils pilotables à la voix et suivis par les touches (100 au plus), puis enregistrez",
   "ha.empty": "Enregistrez l'adresse et le jeton pour voir les appareils",
+  "m31.wizard_voice_title": "Voix",
+  "m31.wizard_voice_hint": "Choisissez un modèle adapté à votre PC et téléchargez l'IA, ou passez cette étape.",
+  "m31.wizard_voice_recommended": "Recommandé",
+  "m31.wizard_voice_ready": "La commande vocale est prête.",
+  "m31.wizard_done_title": "Terminé",
+  "m31.wizard_done_hint": "Tout est prêt. Essayez de dire :",
+  "m31.wizard_phrase_1": "Monte le son",
+  "m31.wizard_phrase_2": "Quel temps fait-il demain",
+  "m31.wizard_phrase_3": "Enregistre une note de réunion",
 };

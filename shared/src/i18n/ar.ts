@@ -1425,4 +1425,13 @@ export const ar: Dictionary = {
   "ha.search": "البحث عن جهاز",
   "ha.choose_hint": "حدّد الأجهزة التي يتحكم فيها الصوت وتتبع الأزرار حالتها (حتى 100) ثم احفظ",
   "ha.empty": "احفظ العنوان والرمز لعرض الأجهزة",
+  "m31.wizard_voice_title": "الصوت",
+  "m31.wizard_voice_hint": "اختر نموذجاً يناسب جهازك ونزّل الذكاء الاصطناعي، أو تخطّ هذه الخطوة.",
+  "m31.wizard_voice_recommended": "موصى به",
+  "m31.wizard_voice_ready": "التحكم الصوتي جاهز للاستخدام.",
+  "m31.wizard_done_title": "تم",
+  "m31.wizard_done_hint": "كل شيء جاهز. جرّب أن تقول:",
+  "m31.wizard_phrase_1": "ارفع الصوت",
+  "m31.wizard_phrase_2": "كيف الطقس غداً",
+  "m31.wizard_phrase_3": "سجّل ملاحظة اجتماع",
 };

@@ -1385,4 +1385,13 @@ export const pt: Dictionary = {
   "ha.search": "Buscar dispositivo",
   "ha.choose_hint": "Marque os dispositivos para voz e estado dos botões (até 100) e salve",
   "ha.empty": "Salve o endereço e o token para ver os dispositivos",
+  "m31.wizard_voice_title": "Voz",
+  "m31.wizard_voice_hint": "Escolha um modelo para o seu PC e baixe a IA, ou pule e configure depois.",
+  "m31.wizard_voice_recommended": "Recomendado",
+  "m31.wizard_voice_ready": "O controle por voz está pronto.",
+  "m31.wizard_done_title": "Pronto",
+  "m31.wizard_done_hint": "Tudo pronto. Experimente dizer:",
+  "m31.wizard_phrase_1": "Aumentar o volume",
+  "m31.wizard_phrase_2": "Como fica o tempo amanhã",
+  "m31.wizard_phrase_3": "Gravar uma nota da reunião",
 };
