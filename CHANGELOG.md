@@ -4,8 +4,6 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
-## 0.51.1 — 2026-11-27
-
 ### Added
 - **Lightweight recognition** (Settings -> Voice): a small speech model for PCs with 8 GB of memory or less - about 0.4 GB less memory and several times faster without a graphics card, somewhat less accurate.
 - **A button added by voice goes to the page on your phone**: the phone now tells the PC which page it shows.
