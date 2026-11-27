@@ -4,6 +4,20 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+### Added
+- **Check connection** for mail: five steps (server address, connection, encryption, sign-in, inbox) with the time of each; every failure says why (wrong password, app password needed, OAuth only, encryption, server, no answer) and what to do.
+- **Save a problem report** (About): a ZIP on the desktop with versions, hardware, the end of the logs without your texts, settings without passwords and the result of "Check voice". Nothing is sent anywhere.
+- **Backup** (Settings): buttons, layout, work modes, guides and settings in one `.decka` file without passwords; before restoring, Decka shows what changes and what the file's buttons start, and keeps a copy of the present state.
+- The **phone** shows when it is held upright: a landscape grid turns into portrait in the same order.
+
+### Changed
+- **A calmer, more consistent look** on the PC, the island and the phone: one scale of spacing, type, corners and motion; settings rows with icons; Phosphor icons in the settings window.
+- The **phone grid fills the whole screen**; tiles adapt to their size, catalog keys are captioned in the phone's language, page dots are easier to see and touch, a swipe names the page.
+- Phone **menu, pairing, toasts, screensaver and hold-to-confirm** redrawn; at most two toasts at the bottom, swipe them away.
+- The **first-run guide** is three steps: connect the phone, turn on voice, done.
+- **Meeting notes** open with the summary; the full text is folded, the header shows the date and the length.
+- The **settings window opens faster**: its pages load when shown and only the icons it uses are included.
+
 ## 0.60.0 — 2026-11-27
 
 ### Added
