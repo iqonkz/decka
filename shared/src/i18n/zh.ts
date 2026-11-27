@@ -1311,4 +1311,6 @@ export const zh: Dictionary = {
   "m29.integ_webhook_name": "Webhook",
   "m29.integ_webhook_desc": "Send HTTP requests from a deck button or voice command",
   "m29.integ_webhook_hint": "Add a Webhook button from the catalog or use a voice command.",
+  "voice.light_stt_cpu": "此电脑的语音识别在处理器上运行，因此已选用轻量版：更快，准确度略低",
+  "voice.confirm.screen_on": "开启“屏幕帮助”？",
 };

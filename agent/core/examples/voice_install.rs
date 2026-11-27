@@ -33,6 +33,7 @@ async fn main() {
             downloader: Downloader::default(),
             layers: Arc::new(decka_core::ai::service::NoLayerMemory),
             emit: Arc::new(|_| {}),
+            screen_help: Arc::new(|| false),
         },
     )
     .expect("service");

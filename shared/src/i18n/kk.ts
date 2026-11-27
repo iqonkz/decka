@@ -1318,4 +1318,6 @@ export const kk: Dictionary = {
   "m29.integ_webhook_name": "Webhook",
   "m29.integ_webhook_desc": "Send HTTP requests from a deck button or voice command",
   "m29.integ_webhook_hint": "Add a Webhook button from the catalog or use a voice command.",
+  "voice.light_stt_cpu": "Бұл компьютерде тану процессорда жүреді, сондықтан жеңілі таңдалды: жылдамырақ, дәлдігі сәл төмен",
+  "voice.confirm.screen_on": "«Экран бойынша көмек» қосылсын ба?",
 };

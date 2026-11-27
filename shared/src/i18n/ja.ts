@@ -1311,4 +1311,6 @@ export const ja: Dictionary = {
   "m29.integ_webhook_name": "Webhook",
   "m29.integ_webhook_desc": "Send HTTP requests from a deck button or voice command",
   "m29.integ_webhook_hint": "Add a Webhook button from the catalog or use a voice command.",
+  "voice.light_stt_cpu": "この PC では音声認識がプロセッサで動くため、軽量版を選んでいます：高速ですが精度はやや下がります",
+  "voice.confirm.screen_on": "「画面ヘルプ」をオンにしますか？",
 };

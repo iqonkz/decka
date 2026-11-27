@@ -80,6 +80,8 @@ pub struct VoiceStatus {
     pub light_stt: bool,
     /// A PC with little memory that still uses the large one: offered, never switched by itself.
     pub suggest_light_stt: bool,
+    /// T29.P2: the small model is on because recognition runs on the processor here, not because the user chose it.
+    pub auto_light_stt: bool,
 }
 
 /// Arguments of `voice_set`; every field is optional.
@@ -108,6 +110,8 @@ pub struct VoiceSettings {
     pub phone_button: bool,
     pub mic: Option<String>,
     pub light_stt: bool,
+    /// T29.P2: the user switched the lightweight recognition by hand; until then the PC decides.
+    pub light_stt_chosen: bool,
 }
 
 impl VoiceSettings {
@@ -135,6 +139,7 @@ impl Default for VoiceSettings {
             phone_button: true,
             mic: None,
             light_stt: false,
+            light_stt_chosen: false,
         }
     }
 }
@@ -280,6 +285,7 @@ struct Inner {
     supervisor: Supervisor,
     layers: Arc<dyn LayerMemory>,
     emit: Emit,
+    screen_help: ScreenHelp,
     state: Mutex<State>,
     /// The percent of a running download of the Screen help package, `IDLE` when none runs.
     vision_percent: AtomicU8,
@@ -321,7 +327,12 @@ pub struct VoiceDeps {
     pub layers: Arc<dyn LayerMemory>,
     /// Called after every change (the window event `voice-status`).
     pub emit: Emit,
+    /// Whether Screen help is switched on (`config.voice.context.enabled`): only then the model server loads the projector.
+    pub screen_help: ScreenHelp,
 }
+
+/// Asks whether Screen help is switched on.
+pub type ScreenHelp = Arc<dyn Fn() -> bool + Send + Sync>;
 
 impl VoiceService {
     pub fn new(handle: tokio::runtime::Handle, deps: VoiceDeps) -> std::io::Result<VoiceService> {
@@ -340,6 +351,7 @@ impl VoiceService {
                 supervisor,
                 layers: deps.layers,
                 emit: deps.emit,
+                screen_help: deps.screen_help,
                 vision_percent: AtomicU8::new(IDLE),
                 state: Mutex::new(State { settings, download: None, last_error: None, hotkey_error: None }),
             }),
@@ -382,8 +394,40 @@ impl VoiceService {
         self.inner.manifest.iter().any(|e| e.id == "whisper-runtime-cuda") && self.hardware().whisper_gpu()
     }
 
+    /// T29.P2: the recognition model in use. A choice made by hand wins. Without one the small model serves a PC whose
+    /// recognition runs on the processor; when only the other model is on the disk it stays, nothing is fetched by itself.
     fn light_stt(&self) -> bool {
-        self.inner.state.lock().unwrap().settings.light_stt
+        let (chosen, light) = {
+            let st = self.inner.state.lock().unwrap();
+            (st.settings.light_stt_chosen, st.settings.light_stt)
+        };
+        // `light` without the mark: written before the mark existed, when only a hand could set it.
+        if chosen || light {
+            return light;
+        }
+        let entry = |id: &str| self.inner.manifest.iter().find(|e| e.id == id);
+        let on_disk = |id: &str| entry(id).is_some_and(|e| is_present(&self.inner.root, e));
+        if entry("stt-light").is_none() {
+            return false;
+        }
+        let wanted = !self.whisper_gpu();
+        let (this, other) = if wanted { ("stt-light", "stt") } else { ("stt", "stt-light") };
+        if !on_disk(this) && on_disk(other) {
+            !wanted
+        } else {
+            wanted
+        }
+    }
+
+    /// Screen help was switched on or off: when the projector of the model server changes, that server is stopped and the
+    /// next request starts it with the new set.
+    pub async fn apply_screen_help(&self) {
+        let cfg = self.supervisor_config();
+        if self.inner.supervisor.projector() == cfg.as_ref().and_then(|c| c.mmproj.clone()) {
+            return;
+        }
+        self.inner.supervisor.configure(cfg);
+        self.inner.supervisor.stop_llm().await;
     }
 
     /// The files the chosen settings need.
@@ -412,7 +456,8 @@ impl VoiceService {
         let whisper_exe = find_file(&target_of(root, files[1]), "whisper-server.exe")?;
         let unload_after_ms = self.inner.state.lock().unwrap().settings.unload_after_ms();
         let llama_model = target_of(root, files[2]);
-        let mmproj = self.vision_entry().filter(|e| is_present(root, e)).map(|e| target_of(root, e));
+        // About 0.8 GB of memory: loaded only while Screen help is switched on (T29.P2).
+        let mmproj = self.vision_entry().filter(|e| (self.inner.screen_help)() && is_present(root, e)).map(|e| target_of(root, e));
         let whisper_gpu = files[1].id == "whisper-runtime-cuda";
         let ngl = self.gpu_layers(&llama_model, mmproj.as_deref(), whisper_gpu);
         Some(SupervisorConfig {
@@ -560,6 +605,7 @@ impl VoiceService {
         let installed = self.installed();
         let sup = self.inner.supervisor.state();
         let total: u64 = self.files().iter().map(|e| e.size).sum();
+        let light_stt = self.light_stt();
         let st = self.inner.state.lock().unwrap();
         let mut failure = None;
         let (state, progress, error) = if let Some(d) = &st.download {
@@ -583,8 +629,9 @@ impl VoiceService {
             reason: failure.as_ref().map(|f| f.reason),
             exit_code: failure.as_ref().and_then(|f| f.code),
             suggest_light: model == ModelChoice::Standard && hw.ram_gb < LIGHT_UNDER_RAM_GB,
-            light_stt: st.settings.light_stt,
-            suggest_light_stt: !st.settings.light_stt && hw.ram_gb <= LIGHT_STT_UP_TO_RAM_GB && self.inner.manifest.iter().any(|e| e.id == "stt-light"),
+            light_stt,
+            suggest_light_stt: !light_stt && hw.ram_gb <= LIGHT_STT_UP_TO_RAM_GB && self.inner.manifest.iter().any(|e| e.id == "stt-light"),
+            auto_light_stt: light_stt && !st.settings.light_stt_chosen && !st.settings.light_stt,
             state,
             progress,
             hardware: hw,
@@ -769,6 +816,7 @@ impl VoiceService {
             }
         }
         let mut switch_model = false;
+        let light_before = self.light_stt();
         {
             let mut st = self.inner.state.lock().unwrap();
             if let Some(h) = args.hotkey {
@@ -801,9 +849,10 @@ impl VoiceService {
                 }
             }
             if let Some(light) = args.light_stt {
-                if st.download.is_none() && st.settings.light_stt != light {
+                if st.download.is_none() {
                     st.settings.light_stt = light;
-                    switch_model = true;
+                    st.settings.light_stt_chosen = true;
+                    switch_model |= light != light_before;
                 }
             }
         }
@@ -869,6 +918,11 @@ mod tests {
 
     fn hw(vram: Option<f64>, ram: f64) -> HardwareInfo {
         HardwareInfo { gpu: vram.map(|_| "GPU".into()), vram_gb: vram, ram_gb: ram }
+    }
+
+    /// A PC whose recognition runs on the video card.
+    fn nvidia(ram: f64) -> HardwareInfo {
+        HardwareInfo { gpu: Some("NVIDIA GeForce".into()), vram_gb: Some(8.0), ram_gb: ram }
     }
 
     fn entry(id: &str, kind: &str, url: &str, data: &[u8]) -> ManifestEntry {
@@ -999,14 +1053,39 @@ mod tests {
         let (svc, _) = service(dir.path(), hw(None, 7.8));
         assert!(!svc.status().light_stt && !svc.status().suggest_light_stt, "nothing to offer without the model in the list");
         std::fs::create_dir_all(dir.path().join("a")).unwrap();
-        let (small, _) = service_of(&dir.path().join("a"), hw(None, 7.8), Arc::new(Kept::default()), with_light.clone());
-        assert!(small.status().suggest_light_stt);
+        // A video card does the recognition: the large model, and the small one is offered to a PC with little memory.
+        with_light.push(entry("whisper-runtime-cuda", "runtime", "http://127.0.0.1:1/whisper-cuda.zip", b"cu"));
+        let (small, _) = service_of(&dir.path().join("a"), nvidia(7.8), Arc::new(Kept::default()), with_light.clone());
+        assert!(!small.status().light_stt && small.status().suggest_light_stt);
         let status = small.set(VoiceSetArgs { light_stt: Some(true), ..Default::default() }).unwrap();
-        assert!(status.light_stt && !status.suggest_light_stt);
+        assert!(status.light_stt && !status.suggest_light_stt && !status.auto_light_stt);
         let saved: VoiceSettings = serde_json::from_str(&std::fs::read_to_string(dir.path().join("a").join("voice.json")).unwrap()).unwrap();
-        assert!(saved.light_stt);
-        let (roomy, _) = service_of(&dir.path().join("b"), hw(None, 16.0), Arc::new(Kept::default()), with_light);
+        assert!(saved.light_stt && saved.light_stt_chosen);
+        let (roomy, _) = service_of(&dir.path().join("b"), nvidia(16.0), Arc::new(Kept::default()), with_light);
         assert!(!roomy.status().suggest_light_stt, "16 GB: not offered, still selectable");
+    }
+
+    #[tokio::test]
+    async fn without_a_video_card_the_light_recognition_is_the_default_until_the_user_chooses() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut files = manifest();
+        files.push(entry("stt-light", "stt", "http://127.0.0.1:1/ggml-small-q5_1.bin", b"gg"));
+        std::fs::create_dir_all(dir.path().join("cpu")).unwrap();
+        let (cpu, _) = service_of(&dir.path().join("cpu"), hw(None, 16.0), Arc::new(Kept::default()), files.clone());
+        let status = cpu.status();
+        assert!(status.light_stt && status.auto_light_stt);
+        // A hand wins, also after a restart of the agent.
+        let status = cpu.set(VoiceSetArgs { light_stt: Some(false), ..Default::default() }).unwrap();
+        assert!(!status.light_stt && !status.auto_light_stt);
+        let (again, _) = service_of(&dir.path().join("cpu"), hw(None, 16.0), Arc::new(Kept::default()), files.clone());
+        assert!(!again.status().light_stt);
+        // The large model is on the disk already and the small one is not: nothing is switched or fetched by itself.
+        let old = dir.path().join("old").join("ai").join("models");
+        std::fs::create_dir_all(&old).unwrap();
+        let large = files.iter().find(|e| e.id == "stt").unwrap();
+        std::fs::write(old.join(url_file_name(&large.url)), vec![0u8; large.size as usize]).unwrap();
+        let (kept, _) = service_of(&dir.path().join("old"), hw(None, 16.0), Arc::new(Kept::default()), files);
+        assert!(!kept.status().light_stt && !kept.status().auto_light_stt);
     }
 
     fn service(dir: &Path, hardware: HardwareInfo) -> (VoiceService, Arc<Mutex<Vec<VoiceStatus>>>) {
@@ -1031,6 +1110,7 @@ mod tests {
                 downloader: Downloader::with_hosts(&["127.0.0.1"]),
                 layers,
                 emit: Arc::new(move |s| sink.lock().unwrap().push(s)),
+                screen_help: Arc::new(|| false),
             },
         )
         .unwrap();

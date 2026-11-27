@@ -294,6 +294,7 @@ mod tests {
             pages: vec![PageRef { id: "main".into(), name: "Main".into() }],
             confirm_actions: vec![],
             vision_ready: false,
+            vision_off: false,
             memory: vec![],
         weather_place: None,
         guide_running: false,

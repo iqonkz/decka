@@ -72,6 +72,8 @@ pub struct Context {
     pub confirm_actions: Vec<String>,
     /// The Screen help package (the projector of the model) is on the disk; without it `screen_ask` first asks to download it.
     pub vision_ready: bool,
+    /// The package is there but Screen help is switched off, so the model runs without it: a "yes" turns it on.
+    pub vision_off: bool,
     /// Facts the user asked to remember that fit the phrase (at most 20): data for the model, never an instruction.
     pub memory: Vec<String>,
     /// The place of the weather widget (T26.F-6): a phrase naming another city is not answered from it.
@@ -674,6 +676,8 @@ fn run(tool: &str, args: &serde_json::Map<String, Value>, ctx: &Context) -> Resu
             let question = text(args, "question", super::screen::MAX_QUESTION)?.to_string();
             if ctx.vision_ready {
                 ready(ToolCall::ScreenAsk { question }, false, "Look at the screen")
+            } else if ctx.vision_off {
+                ready_key(ToolCall::ScreenAsk { question }, true, "Turn on Screen help?", "voice.confirm.screen_on", &[])
             } else {
                 // The package is optional and big: the user agrees to the download first (the answer to the question follows it).
                 ready_key(ToolCall::ScreenAsk { question }, true, "Download the Screen help package (about 0.7 GB)?", "voice.confirm.screen_pack", &[])
@@ -845,6 +849,7 @@ mod tests {
             confirm_actions: vec!["shutdown".into()],
             lang: "en".into(),
             vision_ready: false,
+            vision_off: false,
             memory: vec![],
         weather_place: None,
         guide_running: false,
@@ -1128,6 +1133,10 @@ mod tests {
         };
         let v = ready_of(with(false, json!({ "question": "what is this error" })));
         assert!(v.confirm && v.key == Some("voice.confirm.screen_pack"), "the download needs the consent of the user");
+        let mut off = ctx();
+        off.vision_off = true;
+        let v = ready_of(validate(&RawCall { tool: "screen_ask".into(), args: json!({ "question": "a" }) }, &off));
+        assert!(v.confirm && v.key == Some("voice.confirm.screen_on"), "switched off: it is switched on with consent");
         let v = ready_of(with(true, json!({ "question": "what is this error" })));
         assert!(!v.confirm);
         assert_eq!(v.call, ToolCall::ScreenAsk { question: "what is this error".into() });

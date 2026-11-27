@@ -344,7 +344,7 @@ export default function VoiceSection({
           <Row
             id="section-voice-light-stt"
             title={t("voice.light_stt")}
-            description={status.suggestLightStt ? t("voice.light_stt_suggest") : t("voice.light_stt_hint")}
+            description={t(status.autoLightStt ? "voice.light_stt_cpu" : status.suggestLightStt ? "voice.light_stt_suggest" : "voice.light_stt_hint")}
           >
             <Switch checked={status.lightStt === true} onChange={(val) => void setConfig({ lightStt: val })} />
           </Row>

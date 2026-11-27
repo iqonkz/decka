@@ -621,7 +621,13 @@ pub fn voice_context_get(app: AppHandle) -> Result<bool, String> {
 
 #[tauri::command]
 pub fn voice_context_set(app: AppHandle, enabled: bool) -> Result<bool, String> {
-    agent(&app)?.set_voice_context_enabled(enabled)
+    let saved = agent(&app)?.set_voice_context_enabled(enabled)?;
+    // The model server loads the projector of Screen help only while this is on: restarted behind the window (T29.P2).
+    if let Ok(service) = voice(&app) {
+        let service = service.inner().clone();
+        tauri::async_runtime::spawn(async move { service.apply_screen_help().await });
+    }
+    Ok(saved)
 }
 
 /// `config.island` (T29.5): how the island rests while a song plays.

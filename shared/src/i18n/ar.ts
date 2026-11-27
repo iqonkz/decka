@@ -1351,4 +1351,6 @@ export const ar: Dictionary = {
   "m29.integ_webhook_name": "Webhook",
   "m29.integ_webhook_desc": "Send HTTP requests from a deck button or voice command",
   "m29.integ_webhook_hint": "Add a Webhook button from the catalog or use a voice command.",
+  "voice.light_stt_cpu": "يعمل التعرّف على هذا الحاسوب على المعالج، لذلك اختير النموذج الخفيف: أسرع وأقل دقة قليلًا",
+  "voice.confirm.screen_on": "هل تريد تشغيل «مساعدة الشاشة»؟",
 };

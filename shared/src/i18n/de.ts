@@ -1311,4 +1311,6 @@ export const de: Dictionary = {
   "m29.integ_webhook_name": "Webhook",
   "m29.integ_webhook_desc": "Send HTTP requests from a deck button or voice command",
   "m29.integ_webhook_hint": "Add a Webhook button from the catalog or use a voice command.",
+  "voice.light_stt_cpu": "Auf diesem PC läuft die Erkennung auf dem Prozessor, daher ist die leichte gewählt: schneller, etwas ungenauer",
+  "voice.confirm.screen_on": "„Bildschirmhilfe“ einschalten?",
 };

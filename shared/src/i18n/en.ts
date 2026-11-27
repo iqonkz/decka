@@ -1322,4 +1322,6 @@ export const en = {
   "m29.integ_webhook_name": "Webhook",
   "m29.integ_webhook_desc": "Send HTTP requests from a deck button or voice command",
   "m29.integ_webhook_hint": "Add a Webhook button from the catalog or use a voice command.",
+  "voice.light_stt_cpu": "Recognition runs on the processor on this PC, so the lightweight one is chosen: faster, slightly less accurate",
+  "voice.confirm.screen_on": "Turn on Screen help?",
 } as const;

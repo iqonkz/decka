@@ -4,6 +4,10 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+### Changed
+- Without a video card for speech, the **lightweight recognition** is on by default (a choice made by hand stays; an installed large model is not replaced by itself).
+- The part of the model that looks at the screen (about 1 GB of memory) is loaded only while **Screen help** is switched on; asking about the screen with it off offers to switch it on.
+
 ## 0.51.1 — 2026-11-27
 
 ### Added

@@ -104,6 +104,7 @@ export interface VoiceStatus {
   suggestLight?: boolean;          // T28.1: the 4B model on a PC with little memory; the user switches, never the agent
   lightStt?: boolean;              // T29.P: the small recognition model (about 0.5 GB of RAM)
   suggestLightStt?: boolean;       // T29.P: offered on a PC with 8 GB of RAM or less
+  autoLightStt?: boolean;          // T29.P2: on by itself: recognition runs on the processor on this PC
 }
 /** T28.2: the reason of a failure of voice control. */
 export type VoiceErrorReason = "vram" | "ram" | "model_file" | "port" | "crash" | "mic" | "stt";

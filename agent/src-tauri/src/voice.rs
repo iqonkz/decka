@@ -39,7 +39,9 @@ pub fn setup(app: &AppHandle, agent: &Agent) {
     let window = app.clone();
     let host_cell: Arc<OnceLock<Host>> = Arc::new(OnceLock::new());
     let cell = host_cell.clone();
+    let screen_help = agent.clone();
     let deps = VoiceDeps {
+        screen_help: Arc::new(move || screen_help.voice_context_enabled()),
         root: default_root(),
         settings_path: agent.config_dir().join("voice.json"),
         manifest: load_manifest(app),

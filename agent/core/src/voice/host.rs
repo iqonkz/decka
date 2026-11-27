@@ -249,14 +249,19 @@ async fn day_brief(agent: &Agent, sup: &crate::ai::supervisor::Supervisor, lang:
 }
 
 /// The Screen help package, downloaded once with the consent given in the confirmation; `download` holds the percent while
-/// it comes, for the island (T29.2).
-async fn screen_pack(service: &VoiceService, download: &Mutex<Option<u8>>) -> Result<(), String> {
-    if service.vision_installed() {
-        return Ok(());
+/// it comes, for the island (T29.2). The same "yes" switches Screen help on: without it the model runs without the
+/// projector (T29.P2).
+async fn screen_pack(agent: &Agent, service: &VoiceService, download: &Mutex<Option<u8>>) -> Result<(), String> {
+    if !agent.voice_context_enabled() {
+        agent.set_voice_context_enabled(true)?;
     }
-    let result = service.install_vision_with(&mut |p| *download.lock().unwrap() = Some(p)).await;
-    *download.lock().unwrap() = None;
-    result
+    if !service.vision_installed() {
+        let result = service.install_vision_with(&mut |p| *download.lock().unwrap() = Some(p)).await;
+        *download.lock().unwrap() = None;
+        result?;
+    }
+    service.apply_screen_help().await;
+    Ok(())
 }
 
 /// `screen_ask` (13.3): a picture of the active window in memory, one question to the model on this PC.
@@ -454,6 +459,7 @@ pub fn build_context(lang: &str, actions: &ActionsFile, layout: &LayoutFile, ins
     }
     Context {
         vision_ready: false,
+        vision_off: false,
         memory: Vec::new(),
         weather_place: None,
         guide_running: false,
@@ -1263,7 +1269,9 @@ impl Ports for Inner {
     fn env(&self) -> (Arc<Table>, Context) {
         let lang = self.language();
         let mut ctx = build_context(lang, &self.agent.actions(), &self.agent.layout(), &self.installed.lock().unwrap());
-        ctx.vision_ready = self.service.vision_installed();
+        let (installed, on) = (self.service.vision_installed(), self.agent.voice_context_enabled());
+        ctx.vision_ready = installed && on;
+        ctx.vision_off = installed && !on;
         ctx.weather_place = self.agent.store().get("weather").get("place").and_then(|p| p.as_str()).map(str::to_string);
         ctx.guide_running = self.screen.get().is_some_and(|s| s.is_running());
         // T29.P: the page a phone shows; without a phone, the page the voice went to last.
@@ -1489,7 +1497,7 @@ impl Ports for Inner {
                     };
                 }
                 ToolCall::ScreenAsk { question } => {
-                    screen_pack(&service, &download).await?;
+                    screen_pack(&agent, &service, &download).await?;
                     // The slow path: the island shows "Looking at the screen..." with the estimate until this ends.
                     *slow_since.lock().unwrap() = Some(Instant::now());
                     let started = Instant::now();

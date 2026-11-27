@@ -541,12 +541,27 @@ impl Supervisor {
     /// Unloads both servers (idle, `Remove`, shutdown). Does not forget a failure.
     pub async fn stop(&self) {
         for slot in [&self.inner.llm, &self.inner.stt] {
-            if let Some(live) = slot.live.lock().await.take() {
-                let _ = live.stop.send(true);
-            }
-            slot.up.store(false, Ordering::SeqCst);
+            Self::unload(slot).await;
         }
         self.publish();
+    }
+
+    /// Unloads the model server only (its set of files changed); recognition stays.
+    pub async fn stop_llm(&self) {
+        Self::unload(&self.inner.llm).await;
+        self.publish();
+    }
+
+    async fn unload(slot: &Slot) {
+        if let Some(live) = slot.live.lock().await.take() {
+            let _ = live.stop.send(true);
+        }
+        slot.up.store(false, Ordering::SeqCst);
+    }
+
+    /// The projector the model server is configured with.
+    pub fn projector(&self) -> Option<PathBuf> {
+        self.inner.cfg.lock().unwrap().as_ref().and_then(|c| c.mmproj.clone())
     }
 
     /// `Retry` after a server gave up: forgets the failures and the crash history; the next request starts again.

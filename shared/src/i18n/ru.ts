@@ -1344,4 +1344,6 @@ export const ru: Record<Base | ExtraPlural, string> = {
   "m29.integ_webhook_name": "Вебхук",
   "m29.integ_webhook_desc": "Отправка HTTP-запросов по кнопке или голосовой команде",
   "m29.integ_webhook_hint": "Добавьте кнопку Webhook из каталога или скажите голосом «отправь вебхук».",
+  "voice.light_stt_cpu": "На этом ПК распознавание идёт на процессоре — выбрано лёгкое: быстрее, чуть менее точно",
+  "voice.confirm.screen_on": "Включить «Помощь по экрану»?",
 };
