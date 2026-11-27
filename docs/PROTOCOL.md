@@ -62,6 +62,11 @@ export interface PermAnswerMsg { t: "perm_answer"; reqId: string; decision: "all
 export interface NotifOpenMsg { t: "notif_open"; notifId: string; }
 // M22 (DATA_MODEL.md §13.4): отметить пункт списка на телефоне. Не команда: оба id выданы агентом, неизвестные — молча игнорируются.
 export interface ListToggleMsg { t: "list_toggle"; listId: string; itemId: string; } // id ^[0-9a-f]{16}$
+// T29.P (0.51.1): какая страница сейчас на экране телефона. Данные, не команда: ПК только запоминает id и кладёт на эту
+// страницу кнопку, добавленную голосом. Шлётся после каждого welcome и при смене страницы (открытая группа не считается).
+// id не из раскладки — молча игнорируется; лимит как у press (ключ "page_shown"). Если телефонов несколько, берётся
+// страница того, кто говорил или листал последним. ПК старше 0.51.1 отвечает BAD_MESSAGE — телефон это игнорирует.
+export interface PageShownMsg { t: "page_shown"; pageId: string; }                    // pageId ^[a-z0-9_-]{1,64}$
 // M21 (DATA_MODEL.md §12): голос с телефона. Только внутри канала v2. Звук — данные; что делать, решает ПК (S24).
 export interface VoiceStartMsg  { t: "voice_start"; id: string; }                        // id — 16 hex от клиента, одна активная запись на устройство
 export interface VoiceChunkMsg  { t: "voice_chunk"; id: string; seq: number; data: string; } // base64 PCM16 16 кГц моно, ≤ 3200 байт (100 мс)

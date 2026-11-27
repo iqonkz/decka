@@ -154,6 +154,11 @@ export class Connection {
     if (this.ws && this.welcomed) this.sendMsg({ t: "list_toggle", listId, itemId });
   }
 
+  /** T29.P: says which page is on the screen; only its id (a PC before 0.51.1 answers with an error that is ignored). */
+  pageShown(pageId: string): void {
+    if (this.ws && this.welcomed) this.sendMsg({ t: "page_shown", pageId });
+  }
+
   /** Asks the PC for the piece of the new APK at `offset` (T20.4); one request at a time. Rejects with a ConnFailure. */
   apkGet(offset: number): Promise<ApkChunkMsg> {
     if (!this.ws || !this.welcomed) return Promise.reject<ApkChunkMsg>({ code: "OFFLINE" } satisfies ConnFailure);

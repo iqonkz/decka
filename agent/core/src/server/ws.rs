@@ -495,6 +495,16 @@ async fn handle_text(
             }
             true
         }
+        Ok(ClientMsg::PageShown { page_id }) => {
+            if !press_limiter.check("page_shown") {
+                return link.send(&error_msg(ErrorCode::RateLimited, "too many requests")).await;
+            }
+            // Data, not a command: only an id of a page of the layout is remembered; anything else changes nothing.
+            if agent.layout().pages.iter().any(|p| p.id == page_id) {
+                agent.voice().page_shown(&who.device_id, &page_id);
+            }
+            true
+        }
         Ok(ClientMsg::LyricsOffset { track_key, delta_ms }) => {
             // Data, not a command: only the key of the current track and a step of half a second move the shift; anything else
             // (an unknown key, another step) changes nothing. Same limit per second as a press.

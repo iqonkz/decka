@@ -144,6 +144,15 @@ describe("invalid inputs are rejected", () => {
     expect(valid(proto("LyricsInfo"), { ...info, lines: [{ text: "x".repeat(201) }] })).toBe(false);
   });
 
+  test("page_shown carries the id of a page and nothing else", () => {
+    const ok = { t: "page_shown", pageId: "home" };
+    expect(valid(proto("PageShownMsg"), ok)).toBe(true);
+    expect(valid(proto("ClientMsg"), ok)).toBe(true);
+    expect(valid(proto("PageShownMsg"), { ...ok, pageId: "../x" })).toBe(false);
+    expect(valid(proto("PageShownMsg"), { ...ok, actionId: "lock" })).toBe(false);
+    expect(valid(proto("PageShownMsg"), { t: "page_shown" })).toBe(false);
+  });
+
   test("list_toggle carries two ids issued by the agent and nothing else", () => {
     const ok = { t: "list_toggle", listId: "0123456789abcdef", itemId: "fedcba9876543210" };
     expect(valid(proto("ListToggleMsg"), ok)).toBe(true);

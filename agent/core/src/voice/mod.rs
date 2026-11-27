@@ -145,6 +145,10 @@ struct Hub {
     sessions: HashMap<String, Session>,
     /// The device and id of the latest request: only it may answer its confirmation.
     owner: Option<(String, String)>,
+    /// The page each phone shows (`page_shown`), and the phone that said it or spoke last. Kept while the agent runs:
+    /// a phone says its page again after every connection.
+    pages: HashMap<String, String>,
+    latest: Option<String>,
 }
 
 /// The entrance of the `voice_*` messages. Without a sink (voice control off) every start is refused.
@@ -182,6 +186,9 @@ impl VoiceHub {
             return Err(VoiceError::Busy);
         }
         sink.start(id)?;
+        if hub.pages.contains_key(device) {
+            hub.latest = Some(device.to_string());
+        }
         hub.sessions.insert(device.to_string(), Session { id: id.to_string(), next_seq: 0, bytes: 0, recent: VecDeque::new() });
         hub.owner = Some((device.to_string(), id.to_string()));
         Ok(())
@@ -260,6 +267,21 @@ impl VoiceHub {
         }
     }
 
+    /// The page a phone shows now. Another phone that turns pages while one is recording does not take the lead.
+    pub fn page_shown(&self, device: &str, page_id: &str) {
+        let mut hub = self.inner.lock().unwrap();
+        hub.pages.insert(device.to_string(), page_id.to_string());
+        if hub.sessions.is_empty() || hub.sessions.contains_key(device) {
+            hub.latest = Some(device.to_string());
+        }
+    }
+
+    /// The page of the phone that spoke or turned a page last (`None`: no phone has said one).
+    pub fn shown_page(&self) -> Option<String> {
+        let hub = self.inner.lock().unwrap();
+        hub.latest.as_ref().and_then(|d| hub.pages.get(d)).cloned()
+    }
+
     /// The phone went away: its recording is cancelled.
     pub fn device_gone(&self, device: &str) {
         let mut hub = self.inner.lock().unwrap();
@@ -321,6 +343,27 @@ mod tests {
         let h = VoiceHub::new();
         assert_eq!(h.start("d1", ID), Err(VoiceError::Off));
         assert_eq!(VoiceError::Off.code(), ErrorCode::NotFound);
+    }
+
+    #[test]
+    fn the_page_of_the_phone_that_spoke_or_turned_last_is_the_current_one() {
+        let (h, _) = hub();
+        assert_eq!(h.shown_page(), None);
+        h.page_shown("d1", "home");
+        h.page_shown("d2", "media");
+        assert_eq!(h.shown_page().as_deref(), Some("media"));
+        // The first phone speaks: its page counts, and the other one turning meanwhile does not.
+        h.start("d1", ID).unwrap();
+        h.page_shown("d2", "games");
+        assert_eq!(h.shown_page().as_deref(), Some("home"));
+        h.end("d1", ID);
+        h.page_shown("d2", "games");
+        assert_eq!(h.shown_page().as_deref(), Some("games"));
+        // A phone that never said its page changes nothing by speaking.
+        h.start("d3", "ffffffffffffffff").unwrap();
+        assert_eq!(h.shown_page().as_deref(), Some("games"));
+        h.set_sink(None);
+        assert_eq!(h.shown_page().as_deref(), Some("games"), "turning voice off keeps the pages");
     }
 
     #[test]

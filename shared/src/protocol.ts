@@ -35,6 +35,8 @@ export interface PermAnswerMsg { t: "perm_answer"; reqId: string; decision: "all
 export interface NotifOpenMsg { t: "notif_open"; notifId: string; }
 /** T22.13 (DATA_MODEL.md 13.4): a tap on an item of a list widget. Data, not a command: the ids were issued by the agent, others are ignored. */
 export interface ListToggleMsg { t: "list_toggle"; listId: string; itemId: string; }   // ids ^[0-9a-f]{16}$
+/** T29.P: the page the phone shows now (an id of the layout). Data, not a command. */
+export interface PageShownMsg { t: "page_shown"; pageId: string; }
 // M24 (DATA_MODEL.md 14): data, not a command. trackKey is one the PC issued (an unknown one is ignored); the step is +-500 ms only.
 export interface LyricsOffsetMsg { t: "lyrics_offset"; trackKey: string; deltaMs: -500 | 500; }   // trackKey ^[0-9a-f]{16}$
 /** M20 (T20.4): the next piece of the new APK; `offset` is a multiple of 3000. Only inside the encrypted channel. */
@@ -54,7 +56,7 @@ export interface VoiceInfo {
   /** M22 (DATA_MODEL.md 13.7): what the running request is, for the label of the pill. */
   activity?: "dictate" | "screen";
 }
-export type ClientMsg = Hello2Msg | AuthMsg | PairMsg | HelloMsg | PressMsg | NotifDismissMsg | PingMsg | PermAnswerMsg | NotifOpenMsg | ListToggleMsg | LyricsOffsetMsg | ApkGetMsg
+export type ClientMsg = Hello2Msg | AuthMsg | PairMsg | HelloMsg | PressMsg | NotifDismissMsg | PingMsg | PermAnswerMsg | NotifOpenMsg | ListToggleMsg | PageShownMsg | LyricsOffsetMsg | ApkGetMsg
   | VoiceStartMsg | VoiceChunkMsg | VoiceEndMsg | VoiceCancelMsg | VoiceConfirmMsg;
 
 // ===== Server -> Client (WS) =====

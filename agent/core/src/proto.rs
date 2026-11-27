@@ -55,6 +55,8 @@ pub enum ClientMsg {
     NotifOpen { notif_id: String },
     /// T22.13 (PROTOCOL.md 3): a tap on an item of a list widget; only the ids the agent issued are taken.
     ListToggle { list_id: String, item_id: String },
+    /// T29.P (PROTOCOL.md 3): the page the phone shows now. Data, not a command: the PC only remembers it.
+    PageShown { page_id: String },
     /// T24.2 (PROTOCOL.md 3): the user moves the lyrics of the current track by half a second. Data, not a command: the key
     /// is one the PC issued (any other is ignored) and the step is ±500 (anything else is refused).
     LyricsOffset { track_key: String, delta_ms: i64 },

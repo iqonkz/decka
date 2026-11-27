@@ -25,13 +25,15 @@
       "properties": { "t": { "const": "perm_answer" }, "reqId": { "type": "string", "pattern": "^[0-9a-f]{16}$" }, "decision": { "enum": ["allow","allow_always","deny","pc","reply"] }, "reply": { "type": "integer", "minimum": 0, "maximum": 3 } } },
     "ListToggleMsg": { "type": "object", "required": ["t","listId","itemId"], "additionalProperties": false,
       "properties": { "t": { "const": "list_toggle" }, "listId": { "type": "string", "pattern": "^[0-9a-f]{16}$" }, "itemId": { "type": "string", "pattern": "^[0-9a-f]{16}$" } } },
+    "PageShownMsg": { "type": "object", "required": ["t","pageId"], "additionalProperties": false,
+      "properties": { "t": { "const": "page_shown" }, "pageId": { "type": "string", "pattern": "^[a-z0-9_-]{1,64}$" } } },
     "LyricsOffsetMsg": { "type": "object", "required": ["t","trackKey","deltaMs"], "additionalProperties": false,
       "properties": { "t": { "const": "lyrics_offset" }, "trackKey": { "type": "string", "pattern": "^[0-9a-f]{16}$" }, "deltaMs": { "enum": [-500, 500] } } },
     "LyricsInfo": { "type": "object", "required": ["trackKey","synced","lines","offsetMs"], "additionalProperties": false,
       "properties": { "trackKey": { "type": "string", "pattern": "^[0-9a-f]{16}$" }, "synced": { "type": "boolean" }, "offsetMs": { "type": "integer", "minimum": -30000, "maximum": 30000, "multipleOf": 500 },
         "lines": { "type": "array", "maxItems": 300, "items": { "type": "object", "required": ["text"], "additionalProperties": false,
           "properties": { "t": { "type": "integer", "minimum": 0 }, "text": { "type": "string", "maxLength": 200 } } } } } },
-    "ClientMsg": { "oneOf": [ { "$ref": "#/$defs/PairMsg" }, { "$ref": "#/$defs/HelloMsg" }, { "$ref": "#/$defs/PressMsg" }, { "$ref": "#/$defs/NotifDismissMsg" }, { "$ref": "#/$defs/PingMsg" }, { "$ref": "#/$defs/PermAnswerMsg" }, { "$ref": "#/$defs/NotifOpenMsg" }, { "$ref": "#/$defs/ListToggleMsg" }, { "$ref": "#/$defs/LyricsOffsetMsg" } ] },
+    "ClientMsg": { "oneOf": [ { "$ref": "#/$defs/PairMsg" }, { "$ref": "#/$defs/HelloMsg" }, { "$ref": "#/$defs/PressMsg" }, { "$ref": "#/$defs/NotifDismissMsg" }, { "$ref": "#/$defs/PingMsg" }, { "$ref": "#/$defs/PermAnswerMsg" }, { "$ref": "#/$defs/NotifOpenMsg" }, { "$ref": "#/$defs/ListToggleMsg" }, { "$ref": "#/$defs/PageShownMsg" }, { "$ref": "#/$defs/LyricsOffsetMsg" } ] },
 
     "SysStats": { "type": "object", "required": ["cpu","mem","disks","net","uptimeSec"],
       "properties": {

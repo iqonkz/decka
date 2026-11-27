@@ -553,7 +553,7 @@ struct Inner {
     /// T29.8: the request whose answer was spoken, and whether this request cut a spoken answer short.
     spoken: Mutex<Option<String>>,
     interrupted: AtomicBool,
-    /// T29.6: the page the voice went to last (a phone does not say which one it shows).
+    /// T29.6: the page the voice went to last, for when no phone has said which page it shows.
     current_page: Arc<Mutex<Option<String>>>,
     /// T29.6: shows the settings window on a catalog key; the application gives it.
     settings: OnceLock<SettingsHook>,
@@ -1266,7 +1266,8 @@ impl Ports for Inner {
         ctx.vision_ready = self.service.vision_installed();
         ctx.weather_place = self.agent.store().get("weather").get("place").and_then(|p| p.as_str()).map(str::to_string);
         ctx.guide_running = self.screen.get().is_some_and(|s| s.is_running());
-        ctx.current_page = self.current_page.lock().unwrap().clone();
+        // T29.P: the page a phone shows; without a phone, the page the voice went to last.
+        ctx.current_page = self.agent.voice().shown_page().or_else(|| self.current_page.lock().unwrap().clone());
         ctx.speech_interrupted = self.interrupted.load(Ordering::SeqCst);
         (self.table(lang), ctx)
     }

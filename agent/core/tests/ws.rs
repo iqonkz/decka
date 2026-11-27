@@ -259,6 +259,8 @@ async fn data_messages_ignore_malformed_and_unknown_ids() {
         json!({ "t": "perm_answer", "reqId": "0123456789abcdef", "decision": "allow" }),
         json!({ "t": "lyrics_offset", "trackKey": long, "deltaMs": 500 }),
         json!({ "t": "lyrics_offset", "trackKey": "0123456789abcdef", "deltaMs": 99999 }),
+        json!({ "t": "page_shown", "pageId": "../../x" }),
+        json!({ "t": "page_shown", "pageId": "no-such-page" }),
     ];
     for msg in bad {
         // A frame over 4096 bytes is refused by the size limit of the socket, the others are ignored: either way no effect.
@@ -276,6 +278,12 @@ async fn data_messages_ignore_malformed_and_unknown_ids() {
             break;
         }
     }
+    assert_eq!(e.agent.voice().shown_page(), None, "an unknown page is not remembered");
+    let page = e.agent.layout().pages[0].id.clone();
+    send(&mut ws, json!({ "t": "page_shown", "pageId": page })).await;
+    send(&mut ws, json!({ "t": "ping", "ts": 13 })).await;
+    while recv(&mut ws).await["t"] != "pong" {}
+    assert_eq!(e.agent.voice().shown_page(), Some(page));
     e.agent.shutdown().await;
 }
 
@@ -291,6 +299,7 @@ async fn data_messages_have_a_rate_limit() {
         json!({ "t": "notif_dismiss", "notifId": "1" }),
         json!({ "t": "perm_answer", "reqId": "0123456789abcdef", "decision": "deny" }),
         json!({ "t": "lyrics_offset", "trackKey": "0123456789abcdef", "deltaMs": 500 }),
+        json!({ "t": "page_shown", "pageId": "home" }),
     ];
     for msg in &kinds {
         // 60 in a row (one second window): the first 20 pass, the rest are refused.
@@ -310,8 +319,8 @@ async fn data_messages_have_a_rate_limit() {
             break;
         }
     }
-    // 5 kinds x 40 refused each (the window may roll once on a slow machine: at least half of them).
-    assert!(limited >= 100, "{limited} refusals");
+    // 6 kinds x 40 refused each (the window may roll once on a slow machine: at least half of them).
+    assert!(limited >= 120, "{limited} refusals");
     e.agent.shutdown().await;
 }
 
