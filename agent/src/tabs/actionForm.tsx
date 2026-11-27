@@ -26,6 +26,10 @@ export const actionTypes = (): { id: ActionType; label: string; icon: string }[]
   { id: "http", label: t("m29.type_webhook"), icon: "link" },
 ];
 
+/** T29.P: a header value kept by the agent under DPAPI shows as this; a line left so keeps the stored value. */
+export const HEADER_MASK = "••••••";
+const STORED_PREFIX = "dpapi:";
+
 /** `Name: value` lines -> headers; `null` when a line has no name and colon. */
 export function parseHeaders(text: string): Record<string, string> | null {
   const out: Record<string, string> = {};
@@ -54,6 +58,8 @@ export interface Draft {
   method: HttpMethod;
   body: string;
   headersText: string;
+  /** The protected values of the action being edited, by header name. */
+  headersStored: Record<string, string>;
   toggleVar: string;
 }
 
@@ -73,6 +79,7 @@ export const emptyDraft = (): Draft => ({
   method: "GET",
   body: "",
   headersText: "",
+  headersStored: {},
   toggleVar: "",
 });
 
@@ -104,7 +111,10 @@ export function toDraft(id: string, action: Action): Draft {
       draft.url = action.url;
       draft.method = action.method;
       draft.body = action.body ?? "";
-      draft.headersText = Object.entries(action.headers ?? {}).map(([name, value]) => `${name}: ${value}`).join("\n");
+      draft.headersStored = Object.fromEntries(Object.entries(action.headers ?? {}).filter(([, value]) => value.startsWith(STORED_PREFIX)));
+      draft.headersText = Object.entries(action.headers ?? {})
+        .map(([name, value]) => `${name}: ${value.startsWith(STORED_PREFIX) ? HEADER_MASK : value}`)
+        .join("\n");
       break;
     case "audio":
     case "obs":
@@ -149,6 +159,12 @@ export function fromDraft(d: Draft): { action: Action } | { error: string } {
     case "http": {
       const headers = parseHeaders(d.headersText);
       if (!headers) return { error: t("m29.webhook_headers_error") };
+      for (const [name, value] of Object.entries(headers)) {
+        if (value !== HEADER_MASK) continue;
+        const stored = d.headersStored[name];
+        if (stored === undefined) return { error: t("m29.webhook_headers_again", { name }) };
+        headers[name] = stored;
+      }
       return {
         action: {
           ...base,

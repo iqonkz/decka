@@ -102,6 +102,23 @@ fn files_written_with_a_utf8_bom_are_read() {
     assert!(loaded.actions.actions.contains_key("charmap"));
 }
 
+/// T29.P: webhook headers kept as plain text by an older version are protected at the first load and written back.
+#[test]
+fn plain_webhook_headers_in_actions_json_are_protected_at_load_and_rewritten() {
+    let dir = tempfile::tempdir().unwrap();
+    // The default actions (the default layout needs them) and a webhook.
+    let mut actions = serde_json::to_value(default_actions()).unwrap();
+    actions["actions"]["hook"] = json!({ "name": "Hook", "type": "http", "method": "GET", "url": "https://example.com/x", "headers": { "Authorization": "Bearer plain-hook-token" } });
+    save_json_atomic(&dir.path().join("actions.json"), &actions).unwrap();
+    let loaded = load_or_init(dir.path());
+    assert!(loaded.issues.is_empty(), "{:?}", loaded.issues);
+    let on_disk = std::fs::read_to_string(dir.path().join("actions.json")).unwrap();
+    assert!(!on_disk.contains("plain-hook-token") && on_disk.contains("dpapi:"), "{on_disk}");
+    let again = load_or_init(dir.path());
+    assert!(again.issues.is_empty(), "{:?}", again.issues);
+    assert_eq!(std::fs::read_to_string(dir.path().join("actions.json")).unwrap(), on_disk);
+}
+
 /// DATA_MODEL.md 11.6: passwords and sign-in tokens typed into config.json as plain text are encrypted at the first load and
 /// written back; the original strings are gone from the file.
 #[test]

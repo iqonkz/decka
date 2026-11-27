@@ -239,7 +239,18 @@ pub fn load_or_init(dir: &Path) -> Loaded {
             tracing::warn!("cannot rewrite config.json with protected secrets: {e}");
         }
     }
-    let actions = load_file(dir, "actions.json", default_actions, empty_actions, |a| { migrate_actions(a); }, validate_actions, &mut issues);
+    // T29.P: webhook headers that are still plain text (an older version, a hand edit) are protected and written back.
+    let protected = std::cell::Cell::new(false);
+    let migrate = |a: &mut ActionsFile| {
+        migrate_actions(a);
+        protected.set(crate::webhook::protect_headers(a));
+    };
+    let actions = load_file(dir, "actions.json", default_actions, empty_actions, migrate, validate_actions, &mut issues);
+    if protected.get() && !issues.iter().any(|(file, _)| file == "actions.json") {
+        if let Err(e) = save_json_atomic(&dir.join("actions.json"), &actions) {
+            tracing::warn!("cannot rewrite actions.json with protected headers: {e}");
+        }
+    }
     let layout = load_file(dir, "layout.json", default_layout, empty_layout, |_| {}, |l: &LayoutFile| validate_layout(l, &actions), &mut issues);
     let devices = load_file(dir, "devices.json", default_devices, default_devices, |_| {}, |d: &DevicesFile| {
         if d.version == 1 {

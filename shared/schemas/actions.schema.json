@@ -24,7 +24,7 @@
         { "type": "object", "required": ["delayMs"], "additionalProperties": false, "properties": { "delayMs": { "type": "integer", "minimum": 50, "maximum": 10000 } } } ] } } } } ] },
     "Screenshot": { "allOf": [ { "$ref": "#/$defs/Base" }, { "required": ["area"], "properties": { "type": { "const": "screenshot" }, "area": { "enum": ["screen","window","region"] } } } ] },
     "Http": { "allOf": [ { "$ref": "#/$defs/Base" }, { "required": ["method","url"], "properties": { "type": { "const": "http" }, "method": { "enum": ["GET","POST"] }, "url": { "type": "string", "pattern": "^https?://", "maxLength": 2000 },
-      "body": { "type": "string", "maxLength": 4096 }, "headers": { "type": "object", "maxProperties": 10, "propertyNames": { "pattern": "^[A-Za-z0-9!#$%&'*+.^_`|~-]{1,64}$" }, "additionalProperties": { "type": "string", "maxLength": 500 } } },
+      "body": { "type": "string", "maxLength": 4096 }, "headers": { "type": "object", "maxProperties": 10, "propertyNames": { "pattern": "^[A-Za-z0-9!#$%&'*+.^_`|~-]{1,64}$" }, "additionalProperties": { "type": "string", "maxLength": 4096 } } },
       "if": { "properties": { "method": { "const": "GET" } } }, "then": { "not": { "required": ["body"] } } } ] },
     "Action": { "oneOf": [ { "$ref": "#/$defs/Hotkey" }, { "$ref": "#/$defs/Media" }, { "$ref": "#/$defs/Launch" }, { "$ref": "#/$defs/OpenUrl" }, { "$ref": "#/$defs/System" }, { "$ref": "#/$defs/Audio" }, { "$ref": "#/$defs/Obs" }, { "$ref": "#/$defs/Twitch" }, { "$ref": "#/$defs/Youtube" }, { "$ref": "#/$defs/Sequence" }, { "$ref": "#/$defs/Screenshot" }, { "$ref": "#/$defs/Http" } ] },
     "ActionsFile": { "type": "object", "required": ["version","actions"],

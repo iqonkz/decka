@@ -9,7 +9,7 @@ use std::time::Duration;
 
 use url::{Host, Url};
 
-use crate::model::HttpMethod;
+use crate::model::{Action, ActionsFile, HttpMethod};
 
 pub const TIMEOUT: Duration = Duration::from_secs(10);
 pub const MAX_URL: usize = 2000;
@@ -17,11 +17,14 @@ pub const MAX_BODY: usize = 4096;
 pub const MAX_HEADERS: usize = 10;
 const MAX_HEADER_NAME: usize = 64;
 const MAX_HEADER_VALUE: usize = 500;
+/// The base64 of a protected value of that length, with room to spare.
+const MAX_STORED_VALUE: usize = 4000;
 /// Headers that belong to the connection, not to the user.
 const OWN_HEADERS: [&str; 8] = ["host", "content-length", "transfer-encoding", "connection", "upgrade", "te", "trailer", "keep-alive"];
 
 pub const NOT_LOCAL: &str = "http:// is only for this computer and the local network - use https://";
 pub const NO_ANSWER: &str = "The webhook did not answer";
+pub const UNREADABLE_HEADER: &str = "A header of the webhook cannot be read: enter it again";
 
 /// This computer or the local network: loopback, the private ranges and link-local.
 pub fn is_local(ip: IpAddr) -> bool {
@@ -74,10 +77,49 @@ pub fn check_header(name: &str, value: &str) -> Result<(), &'static str> {
     if OWN_HEADERS.contains(&name.to_ascii_lowercase().as_str()) || name.to_ascii_lowercase().starts_with("proxy-") {
         return Err("this header is set by the connection");
     }
+    // A stored value is a DPAPI blob; the text inside was checked before it was protected and is checked again before sending.
+    if let Some(blob) = value.strip_prefix(crate::dpapi::PREFIX) {
+        let base64 = !blob.is_empty() && blob.len() <= MAX_STORED_VALUE && blob.bytes().all(|b| b.is_ascii_alphanumeric() || b"+/=".contains(&b));
+        return if base64 { Ok(()) } else { Err("invalid header value") };
+    }
     if value.len() > MAX_HEADER_VALUE || value.chars().any(|c| c.is_control() && c != '\t') {
         return Err("invalid header value");
     }
     Ok(())
+}
+
+/// T29.P: header values are secrets (tokens, keys): `actions.json` keeps them as DPAPI blobs, like the passwords and
+/// tokens of the integrations. Returns whether something changed. A value that would not pass the check stays as it is,
+/// so that the validation still refuses it; without DPAPI the text is left alone.
+pub fn protect_headers(actions: &mut ActionsFile) -> bool {
+    let mut changed = false;
+    for action in actions.actions.values_mut() {
+        let Action::Http { headers: Some(headers), .. } = action else { continue };
+        for (name, value) in headers.iter_mut() {
+            if value.is_empty() || value.starts_with(crate::dpapi::PREFIX) || check_header(name, value).is_err() {
+                continue;
+            }
+            match crate::dpapi::protect(value) {
+                Ok(blob) => {
+                    *value = blob;
+                    changed = true;
+                }
+                Err(e) => tracing::warn!("cannot protect a header of a webhook: {e}"),
+            }
+        }
+    }
+    changed
+}
+
+/// The values as they are sent.
+fn open_headers(headers: Option<&BTreeMap<String, String>>) -> Result<BTreeMap<String, String>, String> {
+    let mut open = headers.cloned().unwrap_or_default();
+    for value in open.values_mut() {
+        if value.starts_with(crate::dpapi::PREFIX) {
+            *value = crate::dpapi::unprotect(value).map_err(|_| UNREADABLE_HEADER.to_string())?;
+        }
+    }
+    Ok(open)
 }
 
 /// `http://` only when every address the name stands for is local (a name that also points outside is refused).
@@ -120,7 +162,7 @@ pub fn send(method: HttpMethod, url: &str, body: Option<&str>, headers: Option<&
 fn send_within(method: HttpMethod, url: &str, body: Option<&str>, headers: Option<&BTreeMap<String, String>>, timeout: Duration) -> Result<u16, String> {
     // The rules are applied again here: the file may have been edited by hand.
     let url = check_url(url).map_err(str::to_string)?;
-    let headers = headers.cloned().unwrap_or_default();
+    let headers = open_headers(headers)?;
     for (name, value) in &headers {
         check_header(name, value).map_err(str::to_string)?;
     }
@@ -234,6 +276,29 @@ mod tests {
         server.join().unwrap();
         assert_eq!(outcome(200), Ok(()));
         assert_eq!(outcome(302), Err("HTTP 302".into()));
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn header_values_are_stored_protected_and_sent_in_clear() {
+        let (url, server) = serve("200 OK");
+        let mut file: ActionsFile = serde_json::from_value(serde_json::json!({ "version": 1, "actions": {
+            "hook": { "type": "http", "name": "Hook", "method": "GET", "url": url, "headers": { "Authorization": "Bearer s3cret", "X-Empty": "" } },
+            "bad": { "type": "http", "name": "Bad", "method": "GET", "url": url, "headers": { "X-Bad": "a\r\nb" } },
+        } })).unwrap();
+        assert!(protect_headers(&mut file));
+        let text = serde_json::to_string(&file).unwrap();
+        assert!(!text.contains("s3cret") && text.contains("dpapi:") && text.contains("a\\r\\nb"), "{text}");
+        assert!(!protect_headers(&mut file), "a blob is not wrapped twice");
+        let Action::Http { headers, .. } = &file.actions["hook"] else { panic!() };
+        let stored = headers.as_ref().unwrap();
+        assert!(check_header("Authorization", &stored["Authorization"]).is_ok() && stored["X-Empty"].is_empty());
+        assert_eq!(send(HttpMethod::Get, &url, None, Some(stored)), Ok(200));
+        assert!(server.join().unwrap().contains("authorization: Bearer s3cret"));
+        // A blob of another PC or user: nothing is sent.
+        let foreign = BTreeMap::from([("X-Token".to_string(), "dpapi:AAAA".to_string())]);
+        assert_eq!(send(HttpMethod::Get, "http://127.0.0.1:1/", None, Some(&foreign)), Err(UNREADABLE_HEADER.to_string()));
+        assert!(check_header("X", "dpapi:a b").is_err() && check_header("X", "dpapi:").is_err());
     }
 
     #[test]

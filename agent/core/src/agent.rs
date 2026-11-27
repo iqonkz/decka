@@ -2572,7 +2572,17 @@ impl Agent {
                     match crate::validate::validate_actions(&actions).first() {
                         Some(issue) => self.invalid_file_notification(name, &issue.message),
                         // A dangling button reference is allowed: the press answers UNKNOWN_ACTION.
-                        None => *self.inner.actions.lock().unwrap() = actions,
+                        None => {
+                            // T29.P: a header written by hand in plain text is protected and the file written back.
+                            if crate::webhook::protect_headers(&mut actions) {
+                                if let Ok(text) = json_text(&actions) {
+                                    if self.write_watched("actions.json", &text).is_err() {
+                                        tracing::warn!("cannot rewrite actions.json with protected headers");
+                                    }
+                                }
+                            }
+                            *self.inner.actions.lock().unwrap() = actions;
+                        }
                     }
                 }
             },
@@ -2601,11 +2611,13 @@ impl Agent {
     }
 
     /// Validates the actions themselves (not button references), writes actions.json, updates memory.
-    pub fn save_actions(&self, actions: ActionsFile) -> SaveResult {
+    pub fn save_actions(&self, mut actions: ActionsFile) -> SaveResult {
         let issues = crate::validate::validate_actions(&actions);
         if !issues.is_empty() {
             return SaveResult::Rejected(issues);
         }
+        // T29.P: the headers of a webhook go to the file as DPAPI blobs.
+        crate::webhook::protect_headers(&mut actions);
         let text = match json_text(&actions) {
             Ok(t) => t,
             Err(e) => return SaveResult::Rejected(vec![ValidationIssue { path: String::new(), message: e.to_string() }]),
