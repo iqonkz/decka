@@ -16,9 +16,11 @@ describe("contrast", () => {
 });
 
 describe("labels are readable in every theme (WCAG AA, >= 4.5:1)", () => {
-  test("AMOLED: both label colours on the black screen", () => {
+  test("AMOLED: both label colours on the black screen and #0c0c0f panels", () => {
     expect(contrast("#9ca3af", "#000000")).toBeGreaterThanOrEqual(MIN); // plain keys
     expect(contrast("#e5e5e5", "#000000")).toBeGreaterThanOrEqual(MIN); // coloured keys and icons
+    expect(contrast("#9ca3af", "#0c0c0f")).toBeGreaterThanOrEqual(MIN);
+    expect(contrast("#e5e5e5", "#0c0c0f")).toBeGreaterThanOrEqual(MIN);
   });
 
   test("Studio: white on both ends of the plain face", () => {
@@ -118,7 +120,7 @@ describe("readableFace", () => {
 
 describe("M31 settings & island UI tokens contrast (WCAG AA >= 4.5:1)", () => {
   test("light and dark settings theme tokens satisfy >= 4.5:1 on surfaces", () => {
-    const light = { bg: "#fafafa", panel: "#ffffff", hover: "#ececf0", text: "#1a1a1f", muted: "#5f6672", ok: "#166534", warn: "#9a4306", danger: "#b91c1c", accent: "#2563eb" };
+    const light = { bg: "#fafafa", panel: "#ffffff", hover: "#ececf0", text: "#1a1a1f", muted: "#5f6672", ok: "#166534", warn: "#9a4306", danger: "#b91c1c", accent: "#1d4ed8" };
     const dark = { bg: "#141417", panel: "#1b1b1f", hover: "#26262c", text: "#e8e8ee", muted: "#9ca3af", ok: "#4ade80", warn: "#fbbf24", danger: "#f87171", accent: "#60a5fa" };
     for (const [name, tok] of [["light", light], ["dark", dark]] as const) {
       for (const fg of ["text", "muted", "ok", "warn", "danger", "accent"] as const) {

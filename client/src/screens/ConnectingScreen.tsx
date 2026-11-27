@@ -42,6 +42,7 @@ export default function ConnectingScreen() {
         ))}
       </div>
       <div className="connecting-status">
+        <span className="service-pulse-dot" aria-hidden="true" />
         <span>{conn === "offline" ? t("phone.no_pc") : t("phone.connecting")}</span>
         {error && <span className="connecting-error">{error}</span>}
       </div>

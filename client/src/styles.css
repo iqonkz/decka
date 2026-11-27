@@ -85,8 +85,8 @@ input { user-select: text; touch-action: manipulation; }
   gap: 12px;
 }
 .service-hero {
-  width: 88px;
-  height: 88px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -97,19 +97,37 @@ input { user-select: text; touch-action: manipulation; }
 }
 .service-title {
   margin: 0;
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 600;
   line-height: 1.25;
   color: var(--ink, #f2f2f2);
 }
 .service-text {
   margin: 0;
-  font-size: 15px;
+  font-size: 13px;
   line-height: 1.45;
-  opacity: 0.7;
-  color: var(--ink, #f2f2f2);
+  color: var(--sheet-muted, #9ca3af);
   max-width: 100%;
 }
+.service-status-row {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--sheet-muted, #9ca3af);
+}
+.service-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--accent, #7c5cff);
+  animation: service-dot-pulse 1.4s ease-in-out infinite;
+}
+.service-pulse-dot.warn { background: #f59e0b; }
+.service-pulse-dot.err { background: #ef4444; }
+@keyframes service-dot-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 .service-actions {
   display: flex;
   flex-direction: column;

@@ -29,7 +29,7 @@ export default function ServiceCard({
   const inner = (
     <>
       <div className="service-hero">
-        <PhIcon name={icon} size={48} />
+        <PhIcon name={icon} size={56} />
       </div>
       <h1 className="service-title">{title}</h1>
       {text && <p className="service-text">{text}</p>}
