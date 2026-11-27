@@ -75,12 +75,12 @@ export default function PhoneMenu({ reduced, onToggleReduced, haptics, onToggleH
           <div className="phone-group-title">{t("sidebar.item.settings")}</div>
           <div className="phone-group">
             <div className="phone-row">
-              <span className="phone-row-icon"><Icon icon="lucide:sparkles" size={20} /></span>
+              <span className="phone-row-icon"><Icon icon="lucide:zap" size={20} /></span>
               <span className="phone-row-label">{t("menu.reduce_effects")}</span>
               <PhoneSwitch checked={reduced} onChange={onToggleReduced} label={t("menu.reduce_effects")} />
             </div>
             <div className="phone-row">
-              <span className="phone-row-icon"><Icon icon="lucide:vibrate" size={20} /></span>
+              <span className="phone-row-icon"><Icon icon="lucide:activity" size={20} /></span>
               <span className="phone-row-label">{t("menu.haptics")}</span>
               <PhoneSwitch checked={haptics} onChange={onToggleHaptics} label={t("menu.haptics")} />
             </div>
@@ -144,11 +144,11 @@ export default function PhoneMenu({ reduced, onToggleReduced, haptics, onToggleH
               <span className="phone-row-label">{t("menu.reload")}</span>
             </button>
             <button type="button" className="phone-row menu-button" onClick={connectAgain}>
-              <span className="phone-row-icon"><Icon icon="lucide:qr-code" size={20} /></span>
+              <span className="phone-row-icon"><Icon icon="lucide:camera" size={20} /></span>
               <span className="phone-row-label">{t("link.connect_again")}</span>
             </button>
             <button type="button" className="phone-row menu-button danger" onClick={onUnpair}>
-              <span className="phone-row-icon"><Icon icon="lucide:unlink" size={20} /></span>
+              <span className="phone-row-icon"><Icon icon="lucide:log-out" size={20} /></span>
               <span className="phone-row-label">{t("menu.unpair")}</span>
             </button>
           </div>

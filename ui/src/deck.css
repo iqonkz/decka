@@ -423,6 +423,13 @@
 .timer.running .timer-time { color: var(--accent, #e5e5e5); }
 .timer.done .timer-time { color: #ef4444; }
 .timer-presets { justify-content: center; gap: 6px; padding-top: 4px; flex: none; }
+@container tile ((min-width: 160px) and (max-height: 139px)) {
+  .timer { flex-direction: row; align-items: center; justify-content: space-between; gap: 8px; padding: 0 4px; }
+  .timer-main { width: auto; justify-content: flex-start; }
+  .timer-ring-wrap { width: auto; height: auto; }
+  .timer-ring { display: none; }
+  .timer-presets { padding-top: 0; }
+}
 .timer-presets button { height: 28px; min-width: 36px; padding: 0 12px; border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 999px; background: rgba(255, 255, 255, 0.06); color: inherit; font: inherit; font-size: 12px; font-weight: 500; cursor: pointer; }
 .timer-presets button.on { background: var(--accent, #7c5cff); border-color: transparent; color: #fff; }
 .timer.flash { animation: timer-flash 1s ease-in-out 3; }

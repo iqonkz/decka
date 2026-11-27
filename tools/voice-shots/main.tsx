@@ -293,7 +293,7 @@ if (scene === "deck" || scene === "settings") {
           id: "n1",
           title: "Синк по релизу 0.60.0",
           date: "2026-11-27 10:30",
-          markdown: "# Кратко\nОбсудили заметки встреч, память ПК и Home Assistant.\n## Решения\n- Проверить тесты во всех воркспейсах\n- Выпустить черновик 0.60.0\n## Задачи\n- Снять скриншоты в обеих темах",
+          markdown: "Длительность: 14 мин\n# Кратко\nОбсудили заметки встреч, память ПК и Home Assistant.\n## Решения\n- Проверить тесты во всех воркспейсах\n- Выпустить черновик 0.60.0\n## Задачи\n- Снять скриншоты в обеих темах\n## Расшифровка\nАндрей: Начнём с проверки сборок и скриншотов на всех экранах.\nМария: Таблица токенов и тестов контраста уже зелёная.",
         },
         {
           id: "n2",
@@ -312,8 +312,8 @@ if (scene === "deck" || scene === "settings") {
         { id: "action", state: "ok", durationMs: 8, detail: "Open Calculator", understood: { text: "Open Calculator", key: "voice.did.open", args: { name: "Калькулятор" } }, confirm: false },
       ],
       voice_status: q.get("voiceError")
-        ? { state: "error", reason: q.get("voiceError"), hardware: { gpu: "GTX 1050", vramGb: 2, ramGb: 8 }, model: "standard", downloadGb: 3.2, hotkey: ["ctrl", "alt", "space"], keepLoaded: false, speak: false, phoneButton: true, mics: ["Microphone (USB)"] }
-        : { state: "ready", hardware: { ramGb: 32 }, model: "standard", downloadGb: 3.2, hotkey: ["ctrl", "alt", "space"], keepLoaded: false, speak: false, phoneButton: true, mics: ["Microphone (USB)"] },
+        ? { state: "error", reason: q.get("voiceError"), hardware: { gpu: "GTX 1050", vramGb: 2, ramGb: 8 }, model: "standard", downloadGb: 3.2, hotkey: ["ctrl", "alt", "space"], keepLoaded: false, unloadAfterMin: 10, speak: false, phoneButton: true, mics: ["Microphone (USB)"] }
+        : { state: "ready", hardware: { ramGb: 32 }, model: "standard", downloadGb: 3.2, hotkey: ["ctrl", "alt", "space"], keepLoaded: false, unloadAfterMin: 10, speak: false, phoneButton: true, mics: ["Microphone (USB)"] },
     };
     (window as never as { __TAURI_EVENT_PLUGIN_INTERNALS__: unknown }).__TAURI_EVENT_PLUGIN_INTERNALS__ = {
       unregisterListener: () => {},
@@ -685,8 +685,37 @@ if (scene === "deck" || scene === "settings") {
   const screen = q.get("screen") ?? "pair";
   if (screen === "pair" || screen === "qr") {
     const { default: PairScreen } = await import("../../client/src/screens/PairScreen");
-    setState({ conn: "unpaired", state: null });
+    setState({
+      conn: "unpaired",
+      state: null,
+      lastError: q.get("err") === "1" ? (q.get("lang") === "en" ? "Wrong or expired code. Create a new one on PC." : "Код неверный или устарел. Создайте новый на ПК.") : null,
+    });
     root.render(<PairScreen showQrFrame={screen === "qr"} />);
+  } else if (screen === "saver") {
+    const [stateFx] = await Promise.all([import("../../shared/fixtures/state.m15.json")]);
+    const fx = JSON.parse(JSON.stringify(stateFx.default));
+    fx.layout.display = { ...fx.layout.display, theme: "amoled", language: q.get("lang") ?? "ru" };
+    fx.media = { playing: true, title: "Midnight City", artist: "M83", posMs: 42000, durMs: 243000 };
+    const { default: Screensaver } = await import("../../client/src/display/Screensaver");
+    setState({ conn: "online", state: fx as never });
+    root.render(<Screensaver />);
+  } else if (screen === "holdring") {
+    const { applyTheme } = await import("../../ui/src");
+    applyTheme(document.documentElement, { theme: "studio", accent: "#7c5cff", wallpaper: "aurora" });
+    document.body.style.cssText = "margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0d0d10;";
+    root.render(
+      <div className="key colored confirming" style={{ width: 108, height: 108, ["--c-top" as string]: "#7f1d1d", ["--c-bottom" as string]: "#450a0a", ["--c-on" as string]: "#ffffff" }}>
+        <div className="key-icon" style={{ transform: "translateY(-7px)" }}>
+          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        <div className="key-label" style={{ left: 8, right: 8, bottom: 8, fontSize: 14 }}>
+          {q.get("lang") === "ru" ? "Блок" : "Lock"}
+        </div>
+        <svg className="ring" width={108} height={108} viewBox="0 0 108 108" aria-hidden="true">
+          <rect x="1.5" y="1.5" width="105" height="105" rx="15" pathLength="100" style={{ strokeDashoffset: 35, animation: "none" }} />
+        </svg>
+      </div>,
+    );
   } else if (screen === "link") {
     const [stateFx] = await Promise.all([import("../../shared/fixtures/state.m15.json")]);
     const fx = JSON.parse(JSON.stringify(stateFx.default));
