@@ -340,6 +340,8 @@ impl Notes {
             std::fs::rename(sound, path.with_extension("wav")).map_err(|e| format!("Cannot keep the sound: {e}"))?;
         }
         let _ = std::fs::remove_dir_all(&session.tmp);
+        // The folder of the temporary sound goes too, once no other recording uses it.
+        let _ = std::fs::remove_dir(self.inner.dir.join(".tmp"));
         self.emit(Event::Saved { title, path, summarized: summary.is_some() });
         Ok(())
     }

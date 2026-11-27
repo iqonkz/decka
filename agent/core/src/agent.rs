@@ -2695,7 +2695,9 @@ impl Agent {
         }
         // The recorder of the meeting notes belongs to the agent.
         if let Action::NotesRecord { toggle_var, .. } = &action {
-            self.notes_toggle().map_err(|m| (ErrorCode::ActionFailed, m))?;
+            // Opening the sound devices takes a moment: not on a thread of the runtime.
+            let me = self.clone();
+            tokio::task::spawn_blocking(move || me.notes_toggle()).await.map_err(|e| (ErrorCode::Internal, format!("action task failed: {e}")))?.map_err(|m| (ErrorCode::ActionFailed, m))?;
             self.toggle_var(toggle_var.clone());
             return Ok(());
         }

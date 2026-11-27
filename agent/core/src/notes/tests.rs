@@ -94,7 +94,7 @@ async fn a_recording_becomes_one_file_with_the_summary_and_the_stitched_text_and
         assert_eq!(list[0].title, "Обсудили план релиза и решили выпустить");
         assert!(list[0].markdown.contains("Обсудили план релиза и решили выпустить в пятницу.") && list[0].markdown.contains("- Выпуск в пятницу") && list[0].markdown.contains("1 мин"), "{}", list[0].markdown);
         assert_eq!(backend.heard.lock().unwrap().iter().sum::<usize>(), 45 * RATE, "every sample was recognised once");
-        assert!(!dir.path().join(".tmp").join("1").exists());
+        assert!(!dir.path().join(".tmp").exists());
         assert!(std::fs::read_dir(dir.path()).unwrap().flatten().all(|f| f.path().extension().is_none_or(|x| x != "wav" && x != "pcm")), "no sound is kept");
         let events = events.lock().unwrap();
         assert!(matches!(events.as_slice(), [Event::Started, Event::Stopped(StopReason::User), Event::Saved { summarized: true, .. }]), "{events:?}");
