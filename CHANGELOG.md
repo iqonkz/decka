@@ -19,8 +19,11 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 - The **first-run guide** is three steps: connect the phone, turn on voice, done.
 - **Meeting notes** open with the summary; the full text is folded, the header shows the date and the length.
 - The **settings window opens faster**: its pages load when shown and only the icons it uses are included.
+- **Look → Theme**: each preview takes the whole width of its card.
 
 ### Fixed
+- A key made from the catalog keeps its link to it: its caption follows the phone's language until you rename it.
+- The digits of a 1×1 **timer** no longer touch its ring.
 - **Mail and Home Assistant over HTTPS did not work** in the installed application: setting up the encrypted connection stopped with an internal error, so the mailbox showed nothing.
 
 ## 0.60.0 — 2026-11-27
