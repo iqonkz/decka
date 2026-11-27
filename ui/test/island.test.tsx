@@ -440,4 +440,31 @@ describe("T26.5b ParticlesOrb & Island", () => {
     const note = renderToString(<Island event={{ mode: "expanded", voice: { active: false, phase: "done", reply: "Память занята", actions: ["memory"] } }} onAction={noop} />);
     expect(note).toContain("Показать, что ест");
   });
+
+  it("T31.2b: renders error card with red left stripe class, retry action, and 400ms data-tooltip", () => {
+    setLanguage("ru");
+    const errHtml = renderToString(
+      <Island
+        event={{
+          mode: "expanded",
+          voice: { active: true, phase: "error", level: 0, heard: "Открой", reply: "Не удалось распознать" },
+        }}
+        onAction={() => {}}
+      />,
+    );
+    expect(errHtml).toContain("island-error-card");
+    expect(errHtml).toContain("Не удалось распознать");
+
+    const actionHtml = renderToString(
+      <Island
+        event={{
+          mode: "expanded",
+          voice: { active: true, phase: "done", level: 0, heard: "Привет", reply: "Готово", actions: ["copy", "again"] },
+        }}
+        onAction={() => {}}
+      />,
+    );
+    expect(actionHtml).toContain("data-tooltip=");
+    expect(actionHtml).toContain("island-reply");
+  });
 });

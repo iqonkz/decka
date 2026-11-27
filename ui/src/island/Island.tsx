@@ -685,8 +685,29 @@ export default function Island({
             {voice?.understood && <div className="island-understood">{t("voice.stage.understood", { what: voice.understood.text })}</div>}
             {voice?.executing && <div className="island-content-status island-doing">{t("voice.stage.doing")}</div>}
 
-            {voice?.reply && <div className="island-reply">{voice.reply}</div>}
-            {!voice?.reply && voice?.confirm?.text && <div className="island-reply">{voice.confirm.text}</div>}
+            {voice?.phase === "error" ? (
+              <div className="island-error-card" role="alert">
+                <div className="island-error-text">{voice.reply ?? statusLabel}</div>
+                <div>
+                  <button
+                    type="button"
+                    className="island-text-action"
+                    onClick={() => onAction?.("again")}
+                  >
+                    {t("island.again")}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                {voice?.reply && <div className="island-reply">{voice.reply}</div>}
+                {!voice?.reply && voice?.confirm?.text && (
+                  <div className="island-card">
+                    <div className="island-reply">{voice.confirm.text}</div>
+                  </div>
+                )}
+              </>
+            )}
 
             {voice?.download && (
               <div className="island-slow island-slow-expanded">
@@ -777,6 +798,7 @@ export default function Island({
                     type="button"
                     className={`island-action-btn${isCopied ? " is-copied" : ""}${hoveredAction === "copy" ? " is-hovered" : ""}`}
                     title={isCopied ? t("island.copied") : t("island.copy")}
+                    data-tooltip={isCopied ? t("island.copied") : t("island.copy")}
                     aria-label={isCopied ? t("island.copied") : t("island.copy")}
                     onClick={handleCopy}
                   >
@@ -788,6 +810,7 @@ export default function Island({
                     type="button"
                     className={`island-action-btn${hoveredAction === "insert" ? " is-hovered" : ""}`}
                     title={t("island.insert")}
+                    data-tooltip={t("island.insert")}
                     aria-label={t("island.insert")}
                     onClick={() => onAction?.("insert")}
                   >
@@ -799,6 +822,7 @@ export default function Island({
                     type="button"
                     className={`island-action-btn${hoveredAction === "speak" ? " is-hovered" : ""}`}
                     title={isSpeaking ? t("island.stop_speaking") : t("island.speak")}
+                    data-tooltip={isSpeaking ? t("island.stop_speaking") : t("island.speak")}
                     aria-label={isSpeaking ? t("island.stop_speaking") : t("island.speak")}
                     onClick={() => onAction?.("speak")}
                   >
@@ -813,6 +837,7 @@ export default function Island({
                     type="button"
                     className={`island-action-btn${hoveredAction === "again" ? " is-hovered" : ""}`}
                     title={t("island.again")}
+                    data-tooltip={t("island.again")}
                     aria-label={t("island.again")}
                     onClick={() => onAction?.("again")}
                   >
