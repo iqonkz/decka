@@ -11,6 +11,7 @@ import VoiceSection from "./VoiceSection";
 import ScreenHelpTab from "./ScreenHelpTab";
 import NotesTab from "./NotesTab";
 import RemindersTab from "./RemindersTab";
+import { isMoreSection, type MoreSection } from "./moreSections";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
 import { Group, PageHeader, Row, SectionHeader } from "../ui/SettingsGroup";
@@ -18,15 +19,8 @@ import Switch from "../ui/Switch";
 
 type Updates = ReturnType<typeof useUpdates>;
 
-export type MoreSection = "actions" | "integrations" | "settings" | "voice" | "screen_help" | "notes" | "reminders" | "about";
-
-const SECTION_IDS: MoreSection[] = ["actions", "integrations", "settings", "voice", "screen_help", "notes", "reminders", "about"];
-
-function sectionLabel(id: MoreSection): string {
-  return t(`more.${id}`);
-}
-
-export const isMoreSection = (s: string): s is MoreSection => (SECTION_IDS as string[]).includes(s);
+export type { MoreSection };
+export { isMoreSection };
 
 /** T31.3: a ZIP on the desktop for troubleshooting; the owner decides whether to send it to anybody. */
 function ProblemReport() {

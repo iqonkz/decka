@@ -99,6 +99,17 @@ pub async fn obs_status(app: AppHandle) -> Result<decka_core::agent::ObsStatusIn
     Ok(agent(&app)?.obs_status().await)
 }
 
+/// T31.5: the settings window drew its first frame; the time since the click goes to the log, once per window.
+#[tauri::command]
+pub fn window_first_frame(window: tauri::WebviewWindow, opening: tauri::State<'_, crate::tray::WindowOpening>) {
+    if window.label() != "settings" {
+        return;
+    }
+    if let Some(asked) = opening.0.lock().unwrap().take() {
+        tracing::info!("settings window: first frame {} ms after the click", asked.elapsed().as_millis());
+    }
+}
+
 /// `Set password…`: DPAPI-encrypted and saved; an empty password removes it.
 #[tauri::command]
 pub fn set_obs_password(app: AppHandle, password: String) -> Result<(), String> {

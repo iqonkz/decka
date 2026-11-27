@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { t, type LanguageSetting, type WindowTheme } from "@decka/shared";
 import { useApplyLanguage } from "@decka/ui";
 import { call, onNavigate } from "./ipc";
@@ -8,13 +8,16 @@ import { useApplyWindowTheme, WINDOW_THEME_EVENT } from "./windowTheme";
 import ToastContainer from "./ui/Toast";
 import UpdateBanner from "./tabs/UpdateBanner";
 import { useUpdates } from "./updates";
-import AppearanceTab from "./tabs/AppearanceTab";
 import FirstRun, { wizardDone } from "./tabs/FirstRun";
-import LayoutTab from "./tabs/LayoutTab";
-import MoreTab, { isMoreSection, type MoreSection } from "./tabs/MoreTab";
-import PhoneTab from "./tabs/PhoneTab";
+import { isMoreSection, type MoreSection } from "./tabs/moreSections";
 import Sidebar from "./ui/Sidebar";
 import type { SearchTargetPage } from "./ui/searchRegistry";
+
+// T31.5: the pages are loaded when shown, so the frame of the window (the menu) is on screen first.
+const AppearanceTab = lazy(() => import("./tabs/AppearanceTab"));
+const LayoutTab = lazy(() => import("./tabs/LayoutTab"));
+const MoreTab = lazy(() => import("./tabs/MoreTab"));
+const PhoneTab = lazy(() => import("./tabs/PhoneTab"));
 
 type TabId = "deck" | "look" | "phone" | "more";
 
@@ -62,6 +65,7 @@ function TabBody({ tab, section, updates }: { tab: TabId; section: MoreSection; 
       return <MoreTab section={section} updates={updates} />;
   }
 }
+
 export default function App() {
   const [tab, setTab] = useState<TabId>("deck");
   const updates = useUpdates();
@@ -126,6 +130,14 @@ export default function App() {
     );
   }, []);
   useEffect(refreshAccent, [tab, refreshAccent]);
+  // T31.5: two animation frames after the first render the window is on screen; the agent logs the time since the click.
+  useEffect(() => {
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        call("window_first_frame").catch((e) => console.warn("the first frame was not reported", e));
+      }),
+    );
+  }, []);
   // A restored backup (T31.4) may bring another accent, language and window theme.
   useEffect(() => {
     window.addEventListener("decka:restored", refreshAccent);
@@ -166,7 +178,9 @@ export default function App() {
       />
       <main className="content">
         <UpdateBanner status={updates.status} />
-        <TabBody tab={tab} section={section} updates={updates} />
+        <Suspense fallback={<p className="muted">{t("common.loading")}</p>}>
+          <TabBody tab={tab} section={section} updates={updates} />
+        </Suspense>
       </main>
       <ToastContainer />
       {firstRun && (

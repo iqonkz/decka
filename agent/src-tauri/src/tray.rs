@@ -1,6 +1,7 @@
 //! System tray icon and its menu.
 
 use std::sync::Mutex;
+use std::time::Instant;
 
 use decka_core::tray_text::{agent_language, tray_text, update_available_text, TrayKey};
 use decka_core::Agent;
@@ -19,6 +20,10 @@ struct TrayItems {
     /// The version the update item names now, `None` while the item is not in the menu.
     update_version: Mutex<Option<String>>,
 }
+
+/// T31.5: when the settings window was asked for, until the new window reports its first frame.
+#[derive(Default)]
+pub struct WindowOpening(pub Mutex<Option<Instant>>);
 
 /// Shows the settings window. It is destroyed when closed (DATA_MODEL.md 10.1: no WebView2 processes while it is shut),
 /// so it is created again here from the same config entry.
@@ -41,13 +46,21 @@ fn open_settings(app: &AppHandle, target: Option<&str>) {
             w
         }
         None => {
+            if let Some(opening) = app.try_state::<WindowOpening>() {
+                *opening.0.lock().unwrap() = Some(Instant::now());
+            }
             let Some(mut cfg) = app.config().app.windows.iter().find(|w| w.label == "settings").cloned() else { return };
             // Only the characters of a catalog id: the target goes into the address as it is.
             if let Some(target) = target.filter(|t| t.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, ':' | '.' | '_' | '-'))) {
                 cfg.url = tauri::WebviewUrl::App(format!("index.html?go={target}").into());
             }
+            let started = Instant::now();
             match tauri::WebviewWindowBuilder::from_config(app, &cfg).and_then(|b| b.build()) {
-                Ok(w) => w,
+                Ok(w) => {
+                    // The part of the opening that is WebView2 itself; the rest is the page.
+                    tracing::info!("settings window: created in {} ms", started.elapsed().as_millis());
+                    w
+                }
                 Err(e) => {
                     tracing::error!("cannot create the settings window: {e}");
                     return;

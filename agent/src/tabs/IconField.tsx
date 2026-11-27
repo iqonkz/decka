@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
-import { icons as lucideIcons } from "lucide-react";
 import { t } from "@decka/shared";
+import { ICONS } from "@decka/ui";
 import { call } from "../ipc";
 import Button from "../ui/Button";
 import Select from "../ui/Select";
@@ -9,13 +9,8 @@ import { ICON_NAMES } from "./iconNames";
 import { brandUrl, loadBrands, searchBrands, type Brand } from "./brands";
 import { searchIcons, svgUrl, visibleRows, WEIGHTS, type Weight } from "./phosphor";
 
-/** `volume-2` -> `Volume2`, the key of lucide-react's `icons`. */
-function pascal(name: string): string {
-  return name.split("-").map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join("");
-}
-
-type LucideGlyph = React.ComponentType<{ size?: number }>;
-const lucideGlyph = (name: string): LucideGlyph | undefined => (lucideIcons as Record<string, LucideGlyph>)[pascal(name)];
+/** Only the icons the phone draws (DATA_MODEL.md 3): the whole lucide library would double the window (T31.5). */
+const lucideGlyph = (name: string) => ICONS[name];
 
 /** A vector picture drawn as a mask in the text colour (so it fits light and dark windows). */
 function MaskIcon({ url, size }: { url: string; size: number }) {
