@@ -810,7 +810,15 @@
         "op": "start"
       },
       "patterns": [
-        "मीटिंग नोट शुरू करें",
+        "मीटिंग नोट शुरू करें"
+      ]
+    },
+    {
+      "tool": "notes_record",
+      "args": {
+        "op": "stop"
+      },
+      "patterns": [
         "नोट बंद करें"
       ]
     },
@@ -824,10 +832,18 @@
     {
       "tool": "ha",
       "args": {
-        "service": "toggle"
+        "service": "turn_on"
       },
       "patterns": [
-        "{name} की लाइट चालू करें",
+        "{name} की लाइट चालू करें"
+      ]
+    },
+    {
+      "tool": "ha",
+      "args": {
+        "service": "turn_off"
+      },
+      "patterns": [
         "{name} की लाइट बंद करें"
       ]
     }

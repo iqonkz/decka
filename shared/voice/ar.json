@@ -723,7 +723,15 @@
         "op": "start"
       },
       "patterns": [
-        "ابدأ ملاحظة الاجتماع",
+        "ابدأ ملاحظة الاجتماع"
+      ]
+    },
+    {
+      "tool": "notes_record",
+      "args": {
+        "op": "stop"
+      },
+      "patterns": [
         "أوقف الملاحظة"
       ]
     },
@@ -737,10 +745,18 @@
     {
       "tool": "ha",
       "args": {
-        "service": "toggle"
+        "service": "turn_on"
       },
       "patterns": [
-        "شغّل إضاءة {name}",
+        "شغّل إضاءة {name}"
+      ]
+    },
+    {
+      "tool": "ha",
+      "args": {
+        "service": "turn_off"
+      },
+      "patterns": [
         "أطفئ إضاءة {name}"
       ]
     }

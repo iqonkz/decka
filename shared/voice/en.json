@@ -924,7 +924,15 @@
       },
       "patterns": [
         "start meeting note",
-        "record a note",
+        "record a note"
+      ]
+    },
+    {
+      "tool": "notes_record",
+      "args": {
+        "op": "stop"
+      },
+      "patterns": [
         "stop meeting note",
         "stop note"
       ]
@@ -940,11 +948,27 @@
     {
       "tool": "ha",
       "args": {
+        "service": "turn_on"
+      },
+      "patterns": [
+        "turn on {name} light"
+      ]
+    },
+    {
+      "tool": "ha",
+      "args": {
+        "service": "turn_off"
+      },
+      "patterns": [
+        "turn off {name} light"
+      ]
+    },
+    {
+      "tool": "ha",
+      "args": {
         "service": "toggle"
       },
       "patterns": [
-        "turn on {name} light",
-        "turn off {name} light",
         "toggle {name} in home assistant"
       ]
     }

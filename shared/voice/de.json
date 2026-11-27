@@ -728,7 +728,15 @@
         "op": "start"
       },
       "patterns": [
-        "besprechungsnotiz starten",
+        "besprechungsnotiz starten"
+      ]
+    },
+    {
+      "tool": "notes_record",
+      "args": {
+        "op": "stop"
+      },
+      "patterns": [
         "notiz stoppen"
       ]
     },
@@ -742,10 +750,18 @@
     {
       "tool": "ha",
       "args": {
-        "service": "toggle"
+        "service": "turn_on"
       },
       "patterns": [
-        "licht in {name} einschalten",
+        "licht in {name} einschalten"
+      ]
+    },
+    {
+      "tool": "ha",
+      "args": {
+        "service": "turn_off"
+      },
+      "patterns": [
         "licht in {name} ausschalten"
       ]
     }

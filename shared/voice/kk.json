@@ -819,7 +819,15 @@
         "op": "start"
       },
       "patterns": [
-        "жазбаны баста",
+        "жазбаны баста"
+      ]
+    },
+    {
+      "tool": "notes_record",
+      "args": {
+        "op": "stop"
+      },
+      "patterns": [
         "жазбаны тоқтат"
       ]
     },
@@ -833,10 +841,18 @@
     {
       "tool": "ha",
       "args": {
-        "service": "toggle"
+        "service": "turn_on"
       },
       "patterns": [
-        "{name} жарығын қос",
+        "{name} жарығын қос"
+      ]
+    },
+    {
+      "tool": "ha",
+      "args": {
+        "service": "turn_off"
+      },
+      "patterns": [
         "{name} жарығын өшір"
       ]
     }

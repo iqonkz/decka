@@ -628,7 +628,7 @@
     "say": "打开卧室的灯",
     "tool": "ha",
     "args": {
-      "service": "toggle"
+      "service": "turn_on"
     }
   },
   {

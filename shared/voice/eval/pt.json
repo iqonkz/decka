@@ -628,7 +628,7 @@
     "say": "ligar luz de quarto",
     "tool": "ha",
     "args": {
-      "service": "toggle"
+      "service": "turn_on"
     }
   },
   {

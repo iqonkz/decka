@@ -891,7 +891,15 @@
       },
       "patterns": [
         "начни заметку",
-        "запиши встречу",
+        "запиши встречу"
+      ]
+    },
+    {
+      "tool": "notes_record",
+      "args": {
+        "op": "stop"
+      },
+      "patterns": [
         "стоп заметка",
         "останови заметку"
       ]
@@ -907,12 +915,20 @@
     {
       "tool": "ha",
       "args": {
-        "service": "toggle"
+        "service": "turn_on"
       },
       "patterns": [
         "включи свет в {name}",
-        "выключи свет в {name}",
         "включи {name} в доме"
+      ]
+    },
+    {
+      "tool": "ha",
+      "args": {
+        "service": "turn_off"
+      },
+      "patterns": [
+        "выключи свет в {name}"
       ]
     }
   ],

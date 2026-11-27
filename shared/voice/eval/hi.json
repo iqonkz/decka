@@ -628,7 +628,7 @@
     "say": "बेडरूम की लाइट चालू करें",
     "tool": "ha",
     "args": {
-      "service": "toggle"
+      "service": "turn_on"
     }
   },
   {

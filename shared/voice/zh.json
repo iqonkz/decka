@@ -733,7 +733,15 @@
         "op": "start"
       },
       "patterns": [
-        "开始会议笔记",
+        "开始会议笔记"
+      ]
+    },
+    {
+      "tool": "notes_record",
+      "args": {
+        "op": "stop"
+      },
+      "patterns": [
         "停止笔记"
       ]
     },
@@ -747,10 +755,18 @@
     {
       "tool": "ha",
       "args": {
-        "service": "toggle"
+        "service": "turn_on"
       },
       "patterns": [
-        "打开{name}的灯",
+        "打开{name}的灯"
+      ]
+    },
+    {
+      "tool": "ha",
+      "args": {
+        "service": "turn_off"
+      },
+      "patterns": [
         "关闭{name}的灯"
       ]
     }

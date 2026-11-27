@@ -628,7 +628,7 @@
     "say": "شغّل إضاءة غرفة النوم",
     "tool": "ha",
     "args": {
-      "service": "toggle"
+      "service": "turn_on"
     }
   },
   {

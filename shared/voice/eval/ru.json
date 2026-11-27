@@ -642,7 +642,7 @@
     "say": "включи свет в спальне",
     "tool": "ha",
     "args": {
-      "service": "toggle"
+      "service": "turn_on"
     }
   },
   {

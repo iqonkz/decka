@@ -628,7 +628,7 @@
     "say": "жатын бөлме жарығын қос",
     "tool": "ha",
     "args": {
-      "service": "toggle"
+      "service": "turn_on"
     }
   },
   {

@@ -719,7 +719,15 @@
         "op": "start"
       },
       "patterns": [
-        "会議ノートを開始",
+        "会議ノートを開始"
+      ]
+    },
+    {
+      "tool": "notes_record",
+      "args": {
+        "op": "stop"
+      },
+      "patterns": [
         "ノートを停止"
       ]
     },
@@ -733,10 +741,18 @@
     {
       "tool": "ha",
       "args": {
-        "service": "toggle"
+        "service": "turn_on"
       },
       "patterns": [
-        "{name}の電気をつけて",
+        "{name}の電気をつけて"
+      ]
+    },
+    {
+      "tool": "ha",
+      "args": {
+        "service": "turn_off"
+      },
+      "patterns": [
         "{name}の電気を消して"
       ]
     }

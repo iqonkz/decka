@@ -628,7 +628,7 @@
     "say": "allume la lumière de chambre",
     "tool": "ha",
     "args": {
-      "service": "toggle"
+      "service": "turn_on"
     }
   },
   {

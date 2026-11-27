@@ -642,7 +642,7 @@
     "say": "turn on bedroom light",
     "tool": "ha",
     "args": {
-      "service": "toggle"
+      "service": "turn_on"
     }
   },
   {

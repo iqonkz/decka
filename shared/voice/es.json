@@ -849,7 +849,15 @@
         "op": "start"
       },
       "patterns": [
-        "iniciar nota de reunión",
+        "iniciar nota de reunión"
+      ]
+    },
+    {
+      "tool": "notes_record",
+      "args": {
+        "op": "stop"
+      },
+      "patterns": [
         "detener nota"
       ]
     },
@@ -863,10 +871,18 @@
     {
       "tool": "ha",
       "args": {
-        "service": "toggle"
+        "service": "turn_on"
       },
       "patterns": [
-        "enciende la luz de {name}",
+        "enciende la luz de {name}"
+      ]
+    },
+    {
+      "tool": "ha",
+      "args": {
+        "service": "turn_off"
+      },
+      "patterns": [
         "apaga la luz de {name}"
       ]
     }
