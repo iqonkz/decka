@@ -184,7 +184,7 @@ pub fn build(template_id: &str, layout: &LayoutFile, actions: &ActionsFile) -> R
                 LayoutItem::Voice(i) => i.id = format!("t-{page_id}-{}", i.id),
                 LayoutItem::Reminders(i) => i.id = format!("t-{page_id}-{}", i.id),
                 LayoutItem::List(i) => i.id = format!("t-{page_id}-{}", i.id),
-                LayoutItem::Weather(i) | LayoutItem::Obs(i) | LayoutItem::Twitch(i) | LayoutItem::Youtube(i) | LayoutItem::Context(i) | LayoutItem::Battery(i) | LayoutItem::Mail(i) => i.id = format!("t-{page_id}-{}", i.id),
+                LayoutItem::Weather(i) | LayoutItem::Obs(i) | LayoutItem::Twitch(i) | LayoutItem::Youtube(i) | LayoutItem::Context(i) | LayoutItem::Battery(i) | LayoutItem::Mail(i) | LayoutItem::Calendar(i) => i.id = format!("t-{page_id}-{}", i.id),
                 LayoutItem::Ai(i) => i.id = format!("t-{page_id}-{}", i.id),
             }
             item

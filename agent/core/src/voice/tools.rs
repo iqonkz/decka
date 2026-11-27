@@ -22,6 +22,8 @@ pub const TOOLS: &[&str] = &[
     "add_button", "screenshot", "system_theme",
     // M30: meeting notes, what uses the memory, Home Assistant.
     "notes_record", "memory_top", "ha",
+    // M32: the events of the calendar.
+    "calendar",
 ];
 
 pub const MAX_TEXT: usize = 2000;
@@ -185,6 +187,8 @@ pub enum ToolCall {
     RemindersShow,
     /// The brief of the day (DATA_MODEL.md 13.5).
     DayBrief,
+    /// T32.2: what the calendar has today or tomorrow, or the next meeting.
+    Calendar { when: crate::calendar::Ask },
     /// DATA_MODEL.md 13.6: only after an explicit "remember that ...".
     MemoryAdd { text: String },
     MemoryRemove { text: String },
@@ -553,6 +557,13 @@ fn run(tool: &str, args: &serde_json::Map<String, Value>, ctx: &Context) -> Resu
             match args.get("topic").and_then(Value::as_str).and_then(super::status::Topic::parse) {
                 Some(topic) => ready(ToolCall::Status { topic }, false, "Status"),
                 None => reject("unknown status topic"),
+            }
+        }
+        "calendar" => {
+            only(args, &["when"])?;
+            match args.get("when").and_then(Value::as_str).and_then(crate::calendar::Ask::parse) {
+                Some(when) => ready(ToolCall::Calendar { when }, false, "Calendar"),
+                None => reject("when must be today, tomorrow or next"),
             }
         }
         "lyrics_window" => {

@@ -83,7 +83,7 @@ export interface ApkChunkMsg { t: "apk_chunk"; offset: number; data: string; tot
 export type ServerMsg = ChallengeMsg | AuthOkMsg | PairedMsg | WelcomeMsg | PatchMsg | PressResultMsg | PongMsg | ApkChunkMsg | ErrorMsg;
 
 // ===== State (sections) =====
-export type SectionName = "layout" | "sys" | "statuses" | "notifications" | "vars" | "focus" | "media" | "icons" | "weather" | "obs" | "ai" | "twitch" | "youtube" | "strip" | "battery" | "mail" | "update" | "voice" | "reminders" | "lists" | "lyrics"; // lyrics: M24; reminders, lists: M22; weather, obs: M15; ai: M16; strip, battery, mail: M17; update: M20; voice: M21
+export type SectionName = "layout" | "sys" | "statuses" | "notifications" | "vars" | "focus" | "media" | "icons" | "weather" | "obs" | "ai" | "twitch" | "youtube" | "strip" | "battery" | "mail" | "calendar" | "update" | "voice" | "reminders" | "lists" | "lyrics"; // lyrics: M24; reminders, lists: M22; weather, obs: M15; ai: M16; strip, battery, mail: M17; update: M20; voice: M21
 export interface FullState {
   layout: ClientLayout;
   sys: SysStats | null;            // null = collector disabled
@@ -101,6 +101,7 @@ export interface FullState {
   strip?: StripInfo | null;        // M17 (DATA_MODEL.md 10.5); null = no app strip
   battery?: BatteryInfo | null;    // M17 (10.6); null = the collector is not needed or has no data
   mail?: MailInfo | null;          // M17 (10.7); null = no mailboxes
+  calendar?: CalendarInfo | null;  // M32 (T32.2); null = no calendar link
   update?: UpdateInfo2 | null;     // M20 (T20.4); null = no new app for the phone
   voice?: VoiceInfo | null;        // M21
   reminders?: RemindersSection;    // M22 (DATA_MODEL.md 13.7): the next 5 reminders
@@ -119,6 +120,25 @@ export interface StripInfo { app: string; template: string; name: string; keys: 
 export interface BatteryInfo { devices: { name: string; pct: number; kind: "pc" | "bt" | "phone"; charging?: boolean }[]; updatedAt: number; } // at most 8; phone: M30
 /** `openActionId` (an id of an existing action, never a command) is the key a tap on the mailbox presses; absent = a tap does nothing. */
 export interface MailInfo { accounts: { id: Id; name: string; unread: number | null; error?: "auth" | "network"; openActionId?: Id }[]; updatedAt: number; } // at most 3
+
+/**
+ * M32 (T32.2): an event of the calendar in the wall clock of the PC. The address of a meeting never leaves the PC:
+ * `joinActionId` is pressed like any key (`press`).
+ */
+export interface CalendarEvent {
+  id: Id;
+  title: string;                   // at most 120
+  startTime: string;               // "HH:mm"; "" = the whole day
+  endTime: string;
+  day: string;                     // "YYYY-MM-DD"
+  start: number;                   // unix ms
+  end: number;
+  allDay: boolean;
+  location?: string;               // at most 80
+  meetingProvider?: "Zoom" | "Google Meet" | "Teams";
+  joinActionId?: Id;               // "cal-join-<16 hex>"
+}
+export interface CalendarInfo { updatedAt: number; events: CalendarEvent[]; error?: string } // at most 20 events, 7 days
 
 /** The live numbers of the signed-in YouTube channel. No token and no secret ever appear here. */
 export interface YoutubeInfo {

@@ -638,6 +638,25 @@ pub fn voice_status(app: AppHandle) -> Result<decka_core::ai::service::VoiceStat
     Ok(voice(&app)?.status())
 }
 
+/// T32.2: the calendar. The link goes in only; it never comes back to the window.
+#[tauri::command]
+pub fn calendar_get(app: AppHandle) -> Result<serde_json::Value, String> {
+    Ok(agent(&app)?.calendar_view())
+}
+
+#[tauri::command]
+pub fn calendar_set(app: AppHandle, url: String) -> Result<serde_json::Value, String> {
+    let agent = agent(&app)?;
+    agent.calendar_set(&url)?;
+    Ok(agent.calendar_view())
+}
+
+#[tauri::command]
+pub fn calendar_refresh(app: AppHandle) -> Result<(), String> {
+    agent(&app)?.calendar_refresh();
+    Ok(())
+}
+
 /// T32.1: the wake word "Decka" (off by default).
 #[tauri::command]
 pub fn wake_get(app: AppHandle) -> Result<decka_core::voice::wake_host::WakeStatus, String> {

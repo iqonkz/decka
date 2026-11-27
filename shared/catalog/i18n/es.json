@@ -206,6 +206,10 @@
       "label": "Lista",
       "name": "Lista con marcas"
     },
+    "widget.calendar": {
+      "label": "Calendario",
+      "name": "Próximos eventos"
+    },
     "widget.mail": {
       "label": "Correo",
       "name": "Correo sin leer"

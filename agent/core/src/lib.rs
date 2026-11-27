@@ -47,6 +47,7 @@ pub mod sta;
 pub mod state;
 pub mod strip;
 pub mod battery;
+pub mod calendar;
 pub mod mail;
 pub mod winnotif;
 pub mod statuses;

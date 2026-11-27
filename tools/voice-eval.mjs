@@ -48,6 +48,7 @@ export const VALID_TOOLS = new Set([
   "list_show",
   "list_remove",
   "day_brief",
+  "calendar",
   "memory_add",
   "memory_remove",
   "calc",

@@ -78,6 +78,8 @@ export interface YoutubeItem extends ItemBase { kind: "youtube"; }
 export interface BatteryItem extends ItemBase { kind: "battery"; }
 /** M17 (DATA_MODEL.md 10.7): unread mail; sizes 1x1, 2x1, 2x2. */
 export interface MailItem    extends ItemBase { kind: "mail"; }
+/** M32 (T32.2): the next events of the calendar; sizes 1x1, 2x1, 2x2. */
+export interface CalendarItem extends ItemBase { kind: "calendar"; }
 
 /**
  * The keys of the page of the PC app in front (the page whose `apps` has it), laid out in the widget's cells in reading order.
@@ -94,7 +96,7 @@ export interface RemindersItem extends ItemBase { kind: "reminders"; }
 export interface ListItem extends ItemBase { kind: "list"; listId?: string; }
 
 export type LayoutItem = ButtonItem | ClockItem | SysItem | StatusesItem | StatusItemTile | NotificationsItem | MediaItem
-  | VolumeItem | TimerItem | WeatherItem | ObsItem | AiItem | TwitchItem | YoutubeItem | BatteryItem | MailItem | ContextItem | VoiceItem | RemindersItem | ListItem;
+  | VolumeItem | TimerItem | WeatherItem | ObsItem | AiItem | TwitchItem | YoutubeItem | BatteryItem | MailItem | CalendarItem | ContextItem | VoiceItem | RemindersItem | ListItem;
 
 /** `navigate` value of a button that goes back to the page the user came from (DATA_MODEL.md 3.8). */
 export const BACK_PAGE = "$back";

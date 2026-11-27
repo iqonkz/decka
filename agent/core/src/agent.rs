@@ -375,6 +375,10 @@ struct Inner {
     mail_check: Arc<tokio::sync::Notify>,
     /// How the last round went for every mailbox (`mail_status`, T31.2).
     mail_status: Mutex<Vec<crate::mail::MailAccountStatus>>,
+    /// T32.2: the loop of the calendar, the stored link it runs for, and the links of the meetings by action id.
+    calendar_task: Mutex<Option<(String, JoinHandle<()>)>>,
+    calendar_wake: Arc<tokio::sync::Notify>,
+    calendar_links: Mutex<std::collections::HashMap<String, String>>,
     winnotif_collector: Mutex<Option<crate::winnotif::WinNotifCollector>>,
     /// Phone notification id -> (id Windows gave the toast, AUMID of the program); at most `WIN_TARGETS` entries.
     win_targets: Mutex<std::collections::VecDeque<(String, u32, String)>>,
@@ -529,6 +533,9 @@ impl Agent {
                 mail_task: Mutex::new(None),
                 mail_check: Arc::new(tokio::sync::Notify::new()),
                 mail_status: Mutex::new(Vec::new()),
+                calendar_task: Mutex::new(None),
+                calendar_wake: Arc::new(tokio::sync::Notify::new()),
+                calendar_links: Mutex::new(Default::default()),
                 winnotif_collector: Mutex::new(None),
                 win_targets: Mutex::new(std::collections::VecDeque::new()),
                 win_apps: Mutex::new(std::collections::BTreeSet::new()),
@@ -1040,6 +1047,8 @@ impl Agent {
         self.start_mail(needed.mail);
         // Windows notifications (M17): only while the switch in the window is on.
         self.start_winnotif();
+        // The calendar (M32): while a link is saved - the widget, the voice and the note before an event all read it.
+        self.start_calendar();
 
         // Weather (M15): a loop on the runtime; off = the section is null.
         self.start_weather();
@@ -1248,6 +1257,94 @@ impl Agent {
             }
         });
         *self.inner.mail_task.lock().unwrap() = Some(task);
+    }
+
+    /// (Re)starts the calendar loop (T32.2): the link is read every ten minutes and at once on `calendar_refresh`; the list
+    /// is rebuilt every half minute. No link = no section. A loop that already runs for this link goes on.
+    fn start_calendar(&self) {
+        let stored = self.config().calendar.map(|c| c.url);
+        let mut slot = self.inner.calendar_task.lock().unwrap();
+        if slot.as_ref().map(|s| &s.0) == stored.as_ref() {
+            return;
+        }
+        if let Some((_, old)) = slot.take() {
+            old.abort();
+        }
+        self.inner.calendar_links.lock().unwrap().clear();
+        let Some(stored) = stored else {
+            self.inner.store.set("calendar", serde_json::Value::Null);
+            return;
+        };
+        self.inner.store.set("calendar", serde_json::to_value(crate::calendar::CalendarInfo::default()).expect("calendar info serializes"));
+        let weak = Arc::downgrade(&self.inner);
+        let wake = self.inner.calendar_wake.clone();
+        let blob = stored.clone();
+        let task = self.inner.runtime.spawn(async move {
+            let link = crate::dpapi::unprotect(&blob);
+            let (mut calendar, mut updated_at, mut error) = (crate::calendar::Calendar::default(), 0i64, None::<String>);
+            let mut read_at: Option<std::time::Instant> = None;
+            let mut asked = false;
+            loop {
+                if asked || read_at.is_none_or(|t| t.elapsed() >= crate::calendar::REFRESH) {
+                    read_at = Some(std::time::Instant::now());
+                    let result = match &link {
+                        Ok(link) => crate::calendar::fetch(link).await.and_then(|text| crate::calendar::parse(&text)),
+                        Err(_) => Err("The saved link cannot be read on this PC, enter it again".to_string()),
+                    };
+                    match result {
+                        Ok(read) => (calendar, updated_at, error) = (read, crate::auth::now_ms() as i64, None),
+                        // The events read before stay; the link is never written to the log.
+                        Err(e) => {
+                            if error.as_ref() != Some(&e) {
+                                tracing::warn!("calendar: {e}");
+                            }
+                            error = Some(e);
+                        }
+                    }
+                }
+                let Some(inner) = weak.upgrade() else { break };
+                let (events, links) = calendar.upcoming((crate::auth::now_ms() / 1000) as i64, &crate::calendar::PcZone);
+                let info = crate::calendar::CalendarInfo { updated_at, events, error: error.clone() };
+                // A link of an event that just left the list stays pressable until the next reading.
+                inner.calendar_links.lock().unwrap().extend(links);
+                inner.store.set("calendar", serde_json::to_value(&info).expect("calendar info serializes"));
+                drop(inner);
+                asked = tokio::select! {
+                    () = tokio::time::sleep(crate::calendar::REBUILD) => false,
+                    () = wake.notified() => true,
+                };
+            }
+        });
+        *slot = Some((stored, task));
+    }
+
+    /// `calendar_set` (T32.2): saves the ICS link under DPAPI and reads it at once; an empty text removes the calendar.
+    pub fn calendar_set(&self, link: &str) -> Result<(), String> {
+        let mut config = self.config();
+        config.calendar = if link.trim().is_empty() {
+            None
+        } else {
+            Some(crate::model::CalendarConfig { url: crate::dpapi::protect(&crate::calendar::clean_link(link)?)? })
+        };
+        match self.write_config(config) {
+            SaveResult::Saved => {
+                self.start_calendar();
+                Ok(())
+            }
+            SaveResult::Rejected(issues) => Err(issues.first().map(|i| i.message.clone()).unwrap_or_default()),
+        }
+    }
+
+    /// `calendar_get`: whether a link is saved, the server it points at, and the section as the phones get it.
+    pub fn calendar_view(&self) -> serde_json::Value {
+        let stored = self.config().calendar;
+        let host = stored.as_ref().and_then(|c| crate::dpapi::unprotect(&c.url).ok()).and_then(|l| url::Url::parse(&l).ok()).and_then(|u| u.host_str().map(str::to_string));
+        serde_json::json!({ "connected": stored.is_some(), "host": host, "info": self.inner.store.get("calendar") })
+    }
+
+    /// `calendar_refresh`: reads the link now.
+    pub fn calendar_refresh(&self) {
+        self.inner.calendar_wake.notify_one();
     }
 
     /// `Check now` in the window: looks at the mailboxes at once.
@@ -2503,6 +2600,8 @@ impl Agent {
         }
         // Home Assistant is written by `ha_set_config` only.
         config.ha = before.ha.clone();
+        // The link of the calendar is written by `calendar_set` only.
+        config.calendar = before.calendar.clone();
         // The Twitch sign-in is written by the sign-in only; a new client id is another application, so the old sign-in goes.
         if let Some(tw) = config.twitch.as_mut() {
             let kept = before.twitch.as_ref().filter(|b| b.client_id == tw.client_id);
@@ -2623,6 +2722,8 @@ impl Agent {
     /// The config as the settings window sees it: the OBS password is left out and `passwordSet` says whether there is one.
     pub fn config_for_window(&self) -> ConfigFile {
         let mut config = self.config();
+        // The window never needs the link of the calendar, not even encrypted (`calendar_get` says whether there is one).
+        config.calendar = None;
         if let Some(obs) = config.obs.as_mut() {
             obs.password_set = Some(obs.password.is_some());
             obs.password = None;
@@ -2666,6 +2767,14 @@ impl Agent {
     pub async fn execute_for(&self, action_id: &str, phone: Option<&PhoneCtx>) -> Result<(), (ErrorCode, String)> {
         let action = self.inner.actions.lock().unwrap().actions.get(action_id).cloned();
         let Some(action) = action else {
+            // T32.2: "Join" of an event of the calendar. The phone names the event; the address is known here only.
+            if action_id.starts_with(crate::calendar::JOIN_PREFIX) {
+                let link = self.inner.calendar_links.lock().unwrap().get(action_id).cloned();
+                return match link {
+                    Some(url) => self.run_action(action_id, Action::OpenUrl { name: "Join".into(), toggle_var: None, url }, phone).await,
+                    None => Err((ErrorCode::UnknownAction, "this event is over".to_string())),
+                };
+            }
             // Not in actions.json: a key of the app strip shown now still runs (it comes from the built-in template).
             return match action_id.starts_with("tpl-").then(|| self.strip_action(action_id)).flatten() {
                 Some(from_template) => self.run_action(action_id, from_template, phone).await,
@@ -3020,6 +3129,9 @@ impl Agent {
             task.abort();
         }
         if let Some(task) = self.inner.weather_task.lock().unwrap().take() {
+            task.abort();
+        }
+        if let Some((_, task)) = self.inner.calendar_task.lock().unwrap().take() {
             task.abort();
         }
         if let Some(task) = self.inner.ai_task.lock().unwrap().take() {

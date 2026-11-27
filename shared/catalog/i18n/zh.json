@@ -206,6 +206,10 @@
       "label": "清单",
       "name": "带勾选的清单"
     },
+    "widget.calendar": {
+      "label": "日历",
+      "name": "近期日程"
+    },
     "widget.mail": {
       "label": "邮件",
       "name": "未读邮件"

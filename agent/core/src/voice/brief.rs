@@ -104,6 +104,18 @@ pub fn facts(weather: &Value, mail: &Value, ai: &Value, reminders: &[Reminder], 
     (!f.is_empty()).then_some(Value::Object(f))
 }
 
+/// Today's events of the section `calendar` that have not ended, added to the facts (T32.2).
+pub fn with_events(facts: Option<Value>, calendar: &Value, now: &Local, unix_ms: i64) -> Option<Value> {
+    let today = now.iso()[..10].to_string();
+    let events: Vec<Value> = crate::calendar::of_day(calendar, &today, unix_ms).iter().take(5).map(|e| json!({ "time": e.start_time, "title": e.title })).collect();
+    if events.is_empty() {
+        return facts;
+    }
+    let mut facts = facts.unwrap_or_else(|| json!({}));
+    facts["eventsToday"] = Value::Array(events);
+    Some(facts)
+}
+
 pub fn system_prompt(lang: &str) -> String {
     let language = super::llm::language_name(lang);
     format!(
@@ -199,6 +211,10 @@ pub fn facts_text(facts: &Value, lists: &[ListView]) -> String {
     }
     for m in facts.get("unreadMail").and_then(Value::as_array).into_iter().flatten() {
         parts.push(format!("{}: {} unread.", m["mailbox"].as_str().unwrap_or(""), m["unread"]));
+    }
+    if let Some(events) = facts.get("eventsToday").and_then(Value::as_array) {
+        let said: Vec<String> = events.iter().map(|e| format!("{} {}", e["time"].as_str().unwrap_or(""), e["title"].as_str().unwrap_or("")).trim().to_string()).collect();
+        parts.push(format!("Calendar: {}.", said.join("; ")));
     }
     if facts.get("remindersToday").is_some() {
         let today: Vec<String> = facts["remindersToday"].as_array().into_iter().flatten().map(|r| format!("{} {}", r["time"].as_str().unwrap_or(""), r["text"].as_str().unwrap_or(""))).collect();

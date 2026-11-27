@@ -206,6 +206,10 @@
       "label": "リスト",
       "name": "チェック付きリスト"
     },
+    "widget.calendar": {
+      "label": "カレンダー",
+      "name": "今後の予定"
+    },
     "widget.mail": {
       "label": "メール",
       "name": "未読メール"

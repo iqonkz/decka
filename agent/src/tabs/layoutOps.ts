@@ -28,6 +28,7 @@ export const DEFAULT_SIZE: Record<Kind, { w: number; h: number }> = {
   youtube: { w: 3, h: 1 },
   battery: { w: 2, h: 1 },
   mail: { w: 2, h: 1 },
+  calendar: { w: 2, h: 1 },
   context: { w: 3, h: 2 },
   voice: { w: 1, h: 1 },
   reminders: { w: 2, h: 2 },
@@ -67,6 +68,7 @@ export function sizeRange(kind: Kind, grid: Grid): [number, number, number, numb
     case "battery":
       return [1, 3, 1, 2];
     case "mail":
+    case "calendar":
       return [1, 2, 1, 2];
   }
 }
@@ -174,6 +176,7 @@ export function makeItem(kind: Kind, x: number, y: number, id = newItemId(kind))
     case "youtube":
     case "battery":
     case "mail":
+    case "calendar":
     case "context":
     case "reminders":
     case "list":

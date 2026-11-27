@@ -683,3 +683,32 @@ export interface WakeStatus {
 // wake_test(args: { on: boolean }): WakeStatus      — 15 с срабатывание только увеличивает heard, запрос не начинается
 ```
 Событие Rust → окно: `wake-status` (payload `WakeStatus`) при каждом изменении. Телефону ничего из этого не передаётся.
+
+### M32: календарь (T32.2)
+
+Секция `calendar` в `welcome.state` и `patch` (`null` — ссылка не сохранена; старый клиент незнакомую секцию пропускает):
+
+```ts
+export interface CalendarEvent {
+  id: Id;                     // "cal-<16 hex>"
+  title: string;              // ≤ 120
+  startTime: string;          // "HH:mm" по часам ПК; "" — весь день
+  endTime: string;
+  day: string;                // "YYYY-MM-DD"
+  start: number; end: number; // unix ms
+  allDay: boolean;
+  location?: string;          // ≤ 80; адреса страниц не передаются
+  meetingProvider?: "Zoom" | "Google Meet" | "Teams";
+  joinActionId?: Id;          // "cal-join-<16 hex>"
+}
+export interface CalendarInfo { updatedAt: number; events: CalendarEvent[]; error?: string }  // ≤ 20 событий
+```
+
+«Подключиться» — обычное `press{id, actionId: joinActionId}`. Адрес берёт ПК из своей копии ICS; события уже нет → `UNKNOWN_ACTION`.
+
+IPC окна:
+```ts
+// calendar_get(): { connected: boolean; host: string | null; info: CalendarInfo | null }
+// calendar_set(args: { url: string }): то же, что calendar_get; "" — убрать календарь; ошибка — строка
+// calendar_refresh(): void
+```

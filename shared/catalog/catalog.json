@@ -103,6 +103,7 @@
         "widget.youtube",
         "widget.battery",
         "widget.mail",
+        "widget.calendar",
         "widget.reminders",
         "widget.list",
         "widget.ai",
@@ -1059,6 +1060,23 @@
       "icon": "lucide:mail",
       "widget": {
         "kind": "mail",
+        "w": 2,
+        "h": 1
+      }
+    },
+    {
+      "id": "widget.calendar",
+      "label": {
+        "en": "Calendar",
+        "ru": "Календарь"
+      },
+      "name": {
+        "en": "Upcoming events",
+        "ru": "Ближайшие события"
+      },
+      "icon": "lucide:calendar",
+      "widget": {
+        "kind": "calendar",
         "w": 2,
         "h": 1
       }

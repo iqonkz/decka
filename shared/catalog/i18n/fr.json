@@ -206,6 +206,10 @@
       "label": "Liste",
       "name": "Liste avec coches"
     },
+    "widget.calendar": {
+      "label": "Calendrier",
+      "name": "Événements à venir"
+    },
     "widget.mail": {
       "label": "Messagerie",
       "name": "Messages non lus"

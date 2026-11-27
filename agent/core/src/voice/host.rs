@@ -317,6 +317,7 @@ async fn day_brief(agent: &Agent, sup: &crate::ai::supervisor::Supervisor, lang:
     let (assistant, now) = (agent.assistant(), crate::assistant::Local::now());
     let lists = assistant.lists();
     let facts = brief::facts(&store.get("weather"), &store.get("mail"), &store.get("ai"), &assistant.upcoming(50), &lists, &now);
+    let facts = brief::with_events(facts, &store.get("calendar"), &now, crate::auth::now_ms() as i64);
     let Some(facts) = facts else { return Ok(brief::NOTHING.into()) };
     let body = brief::request_body(&facts, lang);
     let answer = super::assist::chat_text(sup, &body, brief::BRIEF_TIMEOUT).await;
@@ -1023,7 +1024,8 @@ impl Host {
                 let store = inner.agent.store();
                 let fullscreen = tokio::task::spawn_blocking(crate::lyrics_overlay::foreground_is_fullscreen).await.unwrap_or(false);
                 let focus = inner.focus_timer.ended(Instant::now());
-                let s = super::notices::sample(started.elapsed().as_millis() as u64, &store.get("sys"), &store.get("battery"), &store.get("ai"), focus, fullscreen);
+                let mut s = super::notices::sample(started.elapsed().as_millis() as u64, &store.get("sys"), &store.get("battery"), &store.get("ai"), focus, fullscreen);
+                s.soon = super::notices::soon(&store.get("calendar"), crate::auth::now_ms() as i64);
                 for n in notices.step(inner.agent.voice_notices_enabled(), &s) {
                     if n.rule == super::notices::Rule::Ram {
                         // T30.2: with the button "Show what uses it".
@@ -1034,6 +1036,10 @@ impl Host {
                         let pct = s.phone_low.map_or_else(String::new, |v| format!("{}", v.round() as i64));
                         let said = super::status::Answer { key: "voice.reply.phone_battery_low", args: [("pct".to_string(), pct)].into(), text: n.text.clone() };
                         inner.plate(&super::status::encode(&said), false, 8);
+                    } else if n.rule == super::notices::Rule::Event {
+                        let args = n.event.map(|e| [("min".to_string(), e.minutes.to_string()), ("title".to_string(), e.title)].into()).unwrap_or_default();
+                        let said = super::status::Answer { key: "voice.reply.calendar_soon", args, text: n.text.clone() };
+                        inner.plate(&super::status::encode(&said), false, 12);
                     } else if n.rule == super::notices::Rule::Focus {
                         inner.focus_timer.told();
                         let said = super::status::Answer { key: "voice.reply.focus_over", args: Default::default(), text: n.text.clone() };
@@ -1692,6 +1698,9 @@ impl Ports for Inner {
                         ToolCall::ModeSave { name } => super::modes::save(&slow_dir, &name),
                         _ => unreachable!(),
                     };
+                }
+                ToolCall::Calendar { when } => {
+                    return Ok(super::status::encode(&crate::calendar::answer(&agent.store().get("calendar"), *when, &crate::assistant::Local::now(), crate::auth::now_ms() as i64)));
                 }
                 ToolCall::ReadAloud => {
                     return tokio::task::spawn_blocking(move || {

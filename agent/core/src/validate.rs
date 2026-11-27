@@ -255,7 +255,7 @@ fn size_limits(kind: &str, cols: i32, rows: i32, graph: bool) -> (i32, i32, i32,
         "obs" => (2, 4, 1, 2),
         "ai" | "twitch" | "youtube" => (2, 4, 1, 2),
         "battery" => (1, 3, 1, 2),
-        "mail" => (1, 2, 1, 2),
+        "mail" | "calendar" => (1, 2, 1, 2),
         _ => (2, cols, 1, rows), // statuses, notifications
     }
 }
@@ -274,7 +274,7 @@ fn size_allowed(kind: &str, w: i32, h: i32, cols: i32, rows: i32, graph: bool) -
         "ai" => h == 2 || w == 2,
         // 1x1, 2x1, 2x2, 3x1 (DATA_MODEL.md 10.6) and 1x1, 2x1, 2x2 (10.7).
         "battery" => (w, h) != (1, 2) && (w, h) != (3, 2),
-        "mail" => (w, h) != (1, 2),
+        "mail" | "calendar" => (w, h) != (1, 2),
         _ => true,
     }
 }
@@ -515,7 +515,7 @@ pub fn validate_layout(layout: &LayoutFile, actions: &ActionsFile) -> Vec<Valida
                         out.push(issue(format!("{path}/listId"), "listId must be 16 hex characters"));
                     }
                 }
-                LayoutItem::Clock(_) | LayoutItem::Sys(_) | LayoutItem::Notifications(_) | LayoutItem::Weather(_) | LayoutItem::Obs(_) | LayoutItem::Twitch(_) | LayoutItem::Youtube(_) | LayoutItem::Context(_) | LayoutItem::Voice(_) | LayoutItem::Battery(_) | LayoutItem::Mail(_) | LayoutItem::Reminders(_) => {}
+                LayoutItem::Clock(_) | LayoutItem::Sys(_) | LayoutItem::Notifications(_) | LayoutItem::Weather(_) | LayoutItem::Obs(_) | LayoutItem::Twitch(_) | LayoutItem::Youtube(_) | LayoutItem::Context(_) | LayoutItem::Voice(_) | LayoutItem::Battery(_) | LayoutItem::Mail(_) | LayoutItem::Calendar(_) | LayoutItem::Reminders(_) => {}
             }
         }
     }

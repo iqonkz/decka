@@ -143,6 +143,8 @@ fn export_config(config: &ConfigFile) -> ConfigFile {
     if let Some(ha) = c.ha.as_mut() {
         ha.token = String::new();
     }
+    // T32.2: the link of the calendar is a secret as a whole.
+    c.calendar = None;
     c
 }
 
@@ -366,6 +368,7 @@ fn merge_config(current: &ConfigFile, backup: ConfigFile) -> (ConfigFile, Vec<Mi
         },
         None => c.ha = current.ha.clone(),
     }
+    c.calendar = current.calendar.clone();
     (c, missing)
 }
 

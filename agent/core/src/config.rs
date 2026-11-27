@@ -70,6 +70,7 @@ pub fn default_config() -> ConfigFile {
         server: None,
         notes: None,
         ha: None,
+        calendar: None,
     }
 }
 

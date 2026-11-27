@@ -114,7 +114,7 @@ pub fn understood(v: &Validated) -> ConfirmInfo {
         ToolCall::Media(_) | ToolCall::MediaPlay => plain("voice.did.media"),
         ToolCall::FindOnScreen { .. } | ToolCall::UiAct { .. } | ToolCall::ReadAloud => plain("voice.did.screen"),
         ToolCall::Guide { .. } | ToolCall::GuideRecord { .. } | ToolCall::GuideControl { .. } => plain("voice.did.guide"),
-        ToolCall::Ask { .. } | ToolCall::Calc { .. } | ToolCall::Status { .. } => plain("voice.did.question"),
+        ToolCall::Ask { .. } | ToolCall::Calc { .. } | ToolCall::Status { .. } | ToolCall::Calendar { .. } => plain("voice.did.question"),
         ToolCall::TextTransform { .. } | ToolCall::ReplyAction { .. } => plain("voice.did.text"),
         _ => (None, BTreeMap::new()),
     };
@@ -454,7 +454,7 @@ fn executing(mut s: State, v: &Validated) -> (State, Vec<Effect>) {
         s.activity = Some("screen");
     }
     // The result of arithmetic and of a question is the answer itself, not the few words the model said with the call.
-    if matches!(call, ToolCall::Calc { .. } | ToolCall::Ask { .. } | ToolCall::Status { .. } | ToolCall::TextTransform { .. } | ToolCall::ReplyAction { .. }) {
+    if matches!(call, ToolCall::Calc { .. } | ToolCall::Ask { .. } | ToolCall::Status { .. } | ToolCall::Calendar { .. } | ToolCall::TextTransform { .. } | ToolCall::ReplyAction { .. }) {
         s.say = None;
     }
     // An answer that is shown (not pasted) can be continued; the flag only counts when the result is not empty.

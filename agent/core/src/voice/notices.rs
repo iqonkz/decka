@@ -24,6 +24,36 @@ pub enum Rule {
     Ai,
     /// M30 (T30.3): the phone runs low and is not on a charger.
     Phone,
+    /// M32 (T32.2): an event of the calendar starts within five minutes.
+    Event,
+}
+
+/// An event is announced this long before it starts.
+pub const SOON_MS: i64 = 5 * 60_000;
+
+/// An event that starts soon.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Soon {
+    pub id: String,
+    pub title: String,
+    /// Whole minutes left, at least 1.
+    pub minutes: i64,
+}
+
+/// The events with a time (not of a whole day) of the section `calendar` that start within `SOON_MS`.
+pub fn soon(calendar: &Value, unix_ms: i64) -> Vec<Soon> {
+    calendar
+        .get("events")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter(|e| e.get("allDay").and_then(Value::as_bool) != Some(true))
+        .filter_map(|e| {
+            let left = e.get("start")?.as_i64()? - unix_ms;
+            (left > 0 && left <= SOON_MS).then_some(())?;
+            Some(Soon { id: e.get("id")?.as_str()?.to_string(), title: e.get("title")?.as_str()?.to_string(), minutes: (left + 59_999) / 60_000 })
+        })
+        .collect()
 }
 
 const ALL: [Rule; 7] = [Rule::Ram, Rule::Cpu, Rule::Battery, Rule::Disk, Rule::Focus, Rule::Ai, Rule::Phone];
@@ -44,18 +74,23 @@ pub struct Sample {
     pub ai_pct: Option<f64>,
     pub focus_ended: bool,
     pub fullscreen: bool,
+    pub soon: Vec<Soon>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Notice {
     pub rule: Rule,
     pub text: String,
+    /// Which event, for `Rule::Event`.
+    pub event: Option<Soon>,
 }
 
 #[derive(Debug, Default)]
 pub struct Notices {
     over_since: std::collections::HashMap<Rule, u64>,
     shown_at: std::collections::HashMap<Rule, u64>,
+    /// The events that were announced: each one once, whatever the pause of the rules.
+    told: std::collections::HashSet<String>,
 }
 
 impl Notices {
@@ -71,6 +106,8 @@ impl Notices {
                 Rule::Focus => (s.focus_ended, 0),
                 Rule::Ai => (s.ai_pct.is_some_and(|v| v >= AI_PCT), 0),
                 Rule::Phone => (s.phone_low.is_some_and(|v| v <= BATTERY_PCT), 0),
+                // Events are announced one by one, below.
+                Rule::Event => (false, 0),
             };
             if !on {
                 self.over_since.remove(&rule);
@@ -82,7 +119,14 @@ impl Notices {
             let cooled = self.shown_at.get(&rule).is_none_or(|t| if rule == Rule::Focus { *t < since } else { s.now_ms.saturating_sub(*t) >= COOLDOWN_MS });
             if enabled && !s.fullscreen && held && cooled {
                 self.shown_at.insert(rule, s.now_ms);
-                out.push(Notice { rule, text: text(rule, s) });
+                out.push(Notice { rule, text: text(rule, s), event: None });
+            }
+        }
+        if enabled && !s.fullscreen {
+            for e in &s.soon {
+                if self.told.insert(e.id.clone()) {
+                    out.push(Notice { rule: Rule::Event, text: format!("In {} min: {}", e.minutes, e.title), event: Some(e.clone()) });
+                }
             }
         }
         out
@@ -105,6 +149,7 @@ fn text(rule: Rule, s: &Sample) -> String {
         Rule::Focus => "The focus timer is over".into(),
         Rule::Ai => format!("An AI limit is {}% used", n(s.ai_pct)),
         Rule::Phone => format!("Phone: {}%", n(s.phone_low)),
+        Rule::Event => "An event starts soon".into(),
     }
 }
 
@@ -137,7 +182,7 @@ pub fn sample(now_ms: u64, sys: &Value, battery: &Value, ai: &Value, focus_ended
         .filter_map(|w| w.get("pct")?.as_f64())
         .reduce(f64::max);
     let top_process = sys.pointer("/top/0/name").and_then(Value::as_str).map(str::to_string);
-    Sample { now_ms, cpu_pct: f(sys, "/cpu"), ram_pct, top_process, disk_free_gb, battery_low, phone_low, ai_pct, focus_ended, fullscreen }
+    Sample { now_ms, cpu_pct: f(sys, "/cpu"), ram_pct, top_process, disk_free_gb, battery_low, phone_low, ai_pct, focus_ended, fullscreen, soon: Vec::new() }
 }
 
 #[cfg(test)]

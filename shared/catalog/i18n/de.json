@@ -206,6 +206,10 @@
       "label": "Liste",
       "name": "Liste mit Häkchen"
     },
+    "widget.calendar": {
+      "label": "Kalender",
+      "name": "Nächste Termine"
+    },
     "widget.mail": {
       "label": "E-Mail",
       "name": "Ungelesene E-Mails"

@@ -611,6 +611,8 @@ pub enum LayoutItem {
     Battery(PlainItem),
     /// M17: unread mail (DATA_MODEL.md 10.7).
     Mail(PlainItem),
+    /// M32 (T32.2): the next events of the calendar.
+    Calendar(PlainItem),
     /// The keys of the page of the app in front, shown inside a widget.
     Context(PlainItem),
     Voice(VoiceItem),
@@ -634,7 +636,7 @@ impl LayoutItem {
             LayoutItem::Media(i) => (&i.id, i.x, i.y, i.w, i.h),
             LayoutItem::Volume(i) => (&i.id, i.x, i.y, i.w, i.h),
             LayoutItem::Timer(i) => (&i.id, i.x, i.y, i.w, i.h),
-            LayoutItem::Weather(i) | LayoutItem::Obs(i) | LayoutItem::Twitch(i) | LayoutItem::Youtube(i) | LayoutItem::Context(i) | LayoutItem::Battery(i) | LayoutItem::Mail(i) => (&i.id, i.x, i.y, i.w, i.h),
+            LayoutItem::Weather(i) | LayoutItem::Obs(i) | LayoutItem::Twitch(i) | LayoutItem::Youtube(i) | LayoutItem::Context(i) | LayoutItem::Battery(i) | LayoutItem::Mail(i) | LayoutItem::Calendar(i) => (&i.id, i.x, i.y, i.w, i.h),
             LayoutItem::Ai(i) => (&i.id, i.x, i.y, i.w, i.h),
             LayoutItem::Reminders(i) => (&i.id, i.x, i.y, i.w, i.h),
             LayoutItem::List(i) => (&i.id, i.x, i.y, i.w, i.h),
@@ -654,7 +656,7 @@ impl LayoutItem {
             LayoutItem::Media(i) => (i.x, i.y) = (x, y),
             LayoutItem::Volume(i) => (i.x, i.y) = (x, y),
             LayoutItem::Timer(i) => (i.x, i.y) = (x, y),
-            LayoutItem::Weather(i) | LayoutItem::Obs(i) | LayoutItem::Twitch(i) | LayoutItem::Youtube(i) | LayoutItem::Context(i) | LayoutItem::Battery(i) | LayoutItem::Mail(i) => (i.x, i.y) = (x, y),
+            LayoutItem::Weather(i) | LayoutItem::Obs(i) | LayoutItem::Twitch(i) | LayoutItem::Youtube(i) | LayoutItem::Context(i) | LayoutItem::Battery(i) | LayoutItem::Mail(i) | LayoutItem::Calendar(i) => (i.x, i.y) = (x, y),
             LayoutItem::Ai(i) => (i.x, i.y) = (x, y),
             LayoutItem::Reminders(i) => (i.x, i.y) = (x, y),
             LayoutItem::List(i) => (i.x, i.y) = (x, y),
@@ -679,6 +681,7 @@ impl LayoutItem {
             LayoutItem::Youtube(_) => "youtube",
             LayoutItem::Battery(_) => "battery",
             LayoutItem::Mail(_) => "mail",
+            LayoutItem::Calendar(_) => "calendar",
             LayoutItem::Context(_) => "context",
             LayoutItem::Voice(_) => "voice",
             LayoutItem::Reminders(_) => "reminders",
@@ -745,6 +748,17 @@ pub struct ConfigFile {
     /// M30 (T30.8): Home Assistant; absent = off.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ha: Option<HaConfig>,
+    /// M32 (T32.2): the calendar; absent = off. Written by `calendar_set` only.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub calendar: Option<CalendarConfig>,
+}
+
+/// `config.calendar` (T32.2).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CalendarConfig {
+    /// The ICS link under DPAPI (`dpapi:...`): whoever has it reads the calendar.
+    pub url: String,
 }
 
 /// `config.ha` (T30.8), written by the settings window only.

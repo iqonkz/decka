@@ -8,7 +8,7 @@ use tokio::sync::broadcast;
 
 use crate::model::{Notification, StatusItem, VarValue};
 
-pub const SECTIONS: [&str; 21] = ["layout", "sys", "statuses", "notifications", "vars", "focus", "media", "icons", "weather", "obs", "ai", "twitch", "youtube", "strip", "battery", "mail", "update", "voice", "reminders", "lists", "lyrics"];
+pub const SECTIONS: [&str; 22] = ["layout", "sys", "statuses", "notifications", "vars", "focus", "media", "icons", "weather", "obs", "ai", "twitch", "youtube", "strip", "battery", "mail", "update", "voice", "reminders", "lists", "lyrics", "calendar"];
 pub const MAX_NOTIFICATIONS: usize = 20;
 
 /// A change to one section; `value` is always the complete new value of the section.
@@ -67,6 +67,7 @@ impl Store {
         sections.insert("strip", Value::Null);
         sections.insert("battery", Value::Null);
         sections.insert("mail", Value::Null);
+        sections.insert("calendar", Value::Null);
         sections.insert("update", Value::Null);
         sections.insert("voice", Value::Null);
         sections.insert("reminders", serde_json::json!({ "items": [] }));

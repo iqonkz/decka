@@ -206,6 +206,10 @@
       "label": "सूची",
       "name": "टिक वाली सूची"
     },
+    "widget.calendar": {
+      "label": "कैलेंडर",
+      "name": "आने वाले कार्यक्रम"
+    },
     "widget.mail": {
       "label": "मेल",
       "name": "अपठित मेल"
