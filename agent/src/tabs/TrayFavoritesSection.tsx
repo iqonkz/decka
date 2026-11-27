@@ -74,7 +74,12 @@ export default function TrayFavoritesSection({ initial }: TrayFavoritesSectionPr
               key={item.id}
               title={
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                  <EntryIcon icon={item.icon.startsWith("lucide:") ? item.icon : "lucide:zap"} size={18} />
+                  {item.icon.startsWith("emoji:") ? (
+                    <span aria-hidden="true">{item.icon.slice("emoji:".length)}</span>
+                  ) : (
+                    // A picture of a program lives in the icons of the deck; the list shows the general sign instead.
+                    <EntryIcon icon={item.icon.startsWith("lucide:") ? item.icon : "lucide:zap"} size={18} />
+                  )}
                   <span>{item.label}</span>
                 </span>
               }
