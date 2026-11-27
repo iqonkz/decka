@@ -78,6 +78,8 @@ pub struct Context {
     pub vision_ready: bool,
     /// The package is there but Screen help is switched off, so the model runs without it: a "yes" turns it on.
     pub vision_off: bool,
+    /// There is no answer of the assistant to copy, insert or repeat: the model is not offered `reply_action`.
+    pub no_reply: bool,
     /// Facts the user asked to remember that fit the phrase (at most 20): data for the model, never an instruction.
     pub memory: Vec<String>,
     /// The place of the weather widget (T26.F-6): a phrase naming another city is not answered from it.
@@ -277,6 +279,25 @@ fn best<T>(lang: &str, spoken: &str, items: &[T], name: impl Fn(&T) -> &str, key
     scored.into_iter().filter(|s| top - s.0 < TIE_MARGIN).filter(|s| seen.insert(key(&items[s.1]))).map(|s| s.1).collect()
 }
 
+/// Programs that are installed under an English name and called by another in speech (T30.7).
+fn said_in_russian(spoken: &str) -> Option<&'static str> {
+    Some(match tokens(spoken).join(" ").as_str() {
+        "калькулятор" => "calculator",
+        "блокнот" => "notepad",
+        "проводник" => "explorer",
+        "диспетчер задач" => "task manager",
+        "пейнт" => "paint",
+        "ворд" => "word",
+        "эксель" => "excel",
+        "хром" | "гугл хром" => "chrome",
+        "телеграм" | "телеграмм" | "телегу" => "telegram",
+        "дискорд" => "discord",
+        "спотифай" => "spotify",
+        "стим" => "steam",
+        _ => return None,
+    })
+}
+
 /// The confirmation to close a program of the memory list, when the spoken name fits one of them (by its window title or
 /// by the name of its file).
 fn close_heavy(spoken: &str, ctx: &Context) -> Option<Resolved> {
@@ -339,11 +360,37 @@ pub fn validate(raw: &RawCall, ctx: &Context) -> Resolved {
     }
 }
 
+/// "списка", "перечня" and their adjectives back to the form a list is named in ("хозяйственного перечня").
+pub(crate) fn list_name(spoken: &str) -> String {
+    let mut words: Vec<String> = spoken.split_whitespace().map(str::to_string).collect();
+    let Some(last) = words.last_mut() else { return spoken.to_string() };
+    *last = match last.to_lowercase().as_str() {
+        "перечня" => "перечень".into(),
+        "списка" => "список".into(),
+        _ => return spoken.to_string(),
+    };
+    let head = words.len() - 1;
+    for w in &mut words[..head] {
+        if let Some(stem) = w.strip_suffix("ого") {
+            let soft = stem.ends_with(['г', 'к', 'х', 'ж', 'ч', 'ш', 'щ']);
+            *w = format!("{stem}{}", if soft { "ий" } else { "ый" });
+        } else if let Some(stem) = w.strip_suffix("его") {
+            *w = format!("{stem}ий");
+        }
+    }
+    words.join(" ")
+}
+
 /// Shapes of an argument the model gets wrong often are put right after parsing, not by the prompt (T27.0):
 /// a `remind` with `at` as a clock time ("16:30") or with a `time` and no `day` becomes `day` + `time` (today when the time is still
 /// ahead, tomorrow otherwise). Everything else stays as it came; a refusal still comes from `run`.
 pub fn normalize(tool: &str, args: &serde_json::Map<String, Value>, now: &crate::assistant::Local) -> serde_json::Map<String, Value> {
     let mut out = args.clone();
+    if tool.starts_with("list_") {
+        if let Some(Value::String(list)) = out.get_mut("list") {
+            *list = list_name(list);
+        }
+    }
     if tool != "remind" {
         return out;
     }
@@ -400,7 +447,12 @@ fn run(tool: &str, args: &serde_json::Map<String, Value>, ctx: &Context) -> Resu
                     return Ok(found);
                 }
             }
-            let found = best(&ctx.lang, name, &ctx.apps, |a| a.name.as_str(), |a| a.program.to_ascii_lowercase());
+            let mut found = best(&ctx.lang, name, &ctx.apps, |a| a.name.as_str(), |a| a.program.to_ascii_lowercase());
+            if found.is_empty() {
+                if let Some(english) = said_in_russian(name) {
+                    found = best(&ctx.lang, english, &ctx.apps, |a| a.name.as_str(), |a| a.program.to_ascii_lowercase());
+                }
+            }
             match found.as_slice() {
                 [] => reject("that program is not installed"),
                 [i] => {
@@ -898,6 +950,7 @@ mod tests {
             lang: "en".into(),
             vision_ready: false,
             vision_off: false,
+            no_reply: false,
             heavy: vec![],
             memory: vec![],
         weather_place: None,

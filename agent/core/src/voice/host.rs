@@ -534,6 +534,7 @@ pub fn build_context(lang: &str, actions: &ActionsFile, layout: &LayoutFile, ins
     Context {
         vision_ready: false,
         vision_off: false,
+        no_reply: false,
         heavy: vec![],
         memory: Vec::new(),
         weather_place: None,
@@ -1432,6 +1433,7 @@ impl Ports for Inner {
         ctx.vision_ready = installed && on;
         ctx.vision_off = installed && !on;
         ctx.heavy = fresh_heavy(&self.heavy);
+        ctx.no_reply = self.answers.lock().unwrap().fresh(Instant::now()).is_none();
         ctx.weather_place = self.agent.store().get("weather").get("place").and_then(|p| p.as_str()).map(str::to_string);
         ctx.guide_running = self.screen.get().is_some_and(|s| s.is_running());
         // T29.P: the page a phone shows; without a phone, the page the voice went to last.

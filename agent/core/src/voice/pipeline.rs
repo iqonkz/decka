@@ -647,6 +647,11 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
             Some((raw, say)) => {
                 let mut s = s;
                 s.say = say.filter(|t| !t.trim().is_empty());
+                // T30.7: the rules the model does not always keep.
+                let raw = match s.heard.as_deref() {
+                    Some(heard) => super::llm::adjust(raw, heard, env.table, env.ctx, &env.ctx.lang),
+                    None => raw,
+                };
                 resolve(s, &raw, now_ms, env, true)
             }
         },

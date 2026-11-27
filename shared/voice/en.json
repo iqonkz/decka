@@ -473,6 +473,8 @@
       "tool": "list_add",
       "patterns": [
         "add {item} to {list} list",
+        "put {item} on my {list} checklist",
+        "put {item} on my {list} list",
         "add {item} to list {list}",
         "add {item} to {list}",
         "add to {list} list {item}",

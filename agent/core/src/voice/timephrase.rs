@@ -202,6 +202,12 @@ fn find_repeat(words: &[String]) -> Option<(Repeat, Option<&'static str>, Vec<us
     None
 }
 
+/// The series a phrase speaks of ("каждую пятницу", "on weekdays"): how it repeats and the weekday of a weekly one.
+pub(crate) fn series_of(phrase: &str) -> Option<(&'static str, Option<&'static str>)> {
+    let words: Vec<String> = phrase.split_whitespace().map(norm).collect();
+    find_repeat(&words).map(|(repeat, day, _)| (repeat.as_str(), day))
+}
+
 /// The reminder of a phrase that has a lead-in word (one of `leads`, each a list of normalised words) and a time: the
 /// `remind` call with the text cut free of the lead-in and the time. `None` when there is no lead-in, no time or no text.
 pub fn remind_intent(phrase: &str, leads: &[Vec<String>], now: &Local) -> Option<Intent> {

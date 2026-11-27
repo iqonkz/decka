@@ -12,7 +12,7 @@ use std::time::Instant;
 use decka_core::ai::download::{parse_manifest, Downloader};
 use decka_core::ai::service::{default_root, DetectProbe, ModelChoice, VoiceDeps, VoiceService, VoiceSetArgs};
 use decka_core::voice::host::table_text;
-use decka_core::voice::llm::ask_at;
+use decka_core::voice::llm::{adjust, ask_at};
 use decka_core::voice::matcher::{Match, Table};
 use decka_core::voice::tools::{validate, ActionRef, AppRef, ButtonRef, Context, PageRef, RawCall, Resolved};
 use serde_json::Value;
@@ -29,6 +29,9 @@ fn context(lang: &str) -> Context {
         pages: ["Main", "Streaming", "Media"].iter().map(|n| PageRef { id: n.to_lowercase(), name: (*n).into() }).collect(),
         confirm_actions: vec![],
         vision_ready: false,
+        vision_off: false,
+        no_reply: true,
+        heavy: vec![],
         memory: vec![],
         weather_place: None,
         guide_running: false,
@@ -116,7 +119,7 @@ async fn main() {
                 None => {
                     ai += 1;
                     let t = Instant::now();
-                    let answer = ask_at(port, &key, say, &ctx, lang).await.map(|(c, _)| c);
+                    let answer = ask_at(port, &key, say, &ctx, lang).await.map(|(c, _)| adjust(c, say, &table, &ctx, lang));
                     ai_time += t.elapsed();
                     answer
                 }

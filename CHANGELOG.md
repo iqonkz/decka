@@ -15,6 +15,7 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 - **Meeting notes**: say "start a note" (or use the island or a `notes_record` key) and Decka records the microphone and the PC sound, writes it down with the local whisper and sums it up (summary, decisions, tasks, questions) into a Markdown file on this PC. A red dot with a timer stays on the island while it records; nothing leaves the PC; the sound is deleted unless "Keep the sound" is on.
 
 ### Changed
+- **Voice understands Russian better** (85 % -> 95-97 % of the test phrases; English 92 % -> 97 %): built-in programs by their Russian names, series of reminders, adding to lists, and questions that are answered instead of searched.
 - The **step-by-step guide** waits for Windows to say the window changed instead of reading it over and over: about eight times less processor while it waits.
 - Without a video card for speech, the **lightweight recognition** is on by default (a choice made by hand stays; an installed large model is not replaced by itself).
 - The part of the model that looks at the screen (about 1 GB of memory) is loaded only while **Screen help** is switched on; asking about the screen with it off offers to switch it on.
