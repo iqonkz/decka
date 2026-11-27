@@ -80,6 +80,8 @@ export const es: Dictionary = {
   // ----- Phone: errors of a press -----
   "press.unknown_action": "La acción no está definida en el PC",
   "press.failed": "La acción falló en el PC",
+  "press.webhook_code": "El webhook respondió con el código {code}",
+  "press.webhook_silent": "El webhook no respondió",
   "press.rate_limited": "Demasiado rápido",
   "press.timeout": "El PC no respondió",
   "press.offline": "Sin conexión",

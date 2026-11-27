@@ -27,8 +27,13 @@ export function pressErrorTitle(e: { code: string; message?: string }): string {
   switch (e.code) {
     case "UNKNOWN_ACTION":
       return t("press.unknown_action");
-    case "ACTION_FAILED":
+    case "ACTION_FAILED": {
+      // T29.P: a webhook says its status code (also as a step of a sequence), or that nothing answered.
+      const status = /^(?:Step \d+: )?HTTP (\d{3})$/.exec(e.message ?? "")?.[1];
+      if (status !== undefined) return t("press.webhook_code", { code: status });
+      if (e.message?.endsWith("The webhook did not answer")) return t("press.webhook_silent");
       return t("press.failed");
+    }
     case "RATE_LIMITED":
       return t("press.rate_limited");
     case "TIMEOUT":

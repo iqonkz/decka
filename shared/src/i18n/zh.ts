@@ -80,6 +80,8 @@ export const zh: Dictionary = {
   // ----- Phone: errors of a press -----
   "press.unknown_action": "电脑上没有定义该操作",
   "press.failed": "电脑上的操作失败",
+  "press.webhook_code": "Webhook 返回状态码 {code}",
+  "press.webhook_silent": "Webhook 没有响应",
   "press.rate_limited": "按得太快",
   "press.timeout": "电脑没有响应",
   "press.offline": "未连接",

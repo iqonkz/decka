@@ -80,6 +80,8 @@ export const hi: Dictionary = {
   // ----- Phone: errors of a press -----
   "press.unknown_action": "पीसी पर यह क्रिया परिभाषित नहीं है",
   "press.failed": "पीसी पर क्रिया विफल रही",
+  "press.webhook_code": "वेबहुक ने कोड {code} के साथ जवाब दिया",
+  "press.webhook_silent": "वेबहुक ने जवाब नहीं दिया",
   "press.rate_limited": "बहुत तेज़",
   "press.timeout": "पीसी ने जवाब नहीं दिया",
   "press.offline": "जुड़ा नहीं है",

@@ -82,6 +82,8 @@ export const en = {
   // ----- Phone: errors of a press -----
   "press.unknown_action": "Action is not defined on the PC",
   "press.failed": "Action failed on the PC",
+  "press.webhook_code": "The webhook answered with code {code}",
+  "press.webhook_silent": "The webhook did not answer",
   "press.rate_limited": "Too fast",
   "press.timeout": "PC did not respond",
   "press.offline": "Not connected",

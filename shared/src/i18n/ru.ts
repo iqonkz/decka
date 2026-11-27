@@ -84,6 +84,8 @@ export const ru: Record<Base | ExtraPlural, string> = {
   // ----- Phone: errors of a press -----
   "press.unknown_action": "Действие не задано на ПК",
   "press.failed": "Не удалось выполнить действие на ПК",
+  "press.webhook_code": "Вебхук ответил кодом {code}",
+  "press.webhook_silent": "Вебхук не ответил",
   "press.rate_limited": "Слишком быстро",
   "press.timeout": "ПК не отвечает",
   "press.offline": "Нет связи",

@@ -45,4 +45,11 @@ describe("pressErrorTitle", () => {
     expect(pressErrorTitle({ code: "OFFLINE" })).toBe("Not connected");
     expect(pressErrorTitle({ code: "WEIRD", message: "something" })).toBe("something");
   });
+
+  test("a webhook shows its status code, or that nothing answered", () => {
+    expect(pressErrorTitle({ code: "ACTION_FAILED", message: "HTTP 404" })).toBe("The webhook answered with code 404");
+    expect(pressErrorTitle({ code: "ACTION_FAILED", message: "Step 2: HTTP 503" })).toBe("The webhook answered with code 503");
+    expect(pressErrorTitle({ code: "ACTION_FAILED", message: "The webhook did not answer" })).toBe("The webhook did not answer");
+    expect(pressErrorTitle({ code: "ACTION_FAILED", message: "program HTTP 404 not found" })).toBe("Action failed on the PC");
+  });
 });

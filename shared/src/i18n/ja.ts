@@ -80,6 +80,8 @@ export const ja: Dictionary = {
   // ----- Phone: errors of a press -----
   "press.unknown_action": "PC にこのアクションが定義されていません",
   "press.failed": "PC でアクションが失敗しました",
+  "press.webhook_code": "Webhook の応答コード: {code}",
+  "press.webhook_silent": "Webhook から応答がありません",
   "press.rate_limited": "操作が速すぎます",
   "press.timeout": "PC が応答しませんでした",
   "press.offline": "未接続",

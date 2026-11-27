@@ -80,6 +80,8 @@ export const kk: Dictionary = {
   // ----- Phone: errors of a press -----
   "press.unknown_action": "Әрекет ДК-де анықталмаған",
   "press.failed": "Әрекет ДК-де орындалмады",
+  "press.webhook_code": "Вебхук {code} кодымен жауап берді",
+  "press.webhook_silent": "Вебхук жауап бермеді",
   "press.rate_limited": "Тым жылдам",
   "press.timeout": "ДК жауап бермеді",
   "press.offline": "Қосылмаған",

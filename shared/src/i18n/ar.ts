@@ -80,6 +80,8 @@ export const ar: Dictionary = {
   // ----- Phone: errors of a press -----
   "press.unknown_action": "الإجراء غير معرّف على الحاسوب",
   "press.failed": "فشل الإجراء على الحاسوب",
+  "press.webhook_code": "ردّ الويب هوك بالرمز {code}",
+  "press.webhook_silent": "لم يردّ الويب هوك",
   "press.rate_limited": "سريع جدًا",
   "press.timeout": "لم يستجب الحاسوب",
   "press.offline": "غير متصل",
