@@ -4,6 +4,8 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+## 0.70.0 — 2026-11-27
+
 ### Added
 - **Wake word "Decka"** (experimental, off by default; Voice settings): say "Decka" or «Декка» instead of pressing the voice key. It runs offline in a process of its own (about 38 MB downloaded the first time, Apache-2.0 model); the sound is not saved or sent. The microphone closes while a note is recorded or a program is in full screen; the tray icon carries a dot while it is on. **Its accuracy and load have not been measured yet.**
 - **Calendar** from an ICS link (Google, Outlook), no sign-in: a widget with the next events and **Join** for Zoom, Meet and Teams, "what do I have tomorrow" and "when is my next meeting" by voice, a quiet note five minutes before an event. The link is kept encrypted on the PC and meeting addresses never go to the phone.
