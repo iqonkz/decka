@@ -71,6 +71,7 @@ pub fn default_config() -> ConfigFile {
         notes: None,
         ha: None,
         calendar: None,
+        tray: None,
     }
 }
 

@@ -638,6 +638,55 @@ pub fn voice_status(app: AppHandle) -> Result<decka_core::ai::service::VoiceStat
     Ok(voice(&app)?.status())
 }
 
+/// T32.3: what the mini panel of the tray shows.
+#[tauri::command]
+pub async fn tray_state(app: AppHandle) -> Result<serde_json::Value, String> {
+    let agent = agent(&app)?.clone();
+    tokio::task::spawn_blocking(move || decka_core::tray_panel::state(&agent)).await.map_err(|e| e.to_string())
+}
+
+/// A key of the panel: a favourite or "Join" of an event.
+#[tauri::command]
+pub async fn tray_press(app: AppHandle, action_id: String) -> Result<(), String> {
+    let agent = agent(&app)?.clone();
+    agent.tray_press(&action_id).await
+}
+
+#[tauri::command]
+pub async fn tray_volume(percent: u8) -> Result<(), String> {
+    tokio::task::spawn_blocking(move || decka_core::audio::set_volume(percent.min(100))).await.map_err(|e| e.to_string())?
+}
+
+/// `mic` = the microphone, otherwise the sound of the PC.
+#[tauri::command]
+pub async fn tray_mute(mic: bool) -> Result<(), String> {
+    use decka_core::model::AudioOp;
+    let op = if mic { AudioOp::MicToggle } else { AudioOp::OutMuteToggle };
+    tokio::task::spawn_blocking(move || decka_core::audio::toggle(op)).await.map_err(|e| e.to_string())?
+}
+
+/// "Open settings" of the panel.
+#[tauri::command]
+pub fn tray_open_settings(app: AppHandle) {
+    crate::mini::close(&app);
+    let handle = app.clone();
+    if let Err(e) = app.run_on_main_thread(move || crate::tray::show_settings(&handle)) {
+        tracing::warn!("settings window: {e}");
+    }
+}
+
+/// The chosen keys of the panel (ids of actions); `chosen` false = the default ones.
+#[tauri::command]
+pub fn tray_favorites_get(app: AppHandle) -> Result<serde_json::Value, String> {
+    let agent = agent(&app)?;
+    Ok(serde_json::json!({ "chosen": agent.config().tray.is_some(), "favorites": decka_core::tray_panel::favorite_ids(&agent) }))
+}
+
+#[tauri::command]
+pub fn tray_favorites_set(app: AppHandle, favorites: Vec<String>) -> Result<(), String> {
+    agent(&app)?.set_tray_favorites(favorites)
+}
+
 /// T32.2: the calendar. The link goes in only; it never comes back to the window.
 #[tauri::command]
 pub fn calendar_get(app: AppHandle) -> Result<serde_json::Value, String> {

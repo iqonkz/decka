@@ -1446,6 +1446,50 @@ impl Agent {
         template.actions.get(action_id).filter(|a| !matches!(a, Action::Sequence { .. })).cloned()
     }
 
+    /// `tray_favorites_set` (T32.3): at most six ids of existing actions, each once.
+    pub fn set_tray_favorites(&self, ids: Vec<String>) -> Result<(), String> {
+        let actions = self.actions();
+        if ids.len() > crate::tray_panel::MAX_FAVORITES {
+            return Err("At most 6 actions".into());
+        }
+        if let Some(unknown) = ids.iter().find(|id| !actions.actions.contains_key(*id)) {
+            return Err(format!("action '{unknown}' is not defined"));
+        }
+        if ids.iter().collect::<std::collections::HashSet<_>>().len() != ids.len() {
+            return Err("An action is chosen twice".into());
+        }
+        let mut config = self.config();
+        config.tray = Some(crate::model::TrayConfig { favorites: ids });
+        match self.write_config(config) {
+            SaveResult::Saved => Ok(()),
+            SaveResult::Rejected(issues) => Err(issues.first().map(|i| i.message.clone()).unwrap_or_default()),
+        }
+    }
+
+    /// `tray_press`: runs a key of the mini panel - one of its favourites or "Join" of an event, nothing else.
+    pub async fn tray_press(&self, action_id: &str) -> Result<(), String> {
+        let allowed = action_id.starts_with(crate::calendar::JOIN_PREFIX) || crate::tray_panel::favorite_ids(self).iter().any(|id| id == action_id);
+        if !allowed {
+            return Err("This key is not on the panel".into());
+        }
+        self.execute(action_id).await.map_err(|(_, message)| message)
+    }
+
+    /// The mini panel shows the track even when no widget asks for it: the collector runs while the panel is open.
+    pub fn tray_panel_open(&self, open: bool) {
+        let wanted = open || self.needed_now().media;
+        let mut collector = self.inner.media_collector.lock().unwrap();
+        if wanted && collector.is_none() && self.config().collectors.media_enabled() {
+            *collector = Some(crate::collectors::media::MediaCollector::start(self.inner.store.clone()));
+        } else if !wanted {
+            if let Some(old) = collector.take() {
+                drop(old);
+                self.inner.store.set("media", serde_json::Value::Null);
+                self.inner.store.update_vars(crate::collectors::media::clear_vars);
+            }
+        }
+    }
+
     /// The collectors the current layout and actions need (DATA_MODEL.md 10.1).
     fn needed_now(&self) -> crate::collectors::needed::Needed {
         let mut needed = crate::collectors::needed::needed_collectors(&self.layout(), &self.actions());
@@ -2602,6 +2646,8 @@ impl Agent {
         config.ha = before.ha.clone();
         // The link of the calendar is written by `calendar_set` only.
         config.calendar = before.calendar.clone();
+        // The favourites of the tray panel are written by `tray_favorites_set` only.
+        config.tray = before.tray.clone();
         // The Twitch sign-in is written by the sign-in only; a new client id is another application, so the old sign-in goes.
         if let Some(tw) = config.twitch.as_mut() {
             let kept = before.twitch.as_ref().filter(|b| b.client_id == tw.client_id);

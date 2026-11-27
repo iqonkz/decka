@@ -52,6 +52,7 @@ pub mod mail;
 pub mod winnotif;
 pub mod statuses;
 pub mod templates;
+pub mod tray_panel;
 pub mod tray_text;
 pub mod twitch;
 pub mod updates;

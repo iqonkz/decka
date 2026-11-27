@@ -1,6 +1,7 @@
 mod commands;
 mod highlight;
 mod island;
+mod mini;
 mod tray;
 mod voice;
 
@@ -53,6 +54,7 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .manage(tray::WindowOpening::default())
+        .manage(Arc::new(mini::Mini::default()))
         .on_window_event(|window, event| {
             // Closing the window destroys it (its WebView2 processes go with it); the app lives in the tray until "Quit".
             if let WindowEvent::CloseRequested { api, .. } = event {
@@ -135,6 +137,13 @@ pub fn run() {
             commands::add_template,
             commands::voice_status,
             commands::voice_enable,
+            commands::tray_state,
+            commands::tray_press,
+            commands::tray_volume,
+            commands::tray_mute,
+            commands::tray_open_settings,
+            commands::tray_favorites_get,
+            commands::tray_favorites_set,
             commands::calendar_get,
             commands::calendar_set,
             commands::calendar_refresh,

@@ -177,8 +177,9 @@ pub fn setup(app: &AppHandle) -> tauri::Result<()> {
             _ => {}
         })
         .on_tray_icon_event(|tray, event| {
-            if let TrayIconEvent::Click { button: MouseButton::Left, button_state: MouseButtonState::Up, .. } = event {
-                show_settings(tray.app_handle());
+            // T32.3: the left click opens the mini panel; the menu with "Open settings" stays on the right one.
+            if let TrayIconEvent::Click { button: MouseButton::Left, button_state: MouseButtonState::Up, position, .. } = event {
+                crate::mini::toggle(tray.app_handle(), position);
             }
         });
     if let Some(icon) = app.default_window_icon() {

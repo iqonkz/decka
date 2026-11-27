@@ -712,3 +712,21 @@ IPC окна:
 // calendar_set(args: { url: string }): то же, что calendar_get; "" — убрать календарь; ошибка — строка
 // calendar_refresh(): void
 ```
+
+### IPC M32: мини-панель (T32.3)
+
+```ts
+export interface TrayFavorite { id: Id; label: string; icon: string; active: boolean; confirm: boolean }
+export interface TrayState {
+  media: MediaInfo | null; volume: number | null; muted: boolean | null; micMuted: boolean | null;
+  favorites: TrayFavorite[]; nextEvent: CalendarEvent | null; icons: IconsSection | null;
+}
+// tray_state(): TrayState                      — окно панели опрашивает раз в секунду
+// tray_press(args: { actionId: Id }): void     — только избранное или "cal-join-…", иначе ошибка
+// tray_volume(args: { percent: number }): void
+// tray_mute(args: { mic: boolean }): void
+// tray_open_settings(): void
+// tray_favorites_get(): { chosen: boolean; favorites: Id[] }
+// tray_favorites_set(args: { favorites: Id[] }): void
+```
+Всё это — только IPC окна на этом ПК; по сети мини-панели нет.

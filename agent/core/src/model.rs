@@ -751,6 +751,17 @@ pub struct ConfigFile {
     /// M32 (T32.2): the calendar; absent = off. Written by `calendar_set` only.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub calendar: Option<CalendarConfig>,
+    /// M32 (T32.3): the mini panel of the tray; absent = the first keys of the first page.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tray: Option<TrayConfig>,
+}
+
+/// `config.tray` (T32.3), written by `tray_favorites_set` only.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrayConfig {
+    /// At most six ids of `actions.json`.
+    pub favorites: Vec<String>,
 }
 
 /// `config.calendar` (T32.2).
