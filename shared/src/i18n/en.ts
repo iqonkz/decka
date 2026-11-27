@@ -1405,4 +1405,8 @@ export const en = {
   "m31.wizard_phrase_1": "Turn the volume up",
   "m31.wizard_phrase_2": "What is the weather tomorrow",
   "m31.wizard_phrase_3": "Record a meeting note",
+  "m31.notes_summary": "Summary",
+  "m31.notes_show_full": "Show full transcript",
+  "m31.notes_hide_full": "Hide full transcript",
+  "m31.notes_duration": "{min} min",
 } as const;

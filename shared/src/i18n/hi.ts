@@ -1394,4 +1394,8 @@ export const hi: Dictionary = {
   "m31.wizard_phrase_1": "आवाज़ बढ़ाओ",
   "m31.wizard_phrase_2": "कल मौसम कैसा रहेगा",
   "m31.wizard_phrase_3": "मीटिंग नोट रिकॉर्ड करें",
+  "m31.notes_summary": "सारांश",
+  "m31.notes_show_full": "पूरा पाठ दिखाएँ",
+  "m31.notes_hide_full": "पूरा पाठ छिपाएँ",
+  "m31.notes_duration": "{min} मि",
 };

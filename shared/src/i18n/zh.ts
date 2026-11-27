@@ -1394,4 +1394,8 @@ export const zh: Dictionary = {
   "m31.wizard_phrase_1": "调大音量",
   "m31.wizard_phrase_2": "明天天气怎么样",
   "m31.wizard_phrase_3": "记录一条会议笔记",
+  "m31.notes_summary": "摘要",
+  "m31.notes_show_full": "显示完整内容",
+  "m31.notes_hide_full": "收起完整内容",
+  "m31.notes_duration": "{min} 分钟",
 };

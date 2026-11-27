@@ -2207,3 +2207,94 @@ textarea { width: 100%; box-sizing: border-box; font: inherit; }
 .voice-check-spin {
   animation: voice-check-spin 0.9s linear infinite;
 }
+
+/* T31.5b: Notes reader layout */
+.notes-doc {
+  max-width: 720px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.notes-header-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.notes-summary-card {
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--accent) 5%, var(--panel));
+  padding: 16px 20px;
+}
+
+.notes-summary-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  margin-bottom: 10px;
+}
+
+.notes-markdown {
+  font-size: 14px;
+  line-height: 1.6;
+  max-width: 720px;
+}
+
+.notes-markdown h2 {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 16px 0 8px;
+}
+
+.notes-markdown h2:first-child {
+  margin-top: 0;
+}
+
+.notes-markdown h3 {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.35;
+  margin: 14px 0 6px;
+}
+
+.notes-markdown h4 {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 12px 0 4px;
+}
+
+.notes-markdown p {
+  margin: 6px 0;
+  line-height: 1.6;
+}
+
+.notes-markdown ul {
+  margin: 6px 0;
+  padding-inline-start: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.notes-markdown li {
+  line-height: 1.6;
+}
+
+.notes-transcript {
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+}

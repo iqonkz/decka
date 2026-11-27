@@ -1401,4 +1401,8 @@ export const kk: Dictionary = {
   "m31.wizard_phrase_1": "Дыбысты қаттырақ қой",
   "m31.wizard_phrase_2": "Ертең ауа райы қандай",
   "m31.wizard_phrase_3": "Кездесу жазбасын жаз",
+  "m31.notes_summary": "Қысқаша",
+  "m31.notes_show_full": "Толық мәтінді көрсету",
+  "m31.notes_hide_full": "Толық мәтінді жасыру",
+  "m31.notes_duration": "{min} мин",
 };

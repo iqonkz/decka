@@ -1394,4 +1394,8 @@ export const ja: Dictionary = {
   "m31.wizard_phrase_1": "音量を上げて",
   "m31.wizard_phrase_2": "明日の天気は",
   "m31.wizard_phrase_3": "会議メモを録音して",
+  "m31.notes_summary": "要約",
+  "m31.notes_show_full": "全文を表示",
+  "m31.notes_hide_full": "全文を隠す",
+  "m31.notes_duration": "{min} 分",
 };

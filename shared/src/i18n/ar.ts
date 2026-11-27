@@ -1434,4 +1434,8 @@ export const ar: Dictionary = {
   "m31.wizard_phrase_1": "ارفع الصوت",
   "m31.wizard_phrase_2": "كيف الطقس غداً",
   "m31.wizard_phrase_3": "سجّل ملاحظة اجتماع",
+  "m31.notes_summary": "الملخص",
+  "m31.notes_show_full": "إظهار النص الكامل",
+  "m31.notes_hide_full": "إخفاء النص الكامل",
+  "m31.notes_duration": "{min} د",
 };

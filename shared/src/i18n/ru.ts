@@ -1427,4 +1427,8 @@ export const ru: Record<Base | ExtraPlural, string> = {
   "m31.wizard_phrase_1": "Сделай громче",
   "m31.wizard_phrase_2": "Какая погода завтра",
   "m31.wizard_phrase_3": "Запиши заметку о созвоне",
+  "m31.notes_summary": "Кратко",
+  "m31.notes_show_full": "Показать полный текст",
+  "m31.notes_hide_full": "Скрыть полный текст",
+  "m31.notes_duration": "{min} мин",
 };

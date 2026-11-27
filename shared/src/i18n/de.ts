@@ -1394,4 +1394,8 @@ export const de: Dictionary = {
   "m31.wizard_phrase_1": "Lauter stellen",
   "m31.wizard_phrase_2": "Wie wird das Wetter morgen",
   "m31.wizard_phrase_3": "Besprechungsnotiz aufnehmen",
+  "m31.notes_summary": "Kurzfassung",
+  "m31.notes_show_full": "Volltext anzeigen",
+  "m31.notes_hide_full": "Volltext ausblenden",
+  "m31.notes_duration": "{min} Min.",
 };
