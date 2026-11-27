@@ -2,16 +2,30 @@
 // Pictures of the voice pill (PC) and of the voice button, bubble and confirmation sheet (phone) for visual acceptance (T21.S).
 // Builds tools/voice-shots with Vite, serves it, drives headless Chrome/Edge with the DevTools protocol.
 //   node tools/voice-shots.mjs [outDir]      writes pill-*.png (360x160 css px, x3) and phone-*.png (800x360 css px, x2)
+//   node tools/voice-shots.mjs --compare [outDir]
+//       draws the baseline set with time and animations frozen and compares it with tools/visual-baseline/;
+//       exit code 1 when a screen differs in more than 0.5 % of its pixels (pictures of the change go to outDir).
+//   node tools/voice-shots.mjs --update-baseline
+//       the only way to rewrite tools/visual-baseline/. ONLY=name,name limits both commands to those screens.
 import { spawn } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { extname, join, normalize } from "node:path";
 import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
+import { comparePixels, decodePng, encodePng } from "./lib/png-diff.mjs";
 
+const THRESHOLD = 0.005;
 const root = new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
-const outDir = process.argv[2] ?? join(root, ".tmp", "shots");
+const args = process.argv.slice(2);
+const compare = args.includes("--compare");
+const updateBaseline = args.includes("--update-baseline");
+const unknown = args.filter((a) => a.startsWith("--") && a !== "--compare" && a !== "--update-baseline");
+if (unknown.length || (compare && updateBaseline)) throw new Error("use --compare or --update-baseline, nothing else");
+const stable = compare || updateBaseline;
+const baselineDir = join(root, "tools", "visual-baseline");
+const outDir = updateBaseline ? baselineDir : (args.find((a) => !a.startsWith("--")) ?? join(root, ".tmp", compare ? "visual" : "shots"));
 const dist = join(root, ".tmp", "voice-shots-dist");
 const CHROME = [process.env.CHROME_PATH, "C:/Program Files/Google/Chrome/Application/chrome.exe", "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe", "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"].find((p) => p && existsSync(p));
 if (!CHROME) throw new Error("Chrome or Edge not found: set CHROME_PATH");
@@ -297,14 +311,54 @@ const SHOTS = {
 const only = process.env.ONLY?.split(",");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// The screens kept as baselines: the settings pages and the island in both schemes, the phone and its themes.
+const BASELINE = /^(a2-|theme-|phone-)/;
+
+// Two runs must give the same picture: a fixed clock and random numbers, and animation frames that stop
+// after a second and a half of virtual time.
+const FREEZE = `(() => {
+  const at = Date.UTC(2026, 0, 15, 10, 30, 0);
+  const RealDate = Date;
+  window.Date = class extends RealDate {
+    constructor(...a) { super(...(a.length ? a : [at])); }
+    static now() { return at; }
+  };
+  let seed = 42;
+  Math.random = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+  let now = 0, frames = 0, queue = [];
+  performance.now = () => now;
+  const raf = window.requestAnimationFrame.bind(window);
+  let next = 0;
+  window.requestAnimationFrame = (cb) => {
+    if (frames >= 90) return 0;
+    const id = ++next;
+    queue.push([id, cb]);
+    if (queue.length === 1) raf(() => { const run = queue; queue = []; frames++; now += 1000 / 60; for (const [, f] of run) f(now); });
+    return id;
+  };
+  window.cancelAnimationFrame = (id) => { queue = queue.filter(([i]) => i !== id); };
+})();`;
+const SETTLE = `(() => {
+  const style = document.createElement("style");
+  style.textContent = "*{caret-color:transparent!important}";
+  document.head.append(style);
+  for (const a of document.getAnimations()) {
+    if (a.effect?.getComputedTiming().iterations === Infinity) { a.pause(); a.currentTime = 0; }
+    else a.finish();
+  }
+})()`;
+
 async function shoot(name, [size, query, click]) {
   const profile = mkdtempSync(join(tmpdir(), "decka-voiceshots-"));
-  const port = 9340 + Math.floor(Math.random() * 400);
-  const chrome = spawn(CHROME, ["--headless=new", `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`, "--lang=en-US", `--window-size=${size.w},${size.h}`, "about:blank"], { stdio: "ignore" });
+  const flags = stable ? ["--hide-scrollbars", "--force-color-profile=srgb", "--disable-gpu", "--disable-lcd-antialiasing", "--font-render-hinting=none"] : [];
+  // Port 0: Chrome picks a free one and writes it into its profile, so parallel jobs cannot collide.
+  const chrome = spawn(CHROME, ["--headless=new", "--remote-debugging-port=0", `--user-data-dir=${profile}`, "--lang=en-US", `--window-size=${size.w},${size.h}`, ...flags, "about:blank"], { stdio: "ignore" });
+  const exited = new Promise((r) => chrome.once("exit", r));
   try {
     let target;
-    for (let i = 0; i < 80 && !target; i++) {
+    for (let i = 0; i < 150 && !target; i++) {
       try {
+        const port = readFileSync(join(profile, "DevToolsActivePort"), "utf8").split("\n")[0];
         target = (await (await fetch(`http://127.0.0.1:${port}/json`)).json()).find((t) => t.type === "page");
       } catch {
         /* starting */
@@ -316,9 +370,16 @@ async function shoot(name, [size, query, click]) {
     await new Promise((r) => ws.addEventListener("open", r, { once: true }));
     let id = 0;
     const waiting = new Map();
+    const pending = new Set();
+    let heard = Date.now();
     ws.addEventListener("message", (ev) => {
       const m = JSON.parse(String(ev.data));
-      if (m.id && waiting.has(m.id)) waiting.get(m.id)(m);
+      if (m.method?.startsWith("Network.")) {
+        if (m.method === "Network.requestWillBeSent") pending.add(m.params.requestId);
+        else if (m.method === "Network.loadingFinished" || m.method === "Network.loadingFailed") pending.delete(m.params.requestId);
+        else return;
+        heard = Date.now();
+      } else if (m.id && waiting.has(m.id)) waiting.get(m.id)(m);
       else if (m.method === "Runtime.consoleAPICalled" && process.env.DEBUG_SHOTS) console.log("console:", m.params.args.map((a) => a.value ?? a.description).join(" "));
       else if (m.method === "Runtime.exceptionThrown") console.error("page error:", m.params.exceptionDetails.exception?.description ?? m.params.exceptionDetails.text);
     });
@@ -327,16 +388,32 @@ async function shoot(name, [size, query, click]) {
       waiting.set(mid, (m) => (m.error ? reject(new Error(`${method}: ${m.error.message}`)) : resolve(m.result)));
       ws.send(JSON.stringify({ id: mid, method, params }));
     });
+    // Lazy pages, theme styles, icons and fonts arrive after the first paint: wait until nothing is loading.
+    // The date of the page is frozen, this one is the real clock of the script.
+    const loaded = async () => {
+      for (let i = 0; i < 200 && (pending.size > 0 || Date.now() - heard < 500); i++) await sleep(50);
+      await send("Runtime.evaluate", { expression: "document.fonts.ready.then(() => true)", awaitPromise: true });
+    };
     await send("Page.enable");
     await send("Runtime.enable");
-    await send("Emulation.setDeviceMetricsOverride", { width: size.w, height: size.h, deviceScaleFactor: size.scale, mobile: false });
-    await send("Page.navigate", { url: `${base}?${query}` });
-    for (let w = 0; w < 40; w++) {
-      const r = await send("Runtime.evaluate", { expression: "document.getElementById('root')?.childElementCount ?? 0", returnByValue: true }).catch(() => null);
-      if ((r?.result?.value ?? 0) > 0) break;
-      await sleep(100);
+    await send("Network.enable");
+    // Baselines are kept at 1x: smaller files in git, the same layout.
+    await send("Emulation.setDeviceMetricsOverride", { width: size.w, height: size.h, deviceScaleFactor: stable ? 1 : size.scale, mobile: false });
+    if (stable) {
+      await send("Emulation.setTimezoneOverride", { timezoneId: "UTC" });
+      await send("Page.addScriptToEvaluateOnNewDocument", { source: FREEZE });
     }
+    await send("Page.navigate", { url: `${base}?${query}` });
+    let drawn = false;
+    for (let w = 0; w < 150 && !drawn; w++) {
+      const r = await send("Runtime.evaluate", { expression: "document.getElementById('root')?.childElementCount ?? 0", returnByValue: true }).catch(() => null);
+      drawn = (r?.result?.value ?? 0) > 0;
+      if (!drawn) await sleep(100);
+    }
+    // A blank page must never become a baseline.
+    if (!drawn) throw new Error("the page stayed empty for 15 s");
     await sleep(query.includes("theme=glass") ? 2200 : 1500);
+    if (stable) await loaded();
     const scheme = new URLSearchParams(query).get("scheme");
     if (scheme) {
       await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: scheme }] });
@@ -376,15 +453,81 @@ async function shoot(name, [size, query, click]) {
       const [x, y, w, h] = JSON.parse(r.result.value);
       params.clip = { x: Math.floor(x) - 40, y: Math.floor(y) - 40, width: Math.ceil(w) + 80, height: Math.ceil(h) + 80, scale: 1 };
     }
+    if (stable) {
+      await loaded();
+      await send("Runtime.evaluate", { expression: SETTLE });
+      await sleep(400);
+    }
     const shot = await send("Page.captureScreenshot", params);
+    ws.close();
+    const png = Buffer.from(shot.data, "base64");
+    if (compare) return png;
     mkdirSync(outDir, { recursive: true });
     const file = join(outDir, `${name}.png`);
-    writeFileSync(file, Buffer.from(shot.data, "base64"));
-    ws.close();
+    writeFileSync(file, png);
     return file;
   } finally {
     chrome.kill();
+    await Promise.race([exited, sleep(3000)]);
+    profiles.push(profile);
   }
+}
+
+// Chrome's helper processes hold their files for a moment after the exit, so the profiles are removed at the end.
+const profiles = [];
+function removeProfiles() {
+  let left = 0;
+  for (const profile of profiles) {
+    try {
+      rmSync(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+    } catch {
+      left++;
+    }
+  }
+  if (left) console.warn(`${left} temporary Chrome profiles left in ${tmpdir()}`);
+}
+
+async function checkOne(name, spec) {
+  const baseline = join(baselineDir, `${name}.png`);
+  if (!existsSync(baseline)) return `${name}: no baseline (node tools/voice-shots.mjs --update-baseline)`;
+  const png = await shoot(name, spec);
+  const result = comparePixels(decodePng(readFileSync(baseline)), decodePng(png));
+  if (result.ratio <= THRESHOLD) return null;
+  mkdirSync(outDir, { recursive: true });
+  writeFileSync(join(outDir, `${name}.png`), png);
+  if (result.diff) writeFileSync(join(outDir, `${name}.diff.png`), encodePng(result.diff));
+  return `${name}: ${result.size ? "size changed" : `${(result.ratio * 100).toFixed(2)} % of the pixels differ`}`;
+}
+
+async function runStable() {
+  const names = Object.keys(SHOTS).filter((n) => BASELINE.test(n) && (!only || only.includes(n)));
+  if (!names.length) throw new Error("no baseline screen matches ONLY");
+  const failures = [];
+  const queue = [...names];
+  await Promise.all(
+    Array.from({ length: Number(process.env.SHOT_JOBS) || 4 }, async () => {
+      for (let name = queue.shift(); name; name = queue.shift()) {
+        try {
+          if (compare) {
+            const failure = await checkOne(name, SHOTS[name]);
+            if (failure) failures.push(failure);
+          } else await shoot(name, SHOTS[name]);
+        } catch (e) {
+          failures.push(`${name}: ${e.message}`);
+        }
+      }
+    }),
+  );
+  if (!only) {
+    // A baseline without a screen is reported, never deleted here: it leaves the repository with git rm.
+    for (const file of existsSync(baselineDir) ? readdirSync(baselineDir) : []) {
+      const name = file.replace(/\.png$/, "");
+      if (file.endsWith(".png") && !names.includes(name)) failures.push(`${name}: baseline without a screen (git rm tools/visual-baseline/${file})`);
+    }
+  }
+  for (const f of failures.sort()) console.log(f);
+  console.log(`${compare ? "compared" : "wrote"} ${names.length} screens, ${failures.length} failed`);
+  return failures.length ? 1 : 0;
 }
 
 try {
@@ -434,11 +577,15 @@ try {
       chrome.kill();
     }
   }
-  for (const [name, spec] of Object.entries(SHOTS)) {
-    if (only && !only.includes(name)) continue;
-    console.log(await shoot(name, spec));
+  if (stable) process.exitCode = await runStable();
+  else {
+    for (const [name, spec] of Object.entries(SHOTS)) {
+      if (only && !only.includes(name)) continue;
+      console.log(await shoot(name, spec));
+    }
   }
 } finally {
   server.close();
+  removeProfiles();
 }
-process.exit(0);
+process.exit(process.exitCode ?? 0);
