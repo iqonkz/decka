@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { t } from "@decka/shared";
 import { useApplyLanguage } from "@decka/ui";
-import { retryConnection, unpair } from "./app/controller";
+import { connectAgain, retryConnection } from "./app/controller";
 import ConnectingScreen from "./screens/ConnectingScreen";
 import LinkCard, { useLinkView } from "./screens/LinkCard";
 import DeckScreen from "./screens/DeckScreen";
@@ -31,7 +31,7 @@ export default function App() {
           <button className="pill-btn primary" type="button" onClick={() => location.reload()}>
             {t("menu.reload")}
           </button>
-          <button className="pill-btn secondary" type="button" onClick={unpair}>
+          <button className="pill-btn secondary" type="button" onClick={connectAgain}>
             {t("phone.unpair")}
           </button>
         </div>
@@ -46,7 +46,7 @@ export default function App() {
           <button className="pill-btn primary" type="button" onClick={retryConnection}>
             {t("phone.retry")}
           </button>
-          <button className="pill-btn secondary" type="button" onClick={unpair}>
+          <button className="pill-btn secondary" type="button" onClick={connectAgain}>
             {t("phone.unpair")}
           </button>
         </div>

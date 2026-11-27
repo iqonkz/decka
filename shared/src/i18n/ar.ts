@@ -308,6 +308,7 @@ export const ar: Dictionary = {
   "link.try_again": "أعد المحاولة",
   "link.connect_again": "اتصل مجددًا",
   "link.other_pc": "استخدم كمبيوترًا آخر",
+  "pcs.switch_to": "التبديل إلى {name}",
   "link.why": "لماذا؟",
   "link.hint_public": "إذا كانت شبكة الكمبيوتر معلّمة كعامة فلن يقبل Decka الهواتف فيها: اجعلها خاصة أو اسمح بها في إعدادات Decka.",
   "link.hint_usb": "عبر USB تحقق من الكابل.",

@@ -312,6 +312,7 @@ export const ru: Record<Base | ExtraPlural, string> = {
   "link.try_again": "Повторить",
   "link.connect_again": "Подключить заново",
   "link.other_pc": "Другой ПК",
+  "pcs.switch_to": "Переключиться на {name}",
   "link.why": "Почему?",
   "link.hint_public": "Если сеть на ПК отмечена как общественная, Decka не принимает в ней телефоны: сделайте её частной или разрешите в настройках Decka.",
   "link.hint_usb": "По USB проверьте кабель.",

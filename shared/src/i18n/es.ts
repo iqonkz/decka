@@ -308,6 +308,7 @@ export const es: Dictionary = {
   "link.try_again": "Reintentar",
   "link.connect_again": "Conectar de nuevo",
   "link.other_pc": "Usar otro PC",
+  "pcs.switch_to": "Cambiar a {name}",
   "link.why": "¿Por qué?",
   "link.hint_public": "Si la red del PC está marcada como pública, Decka no acepta teléfonos en ella: ponla como privada o permítelo en los ajustes de Decka.",
   "link.hint_usb": "Por USB, revisa el cable.",

@@ -308,6 +308,7 @@ export const hi: Dictionary = {
   "link.try_again": "फिर कोशिश करें",
   "link.connect_again": "फिर से जोड़ें",
   "link.other_pc": "दूसरा पीसी इस्तेमाल करें",
+  "pcs.switch_to": "{name} पर जाएँ",
   "link.why": "क्यों?",
   "link.hint_public": "अगर पीसी का नेटवर्क सार्वजनिक चिह्नित है, तो Decka उसमें फ़ोन स्वीकार नहीं करता: उसे निजी करें या Decka की सेटिंग में अनुमति दें।",
   "link.hint_usb": "USB से जोड़ते समय केबल जाँचें।",

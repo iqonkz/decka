@@ -310,6 +310,7 @@ export const en = {
   "link.try_again": "Try again",
   "link.connect_again": "Connect again",
   "link.other_pc": "Use another PC",
+  "pcs.switch_to": "Switch to {name}",
   "link.why": "Why?",
   "link.hint_public": "If the network on the PC is marked public, Decka does not accept phones in it: make it private or allow it in the Decka settings.",
   "link.hint_usb": "Over USB, check the cable.",

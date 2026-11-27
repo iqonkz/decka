@@ -308,6 +308,7 @@ export const zh: Dictionary = {
   "link.try_again": "重试",
   "link.connect_again": "重新连接",
   "link.other_pc": "使用其他电脑",
+  "pcs.switch_to": "切换到 {name}",
   "link.why": "为什么？",
   "link.hint_public": "如果电脑上的网络被标记为公用网络，Decka 不接受其中的手机：请改为专用网络，或在 Decka 设置中允许。",
   "link.hint_usb": "通过 USB 连接时，请检查数据线。",

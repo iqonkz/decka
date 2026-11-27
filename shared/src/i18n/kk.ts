@@ -308,6 +308,7 @@ export const kk: Dictionary = {
   "link.try_again": "Қайталау",
   "link.connect_again": "Қайта қосу",
   "link.other_pc": "Басқа ДК қолдану",
+  "pcs.switch_to": "{name} компьютеріне ауысу",
   "link.why": "Неге?",
   "link.hint_public": "ДК-дегі желі жалпыға ортақ деп белгіленсе, Decka онда телефондарды қабылдамайды: оны жеке етіңіз немесе Decka баптауларында рұқсат беріңіз.",
   "link.hint_usb": "USB арқылы кабельді тексеріңіз.",

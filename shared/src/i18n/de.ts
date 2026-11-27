@@ -308,6 +308,7 @@ export const de: Dictionary = {
   "link.try_again": "Erneut versuchen",
   "link.connect_again": "Neu verbinden",
   "link.other_pc": "Anderer PC",
+  "pcs.switch_to": "Zu {name} wechseln",
   "link.why": "Warum?",
   "link.hint_public": "Ist das Netzwerk am PC als öffentlich markiert, nimmt Decka darin keine Telefone an: Stellen Sie es auf privat oder erlauben Sie es in den Decka-Einstellungen.",
   "link.hint_usb": "Prüfen Sie bei USB das Kabel.",

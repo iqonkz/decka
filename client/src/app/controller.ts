@@ -7,7 +7,7 @@ import { installApk } from "../platform/install";
 import { clientInfo, isNative } from "../platform/native";
 import { applyPatch, applyWelcome, getState, markPermAnswered, navigateManually, setState } from "../store/store";
 import { ApkAssembler, ApkError } from "../update/apkAssembler";
-import { clearConn, loadConn, saveConn } from "../store/storage";
+import { clearConn, loadConn, renameCurrent, saveConn, selectPc } from "../store/storage";
 import { installVoiceGoto } from "../voice/goto";
 import { installPageShown } from "./pageShown";
 import { startPhoneBatteryMonitor } from "./phoneBattery";
@@ -25,7 +25,8 @@ function candidates(): string[] {
 
 function conn(): Connection {
   if (connection) return connection;
-  connection = new Connection({
+  // A connection that was replaced (another PC was chosen) must not change what is shown any more.
+  const mine: Connection = new Connection({
     WebSocketCtor: WebSocket as unknown as WebSocketCtor,
     now: () => Date.now(),
     setTimeout: (fn, ms) => window.setTimeout(fn, ms),
@@ -35,14 +36,21 @@ function conn(): Connection {
     deviceId: () => loadConn()?.deviceId ?? null,
     native: isNative(),
     clientInfo: clientInfo(),
-    onWelcome: applyWelcome,
-    onPatch: applyPatch,
+    onWelcome: (welcome) => {
+      if (connection !== mine) return;
+      applyWelcome(welcome);
+      renameCurrent(welcome.agent.name);
+    },
+    onPatch: (patch) => {
+      if (connection === mine) applyPatch(patch);
+    },
     onPressResult: () => {},
     onStatus: (c, via) => {
-      if (pairTarget) return; // the pairing screen stays up until pairing finishes
+      if (pairTarget || connection !== mine) return; // the pairing screen stays up until pairing finishes
       setState({ conn: c, via });
     },
     onFatal: (code: FatalCode) => {
+      if (connection !== mine) return;
       if (code === "SERVER_MISMATCH") setState({ conn: pairTarget ? "unpaired" : "not_your_pc" });
       else if (code === "PROTOCOL_VERSION") setState({ conn: "update_required" });
       // UNAUTHORIZED / DEVICE_REVOKED: the PC does not know this phone. No background attempts; the card offers the way out and
@@ -50,7 +58,8 @@ function conn(): Connection {
       else setState({ conn: "rejected" });
     },
   });
-  return connection;
+  connection = mine;
+  return mine;
 }
 
 export function pairErrorText(code: ConnFailure["code"]): string {
@@ -84,8 +93,10 @@ export async function pairWith(hosts: string[], port: number, code: string, agen
   }
   pairTarget = null;
   repairing = false;
-  setState({ conn: "connecting", lastError: null });
-  c.start(); // the pairing socket is closed; continue as a device with the saved token
+  // The keys of the PC that was shown belong to it: nothing of it stays while the new one connects.
+  leave();
+  setState({ ...NOTHING, conn: "connecting" });
+  conn().start(); // the pairing socket is closed; continue as a device with the saved token
 }
 
 /** The "Retry" of the screen "This is not your PC" and "Try again" of the card: one new attempt with the saved pairing. */
@@ -108,11 +119,33 @@ export function cancelConnectAgain(): void {
   else unpair();
 }
 
+/** Nothing of the PC that was shown stays on the screen. */
+const NOTHING = { via: null, agentName: null, agentVersion: null, state: null, rev: 0, pageIndex: 0, homePageIndex: 0, autoPageId: null, hint: null, popup: null, lastError: null };
+
+/** Drops the connection; the next `conn()` is a new one, for the PC that is current then. */
+function leave(): void {
+  connection?.stop();
+  connection = null;
+}
+
+/** T32.4: another PC of the list, without pairing again. */
+export function switchPc(deviceId: string): void {
+  if (!selectPc(deviceId)) return;
+  repairing = false;
+  pairTarget = null;
+  leave();
+  setState({ ...NOTHING, conn: "connecting" });
+  conn().start();
+}
+
+/** Forgets the PC the phone is on; with other PCs in the list the first of them takes its place. */
 export function unpair(): void {
   repairing = false;
   clearConn();
-  conn().stop();
-  setState({ conn: "unpaired", via: null, agentName: null, agentVersion: null, state: null, rev: 0, pageIndex: 0, homePageIndex: 0, autoPageId: null, hint: null, popup: null, lastError: null });
+  leave();
+  const next = loadConn();
+  setState({ ...NOTHING, conn: next ? "connecting" : "unpaired" });
+  if (next) conn().start();
 }
 
 export function press(actionId: string): Promise<void> {

@@ -308,6 +308,7 @@ export const ja: Dictionary = {
   "link.try_again": "再試行",
   "link.connect_again": "再接続",
   "link.other_pc": "別の PC を使う",
+  "pcs.switch_to": "{name} に切り替える",
   "link.why": "なぜ？",
   "link.hint_public": "PC のネットワークがパブリックの場合、Decka はスマートフォンを受け付けません。プライベートにするか、Decka の設定で許可してください。",
   "link.hint_usb": "USB の場合はケーブルを確認してください。",
