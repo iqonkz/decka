@@ -12,11 +12,9 @@ use tokio::io::{AsyncBufReadExt, AsyncRead, AsyncWrite, AsyncWriteExt, BufReader
 use tokio::net::TcpStream;
 use tokio::time::Instant;
 use tokio_rustls::rustls::pki_types::ServerName;
-use tokio_rustls::rustls::ClientConfig;
 use tokio_rustls::TlsConnector;
 
 use crate::model::{MailAccount, MailAccountInfo, MailInfo, VarValue};
-use rustls_platform_verifier::ConfigVerifierExt;
 
 /// The whole check of one mailbox, from the name lookup to logout.
 pub const TIMEOUT: Duration = Duration::from_secs(15);
@@ -404,7 +402,7 @@ async fn reach(run: &mut Run, host: &str, port: u16, user: &str, password: Optio
     let tls = run
         .step(MailStepId::Tls, async {
             let name = ServerName::try_from(host.to_string()).map_err(|e| (MailReason::Host, clip(&e.to_string())))?;
-            let config = ClientConfig::with_platform_verifier().map_err(|e| (MailReason::Tls, clip(&e.to_string())))?;
+            let config = crate::tls::client_config().map_err(|e| (MailReason::Tls, clip(&e.to_string())))?;
             TlsConnector::from(Arc::new(config)).connect(name, tcp).await.map_err(|e| (MailReason::Tls, clip(&e.to_string())))
         })
         .await?;

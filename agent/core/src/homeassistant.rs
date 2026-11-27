@@ -284,10 +284,9 @@ impl Hub {
         if target.scheme() == "ws" {
             return self.talk(target.as_str(), tcp, token, watched, generation).await;
         }
-        use rustls_platform_verifier::ConfigVerifierExt;
-        use tokio_rustls::rustls::{pki_types::ServerName, ClientConfig};
+        use tokio_rustls::rustls::pki_types::ServerName;
         let secure = async {
-            let config = ClientConfig::with_platform_verifier().map_err(|_| NO_ANSWER)?;
+            let config = crate::tls::client_config().map_err(|_| NO_ANSWER)?;
             let host = target.host_str().ok_or(NO_ANSWER)?.trim_start_matches('[').trim_end_matches(']').to_string();
             let name = ServerName::try_from(host).map_err(|_| NO_ANSWER)?;
             tokio_rustls::TlsConnector::from(Arc::new(config)).connect(name, tcp).await.map_err(|_| NO_ANSWER)

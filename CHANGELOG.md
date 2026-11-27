@@ -18,6 +18,9 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 - **Meeting notes** open with the summary; the full text is folded, the header shows the date and the length.
 - The **settings window opens faster**: its pages load when shown and only the icons it uses are included.
 
+### Fixed
+- **Mail and Home Assistant over HTTPS did not work** in the installed application: setting up the encrypted connection stopped with an internal error, so the mailbox showed nothing.
+
 ## 0.60.0 — 2026-11-27
 
 ### Added
