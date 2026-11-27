@@ -1338,4 +1338,5 @@ export const hi: Dictionary = {
   "voice.reply.close_not_running": "वह प्रोग्राम अब नहीं चल रहा",
   "voice.reply.close_failed": "Windows ने इसे बंद नहीं करने दिया",
   "voice.reply.phone_battery_low": "फ़ोन: {pct}%",
+  "voice.reply.focus_over": "फ़ोकस का समय पूरा हुआ",
 };

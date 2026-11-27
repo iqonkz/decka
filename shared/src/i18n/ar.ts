@@ -1378,4 +1378,5 @@ export const ar: Dictionary = {
   "voice.reply.close_not_running": "لم يعد هذا البرنامج قيد التشغيل",
   "voice.reply.close_failed": "لم يسمح Windows بإغلاقه",
   "voice.reply.phone_battery_low": "الهاتف: {pct}%",
+  "voice.reply.focus_over": "انتهى وقت التركيز",
 };

@@ -78,7 +78,8 @@ impl Notices {
             }
             let since = *self.over_since.entry(rule).or_insert(s.now_ms);
             let held = s.now_ms.saturating_sub(since) >= hold_ms;
-            let cooled = self.shown_at.get(&rule).is_none_or(|t| s.now_ms.saturating_sub(*t) >= COOLDOWN_MS);
+            // The end of a focus is told every time, once (two focuses of 25 minutes are closer than the pause of the rules).
+            let cooled = self.shown_at.get(&rule).is_none_or(|t| if rule == Rule::Focus { *t < since } else { s.now_ms.saturating_sub(*t) >= COOLDOWN_MS });
             if enabled && !s.fullscreen && held && cooled {
                 self.shown_at.insert(rule, s.now_ms);
                 out.push(Notice { rule, text: text(rule, s) });
@@ -149,7 +150,17 @@ mod tests {
     }
 
     #[test]
-    fn memory_over_ninety_percent_is_noted_only_after_a_minute() {
+    fn every_end_of_a_focus_is_told_once_however_close_they_are() {
+        let mut n = Notices::default();
+        let focus = |t, ended| Sample { focus_ended: ended, ..at(t) };
+        assert_eq!(n.step(true, &focus(0, true)).len(), 1);
+        assert!(n.step(true, &focus(5_000, true)).is_empty());
+        assert!(n.step(true, &focus(10_000, false)).is_empty());
+        assert_eq!(n.step(true, &focus(60_000, true)).len(), 1);
+    }
+
+    #[test]
+    fn memory_over_ninety_percent_is_noted_only_after_two_minutes() {
         let mut n = Notices::default();
         let hot = |t| Sample { ram_pct: Some(95.0), top_process: Some("chrome.exe".into()), ..at(t) };
         assert!(n.step(true, &hot(0)).is_empty());

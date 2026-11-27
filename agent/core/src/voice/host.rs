@@ -638,6 +638,8 @@ struct Inner {
     current_page: Arc<Mutex<Option<String>>>,
     /// T30.2: the last answer to "what uses the memory".
     heavy: Arc<Mutex<Option<HeavyList>>>,
+    /// T30.4: the focus timer of a work mode.
+    focus_timer: Arc<super::modes::FocusTimer>,
     /// T29.6: shows the settings window on a catalog key; the application gives it.
     settings: OnceLock<SettingsHook>,
 }
@@ -698,6 +700,7 @@ impl Host {
             interrupted: AtomicBool::new(false),
             current_page: Arc::default(),
             heavy: Arc::default(),
+            focus_timer: Arc::default(),
             settings: OnceLock::new(),
         });
         let driver = Driver::new(handle.clone(), inner.clone());
@@ -1009,7 +1012,8 @@ impl Host {
                 tokio::time::sleep(Duration::from_secs(5)).await;
                 let store = inner.agent.store();
                 let fullscreen = tokio::task::spawn_blocking(crate::lyrics_overlay::foreground_is_fullscreen).await.unwrap_or(false);
-                let s = super::notices::sample(started.elapsed().as_millis() as u64, &store.get("sys"), &store.get("battery"), &store.get("ai"), false, fullscreen);
+                let focus = inner.focus_timer.ended(Instant::now());
+                let s = super::notices::sample(started.elapsed().as_millis() as u64, &store.get("sys"), &store.get("battery"), &store.get("ai"), focus, fullscreen);
                 for n in notices.step(inner.agent.voice_notices_enabled(), &s) {
                     if n.rule == super::notices::Rule::Ram {
                         // T30.2: with the button "Show what uses it".
@@ -1019,6 +1023,10 @@ impl Host {
                     } else if n.rule == super::notices::Rule::Phone {
                         let pct = s.phone_low.map_or_else(String::new, |v| format!("{}", v.round() as i64));
                         let said = super::status::Answer { key: "voice.reply.phone_battery_low", args: [("pct".to_string(), pct)].into(), text: n.text.clone() };
+                        inner.plate(&super::status::encode(&said), false, 8);
+                    } else if n.rule == super::notices::Rule::Focus {
+                        inner.focus_timer.told();
+                        let said = super::status::Answer { key: "voice.reply.focus_over", args: Default::default(), text: n.text.clone() };
                         inner.plate(&super::status::encode(&said), false, 8);
                     } else {
                         inner.plate(&n.text, false, 6);
@@ -1496,6 +1504,7 @@ impl Ports for Inner {
         let download = self.download.clone();
         let (current_page, settings) = (self.current_page.clone(), self.settings.get().cloned());
         let heavy = self.heavy.clone();
+        let focus_timer = self.focus_timer.clone();
         let driver = self.driver().clone();
         Box::pin(async move {
             // T29.P: while the model loads, the PC is busy and a window is read only in part ("did not find it"): the
@@ -1601,7 +1610,22 @@ impl Ports for Inner {
                             screen.control(kind)
                         }
                         // T27.10 (modes) is run by the application: it knows the windows.
-                        ToolCall::ModeRun { name } => super::modes::run(&slow_dir, &name),
+                        ToolCall::ModeRun { name } => {
+                            let done = super::modes::run(&slow_dir, &name)?;
+                            // T30.4: a mode with focus minutes starts the focus timer; its end is a note on the island and
+                            // a notification (a toast on the phone).
+                            let Some(minutes) = super::modes::focus_of(&super::modes::load(&slow_dir), &name) else { return Ok(done) };
+                            let generation = focus_timer.arm();
+                            let (agent, timer) = (agent.clone(), focus_timer.clone());
+                            handle.spawn(async move {
+                                tokio::time::sleep(Duration::from_secs(u64::from(minutes) * 60)).await;
+                                if timer.finish(generation, Instant::now()) {
+                                    let title = super::modes::focus_over(lang).to_string();
+                                    agent.push_notification(crate::proto::NotifyReq { title, body: None, level: Some(crate::model::NotifLevel::Info), source: Some("focus".into()) });
+                                }
+                            });
+                            Ok(format!("{done}. Focus: {minutes} min"))
+                        }
                         ToolCall::ModeSave { name } => super::modes::save(&slow_dir, &name),
                         _ => unreachable!(),
                     };

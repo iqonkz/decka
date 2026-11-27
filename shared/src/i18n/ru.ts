@@ -1371,4 +1371,5 @@ export const ru: Record<Base | ExtraPlural, string> = {
   "voice.reply.close_not_running": "Эта программа уже не работает",
   "voice.reply.close_failed": "Windows не позволила закрыть программу",
   "voice.reply.phone_battery_low": "Телефон: {pct} %",
+  "voice.reply.focus_over": "Фокус закончен",
 };

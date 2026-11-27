@@ -1338,4 +1338,5 @@ export const ja: Dictionary = {
   "voice.reply.close_not_running": "そのプログラムはもう動いていません",
   "voice.reply.close_failed": "Windows により閉じられませんでした",
   "voice.reply.phone_battery_low": "スマホ：{pct}%",
+  "voice.reply.focus_over": "集中タイムが終わりました",
 };

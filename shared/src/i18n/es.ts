@@ -1338,4 +1338,5 @@ export const es: Dictionary = {
   "voice.reply.close_not_running": "Ese programa ya no está en ejecución",
   "voice.reply.close_failed": "Windows no permitió cerrarlo",
   "voice.reply.phone_battery_low": "Teléfono: {pct} %",
+  "voice.reply.focus_over": "Se acabó el tiempo de concentración",
 };

@@ -1338,4 +1338,5 @@ export const zh: Dictionary = {
   "voice.reply.close_not_running": "该程序已不在运行",
   "voice.reply.close_failed": "Windows 不允许关闭它",
   "voice.reply.phone_battery_low": "手机电量：{pct}%",
+  "voice.reply.focus_over": "专注时间结束",
 };

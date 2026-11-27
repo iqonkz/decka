@@ -4,6 +4,9 @@
 //! becomes a command.
 
 use std::path::Path;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Mutex;
+use std::time::{Duration, Instant};
 
 use serde::{Deserialize, Serialize};
 
@@ -63,6 +66,66 @@ pub fn find<'a>(modes: &'a [Mode], name: &str) -> Option<&'a Mode> {
         .filter(|s| s.0 >= 0.6)
         .max_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal))
         .map(|s| s.1)
+}
+
+/// The longest focus a mode may ask for.
+pub const MAX_FOCUS_MINUTES: u32 = 180;
+/// The end of a focus is still worth telling this long after it (a full screen program holds the note back).
+const FOCUS_TOLD_WITHIN: Duration = Duration::from_secs(600);
+
+/// `focusMinutes` of the mode of this name; `None` when it has none or an impossible one.
+pub fn focus_of(modes: &[Mode], name: &str) -> Option<u32> {
+    find(modes, name)?.focus_minutes.filter(|m| (1..=MAX_FOCUS_MINUTES).contains(m))
+}
+
+/// T30.4: the focus timer a work mode starts. There is one: a new one replaces it.
+#[derive(Debug, Default)]
+pub struct FocusTimer {
+    generation: AtomicU64,
+    ended: Mutex<Option<Instant>>,
+}
+
+impl FocusTimer {
+    /// A new focus begins; the number names it.
+    pub fn arm(&self) -> u64 {
+        *self.ended.lock().unwrap() = None;
+        self.generation.fetch_add(1, Ordering::SeqCst) + 1
+    }
+
+    /// The time of focus `generation` is up. `false`: a later one replaced it.
+    pub fn finish(&self, generation: u64, now: Instant) -> bool {
+        if self.generation.load(Ordering::SeqCst) != generation {
+            return false;
+        }
+        *self.ended.lock().unwrap() = Some(now);
+        true
+    }
+
+    /// An end that the island has not told yet.
+    pub fn ended(&self, now: Instant) -> bool {
+        self.ended.lock().unwrap().is_some_and(|t| now.saturating_duration_since(t) < FOCUS_TOLD_WITHIN)
+    }
+
+    pub fn told(&self) {
+        *self.ended.lock().unwrap() = None;
+    }
+}
+
+/// The notification at the end of a focus, in the language of Decka: the phone shows it as it is.
+pub fn focus_over(lang: &str) -> &'static str {
+    match lang {
+        "ru" => "Фокус закончен",
+        "es" => "Se acabó el tiempo de concentración",
+        "de" => "Die Fokuszeit ist um",
+        "fr" => "La séance de concentration est terminée",
+        "pt" => "O tempo de foco acabou",
+        "zh" => "专注时间结束",
+        "hi" => "फ़ोकस का समय पूरा हुआ",
+        "ar" => "انتهى وقت التركيز",
+        "ja" => "集中タイムが終わりました",
+        "kk" => "Зейін уақыты аяқталды",
+        _ => "The focus timer is over",
+    }
 }
 
 /// What running a mode does with one program.
@@ -256,6 +319,22 @@ fn place(_: &str, _: Rect) {}
 
 #[cfg(test)]
 mod tests {
+    /// T30.4: only the latest focus ends, and its end is told once.
+    #[test]
+    fn a_mode_with_focus_minutes_has_one_timer_whose_end_is_told_once() {
+        let modes = [Mode { name: "work".into(), apps: vec![app("C:\\a.exe")], focus_minutes: Some(25) }, Mode { name: "game".into(), apps: vec![app("C:\\g.exe")], focus_minutes: Some(500) }];
+        assert_eq!((focus_of(&modes, "Work"), focus_of(&modes, "game"), focus_of(&modes, "sleep")), (Some(25), None, None));
+        let timer = FocusTimer::default();
+        let now = Instant::now();
+        let (first, second) = (timer.arm(), timer.arm());
+        assert!(!timer.finish(first, now) && !timer.ended(now));
+        assert!(timer.finish(second, now) && timer.ended(now));
+        assert!(!timer.ended(now + FOCUS_TOLD_WITHIN));
+        timer.told();
+        assert!(!timer.ended(now));
+        assert_eq!((focus_over("ru"), focus_over("xx")), ("Фокус закончен", "The focus timer is over"));
+    }
+
     #[test]
     fn a_mode_edited_in_the_settings_is_checked_replaced_and_deleted() {
         let dir = tempfile::tempdir().unwrap();
