@@ -291,12 +291,19 @@
       "name": "Webhook (HTTP अनुरोध)"
     },
     "ha.toggle": {
-      "label": "HA टॉगल",
+      "label": "लाइट",
       "name": "Home Assistant: टॉगल"
     },
     "ha.scene": {
-      "label": "HA सीन",
+      "label": "सीन",
       "name": "Home Assistant: सीन"
+    },
+    "sound.note": {
+      "label": "नोट",
+      "name": "बैठक नोट",
+      "states": {
+        "true": "रोकें"
+      }
     }
   },
   "sets": {

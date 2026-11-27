@@ -291,12 +291,19 @@
       "name": "Webhook (HTTP сұрауы)"
     },
     "ha.toggle": {
-      "label": "HA Ауыстыру",
+      "label": "Шам",
       "name": "Home Assistant: ауыстыру"
     },
     "ha.scene": {
-      "label": "HA Сахна",
+      "label": "Сахна",
       "name": "Home Assistant: сахна"
+    },
+    "sound.note": {
+      "label": "Жазба",
+      "name": "Кездесу жазбасы",
+      "states": {
+        "true": "Тоқтату"
+      }
     }
   },
   "sets": {

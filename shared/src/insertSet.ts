@@ -31,7 +31,7 @@ export function makeActionId(name: string, existing: Record<string, unknown>): s
 }
 
 /** What the person answered for an item with `ask`. */
-export interface Answer { url?: string; keys?: string[]; scene?: string; input?: string; page?: string; text?: string; }
+export interface Answer { url?: string; keys?: string[]; scene?: string; input?: string; page?: string; text?: string; /** A Home Assistant entity id and the name it has there. */ entity?: string; entityName?: string; }
 
 export interface InsertContext {
   language: Language;
@@ -139,7 +139,9 @@ function materialize(
     if (source.ask === "obs_scene") body = { ...body, scene: a.scene };
     if (source.ask === "obs_input") body = { ...body, input: a.input };
     if (source.ask === "text") body = { ...body, message: a.text };
-    const action = { name: pickText(source.name, lang).slice(0, 60), ...body } as Action;
+    if (source.ask === "ha_entity") body = { ...body, entityId: a.entity };
+    const named = source.ask === "ha_entity" && given(a.entityName) ? a.entityName! : pickText(source.name, lang);
+    const action = { name: named.slice(0, 60), ...body } as Action;
     const all: ActionsFile = { ...actions, actions: { ...actions.actions, ...newActions } };
     const same = findSameAction(all, action);
     if (same) return same;
@@ -155,6 +157,7 @@ function materialize(
   if (item.ask === "obs_input" && !given(answer.input)) return null;
   if (item.ask === "page" && !given(answer.page)) return null;
   if (item.ask === "text" && !given(answer.text)) return null;
+  if (item.ask === "ha_entity" && !given(answer.entity)) return null;
   if (item.ask === "sequence") return null; // made by the sequence editor, not here
 
   if (item.widget) {
@@ -190,7 +193,8 @@ function materialize(
       if (c !== undefined) shown.color = c;
       states[key === "$scene" ? (answer.scene ?? key) : key] = shown;
     }
-    button.bind = { var: item.bind.var, states };
+    // The state of a Home Assistant button is that of the chosen entity.
+    button.bind = { var: item.ask === "ha_entity" ? `ha.${answer.entity}` : item.bind.var, states };
   }
   return { layoutItem: button as Omit<LayoutItem, "x" | "y" | "id">, ...(actionId !== undefined ? { actionId } : {}) };
 }

@@ -56,7 +56,8 @@
         "sound.mute",
         "sound.volup",
         "sound.voldown",
-        "sound.widget"
+        "sound.widget",
+        "sound.note"
       ]
     },
     {
@@ -1408,28 +1409,75 @@
     {
       "id": "ha.toggle",
       "label": {
-        "en": "HA Toggle",
-        "ru": "Свет HA"
+        "en": "Light",
+        "ru": "Свет"
       },
       "name": {
-        "en": "Home Assistant: toggle entity",
-        "ru": "Home Assistant: переключить"
+        "en": "Home Assistant: device",
+        "ru": "Home Assistant: устройство"
       },
       "icon": "lucide:power",
-      "ask": "text"
+      "action": {
+        "type": "ha",
+        "entityId": "light.example",
+        "service": "toggle"
+      },
+      "ask": "ha_entity",
+      "bind": {
+        "var": "ha.light.example",
+        "states": {
+          "true": {
+            "icon": "lucide:sun",
+            "color": "#f59e0b"
+          }
+        }
+      }
     },
     {
       "id": "ha.scene",
       "label": {
-        "en": "HA Scene",
-        "ru": "Сцена HA"
+        "en": "Scene",
+        "ru": "Сцена"
       },
       "name": {
-        "en": "Home Assistant: activate scene",
+        "en": "Home Assistant: scene",
         "ru": "Home Assistant: сцена"
       },
-      "icon": "lucide:sun",
-      "ask": "text"
+      "icon": "lucide:star",
+      "action": {
+        "type": "ha",
+        "entityId": "scene.example",
+        "service": "scene"
+      },
+      "ask": "ha_entity"
+    },
+    {
+      "id": "sound.note",
+      "label": {
+        "en": "Note",
+        "ru": "Заметка"
+      },
+      "name": {
+        "en": "Meeting note",
+        "ru": "Заметка встречи"
+      },
+      "icon": "lucide:mic",
+      "action": {
+        "type": "notes_record"
+      },
+      "bind": {
+        "var": "notes.recording",
+        "states": {
+          "true": {
+            "label": {
+              "en": "Stop",
+              "ru": "Стоп"
+            },
+            "icon": "lucide:square",
+            "color": "#dc2626"
+          }
+        }
+      }
     }
   ]
 }

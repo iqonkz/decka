@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { getLanguage, pickText, t, type Answer, type CatalogItem, type Page } from "@decka/shared";
+import { getLanguage, pickText, t, type Answer, type CatalogItem, type HaStatus, type Page } from "@decka/shared";
+import { call } from "../ipc";
 import Button from "../ui/Button";
 import Modal from "../ui/Modal";
 import Select from "../ui/Select";
@@ -17,16 +18,31 @@ export interface AskProps {
   onConfirm: (answer: Answer) => void;
   onClose: () => void;
   onOpenObs: () => void;
+  onOpenHa?: () => void;
+  /** Tests give the answer of `ha_get`. */
+  initialHa?: HaStatus;
 }
 
-/** The little dialog for what a library item cannot know (DESIGN.md 4.8): an address, keys, a scene, an input, a page. */
-export default function AskDialog({ item, pages, currentPageId, obs, onConfirm, onClose, onOpenObs }: AskProps) {
+/** The little dialog for what a library item cannot know (DESIGN.md 4.8): an address, keys, a scene, an input, a page, a device. */
+export default function AskDialog({ item, pages, currentPageId, obs, onConfirm, onClose, onOpenObs, onOpenHa, initialHa }: AskProps) {
   const lang = getLanguage();
   const [url, setUrl] = useState("");
   const [keys, setKeys] = useState<string[]>([]);
   const [text, setText] = useState("");
   const [choice, setChoice] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [ha, setHa] = useState<HaStatus | null>(initialHa ?? null);
+  useEffect(() => {
+    if (item.ask !== "ha_entity" || initialHa) return;
+    let active = true;
+    call("ha_get").then(
+      (s) => active && setHa(s),
+      (e) => active && setError(String(e)),
+    );
+    return () => {
+      active = false;
+    };
+  }, [item.ask, initialHa]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -35,12 +51,16 @@ export default function AskDialog({ item, pages, currentPageId, obs, onConfirm, 
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  // A scene button offers scenes, a device button everything else.
+  const wantsScene = item.action?.type === "ha" && item.action.service === "scene";
+  const devices = (ha?.entities ?? []).filter((e) => e.id.startsWith("scene.") === wantsScene);
   const options =
-    item.ask === "obs_scene" ? (obs?.scenes ?? []).map((s) => ({ id: s, label: s }))
+    item.ask === "ha_entity" ? devices.map((e) => ({ id: e.id, label: e.name === e.id ? e.id : `${e.name} (${e.id})` }))
+    : item.ask === "obs_scene" ? (obs?.scenes ?? []).map((s) => ({ id: s, label: s }))
     : item.ask === "obs_input" ? (obs?.inputs ?? []).map((s) => ({ id: s, label: s }))
     : pages.filter((p) => (item.popup === true ? p.popup === true : p.popup !== true && p.id !== currentPageId)).map((p) => ({ id: p.id, label: p.name }));
 
-  const title = item.ask === "text" ? t("ask.text") : item.ask === "url" ? t("ask.website") : item.ask === "keys" ? t("picker.shortcut_title") : item.ask === "obs_scene" ? t("ask.scene") : item.ask === "obs_input" ? t("ask.input") : item.popup ? t("ask.group") : t("ask.page");
+  const title = item.ask === "ha_entity" ? t("ha.entity") : item.ask === "text" ? t("ask.text") : item.ask === "url" ? t("ask.website") : item.ask === "keys" ? t("picker.shortcut_title") : item.ask === "obs_scene" ? t("ask.scene") : item.ask === "obs_input" ? t("ask.input") : item.popup ? t("ask.group") : t("ask.page");
 
   function confirm() {
     if (item.ask === "url") {
@@ -50,13 +70,15 @@ export default function AskDialog({ item, pages, currentPageId, obs, onConfirm, 
     if (item.ask === "keys") return keys.length > 0 ? onConfirm({ keys }) : setError(t("picker.press_keys"));
     if (item.ask === "text") return text.trim() !== "" ? onConfirm({ text: text.trim() }) : setError(t("ask.enter_text"));
     if (choice === "") return setError(t("ask.choose"));
+    if (item.ask === "ha_entity") return onConfirm({ entity: choice, entityName: devices.find((e) => e.id === choice)?.name ?? choice });
     if (item.ask === "obs_scene") return onConfirm({ scene: choice });
     if (item.ask === "obs_input") return onConfirm({ input: choice });
     return onConfirm({ page: choice });
   }
 
   const needsObs = (item.ask === "obs_scene" || item.ask === "obs_input") && obs === null;
-  const empty = !needsObs && (item.ask === "obs_scene" || item.ask === "obs_input" || item.ask === "page") && options.length === 0;
+  const needsHa = item.ask === "ha_entity" && ha !== null && !ha.hasToken;
+  const empty = !needsObs && !needsHa && (item.ask === "obs_scene" || item.ask === "obs_input" || item.ask === "page" || (item.ask === "ha_entity" && ha !== null)) && options.length === 0;
   return (
     <Modal
       title={pickText(item.name, lang)}
@@ -66,7 +88,7 @@ export default function AskDialog({ item, pages, currentPageId, obs, onConfirm, 
       footer={
         <>
           <Button onClick={onClose}>{t("common.cancel")}</Button>
-          <Button variant="primary" disabled={needsObs || empty} onClick={confirm}>{t("library.add")}</Button>
+          <Button variant="primary" disabled={needsObs || needsHa || empty} onClick={confirm}>{t("library.add")}</Button>
         </>
       }
     >
@@ -83,9 +105,15 @@ export default function AskDialog({ item, pages, currentPageId, obs, onConfirm, 
           <div className="row"><Button onClick={onOpenObs}>{t("ask.open_obs")}</Button></div>
         </>
       )}
-      {!needsObs && item.ask !== "url" && item.ask !== "keys" && item.ask !== "text" && (
+      {needsHa && (
+        <>
+          <p className="muted">{t("ha.not_set")}</p>
+          {onOpenHa && <div className="row"><Button onClick={onOpenHa}>{t("ha.open")}</Button></div>}
+        </>
+      )}
+      {!needsObs && !needsHa && item.ask !== "url" && item.ask !== "keys" && item.ask !== "text" && (
         empty ? (
-          <p className="muted">{item.ask === "page" ? t("ask.no_pages") : t("ask.connect_obs")}</p>
+          <p className="muted">{item.ask === "page" ? t("ask.no_pages") : item.ask === "ha_entity" ? (ha?.error ?? t("ha.no_entities")) : t("ask.connect_obs")}</p>
         ) : (
           <Select
             autoFocus

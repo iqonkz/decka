@@ -1,16 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { t } from "@decka/shared";
-import { invoke } from "@tauri-apps/api/core";
+import { t, type NoteEntry } from "@decka/shared";
+import { call } from "../ipc";
+import Banner from "../ui/Banner";
 import Button from "../ui/Button";
 import PhIcon from "../ui/PhIcon";
-import { Group, PageHeader } from "../ui/SettingsGroup";
+import { Group, PageHeader, Row } from "../ui/SettingsGroup";
+import Switch from "../ui/Switch";
+import { loadNotes, removeNote } from "./m30Ipc";
 
-export interface NoteEntry {
-  id: string;
-  title: string;
-  date: string;
-  markdown: string;
-}
+export type { NoteEntry };
 
 export interface NotesTabProps {
   initialNotes?: NoteEntry[];
@@ -22,7 +20,7 @@ function renderMarkdownBlocks(md: string) {
     if (line.startsWith("### ")) return <h4 key={i} style={{ margin: "10px 0 4px" }}>{line.slice(4)}</h4>;
     if (line.startsWith("## ")) return <h3 key={i} style={{ margin: "12px 0 6px" }}>{line.slice(3)}</h3>;
     if (line.startsWith("# ")) return <h2 key={i} style={{ margin: "0 0 8px", fontSize: 18 }}>{line.slice(2)}</h2>;
-    if (line.startsWith("- ")) return <div key={i} style={{ paddingLeft: 12, margin: "2px 0" }}>• {line.slice(2)}</div>;
+    if (line.startsWith("- ")) return <div key={i} style={{ paddingInlineStart: 12, margin: "2px 0" }}>• {line.slice(2)}</div>;
     if (line.trim() === "") return <div key={i} style={{ height: 6 }} />;
     return <p key={i} style={{ margin: "4px 0", lineHeight: 1.5 }}>{line}</p>;
   });
@@ -34,20 +32,21 @@ export default function NotesTab({ initialNotes }: NotesTabProps = {}) {
   const [selectedId, setSelectedId] = useState<string | null>(initialNotes?.[0]?.id ?? null);
   const [query, setQuery] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [keepAudio, setKeepAudio] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (initialNotes) return;
     let active = true;
-    invoke<NoteEntry[]>("notes_list").then(
-      (list) => {
-        if (!active || !Array.isArray(list)) return;
-        setNotes(list);
-        if (list.length > 0) setSelectedId((cur) => cur ?? list[0]!.id);
-      },
-      () => {},
-    );
+    const failed = (e: unknown) => active && setError(String(e));
+    const load = () => void loadNotes(call).then((list) => active && setNotes(list), failed);
+    load();
+    call("notes_keep_audio_get").then((on) => active && setKeepAudio(on), failed);
+    // A note that was written while the window was away appears when it is looked at again.
+    window.addEventListener("focus", load);
     return () => {
       active = false;
+      window.removeEventListener("focus", load);
     };
   }, [initialNotes]);
 
@@ -63,17 +62,38 @@ export default function NotesTab({ initialNotes }: NotesTabProps = {}) {
   );
 
   function handleDelete(id: string) {
-    setNotes((prev) => prev.filter((n) => n.id !== id));
+    setError(null);
     setConfirmDeleteId(null);
-    if (selectedId === id) setSelectedId(null);
-    invoke("notes_delete", { id }).catch(() => {});
+    removeNote(call, notes, id).then(
+      (left) => {
+        setNotes(left);
+        if (selectedId === id) setSelectedId(null);
+      },
+      (e) => setError(String(e)),
+    );
+  }
+
+  function changeKeep(next: boolean) {
+    setError(null);
+    setKeepAudio(next);
+    call("notes_keep_audio_set", { keep: next }).then(setKeepAudio, (e) => {
+      setKeepAudio(!next);
+      setError(String(e));
+    });
   }
 
   return (
     <div className="page-container">
       <PageHeader icon="notepad" title={t("more.notes")} subtitle={t("m30.notes_subtitle")} />
+      {error && <Banner kind="error">{error}</Banner>}
 
-      <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 16, flexWrap: "wrap" }}>
+      <Group>
+        <Row id="section-notes-keep" title={t("notes.keep_audio")} description={t("notes.keep_audio_hint")}>
+          <Switch checked={keepAudio} onChange={changeKeep} />
+        </Row>
+      </Group>
+
+      <div style={{ display: "flex", gap: 12, alignItems: "center", margin: "16px 0", flexWrap: "wrap" }}>
         <div className="integrations-search" style={{ flex: 1, marginBottom: 0 }}>
           <PhIcon name="magnifying-glass" size={16} />
           <input
@@ -85,7 +105,7 @@ export default function NotesTab({ initialNotes }: NotesTabProps = {}) {
             onChange={(e) => setQuery(e.target.value)}
           />
         </div>
-        <Button onClick={() => void invoke("notes_open_folder").catch(() => {})}>
+        <Button onClick={() => void call("notes_open_folder").catch((e) => setError(String(e)))}>
           <PhIcon name="folder-open" size={15} />
           {t("m30.notes_open_folder")}
         </Button>
@@ -112,7 +132,7 @@ export default function NotesTab({ initialNotes }: NotesTabProps = {}) {
                   }}
                   style={{
                     width: "100%",
-                    textAlign: "left",
+                    textAlign: "start",
                     padding: "10px 14px",
                     border: 0,
                     borderTop: idx > 0 ? "1px solid var(--border)" : undefined,

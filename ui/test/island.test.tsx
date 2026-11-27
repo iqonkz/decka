@@ -424,7 +424,20 @@ describe("T26.5b ParticlesOrb & Island", () => {
     expect(memHtml).toContain("island-mem-list");
     expect(memHtml).toContain("chrome.exe");
     expect(memHtml).toContain("2450");
-    expect(memHtml).toContain("MB");
+    // The unit is a word of the language.
+    expect(memHtml).toContain("2450 МБ");
     expect(memHtml).toContain("Закрыть");
+  });
+
+  it("T30.R: the recording can be stopped and the memory note has its button", () => {
+    setLanguage("ru");
+    const noop = () => {};
+    const compact = renderToString(<Island event={{ mode: "compact" }} recording={{ active: true, elapsedSec: 5 }} onStopRecording={noop} />);
+    expect(compact).toContain("island-rec-stop");
+    const listening = renderToString(<Island event={{ mode: "expanded", voice: { active: true, phase: "listening" } }} recording={{ active: true, elapsedSec: 5 }} onStopRecording={noop} />);
+    expect(listening).toContain("island-rec-stop");
+    expect(listening).toContain("0:05");
+    const note = renderToString(<Island event={{ mode: "expanded", voice: { active: false, phase: "done", reply: "Память занята", actions: ["memory"] } }} onAction={noop} />);
+    expect(note).toContain("Показать, что ест");
   });
 });

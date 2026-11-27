@@ -291,12 +291,19 @@
       "name": "Webhook（HTTP リクエスト）"
     },
     "ha.toggle": {
-      "label": "HA 切替",
+      "label": "ライト",
       "name": "Home Assistant: 切り替え"
     },
     "ha.scene": {
-      "label": "HA シーン",
+      "label": "シーン",
       "name": "Home Assistant: シーン"
+    },
+    "sound.note": {
+      "label": "メモ",
+      "name": "会議メモ",
+      "states": {
+        "true": "停止"
+      }
     }
   },
   "sets": {

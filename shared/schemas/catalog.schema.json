@@ -14,7 +14,7 @@
         "icon": { "$ref": "#/$defs/Icon" }, "color": { "$ref": "#/$defs/Color" },
         "action": { "type": "object", "required": ["type"] },
         "confirm": { "type": "boolean" },
-        "ask": { "enum": ["url","keys","obs_scene","obs_input","page","sequence","text"] },
+        "ask": { "enum": ["url","keys","obs_scene","obs_input","page","sequence","text","ha_entity"] },
         "popup": { "type": "boolean" },
         "bind": { "type": "object", "required": ["var","states"], "additionalProperties": false,
           "properties": { "var": { "type": "string", "pattern": "^[a-z0-9_.-]{1,64}$" }, "states": { "type": "object", "minProperties": 1, "maxProperties": 8, "additionalProperties": { "$ref": "#/$defs/State" } } } },

@@ -291,12 +291,19 @@
       "name": "Webhook (petición HTTP)"
     },
     "ha.toggle": {
-      "label": "HA Luz",
+      "label": "Luz",
       "name": "Home Assistant: alternar"
     },
     "ha.scene": {
-      "label": "HA Escena",
+      "label": "Escena",
       "name": "Home Assistant: escena"
+    },
+    "sound.note": {
+      "label": "Nota",
+      "name": "Nota de reunión",
+      "states": {
+        "true": "Parar"
+      }
     }
   },
   "sets": {

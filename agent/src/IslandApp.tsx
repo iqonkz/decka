@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { tVoice, type IslandEvent, type LanguageSetting } from "@decka/shared";
+import { t, tVoice, type IslandEvent, type LanguageSetting } from "@decka/shared";
 import { DictationOrb, GuidePanel, Island, useApplyLanguage, type GuideStepEvent } from "@decka/ui";
 import { call, listen } from "./ipc";
 
@@ -132,6 +132,8 @@ export default function IslandApp() {
     <div ref={host} className={event.mode === "tab" ? "island-bar-host" : undefined} data-island-glass={GLASS} style={{ width: "100%", boxSizing: "border-box", padding: orb ? 4 : event.mode === "tab" ? 0 : 24 }}>
       {orb && (
         <div className="island-orb-host">
+          {/* T30.1: a recording stays visible while the island is the orb of a dictation. */}
+          {event.recording?.active && <span className="island-rec-dot" aria-label={t("m30.rec_label")} role="img" />}
           <DictationOrb
             theme={theme}
             state={orb.phase === "listening" ? "listening" : orb.phase === "thinking" ? "thinking" : "idle"}
@@ -152,6 +154,10 @@ export default function IslandApp() {
         onConfirm={(id, yes) => {
           if (id) void call("voice_confirm", { id, yes }).catch(() => {});
         }}
+        recording={event.recording}
+        onStopRecording={() => void call("notes_stop").catch(() => {})}
+        memoryProcesses={event.memory ?? undefined}
+        onCloseProcess={(pid) => void call("memory_close", { pid }).catch(() => {})}
       />
       <GuidePanel
         guide={guide}

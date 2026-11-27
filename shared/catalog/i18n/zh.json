@@ -291,12 +291,19 @@
       "name": "Webhook（HTTP 请求）"
     },
     "ha.toggle": {
-      "label": "HA 开关",
+      "label": "灯",
       "name": "Home Assistant：切换设备"
     },
     "ha.scene": {
-      "label": "HA 场景",
+      "label": "场景",
       "name": "Home Assistant：激活场景"
+    },
+    "sound.note": {
+      "label": "笔记",
+      "name": "会议笔记",
+      "states": {
+        "true": "停止"
+      }
     }
   },
   "sets": {

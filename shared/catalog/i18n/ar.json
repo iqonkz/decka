@@ -291,12 +291,19 @@
       "name": "Webhook (طلب HTTP)"
     },
     "ha.toggle": {
-      "label": "HA تبديل",
+      "label": "ضوء",
       "name": "Home Assistant: تبديل"
     },
     "ha.scene": {
-      "label": "HA مشهد",
+      "label": "مشهد",
       "name": "Home Assistant: مشهد"
+    },
+    "sound.note": {
+      "label": "ملاحظة",
+      "name": "ملاحظة اجتماع",
+      "states": {
+        "true": "إيقاف"
+      }
     }
   },
   "sets": {

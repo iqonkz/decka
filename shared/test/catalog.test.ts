@@ -83,6 +83,22 @@ describe("the catalog files", () => {
     for (const set of SETS) expect(set.icon.startsWith("lucide:")).toBe(true);
   });
 
+  test("a Home Assistant item becomes a button of the chosen entity that follows its state", () => {
+    const empty: LayoutFile = { ...base, pages: [{ id: "p", name: "P", items: [] }] };
+    const ctx: InsertContext = { language: "ru" };
+    const none = insertItem(empty, actionsBase, "p", "ha.toggle", {}, ctx);
+    expect(none.ok ? none.added : []).toEqual([]);
+    const r = insertItem(empty, actionsBase, "p", "ha.toggle", { entity: "light.bedroom", entityName: "Свет в спальне" }, ctx);
+    if (!r.ok) throw new Error(r.error);
+    const button = r.layout.pages[0]!.items[0] as Extract<LayoutItem, { kind: "button" }>;
+    expect(button.bind?.var).toBe("ha.light.bedroom");
+    expect(r.actions.actions[button.actionId!]).toEqual({ name: "Свет в спальне", type: "ha", entityId: "light.bedroom", service: "toggle" });
+    expect(validateActions(r.actions)).toEqual([]);
+    const scene = insertItem(empty, actionsBase, "p", "ha.scene", { entity: "scene.movie" }, ctx);
+    if (!scene.ok) throw new Error(scene.error);
+    expect(Object.values(scene.actions.actions)).toContainEqual({ name: "Home Assistant: сцена", type: "ha", entityId: "scene.movie", service: "scene" });
+  });
+
   test("widget sizes are allowed and their @options point at items with an action", () => {
     for (const item of CATALOG.items) {
       if (!item.widget) continue;
@@ -97,7 +113,7 @@ describe("the catalog files", () => {
   test("items that ask have what they ask about; integrations are known", () => {
     for (const item of CATALOG.items) {
       if (item.ask === "obs_scene" || item.ask === "obs_input") expect(item.requires, item.id).toBe("obs");
-      if (item.ask === "url" || item.ask === "keys" || item.ask === "obs_scene" || item.ask === "obs_input") expect(item.action, item.id).toBeDefined();
+      if (item.ask === "url" || item.ask === "keys" || item.ask === "obs_scene" || item.ask === "obs_input" || item.ask === "ha_entity") expect(item.action, item.id).toBeDefined();
       if (item.widget || item.navigate || item.ask === "page" || item.ask === "sequence") expect(item.action, item.id).toBeUndefined();
     }
   });

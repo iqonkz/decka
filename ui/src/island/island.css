@@ -931,6 +931,8 @@
 .island-mem-list {
   display: flex;
   flex-direction: column;
+  align-self: stretch;
+  width: 100%;
   gap: 5px;
   margin-top: 6px;
 }
@@ -963,10 +965,49 @@
 }
 
 .island-mem-mb {
+  min-width: 68px;
+  text-align: end;
+  white-space: nowrap;
   font-variant-numeric: tabular-nums;
   color: var(--island-muted);
   font-size: 11px;
   flex: none;
+}
+
+.island-rec-stop {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-inline-end: -4px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.28);
+  color: inherit;
+  cursor: pointer;
+  flex: none;
+}
+
+.island-rec-stop:hover {
+  background: rgba(239, 68, 68, 0.48);
+}
+
+.island-rec-pill.is-solo {
+  align-self: center;
+}
+
+.island-text-action {
+  height: 30px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--island-surface);
+  color: var(--island-text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .island-mem-close {

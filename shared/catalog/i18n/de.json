@@ -291,12 +291,19 @@
       "name": "Webhook (HTTP-Anfrage)"
     },
     "ha.toggle": {
-      "label": "HA Schalter",
+      "label": "Licht",
       "name": "Home Assistant: umschalten"
     },
     "ha.scene": {
-      "label": "HA Szene",
+      "label": "Szene",
       "name": "Home Assistant: Szene"
+    },
+    "sound.note": {
+      "label": "Notiz",
+      "name": "Besprechungsnotiz",
+      "states": {
+        "true": "Stopp"
+      }
     }
   },
   "sets": {

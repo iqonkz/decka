@@ -31,7 +31,7 @@ export interface CatalogBindState {
   color?: string;
 }
 
-export type CatalogAsk = "url" | "keys" | "obs_scene" | "obs_input" | "page" | "sequence" | "text";
+export type CatalogAsk = "url" | "keys" | "obs_scene" | "obs_input" | "page" | "sequence" | "text" | "ha_entity";
 export type Integration = "obs" | "weather" | "twitch" | "youtube";
 
 export interface CatalogItem {

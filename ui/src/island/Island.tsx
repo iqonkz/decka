@@ -65,6 +65,8 @@ export interface IslandProps {
   /** T30.1b: top memory-consuming processes with Close buttons. */
   memoryProcesses?: IslandMemoryProcess[];
   onCloseProcess?: (pid: number, name: string) => void;
+  /** T30.1: the stop button next to the recording indicator. */
+  onStopRecording?: () => void;
 }
 
 function formatRecTimer(sec: number): string {
@@ -175,6 +177,7 @@ export default function Island({
   recording,
   memoryProcesses,
   onCloseProcess,
+  onStopRecording,
 }: IslandProps) {
   const { mode, lyrics, voice } = event;
   const [langMenuOpen, setLangMenuOpen] = useState(false);
@@ -471,6 +474,11 @@ export default function Island({
               <span className="island-rec-pill" aria-label={t("m30.rec_label")}>
                 <span className="island-rec-dot" aria-hidden="true" />
                 <span>{formatRecTimer(recording.elapsedSec)}</span>
+                {onStopRecording && (
+                  <button type="button" className="island-rec-stop" title={t("voice.chip.note_stop")} aria-label={t("voice.chip.note_stop")} onClick={onStopRecording}>
+                    <Square size={9} strokeWidth={2.5} fill="currentColor" aria-hidden="true" />
+                  </button>
+                )}
               </span>
             )}
             {voiceActive && slow ? (
@@ -551,7 +559,14 @@ export default function Island({
   const hasAgain = actions.includes("again");
   const showLang = actions.some((a) => a === "lang" || a.startsWith("lang:"));
   const hasGroup1 = hasCopy || hasInsert || hasSpeak;
-  const hasActions = hasGroup1 || hasAgain || showLang;
+  // T30.2: the button of the memory note.
+  const hasMemoryButton = actions.includes("memory");
+  const hasActions = hasGroup1 || hasAgain || showLang || hasMemoryButton;
+  const stopRecording = onStopRecording && (
+    <button type="button" className="island-rec-stop" title={t("voice.chip.note_stop")} aria-label={t("voice.chip.note_stop")} onClick={onStopRecording}>
+      <Square size={9} strokeWidth={2.5} fill="currentColor" aria-hidden="true" />
+    </button>
+  );
   const statusLabel = expandedStatusText(voice?.phase, voice?.loading);
   const currentLang = locale();
   const isCopied = copied || copiedPreview;
@@ -622,7 +637,16 @@ export default function Island({
         </div>
 
         {!isContent ? (
-          <div className="island-solo-status">{statusLabel}</div>
+          <>
+            <div className="island-solo-status">{statusLabel}</div>
+            {recording?.active && (
+              <div className="island-rec-pill is-solo" aria-label={t("m30.rec_label")}>
+                <span className="island-rec-dot" aria-hidden="true" />
+                <span>{formatRecTimer(recording.elapsedSec)}</span>
+                {stopRecording}
+              </div>
+            )}
+          </>
         ) : (
           <div
             className={`island-content-col${animateContent ? " is-entering" : ""}`}
@@ -689,6 +713,7 @@ export default function Island({
               <div className="island-rec-pill" style={{ marginBottom: 6 }} aria-label={t("m30.rec_label")}>
                 <span className="island-rec-dot" aria-hidden="true" />
                 <span>{t("m30.rec_label")} {formatRecTimer(recording.elapsedSec)}</span>
+                {stopRecording}
               </div>
             )}
 
@@ -727,7 +752,7 @@ export default function Island({
                 {memoryProcesses.map((proc) => (
                   <div key={proc.pid} className="island-mem-row">
                     <span className="island-mem-name">{proc.name}</span>
-                    <span className="island-mem-mb">{proc.mb} MB</span>
+                    <span className="island-mem-mb">{t("m30.mem_mb", { mb: proc.mb })}</span>
                     <button
                       type="button"
                       className="island-mem-close"
@@ -742,6 +767,11 @@ export default function Island({
 
             {hasActions && (
               <div className="island-actions">
+                {hasMemoryButton && (
+                  <button type="button" className="island-text-action" onClick={() => onAction?.("memory")}>
+                    {t("m30.mem_show")}
+                  </button>
+                )}
                 {hasCopy && (
                   <button
                     type="button"

@@ -947,6 +947,7 @@ export default function LayoutTab() {
           obs={ask.obs}
           onClose={() => setAsk(null)}
           onOpenObs={() => { setAsk(null); setupIntegration("obs"); }}
+          onOpenHa={() => { setAsk(null); void navigate("integrations:ha"); }}
           onConfirm={(answer) => { const { item, cell } = ask; setAsk(null); void finishCatalog(item, answer, cell); }}
         />
       )}
