@@ -32,16 +32,14 @@ fn set_first_button_icon(agent: &Agent, icon: &str) -> decka_core::model::Layout
 }
 
 #[tokio::test]
-async fn a_missing_icon_file_is_rejected_with_a_clear_message() {
+async fn a_missing_icon_file_becomes_the_default_icon() {
     let dir = tempfile::tempdir().unwrap();
     let agent = start(dir.path()).await;
     let layout = set_first_button_icon(&agent, "img:0123456789abcdef");
-    match agent.save_layout(layout) {
-        SaveResult::Rejected(issues) => {
-            assert!(issues.iter().any(|i| i.message == "icon file not found — choose the icon again" && i.path.ends_with("/icon")), "{issues:?}");
-        }
-        SaveResult::Saved => panic!("expected a rejection"),
-    }
+    assert_eq!(agent.save_layout(layout), SaveResult::Saved);
+    assert_eq!(agent.layout(), set_first_button_icon(&agent, "lucide:square"));
+    let on_disk = std::fs::read_to_string(dir.path().join("layout.json")).unwrap();
+    assert!(!on_disk.contains("img:0123456789abcdef"), "the file is saved with the default icon");
     agent.shutdown().await;
 }
 

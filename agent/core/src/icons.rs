@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use base64::Engine;
 use sha2::{Digest, Sha256};
 
-use crate::model::{LayoutFile, LayoutItem, ValidationIssue};
+use crate::model::{LayoutFile, LayoutItem};
 
 /// Side of a new icon in pixels (M14, DATA_MODEL.md 8.1: big icons need a sharp source).
 pub const ICON_SIDE: u32 = 256;
@@ -260,27 +260,33 @@ pub fn collect_icons(config_dir: &Path, layout: &LayoutFile) -> serde_json::Valu
     serde_json::to_value(map).expect("icons serialize")
 }
 
-/// DATA_MODEL.md 8.2, rule 11: an `img:` icon needs its file.
-pub fn missing_icon_issues(config_dir: &Path, layout: &LayoutFile) -> Vec<ValidationIssue> {
+/// The picture of a key whose `img:` file is gone (T29.P).
+pub const DEFAULT_ICON: &str = "lucide:square";
+
+/// An `img:` icon needs its file; one that has none gets the default icon, so that one lost picture does not make the
+/// whole layout unusable (rule 11 of DATA_MODEL.md 8.2 before 0.51.1). Returns how many were replaced.
+pub fn replace_missing_icons(config_dir: &Path, layout: &mut LayoutFile) -> usize {
     let dir = icons_dir(config_dir);
-    let missing = |icon: &Option<String>| icon.as_deref().and_then(img_hash).is_some_and(|h| !icon_file_exists(&dir, h));
-    let issue = |path: String| ValidationIssue { path, message: "icon file not found — choose the icon again".to_string() };
-    let mut out = Vec::new();
-    for (pi, page) in layout.pages.iter().enumerate() {
-        for (ii, item) in page.items.iter().enumerate() {
+    let mut replaced = 0;
+    let mut fix = |icon: &mut Option<String>| {
+        if icon.as_deref().and_then(img_hash).is_some_and(|h| !icon_file_exists(&dir, h)) {
+            *icon = Some(DEFAULT_ICON.to_string());
+            replaced += 1;
+        }
+    };
+    for page in &mut layout.pages {
+        for item in &mut page.items {
             let LayoutItem::Button(b) = item else { continue };
-            let base = format!("/pages/{pi}/items/{ii}");
-            if missing(&b.icon) {
-                out.push(issue(format!("{base}/icon")));
-            }
-            for (key, look) in b.bind.iter().flat_map(|bind| bind.states.iter()) {
-                if missing(&look.icon) {
-                    out.push(issue(format!("{base}/bind/states/{}/icon", key.replace('~', "~0").replace('/', "~1"))));
-                }
+            fix(&mut b.icon);
+            for look in b.bind.iter_mut().flat_map(|bind| bind.states.values_mut()) {
+                fix(&mut look.icon);
             }
         }
     }
-    out
+    if replaced > 0 {
+        tracing::warn!("{replaced} icon files are missing: the default icon takes their place");
+    }
+    replaced
 }
 
 /// Width and height of a PNG from its IHDR chunk; anything else -> `None`.
@@ -724,17 +730,15 @@ mod tests {
     }
 
     #[test]
-    fn rule_11_flags_a_missing_file_for_buttons_and_states() {
+    fn a_missing_file_gets_the_default_icon_on_buttons_and_states() {
         let dir = tempfile::tempdir().unwrap();
         let png = b"\x89PNG one";
         let have = save_icon(dir.path(), png).unwrap();
-        let layout = layout_with(&have, "img:0123456789abcdef");
-        let issues = missing_icon_issues(dir.path(), &layout);
-        assert_eq!(issues.len(), 1);
-        assert_eq!(issues[0].path, "/pages/0/items/0/bind/states/true/icon");
-        assert_eq!(issues[0].message, "icon file not found — choose the icon again");
-        assert!(missing_icon_issues(dir.path(), &layout_with(&have, &have)).is_empty());
-        assert!(missing_icon_issues(dir.path(), &layout_with("lucide:play", "emoji:x")).is_empty());
+        let mut layout = layout_with(&have, "img:0123456789abcdef");
+        assert_eq!(replace_missing_icons(dir.path(), &mut layout), 1);
+        assert_eq!(layout, layout_with(&have, DEFAULT_ICON));
+        assert_eq!(replace_missing_icons(dir.path(), &mut layout_with(&have, &have)), 0);
+        assert_eq!(replace_missing_icons(dir.path(), &mut layout_with("lucide:play", "emoji:x")), 0);
     }
 
     #[test]
@@ -837,7 +841,7 @@ mod tests {
     fn rule_11_accepts_an_svg_file() {
         let dir = tempfile::tempdir().unwrap();
         let icon = icon_from_svg(dir.path(), HEART).unwrap();
-        assert!(missing_icon_issues(dir.path(), &layout_with(&icon, "lucide:play")).is_empty());
+        assert_eq!(replace_missing_icons(dir.path(), &mut layout_with(&icon, "lucide:play")), 0);
         let section = collect_icons(dir.path(), &layout_with(&icon, "lucide:play"));
         assert_eq!(section.as_object().unwrap().len(), 1);
     }

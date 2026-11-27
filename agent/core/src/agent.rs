@@ -2517,10 +2517,6 @@ impl Agent {
     }
 
     /// Layout issues of the first kind that need the disk: `img:` icons must have their files (DATA_MODEL.md 8.2).
-    fn icon_issues(&self, layout: &LayoutFile) -> Vec<ValidationIssue> {
-        crate::icons::missing_icon_issues(&self.inner.config_dir, layout)
-    }
-
     /// Icon of a program (`.exe`) as `img:<hash16>`; blocks (Shell + imaging), call it from a blocking context.
     pub fn icon_from_program(&self, path: &str) -> Result<String, String> {
         crate::icons::icon_from_program(&self.inner.config_dir, path)
@@ -2588,9 +2584,13 @@ impl Agent {
             },
             "layout.json" => match serde_json::from_str::<LayoutFile>(&text) {
                 Err(e) => self.invalid_file_notification(name, &format!("invalid JSON: {e}")),
-                Ok(layout) => match crate::validate::validate_layout(&layout, &self.actions()).into_iter().chain(self.icon_issues(&layout)).next().as_ref() {
+                Ok(mut layout) => match crate::validate::validate_layout(&layout, &self.actions()).first() {
                     Some(issue) => self.invalid_file_notification(name, &issue.message),
-                    None => self.apply_layout(layout),
+                    None => {
+                        // The file of the user stays as it is; the default icon stands in while a picture is missing.
+                        crate::icons::replace_missing_icons(&self.inner.config_dir, &mut layout);
+                        self.apply_layout(layout);
+                    }
                 },
             },
             _ => {}
@@ -2631,9 +2631,9 @@ impl Agent {
     }
 
     /// Validates against the current actions, writes layout.json, updates memory and the layout section.
-    pub fn save_layout(&self, layout: LayoutFile) -> SaveResult {
-        let mut issues = crate::validate::validate_layout(&layout, &self.actions());
-        issues.extend(self.icon_issues(&layout));
+    pub fn save_layout(&self, mut layout: LayoutFile) -> SaveResult {
+        crate::icons::replace_missing_icons(&self.inner.config_dir, &mut layout);
+        let issues = crate::validate::validate_layout(&layout, &self.actions());
         if !issues.is_empty() {
             return SaveResult::Rejected(issues);
         }
