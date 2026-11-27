@@ -651,5 +651,15 @@
     "args": {
       "topic": "battery"
     }
+  },
+  {
+    "say": "что у меня завтра",
+    "tool": "day_brief",
+    "args": {}
+  },
+  {
+    "say": "когда следующая встреча",
+    "tool": "day_brief",
+    "args": {}
   }
 ]

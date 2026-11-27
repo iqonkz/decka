@@ -432,6 +432,15 @@ input { user-select: text; touch-action: manipulation; }
 .phone-seg button.on { background: var(--accent, #7c5cff); color: #fff; }
 .menu-link { border: 0; background: transparent; color: var(--accent, #7c5cff); font-size: 14px; font-weight: 500; cursor: pointer; }
 
+/* M32 T32.1b: Paired PCs list in PhoneMenu */
+.pc-row:disabled { opacity: 1; cursor: default; }
+.pc-row-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.pc-row-name { font-size: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pc-row-sub { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--sheet-muted); font-variant-numeric: tabular-nums; }
+.pc-status-dot { width: 7px; height: 7px; border-radius: 50%; background: #6b7280; flex: none; }
+.pc-status-dot.online { background: #22c55e; }
+.pc-current-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; background: color-mix(in srgb, var(--accent, #7c5cff) 18%, transparent); color: var(--accent, #7c5cff); }
+
 /* App strip (DESIGN.md 4.10) */
 .app-strip { position: fixed; z-index: 7; display: flex; flex-direction: column; box-sizing: border-box; background: var(--sheet-bg); color: #f2f2f2; box-shadow: 0 0 24px rgba(0, 0, 0, 0.5); transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1); }
 .app-strip.strip-right { top: 0; bottom: 0; right: 0; transform: translateX(105%); }

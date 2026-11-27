@@ -651,5 +651,15 @@
     "args": {
       "topic": "battery"
     }
+  },
+  {
+    "say": "what is on my calendar tomorrow",
+    "tool": "day_brief",
+    "args": {}
+  },
+  {
+    "say": "when is my next meeting",
+    "tool": "day_brief",
+    "args": {}
   }
 ]

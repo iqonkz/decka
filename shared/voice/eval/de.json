@@ -637,5 +637,15 @@
     "args": {
       "topic": "battery"
     }
+  },
+  {
+    "say": "was steht morgen im kalender",
+    "tool": "day_brief",
+    "args": {}
+  },
+  {
+    "say": "wann ist mein nächstes meeting",
+    "tool": "day_brief",
+    "args": {}
   }
 ]

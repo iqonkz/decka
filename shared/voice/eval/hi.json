@@ -637,5 +637,15 @@
     "args": {
       "topic": "battery"
     }
+  },
+  {
+    "say": "कल कैलेंडर में क्या है",
+    "tool": "day_brief",
+    "args": {}
+  },
+  {
+    "say": "मेरी अगली मीटिंग कब है",
+    "tool": "day_brief",
+    "args": {}
   }
 ]

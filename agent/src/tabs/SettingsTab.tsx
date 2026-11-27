@@ -12,6 +12,7 @@ import Segmented from "../ui/Segmented";
 import Select from "../ui/Select";
 import { useAutosave } from "../ui/useAutosave";
 import BackupSection from "./BackupSection";
+import TrayFavoritesSection from "./TrayFavoritesSection";
 
 export default function SettingsTab() {
   const [config, setConfig] = useState<ConfigFile | null>(null);
@@ -143,6 +144,8 @@ export default function SettingsTab() {
           </Group>
         </div>
       </Disclosure>
+
+      <TrayFavoritesSection />
 
       <BackupSection onRestored={load} />
 

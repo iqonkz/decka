@@ -183,6 +183,16 @@ export function buildIntegrationsList(
       keywords: ["webhook", "http", "request", "post"],
     },
     {
+      id: "calendar",
+      name: t("m32.cal_name"),
+      titleKey: "m32.cal_name",
+      descKey: "m32.cal_desc",
+      category: "data",
+      icon: "calendar",
+      connected: Boolean((config as { calendar?: { url?: string } }).calendar?.url),
+      keywords: ["calendar", "ics", "google", "outlook", "meeting", "zoom", "meet", "календарь", "встречи"],
+    },
+    {
       id: "ha",
       name: t("m30.ha_name"),
       titleKey: "m30.ha_name",

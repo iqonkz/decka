@@ -637,5 +637,15 @@
     "args": {
       "topic": "battery"
     }
+  },
+  {
+    "say": "ертең күнтізбеде не бар",
+    "tool": "day_brief",
+    "args": {}
+  },
+  {
+    "say": "келесі кездесу қашан",
+    "tool": "day_brief",
+    "args": {}
   }
 ]

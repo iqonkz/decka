@@ -57,4 +57,6 @@ export {
 } from "./island/islandTypes";
 export { default as HighlightOverlay, computeBubblePlacement, type BubblePlacement, type BubbleSide, type HighlightOverlayProps } from "./m27/HighlightOverlay";
 export { default as GuidePanel, type GuidePanelProps } from "./m27/GuidePanel";
+export { default as Calendar, type CalendarEvent, type CalendarInfo } from "./widgets/Calendar";
+export { default as TrayMiniPanel, type TrayMiniAction, type TrayMiniNextEvent, type TrayMiniPanelProps } from "./tray/TrayMiniPanel";
 export type { HighlightRect, HighlightEvent, GuideStepEvent, SavedGuideStep, SavedGuide, WorkModeApp, WorkMode, VoiceModelTier } from "@decka/shared";

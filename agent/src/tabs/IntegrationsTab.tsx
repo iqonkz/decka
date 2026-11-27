@@ -16,6 +16,7 @@ import MailSection from "./MailSection";
 import WinNotifSection from "./WinNotifSection";
 import LyricsSection from "./LyricsSection";
 import HaSection from "./HaSection";
+import CalendarSection from "./CalendarSection";
 import { lyricsGet, lyricsOverlaySet, lyricsSet } from "./lyricsIpc";
 import Switch from "../ui/Switch";
 import Disclosure from "../ui/Disclosure";
@@ -196,6 +197,7 @@ export default function IntegrationsTab() {
         {activeIntegration === "ai" && <AiSection config={config} onSaved={load} />}
         {activeIntegration === "lyrics" && <LyricsSection enabled={lyricsEnabled} onToggle={(v) => void toggleLyrics(v)} pcOverlay={lyricsPc} onPcOverlay={(m) => void changeLyricsPc(m)} />}
         {activeIntegration === "ha" && <HaSection onSaved={() => void load()} />}
+        {activeIntegration === "calendar" && <CalendarSection onSaved={() => void load()} />}
         {activeIntegration === "bluetooth" && (
           <div>
             <PageHeader title={t("m29.integ_bt_name")} subtitle={t("m29.integ_bt_desc")} />

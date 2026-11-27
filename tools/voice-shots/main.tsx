@@ -249,6 +249,27 @@ if (scene === "deck" || scene === "settings") {
     if (q.get("wizard") !== null) localStorage.removeItem("decka.wizard.done.v1");
     else localStorage.setItem("decka.wizard.done.v1", "1");
     localStorage.setItem("decka.editor.tips.v1", "1");
+    if (q.get("calDemo") === "1") {
+      localStorage.setItem(
+        "decka.calendar.v1",
+        JSON.stringify({
+          url: "https://calendar.example.com/team/work.ics",
+          connected: true,
+          events: [
+            { id: "c1", title: "Ежедневный стендап", startTime: "10:00", endTime: "10:30", meetingProvider: "Zoom", joinActionId: "join-1" },
+            { id: "c2", title: "Дизайн-ревью Decka", startTime: "12:30", endTime: "13:15", meetingProvider: "Google Meet", joinActionId: "join-2" },
+            { id: "c3", title: "1-on-1 с Андреем", startTime: "15:00", endTime: "15:30" },
+          ],
+        }),
+      );
+    } else {
+      localStorage.removeItem("decka.calendar.v1");
+    }
+    if (q.get("wakeDemo") === "1") {
+      localStorage.setItem("decka.wakeword.v1", JSON.stringify({ enabled: true, sensitivity: "medium" }));
+    } else {
+      localStorage.removeItem("decka.wakeword.v1");
+    }
     const schemeParam = q.get("scheme");
     if (schemeParam === "light" || schemeParam === "dark") {
       fx.layout.display = { ...fx.layout.display, windowTheme: schemeParam };
@@ -332,6 +353,7 @@ if (scene === "deck" || scene === "settings") {
     const { default: App } = await import("../../agent/src/App");
     root.render(<App />);
     if (q.get("go")) setTimeout(() => window.dispatchEvent(new CustomEvent("decka:go", { detail: { tab: q.get("go") } })), 500);
+    if (q.get("scroll") === "wake") setTimeout(() => document.getElementById("voice-wake-word")?.scrollIntoView({ block: "center" }), 650);
     if (q.get("wizard") !== null) setTimeout(() => window.dispatchEvent(new CustomEvent("decka:run-setup", { detail: { step: Number(q.get("wizard")) } })), 450);
   }
 } else if (scene === "orb-bench") {
@@ -680,6 +702,57 @@ if (scene === "deck" || scene === "settings") {
       </div>
     </DeckEnvContext.Provider>,
   );
+} else if (scene === "m32-cal") {
+  await import("../../client/src/styles.css");
+  const { applyTheme } = await import("../../ui/src");
+  const { DeckEnvContext, EMPTY_DATA } = await import("../../ui/src/deckEnv");
+  const { default: Calendar } = await import("../../ui/src/widgets/Calendar");
+  const themeMode = (q.get("theme") ?? "dark") as "light" | "dark";
+  applyTheme(document.documentElement, { theme: themeMode === "light" ? "material" : "studio", accent: "#7c5cff", wallpaper: "aurora" });
+  const bg = themeMode === "light" ? "#eef1f7" : "#101218";
+  const fg = themeMode === "light" ? "#14161c" : "#f4f6fa";
+  document.documentElement.style.background = bg;
+  document.body.style.cssText = `margin:0;min-height:100vh;background:${bg};color:${fg};font-family:system-ui,-apple-system,sans-serif;`;
+  const tileStyle = {
+    containerType: "size" as const,
+    containerName: "tile",
+    borderRadius: 16,
+    padding: 12,
+    boxSizing: "border-box" as const,
+    overflow: "hidden" as const,
+    background: themeMode === "light" ? "#ffffff" : "#1c1e26",
+    color: fg,
+    border: `1px solid ${themeMode === "light" ? "#dfe3ec" : "#2d303c"}`,
+    display: "flex",
+    flexDirection: "column" as const,
+  };
+  root.render(
+    <DeckEnvContext.Provider
+      value={{
+        ...EMPTY_DATA,
+        online: true,
+        calendar: {
+          events: [
+            { id: "c1", title: "Ежедневный стендап", startTime: "10:00", endTime: "10:30", meetingProvider: "Zoom", joinActionId: "join-1" },
+            { id: "c2", title: "Дизайн-ревью Decka", startTime: "12:30", endTime: "13:15", meetingProvider: "Google Meet", joinActionId: "join-2" },
+            { id: "c3", title: "1-on-1 с командой", startTime: "15:00", endTime: "15:30" },
+          ],
+        },
+      }}
+    >
+      <div style={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 14, width: "100vw", height: "100vh", padding: 18, boxSizing: "border-box", background: bg, color: fg }}>
+        <div style={{ ...tileStyle, width: 124, height: 124 }}>
+          <Calendar item={{ id: "cal-s", w: 1, h: 1 }} />
+        </div>
+        <div style={{ ...tileStyle, width: 254, height: 124 }}>
+          <Calendar item={{ id: "cal-m", w: 2, h: 1 }} />
+        </div>
+        <div style={{ ...tileStyle, width: 254, height: 254 }}>
+          <Calendar item={{ id: "cal-l", w: 2, h: 2 }} />
+        </div>
+      </div>
+    </DeckEnvContext.Provider>,
+  );
 } else if (scene === "service") {
   await import("../../client/src/styles.css");
   const { applyTheme } = await import("../../ui/src");
@@ -771,6 +844,65 @@ if (scene === "deck" || scene === "settings") {
         <Toasts />
         <PhoneMenu reduced={false} onToggleReduced={() => {}} haptics={true} onToggleHaptics={() => {}} onUnpair={() => {}} onClose={() => {}} />
       </>,
+    );
+  } else if (screen === "pcs") {
+    const [stateFx] = await Promise.all([import("../../shared/fixtures/state.m15.json")]);
+    const fx = JSON.parse(JSON.stringify(stateFx.default));
+    fx.layout.display = { ...fx.layout.display, theme: q.get("theme") ?? "studio", language: q.get("lang") ?? "ru" };
+    const { default: DeckScreen } = await import("../../client/src/screens/DeckScreen");
+    const { default: PhoneMenu } = await import("../../client/src/menu/PhoneMenu");
+    setState({
+      conn: "online",
+      via: "lan",
+      agentName: "DESKTOP-MAIN",
+      agentVersion: (await import("../../package.json")).default.version,
+      state: fx as never,
+    });
+    root.render(
+      <>
+        <DeckScreen />
+        <PhoneMenu
+          reduced={false}
+          onToggleReduced={() => {}}
+          haptics={true}
+          onToggleHaptics={() => {}}
+          pcs={[
+            { id: "pc-1", name: "DESKTOP-MAIN", address: "192.168.1.20:9247", online: true, current: true },
+            { id: "pc-2", name: "WORK-LAPTOP", address: "192.168.1.44:9247", online: true, current: false },
+            { id: "pc-3", name: "MEDIA-HTPC", address: "192.168.1.78:9247", online: false, current: false },
+          ]}
+          onSwitchPc={() => {}}
+          onAddPc={() => {}}
+          onUnpair={() => {}}
+          onClose={() => {}}
+        />
+      </>,
+    );
+  } else if (screen === "tray") {
+    const { TrayMiniPanel } = await import("../../ui/src");
+    const trayTheme = (q.get("theme") ?? "dark") as "light" | "dark";
+    const bg = trayTheme === "light" ? "#dbe2ee" : "#0b0d14";
+    document.documentElement.style.background = bg;
+    document.body.style.cssText = `margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:${bg};font-family:system-ui,-apple-system,sans-serif;`;
+    root.render(
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100vw", height: "100vh", background: bg }}>
+        <TrayMiniPanel
+        theme={trayTheme}
+        track={{ title: "Midnight City", artist: "M83", art: SAMPLE_ART, playing: true }}
+        volume={68}
+        muted={false}
+        micMuted={false}
+        favorites={[
+          { id: "mic-toggle", label: "Микрофон", icon: "lucide:mic", active: true },
+          { id: "out-mute", label: "Без звука", icon: "lucide:volume-x" },
+          { id: "obs-record", label: "Запись OBS", icon: "lucide:video", active: true },
+          { id: "screen-shot", label: "Скриншот", icon: "lucide:camera" },
+          { id: "ha-light", label: "Свет", icon: "lucide:lightbulb" },
+          { id: "lock-pc", label: "Блок", icon: "lucide:lock" },
+        ]}
+        nextEvent={{ title: "Ежедневный стендап", startTime: "10:00", joinActionId: "join-1" }}
+      />
+      </div>,
     );
   }
 } else {

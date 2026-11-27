@@ -637,5 +637,15 @@
     "args": {
       "topic": "battery"
     }
+  },
+  {
+    "say": "ما لدي غدا في التقويم",
+    "tool": "day_brief",
+    "args": {}
+  },
+  {
+    "say": "متى الاجتماع القادم",
+    "tool": "day_brief",
+    "args": {}
   }
 ]

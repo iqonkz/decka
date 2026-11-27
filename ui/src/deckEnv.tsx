@@ -1,6 +1,7 @@
 import { createContext, useContext } from "react";
 import type { AiInfo, BatteryInfo, ListsSection, MailInfo, MediaInfo, Notification, Page, RemindersSection, ObsInfo, StatusItem, SysStats, TwitchInfo, VarValue, WeatherInfo, YoutubeInfo } from "@decka/shared";
 import type { LyricsInfo } from "@decka/shared";
+import type { CalendarInfo } from "./widgets/Calendar";
 
 /** What the deck shows: the live sections of the agent's state. No connection, store or socket in here. */
 export interface DeckData {
@@ -30,6 +31,8 @@ export interface DeckData {
   lists?: ListsSection | null;
   /** M24 (DATA_MODEL.md 14): synced/plain lyrics of current track (null = off or none). */
   lyrics?: LyricsInfo | null;
+  /** M32 (T32.1b): upcoming calendar meetings (local widget data without touching Rust IPC). */
+  calendar?: CalendarInfo | null;
   /** The pages that follow an app (`apps` set) and the app in front on the PC: what the `context` widget shows. */
   pages?: Page[];
   focusApp?: string | null;

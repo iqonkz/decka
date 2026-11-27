@@ -21,6 +21,7 @@ import Weather from "./widgets/Weather";
 import Statuses from "./widgets/Statuses";
 import StatusTile from "./widgets/StatusTile";
 import Sys from "./widgets/Sys";
+import Calendar from "./widgets/Calendar";
 import { hasWidgetHeader } from "./widgets/density";
 
 const WIDGET_ICONS: Record<string, string> = {
@@ -40,6 +41,7 @@ const WIDGET_ICONS: Record<string, string> = {
   battery: "lucide:bluetooth",
   mail: "lucide:mail",
   reminders: "lucide:calendar",
+  calendar: "lucide:calendar",
   list: "lucide:check",
 };
 
@@ -111,7 +113,7 @@ export default function Tile({ item }: { item: LayoutItem }) {
       content = <ListWidget item={item} />;
       break;
     default:
-      content = <div className="tile-body">?</div>;
+      content = kind === "calendar" ? <Calendar item={item} /> : <div className="tile-body">?</div>;
   }
   // Keys draw their own face; every widget is a panel whose face the theme defines.
   // The context widget is a bare grid of keys (its empty hint draws its own frame).
