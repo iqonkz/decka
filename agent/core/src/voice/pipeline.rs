@@ -227,11 +227,13 @@ pub struct State {
     pub actions: bool,
     /// T28.3: what the phrase was understood as (`Heard` -> `Understood` -> doing it), set when a call starts.
     pub understood: Option<ConfirmInfo>,
+    /// T29.P: a running call waits for the model to load first (a search on the screen): shown as "loading".
+    pub model_wait: bool,
 }
 
 impl State {
     pub fn idle() -> State {
-        State { phase: Phase::Idle, id: None, source: None, heard: None, say: None, reply_key: None, activity: None, actions: false, understood: None }
+        State { phase: Phase::Idle, id: None, source: None, heard: None, say: None, reply_key: None, activity: None, actions: false, understood: None, model_wait: false }
     }
 
     /// Whether sound is being recorded now: the phrase, or the answer to a question.
@@ -291,6 +293,7 @@ impl State {
             Phase::Idle => ("idle", None, None),
             Phase::Listening => ("listening", None, None),
             Phase::Transcribing => ("recognizing", None, None),
+            Phase::Executing if self.model_wait => ("loading", None, None),
             Phase::Thinking | Phase::Executing => ("thinking", None, None),
             Phase::Loading => ("loading", None, None),
             Phase::Confirming { call, .. } => {
@@ -333,6 +336,7 @@ fn event_name(e: &Event) -> &'static str {
         Event::AudioEnd => "AudioEnd",
         Event::Cancel => "Cancel",
         Event::ModelLoading => "ModelLoading",
+        Event::ModelReady => "ModelReady",
         Event::Transcript(_) => "Transcript",
         Event::CaptureFailed(_) => "CaptureFailed",
         Event::NoSpeech => "NoSpeech",
@@ -371,6 +375,8 @@ pub enum Event {
     Cancel,
     /// The servers are starting.
     ModelLoading,
+    /// T29.P: the model a running call waited for has loaded (or will not).
+    ModelReady,
     Transcript(Result<String, String>),
     /// The PC microphone could not be opened or died while recording.
     CaptureFailed(String),
@@ -432,6 +438,7 @@ fn executing(mut s: State, v: &Validated) -> (State, Vec<Effect>) {
     let call = v.call.clone();
     s.understood = Some(understood(v));
     s.phase = Phase::Executing;
+    s.model_wait = false;
     if matches!(call, ToolCall::ScreenAsk { .. }) {
         s.activity = Some("screen");
     }
@@ -508,7 +515,7 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
     match (&state.phase, event) {
         (Phase::Idle | Phase::Done(_) | Phase::Failed(_), Event::Start { id, source }) => {
             let effects = if source == Source::Pc { vec![Effect::StartCapture] } else { Vec::new() };
-            (State { phase: Phase::Listening, id: Some(id), source: Some(source), heard: None, say: None, reply_key: None, activity: env.dictate.then_some("dictate"), actions: false, understood: None }, effects)
+            (State { phase: Phase::Listening, id: Some(id), source: Some(source), activity: env.dictate.then_some("dictate"), ..State::idle() }, effects)
         }
         (Phase::Idle, Event::Cancel) => (s, Vec::new()),
         (Phase::Listening, Event::CaptureFailed(e)) if e == msg::NO_SOUND => {
@@ -551,6 +558,8 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
             (s, vec![Effect::StopCapture, Effect::Transcribe])
         }
         (Phase::Transcribing | Phase::Thinking, Event::ModelLoading) => finish(s, Phase::Loading),
+        (Phase::Executing, Event::ModelLoading) => (State { model_wait: true, ..s }, Vec::new()),
+        (Phase::Executing, Event::ModelReady) => (State { model_wait: false, ..s }, Vec::new()),
         (Phase::Transcribing | Phase::Loading, Event::Transcript(Err(e))) => match executor_key(&e) {
             Some(k) => finish_key(s, Phase::Failed(e), ReplyKey::plain(k)),
             None => finish(s, Phase::Failed(e)),
@@ -1032,6 +1041,27 @@ mod tests {
         // A stale Reset after a new Start changes nothing; the session goes on.
         let (s, _) = run(vec![start(Source::Pc), Event::NoSpeech, start(Source::Pc), Event::Reset]);
         assert_eq!(s.phase, Phase::Listening);
+    }
+
+    #[test]
+    fn a_running_call_that_waits_for_the_model_says_loading_and_goes_on() {
+        let call = |call: ToolCall| Validated { call, confirm: false, summary: "x".into(), key: None, args: Default::default() };
+        let (s, _) = executing(State::idle(), &call(ToolCall::FindOnScreen { query: Some("file".into()) }));
+        assert_eq!(s.info().state, "thinking");
+        let (t, c) = (table(), ctx());
+        let env = Env { table: &t, ctx: &c, confirm_ms: CONFIRM_TIMEOUT_MS, dictate: false };
+        let (s, fx) = step(&s, Event::ModelLoading, 1, &env);
+        assert_eq!((s.phase.clone(), s.info().state, fx.len()), (Phase::Executing, "loading", 0));
+        // The long watchdog of a request does not end a call that is running.
+        assert_eq!(step(&s, Event::Watchdog, 2, &env).0.phase, Phase::Executing);
+        let (s, _) = step(&s, Event::ModelReady, 3, &env);
+        assert_eq!(s.info().state, "thinking");
+        let (s, _) = step(&s, Event::Executed(Ok("Here: File".into())), 4, &env);
+        assert_eq!(s.info().reply_key, Some("voice.reply.found_here"));
+        // A new call starts without the mark.
+        let mut waiting = State::idle();
+        waiting.model_wait = true;
+        assert_eq!(executing(waiting, &call(ToolCall::DayBrief)).0.info().state, "thinking");
     }
 
     #[test]

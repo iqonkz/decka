@@ -1335,7 +1335,16 @@ impl Ports for Inner {
         let focus = self.focus.clone();
         let download = self.download.clone();
         let (current_page, settings) = (self.current_page.clone(), self.settings.get().cloned());
+        let driver = self.driver().clone();
         Box::pin(async move {
+            // T29.P: while the model loads, the PC is busy and a window is read only in part ("did not find it"): the
+            // search on the screen waits for the model, and the island says so.
+            if matches!(call, ToolCall::FindOnScreen { .. } | ToolCall::UiAct { .. }) && !sup.is_up(Server::Llm) && sup.failure_of(Server::Llm).is_none() {
+                driver.handle_event(Event::ModelLoading);
+                // A model that cannot start does not stop the search.
+                let _ = sup.ensure_llm().await;
+                driver.handle_event(Event::ModelReady);
+            }
             if let ToolCall::RunAction { action_id } = &call {
                 return agent.execute(action_id).await.map(|_| String::new()).map_err(|(_, m)| m);
             }
@@ -1785,7 +1794,7 @@ mod tests {
     use crate::model::SystemOp;
 
     fn state(phase: Phase, source: Source) -> State {
-        State { phase, id: Some("0011223344556677".into()), source: Some(source), heard: None, say: None, reply_key: None, activity: None, actions: false, understood: None }
+        State { phase, id: Some("0011223344556677".into()), source: Some(source), ..State::idle() }
     }
 
     fn info(state: &'static str, source: Option<Source>) -> VoiceInfo {
