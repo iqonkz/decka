@@ -56,6 +56,20 @@ describe("M29.10b Voice & Island settings + Catalog", () => {
   });
 });
 
+describe("T29.P lightweight recognition", () => {
+  const status = { state: "off" as const, hardware: { ramGb: 7.8 }, model: "light" as const, downloadGb: 1.8, hotkey: ["ctrl", "alt", "space"], keepLoaded: false, unloadAfterMin: 10, speak: false, phoneButton: true, mics: [] };
+
+  it("is a switch of the voice page, recommended on a PC with little memory", () => {
+    setLanguage("ru");
+    const offered = renderToStaticMarkup(<VoiceSection initialStatus={{ ...status, suggestLightStt: true }} />);
+    expect(offered).toContain("Лёгкое распознавание");
+    expect(offered).toContain("Рекомендуется этому ПК");
+    const other = renderToStaticMarkup(<VoiceSection initialStatus={{ ...status, lightStt: true }} />);
+    expect(other).toContain("Лёгкое распознавание");
+    expect(other).not.toContain("Рекомендуется этому ПК");
+  });
+});
+
 describe("M29.12b Voice command reference", () => {
   it("knows exactly the tools of the agent, so a new tool without an example fails here", () => {
     const list = /pub const TOOLS: &\[&str\] = &\[([\s\S]*?)\];/.exec(toolsRs)![1]!.replace(/\/\/[^\n]*/g, "");

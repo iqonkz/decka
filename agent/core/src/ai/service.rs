@@ -17,6 +17,8 @@ use crate::model::GpuLayers;
 
 /// With less memory than this the 4B model is a poor fit: the settings offer the light 2B one (T28.1).
 pub const LIGHT_UNDER_RAM_GB: f64 = 12.0;
+/// T29.P: a PC of 8 GB (Windows reports a little less) is offered the lightweight recognition.
+pub const LIGHT_STT_UP_TO_RAM_GB: f64 = 8.5;
 
 // ---- Contract types (mirror `VoiceStatus` in shared/src/ipc.ts) --------------------------------------------------
 
@@ -74,6 +76,10 @@ pub struct VoiceStatus {
     pub exit_code: Option<i32>,
     /// T28.1: the 4B model on a PC with little memory — offer the light one (never switched by itself).
     pub suggest_light: bool,
+    /// T29.P: the small recognition model instead of the large one.
+    pub light_stt: bool,
+    /// A PC with little memory that still uses the large one: offered, never switched by itself.
+    pub suggest_light_stt: bool,
 }
 
 /// Arguments of `voice_set`; every field is optional.
@@ -87,6 +93,7 @@ pub struct VoiceSetArgs {
     pub speak: Option<bool>,
     pub phone_button: Option<bool>,
     pub mic: Option<String>,
+    pub light_stt: Option<bool>,
 }
 
 /// Persisted in `<config dir>/voice.json`. `model: None` = the recommendation for this PC.
@@ -100,6 +107,7 @@ pub struct VoiceSettings {
     pub speak: bool,
     pub phone_button: bool,
     pub mic: Option<String>,
+    pub light_stt: bool,
 }
 
 impl VoiceSettings {
@@ -126,6 +134,7 @@ impl Default for VoiceSettings {
             speak: false,
             phone_button: true,
             mic: None,
+            light_stt: false,
         }
     }
 }
@@ -156,13 +165,14 @@ pub fn recommend(hw: &HardwareInfo) -> ModelChoice {
 // ---- Plan of files ----------------------------------------------------------------------------------------------
 
 /// The manifest entries one install needs: both runtimes, the chosen model, the speech model.
-pub fn plan(manifest: &[ManifestEntry], model: ModelChoice, gpu: bool) -> Vec<&ManifestEntry> {
+pub fn plan(manifest: &[ManifestEntry], model: ModelChoice, gpu: bool, light_stt: bool) -> Vec<&ManifestEntry> {
     let llm = match model {
         ModelChoice::Standard => "llm-standard",
         ModelChoice::Light => "llm-light",
         ModelChoice::Extended => "llm-extended",
     };
-    ["llama-runtime", if gpu { "whisper-runtime-cuda" } else { "whisper-runtime" }, llm, "stt"].iter().filter_map(|id| manifest.iter().find(|e| e.id == *id)).collect()
+    let stt = if light_stt { "stt-light" } else { "stt" };
+    ["llama-runtime", if gpu { "whisper-runtime-cuda" } else { "whisper-runtime" }, llm, stt].iter().filter_map(|id| manifest.iter().find(|e| e.id == *id)).collect()
 }
 
 fn url_file_name(url: &str) -> String {
@@ -372,8 +382,17 @@ impl VoiceService {
         self.inner.manifest.iter().any(|e| e.id == "whisper-runtime-cuda") && self.hardware().whisper_gpu()
     }
 
+    fn light_stt(&self) -> bool {
+        self.inner.state.lock().unwrap().settings.light_stt
+    }
+
+    /// The files the chosen settings need.
+    fn files(&self) -> Vec<&ManifestEntry> {
+        plan(&self.inner.manifest, self.model(), self.whisper_gpu(), self.light_stt())
+    }
+
     fn installed(&self) -> bool {
-        let files = plan(&self.inner.manifest, self.model(), self.whisper_gpu());
+        let files = self.files();
         files.len() == 4 && files.iter().all(|e| is_present(&self.inner.root, e))
     }
 
@@ -387,7 +406,7 @@ impl VoiceService {
         if !self.installed() {
             return None;
         }
-        let files = plan(&self.inner.manifest, self.model(), self.whisper_gpu());
+        let files = self.files();
         let root = &self.inner.root;
         let llama_exe = find_file(&target_of(root, files[0]), "llama-server.exe")?;
         let whisper_exe = find_file(&target_of(root, files[1]), "whisper-server.exe")?;
@@ -434,7 +453,7 @@ impl VoiceService {
             return Err("No damaged model file".into());
         }
         self.inner.supervisor.stop().await;
-        let files: Vec<ManifestEntry> = plan(&self.inner.manifest, self.model(), self.whisper_gpu()).into_iter().cloned().collect();
+        let files: Vec<ManifestEntry> = self.files().into_iter().cloned().collect();
         if files.len() != 4 {
             return Err("The voice package list is incomplete".into());
         }
@@ -540,8 +559,8 @@ impl VoiceService {
         let model = self.model();
         let installed = self.installed();
         let sup = self.inner.supervisor.state();
+        let total: u64 = self.files().iter().map(|e| e.size).sum();
         let st = self.inner.state.lock().unwrap();
-        let total: u64 = plan(&self.inner.manifest, model, self.whisper_gpu()).iter().map(|e| e.size).sum();
         let mut failure = None;
         let (state, progress, error) = if let Some(d) = &st.download {
             (VoiceState::Downloading, Some(d.progress.clone()), None)
@@ -564,6 +583,8 @@ impl VoiceService {
             reason: failure.as_ref().map(|f| f.reason),
             exit_code: failure.as_ref().and_then(|f| f.code),
             suggest_light: model == ModelChoice::Standard && hw.ram_gb < LIGHT_UNDER_RAM_GB,
+            light_stt: st.settings.light_stt,
+            suggest_light_stt: !st.settings.light_stt && hw.ram_gb <= LIGHT_STT_UP_TO_RAM_GB && self.inner.manifest.iter().any(|e| e.id == "stt-light"),
             state,
             progress,
             hardware: hw,
@@ -634,8 +655,7 @@ impl VoiceService {
     }
 
     async fn run_download(&self, cancel: Arc<AtomicBool>) {
-        let model = self.model();
-        let files: Vec<ManifestEntry> = plan(&self.inner.manifest, model, self.whisper_gpu()).into_iter().cloned().collect();
+        let files: Vec<ManifestEntry> = self.files().into_iter().cloned().collect();
         let result = if files.len() != 4 {
             Err("The voice package list is incomplete".to_string())
         } else {
@@ -654,7 +674,7 @@ impl VoiceService {
             };
         }
         if result.is_ok() {
-            self.drop_other_model(model);
+            self.drop_other_models(&files);
             self.configure_supervisor();
         }
         self.emit();
@@ -700,14 +720,9 @@ impl VoiceService {
     }
 
     /// A model switch downloads the other model, then deletes the previous one (12.2).
-    fn drop_other_model(&self, keep: ModelChoice) {
-        let keep_id = match keep {
-            ModelChoice::Standard => "llm-standard",
-            ModelChoice::Light => "llm-light",
-            ModelChoice::Extended => "llm-extended",
-        };
-        // One model at a time: every other model file goes.
-        for e in self.inner.manifest.iter().filter(|e| e.kind == "llm" && e.id != keep_id) {
+    fn drop_other_models(&self, keep: &[ManifestEntry]) {
+        // One model of each kind at a time: every other model file goes.
+        for e in self.inner.manifest.iter().filter(|e| (e.kind == "llm" || e.kind == "stt") && !keep.iter().any(|k| k.id == e.id)) {
             let _ = std::fs::remove_file(target_of(&self.inner.root, e));
         }
     }
@@ -785,6 +800,12 @@ impl VoiceService {
                     switch_model = true;
                 }
             }
+            if let Some(light) = args.light_stt {
+                if st.download.is_none() && st.settings.light_stt != light {
+                    st.settings.light_stt = light;
+                    switch_model = true;
+                }
+            }
         }
         self.save_settings();
         let unload_after_ms = self.inner.state.lock().unwrap().settings.unload_after_ms();
@@ -807,10 +828,11 @@ impl VoiceService {
         Ok(self.status())
     }
 
-    /// True when the runtimes and the speech model are there, i.e. the user had voice control turned on.
+    /// True when the runtimes and one of the two models are there, i.e. the user had voice control turned on and now
+    /// switched the other one.
     fn was_installed_before_switch(&self) -> bool {
-        let files = plan(&self.inner.manifest, self.model(), self.whisper_gpu());
-        files.len() == 4 && [0usize, 1, 3].iter().all(|i| is_present(&self.inner.root, files[*i]))
+        let files = self.files();
+        files.len() == 4 && [0usize, 1].iter().all(|i| is_present(&self.inner.root, files[*i])) && [2usize, 3].iter().any(|i| is_present(&self.inner.root, files[*i]))
     }
 }
 
@@ -823,8 +845,11 @@ mod tests {
         let vision = manifest.iter().find(|e| e.id == "mmproj-extended").expect("its own projector");
         assert!(llm.url.contains("Qwen3.5-9B-GGUF") && llm.url.ends_with("Q4_K_M.gguf") && llm.license == "Apache-2.0" && llm.sha256.len() == 64);
         assert!(vision.url.contains("Qwen3.5-9B-GGUF") && vision.kind == "vision" && vision.sha256 != manifest.iter().find(|e| e.id == "mmproj-standard").unwrap().sha256);
-        let ids: Vec<_> = plan(&manifest, ModelChoice::Extended, false).iter().map(|e| e.id.clone()).collect();
+        let ids: Vec<_> = plan(&manifest, ModelChoice::Extended, false, false).iter().map(|e| e.id.clone()).collect();
         assert_eq!(ids, ["llama-runtime", "whisper-runtime", "llm-extended", "stt"]);
+        // T29.P: the lightweight recognition is the small model of the same publisher, checked by its hash.
+        let light = plan(&manifest, ModelChoice::Standard, false, true)[3];
+        assert!(light.id == "stt-light" && light.kind == "stt" && light.url.ends_with("/ggml-small-q5_1.bin") && light.sha256.len() == 64 && light.license == "MIT");
         let hw = |vram: Option<f64>, ram: f64| HardwareInfo { gpu: None, vram_gb: vram, ram_gb: ram };
         assert!(hw(None, 16.0).extended_ok() && hw(Some(8.0), 8.0).extended_ok());
         assert!(!hw(Some(6.0), 8.0).extended_ok() && !hw(None, 15.9).extended_ok());
@@ -873,12 +898,12 @@ mod tests {
     #[test]
     fn the_plan_has_both_runtimes_the_chosen_model_and_speech() {
         let m = manifest();
-        let ids = |c| plan(&m, c, false).iter().map(|e| e.id.clone()).collect::<Vec<_>>();
+        let ids = |c| plan(&m, c, false, false).iter().map(|e| e.id.clone()).collect::<Vec<_>>();
         assert_eq!(ids(ModelChoice::Standard), ["llama-runtime", "whisper-runtime", "llm-standard", "stt"]);
         assert_eq!(ids(ModelChoice::Light), ["llama-runtime", "whisper-runtime", "llm-light", "stt"]);
         let mut with_cuda = manifest();
         with_cuda.push(entry("whisper-runtime-cuda", "runtime", "http://127.0.0.1:1/whisper-cuda.zip", b"ff"));
-        let gpu_ids: Vec<_> = plan(&with_cuda, ModelChoice::Standard, true).iter().map(|e| e.id.clone()).collect();
+        let gpu_ids: Vec<_> = plan(&with_cuda, ModelChoice::Standard, true, false).iter().map(|e| e.id.clone()).collect();
         assert_eq!(gpu_ids, ["llama-runtime", "whisper-runtime-cuda", "llm-standard", "stt"]);
         let nvidia = |vram| HardwareInfo { gpu: Some("NVIDIA GeForce RTX 2060 SUPER".into()), vram_gb: Some(vram), ram_gb: 16.0 };
         assert!(nvidia(8.0).whisper_gpu() && nvidia(2.0).whisper_gpu() && !nvidia(1.0).whisper_gpu());
@@ -900,7 +925,7 @@ mod tests {
             .collect();
         assert_ne!(targets[0], targets[1], "same upstream file name, different files");
         for choice in [ModelChoice::Standard, ModelChoice::Light] {
-            assert!(plan(&m, choice, false).iter().all(|e| e.kind != "vision"), "the Screen help package is never part of the base install");
+            assert!(plan(&m, choice, false, false).iter().all(|e| e.kind != "vision"), "the Screen help package is never part of the base install");
         }
     }
 
@@ -964,11 +989,35 @@ mod tests {
         assert!(roomy.redownload().await.is_err(), "nothing is damaged");
     }
 
+    #[tokio::test]
+    async fn the_light_recognition_is_offered_up_to_8_gb_and_changes_the_plan() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut with_light = manifest();
+        with_light.push(entry("stt-light", "stt", "http://127.0.0.1:1/ggml-small-q5_1.bin", b"gg"));
+        let ids: Vec<_> = plan(&with_light, ModelChoice::Light, false, true).iter().map(|e| e.id.clone()).collect();
+        assert_eq!(ids, ["llama-runtime", "whisper-runtime", "llm-light", "stt-light"]);
+        let (svc, _) = service(dir.path(), hw(None, 7.8));
+        assert!(!svc.status().light_stt && !svc.status().suggest_light_stt, "nothing to offer without the model in the list");
+        std::fs::create_dir_all(dir.path().join("a")).unwrap();
+        let (small, _) = service_of(&dir.path().join("a"), hw(None, 7.8), Arc::new(Kept::default()), with_light.clone());
+        assert!(small.status().suggest_light_stt);
+        let status = small.set(VoiceSetArgs { light_stt: Some(true), ..Default::default() }).unwrap();
+        assert!(status.light_stt && !status.suggest_light_stt);
+        let saved: VoiceSettings = serde_json::from_str(&std::fs::read_to_string(dir.path().join("a").join("voice.json")).unwrap()).unwrap();
+        assert!(saved.light_stt);
+        let (roomy, _) = service_of(&dir.path().join("b"), hw(None, 16.0), Arc::new(Kept::default()), with_light);
+        assert!(!roomy.status().suggest_light_stt, "16 GB: not offered, still selectable");
+    }
+
     fn service(dir: &Path, hardware: HardwareInfo) -> (VoiceService, Arc<Mutex<Vec<VoiceStatus>>>) {
         service_with(dir, hardware, Arc::new(Kept::default()))
     }
 
     fn service_with(dir: &Path, hardware: HardwareInfo, layers: Arc<dyn LayerMemory>) -> (VoiceService, Arc<Mutex<Vec<VoiceStatus>>>) {
+        service_of(dir, hardware, layers, manifest())
+    }
+
+    fn service_of(dir: &Path, hardware: HardwareInfo, layers: Arc<dyn LayerMemory>, files: Vec<ManifestEntry>) -> (VoiceService, Arc<Mutex<Vec<VoiceStatus>>>) {
         let seen = Arc::new(Mutex::new(Vec::new()));
         let sink = seen.clone();
         let svc = VoiceService::new(
@@ -976,7 +1025,7 @@ mod tests {
             VoiceDeps {
                 root: dir.join("ai"),
                 settings_path: dir.join("voice.json"),
-                manifest: manifest(),
+                manifest: files,
                 hardware: Arc::new(Fixed(hardware)),
                 mics: Arc::new(|| vec!["Mic A".to_string()]),
                 downloader: Downloader::with_hosts(&["127.0.0.1"]),

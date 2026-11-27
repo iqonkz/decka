@@ -168,6 +168,7 @@ export default function VoiceSection({
     speak?: boolean;
     phoneButton?: boolean;
     mic?: string;
+    lightStt?: boolean;
   }) {
     setError(null);
     try {
@@ -333,6 +334,19 @@ export default function VoiceSection({
             >
               {t("m28.err_btn_switch_light")}
             </Button>
+          </Row>
+        </Group>
+      )}
+
+      {/* T29.P: a PC with little memory is offered the small recognition model; the choice is always here. */}
+      {status.state !== "downloading" && (
+        <Group>
+          <Row
+            id="section-voice-light-stt"
+            title={t("voice.light_stt")}
+            description={status.suggestLightStt ? t("voice.light_stt_suggest") : t("voice.light_stt_hint")}
+          >
+            <Switch checked={status.lightStt === true} onChange={(val) => void setConfig({ lightStt: val })} />
           </Row>
         </Group>
       )}

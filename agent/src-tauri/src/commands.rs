@@ -599,9 +599,10 @@ pub fn voice_set(
     speak: Option<bool>,
     phone_button: Option<bool>,
     mic: Option<String>,
+    light_stt: Option<bool>,
 ) -> Result<decka_core::ai::service::VoiceStatus, String> {
     // Flat camelCase keys like every other command (shared/src/ipc.ts `VoiceSetArgs`); tools/check-ipc.mjs guards the names.
-    voice(&app)?.set(decka_core::ai::service::VoiceSetArgs { model, hotkey, keep_loaded, unload_after_min, speak, phone_button, mic })
+    voice(&app)?.set(decka_core::ai::service::VoiceSetArgs { model, hotkey, keep_loaded, unload_after_min, speak, phone_button, mic, light_stt })
 }
 
 /// The Yes/No of the voice pill (oice_confirm of shared/src/ipc.ts); an unknown id is ignored by the pipeline.
