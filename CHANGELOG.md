@@ -4,6 +4,17 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+### Added
+- **Wake word "Decka"** (experimental, off by default; Voice settings): say "Decka" or «Декка» instead of pressing the voice key. It runs offline in a process of its own (about 38 MB downloaded the first time, Apache-2.0 model); the sound is not saved or sent. The microphone closes while a note is recorded or a program is in full screen; the tray icon carries a dot while it is on. **Its accuracy and load have not been measured yet.**
+- **Calendar** from an ICS link (Google, Outlook), no sign-in: a widget with the next events and **Join** for Zoom, Meet and Teams, "what do I have tomorrow" and "when is my next meeting" by voice, a quiet note five minutes before an event. The link is kept encrypted on the PC and meeting addresses never go to the phone.
+- **Mini panel in the tray**: a left click on the icon shows the player, volume, microphone, up to six favourite actions and the next meeting; it does not take the focus and closes with a click outside or Esc.
+- **Several PCs on one phone**: pairing a new PC adds it to the list; switch in the phone menu; when the PC is silent the phone offers one that answers.
+
+### Changed
+- The left click on the tray icon opens the mini panel; **Open settings** is in the panel and in the right-click menu.
+- Phone keys: the icon is 40 % of the key's height, the caption 13 px medium.
+- "Other PC" and "Pair again" on the phone no longer forget the saved PC.
+
 ## 0.61.0 — 2026-11-27
 
 ### Added
