@@ -42,6 +42,7 @@ pub mod timephrase;
 pub mod tools;
 pub mod transcript;
 pub mod uia;
+pub mod uia_events;
 pub mod ui_snapshot;
 pub mod winkeys;
 pub mod winops;

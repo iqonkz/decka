@@ -28,6 +28,11 @@ pub trait Screen: Send + Sync {
     fn now_ms(&self) -> u64;
     /// A new left click since the last call, where it was.
     fn click(&self) -> Option<(i32, i32)>;
+    /// Asks to be told on `events` that the window in front, the focus or the set of windows changed; the subscription
+    /// lasts as long as what is returned. `None`: no such news here, the guide looks by itself.
+    fn watch(&self, _events: mpsc::UnboundedSender<()>) -> Option<Box<dyn Send>> {
+        None
+    }
 }
 
 /// The model of the guide: a chat body in, the text of the answer out (`None`: no answer).
@@ -75,11 +80,19 @@ pub struct ScreenRun {
     recording: AtomicBool,
     poll: Duration,
     settle: Duration,
+    quiet_look: Duration,
+    safety_look: Duration,
 }
 
-/// How often the guide looks at the window while it waits for the person, and how long it lets a click settle.
+/// T30.5: the guide wakes this often while it waits for the person (cheap: the highlight and the news of UI Automation);
+/// it is also the least time between two readings of the window.
 const POLL: Duration = Duration::from_millis(400);
+/// How long a click is let settle.
 const SETTLE: Duration = Duration::from_millis(250);
+/// Without news from UI Automation the window is read this often.
+const QUIET_LOOK: Duration = Duration::from_secs(1);
+/// With news arriving it is read when there is some, and this often anyway (a change nobody announced).
+const SAFETY_LOOK: Duration = Duration::from_secs(5);
 
 impl ScreenRun {
     pub fn new(screen: Arc<dyn Screen>, highlighter: Highlighter, guides: Guides, events: Arc<dyn GuideSink>, danger: Vec<String>) -> ScreenRun {
@@ -97,12 +110,20 @@ impl ScreenRun {
             recording: AtomicBool::new(false),
             poll: POLL,
             settle: SETTLE,
+            quiet_look: QUIET_LOOK,
+            safety_look: SAFETY_LOOK,
         }
     }
 
     /// Other timing (tests).
     pub fn with_timing(mut self, poll: Duration, settle: Duration) -> ScreenRun {
-        (self.poll, self.settle) = (poll, settle);
+        (self.poll, self.settle, self.quiet_look, self.safety_look) = (poll, settle, poll, poll);
+        self
+    }
+
+    /// Other intervals of the readings (tests).
+    pub fn with_looks(mut self, quiet: Duration, safety: Duration) -> ScreenRun {
+        (self.quiet_look, self.safety_look) = (quiet, safety);
         self
     }
 
@@ -260,8 +281,14 @@ impl ScreenRun {
             self.events.event(GuideEvent { goal: goal.into(), step: guide.step_number() as u32, text: say.clone(), active: true, eta_sec: None });
             self.show(&e, &say, Some(guide.step_number() as u32));
             // 3. Wait for the person: the highlight ends (a click on it, another window), the window changes, "next", "back", "stop".
-            let before = signature(&snap);
             let mut last_action = self.screen.now_ms();
+            let (news, mut changes) = mpsc::unbounded_channel();
+            let _watch = self.screen.watch(news);
+            // `heard`: this program announces its changes. `pending`: an announced one has not been looked at.
+            let (mut heard, mut pending, mut looked) = (false, false, tokio::time::Instant::now());
+            // The tick runs on however much news arrives.
+            let mut tick = tokio::time::interval_at(tokio::time::Instant::now() + self.poll, self.poll);
+            tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
             loop {
                 tokio::select! {
                     c = rx.recv() => match c {
@@ -276,10 +303,22 @@ impl ScreenRun {
                             }
                         }
                     },
-                    _ = tokio::time::sleep(self.poll) => {
+                    Some(()) = changes.recv() => {
+                        // A burst of events is one piece of news.
+                        while changes.try_recv().is_ok() {}
+                        (heard, pending) = (true, true);
+                    }
+                    _ = tick.tick() => {
                         let now = self.screen.now_ms();
-                        if self.highlighter.current().is_none() || self.screen.snapshot().is_some_and(|s| signature(&s) != before) {
+                        if self.highlighter.current().is_none() {
                             break;
+                        }
+                        let every = if heard { self.safety_look } else { self.quiet_look };
+                        if pending || looked.elapsed() >= every {
+                            (pending, looked) = (false, tokio::time::Instant::now());
+                            if self.screen.snapshot().is_some_and(|s| changed(&snap, &s)) {
+                                break;
+                            }
                         }
                         if screenhelp::needs_repeat(last_action, now) {
                             self.show(&e, &say, Some(guide.step_number() as u32));
@@ -337,14 +376,12 @@ impl ScreenRun {
     }
 }
 
-/// What changed in the window: the elements and their names, not their places.
-fn signature(s: &Snapshot) -> u64 {
-    use std::hash::{Hash, Hasher};
-    let mut h = std::collections::hash_map::DefaultHasher::new();
-    for e in &s.elements {
-        (&e.role, &e.name, &e.automation_id).hash(&mut h);
-    }
-    h.finish()
+/// Whether the window changed: the elements and their names, not their places. A reading that was cut (a big window and
+/// the deadline) ends at another element every time: only what both readings reached is compared.
+fn changed(before: &Snapshot, after: &Snapshot) -> bool {
+    let same = |a: &Element, b: &Element| (&a.role, &a.name, &a.automation_id) == (&b.role, &b.name, &b.automation_id);
+    let whole = !before.truncated && !after.truncated;
+    (whole && before.elements.len() != after.elements.len()) || after.elements.is_empty() || before.elements.iter().zip(&after.elements).any(|(a, b)| !same(a, b))
 }
 /// The real windows.
 pub struct WinScreen {
@@ -385,6 +422,9 @@ impl Screen for WinScreen {
         let was = self.was_down.swap(down, Ordering::Relaxed);
         (down && !was).then_some(at)
     }
+    fn watch(&self, events: mpsc::UnboundedSender<()>) -> Option<Box<dyn Send>> {
+        super::uia_events::watch(None, events).map(|w| Box::new(w) as Box<dyn Send>)
+    }
 }
 
 #[cfg(test)]
@@ -404,21 +444,36 @@ mod tests {
         clicks: Mutex<Vec<(i32, i32)>>,
         clock: AtomicUsize,
         fore: AtomicUsize,
+        /// Whether the window announces its changes, whom it tells, and how often it was read.
+        announces: AtomicBool,
+        news: Mutex<Option<mpsc::UnboundedSender<()>>>,
+        looks: AtomicUsize,
     }
 
     impl Fake {
         /// The person did something: the window shows the next snapshot.
         fn advance(&self) {
             self.at.fetch_add(1, Ordering::Relaxed);
+            if let Some(tx) = self.news.lock().unwrap().as_ref() {
+                let _ = tx.send(());
+            }
         }
 
         fn new(shots: Vec<Snapshot>) -> Arc<Fake> {
-            Arc::new(Fake { shots, at: AtomicUsize::new(0), performed: Mutex::new(vec![]), clicks: Mutex::new(vec![]), clock: AtomicUsize::new(0), fore: AtomicUsize::new(1) })
+            Arc::new(Fake { shots, at: AtomicUsize::new(0), performed: Mutex::new(vec![]), clicks: Mutex::new(vec![]), clock: AtomicUsize::new(0), fore: AtomicUsize::new(1), announces: AtomicBool::new(false), news: Mutex::new(None), looks: AtomicUsize::new(0) })
         }
     }
 
     impl Screen for Fake {
+        fn watch(&self, events: mpsc::UnboundedSender<()>) -> Option<Box<dyn Send>> {
+            if !self.announces.load(Ordering::Relaxed) {
+                return None;
+            }
+            *self.news.lock().unwrap() = Some(events);
+            Some(Box::new(()))
+        }
         fn snapshot(&self) -> Option<Snapshot> {
+            self.looks.fetch_add(1, Ordering::Relaxed);
             let i = self.at.load(Ordering::Relaxed).min(self.shots.len() - 1);
             self.shots.get(i).cloned()
         }
@@ -570,6 +625,45 @@ mod tests {
         let _ = handle.await;
         assert_eq!(rec.shown.lock().unwrap().iter().map(|h| h.text.clone()).collect::<Vec<_>>(), vec!["File", "Save As"]);
         assert_eq!(sr.guides().list()[0].uses, 1);
+    }
+
+    /// T30.5: with news of the window the next step comes at once and the window is not read while nothing happens;
+    /// without news it is read at the quiet interval.
+    #[tokio::test]
+    async fn the_guide_looks_when_the_window_says_it_changed_and_rarely_otherwise() {
+        let asker = || Script(Mutex::new(vec![r#"{"next":1,"say":"Open File"}"#, r#"{"next":"done","say":"Saved"}"#]), AtomicUsize::new(0));
+        let make = |announces: bool, quiet: u64| {
+            let (sr, fake, _, dir) = run(vec![snap(&["File"]), snap(&["Finished"])]);
+            fake.announces.store(announces, Ordering::Relaxed);
+            let sr = Arc::new(sr.with_looks(Duration::from_millis(quiet), Duration::from_secs(60)));
+            (sr, fake, dir)
+        };
+        // Announced: the quiet interval is a minute and the step still follows at once.
+        let (sr, fake, _d) = make(true, 60_000);
+        let (runner, script) = (sr.clone(), asker());
+        let handle = tokio::spawn(async move { runner.guide("x", "English", &script).await });
+        tokio::time::sleep(Duration::from_millis(120)).await;
+        assert_eq!(fake.looks.load(Ordering::Relaxed), 1, "nothing happened: the window was read once, for the step");
+        fake.advance();
+        assert_eq!(tokio::time::timeout(Duration::from_secs(3), handle).await.expect("at once").unwrap().unwrap(), "Saved");
+        // Silent: the change is found by the quiet look.
+        let (sr, fake, _d) = make(false, 150);
+        let (runner, script) = (sr.clone(), asker());
+        let handle = tokio::spawn(async move { runner.guide("x", "English", &script).await });
+        tokio::time::sleep(Duration::from_millis(60)).await;
+        assert_eq!(fake.looks.load(Ordering::Relaxed), 1);
+        fake.advance();
+        assert_eq!(tokio::time::timeout(Duration::from_secs(3), handle).await.expect("by the quiet look").unwrap().unwrap(), "Saved");
+    }
+
+    #[test]
+    fn a_cut_reading_is_compared_only_as_far_as_both_reached() {
+        let cut = |names: &[&str]| Snapshot { truncated: true, ..snap(names) };
+        assert!(!changed(&cut(&["A", "B", "C"]), &cut(&["A", "B"])), "the same window, read less far");
+        assert!(changed(&cut(&["A", "B"]), &cut(&["A", "X"])));
+        assert!(changed(&snap(&["A", "B"]), &snap(&["A"])));
+        assert!(changed(&cut(&["A"]), &cut(&[])), "nothing left");
+        assert!(!changed(&snap(&["A"]), &snap(&["A"])));
     }
 
     #[derive(Default)]

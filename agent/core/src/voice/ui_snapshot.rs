@@ -124,17 +124,23 @@ fn walk(n: &RawNode, depth: usize, parent: &str, expired: &dyn Fn() -> bool, out
 
 /// The snapshot of the window that has the focus, or `None` (no window, not Windows, an error or the deadline before anything was read).
 pub fn active_window() -> Option<Snapshot> {
+    window(None)
+}
+
+/// The snapshot of the window with this handle; `None` = the one that has the focus.
+pub fn window(handle: Option<isize>) -> Option<Snapshot> {
     let (tx, rx) = std::sync::mpsc::channel();
     std::thread::spawn(move || {
-        let _ = tx.send(read_active_window());
+        let _ = tx.send(read_window(handle));
     });
     rx.recv_timeout(TIMEOUT + Duration::from_millis(200)).ok().flatten()
 }
 
 #[cfg(windows)]
-fn read_active_window() -> Option<Snapshot> {
+fn read_window(handle: Option<isize>) -> Option<Snapshot> {
     use windows::Win32::System::Com::{CoCreateInstance, CoInitializeEx, CoUninitialize, CLSCTX_INPROC_SERVER, COINIT_MULTITHREADED};
     use windows::Win32::UI::Accessibility::{CUIAutomation, IUIAutomation, IUIAutomationElement, IUIAutomationTreeWalker};
+    use windows::Win32::Foundation::HWND;
     use windows::Win32::UI::WindowsAndMessaging::GetForegroundWindow;
 
     fn role(control_type: i32) -> (&'static str, bool) {
@@ -194,7 +200,7 @@ fn read_active_window() -> Option<Snapshot> {
     unsafe {
         let initialised = CoInitializeEx(None, COINIT_MULTITHREADED).is_ok();
         let read = || -> Option<Snapshot> {
-            let hwnd = GetForegroundWindow();
+            let hwnd = handle.map_or_else(|| GetForegroundWindow(), |h| HWND(h as *mut core::ffi::c_void));
             if hwnd.is_invalid() {
                 return None;
             }
@@ -204,7 +210,11 @@ fn read_active_window() -> Option<Snapshot> {
             let started = Instant::now();
             let mut budget = MAX_ELEMENTS * 8;
             let tree = node(&walker, &root, 0, started, &mut budget);
-            Some(build(&tree, &|| started.elapsed() > TIMEOUT))
+            // The walk stops at the deadline by itself; what it read is kept (it used to be thrown away whole).
+            let late = started.elapsed() > TIMEOUT || budget == 0;
+            let mut snapshot = build(&tree, &|| false);
+            snapshot.truncated |= late;
+            Some(snapshot)
         };
         let out = read();
         if initialised {
@@ -215,7 +225,7 @@ fn read_active_window() -> Option<Snapshot> {
 }
 
 #[cfg(not(windows))]
-fn read_active_window() -> Option<Snapshot> {
+fn read_window(_: Option<isize>) -> Option<Snapshot> {
     None
 }
 
