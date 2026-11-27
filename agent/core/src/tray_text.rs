@@ -13,6 +13,8 @@ pub enum TrayKey {
     OpenSettings,
     PairDevice,
     Quit,
+    /// T32.1: the tooltip of the icon while the wake word is on.
+    WakeListening,
 }
 
 /// `[Open settings, Pair a device, Quit]` and the text of the update item (`{v}` is the version) for each language.
@@ -39,6 +41,19 @@ pub fn tray_text(lang: &str, key: TrayKey) -> &'static str {
         TrayKey::OpenSettings => w[0],
         TrayKey::PairDevice => w[1],
         TrayKey::Quit => w[2],
+        TrayKey::WakeListening => match lang {
+            "ru" => "Decka — микрофон слушает слово «Декка»",
+            "kk" => "Decka — микрофон «Decka» сөзін тыңдап тұр",
+            "es" => "Decka: el micrófono escucha la palabra «Decka»",
+            "zh" => "Decka — 麦克风正在监听唤醒词“Decka”",
+            "ja" => "Decka — マイクは「Decka」という言葉を聞いています",
+            "hi" => "Decka — माइक्रोफ़ोन “Decka” शब्द सुन रहा है",
+            "ar" => "Decka — الميكروفون يستمع إلى كلمة «Decka»",
+            "fr" => "Decka : le micro écoute le mot « Decka »",
+            "pt" => "Decka — o microfone está ouvindo a palavra “Decka”",
+            "de" => "Decka – das Mikrofon hört auf das Wort „Decka“",
+            _ => "Decka — the microphone listens for the word “Decka”",
+        },
     }
 }
 

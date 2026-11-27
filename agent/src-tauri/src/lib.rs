@@ -33,6 +33,11 @@ pub fn sync_autostart(app: &AppHandle, wanted: bool) {
 }
 
 pub fn run() {
+    // T32.1: the same executable is the worker of the wake word; it has no window and no agent.
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    if let Some(worker) = decka_core::voice::wake_engine::WorkerArgs::parse(&args) {
+        std::process::exit(decka_core::voice::wake_engine::run_worker(&worker));
+    }
     decka_core::logging::init_file_logging(&decka_core::paths::config_dir(None));
 
     let mut builder = tauri::Builder::default();
@@ -130,6 +135,9 @@ pub fn run() {
             commands::add_template,
             commands::voice_status,
             commands::voice_enable,
+            commands::wake_get,
+            commands::wake_set,
+            commands::wake_test,
             commands::voice_cancel,
             commands::voice_remove,
             commands::voice_redownload,

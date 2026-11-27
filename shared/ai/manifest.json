@@ -88,6 +88,46 @@
       "sha256": "ae85e4a935d7a567bd102fe55afc16bb595bdb618e11b2fc7591bc08120411bb",
       "size": 190085487,
       "license": "MIT"
+    },
+    {
+      "id": "wake-runtime",
+      "kind": "wake",
+      "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/v2.0.3/sherpa-onnx-v2.0.3-win-x64-shared-MT-Release-no-tts-lib.tar.bz2",
+      "sha256": "06bfa330d96cba1963fc7f43df1049db785e0662724a15ff8eb8467d3086db16",
+      "size": 8307815,
+      "license": "Apache-2.0"
+    },
+    {
+      "id": "wake-encoder",
+      "kind": "wake",
+      "url": "https://huggingface.co/alphacep/vosk-model-small-streaming-ru/resolve/e18123ee13f694036a1eea82eb43f9895387cb59/am-onnx/encoder.int8.onnx",
+      "sha256": "e0db705e94ec35d803b1df4f40cda23d064e1142977c80ab288430b109777a9d",
+      "size": 26214060,
+      "license": "Apache-2.0"
+    },
+    {
+      "id": "wake-decoder",
+      "kind": "wake",
+      "url": "https://huggingface.co/alphacep/vosk-model-small-streaming-ru/resolve/e18123ee13f694036a1eea82eb43f9895387cb59/am-onnx/decoder.onnx",
+      "sha256": "89b3088a9e20e1ef7f2e85ce1a3478afe6a9c4ac57369cabcc4beb8e95328ea0",
+      "size": 2093080,
+      "license": "Apache-2.0"
+    },
+    {
+      "id": "wake-joiner",
+      "kind": "wake",
+      "url": "https://huggingface.co/alphacep/vosk-model-small-streaming-ru/resolve/e18123ee13f694036a1eea82eb43f9895387cb59/am-onnx/joiner.int8.onnx",
+      "sha256": "b55784b071ab7512eab4c7c44e4f5478284ef33c83562cc6a249b972515a31e5",
+      "size": 259417,
+      "license": "Apache-2.0"
+    },
+    {
+      "id": "wake-tokens",
+      "kind": "wake",
+      "url": "https://huggingface.co/alphacep/vosk-model-small-streaming-ru/resolve/e18123ee13f694036a1eea82eb43f9895387cb59/lang/tokens.txt",
+      "sha256": "93bbbc0bae6b78c0bbb743d4aa9fded3bb5ff3aac5f0200e3a769a5a05e0fdf6",
+      "size": 6388,
+      "license": "Apache-2.0"
     }
   ]
 }

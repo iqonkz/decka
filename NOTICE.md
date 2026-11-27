@@ -23,6 +23,16 @@ ull` when its source is absent |
 
 Voice control ideas inspired by Nixi (heynixi); no code copied. llama.cpp and whisper.cpp (MIT), Qwen3.5 (Apache-2.0), Whisper models (MIT) are downloaded at the user's request.
 
+## Wake word (downloaded when the user turns it on)
+
+| Part | Name | License | SHA-256 |
+|---|---|---|---|
+| Model | [alphacep/vosk-model-small-streaming-ru](https://huggingface.co/alphacep/vosk-model-small-streaming-ru), revision `e18123ee` (Alpha Cephei), `encoder.int8.onnx` | Apache-2.0 | `e0db705e94ec35d803b1df4f40cda23d064e1142977c80ab288430b109777a9d` |
+| | `decoder.onnx` | Apache-2.0 | `89b3088a9e20e1ef7f2e85ce1a3478afe6a9c4ac57369cabcc4beb8e95328ea0` |
+| | `joiner.int8.onnx` | Apache-2.0 | `b55784b071ab7512eab4c7c44e4f5478284ef33c83562cc6a249b972515a31e5` |
+| | `tokens.txt` | Apache-2.0 | `93bbbc0bae6b78c0bbb743d4aa9fded3bb5ff3aac5f0200e3a769a5a05e0fdf6` |
+| Runtime | [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) 2.0.3, `win-x64-shared-MT-Release-no-tts-lib` (k2-fsa) | Apache-2.0; contains ONNX Runtime (MIT, Microsoft) | `06bfa330d96cba1963fc7f43df1049db785e0662724a15ff8eb8467d3086db16` |
+
 ## Main dependencies
 
 | Dependency | License |

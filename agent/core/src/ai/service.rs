@@ -435,6 +435,11 @@ impl VoiceService {
         self.whisper_gpu()
     }
 
+    /// The folder of the AI package, the list of its files and the downloader (the wake word uses the same ones).
+    pub fn package(&self) -> (PathBuf, Vec<ManifestEntry>, Downloader) {
+        (self.inner.root.clone(), self.inner.manifest.clone(), self.inner.downloader.clone())
+    }
+
     /// The microphone chosen in the settings; `None` = the default one of Windows.
     pub fn microphone(&self) -> Option<String> {
         self.inner.state.lock().unwrap().settings.mic.clone()

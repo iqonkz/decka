@@ -14,6 +14,7 @@ use super::check::{CheckPorts, CheckStep, Recording, StepError};
 use super::dictation::{self, DictationSettings, Mode, Trigger};
 use super::target::{self, FocusMemory, Route};
 use super::endpoint::Verdict;
+use super::wake_host::{Surroundings, Wake, WakeDeps};
 use super::hotkey::{self, Pressed, Plan, Tracker};
 use super::matcher::Table;
 use super::mic;
@@ -644,6 +645,8 @@ struct Inner {
     focus_timer: Arc<super::modes::FocusTimer>,
     /// T29.6: shows the settings window on a catalog key; the application gives it.
     settings: OnceLock<SettingsHook>,
+    /// T32.1: the wake word.
+    wake: Wake,
 }
 
 #[derive(Clone)]
@@ -663,6 +666,9 @@ impl Host {
         }
         let dictation = DictationSettings::load(agent.config_dir());
         let config_dir = agent.config_dir().to_path_buf();
+        let (root, manifest, downloader) = service.package();
+        let exe = std::env::current_exe().unwrap_or_else(|_| "decka-agent.exe".into());
+        let wake = Wake::new(handle.clone(), WakeDeps { config_dir: config_dir.clone(), root, manifest, downloader, exe });
         let inner = Arc::new(Inner {
             handle: handle.clone(),
             dictate_until: Arc::new(Mutex::new(None)),
@@ -704,10 +710,12 @@ impl Host {
             heavy: Arc::default(),
             focus_timer: Arc::default(),
             settings: OnceLock::new(),
+            wake,
         });
         let driver = Driver::new(handle.clone(), inner.clone());
         let _ = inner.driver.set(driver);
         let host = Host { inner };
+        host.start_wake();
         // M30 (T30.1): the meeting notes use the same recognition and model; what happens to them is said on the island.
         let notes = host.inner.agent.notes();
         notes.set_backend(Arc::new(NoteModels { agent: host.inner.agent.clone(), service: host.inner.service.clone() }));
@@ -1094,7 +1102,50 @@ impl Host {
 
     /// The program is ending: the volumes that were turned down come back first.
     pub fn quit(&self) {
+        self.inner.wake.stop();
         self.inner.ducker.quit();
+    }
+
+    /// T32.1: the wake word, for the settings window and the tray.
+    pub fn wake(&self) -> &Wake {
+        &self.inner.wake
+    }
+
+    /// A detection is the same request as the voice key, but it never ends a recording that runs. Twice a second the
+    /// wake word hears what is going on (a note, a full-screen game, "Check voice").
+    fn start_wake(&self) {
+        let weak = Arc::downgrade(&self.inner);
+        self.inner.wake.on_wake(Arc::new(move || {
+            let Some(inner) = weak.upgrade() else { return };
+            if matches!(inner.driver().state().phase, Phase::Idle | Phase::Done(_) | Phase::Failed(_)) {
+                mic::log_line("wake word");
+                inner.dictation_request.store(false, Ordering::SeqCst);
+                inner.pressed(Pressed::Main);
+            }
+        }));
+        let weak = Arc::downgrade(&self.inner);
+        self.inner.handle.spawn(async move {
+            loop {
+                tokio::time::sleep(Duration::from_millis(500)).await;
+                let Some(inner) = weak.upgrade() else { break };
+                let around = if inner.wake.settings().enabled {
+                    Surroundings {
+                        voice_on: inner.sink_on.load(Ordering::SeqCst),
+                        recording_note: inner.agent.notes().status().active,
+                        fullscreen: tokio::task::spawn_blocking(crate::lyrics_overlay::foreground_is_fullscreen).await.unwrap_or(false),
+                        checking: inner.checking.load(Ordering::SeqCst),
+                        mic: inner.service.microphone(),
+                    }
+                } else {
+                    Surroundings::default()
+                };
+                // Starting and stopping a process is not work for the async threads.
+                let wake = inner.wake.clone();
+                if let Err(e) = tokio::task::spawn_blocking(move || wake.tick(around)).await {
+                    tracing::warn!("wake word: {e}");
+                }
+            }
+        });
     }
 
     /// The download that a question waits for, in percent, for the island.

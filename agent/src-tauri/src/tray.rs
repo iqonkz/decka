@@ -19,6 +19,8 @@ struct TrayItems {
     update: MenuItem<tauri::Wry>,
     /// The version the update item names now, `None` while the item is not in the menu.
     update_version: Mutex<Option<String>>,
+    /// T32.1: the icon carries the dot of the microphone now.
+    wake_dot: Mutex<bool>,
 }
 
 /// T31.5: when the settings window was asked for, until the new window reports its first frame.
@@ -94,6 +96,13 @@ pub fn refresh_language(app: &AppHandle) {
     let _ = items.open.set_text(tray_text(lang, TrayKey::OpenSettings));
     let _ = items.pair.set_text(tray_text(lang, TrayKey::PairDevice));
     let _ = items.quit.set_text(tray_text(lang, TrayKey::Quit));
+    if *items.wake_dot.lock().unwrap() {
+        if let Some(tray) = app.tray_by_id("main") {
+            if let Err(e) = tray.set_tooltip(Some(tray_text(lang, TrayKey::WakeListening))) {
+                tracing::warn!("tray tooltip: {e}");
+            }
+        }
+    }
     let shown = items.update_version.lock().unwrap().clone();
     if let Some(version) = shown {
         let _ = items.update.set_text(update_available_text(lang, &version));
@@ -121,6 +130,25 @@ pub fn show_update(app: &AppHandle, version: Option<&str>) {
     }
 }
 
+/// T32.1: while the wake word is on, the icon in the tray carries a dot of a microphone.
+pub fn show_wake(app: &AppHandle, on: bool) {
+    let (Some(items), Some(tray), Some(icon)) = (app.try_state::<TrayItems>(), app.tray_by_id("main"), app.default_window_icon()) else { return };
+    let mut shown = items.wake_dot.lock().unwrap();
+    if *shown == on {
+        return;
+    }
+    let image = if on {
+        tauri::image::Image::new_owned(decka_core::voice::wake::dot_icon(icon.rgba(), icon.width(), icon.height()), icon.width(), icon.height())
+    } else {
+        icon.clone().to_owned()
+    };
+    let tooltip = if on { tray_text(current_language(app), TrayKey::WakeListening) } else { "Decka" };
+    match tray.set_icon(Some(image)).and_then(|()| tray.set_tooltip(Some(tooltip))) {
+        Ok(()) => *shown = on,
+        Err(e) => tracing::warn!("tray icon of the wake word: {e}"),
+    }
+}
+
 pub fn setup(app: &AppHandle) -> tauri::Result<()> {
     let lang = current_language(app);
     let open = MenuItem::with_id(app, "open", tray_text(lang, TrayKey::OpenSettings), true, None::<&str>)?;
@@ -129,7 +157,7 @@ pub fn setup(app: &AppHandle) -> tauri::Result<()> {
     let quit_item = MenuItem::with_id(app, "quit", tray_text(lang, TrayKey::Quit), true, None::<&str>)?;
     let update = MenuItem::with_id(app, "update", update_available_text(lang, ""), true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&open, &pair, &separator, &quit_item])?;
-    app.manage(TrayItems { menu: menu.clone(), open, pair, quit: quit_item, update, update_version: Mutex::new(None) });
+    app.manage(TrayItems { menu: menu.clone(), open, pair, quit: quit_item, update, update_version: Mutex::new(None), wake_dot: Mutex::new(false) });
 
     let mut builder = TrayIconBuilder::with_id("main")
         .tooltip("Decka")

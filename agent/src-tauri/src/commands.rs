@@ -638,6 +638,28 @@ pub fn voice_status(app: AppHandle) -> Result<decka_core::ai::service::VoiceStat
     Ok(voice(&app)?.status())
 }
 
+/// T32.1: the wake word "Decka" (off by default).
+#[tauri::command]
+pub fn wake_get(app: AppHandle) -> Result<decka_core::voice::wake_host::WakeStatus, String> {
+    Ok(wake(&app)?.wake().status())
+}
+
+/// The switch and the sensitivity (`low`, `medium`, `high`); turning it on the first time downloads its files.
+#[tauri::command]
+pub fn wake_set(app: AppHandle, enabled: bool, sensitivity: decka_core::voice::wake::Sensitivity) -> Result<decka_core::voice::wake_host::WakeStatus, String> {
+    wake(&app)?.wake().set(enabled, sensitivity)
+}
+
+/// "Say Decka": for 15 s a detection is only counted (`heard`), it starts no request.
+#[tauri::command]
+pub fn wake_test(app: AppHandle, on: bool) -> Result<decka_core::voice::wake_host::WakeStatus, String> {
+    Ok(wake(&app)?.wake().test(on))
+}
+
+fn wake(app: &AppHandle) -> Result<decka_core::voice::host::Host, String> {
+    app.try_state::<decka_core::voice::host::Host>().map(|h| h.inner().clone()).ok_or_else(|| "voice control did not start".to_string())
+}
+
 /// `Turn on voice control` (download) or `Retry` (servers gave up).
 #[tauri::command]
 pub fn voice_enable(app: AppHandle) -> Result<decka_core::ai::service::VoiceStatus, String> {

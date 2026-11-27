@@ -667,3 +667,19 @@ export interface IpcCommands {
 ```
 
 Событие Rust → окно: `decka://status-changed` (payload `AgentStatus`) — при подключении/отключении клиента, изменении USB-состояния, завершении сопряжения.
+
+### IPC M32: слово-пробуждение (T32.1)
+
+```ts
+export interface WakeStatus {
+  enabled: boolean; sensitivity: "low" | "medium" | "high"; installed: boolean;
+  state: "off" | "downloading" | "starting" | "listening" | "paused" | "error";
+  reason: string | null; percent: number | null;   // percent — только во время загрузки
+  heard: number;                                    // срабатываний с запуска агента (индикатор теста)
+  testing: boolean; size: number;                   // байт скачивается при первом включении
+}
+// wake_get(): WakeStatus
+// wake_set(args: { enabled: boolean; sensitivity: string }): WakeStatus   — первое включение скачивает файлы
+// wake_test(args: { on: boolean }): WakeStatus      — 15 с срабатывание только увеличивает heard, запрос не начинается
+```
+Событие Rust → окно: `wake-status` (payload `WakeStatus`) при каждом изменении. Телефону ничего из этого не передаётся.

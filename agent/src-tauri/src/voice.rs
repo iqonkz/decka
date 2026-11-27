@@ -68,6 +68,12 @@ pub fn setup(app: &AppHandle, agent: &Agent) {
     let _ = host_cell.set(host.clone());
     // Voice control may be on already (installed earlier): the hotkey and the phones need it from the start.
     host.on_status(&service.status());
+    // T32.1: the settings window and the dot in the tray follow the wake word.
+    let window = app.clone();
+    host.wake().listen(Arc::new(move |status| {
+        let _ = window.emit("wake-status", status.clone());
+        crate::tray::show_wake(&window, status.enabled && status.installed);
+    }));
     app.manage(service);
     app.manage(host);
 }
