@@ -332,7 +332,7 @@ mod tests {
     }
 
     fn snap(names: &[&str]) -> Snapshot {
-        Snapshot { elements: names.iter().enumerate().map(|(i, n)| el(i as u32 + 1, n)).collect(), truncated: false }
+        Snapshot { elements: names.iter().enumerate().map(|(i, n)| el(i as u32 + 1, n)).collect(), truncated: false, text: false }
     }
 
     #[test]

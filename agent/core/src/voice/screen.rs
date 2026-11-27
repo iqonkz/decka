@@ -93,6 +93,15 @@ pub fn accept_answer(answer: &str) -> Option<String> {
 /// The active window as BGRA pixels with its size. The picture goes nowhere but the caller.
 #[cfg(windows)]
 pub fn capture_active_window() -> Result<(Vec<u8>, u32, u32), String> {
+    capture_active_window_at().map(|(pixels, w, h, _)| (pixels, w, h))
+}
+
+/// BGRA pixels, width, height and the place of the top-left corner on the screen.
+pub type Picture = (Vec<u8>, u32, u32, (i32, i32));
+
+/// `capture_active_window` with the place of the window.
+#[cfg(windows)]
+pub fn capture_active_window_at() -> Result<Picture, String> {
     use std::ffi::c_void;
     use windows::Win32::Foundation::RECT;
     use windows::Win32::Graphics::Gdi::{
@@ -140,7 +149,7 @@ pub fn capture_active_window() -> Result<(Vec<u8>, u32, u32), String> {
         for p in px.as_chunks_mut::<4>().0 {
             p[3] = 255; // GDI leaves the alpha at 0
         }
-        Ok((px, w as u32, h as u32))
+        Ok((px, w as u32, h as u32, (r.left, r.top)))
     }
 }
 

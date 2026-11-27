@@ -199,10 +199,10 @@ mod tests {
     #[test]
     fn a_step_is_checked_against_the_live_window() {
         let s = steps();
-        let live = Snapshot { elements: vec![el(1, "button", "Home", "HomeTab"), el(2, "button", "File", "FileTabButton"), el(3, "menuitem", "save as", "")], truncated: false };
+        let live = Snapshot { elements: vec![el(1, "button", "Home", "HomeTab"), el(2, "button", "File", "FileTabButton"), el(3, "menuitem", "save as", "")], truncated: false, text: false };
         assert_eq!(s[0].find(&live).unwrap().id, 2, "by automation id");
         assert_eq!(s[1].find(&live).unwrap().id, 3, "by role and name, any case");
-        let other = Snapshot { elements: vec![el(1, "button", "Home", "HomeTab")], truncated: false };
+        let other = Snapshot { elements: vec![el(1, "button", "Home", "HomeTab")], truncated: false, text: false };
         assert!(s[0].find(&other).is_none() && s[1].find(&other).is_none(), "not in the window: the model takes over");
     }
 

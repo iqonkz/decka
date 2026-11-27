@@ -56,6 +56,8 @@ pub struct Snapshot {
     pub elements: Vec<Element>,
     /// The list was cut by a limit or by the deadline.
     pub truncated: bool,
+    /// Some elements are blocks of text seen in a picture of the window (T30.6), not parts UI Automation knows.
+    pub text: bool,
 }
 
 impl Snapshot {
@@ -229,6 +231,36 @@ fn read_window(_: Option<isize>) -> Option<Snapshot> {
     None
 }
 
+/// A mouse click in the middle of `rect`; the cursor goes back to where it was.
+pub fn click_centre(rect: Rect) -> Result<String, String> {
+    #[cfg(windows)]
+    {
+        mouse_click((rect.x + rect.width / 2, rect.y + rect.height / 2));
+        Ok("Pressed".into())
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = rect;
+        Err("unsupported platform".into())
+    }
+}
+
+#[cfg(windows)]
+fn mouse_click((x, y): (i32, i32)) {
+    use windows::Win32::Foundation::POINT;
+    use windows::Win32::UI::Input::KeyboardAndMouse::{mouse_event, MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP};
+    use windows::Win32::UI::WindowsAndMessaging::{GetCursorPos, SetCursorPos};
+    // SAFETY: plain input calls of this process.
+    unsafe {
+        let mut before = POINT::default();
+        let _ = GetCursorPos(&mut before);
+        let _ = SetCursorPos(x, y);
+        mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
+        mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
+        let _ = SetCursorPos(before.x, before.y);
+    }
+}
+
 /// Acts on the element at `rect` (T27.4): a click is the `Invoke` of the element when it has one, else a mouse click in the centre
 /// of the rectangle; a scroll is the mouse wheel over it; closing a tab is Ctrl+W of the active program. Blocking, short.
 pub fn perform(rect: Rect, action: super::screenhelp::UiAction) -> Result<String, String> {
@@ -249,7 +281,7 @@ fn win_perform(rect: Rect, action: super::screenhelp::UiAction) -> Result<String
     use windows::Win32::Foundation::POINT;
     use windows::Win32::System::Com::{CoCreateInstance, CoInitializeEx, CoUninitialize, CLSCTX_INPROC_SERVER, COINIT_MULTITHREADED};
     use windows::Win32::UI::Accessibility::{CUIAutomation, IUIAutomation, IUIAutomationInvokePattern, UIA_InvokePatternId};
-    use windows::Win32::UI::Input::KeyboardAndMouse::{keybd_event, mouse_event, KEYEVENTF_KEYUP, MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP, MOUSEEVENTF_WHEEL, VK_CONTROL};
+    use windows::Win32::UI::Input::KeyboardAndMouse::{keybd_event, mouse_event, KEYEVENTF_KEYUP, MOUSEEVENTF_WHEEL, VK_CONTROL};
     use windows::Win32::UI::WindowsAndMessaging::{GetCursorPos, SetCursorPos};
 
     let (cx, cy) = (rect.x + rect.width / 2, rect.y + rect.height / 2);
@@ -284,12 +316,7 @@ fn win_perform(rect: Rect, action: super::screenhelp::UiAction) -> Result<String
                     CoUninitialize();
                 }
                 if invoked.is_none() {
-                    let mut before = POINT::default();
-                    let _ = GetCursorPos(&mut before);
-                    let _ = SetCursorPos(cx, cy);
-                    mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
-                    mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
-                    let _ = SetCursorPos(before.x, before.y);
+                    mouse_click((cx, cy));
                 }
                 Ok("Pressed".into())
             }

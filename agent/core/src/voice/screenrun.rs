@@ -25,6 +25,10 @@ pub trait Screen: Send + Sync {
     fn process(&self) -> String;
     fn foreground(&self) -> u64;
     fn perform(&self, rect: Rect, action: UiAction) -> Result<String, String>;
+    /// A click in the middle of a block of text (T30.6): there is no element to invoke.
+    fn click_text(&self, rect: Rect) -> Result<String, String> {
+        self.perform(rect, UiAction::Click)
+    }
     fn now_ms(&self) -> u64;
     /// A new left click since the last call, where it was.
     fn click(&self) -> Option<(i32, i32)>;
@@ -179,7 +183,7 @@ impl ScreenRun {
             ActPlan::Do(id) => {
                 let e = snap.get(id).cloned().ok_or("Not found on the screen")?;
                 self.highlighter.clear();
-                let done = self.screen.perform(e.rect, action);
+                let done = if e.role == "text" && action == UiAction::Click { self.screen.click_text(e.rect) } else { self.screen.perform(e.rect, action) };
                 *self.last.lock().unwrap() = None;
                 done
             }
@@ -314,7 +318,9 @@ impl ScreenRun {
                             break;
                         }
                         let every = if heard { self.safety_look } else { self.quiet_look };
-                        if pending || looked.elapsed() >= every {
+                        // A window read from its picture (T30.6) is not read again while waiting: the text of a game or
+                        // a video differs every time. The click on the highlight or "next" ends the step.
+                        if !snap.text && (pending || looked.elapsed() >= every) {
                             (pending, looked) = (false, tokio::time::Instant::now());
                             if self.screen.snapshot().is_some_and(|s| changed(&snap, &s)) {
                                 break;
@@ -403,7 +409,17 @@ impl Default for WinScreen {
 
 impl Screen for WinScreen {
     fn snapshot(&self) -> Option<Snapshot> {
-        super::ui_snapshot::active_window()
+        let found = super::ui_snapshot::active_window();
+        // T30.6: a window that says almost nothing about itself is read from its picture.
+        if found.as_ref().is_none_or(|s| s.elements.len() < super::ocr::FEW) {
+            if let Some(read) = super::ocr::active_window(found.clone().unwrap_or_default()) {
+                return Some(read);
+            }
+        }
+        found
+    }
+    fn click_text(&self, rect: Rect) -> Result<String, String> {
+        super::ui_snapshot::click_centre(rect)
     }
     fn process(&self) -> String {
         crate::collectors::focus::foreground_app().unwrap_or_default().to_lowercase()
@@ -519,7 +535,7 @@ mod tests {
     }
 
     fn snap(names: &[&str]) -> Snapshot {
-        Snapshot { elements: names.iter().enumerate().map(|(i, n)| el(i as u32 + 1, "button", n, i as i32 * 20)).collect(), truncated: false }
+        Snapshot { elements: names.iter().enumerate().map(|(i, n)| el(i as u32 + 1, "button", n, i as i32 * 20)).collect(), truncated: false, text: false }
     }
 
     #[test]
