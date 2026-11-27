@@ -544,6 +544,23 @@ pub fn open_config_dir(app: AppHandle) -> Result<(), String> {
     std::process::Command::new("explorer.exe").arg(agent.config_dir()).spawn().map(drop).map_err(|e| e.to_string())
 }
 
+/// T30.8: Home Assistant as the settings window shows it.
+#[tauri::command]
+pub async fn ha_get(app: AppHandle) -> Result<decka_core::agent::HaStatus, String> {
+    Ok(agent(&app)?.ha_status().await)
+}
+
+#[tauri::command]
+pub async fn ha_set_config(app: AppHandle, url: String, token: String, entities: Vec<String>) -> Result<(), String> {
+    agent(&app)?.ha_set_config(&url, &token, entities)
+}
+
+/// The number of entities the server answers with.
+#[tauri::command]
+pub async fn ha_test(app: AppHandle, url: String, token: String) -> Result<usize, String> {
+    agent(&app)?.ha_test(&url, &token).await
+}
+
 /// T30.2: the "Close" button of a program in the memory list of the island; the agent asks "close it?" first.
 #[tauri::command]
 pub fn memory_close(app: AppHandle, pid: u32) -> Result<(), String> {

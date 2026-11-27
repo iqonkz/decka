@@ -13,6 +13,7 @@ pub mod collectors;
 pub mod config;
 pub mod diag;
 pub mod dpapi;
+pub mod homeassistant;
 pub mod icons;
 pub mod portowner;
 pub mod installed;

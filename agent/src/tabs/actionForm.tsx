@@ -1,4 +1,4 @@
-import { t, type Action, type HttpMethod, type MediaOp, type ShotArea, type SystemOp } from "@decka/shared";
+import { t, type Action, type HaService, type HttpMethod, type MediaOp, type ShotArea, type SystemOp } from "@decka/shared";
 import { useState } from "react";
 import Disclosure from "../ui/Disclosure";
 import Field from "../ui/Field";
@@ -7,6 +7,7 @@ import { presetActions } from "../editor/addButton";
 import ChordField from "../editor/ChordField";
 import QuickPicker from "../editor/QuickPicker";
 import PhIcon from "../ui/PhIcon";
+import HaFields from "./HaFields";
 import { formatKeys, parseKeys } from "./keys";
 import { applyInstalledApp, applyPickedProgram } from "./programPick";
 
@@ -25,6 +26,7 @@ export const actionTypes = (): { id: ActionType; label: string; icon: string }[]
   { id: "screenshot", label: t("m29.type_screenshot"), icon: "camera" },
   { id: "http", label: t("m29.type_webhook"), icon: "link" },
   { id: "notes_record", label: t("notes.action_type"), icon: "microphone" },
+  { id: "ha", label: t("ha.action_type"), icon: "house" },
 ];
 
 /** T29.P: a header value kept by the agent under DPAPI shows as this; a line left so keeps the stored value. */
@@ -61,6 +63,8 @@ export interface Draft {
   headersText: string;
   /** The protected values of the action being edited, by header name. */
   headersStored: Record<string, string>;
+  haEntity: string;
+  haService: HaService;
   toggleVar: string;
 }
 
@@ -81,6 +85,8 @@ export const emptyDraft = (): Draft => ({
   body: "",
   headersText: "",
   headersStored: {},
+  haEntity: "",
+  haService: "toggle",
   toggleVar: "",
 });
 
@@ -119,6 +125,10 @@ export function toDraft(id: string, action: Action): Draft {
       break;
     case "notes_record":
       break; // nothing to fill in
+    case "ha":
+      draft.haEntity = action.entityId;
+      draft.haService = action.service;
+      break;
     case "audio":
     case "obs":
     case "twitch":
@@ -161,6 +171,13 @@ export function fromDraft(d: Draft): { action: Action } | { error: string } {
       return { action: { ...base, type: "screenshot", area: d.shotArea } };
     case "notes_record":
       return { action: { ...base, type: "notes_record" } };
+    case "ha": {
+      const entityId = d.haEntity.trim().toLowerCase();
+      if (!/^[a-z0-9_]+\.[a-z0-9_]+$/.test(entityId) || entityId.length > 61) return { error: t("ha.entity_error") };
+      // A scene is only ever started.
+      const service: HaService = entityId.startsWith("scene.") ? "scene" : d.haService === "scene" ? "toggle" : d.haService;
+      return { action: { ...base, type: "ha", entityId, service } };
+    }
     case "http": {
       const headers = parseHeaders(d.headersText);
       if (!headers) return { error: t("m29.webhook_headers_error") };
@@ -303,6 +320,8 @@ export default function ActionForm({ draft, onChange }: FormProps) {
           ))}
         </div>
       )}
+
+      {draft.type === "ha" && <HaFields entity={draft.haEntity} service={draft.haService} onChange={(haEntity, haService) => onChange({ ...draft, haEntity, haService })} />}
 
       {draft.type === "screenshot" && (
         <div className="tile-grid" role="group" aria-label={t("m29.type_screenshot")}>

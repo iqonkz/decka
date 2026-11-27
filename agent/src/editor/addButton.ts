@@ -110,6 +110,8 @@ export function defaultIconFor(action: Action): string {
       return "lucide:link";
     case "notes_record":
       return "lucide:mic";
+    case "ha":
+      return action.service === "scene" ? "lucide:star" : "lucide:zap";
     case "media":
       return presetActions().find((p) => p.action.type === "media" && p.action.op === action.op)?.icon ?? "lucide:play";
     case "audio":

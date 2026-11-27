@@ -69,6 +69,7 @@ pub fn default_config() -> ConfigFile {
         island: None,
         server: None,
         notes: None,
+        ha: None,
     }
 }
 

@@ -534,6 +534,7 @@ pub fn build_context(lang: &str, actions: &ActionsFile, layout: &LayoutFile, ins
     Context {
         vision_ready: false,
         vision_off: false,
+        ha: vec![],
         no_reply: false,
         heavy: vec![],
         memory: Vec::new(),
@@ -1433,6 +1434,7 @@ impl Ports for Inner {
         ctx.vision_ready = installed && on;
         ctx.vision_off = installed && !on;
         ctx.heavy = fresh_heavy(&self.heavy);
+        ctx.ha = self.agent.ha_voice_entities();
         ctx.no_reply = self.answers.lock().unwrap().fresh(Instant::now()).is_none();
         ctx.weather_place = self.agent.store().get("weather").get("place").and_then(|p| p.as_str()).map(str::to_string);
         ctx.guide_running = self.screen.get().is_some_and(|s| s.is_running());
@@ -1536,6 +1538,14 @@ impl Ports for Inner {
                     .await
                     .map_err(|e| format!("The action did not finish: {e}"))??;
                     return Ok(super::status::encode(&said));
+                }
+                ToolCall::Ha { entity_id, service, name } => {
+                    // The choice is looked at again: it may have changed while the question was open.
+                    if !agent.ha_voice_entities().iter().any(|e| e.0 == *entity_id) {
+                        return Err("That device is not chosen for voice control".into());
+                    }
+                    agent.ha_call(entity_id, *service).await?;
+                    return Ok(super::status::encode(&answer("voice.reply.ha_done", Some(name), &format!("Done: {name}"))));
                 }
                 ToolCall::MemoryTop => {
                     let list = tokio::task::spawn_blocking(super::heavy::look).await.map_err(|e| format!("The action did not finish: {e}"))?;

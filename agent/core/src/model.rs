@@ -198,6 +198,24 @@ pub enum Action {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         toggle_var: Option<String>,
     },
+    /// M30 (T30.8): a service on one entity of Home Assistant.
+    Ha {
+        name: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        toggle_var: Option<String>,
+        entity_id: String,
+        service: HaService,
+    },
+}
+
+/// What a `ha` action does with its entity.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum HaService {
+    Toggle,
+    TurnOn,
+    TurnOff,
+    Scene,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -231,7 +249,8 @@ impl Action {
             | Action::Sequence { name, .. }
             | Action::Screenshot { name, .. }
             | Action::Http { name, .. }
-            | Action::NotesRecord { name, .. } => name,
+            | Action::NotesRecord { name, .. }
+            | Action::Ha { name, .. } => name,
         }
     }
 
@@ -249,7 +268,8 @@ impl Action {
             | Action::Sequence { toggle_var, .. }
             | Action::Screenshot { toggle_var, .. }
             | Action::Http { toggle_var, .. }
-            | Action::NotesRecord { toggle_var, .. } => toggle_var.as_deref(),
+            | Action::NotesRecord { toggle_var, .. }
+            | Action::Ha { toggle_var, .. } => toggle_var.as_deref(),
         }
     }
 
@@ -269,6 +289,7 @@ impl Action {
             Action::Screenshot { .. } => "screenshot",
             Action::Http { .. } => "http",
             Action::NotesRecord { .. } => "notes_record",
+            Action::Ha { .. } => "ha",
         }
     }
 }
@@ -718,6 +739,22 @@ pub struct ConfigFile {
     /// M30 (T30.1): meeting notes; absent = the sound is not kept.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub notes: Option<NotesConfig>,
+    /// M30 (T30.8): Home Assistant; absent = off.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ha: Option<HaConfig>,
+}
+
+/// `config.ha` (T30.8), written by the settings window only.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HaConfig {
+    /// `https://...`, or `http://` of this computer or the local network.
+    pub url: String,
+    /// The long-lived token as a DPAPI blob.
+    pub token: String,
+    /// The entities the user chose for voice control and the state of buttons.
+    #[serde(default)]
+    pub entities: Vec<String>,
 }
 
 /// `config.notes`.

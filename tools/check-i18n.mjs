@@ -36,6 +36,7 @@ const ATTRIBUTE_EXAMPLES = new Set([
   "200", // status example
   "curl.exe (JSON)", // a program name with its input format
   "curl.exe", // a program name
+  "light.bedroom", // an entity id of Home Assistant
 ]);
 
 function* files(dir) {

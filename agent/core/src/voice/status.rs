@@ -350,6 +350,7 @@ const ALL_KEYS: &[&str] = &[
     "voice.reply.ram_notice",
     "voice.reply.phone_battery_low",
     "voice.reply.focus_over",
+    "voice.reply.ha_done",
     "voice.status.weather",
     "voice.status.weather_precip",
     "voice.status.cpu",

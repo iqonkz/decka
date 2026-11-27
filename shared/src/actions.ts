@@ -20,7 +20,8 @@ export type Action =
   | (ActionBase & { type: "sequence"; steps: SequenceStep[] })                                  // M15
   | (ActionBase & { type: "screenshot"; area: ShotArea })                                       // M29: to the clipboard and a file
   | (ActionBase & { type: "http"; method: HttpMethod; url: string; body?: string; headers?: Record<string, string> }) // M29: webhook; http:// only to the local network
-  | (ActionBase & { type: "notes_record" });                                                    // M30: starts a meeting note or stops the running one
+  | (ActionBase & { type: "notes_record" })                                                     // M30: starts a meeting note or stops the running one
+  | (ActionBase & { type: "ha"; entityId: string; service: HaService });                        // M30: Home Assistant
 
 /** `lock`, `sleep`; M17 (DATA_MODEL.md 10.8): the rest. */
 export type SystemOp =
@@ -29,6 +30,7 @@ export type SystemOp =
 export type MediaOp = "play_pause" | "next" | "prev" | "vol_up" | "vol_down" | "mute" | "shuffle" | "repeat"; // shuffle, repeat: M15
 export type AudioOp = "mic_toggle" | "out_mute_toggle";
 export type ShotArea = "screen" | "window" | "region";
+export type HaService = "toggle" | "turn_on" | "turn_off" | "scene";
 export type HttpMethod = "GET" | "POST";
 export type ObsOp = "record_toggle" | "stream_toggle" | "scene" | "input_mute_toggle" | "save_replay";
 export type TwitchOp = "clip" | "announce";
@@ -40,7 +42,7 @@ export type KeyName = string; // see DATA_MODEL.md 2.2
 export const SEQUENCE_LIMITS = { steps: 10, delayMin: 50, delayMax: 10000, delaySum: 15000 } as const;
 
 /** Variables set by the collectors; a user cannot write them (PROTOCOL.md 4, HTTP rules) or toggle them. */
-export const RESERVED_VAR_PREFIXES = ["audio.", "mic.", "media.", "obs.", "ai.", "twitch.", "youtube.", "battery.", "mail.", "notes."] as const;
+export const RESERVED_VAR_PREFIXES = ["audio.", "mic.", "media.", "obs.", "ai.", "twitch.", "youtube.", "battery.", "mail.", "notes.", "ha."] as const;
 export function isReservedVar(name: string): boolean {
   return RESERVED_VAR_PREFIXES.some((p) => name.startsWith(p));
 }

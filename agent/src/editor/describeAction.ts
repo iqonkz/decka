@@ -32,6 +32,8 @@ export function describeAction(action: Action | undefined): string {
       return action.name;
     case "notes_record":
       return t("notes.action_type");
+    case "ha":
+      return action.name;
     case "audio":
     case "obs":
     case "twitch":

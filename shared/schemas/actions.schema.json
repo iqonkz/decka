@@ -27,7 +27,8 @@
       "body": { "type": "string", "maxLength": 4096 }, "headers": { "type": "object", "maxProperties": 10, "propertyNames": { "pattern": "^[A-Za-z0-9!#$%&'*+.^_`|~-]{1,64}$" }, "additionalProperties": { "type": "string", "maxLength": 4096 } } },
       "if": { "properties": { "method": { "const": "GET" } } }, "then": { "not": { "required": ["body"] } } } ] },
     "NotesRecord": { "allOf": [ { "$ref": "#/$defs/Base" }, { "properties": { "type": { "const": "notes_record" } } } ] },
-    "Action": { "oneOf": [ { "$ref": "#/$defs/Hotkey" }, { "$ref": "#/$defs/Media" }, { "$ref": "#/$defs/Launch" }, { "$ref": "#/$defs/OpenUrl" }, { "$ref": "#/$defs/System" }, { "$ref": "#/$defs/Audio" }, { "$ref": "#/$defs/Obs" }, { "$ref": "#/$defs/Twitch" }, { "$ref": "#/$defs/Youtube" }, { "$ref": "#/$defs/Sequence" }, { "$ref": "#/$defs/Screenshot" }, { "$ref": "#/$defs/Http" }, { "$ref": "#/$defs/NotesRecord" } ] },
+    "Ha": { "allOf": [ { "$ref": "#/$defs/Base" }, { "required": ["entityId","service"], "properties": { "type": { "const": "ha" }, "entityId": { "type": "string", "maxLength": 61, "pattern": "^[a-z0-9_]+\\.[a-z0-9_]+$" }, "service": { "enum": ["toggle","turn_on","turn_off","scene"] } } } ] },
+    "Action": { "oneOf": [ { "$ref": "#/$defs/Hotkey" }, { "$ref": "#/$defs/Media" }, { "$ref": "#/$defs/Launch" }, { "$ref": "#/$defs/OpenUrl" }, { "$ref": "#/$defs/System" }, { "$ref": "#/$defs/Audio" }, { "$ref": "#/$defs/Obs" }, { "$ref": "#/$defs/Twitch" }, { "$ref": "#/$defs/Youtube" }, { "$ref": "#/$defs/Sequence" }, { "$ref": "#/$defs/Screenshot" }, { "$ref": "#/$defs/Http" }, { "$ref": "#/$defs/NotesRecord" }, { "$ref": "#/$defs/Ha" } ] },
     "ActionsFile": { "type": "object", "required": ["version","actions"],
       "properties": { "version": { "const": 1 }, "actions": { "type": "object", "maxProperties": 200, "propertyNames": { "pattern": "^[a-z0-9_-]{1,64}$" }, "additionalProperties": { "$ref": "#/$defs/Action" } } } }
   }

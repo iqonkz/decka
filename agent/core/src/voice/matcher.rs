@@ -708,7 +708,7 @@ mod tests {
             let spoken = |k: &str| {
                 matches!(
                     (tool, k),
-                    ("open_app" | "close_app" | "switch_app" | "go_page" | "press_button" | "open_site" | "type_text" | "list_add" | "list_show" | "list_remove" | "remind" | "memory_add" | "memory_remove" | "ask" | "screen_ask", _)
+                    ("open_app" | "close_app" | "switch_app" | "go_page" | "press_button" | "open_site" | "type_text" | "list_add" | "list_show" | "list_remove" | "remind" | "memory_add" | "memory_remove" | "ask" | "screen_ask" | "ha", _)
                         | ("web_search", "query")
                         | ("text_transform", "lang")
                 )

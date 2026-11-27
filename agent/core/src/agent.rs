@@ -278,6 +278,29 @@ pub enum CcDenied {
     RateLimited,
 }
 
+/// What the connection to Home Assistant runs with: the address, the token as stored and the watched entities.
+type HaApplied = (String, String, std::collections::BTreeSet<String>);
+
+/// Home Assistant as the settings window shows it (`ha_get`).
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HaStatus {
+    pub url: String,
+    pub has_token: bool,
+    pub connected: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+    pub entities: Vec<HaChoice>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct HaChoice {
+    pub id: String,
+    pub name: String,
+    /// Chosen for voice control and the state of buttons.
+    pub enabled: bool,
+}
+
 /// A live authorized WebSocket connection.
 struct Conn {
     device_id: String,
@@ -434,6 +457,9 @@ struct Inner {
     battery: crate::battery::Hub,
     /// M30: meeting notes (T30.1).
     notes: crate::notes::Notes,
+    /// M30: the connection to Home Assistant (T30.8) and what it was started with.
+    ha: crate::homeassistant::Hub,
+    ha_applied: Mutex<Option<HaApplied>>,
     /// Runtime of `Agent::start`; lets synchronous callers (UI commands) start background tasks.
     runtime: tokio::runtime::Handle,
 }
@@ -457,6 +483,7 @@ impl Agent {
         let layout_value = serde_json::to_value(layout.to_client()).expect("layout serializes");
         let store = Store::new(layout_value);
         store.set("icons", crate::icons::collect_icons(&config_dir, &layout));
+        let ha_store = store.clone();
         let agent = Agent {
             inner: Arc::new(Inner {
                 config_dir: config_dir.clone(),
@@ -537,6 +564,8 @@ impl Agent {
                 apk_gate: Mutex::new(crate::apk_update::DownloadGate::default()),
                 runtime: tokio::runtime::Handle::current(),
                 notes: crate::notes::Notes::new(config_dir.join("notes"), tokio::runtime::Handle::current()),
+                ha: crate::homeassistant::Hub::new(ha_store),
+                ha_applied: Mutex::new(None),
                 opts,
             }),
         };
@@ -673,6 +702,108 @@ impl Agent {
     }
 
     /// `media.lyrics.pcOverlay` (DESIGN.md 4.17): the window of the words on the PC; absent or unknown = `auto`.
+    /// The entities whose state is followed: the chosen ones and those of the `ha` actions.
+    fn ha_watched(&self, chosen: &[String]) -> std::collections::BTreeSet<String> {
+        let mut watched: std::collections::BTreeSet<String> = chosen.iter().cloned().collect();
+        watched.extend(self.inner.actions.lock().unwrap().actions.values().filter_map(|a| match a {
+            Action::Ha { entity_id, .. } => Some(entity_id.clone()),
+            _ => None,
+        }));
+        watched
+    }
+
+    /// Starts, restarts or stops the connection to Home Assistant when the settings or the actions ask for it.
+    fn refresh_ha(&self) {
+        let wanted: Option<HaApplied> = self.config().ha.map(|ha| (ha.url.clone(), ha.token.clone(), self.ha_watched(&ha.entities)));
+        let mut applied = self.inner.ha_applied.lock().unwrap();
+        if *applied == wanted {
+            return;
+        }
+        *applied = wanted.clone();
+        let Some((url, stored, watched)) = wanted else { return self.inner.ha.stop() };
+        match crate::dpapi::unprotect(&stored) {
+            Ok(token) => self.inner.ha.start(&self.inner.runtime, url, token, watched),
+            Err(e) => {
+                tracing::warn!("home assistant: the stored token cannot be read: {e}");
+                self.inner.ha.stop();
+            }
+        }
+    }
+
+    fn ha_token(&self) -> Option<(String, String)> {
+        let ha = self.config().ha?;
+        crate::dpapi::unprotect(&ha.token).ok().map(|t| (ha.url, t))
+    }
+
+    /// Runs a service of Home Assistant on one entity (a `ha` action, or the voice).
+    pub async fn ha_call(&self, entity: &str, service: crate::model::HaService) -> Result<(), String> {
+        let (url, token) = self.ha_token().ok_or(crate::homeassistant::NOT_CONFIGURED)?;
+        let entity = entity.to_string();
+        tokio::task::spawn_blocking(move || crate::homeassistant::call(&url, &token, &entity, service)).await.map_err(|_| crate::homeassistant::NO_ANSWER.to_string())?
+    }
+
+    /// The entities voice control may name: the chosen ones, by the names Home Assistant gives them.
+    pub fn ha_voice_entities(&self) -> Vec<(String, String)> {
+        let Some(ha) = self.config().ha else { return Vec::new() };
+        let known = self.inner.ha.entities();
+        ha.entities.iter().map(|id| (id.clone(), known.iter().find(|e| e.id == *id).map_or_else(|| id.clone(), |e| e.name.clone()))).collect()
+    }
+
+    /// `ha_get`: the settings with the entities of the server (what it listed last, else asked now).
+    pub async fn ha_status(&self) -> HaStatus {
+        let config = self.config().ha;
+        let (connected, mut error) = self.inner.ha.status();
+        let mut listed = self.inner.ha.entities();
+        if listed.is_empty() {
+            if let Some((url, token)) = self.ha_token() {
+                match crate::homeassistant::states(&url, &token).await {
+                    Ok(found) => listed = found,
+                    Err(e) => error = Some(e),
+                }
+            }
+        }
+        let chosen = config.as_ref().map(|h| h.entities.clone()).unwrap_or_default();
+        let mut entities: Vec<HaChoice> = listed.iter().map(|e| HaChoice { id: e.id.clone(), name: e.name.clone(), enabled: chosen.contains(&e.id) }).collect();
+        // A chosen entity the server does not list stays visible, so that it can be unchosen.
+        entities.extend(chosen.iter().filter(|c| !listed.iter().any(|e| e.id == **c)).map(|c| HaChoice { id: c.clone(), name: c.clone(), enabled: true }));
+        HaStatus { url: config.as_ref().map(|h| h.url.clone()).unwrap_or_default(), has_token: config.is_some(), connected, error, entities }
+    }
+
+    /// `ha_set_config`: an empty token keeps the stored one while the address stays the same (a changed address never gets
+    /// the old token); an empty address removes the integration.
+    pub fn ha_set_config(&self, url: &str, token: &str, entities: Vec<String>) -> Result<(), String> {
+        let mut config = self.config();
+        config.ha = if url.trim().is_empty() {
+            None
+        } else {
+            let url = crate::homeassistant::base(url)?;
+            let token = match token.trim() {
+                "" => config.ha.as_ref().filter(|h| h.url == url).map(|h| h.token.clone()).ok_or("Enter the token of Home Assistant")?,
+                new => crate::dpapi::protect(new)?,
+            };
+            let mut entities = entities;
+            entities.sort();
+            entities.dedup();
+            Some(crate::model::HaConfig { url, token, entities })
+        };
+        if let SaveResult::Rejected(issues) = self.write_config(config) {
+            return Err(issues.first().map(|i| i.message.clone()).unwrap_or_default());
+        }
+        self.refresh_ha();
+        Ok(())
+    }
+
+    /// `ha_test`: asks the server for its entities; the number of them. An empty token means the stored one, and only for
+    /// the stored address.
+    pub async fn ha_test(&self, url: &str, token: &str) -> Result<usize, String> {
+        let url = crate::homeassistant::base(url)?;
+        let token = match token.trim() {
+            "" => self.ha_token().filter(|(stored, _)| *stored == url).map(|(_, t)| t).ok_or("Enter the token of Home Assistant")?,
+            given => given.to_string(),
+        };
+        crate::homeassistant::states(&url, &token).await.map(|found| found.len())
+    }
+
     /// M30 (T30.3): `phone_status` of a paired phone. Data only: shown in the battery section, answered by voice.
     pub fn phone_status(&self, device_id: &str, name: &str, pct: u32, charging: bool) {
         let phone = crate::battery::Phone { name: name.to_string(), pct, charging };
@@ -909,6 +1040,8 @@ impl Agent {
 
         // Weather (M15): a loop on the runtime; off = the section is null.
         self.start_weather();
+        // Home Assistant (T30.8): the states of the chosen entities; off = no variables.
+        self.refresh_ha();
         // OBS (M15): the connection to obs-websocket; off = no section, no variables.
         self.start_obs();
         // AI coding helpers (M16): limits of Claude Code and Codex, permission questions.
@@ -1206,6 +1339,8 @@ impl Agent {
 
     /// After the layout or the actions changed: restarts the collectors only when the set they need is not the same.
     fn restart_if_needed_changed(&self) {
+        // A new `ha` button may follow an entity that is not watched yet.
+        self.refresh_ha();
         let before = *self.inner.needed.lock().unwrap();
         if before.is_some() && before != Some(self.needed_now()) {
             self.restart_collectors();
@@ -2341,6 +2476,8 @@ impl Agent {
                 account.password_set = None;
             }
         }
+        // Home Assistant is written by `ha_set_config` only.
+        config.ha = before.ha.clone();
         // The Twitch sign-in is written by the sign-in only; a new client id is another application, so the old sign-in goes.
         if let Some(tw) = config.twitch.as_mut() {
             let kept = before.twitch.as_ref().filter(|b| b.client_id == tw.client_id);
@@ -2547,6 +2684,12 @@ impl Agent {
         }
         if let Action::Twitch { op, message, toggle_var, .. } = &action {
             self.twitch_action(*op, message.as_deref()).await.map_err(|m| (ErrorCode::ActionFailed, m))?;
+            self.toggle_var(toggle_var.clone());
+            return Ok(());
+        }
+        // Home Assistant is spoken to by the agent itself: its token never reaches a runner.
+        if let Action::Ha { entity_id, service, toggle_var, .. } = &action {
+            self.ha_call(entity_id, *service).await.map_err(|m| (ErrorCode::ActionFailed, m))?;
             self.toggle_var(toggle_var.clone());
             return Ok(());
         }

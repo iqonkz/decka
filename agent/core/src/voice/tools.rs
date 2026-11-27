@@ -20,8 +20,8 @@ pub const TOOLS: &[&str] = &[
     "find_on_screen", "ui_act", "guide", "guide_record", "guide_control", "read_aloud", "mode_run", "mode_save",
     // M29: a ready-made button of the catalog, a picture of the screen.
     "add_button", "screenshot", "system_theme",
-    // M30: meeting notes, what uses the memory.
-    "notes_record", "memory_top",
+    // M30: meeting notes, what uses the memory, Home Assistant.
+    "notes_record", "memory_top", "ha",
 ];
 
 pub const MAX_TEXT: usize = 2000;
@@ -74,6 +74,8 @@ pub struct Context {
     pub confirm_actions: Vec<String>,
     /// M30 (T30.2): the list of "what uses the memory" while it is fresh: "close <name>" means one of these, after a "yes".
     pub heavy: Vec<super::heavy::Heavy>,
+    /// M30 (T30.8): the entities of Home Assistant the user chose for voice control, as (id, name).
+    pub ha: Vec<(String, String)>,
     /// The Screen help package (the projector of the model) is on the disk; without it `screen_ask` first asks to download it.
     pub vision_ready: bool,
     /// The package is there but Screen help is switched off, so the model runs without it: a "yes" turns it on.
@@ -143,6 +145,8 @@ pub enum ToolCall {
     NotesRecord { start: Option<bool> },
     /// M30 (T30.2): the programs that use the most memory.
     MemoryTop,
+    /// M30 (T30.8): a service on an entity the user chose for voice control.
+    Ha { entity_id: String, service: crate::model::HaService, name: String },
     /// Closes one of them: politely, or by force after the second "yes". The program comes from the list, never from words.
     CloseHeavy { exe: String, name: String, force: bool },
     Volume(VolumeOp),
@@ -769,6 +773,39 @@ fn run(tool: &str, args: &serde_json::Map<String, Value>, ctx: &Context) -> Resu
                 ready_key(ToolCall::ScreenAsk { question }, true, "Download the Screen help package (about 0.7 GB)?", "voice.confirm.screen_pack", &[])
             }
         }
+        "ha" => {
+            use crate::model::HaService;
+            only(args, &["entity", "name", "service"])?;
+            // The model picks an id of the list; a phrase of the table says a name, which must fit one of the list.
+            let i = match args.get("entity").and_then(Value::as_str) {
+                Some(id) => ctx.ha.iter().position(|e| e.0 == id).ok_or_else(|| reject("that device is not chosen for voice control"))?,
+                None => {
+                    let name = text(args, "name", 100)?;
+                    match best(&ctx.lang, name, &ctx.ha, |e| e.1.as_str(), |e| e.0.clone()).as_slice() {
+                        [] => return Err(reject("no such device")),
+                        [i] => *i,
+                        many => return Ok(ask(many.iter().map(|i| ctx.ha[*i].1.clone()).collect())),
+                    }
+                }
+            };
+            let (id, name) = ctx.ha[i].clone();
+            let scene = id.starts_with("scene.");
+            let service = match args.get("service").and_then(Value::as_str) {
+                // A scene is only ever started.
+                Some("turn_on" | "toggle" | "scene") if scene => HaService::Scene,
+                Some("turn_on") => HaService::TurnOn,
+                Some("turn_off") if !scene => HaService::TurnOff,
+                Some("toggle") => HaService::Toggle,
+                _ => return Err(reject("that does not work with this device")),
+            };
+            let summary = format!("{name}: {}", if service == HaService::TurnOff { "off" } else { "on" });
+            let call = ToolCall::Ha { entity_id: id.clone(), service, name: name.clone() };
+            if crate::homeassistant::needs_yes(&id) {
+                ready_key(call, true, summary, "voice.confirm.ha", &[("name", &name)])
+            } else {
+                ready(call, false, summary)
+            }
+        }
         "memory_top" => {
             only(args, &[])?;
             ready(ToolCall::MemoryTop, false, "What uses the memory")
@@ -950,6 +987,7 @@ mod tests {
             lang: "en".into(),
             vision_ready: false,
             vision_off: false,
+            ha: vec![],
             no_reply: false,
             heavy: vec![],
             memory: vec![],
@@ -1233,6 +1271,28 @@ mod tests {
         assert!(is_reject(call("list_add", json!({ "list": "shopping" }))));
         assert!(is_reject(call("list_show", json!({ "list": "shopping", "id": "1" }))), "ids are the agent's, never named by the model");
         assert!(is_reject(call("reminders_show", json!({ "all": true }))));
+    }
+
+    /// T30.8: only a chosen entity, by its id or its name; a door or a lock waits for "yes".
+    #[test]
+    fn home_assistant_takes_only_chosen_entities_and_asks_before_a_lock() {
+        use crate::model::HaService;
+        let mut c = ctx();
+        c.ha = vec![("light.bedroom".into(), "Свет в спальне".into()), ("lock.front".into(), "Front door".into()), ("scene.movie".into(), "Movie night".into())];
+        c.lang = "ru".into();
+        let say = |args: Value| validate(&RawCall { tool: "ha".into(), args }, &c);
+        for args in [json!({ "entity": "light.bedroom", "service": "turn_on" }), json!({ "name": "спальне", "service": "turn_on" })] {
+            let v = ready_of(say(args));
+            assert!(!v.confirm);
+            assert_eq!(v.call, ToolCall::Ha { entity_id: "light.bedroom".into(), service: HaService::TurnOn, name: "Свет в спальне".into() });
+        }
+        let v = ready_of(say(json!({ "entity": "lock.front", "service": "toggle" })));
+        assert!(v.confirm && v.key == Some("voice.confirm.ha"));
+        assert!(matches!(ready_of(say(json!({ "entity": "scene.movie", "service": "turn_on" }))).call, ToolCall::Ha { service: HaService::Scene, .. }));
+        for bad in [json!({ "entity": "light.kitchen", "service": "turn_on" }), json!({ "name": "гараж", "service": "toggle" }), json!({ "entity": "scene.movie", "service": "turn_off" }), json!({ "entity": "light.bedroom", "service": "scene" }), json!({ "entity": "light.bedroom", "service": "delete" }), json!({ "entity": "light.bedroom", "service": "turn_on", "url": "http://x" })] {
+            assert!(is_reject(say(bad.clone())), "{bad}");
+        }
+        assert!(is_reject(validate(&RawCall { tool: "ha".into(), args: json!({ "entity": "light.bedroom", "service": "turn_on" }) }, &ctx())), "nothing chosen");
     }
 
     #[test]

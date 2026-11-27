@@ -36,7 +36,7 @@ pub fn is_mail_host(s: &str) -> bool {
 
 /// M15: variables set by the collectors; nobody else writes them (PROTOCOL.md 4, HTTP rules).
 pub fn is_reserved_var(name: &str) -> bool {
-    ["audio.", "mic.", "media.", "obs.", "ai.", "twitch.", "youtube.", "battery.", "mail.", "notif.", "voice.", "notes."].iter().any(|p| name.starts_with(p))
+    ["audio.", "mic.", "media.", "obs.", "ai.", "twitch.", "youtube.", "battery.", "mail.", "notif.", "voice.", "notes.", "ha."].iter().any(|p| name.starts_with(p))
 }
 
 /// `^[a-z0-9._ ()-]{1,60}\.exe$`
@@ -138,6 +138,13 @@ pub fn validate_actions(file: &ActionsFile) -> Vec<ValidationIssue> {
                 }
             }
             Action::Media { .. } | Action::System { .. } | Action::Audio { .. } | Action::Screenshot { .. } | Action::NotesRecord { .. } => {}
+            Action::Ha { entity_id, service, .. } => {
+                if !crate::homeassistant::is_entity_id(entity_id) {
+                    out.push(issue(format!("{base}/entityId"), "entityId looks like light.bedroom, at most 61 characters"));
+                } else if *service == crate::model::HaService::Scene && !entity_id.starts_with("scene.") {
+                    out.push(issue(format!("{base}/entityId"), "the service scene needs a scene entity"));
+                }
+            }
             Action::Http { method, url, body, headers, .. } => {
                 if let Err(why) = crate::webhook::check_url(url) {
                     out.push(issue(format!("{base}/url"), why));
@@ -582,6 +589,17 @@ pub fn validate_config(c: &ConfigFile) -> Vec<ValidationIssue> {
         let name = |h: &String| (1..=253).contains(&h.len()) && h.bytes().all(|b| b.is_ascii_alphanumeric() || b".-_".contains(&b));
         if server.allowed_hosts.len() > 20 || !server.allowed_hosts.iter().all(name) {
             out.push(issue("/server/allowedHosts", "at most 20 host names, without a port or a scheme"));
+        }
+    }
+    if let Some(ha) = &c.ha {
+        if let Err(why) = crate::homeassistant::base(&ha.url) {
+            out.push(issue("/ha/url", why));
+        }
+        if !ha.token.starts_with("dpapi:") || chars(&ha.token) > 4000 {
+            out.push(issue("/ha/token", "token must be written by the settings window"));
+        }
+        if ha.entities.len() > crate::homeassistant::MAX_ENTITIES || !ha.entities.iter().all(|e| crate::homeassistant::is_entity_id(e)) {
+            out.push(issue("/ha/entities", "at most 100 entity ids"));
         }
     }
     if let Some(w) = &c.weather {

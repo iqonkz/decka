@@ -338,6 +338,8 @@ export interface HttpError { error: { code: ErrorCode; message: string } }
 
 Лимит: не более 20 `press` в секунду на соединение; сверх лимита → `press_result` с `RATE_LIMITED` (сокет не закрывается).
 
+M30: кнопки с действиями `notes_record` (начать или остановить заметку встречи) и `ha` (Home Assistant) нажимаются так же — телефон шлёт только `actionId`; устройство, сервис, адрес и токен Home Assistant знает только ПК. Ошибки приходят как `ACTION_FAILED` с причиной (`"Home Assistant did not answer"`, `"Home Assistant refused the token"`, `"Turn on voice control first (More → Voice)"`). Состояние для `bind`: переменные `notes.recording` и `ha.<entityId>` (булевы).
+
 ### 4.5 Прочее
 
 Секции M11. `focus` меняется при смене активного приложения; `media` — при смене трека, состояния воспроизведения, длительности или при перемотке (позиция отклонилась от расчётной больше чем на 3 с). Ход позиции во время воспроизведения клиент вычисляет сам: `positionSec + (now − positionAt)/1000`, не больше `durationSec`.
@@ -617,6 +619,16 @@ export interface IpcCommands {
   cc_status(): CcStatus;                                       // M16
   cc_install(): CcStatus;                                      // M16, DATA_MODEL.md §6.8
   cc_uninstall(): CcStatus;                                    // M16
+  ha_get(): HaStatus;                                          // M30, DATA_MODEL.md §16; токен в окно не передаётся
+  ha_set_config(args: { url: string; token: string; entities: string[] }): void;  // пустой token — оставить старый (только при том же url); пустой url — убрать
+  ha_test(args: { url: string; token: string }): number;       // M30: сколько устройств ответил сервер
+  notes_list(): NoteEntry[];                                   // M30, DATA_MODEL.md §15
+  notes_delete(args: { id: string }): void;
+  notes_open_folder(): void;
+  notes_stop(): boolean;
+  notes_keep_audio_get(): boolean;
+  notes_keep_audio_set(args: { keep: boolean }): boolean;
+  memory_close(args: { pid: number }): void;                   // M30: «Закрыть» в списке «что ест память» (сначала вопрос «да?»)
   get_status(): AgentStatus;
   get_config(): ConfigFile;
   save_config(args: { config: ConfigFile }): SaveResult;       // port/bind применяются после restart_server

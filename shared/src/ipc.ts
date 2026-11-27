@@ -155,6 +155,15 @@ export interface DictationSettings {
   dictionary: string[];
 }
 
+/** T30.8: `ha_get`. */
+export interface HaStatus {
+  url: string;
+  hasToken: boolean;
+  connected: boolean;
+  error?: string;
+  entities: { id: string; name: string; enabled: boolean }[];
+}
+
 /** T30.1: one meeting note (a Markdown file of the PC). */
 export interface NoteEntry {
   id: string;
@@ -175,6 +184,9 @@ export interface VoiceSetArgs {
 }
 
 export interface IpcCommands {
+  ha_get(): HaStatus;                                          // T30.8: Home Assistant; the token itself never reaches the window
+  ha_set_config(args: { url: string; token: string; entities: string[] }): void;  // empty token keeps the stored one; empty url removes
+  ha_test(args: { url: string; token: string }): number;       // the number of entities the server answers with
   memory_close(args: { pid: number }): void;                   // T30.2: "Close" in the memory list of the island (asks first)
   notes_list(): NoteEntry[];                                   // T30.1: meeting notes, the newest first
   notes_delete(args: { id: string }): void;

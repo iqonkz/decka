@@ -19,6 +19,15 @@ use serde_json::Value;
 
 const LANGS: [&str; 11] = ["en", "ru", "es", "de", "fr", "pt", "zh", "hi", "ar", "ja", "kk"];
 
+/// The Home Assistant devices of the eval PC, named in the language of the phrases.
+fn eval_home(lang: &str) -> Vec<(String, String)> {
+    let (bedroom, kitchen) = match lang {
+        "ru" => ("Свет в спальне", "Свет на кухне"),
+        _ => ("Bedroom light", "Kitchen light"),
+    };
+    vec![("light.bedroom".into(), bedroom.into()), ("light.kitchen".into(), kitchen.into())]
+}
+
 fn context(lang: &str) -> Context {
     let app = |n: &str| AppRef { name: n.into(), program: format!("C:\\Apps\\{}.exe", n.to_lowercase().replace(' ', "")) };
     Context {
@@ -30,6 +39,7 @@ fn context(lang: &str) -> Context {
         confirm_actions: vec![],
         vision_ready: false,
         vision_off: false,
+        ha: eval_home(lang),
         no_reply: true,
         heavy: vec![],
         memory: vec![],
