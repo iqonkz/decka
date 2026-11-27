@@ -637,5 +637,19 @@
     "args": {
       "topic": "battery"
     }
+  },
+  {
+    "say": "明日の予定は何ですか",
+    "tool": "calendar",
+    "args": {
+      "when": "tomorrow"
+    }
+  },
+  {
+    "say": "次の会議はいつですか",
+    "tool": "calendar",
+    "args": {
+      "when": "next"
+    }
   }
 ]

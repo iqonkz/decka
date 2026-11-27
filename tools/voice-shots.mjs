@@ -295,6 +295,26 @@ function m31Shots() {
   return out;
 }
 
+function m32Shots() {
+  const pc = { w: 1100, h: 1000, scale: 1 };
+  const port = { w: 390, h: 844, scale: 2 };
+  const tray = { w: 344, h: 444, scale: 2 };
+  return {
+    "m32-voice-wake-light": [pc, "scene=settings&theme=studio&lang=ru&scheme=light&go=voice&wakeDemo=1&scroll=wake"],
+    "m32-voice-wake-dark": [pc, "scene=settings&theme=studio&lang=ru&scheme=dark&go=voice&wakeDemo=1&scroll=wake"],
+    "m32-calendar-light": [pc, "scene=settings&theme=studio&lang=ru&scheme=light&go=integrations&calDemo=1", "#section-integrations-calendar button::0"],
+    "m32-calendar-dark": [pc, "scene=settings&theme=studio&lang=ru&scheme=dark&go=integrations&calDemo=1", "#section-integrations-calendar button::0"],
+    "m32-tray-favs-light": [{ w: 1100, h: 1100, scale: 1 }, "scene=settings&theme=studio&lang=ru&scheme=light&go=settings"],
+    "m32-tray-favs-dark": [{ w: 1100, h: 1100, scale: 1 }, "scene=settings&theme=studio&lang=ru&scheme=dark&go=settings"],
+    "m32-cal-widget-light": [{ w: 710, h: 310, scale: 2 }, "scene=m32-cal&lang=ru&theme=light"],
+    "m32-cal-widget-dark": [{ w: 710, h: 310, scale: 2 }, "scene=m32-cal&lang=ru&theme=dark"],
+    "m32-tray-mini-light": [tray, "scene=service&screen=tray&lang=ru&theme=light"],
+    "m32-tray-mini-dark": [tray, "scene=service&screen=tray&lang=ru&theme=dark"],
+    "m32-phone-pcs-dark": [port, "scene=service&screen=pcs&lang=ru&theme=studio"],
+    "m32-phone-pcs-glass": [port, "scene=service&screen=pcs&lang=ru&theme=glass"],
+  };
+}
+
 const SHOTS = {
   "theme-amoled": [DECK, "scene=deck&theme=amoled"],
   "theme-studio": [DECK, "scene=deck&theme=studio"],
@@ -342,6 +362,7 @@ const SHOTS = {
   "t30-phone-battery-dark": [{ w: 380, h: 220, scale: 2 }, "scene=m30-battery&lang=ru&theme=dark"],
   ...audit2Shots(),
   ...m31Shots(),
+  ...m32Shots(),
   "phone-idle": [PHONE, "scene=phone&state=idle"],
   "phone-listening": [PHONE, "scene=phone&state=listening"],
   "phone-done": [PHONE, "scene=phone&state=done&heard=turn+the+volume+up&reply=Done"],

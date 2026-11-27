@@ -35,6 +35,7 @@ const VALID_TOOLS = new Set([
   "system_theme",
   "notes_record",
   "memory_top",
+  "calendar",
   "ha",
   "mode_run",
   "mode_save",

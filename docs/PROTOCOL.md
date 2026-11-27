@@ -708,7 +708,8 @@ export interface CalendarInfo { updatedAt: number; events: CalendarEvent[]; erro
 
 IPC окна:
 ```ts
-// calendar_get(): { connected: boolean; host: string | null; info: CalendarInfo | null }
+// calendar_get(): { connected: boolean; host: string | null; masked: string | null; info: CalendarInfo | null }
+//   masked — "https://<host>/••••••••": сама ссылка в окно не возвращается; get_config отдаёт calendar: { url: "" }
 // calendar_set(args: { url: string }): то же, что calendar_get; "" — убрать календарь; ошибка — строка
 // calendar_refresh(): void
 ```

@@ -514,6 +514,33 @@
       ]
     },
     {
+      "tool": "calendar",
+      "args": {
+        "when": "tomorrow"
+      },
+      "patterns": [
+        "what is on my calendar tomorrow"
+      ]
+    },
+    {
+      "tool": "calendar",
+      "args": {
+        "when": "next"
+      },
+      "patterns": [
+        "when is my next meeting"
+      ]
+    },
+    {
+      "tool": "calendar",
+      "args": {
+        "when": "today"
+      },
+      "patterns": [
+        "calendar for today"
+      ]
+    },
+    {
       "tool": "memory_add",
       "patterns": [
         "remember that {text}",

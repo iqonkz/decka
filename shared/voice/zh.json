@@ -374,6 +374,33 @@
       ]
     },
     {
+      "tool": "calendar",
+      "args": {
+        "when": "tomorrow"
+      },
+      "patterns": [
+        "明天有什么日程"
+      ]
+    },
+    {
+      "tool": "calendar",
+      "args": {
+        "when": "next"
+      },
+      "patterns": [
+        "下次会议什么时候"
+      ]
+    },
+    {
+      "tool": "calendar",
+      "args": {
+        "when": "today"
+      },
+      "patterns": [
+        "今天的日历"
+      ]
+    },
+    {
       "tool": "memory_add",
       "patterns": [
         "记住{text}",

@@ -21,6 +21,7 @@ import Weather from "./widgets/Weather";
 import Statuses from "./widgets/Statuses";
 import StatusTile from "./widgets/StatusTile";
 import Sys from "./widgets/Sys";
+import Calendar from "./widgets/Calendar";
 import { hasWidgetHeader } from "./widgets/density";
 
 const WIDGET_ICONS: Record<string, string> = {
@@ -40,6 +41,7 @@ const WIDGET_ICONS: Record<string, string> = {
   battery: "lucide:bluetooth",
   mail: "lucide:mail",
   reminders: "lucide:calendar",
+  calendar: "lucide:calendar",
   list: "lucide:check",
 };
 
@@ -97,6 +99,9 @@ export default function Tile({ item }: { item: LayoutItem }) {
       break;
     case "mail":
       content = <Mail item={item} />;
+      break;
+    case "calendar":
+      content = <Calendar item={item} />;
       break;
     case "context":
       content = <Context item={item} />;

@@ -6,6 +6,13 @@ import VoiceFab from "../../client/src/voice/VoiceFab";
 import VoiceConfirmSheet from "../../client/src/voice/VoiceConfirmSheet";
 import { setState } from "../../client/src/store/store";
 
+/** Three events of today, in the shape of the section `calendar`. */
+const TODAY = new Date().toLocaleDateString("sv-SE");
+const DEMO_EVENTS = [
+  ["c1", "Ежедневный стендап", "10:00", "10:30", "Zoom"],
+  ["c2", "Дизайн-ревью Decka", "12:30", "13:15", "Google Meet"],
+  ["c3", "1-on-1 с командой", "15:00", "15:30", null],
+].map(([id, title, startTime, endTime, provider]) => ({ id, title, startTime, endTime, day: TODAY, start: 0, end: 0, allDay: false, ...(provider ? { meetingProvider: provider, joinActionId: `cal-join-${id}` } : {}) }));
 const SAMPLE_ART = `data:image/svg+xml;utf8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#e11d48"/><stop offset="100%" stop-color="#f59e0b"/></linearGradient></defs><rect width="128" height="128" fill="url(#g)"/><circle cx="64" cy="64" r="34" fill="#fff" fill-opacity="0.25"/></svg>')}`;
 
 // The demo layout refers to a few actions that the default set does not have: simple stand-ins, so the editor shows no problems.
@@ -270,6 +277,13 @@ if (scene === "deck" || scene === "settings") {
       start_pairing: { code: "73914820", expiresAt: Date.now() + 120_000, url: "http://192.168.1.20:9247/pair#73914820", qrSvg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" fill="#fff"/><rect x="4" y="4" width="12" height="12" fill="#111"/><rect x="24" y="4" width="12" height="12" fill="#111"/><rect x="4" y="24" width="12" height="12" fill="#111"/><rect x="20" y="20" width="8" height="8" fill="#111"/></svg>' },
       cancel_pairing: null,
       lyrics_get: false,
+      wake_get: q.get("wakeDemo") === "1"
+        ? { enabled: true, sensitivity: "medium", installed: true, state: "listening", reason: null, percent: null, heard: 0, testing: false, size: 36_880_000 }
+        : { enabled: false, sensitivity: "medium", installed: false, state: "off", reason: null, percent: null, heard: 0, testing: false, size: 36_880_000 },
+      calendar_get: q.get("calDemo") === "1"
+        ? { connected: true, host: "calendar.google.com", masked: "https://calendar.google.com/••••••••", info: { updatedAt: Date.now(), events: DEMO_EVENTS } }
+        : { connected: false, host: null, masked: null, info: null },
+      tray_favorites_get: { chosen: false, favorites: Object.keys((actionsFx.default as { actions: Record<string, unknown> }).actions).slice(0, 4) },
       lyrics_set: true,
       get_actions: demoActions(actionsFx.default as { version: number; actions: Record<string, unknown> }),
       get_update_status: { state: "idle" },
@@ -332,6 +346,7 @@ if (scene === "deck" || scene === "settings") {
     const { default: App } = await import("../../agent/src/App");
     root.render(<App />);
     if (q.get("go")) setTimeout(() => window.dispatchEvent(new CustomEvent("decka:go", { detail: { tab: q.get("go") } })), 500);
+    if (q.get("scroll") === "wake") setTimeout(() => document.getElementById("voice-wake-word")?.scrollIntoView({ block: "center" }), 650);
     if (q.get("wizard") !== null) setTimeout(() => window.dispatchEvent(new CustomEvent("decka:run-setup", { detail: { step: Number(q.get("wizard")) } })), 450);
   }
 } else if (scene === "orb-bench") {
@@ -680,6 +695,51 @@ if (scene === "deck" || scene === "settings") {
       </div>
     </DeckEnvContext.Provider>,
   );
+} else if (scene === "m32-cal") {
+  await import("../../client/src/styles.css");
+  const { applyTheme } = await import("../../ui/src");
+  const { DeckEnvContext, EMPTY_DATA } = await import("../../ui/src/deckEnv");
+  const { default: Calendar } = await import("../../ui/src/widgets/Calendar");
+  const themeMode = (q.get("theme") ?? "dark") as "light" | "dark";
+  applyTheme(document.documentElement, { theme: themeMode === "light" ? "material" : "studio", accent: "#7c5cff", wallpaper: "aurora" });
+  const bg = themeMode === "light" ? "#eef1f7" : "#101218";
+  const fg = themeMode === "light" ? "#14161c" : "#f4f6fa";
+  document.documentElement.style.background = bg;
+  document.body.style.cssText = `margin:0;min-height:100vh;background:${bg};color:${fg};font-family:system-ui,-apple-system,sans-serif;`;
+  const tileStyle = {
+    containerType: "size" as const,
+    containerName: "tile",
+    borderRadius: 16,
+    padding: 12,
+    boxSizing: "border-box" as const,
+    overflow: "hidden" as const,
+    background: themeMode === "light" ? "#ffffff" : "#1c1e26",
+    color: fg,
+    border: `1px solid ${themeMode === "light" ? "#dfe3ec" : "#2d303c"}`,
+    display: "flex",
+    flexDirection: "column" as const,
+  };
+  root.render(
+    <DeckEnvContext.Provider
+      value={{
+        ...EMPTY_DATA,
+        online: true,
+        calendar: { updatedAt: 0, events: DEMO_EVENTS },
+      }}
+    >
+      <div style={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 14, width: "100vw", height: "100vh", padding: 18, boxSizing: "border-box", background: bg, color: fg }}>
+        <div style={{ ...tileStyle, width: 124, height: 124 }}>
+          <Calendar item={{ id: "cal-s", w: 1, h: 1 }} />
+        </div>
+        <div style={{ ...tileStyle, width: 254, height: 124 }}>
+          <Calendar item={{ id: "cal-m", w: 2, h: 1 }} />
+        </div>
+        <div style={{ ...tileStyle, width: 254, height: 254 }}>
+          <Calendar item={{ id: "cal-l", w: 2, h: 2 }} />
+        </div>
+      </div>
+    </DeckEnvContext.Provider>,
+  );
 } else if (scene === "service") {
   await import("../../client/src/styles.css");
   const { applyTheme } = await import("../../ui/src");
@@ -771,6 +831,65 @@ if (scene === "deck" || scene === "settings") {
         <Toasts />
         <PhoneMenu reduced={false} onToggleReduced={() => {}} haptics={true} onToggleHaptics={() => {}} onUnpair={() => {}} onClose={() => {}} />
       </>,
+    );
+  } else if (screen === "pcs") {
+    const [stateFx] = await Promise.all([import("../../shared/fixtures/state.m15.json")]);
+    const fx = JSON.parse(JSON.stringify(stateFx.default));
+    fx.layout.display = { ...fx.layout.display, theme: q.get("theme") ?? "studio", language: q.get("lang") ?? "ru" };
+    const { default: DeckScreen } = await import("../../client/src/screens/DeckScreen");
+    const { default: PhoneMenu } = await import("../../client/src/menu/PhoneMenu");
+    setState({
+      conn: "online",
+      via: "lan",
+      agentName: "DESKTOP-MAIN",
+      agentVersion: (await import("../../package.json")).default.version,
+      state: fx as never,
+    });
+    root.render(
+      <>
+        <DeckScreen />
+        <PhoneMenu
+          reduced={false}
+          onToggleReduced={() => {}}
+          haptics={true}
+          onToggleHaptics={() => {}}
+          pcs={[
+            { id: "pc-1", name: "DESKTOP-MAIN", address: "192.168.1.20:9247", online: true, current: true },
+            { id: "pc-2", name: "WORK-LAPTOP", address: "192.168.1.44:9247", online: true, current: false },
+            { id: "pc-3", name: "MEDIA-HTPC", address: "192.168.1.78:9247", online: false, current: false },
+          ]}
+          onSwitchPc={() => {}}
+          onAddPc={() => {}}
+          onUnpair={() => {}}
+          onClose={() => {}}
+        />
+      </>,
+    );
+  } else if (screen === "tray") {
+    const { TrayMiniPanel } = await import("../../ui/src");
+    const trayTheme = (q.get("theme") ?? "dark") as "light" | "dark";
+    const bg = trayTheme === "light" ? "#dbe2ee" : "#0b0d14";
+    document.documentElement.style.background = bg;
+    document.body.style.cssText = `margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:${bg};font-family:system-ui,-apple-system,sans-serif;`;
+    root.render(
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100vw", height: "100vh", background: bg }}>
+        <TrayMiniPanel
+        theme={trayTheme}
+        track={{ title: "Midnight City", artist: "M83", art: SAMPLE_ART, playing: true }}
+        volume={68}
+        muted={false}
+        micMuted={false}
+        favorites={[
+          { id: "mic-toggle", label: "Микрофон", icon: "lucide:mic", active: true },
+          { id: "out-mute", label: "Без звука", icon: "lucide:volume-x" },
+          { id: "obs-record", label: "Запись OBS", icon: "lucide:video", active: true },
+          { id: "screen-shot", label: "Скриншот", icon: "lucide:camera" },
+          { id: "ha-light", label: "Свет", icon: "lucide:lightbulb" },
+          { id: "lock-pc", label: "Блок", icon: "lucide:lock" },
+        ]}
+        nextEvent={{ title: "Ежедневный стендап", startTime: "10:00", joinActionId: "join-1" }}
+      />
+      </div>,
     );
   }
 } else {

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { t } from "@decka/shared";
 import { useVoiceRecording } from "../voice/api";
-import { setPage, unpair } from "../app/controller";
+import { connectAgain, setPage, switchPc, unpair } from "../app/controller";
 import ConnBadge from "../deck/ConnBadge";
 import DimOverlay from "../display/DimOverlay";
 import { useDisplayMode } from "../display/idle";
@@ -11,6 +11,8 @@ import { applyTheme, GlassLayer, PageDots, resolveTheme, useFrost } from "@decka
 import { loadReduced, measureFps, saveReduced, shouldReduce } from "../platform/glassPerf";
 import { hapticEvent, isHapticsEnabled, setHapticsEnabled } from "../platform/haptics";
 import PhoneMenu from "../menu/PhoneMenu";
+import { usePcs } from "../net/pcs";
+import { isNative } from "../platform/native";
 import { useMenuGesture } from "../menu/useMenuGesture";
 import AppStrip from "../deck/AppStrip";
 import PageStrip from "../deck/PageStrip";
@@ -48,6 +50,9 @@ export default function DeckScreen() {
   const pageIndex = useAppState((s) => s.pageIndex);
   const [confirmUnpair, setConfirmUnpair] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  // The other paired PCs are asked only while the menu is open.
+  const online = useAppState((s) => s.conn === "online");
+  const pcs = usePcs(menuOpen && isNative(), online);
   const [haptics, setHaptics] = useState(() => isHapticsEnabled());
   const openMenu = useCallback(() => {
     hapticEvent({ type: "menu" });
@@ -153,6 +158,13 @@ export default function DeckScreen() {
             setMenuOpen(false);
             setConfirmUnpair(true);
           }}
+          // T32.4: the web page belongs to one PC; only the app keeps a list.
+          pcs={isNative() ? pcs : undefined}
+          onSwitchPc={(id) => {
+            setMenuOpen(false);
+            switchPc(id);
+          }}
+          onAddPc={connectAgain}
           onClose={() => setMenuOpen(false)}
         />
       )}

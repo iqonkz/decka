@@ -370,6 +370,33 @@
       ]
     },
     {
+      "tool": "calendar",
+      "args": {
+        "when": "tomorrow"
+      },
+      "patterns": [
+        "was steht morgen im kalender"
+      ]
+    },
+    {
+      "tool": "calendar",
+      "args": {
+        "when": "next"
+      },
+      "patterns": [
+        "wann ist mein nächstes meeting"
+      ]
+    },
+    {
+      "tool": "calendar",
+      "args": {
+        "when": "today"
+      },
+      "patterns": [
+        "kalender für heute"
+      ]
+    },
+    {
       "tool": "memory_add",
       "patterns": [
         "merke dir dass {text}",

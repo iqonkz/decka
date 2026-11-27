@@ -25,6 +25,7 @@ export function useDeckProps(): { data: DeckData } & Required<DeckCallbacks> {
   const youtube = useAppState((s) => s.state?.youtube);
   const battery = useAppState((s) => s.state?.battery);
   const mail = useAppState((s) => s.state?.mail);
+  const calendar = useAppState((s) => s.state?.calendar);
   const reminders = useAppState((s) => s.state?.reminders);
   const lists = useAppState((s) => s.state?.lists);
   const icons = useAppState((s) => s.state?.icons);
@@ -51,6 +52,7 @@ export function useDeckProps(): { data: DeckData } & Required<DeckCallbacks> {
       youtube: youtube ?? null,
       battery: battery ?? null,
       mail: mail ?? null,
+      calendar: calendar ?? null,
       reminders: reminders ?? null,
       lists: lists ?? null,
       icons: icons ?? NO_ICONS,
@@ -59,7 +61,7 @@ export function useDeckProps(): { data: DeckData } & Required<DeckCallbacks> {
       ...(keyFace !== undefined ? { keyFace } : {}),
       ...(keyLabels !== undefined ? { keyLabels } : {}),
     }),
-    [online, vars, sys, statuses, notifications, media, lyrics, weather, obs, ai, twitch, youtube, battery, mail, reminders, lists, icons, appPages, focusApp, keyFace, keyLabels],
+    [online, vars, sys, statuses, notifications, media, lyrics, weather, obs, ai, twitch, youtube, battery, mail, calendar, reminders, lists, icons, appPages, focusApp, keyFace, keyLabels],
   );
 
   const onPressError = useCallback((e: { code: string; message?: string }) => {

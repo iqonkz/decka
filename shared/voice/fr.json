@@ -379,6 +379,33 @@
       ]
     },
     {
+      "tool": "calendar",
+      "args": {
+        "when": "tomorrow"
+      },
+      "patterns": [
+        "qu'ai-je demain au calendrier"
+      ]
+    },
+    {
+      "tool": "calendar",
+      "args": {
+        "when": "next"
+      },
+      "patterns": [
+        "quand est ma prochaine réunion"
+      ]
+    },
+    {
+      "tool": "calendar",
+      "args": {
+        "when": "today"
+      },
+      "patterns": [
+        "calendrier du jour"
+      ]
+    },
+    {
       "tool": "memory_add",
       "patterns": [
         "souviens-toi que {text}",

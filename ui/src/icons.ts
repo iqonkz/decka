@@ -70,6 +70,7 @@ import {
   Wifi,
   X,
   Zap,
+  Lightbulb,
   type LucideIcon,
 } from "lucide-react";
 
@@ -146,6 +147,7 @@ export const ICONS: Record<string, LucideIcon> = {
   "gamepad-2": Gamepad2,
   bluetooth: Bluetooth,
   "app-window": AppWindow, // the app strip when the program's own icon is not known
+  lightbulb: Lightbulb, // M32: a light of Home Assistant
 };
 
 export const FALLBACK_ICON: LucideIcon = Square;

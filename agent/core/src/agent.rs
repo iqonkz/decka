@@ -1335,11 +1335,13 @@ impl Agent {
         }
     }
 
-    /// `calendar_get`: whether a link is saved, the server it points at, and the section as the phones get it.
+    /// `calendar_get`: whether a link is saved, the server it points at (`masked`: nothing of the secret part), and the
+    /// section as the phones get it.
     pub fn calendar_view(&self) -> serde_json::Value {
         let stored = self.config().calendar;
         let host = stored.as_ref().and_then(|c| crate::dpapi::unprotect(&c.url).ok()).and_then(|l| url::Url::parse(&l).ok()).and_then(|u| u.host_str().map(str::to_string));
-        serde_json::json!({ "connected": stored.is_some(), "host": host, "info": self.inner.store.get("calendar") })
+        let masked = host.as_ref().map(|h| format!("https://{h}/••••••••"));
+        serde_json::json!({ "connected": stored.is_some(), "host": host, "masked": masked, "info": self.inner.store.get("calendar") })
     }
 
     /// `calendar_refresh`: reads the link now.
@@ -2768,8 +2770,10 @@ impl Agent {
     /// The config as the settings window sees it: the OBS password is left out and `passwordSet` says whether there is one.
     pub fn config_for_window(&self) -> ConfigFile {
         let mut config = self.config();
-        // The window never needs the link of the calendar, not even encrypted (`calendar_get` says whether there is one).
-        config.calendar = None;
+        // The window never gets the link of the calendar, not even encrypted: only that there is one.
+        if let Some(calendar) = config.calendar.as_mut() {
+            calendar.url = String::new();
+        }
         if let Some(obs) = config.obs.as_mut() {
             obs.password_set = Some(obs.password.is_some());
             obs.password = None;

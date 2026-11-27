@@ -22,6 +22,8 @@ export interface ConfigFile {
   twitch?: TwitchConfig;             // absent = off
   youtube?: YoutubeConfig;           // absent = off
   mail?: MailConfig;                 // M17 (DATA_MODEL.md 10.7); absent = no mailboxes
+  calendar?: { url: string };        // M32: present = a link is saved; the window always gets "" (it is written by `calendar_set`)
+  tray?: { favorites: Id[] };        // M32: the mini panel; written by `tray_favorites_set`
   windowsNotifications?: WindowsNotificationsConfig; // M17 (DATA_MODEL.md 10.4); absent = off
   network?: NetworkConfig;           // M18 (DATA_MODEL.md 11.2); absent = { allowPublic: true }
 }

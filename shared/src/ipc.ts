@@ -1,4 +1,4 @@
-import type { Id, WeatherInfo } from "./protocol";
+import type { CalendarEvent, CalendarInfo, Id, MediaInfo, WeatherInfo } from "./protocol";
 import type { ActionsFile } from "./actions";
 import type { LayoutFile } from "./layout";
 import type { ConfigFile, DeviceInfo } from "./config";
@@ -203,7 +203,49 @@ export interface VoiceSetArgs {
   lightStt?: boolean;
 }
 
+/** M32 (T32.1): the wake word "Decka". */
+export type WakeSensitivity = "low" | "medium" | "high";
+export interface WakeStatus {
+  enabled: boolean;
+  sensitivity: WakeSensitivity;
+  installed: boolean;
+  state: "off" | "downloading" | "starting" | "listening" | "paused" | "error";
+  reason: string | null;
+  percent: number | null;   // only while downloading
+  heard: number;            // detections since the agent started (the indicator of "Say Decka")
+  testing: boolean;
+  size: number;             // bytes downloaded the first time
+}
+
+/** M32 (T32.2): `calendar_get`. The saved link never comes back: `masked` shows the server and nothing of the secret. */
+export interface CalendarStatus { connected: boolean; host: string | null; masked: string | null; info: CalendarInfo | null }
+
+/** M32 (T32.3): the mini panel of the tray. */
+export interface TrayFavorite { id: Id; label: string; icon: string; active: boolean; confirm: boolean }
+export interface TrayState {
+  media: MediaInfo | null;
+  volume: number | null;
+  muted: boolean | null;
+  micMuted: boolean | null;
+  favorites: TrayFavorite[];
+  nextEvent: CalendarEvent | null;
+  icons: Record<string, string> | null;
+}
+
 export interface IpcCommands {
+  wake_get(): WakeStatus;
+  wake_set(args: { enabled: boolean; sensitivity: WakeSensitivity }): WakeStatus; // the first time on downloads the files
+  wake_test(args: { on: boolean }): WakeStatus;                // 15 s: a detection is only counted
+  calendar_get(): CalendarStatus;
+  calendar_set(args: { url: string }): CalendarStatus;         // "" removes the calendar
+  calendar_refresh(): void;
+  tray_state(): TrayState;
+  tray_press(args: { actionId: Id }): void;                    // a favourite or "Join" of an event
+  tray_volume(args: { percent: number }): void;
+  tray_mute(args: { mic: boolean }): void;
+  tray_open_settings(): void;
+  tray_favorites_get(): { chosen: boolean; favorites: Id[] };
+  tray_favorites_set(args: { favorites: Id[] }): void;         // at most 6 ids of actions
   ha_get(): HaStatus;                                          // T30.8: Home Assistant; the token itself never reaches the window
   ha_set_config(args: { url: string; token: string; entities: string[] }): void;  // empty token keeps the stored one; empty url removes
   ha_test(args: { url: string; token: string }): number;       // the number of entities the server answers with

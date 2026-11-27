@@ -363,6 +363,35 @@
       ]
     },
     {
+      "tool": "calendar",
+      "args": {
+        "when": "tomorrow"
+      },
+      "patterns": [
+        "明日の予定は",
+        "明日の予定は何ですか"
+      ]
+    },
+    {
+      "tool": "calendar",
+      "args": {
+        "when": "next"
+      },
+      "patterns": [
+        "次の会議はいつ",
+        "次の会議はいつですか"
+      ]
+    },
+    {
+      "tool": "calendar",
+      "args": {
+        "when": "today"
+      },
+      "patterns": [
+        "今日のカレンダー"
+      ]
+    },
+    {
       "tool": "memory_add",
       "patterns": [
         "{text}と覚えて",

@@ -23,18 +23,19 @@ The `Hash` column must equal the hash on the line of the same file in `SHA256SUM
 
 ## What is Decka
 
-Decka turns an old Android phone into a desk panel for a Windows PC: a 5x3 grid of buttons that launch programs, send hotkeys, open URLs and control media, plus live widgets for PC state, service statuses and webhook notifications. A small agent runs in the Windows tray; the phone shows the panel and only ever tells the agent *which button* was pressed.
+Decka turns an old Android phone into a desk panel for a Windows PC: a customizable grid (7×4 by default) of buttons that launch programs, send hotkeys, open URLs and control media, plus live widgets for PC state, upcoming calendar meetings, AI coding limits, service statuses and webhook notifications. A lightweight agent runs in the Windows tray (with a 320×420 mini-panel); the phone shows the deck and only ever tells the agent *which button* (`actionId`) was pressed.
 
-![Decka on a phone: the Glass look with widgets and keys](docs/img/hero.png)
+![Decka on a phone: 7x4 Studio layout with live widgets and keys](tools/visual-baseline/m31-phone-20x9-en.png)
 
-![The Decka settings window, Deck tab](docs/img/settings.png)
+![Decka desktop settings window: Integrations hub](tools/visual-baseline/m31-settings-integrations-ru-dark.png)
 
 ## Why
 
-- **USB mode.** The phone can work over a cable with no Wi-Fi at all, through `adb reverse`. In "USB only" mode the agent listens on `127.0.0.1` and opens no port to your local network.
+- **USB mode & Multi-PC.** Works over USB cable (`adb reverse`) or Wi-Fi LAN with end-to-end encryption. Pair multiple PCs and switch between them directly from the phone's menu without re-pairing.
 - **AMOLED burn-in protection.** Pure black background, slow pixel shift, dimming after inactivity, and a screen saver with a wandering clock. A night interval and a "PC offline" screen saver are built in too.
-- **Context pages.** The phone opens the right page by itself while a given program is in front on your PC (VS Code, a browser, Zoom) and goes back when you leave it. A "Now playing" widget shows the current track with cover and play/pause/next keys.
-- **Webhook-first for developers.** `POST /api/notify` (even a plain-text one-liner with curl) and `POST /api/status` with a TTL give you deploy and AI-session statuses without plugins. Built-in HTTP checks watch your own services.
+- **Context pages & tray mini-panel.** The phone opens the right page by itself while a given program is in front on your PC (VS Code, a browser, Zoom) and goes back when you leave it. On Windows itself, click the tray icon for a quick 320×420 mini-panel with media controls, volume, mic mute, 6 customizable favorite actions and your next meeting.
+- **Voice Island, Meeting Notes & Screen Assist.** A floating particle-orb Voice Island stays unobtrusive as a top bar and expands for voice replies, dictation, synced song lyrics, or step-by-step on-screen visual guides — all running 100% locally on your hardware.
+- **Home Assistant, Calendar (ICS) & Webhooks.** Trigger smart home entities from buttons or voice, view upcoming meetings and join Zoom/Meet calls in one tap, or push CI/deploy/AI statuses via `POST /api/notify` and `POST /api/status`.
 
 ## Quick start
 
@@ -72,24 +73,30 @@ Pick the look of the deck in **Appearance**; the phone changes within a second o
 
 | AMOLED | Studio |
 |---|---|
-| ![AMOLED look](docs/img/theme-amoled.png) | ![Studio look](docs/img/theme-studio.png) |
+| ![AMOLED look](tools/visual-baseline/theme-amoled.png) | ![Studio look](tools/visual-baseline/theme-studio.png) |
 | **Material** | **Glass** |
-| ![Material look](docs/img/theme-material.png) | ![Glass look](docs/img/theme-glass.png) |
+| ![Material look](tools/visual-baseline/theme-material.png) | ![Glass look](tools/visual-baseline/theme-glass.png) |
 
 A long press (1.2 s) on an empty spot of the phone screen opens the phone menu: the connection, **Reduce effects**, **Haptics**, **Reload** and **Unpair**. Keys can also give a short vibration; it is on by default and kept per phone.
 
 In **Layout** the preview is the real deck in the chosen look: drag a program, an action or a widget from the left onto a cell, drag keys to move or swap them, drag a corner to resize a widget, and use Ctrl+Z, Ctrl+Y and Ctrl+S. A key can open a popup group (a small panel of related keys) instead of, or after, running its action. For icons, **Phosphor** offers thousands of vector icons in six weights; they take the colour of the key.
 
-## Voice control
+## Voice Island, Wake Word, Notes & Screen Assist
 
-Say what you want: *turn the volume down*, *open Spotify*, *switch to Chrome*, *move this window to the other monitor*, *search YouTube for lofi*, *set a timer for 10 minutes*, *lock the PC*. Start it with **Ctrl+Alt+Space** on the PC (press again to finish, **Esc** cancels) or with the round microphone button on the phone (hold to talk, drag to move).
+Say what you want: *turn the volume down*, *open Spotify*, *what's eating memory?*, *summarize this meeting*, *what's on my calendar tomorrow?*, *turn on bedroom lights*. Activate hands-free with the **experimental** wake word **"Decka" / «Декка»** (off by default, configurable sensitivity, audio never leaves your PC), press **Ctrl+Alt+Space** on the PC, use **Double Ctrl** for dictation, or hold the round microphone button on the phone.
 
-![The voice pill with an answer](docs/img/voice.png)
+![The floating Voice Island with answer and quick actions](tools/visual-baseline/m31-island-reply-dark.png)
 
-- **Off until you turn it on.** **More → Voice → Turn on voice control** downloads the speech and language models once (about 3.2 GB; 1.8 GB with the light model for PCs with little memory), each file checked against a fixed SHA-256, to `%LOCALAPPDATA%\Decka\ai`. **Remove voice control** deletes them.
-- **Everything runs on this PC.** Speech recognition (whisper.cpp) and the language model (llama.cpp with Qwen3.5) run as hidden local programs on `127.0.0.1`; what you say is never sent anywhere and never written to the log.
-- **Only a fixed set of tools.** A phrase is understood by a table of phrases in your language first, then by the model; either way the result is one of a short list of tools (volume, media, open/switch/close a program from the installed list, a button or action you already have, a page, a web search, a site name, typing text, a timer, lock/sleep). The model cannot run commands, open paths or URLs of its own; locking and sleeping ask for a confirmation. The phone only sends sound and the answer to a confirmation.
-- **Languages:** the 11 languages of the interface; the language of the commands is the interface language. Kazakh and Hindi are less accurate; see `CHANGELOG.md` for the measured accuracy.
+- **Off until you turn it on.** **Voice → Turn on voice control** downloads speech recognition and Qwen3.5 local models (Light 2B, Standard 4B, or Strong 9B) once, each file verified against a fixed SHA-256 checksum, into `%LOCALAPPDATA%\Decka\ai`.
+- **Floating Voice Island & Song Lyrics.** When idle, the Island tucks neatly into a thin top bar showing a live equalizer during music playback, expanding smoothly for voice responses, synced song lyrics, high-RAM process cleanup, or Yes/No confirmations.
+- **Meeting Notes & Markdown archive.** Record meetings directly from Decka (**Notes** tab): speech is transcribed offline and structured into summary, decisions, action items, and full transcript in searchable Markdown files.
+- **Screen Assist & Visual Guide.** Ask *"What is on the screen?"* or *"Show me step by step how to export PDF"*. Only the active window is analyzed in memory when you ask (nothing is saved to disk or logs), highlighting target UI buttons with step-by-step callouts.
+- **Home Assistant & Calendar (ICS).** Connect your local Home Assistant server or read-only Google/Outlook `.ics` calendar URLs (stored under Windows DPAPI). Check upcoming meetings via voice, or tap **Join** on the `calendar` widget (`1×1`, `2×1`, `2×2`) or tray mini-panel.
+- **Everything runs on this PC & only fixed tools.** Speech recognition (`whisper.cpp`) and Qwen3.5 (`llama.cpp`) run strictly on `127.0.0.1` across all 11 supported languages (`en`, `ru`, `kk`, `de`, `fr`, `es`, `pt`, `zh`, `ja`, `hi`, `ar`). Neither voice nor the AI model can execute arbitrary shell commands.
+
+| Meeting Notes (Markdown) | Screen Assist & Guide |
+|---|---|
+| ![Meeting notes tab](tools/visual-baseline/m31-settings-notes-ru-dark.png) | ![Step-by-step on-screen guide overlay](tools/visual-baseline/a2-isl-guide-dark.png) |
 
 ## Language
 
@@ -101,7 +108,7 @@ The translations were made by a language model from a fixed glossary (`shared/sr
 
 ## Versions
 
-One version number covers the PC agent, the phone app and the APK. It is shown in **More → About** and in the phone menu (`App 0.1.0 · PC 0.1.0`); **Phone** lists the app version of every paired phone. `CHANGELOG.md` lists what changed; once a day (switch it off in **About**) the agent only checks GitHub for a newer release and tells you, it never downloads anything.
+One version number covers the PC agent, the phone app and the APK. It is shown in **About** and in the phone menu (`App 0.70.0 · PC 0.70.0`); **Phone** lists the app version of every paired phone. `CHANGELOG.md` lists what changed; once a day (switch it off in **About**) the agent only checks GitHub for a newer release and tells you, it never downloads anything.
 
 ## USB mode
 

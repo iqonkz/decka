@@ -497,6 +497,33 @@
       ]
     },
     {
+      "tool": "calendar",
+      "args": {
+        "when": "tomorrow"
+      },
+      "patterns": [
+        "что у меня завтра"
+      ]
+    },
+    {
+      "tool": "calendar",
+      "args": {
+        "when": "next"
+      },
+      "patterns": [
+        "когда следующая встреча"
+      ]
+    },
+    {
+      "tool": "calendar",
+      "args": {
+        "when": "today"
+      },
+      "patterns": [
+        "календарь на сегодня"
+      ]
+    },
+    {
       "tool": "memory_add",
       "patterns": [
         "запомни что {text}",

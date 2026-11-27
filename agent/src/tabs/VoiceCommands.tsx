@@ -44,6 +44,9 @@ export default function VoiceCommands({ initialQuery = "" }: VoiceCommandsProps 
   return (
     <div id="voice-commands">
       <SectionHeader title={t("m29.cmd_title")} />
+      <p style={{ margin: "0 0 12px", fontSize: "var(--fs-sm)", color: "var(--muted)" }}>
+        {t("m32.cmd_wake_hint")}
+      </p>
       <div className="integrations-search">
         <PhIcon name="magnifying-glass" size={16} color="var(--muted)" />
         <input

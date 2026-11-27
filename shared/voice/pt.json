@@ -383,6 +383,33 @@
       ]
     },
     {
+      "tool": "calendar",
+      "args": {
+        "when": "tomorrow"
+      },
+      "patterns": [
+        "o que tenho amanhã no calendário"
+      ]
+    },
+    {
+      "tool": "calendar",
+      "args": {
+        "when": "next"
+      },
+      "patterns": [
+        "quando é minha próxima reunião"
+      ]
+    },
+    {
+      "tool": "calendar",
+      "args": {
+        "when": "today"
+      },
+      "patterns": [
+        "calendário de hoje"
+      ]
+    },
+    {
       "tool": "memory_add",
       "patterns": [
         "lembre-se de que {text}",

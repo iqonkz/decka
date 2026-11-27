@@ -637,5 +637,19 @@
     "args": {
       "topic": "battery"
     }
+  },
+  {
+    "say": "明天有什么日程",
+    "tool": "calendar",
+    "args": {
+      "when": "tomorrow"
+    }
+  },
+  {
+    "say": "下次会议什么时候",
+    "tool": "calendar",
+    "args": {
+      "when": "next"
+    }
   }
 ]

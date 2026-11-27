@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { t, type IslandSettings, type VoiceStatus } from "@decka/shared";
+import { t, type IslandSettings, type VoiceStatus, type WakeStatus } from "@decka/shared";
 import type { SavedGuide, VoiceModelTier, WorkMode } from "@decka/ui";
 import { call, onVoiceStatus } from "../ipc";
 import Button from "../ui/Button";
@@ -14,6 +14,7 @@ import MemoryBlock from "./MemoryBlock";
 import GuidesBlock from "./GuidesBlock";
 import ModesBlock from "./ModesBlock";
 import VoiceCheckPanel from "./VoiceCheckPanel";
+import WakeWordBlock from "./WakeWordBlock";
 import { voiceErrorCopy, type VoiceCheckStep } from "./voiceM28Types";
 import { Group, PageHeader, Row, SectionHeader } from "../ui/SettingsGroup";
 import Disclosure from "../ui/Disclosure";
@@ -81,6 +82,7 @@ export interface VoiceSectionProps {
   previewGuides?: SavedGuide[];
   previewModes?: WorkMode[];
   openAdvanced?: boolean;
+  initialWakeWord?: WakeStatus;
 }
 
 /** Settings window: More → Voice (DATA_MODEL.md 12.7 + M27/M28 UI). */
@@ -96,6 +98,7 @@ export default function VoiceSection({
   previewGuides,
   previewModes,
   openAdvanced,
+  initialWakeWord,
 }: VoiceSectionProps = {}) {
   const [status, setStatus] = useState<VoiceStatus>(initialStatus ?? DEFAULT_STATUS);
   const [modelTier, setModelTier] = useState<VoiceModelTier>(initialModelTier ?? (initialStatus?.model ?? "standard"));
@@ -519,6 +522,7 @@ export default function VoiceSection({
       )}
 
       {status.state !== "off" && status.state !== "downloading" && <VoiceCheckPanel initialSteps={initialCheckSteps} />}
+      <WakeWordBlock initialStatus={initialWakeWord} />
       <DictationBlock />
       <MemoryBlock />
       <GuidesBlock initialGuides={previewGuides} />

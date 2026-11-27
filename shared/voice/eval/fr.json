@@ -637,5 +637,19 @@
     "args": {
       "topic": "battery"
     }
+  },
+  {
+    "say": "qu'ai-je demain au calendrier",
+    "tool": "calendar",
+    "args": {
+      "when": "tomorrow"
+    }
+  },
+  {
+    "say": "quand est ma prochaine réunion",
+    "tool": "calendar",
+    "args": {
+      "when": "next"
+    }
   }
 ]

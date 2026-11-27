@@ -463,6 +463,33 @@
       ]
     },
     {
+      "tool": "calendar",
+      "args": {
+        "when": "tomorrow"
+      },
+      "patterns": [
+        "ертең күнтізбеде не бар"
+      ]
+    },
+    {
+      "tool": "calendar",
+      "args": {
+        "when": "next"
+      },
+      "patterns": [
+        "келесі кездесу қашан"
+      ]
+    },
+    {
+      "tool": "calendar",
+      "args": {
+        "when": "today"
+      },
+      "patterns": [
+        "бүгінгі күнтізбе"
+      ]
+    },
+    {
       "tool": "memory_add",
       "patterns": [
         "мынаны есте сақта {text}",

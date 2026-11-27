@@ -1022,6 +1022,7 @@ export interface CatalogSet {
 - **Список:** незакончившиеся события на 7 дней, ≤ 20, по дням; внутри дня сначала со временем. Событие на несколько дней стоит под сегодняшним днём.
 - **Ссылка на звонок:** `X-GOOGLE-CONFERENCE`, `X-MICROSOFT-SKYPETEAMSMEETINGURL`, `URL`, `LOCATION`, `DESCRIPTION`; только `https` на `*.zoom.us`, `meet.google.com`, `teams.microsoft.com`, `teams.live.com` (обёртка Outlook Safelinks раскрывается). Адрес остаётся на ПК; телефон нажимает `cal-join-<16 hex>`.
 - **Виджет `calendar`** (`LayoutItem`): 1×1, 2×1, 2×2; элемент каталога `widget.calendar`.
+- **Окно:** раздел `calendar` в `get_config` только говорит, что ссылка есть (`url: ""`); окно её не хранит, черновые ключи `localStorage` M32 (`decka.calendar.v1`, `decka.wakeword.v1`, `decka.tray.favorites.v1`) удаляются при каждом старте. Набор значков §3.6 пополнен `lucide:lightbulb`.
 - **Голос:** инструмент `calendar { when: "today" | "tomorrow" | "next" }` — ответ из секции без ИИ; события сегодняшнего дня входят в `day_brief`.
 - **Заметка** (правила T27.8): за ≤ 5 мин до события со временем — строка на острове, без звука, один раз на событие, не поверх программы на весь экран; выключается вместе с «замечает само».
 

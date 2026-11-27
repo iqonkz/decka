@@ -367,6 +367,34 @@
       ]
     },
     {
+      "tool": "calendar",
+      "args": {
+        "when": "tomorrow"
+      },
+      "patterns": [
+        "ما لدي غدا",
+        "ما لدي غدا في التقويم"
+      ]
+    },
+    {
+      "tool": "calendar",
+      "args": {
+        "when": "next"
+      },
+      "patterns": [
+        "متى الاجتماع القادم"
+      ]
+    },
+    {
+      "tool": "calendar",
+      "args": {
+        "when": "today"
+      },
+      "patterns": [
+        "تقويم اليوم"
+      ]
+    },
+    {
       "tool": "memory_add",
       "patterns": [
         "تذكر أن {text}",
