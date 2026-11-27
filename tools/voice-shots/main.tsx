@@ -283,6 +283,9 @@ if (scene === "deck" || scene === "settings") {
       voice_dictation_get: { trigger: { kind: "doubleCtrl" }, mode: "clean", dictionary: ["Decka", "Qwen", "Almaty"] },
       voice_context_get: q.get("context") !== "0",
       voice_context_set: true,
+      voice_notices_get: true,
+      voice_duck_get: true,
+      island_config_get: { restingMode: "bar", barHeight: 10, barPosition: "center" },
       notes_keep_audio_get: false,
       ha_get: { url: "http://homeassistant.local:8123", hasToken: true, connected: true, entities: [{ id: "light.bedroom", name: "Свет в спальне", enabled: true }, { id: "switch.desk", name: "Розетка стола", enabled: true }, { id: "scene.movie", name: "Сцена «Кино»", enabled: false }] },
       notes_list: [

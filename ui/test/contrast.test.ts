@@ -115,3 +115,19 @@ describe("readableFace", () => {
     expect(face.top).not.toBe("#7e60ff");
   });
 });
+
+describe("M31 settings & island UI tokens contrast (WCAG AA >= 4.5:1)", () => {
+  test("light and dark settings theme tokens satisfy >= 4.5:1 on surfaces", () => {
+    const light = { bg: "#fafafa", panel: "#ffffff", hover: "#ececf0", text: "#1a1a1f", muted: "#5f6672", ok: "#166534", warn: "#b45309", danger: "#b91c1c", accent: "#2563eb" };
+    const dark = { bg: "#141417", panel: "#1b1b1f", hover: "#26262c", text: "#e8e8ee", muted: "#9ca3af", ok: "#4ade80", warn: "#fbbf24", danger: "#f87171", accent: "#60a5fa" };
+    for (const [name, tok] of [["light", light], ["dark", dark]] as const) {
+      for (const fg of ["text", "muted", "ok", "warn", "danger", "accent"] as const) {
+        expect(contrast(tok[fg], tok.panel), `${name} ${fg} on panel`).toBeGreaterThanOrEqual(MIN);
+        expect(contrast(tok[fg], tok.hover), `${name} ${fg} on hover`).toBeGreaterThanOrEqual(MIN);
+      }
+    }
+    // Primary button white text on light default accent (#2563eb) and darkened Decka purple (#694ee0).
+    expect(contrast("#ffffff", "#2563eb")).toBeGreaterThanOrEqual(MIN);
+    expect(contrast("#ffffff", "#694ee0")).toBeGreaterThanOrEqual(MIN);
+  });
+});

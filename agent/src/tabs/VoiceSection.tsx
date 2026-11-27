@@ -117,7 +117,7 @@ export default function VoiceSection({
       (extras) => {
         if (!active) return;
         setDuckMusic(extras.duckMusic);
-        setIsland(extras.island);
+        if (extras.island) setIsland(extras.island);
       },
       (e) => active && setError(String(e)),
     );
