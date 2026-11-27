@@ -226,7 +226,7 @@ export const fr: Dictionary = {
   "mem.forget_all": "Tout oublier",
   "mem.confirm_clear": "Oublier tout ce qui a été mémorisé ?",
   "about.text": "Decka transforme un vieux téléphone en panneau de commande pour ce PC : boutons, widgets et informations en direct.",
-  "about.licence": "Licence MIT. L'assistant de configuration associe un téléphone, choisit une apparence et ajoute vos programmes.",
+  "about.licence": "Licence MIT. L'assistant de configuration associe un téléphone et active la commande vocale.",
   "about.run_setup": "Relancer la configuration",
   "common.loading": "Chargement…",
   "common.saved": "Enregistré",

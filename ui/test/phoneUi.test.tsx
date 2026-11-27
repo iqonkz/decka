@@ -157,7 +157,13 @@ describe("unified empty states and skeleton", () => {
     }
     expect(localizedButtonLabel({ actionId: "lock-pc" }, "Lock")).toBe("Блок");
     expect(localizedButtonLabel({ actionId: undefined }, "Lock")).toBe("Lock");
+    // A key made from the catalog: the id is the English name of the item, the captions of its states too.
+    expect(localizedButtonLabel({ actionId: "mute-microphone" }, "Mic off")).toBe("Микр. выкл");
+    expect(localizedButtonLabel({ actionId: "mute-microphone-2" }, "Mic")).toBe("Микр.");
+    expect(localizedButtonLabel({ actionId: "obs-go-live" }, "Go live")).toBe("Эфир");
+    expect(localizedButtonLabel({ actionId: "mute-microphone" }, "Мой микрофон")).toBe("Мой микрофон");
     setLanguage("en");
+    expect(localizedButtonLabel({ actionId: "shuffle" }, "Случайно")).toBe("Shuffle");
   });
 
   test("T31.7b: PageDots renders interactive 32 px touch buttons when onSelect is provided", () => {

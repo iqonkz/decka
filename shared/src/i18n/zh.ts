@@ -226,7 +226,7 @@ export const zh: Dictionary = {
   "mem.forget_all": "全部忘记",
   "mem.confirm_clear": "忘记所有已记住的内容？",
   "about.text": "Decka 把旧手机变成这台电脑的面板：按键、小组件和实时信息。",
-  "about.licence": "MIT 许可证。设置向导会配对手机、选择外观并添加你的程序。",
+  "about.licence": "MIT 许可证。设置向导会连接手机并启用语音控制。",
   "about.run_setup": "重新运行设置",
   "common.loading": "正在加载…",
   "common.saved": "已保存",

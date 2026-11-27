@@ -226,7 +226,7 @@ export const ja: Dictionary = {
   "mem.forget_all": "すべて忘れる",
   "mem.confirm_clear": "覚えたことをすべて忘れますか？",
   "about.text": "Decka は古いスマートフォンをこの PC のパネルに変えます。ボタン、ウィジェット、リアルタイムの情報が使えます。",
-  "about.licence": "MIT ライセンス。セットアップ ガイドでは、スマートフォンの接続、外観の選択、プログラムの追加を行います。",
+  "about.licence": "MIT ライセンス。セットアップ ガイドではスマートフォンを接続し、音声操作を有効にします。",
   "about.run_setup": "セットアップをやり直す",
   "common.loading": "読み込み中…",
   "common.saved": "保存しました",

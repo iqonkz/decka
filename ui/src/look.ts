@@ -1,4 +1,4 @@
-import { CATALOG, getLanguage, pickText, t, type ButtonItem, type ButtonLook, type VarValue } from "@decka/shared";
+import { CATALOG, getLanguage, makeActionId, pickText, t, type ButtonItem, type ButtonLook, type VarValue } from "@decka/shared";
 
 const CATALOG_ID_ALIASES: Record<string, string> = {
   "lock-pc": "win.lock",
@@ -43,28 +43,35 @@ const CATALOG_ID_ALIASES: Record<string, string> = {
 };
 
 /**
- * Resolve localized catalog label on the phone by `actionId` or catalog prefix,
- * keeping user-customized button captions intact.
+ * The catalog item a button came from, by the id of its action: the catalog names a new action after the English name of
+ * the item (`mute-microphone`, then `mute-microphone-2`); the built-in templates and the first layout use shorter ids.
+ */
+function catalogItemOf(actionId: string) {
+  const base = actionId.replace(/-\d+$/, "");
+  const alias = CATALOG_ID_ALIASES[actionId] ?? CATALOG_ID_ALIASES[base];
+  if (alias) return CATALOG.items.find((c) => c.id === alias);
+  return CATALOG.items.find((c) => {
+    const id = makeActionId(c.name.en, {});
+    return id === actionId || id === base;
+  });
+}
+
+const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+
+/**
+ * A caption the catalog wrote, in the language of the phone: the caption of the item or of one of its states ("Mic off"),
+ * in whatever language it was written. Any other caption is the user's own and stays as it is.
  */
 export function localizedButtonLabel(item: Pick<ButtonItem, "actionId">, label: string | undefined): string | undefined {
   // A key without a caption stays without one: that is the user's choice too.
   if (!item.actionId || !label) return label;
-  const rawId = item.actionId;
-  const direct = CATALOG_ID_ALIASES[rawId] ?? rawId;
-  const cat =
-    CATALOG.items.find((c) => c.id === direct) ??
-    CATALOG.items.find((c) => rawId.startsWith(`${c.id}.`) || rawId.startsWith(`${c.id}-`));
+  const cat = catalogItemOf(item.actionId);
   if (!cat) return label;
-  const normalized = label.trim().toLowerCase();
-  const knownDefaults = new Set(
-    Object.values(cat.label)
-      .filter((s): s is string => typeof s === "string")
-      .map((s) => s.trim().toLowerCase()),
-  );
-  // Also recognize common baked preset labels ("Tasks" -> win.taskmgr, "Play / Pause", etc.).
-  if (cat.id === "win.taskmgr") knownDefaults.add("tasks");
-  if (cat.id === "media.play") knownDefaults.add("play / pause");
-  return knownDefaults.has(normalized) ? pickText(cat.label, getLanguage()) : label;
+  // Captions the templates wrote that differ from the catalog's.
+  if ((cat.id === "win.taskmgr" && same(label, "Tasks")) || (cat.id === "media.play" && same(label, "Play / Pause"))) return pickText(cat.label, getLanguage());
+  const captions = [cat.label, ...Object.values(cat.bind?.states ?? {}).map((state) => state.label)];
+  const written = captions.find((caption) => caption !== undefined && Object.values(caption).some((text) => typeof text === "string" && same(text, label)));
+  return written ? pickText(written, getLanguage()) : label;
 }
 
 /** Base look of the button with `bind.states[String(var)]` laid over it (DATA_MODEL.md 3.4). */

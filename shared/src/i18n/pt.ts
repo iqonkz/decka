@@ -226,7 +226,7 @@ export const pt: Dictionary = {
   "mem.forget_all": "Esquecer tudo",
   "mem.confirm_clear": "Esquecer tudo o que foi memorizado?",
   "about.text": "O Decka transforma um telefone velho em um painel para este PC: botões, widgets e informações ao vivo.",
-  "about.licence": "Licença MIT. O guia de configuração conecta um telefone, escolhe uma aparência e adiciona seus programas.",
+  "about.licence": "Licença MIT. O guia de configuração conecta um telefone e ativa o controle por voz.",
   "about.run_setup": "Executar a configuração novamente",
   "common.loading": "Carregando…",
   "common.saved": "Salvo",

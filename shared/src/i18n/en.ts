@@ -228,7 +228,7 @@ export const en = {
   "mem.forget_all": "Forget all",
   "mem.confirm_clear": "Forget everything that was remembered?",
   "about.text": "Decka turns an old phone into a panel for this PC: buttons, widgets and live information.",
-  "about.licence": "MIT licence. The setup guide pairs a phone, picks a look and adds your apps.",
+  "about.licence": "MIT licence. The setup guide connects a phone and turns on voice control.",
   "about.run_setup": "Run setup again",
   "common.loading": "Loading…",
   "common.saved": "Saved",
