@@ -155,6 +155,14 @@ export interface DictationSettings {
   dictionary: string[];
 }
 
+/** T30.1: one meeting note (a Markdown file of the PC). */
+export interface NoteEntry {
+  id: string;
+  title: string;
+  date: string;         // "2026-11-27 14:05"
+  markdown: string;
+}
+
 export interface VoiceSetArgs {
   model?: VoiceModelTier;
   hotkey?: string[];
@@ -167,6 +175,12 @@ export interface VoiceSetArgs {
 }
 
 export interface IpcCommands {
+  notes_list(): NoteEntry[];                                   // T30.1: meeting notes, the newest first
+  notes_delete(args: { id: string }): void;
+  notes_open_folder(): void;
+  notes_stop(): boolean;                                       // the stop button of the island
+  notes_keep_audio_get(): boolean;                             // `config.notes.keepAudio` (off by default)
+  notes_keep_audio_set(args: { keep: boolean }): boolean;
   voice_status(): VoiceStatus;
   voice_enable(): VoiceStatus;                                 // Turn on voice control / Retry
   voice_cancel(): VoiceStatus;

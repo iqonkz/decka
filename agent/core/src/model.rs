@@ -192,6 +192,12 @@ pub enum Action {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         headers: Option<BTreeMap<String, String>>,
     },
+    /// M30 (T30.1): starts a meeting note, or stops the one that is being recorded.
+    NotesRecord {
+        name: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        toggle_var: Option<String>,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -224,7 +230,8 @@ impl Action {
             | Action::Youtube { name, .. }
             | Action::Sequence { name, .. }
             | Action::Screenshot { name, .. }
-            | Action::Http { name, .. } => name,
+            | Action::Http { name, .. }
+            | Action::NotesRecord { name, .. } => name,
         }
     }
 
@@ -241,7 +248,8 @@ impl Action {
             | Action::Youtube { toggle_var, .. }
             | Action::Sequence { toggle_var, .. }
             | Action::Screenshot { toggle_var, .. }
-            | Action::Http { toggle_var, .. } => toggle_var.as_deref(),
+            | Action::Http { toggle_var, .. }
+            | Action::NotesRecord { toggle_var, .. } => toggle_var.as_deref(),
         }
     }
 
@@ -260,6 +268,7 @@ impl Action {
             Action::Sequence { .. } => "sequence",
             Action::Screenshot { .. } => "screenshot",
             Action::Http { .. } => "http",
+            Action::NotesRecord { .. } => "notes_record",
         }
     }
 }
@@ -706,6 +715,21 @@ pub struct ConfigFile {
     /// T29.P: how the server of the phone is reached.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub server: Option<ServerConfig>,
+    /// M30 (T30.1): meeting notes; absent = the sound is not kept.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub notes: Option<NotesConfig>,
+}
+
+/// `config.notes`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NotesConfig {
+    /// "Keep the sound": the recording stays next to the note as a WAV file; off by default.
+    #[serde(default)]
+    pub keep_audio: bool,
+    /// The reminder to tell the others about the recording was shown (once, at the first note).
+    #[serde(default)]
+    pub warned: bool,
 }
 
 /// `config.server` (T29.P).

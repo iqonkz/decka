@@ -422,6 +422,8 @@ struct Inner {
     app_update: Mutex<Option<crate::apk_update::AppUpdate>>,
     updates_dir: PathBuf,
     apk_gate: Mutex<crate::apk_update::DownloadGate>,
+    /// M30: meeting notes (T30.1).
+    notes: crate::notes::Notes,
     /// Runtime of `Agent::start`; lets synchronous callers (UI commands) start background tasks.
     runtime: tokio::runtime::Handle,
 }
@@ -523,6 +525,7 @@ impl Agent {
                 updates_dir: updates_dir(&config_dir, opts.config_dir.is_some()),
                 apk_gate: Mutex::new(crate::apk_update::DownloadGate::default()),
                 runtime: tokio::runtime::Handle::current(),
+                notes: crate::notes::Notes::new(config_dir.join("notes"), tokio::runtime::Handle::current()),
                 opts,
             }),
         };
@@ -593,6 +596,22 @@ impl Agent {
             });
             agent.inner.background.lock().unwrap().push(task);
         }
+        // A deck button can follow the recording (`notes.recording`).
+        {
+            let weak = Arc::downgrade(&agent.inner);
+            agent.inner.notes.listen(Arc::new(move |event| {
+                use crate::notes::Event;
+                let Some(inner) = weak.upgrade() else { return };
+                let recording = match event {
+                    Event::Started => true,
+                    Event::Stopped(_) => false,
+                    _ => return,
+                };
+                inner.store.update_vars(|vars| {
+                    vars.insert("notes.recording".to_string(), VarValue::Bool(recording));
+                });
+            }));
+        }
         agent.restart_collectors();
         agent.start_server().await;
         agent.restart_usb();
@@ -642,6 +661,47 @@ impl Agent {
     }
 
     /// `media.lyrics.pcOverlay` (DESIGN.md 4.17): the window of the words on the PC; absent or unknown = `auto`.
+    /// M30 (T30.1): the meeting notes.
+    pub fn notes(&self) -> &crate::notes::Notes {
+        &self.inner.notes
+    }
+
+    /// `config.notes.keepAudio`; off by default.
+    pub fn notes_keep_audio(&self) -> bool {
+        self.config().notes.is_some_and(|n| n.keep_audio)
+    }
+
+    pub fn set_notes_keep_audio(&self, keep: bool) -> Result<bool, String> {
+        let mut config = self.config();
+        config.notes.get_or_insert_with(Default::default).keep_audio = keep;
+        if let SaveResult::Rejected(issues) = self.write_config(config) {
+            return Err(issues.first().map(|i| i.message.clone()).unwrap_or_default());
+        }
+        Ok(keep)
+    }
+
+    /// Starts a meeting note. `true`: the first one ever, the user is to be told to warn the others.
+    pub fn note_start(&self) -> Result<bool, String> {
+        self.inner.notes.start(self.notes_keep_audio())?;
+        let mut config = self.config();
+        let first = !config.notes.as_ref().is_some_and(|n| n.warned);
+        if first {
+            config.notes.get_or_insert_with(Default::default).warned = true;
+            if let SaveResult::Rejected(issues) = self.write_config(config) {
+                tracing::warn!("notes.warned was not saved: {issues:?}");
+            }
+        }
+        Ok(first)
+    }
+
+    /// The deck button and the island: stops a running note, else starts one.
+    pub fn notes_toggle(&self) -> Result<(), String> {
+        if self.inner.notes.stop() {
+            return Ok(());
+        }
+        self.note_start().map(|_| ())
+    }
+
     /// `voice.context.enabled` (T26.7): hints by the active program when the island opens; off by default.
     pub fn voice_context_enabled(&self) -> bool {
         self.config().voice.and_then(|v| v.context).is_some_and(|c| c.enabled)
@@ -2470,6 +2530,12 @@ impl Agent {
         }
         if let Action::Twitch { op, message, toggle_var, .. } = &action {
             self.twitch_action(*op, message.as_deref()).await.map_err(|m| (ErrorCode::ActionFailed, m))?;
+            self.toggle_var(toggle_var.clone());
+            return Ok(());
+        }
+        // The recorder of the meeting notes belongs to the agent.
+        if let Action::NotesRecord { toggle_var, .. } = &action {
+            self.notes_toggle().map_err(|m| (ErrorCode::ActionFailed, m))?;
             self.toggle_var(toggle_var.clone());
             return Ok(());
         }

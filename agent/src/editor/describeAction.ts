@@ -30,6 +30,8 @@ export function describeAction(action: Action | undefined): string {
       return t(`m29.shot_${action.area}`);
     case "http":
       return action.name;
+    case "notes_record":
+      return t("notes.action_type");
     case "audio":
     case "obs":
     case "twitch":

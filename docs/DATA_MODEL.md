@@ -41,7 +41,8 @@ export type Action =
       | "shutdown" | "restart" | "signout" | "hibernate" | "display_off" | "task_manager" | "settings" | "explorer" | "empty_recycle_bin" }) // M17, §10.8
   | (ActionBase & { type: "audio"; op: "mic_toggle" | "out_mute_toggle" })                      // M15
   | (ActionBase & { type: "obs"; op: ObsOp; scene?: string; input?: string })                   // M15
-  | (ActionBase & { type: "sequence"; steps: ({ actionId: Id } | { delayMs: number })[] });     // M15
+  | (ActionBase & { type: "sequence"; steps: ({ actionId: Id } | { delayMs: number })[] })      // M15
+  | (ActionBase & { type: "notes_record" });                                                    // M30, §15
 
 export type MediaOp = "play_pause" | "next" | "prev" | "vol_up" | "vol_down" | "mute" | "shuffle" | "repeat"; // shuffle, repeat — M15
 export type ObsOp = "record_toggle" | "stream_toggle" | "scene" | "input_mute_toggle" | "save_replay";
@@ -77,6 +78,8 @@ export type KeyName = string; // см. 2.2
 | `audio` (M15) | Core Audio (`IMMDeviceEnumerator::GetDefaultAudioEndpoint`, роль `eConsole`; `IAudioEndpointVolume::SetMute(!GetMute)`): `mic_toggle` — устройство записи (`eCapture`), `out_mute_toggle` — устройство вывода (`eRender`). Нет устройства → `ACTION_FAILED` `"No microphone"` / `"No audio output"` | `op` из списка |
 | `obs` (M15) | запрос obs-websocket 5 (§6.4): `record_toggle` → `ToggleRecord`; `stream_toggle` → `ToggleStream`; `scene` → `SetCurrentProgramScene {sceneName}`; `input_mute_toggle` → `ToggleInputMute {inputName}`; `save_replay` → `SaveReplayBuffer`. Не подключено → `ACTION_FAILED` `"OBS is not connected"`; ошибка OBS → `ACTION_FAILED` с `comment` из ответа OBS | `scene` 1..100 обязателен при `op: "scene"`, `input` 1..100 — при `input_mute_toggle`, иначе запрещены |
 | `sequence` (M15) | шаги по очереди: `actionId` — выполнить то действие (ждать его результата), `delayMs` — пауза; первая ошибка останавливает цепочку → `ACTION_FAILED`, `message: "Step <n>: <ошибка>"`. `toggleVar` — после всех шагов. Нажатие той же кнопки во время выполнения → `ACTION_FAILED` `"Already running"` | 1..10 шагов; `delayMs` 50..10000; сумма пауз ≤ 15000; `actionId` существует и не ссылается на `sequence` (без вложенности) |
+
+| `notes_record` (M30) | начать заметку встречи, а если она пишется — остановить (§15). Не получилось → `ACTION_FAILED` с причиной (`"Turn on voice control first (More → Voice)"`, `"Less than 1 GB of free disk space"`) | полей кроме общих нет |
 
 - Ключ действия — `Id`. `name` обязателен.
 - Успех действия = процесс успешно порождён / клавиши отправлены. Код возврата запущенной программы не отслеживается.
@@ -984,6 +987,16 @@ export interface CatalogSet {
 - **Кэш:** `%LOCALAPPDATA%\Decka\lyrics\<trackKey>.json`, ≤ 500 файлов (старые по дате доступа удаляются); «не найдено» кэшируется 7 дней. Сдвиги — `lyrics_offsets.json` в каталоге конфигурации, ≤ 1000 записей.
 - **Отметка времени на телефоне:** текущая строка = последняя с `t ≤ positionSec×1000 + (now − positionAt) + offsetMs` (если играет).
 - **Не делать:** Яндекс Музыку и другие закрытые API, хранение текстов вне кэша, отправку текста куда-либо.
+
+## 15. M30 — заметки встреч (T30.1)
+- **Запуск и остановка:** голос (инструмент `notes_record { op: "start" | "stop" | "toggle" }`), кнопка-подсказка в острове (`voice_chip` `note` / `note_stop`), кнопка телефона с действием `notes_record` (телефон шлёт только `actionId`). Одновременно пишется одна заметка.
+- **Звук:** микрофон (выбранный в `More → Voice`) + звук ПК (WASAPI loopback устройства вывода по умолчанию), сведены в 16 кГц моно. Куски ≤ 30 с режутся в самом тихом месте последних 5 с; тихие куски не распознаются. Распознавание — та же модель whisper: на видеокарте — во время встречи, на процессоре — после остановки.
+- **Сводка:** локальная модель, ответ по JSON-схеме `{summary, decisions[], tasks[], questions[]}`; длинный текст — частями по 5000 знаков, затем общая сводка.
+- **Файлы:** `<config>\notes\<ГГГГ-ММ-ДД ЧЧ-ММ> <первые слова>.md` (заголовки на языке интерфейса); пока идёт распознавание — черновик `<дата время>.md`. Временный звук — `<config>\notes\.tmp\`, кусок удаляется после распознавания, остатки — при старте агента. `config.json` `notes: { keepAudio: false, warned: false }`: `keepAudio` — оставить `<имя>.wav` рядом с заметкой; `warned` — напоминание «предупредите участников» показано.
+- **Ограничения:** 3 часа; меньше 1 ГБ свободного места — стоп с сохранением.
+- **Видимость:** пока идёт запись, событие `island_state` несёт `recording: { active, elapsedSec }`, остров не прячется (над полноэкранной программой — полоса); переменная `notes.recording` (префикс `notes.` зарезервирован).
+- **Приватность:** обе модели слушают только `127.0.0.1`; в сеть ничего не уходит.
+- **IPC окна:** `notes_list`, `notes_delete{id}`, `notes_open_folder`, `notes_stop`, `notes_keep_audio_get`, `notes_keep_audio_set{keep}`.
 
 ## 11. M18 — безопасность (решение владельца 2026-11-20, D-50)
 

@@ -68,6 +68,7 @@ pub fn default_config() -> ConfigFile {
         voice: None,
         island: None,
         server: None,
+        notes: None,
     }
 }
 

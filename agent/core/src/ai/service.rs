@@ -430,6 +430,16 @@ impl VoiceService {
         self.inner.supervisor.stop_llm().await;
     }
 
+    /// Recognition runs on the video card here: fast enough to follow a meeting while it runs.
+    pub fn recognition_on_gpu(&self) -> bool {
+        self.whisper_gpu()
+    }
+
+    /// The microphone chosen in the settings; `None` = the default one of Windows.
+    pub fn microphone(&self) -> Option<String> {
+        self.inner.state.lock().unwrap().settings.mic.clone()
+    }
+
     /// The files the chosen settings need.
     fn files(&self) -> Vec<&ManifestEntry> {
         plan(&self.inner.manifest, self.model(), self.whisper_gpu(), self.light_stt())

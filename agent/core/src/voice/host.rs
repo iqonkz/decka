@@ -235,6 +235,64 @@ fn deliver(focus: &FocusMemory, text: &str, paste: bool) -> Result<String, Strin
     }
 }
 
+/// M30 (T30.1): what the meeting notes run on.
+struct NoteModels {
+    agent: Agent,
+    service: VoiceService,
+}
+
+/// A summary of a piece of a meeting may take long on a processor.
+const NOTE_TIMEOUT: Duration = Duration::from_secs(180);
+
+impl crate::notes::Backend for NoteModels {
+    fn available(&self) -> Result<(), String> {
+        if is_on(&self.service.status()) { Ok(()) } else { Err(crate::notes::NOT_READY.into()) }
+    }
+
+    fn live(&self) -> bool {
+        self.service.recognition_on_gpu()
+    }
+
+    fn language(&self) -> String {
+        crate::tray_text::agent_language(self.agent.layout().display.language.as_deref()).to_string()
+    }
+
+    fn microphone(&self) -> Option<String> {
+        self.service.microphone()
+    }
+
+    fn transcribe(&self, pcm: Vec<u8>, language: String) -> crate::notes::BoxFut<Result<String, String>> {
+        let sup = self.service.supervisor().clone();
+        Box::pin(async move { sup.transcribe_long(&pcm, &language).await })
+    }
+
+    fn model(&self, body: Value) -> crate::notes::BoxFut<Option<String>> {
+        let sup = self.service.supervisor().clone();
+        Box::pin(async move { super::assist::chat_text(&sup, &body, NOTE_TIMEOUT).await })
+    }
+}
+
+fn answer(key: &'static str, name: Option<&str>, text: &str) -> super::status::Answer {
+    super::status::Answer { key, args: name.map(|n| ("name".to_string(), n.to_string())).into_iter().collect(), text: text.into() }
+}
+
+const WARN_OTHERS: &str = "Recording. Tell the others that the meeting is being recorded";
+
+/// What the island says about a note; a start by voice has its own answer (the island is busy then and shows nothing here).
+fn note_notice(event: &crate::notes::Event, warned: bool) -> Option<super::status::Answer> {
+    use crate::notes::{Event, StopReason};
+    Some(match event {
+        Event::Started if !warned => answer("voice.reply.note_first", None, WARN_OTHERS),
+        Event::Started | Event::Stopped(StopReason::User) => return None,
+        Event::Stopped(StopReason::TimeLimit) => answer("voice.reply.note_limit", None, "3 hours: the note stopped and is being saved"),
+        Event::Stopped(StopReason::DiskFull) => answer("voice.reply.note_disk", None, "The disk is almost full: the note stopped and is being saved"),
+        Event::Saved { title, summarized: true, .. } => answer("voice.reply.note_saved", Some(title), &format!("Note saved: {title}")),
+        Event::Saved { title, .. } => answer("voice.reply.note_saved_plain", Some(title), &format!("Note saved without a summary: {title}")),
+        Event::Empty => answer("voice.reply.note_empty", None, "Nothing was said: no note"),
+        Event::Failed(_) => answer("voice.reply.note_failed", None, "The note could not be saved"),
+    })
+}
+
 /// `day_brief` (13.5): the facts the agent already has, put into words by the model; the plain facts when the model fails the check.
 async fn day_brief(agent: &Agent, sup: &crate::ai::supervisor::Supervisor, lang: &str) -> Result<String, String> {
     use super::brief;
@@ -625,6 +683,17 @@ impl Host {
         let driver = Driver::new(handle.clone(), inner.clone());
         let _ = inner.driver.set(driver);
         let host = Host { inner };
+        // M30 (T30.1): the meeting notes use the same recognition and model; what happens to them is said on the island.
+        let notes = host.inner.agent.notes();
+        notes.set_backend(Arc::new(NoteModels { agent: host.inner.agent.clone(), service: host.inner.service.clone() }));
+        let weak = Arc::downgrade(&host.inner);
+        notes.listen(Arc::new(move |event| {
+            let Some(inner) = weak.upgrade() else { return };
+            let warned = inner.agent.config().notes.is_some_and(|n| n.warned);
+            if let Some(answer) = note_notice(&event, warned) {
+                inner.plate(&super::status::encode(&answer), false, if warned { 6 } else { 12 });
+            }
+        }));
         // The list of programs takes a moment to read: not on the first request.
         let weak = Arc::downgrade(&host.inner);
         handle.spawn_blocking(move || {
@@ -785,9 +854,13 @@ impl Host {
         self.inner.driver().handle_event(Event::Confirm { id: id.to_string(), yes });
     }
 
-    /// The hint chips of the island that is open now (T26.7), as `{ label, command }`.
+    /// The hint chips of the island that is open now (T26.7), as `{ label, command }`; the first one starts or stops a
+    /// meeting note (T30.1).
     pub fn context_chips(&self) -> Vec<Value> {
-        self.inner.chips.lock().unwrap().clone()
+        let note = if self.inner.agent.notes().status().active { ("voice.chip.note_stop", "note_stop") } else { ("voice.chip.note", "note") };
+        let mut chips = vec![serde_json::json!({ "label": note.0, "command": note.1 })];
+        chips.extend(self.inner.chips.lock().unwrap().iter().cloned());
+        chips
     }
 
     /// `voice_chip` of the PC window (IPC): a tap on a chip is the same request as saying it. The command is one of
@@ -800,6 +873,8 @@ impl Host {
             "explain" => ToolCall::TextTransform { op: Op::Explain, lang: None, text: None },
             "reply" => ToolCall::TextTransform { op: Op::Reply, lang: None, text: None },
             "error" => ToolCall::ScreenAsk { question: "What is this error and how can it be fixed?".into() },
+            "note" => ToolCall::NotesRecord { start: Some(true) },
+            "note_stop" => ToolCall::NotesRecord { start: Some(false) },
             _ => return Err("unknown chip".into()),
         };
         let inner = self.inner.clone();
@@ -1117,15 +1192,19 @@ impl Inner {
             return;
         }
         // A fixed phrase is translated by the window ("Copied: paste with Ctrl+V"); a free text is shown as it is.
-        let fixed = super::pipeline::executor_key(text);
+        let (text, key, args) = match super::status::decode(text) {
+            Some((key, args, plain)) => (plain, Some(key), args),
+            None => (text.to_string(), super::pipeline::executor_key(text), Default::default()),
+        };
+        let text = text.as_str();
         let info = move |state: &'static str, reply: Option<String>| VoiceInfo {
             state,
             id: reply.is_some().then(|| "0000000000000000".to_string()),
             source: reply.is_some().then_some(Source::Pc),
             heard: None,
-            reply_key: fixed.filter(|_| reply.is_some()),
+            reply_key: key.filter(|_| reply.is_some()),
+            reply_args: if reply.is_some() { args.clone() } else { Default::default() },
             reply,
-            reply_args: Default::default(),
             confirm: None,
             activity: None,
             actions: if actions && state == "done" { super::followup::ACTIONS.to_vec() } else { Vec::new() },
@@ -1361,6 +1440,18 @@ impl Ports for Inner {
                 answers.lock().unwrap().clear();
             }
             match &call {
+                ToolCall::NotesRecord { start } => {
+                    let start = start.unwrap_or(!agent.notes().status().active);
+                    let said = tokio::task::spawn_blocking(move || {
+                        if !start {
+                            return Ok(if agent.notes().stop() { answer("voice.reply.note_stopped", None, "Note stopped, writing it down") } else { answer("voice.reply.note_none", None, "No note is being recorded") });
+                        }
+                        Ok::<_, String>(if agent.note_start()? { answer("voice.reply.note_first", None, WARN_OTHERS) } else { answer("voice.reply.note_started", None, "Recording a note") })
+                    })
+                    .await
+                    .map_err(|e| format!("The action did not finish: {e}"))??;
+                    return Ok(super::status::encode(&said));
+                }
                 ToolCall::Volume(VolumeOp::Set(v)) => {
                     let v = *v;
                     return tokio::task::spawn_blocking(move || crate::audio::set_volume(v).map(|_| winops::volume_text(v)))

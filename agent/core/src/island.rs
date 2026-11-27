@@ -147,6 +147,8 @@ pub struct Inputs {
     pub music: bool,
     pub rest: Rest,
     pub fullscreen: bool,
+    /// T30.1: a meeting note is being recorded: the island is never hidden then.
+    pub recording: bool,
 }
 
 /// The voice part of the event `island_state` (shared `IslandVoiceState`) and what the machine needs to know of it, made of
@@ -236,11 +238,13 @@ impl Machine {
     /// The part of the song: the voice is not on show.
     fn lyrics(&mut self, i: &Inputs) -> Mode {
         // A full-screen program hides it; only `always` is meant to stay over it (DESIGN.md 4.17).
-        if (!i.lyrics_visible && !i.music) || (i.fullscreen && i.lyrics_mode != PcOverlay::Always) {
+        let song = (i.lyrics_visible || i.music) && !(i.fullscreen && i.lyrics_mode != PcOverlay::Always);
+        // T30.1: a recording is always on show; over a full screen only as the bar.
+        if !song && (!i.recording || i.fullscreen) {
             self.fold();
-            return Mode::Hidden;
+            return if i.recording { Mode::Tab } else { Mode::Hidden };
         }
-        if i.lyrics_mode == PcOverlay::Always || i.rest == Rest::Lyrics {
+        if song && (i.lyrics_mode == PcOverlay::Always || i.rest == Rest::Lyrics) {
             return Mode::Compact;
         }
         if i.hovered {
@@ -283,12 +287,25 @@ mod tests {
     use super::*;
 
     fn song(now_ms: u64) -> Inputs {
-        Inputs { now_ms, voice: VoiceInput::Idle, hovered: false, lyrics_visible: true, lyrics_mode: PcOverlay::Auto, music: true, rest: Rest::Bar, fullscreen: false }
+        Inputs { now_ms, voice: VoiceInput::Idle, hovered: false, lyrics_visible: true, lyrics_mode: PcOverlay::Auto, music: true, rest: Rest::Bar, fullscreen: false, recording: false }
     }
 
     /// Nothing plays.
     fn silence(now_ms: u64) -> Inputs {
         Inputs { lyrics_visible: false, music: false, ..song(now_ms) }
+    }
+
+    #[test]
+    fn a_recording_is_never_hidden_and_the_cursor_opens_it() {
+        let mut m = Machine::default();
+        let rec = |now, hovered, fullscreen| Inputs { recording: true, hovered, fullscreen, rest: Rest::Lyrics, ..silence(now) };
+        assert_eq!(m.step(&rec(0, false, false)), Mode::Tab);
+        assert_eq!(m.step(&rec(100, true, false)), Mode::Tab);
+        assert_eq!(m.step(&rec(100 + BAR_OPEN_MS, true, false)), Mode::Compact);
+        assert_eq!(m.step(&rec(5_000, false, true)), Mode::Tab, "over a full screen: the bar");
+        assert_eq!(m.step(&Inputs { recording: true, fullscreen: true, ..song(6_000) }), Mode::Tab);
+        assert_eq!(m.step(&Inputs { recording: true, voice: VoiceInput::Active, ..silence(7_000) }), Mode::Expanded);
+        assert_eq!(m.step(&silence(40_000)), Mode::Hidden);
     }
 
     #[test]

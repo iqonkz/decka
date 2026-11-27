@@ -19,7 +19,8 @@ export type Action =
   | (ActionBase & { type: "youtube"; op: YoutubeOp; message?: string })                         // chat: a message in the chat of the live stream, 1..200 (only with chat); start: go live with the scheduled stream; end: end the live stream
   | (ActionBase & { type: "sequence"; steps: SequenceStep[] })                                  // M15
   | (ActionBase & { type: "screenshot"; area: ShotArea })                                       // M29: to the clipboard and a file
-  | (ActionBase & { type: "http"; method: HttpMethod; url: string; body?: string; headers?: Record<string, string> }); // M29: webhook; http:// only to the local network
+  | (ActionBase & { type: "http"; method: HttpMethod; url: string; body?: string; headers?: Record<string, string> }) // M29: webhook; http:// only to the local network
+  | (ActionBase & { type: "notes_record" });                                                    // M30: starts a meeting note or stops the running one
 
 /** `lock`, `sleep`; M17 (DATA_MODEL.md 10.8): the rest. */
 export type SystemOp =
@@ -39,7 +40,7 @@ export type KeyName = string; // see DATA_MODEL.md 2.2
 export const SEQUENCE_LIMITS = { steps: 10, delayMin: 50, delayMax: 10000, delaySum: 15000 } as const;
 
 /** Variables set by the collectors; a user cannot write them (PROTOCOL.md 4, HTTP rules) or toggle them. */
-export const RESERVED_VAR_PREFIXES = ["audio.", "mic.", "media.", "obs.", "ai.", "twitch.", "youtube.", "battery.", "mail."] as const;
+export const RESERVED_VAR_PREFIXES = ["audio.", "mic.", "media.", "obs.", "ai.", "twitch.", "youtube.", "battery.", "mail.", "notes."] as const;
 export function isReservedVar(name: string): boolean {
   return RESERVED_VAR_PREFIXES.some((p) => name.startsWith(p));
 }

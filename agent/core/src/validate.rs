@@ -36,7 +36,7 @@ pub fn is_mail_host(s: &str) -> bool {
 
 /// M15: variables set by the collectors; nobody else writes them (PROTOCOL.md 4, HTTP rules).
 pub fn is_reserved_var(name: &str) -> bool {
-    ["audio.", "mic.", "media.", "obs.", "ai.", "twitch.", "youtube.", "battery.", "mail.", "notif.", "voice."].iter().any(|p| name.starts_with(p))
+    ["audio.", "mic.", "media.", "obs.", "ai.", "twitch.", "youtube.", "battery.", "mail.", "notif.", "voice.", "notes."].iter().any(|p| name.starts_with(p))
 }
 
 /// `^[a-z0-9._ ()-]{1,60}\.exe$`
@@ -137,7 +137,7 @@ pub fn validate_actions(file: &ActionsFile) -> Vec<ValidationIssue> {
                     }
                 }
             }
-            Action::Media { .. } | Action::System { .. } | Action::Audio { .. } | Action::Screenshot { .. } => {}
+            Action::Media { .. } | Action::System { .. } | Action::Audio { .. } | Action::Screenshot { .. } | Action::NotesRecord { .. } => {}
             Action::Http { method, url, body, headers, .. } => {
                 if let Err(why) = crate::webhook::check_url(url) {
                     out.push(issue(format!("{base}/url"), why));

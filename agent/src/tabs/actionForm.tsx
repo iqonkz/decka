@@ -24,6 +24,7 @@ export const actionTypes = (): { id: ActionType; label: string; icon: string }[]
   { id: "system", label: t("form.type_system"), icon: "power" },
   { id: "screenshot", label: t("m29.type_screenshot"), icon: "camera" },
   { id: "http", label: t("m29.type_webhook"), icon: "link" },
+  { id: "notes_record", label: t("notes.action_type"), icon: "microphone" },
 ];
 
 /** T29.P: a header value kept by the agent under DPAPI shows as this; a line left so keeps the stored value. */
@@ -116,6 +117,8 @@ export function toDraft(id: string, action: Action): Draft {
         .map(([name, value]) => `${name}: ${value.startsWith(STORED_PREFIX) ? HEADER_MASK : value}`)
         .join("\n");
       break;
+    case "notes_record":
+      break; // nothing to fill in
     case "audio":
     case "obs":
     case "twitch":
@@ -156,6 +159,8 @@ export function fromDraft(d: Draft): { action: Action } | { error: string } {
       return { action: { ...base, type: "system", op: d.systemOp } };
     case "screenshot":
       return { action: { ...base, type: "screenshot", area: d.shotArea } };
+    case "notes_record":
+      return { action: { ...base, type: "notes_record" } };
     case "http": {
       const headers = parseHeaders(d.headersText);
       if (!headers) return { error: t("m29.webhook_headers_error") };

@@ -831,12 +831,21 @@ impl Supervisor {
 
     /// `transcribe` with a prompt for whisper (the dictionary of a dictation).
     pub async fn transcribe_prompted(&self, pcm: &[u8], language: &str, prompt: Option<&str>) -> Result<String, String> {
+        self.recognise(pcm, language, prompt, None).await
+    }
+
+    /// `transcribe` of a long piece (a meeting note): on a processor 30 s of sound take far longer than a spoken phrase.
+    pub async fn transcribe_long(&self, pcm: &[u8], language: &str) -> Result<String, String> {
+        self.recognise(pcm, language, None, Some(Duration::from_secs(300))).await
+    }
+
+    async fn recognise(&self, pcm: &[u8], language: &str, prompt: Option<&str>, limit: Option<Duration>) -> Result<String, String> {
         let (port, gpu) = self.ensure_stt().await.map_err(|f| f.detail)?;
         let samples: Vec<i16> = pcm.as_chunks::<2>().0.iter().map(|b| i16::from_le_bytes([b[0], b[1]])).collect();
         let wav = crate::voice::audio::encode_wav_pcm16(&samples, 16_000);
         let boundary = format!("decka{}", new_key());
         let body = whisper_multipart_prompted(&boundary, &wav, language, audio_ctx(samples.len() as f64 / 16_000.0), prompt);
-        let client = reqwest::Client::builder().timeout(stt_timeout(gpu, samples.len() as f64 / 16_000.0)).build().map_err(|e| e.to_string())?;
+        let client = reqwest::Client::builder().timeout(limit.unwrap_or_else(|| stt_timeout(gpu, samples.len() as f64 / 16_000.0))).build().map_err(|e| e.to_string())?;
         let url = format!("http://127.0.0.1:{port}/inference");
         let answer = client
             .post(url)

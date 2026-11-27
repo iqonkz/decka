@@ -52,6 +52,8 @@ const LABEL: &str = "island";
 const PAUSE_LINGER_MS: u64 = 5_000;
 /// The size of the bar, logical pixels wide (`island.css`).
 const BAR_WIDTH: f64 = 140.0;
+/// The least height of the bar while a note is recorded (`island.css`).
+const RECORDING_BAR: u32 = 18;
 /// The window starts at this size and then follows the visible panel (`island_rect`) plus `PAD` on each side, logical pixels.
 const WIDTH: f64 = 480.0;
 const HEIGHT: f64 = 460.0;
@@ -438,7 +440,10 @@ pub fn setup(app: &AppHandle, agent: &Agent) -> Arc<Shared> {
                 let chips = host.as_ref().map(|h| h.context_chips()).unwrap_or_default();
                 voice_view(payload.as_ref(), slow, host.as_ref().and_then(|h| h.download_progress()), host.as_ref().and_then(|h| h.loading_eta_sec()), &chips)
             };
+            // T30.1: a meeting note is always shown.
+            let note = agent.notes().status();
             let island = machine.step(&Inputs {
+                recording: note.active,
                 now_ms: started.elapsed().as_millis() as u64,
                 voice,
                 hovered: on_panel,
@@ -481,7 +486,8 @@ pub fn setup(app: &AppHandle, agent: &Agent) -> Arc<Shared> {
             };
             let spot = match mode {
                 Mode::Orb => Spot::Orb(anchor.unwrap_or_default()),
-                Mode::Tab => Spot::Bar(sampled.settings.bar_position, sampled.settings.bar_height),
+                // The red dot and the timer need a taller bar.
+                Mode::Tab => Spot::Bar(sampled.settings.bar_position, if note.active { sampled.settings.bar_height.max(RECORDING_BAR) } else { sampled.settings.bar_height }),
                 Mode::Compact => Spot::Words(sampled.settings.bar_position),
                 Mode::Expanded | Mode::Hidden => Spot::Panel,
             };
@@ -531,6 +537,7 @@ pub fn setup(app: &AppHandle, agent: &Agent) -> Arc<Shared> {
                 "muted": sampled.muted,
                 "track": sampled.track_info,
                 "musicLevel": level_of_music,
+                "recording": note.active.then(|| json!({ "active": true, "elapsedSec": note.elapsed_sec })),
                 "barHeight": sampled.settings.bar_height,
                 "barPosition": sampled.settings.bar_position,
                 "orb": orb.as_ref().map(|o| json!({ "phase": o.phase.name(), "level": level, "text": o.bubble.as_ref().map(|b| &b.text), "key": o.bubble.as_ref().and_then(|b| b.key) })),

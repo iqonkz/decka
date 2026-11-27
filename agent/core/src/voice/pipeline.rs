@@ -141,6 +141,8 @@ pub(crate) fn executor_key(text: &str) -> Option<&'static str> {
         "There is only one monitor" => Some("voice.reply.one_monitor"),
         "Too many timers are running" => Some("voice.reply.timers_full"),
         "That button cannot be added by voice" => Some("voice.reply.cannot_add_button"),
+        crate::notes::ALREADY => Some("voice.reply.note_already"),
+        crate::notes::NO_DISK => Some("voice.reply.note_no_disk"),
         msg::SELECT_FIRST => Some(key::SELECT_FIRST),
         msg::TOO_LONG => Some(key::TOO_LONG),
         msg::NO_CONTEXT => Some(key::NO_CONTEXT),

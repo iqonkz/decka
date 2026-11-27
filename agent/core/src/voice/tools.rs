@@ -20,6 +20,8 @@ pub const TOOLS: &[&str] = &[
     "find_on_screen", "ui_act", "guide", "guide_record", "guide_control", "read_aloud", "mode_run", "mode_save",
     // M29: a ready-made button of the catalog, a picture of the screen.
     "add_button", "screenshot", "system_theme",
+    // M30: meeting notes.
+    "notes_record",
 ];
 
 pub const MAX_TEXT: usize = 2000;
@@ -133,6 +135,8 @@ pub enum ToolCall {
     /// T27.10: open and arrange the programs of a saved mode / save the present layout as a mode.
     ModeRun { name: String },
     ModeSave { name: String },
+    /// M30 (T30.1): `Some(true)` starts a meeting note, `Some(false)` stops it, `None` does the other of what is going on.
+    NotesRecord { start: Option<bool> },
     Volume(VolumeOp),
     Media(MediaOp),
     GoPage { page_id: String, name: String },
@@ -682,6 +686,16 @@ fn run(tool: &str, args: &serde_json::Map<String, Value>, ctx: &Context) -> Resu
                 // The package is optional and big: the user agrees to the download first (the answer to the question follows it).
                 ready_key(ToolCall::ScreenAsk { question }, true, "Download the Screen help package (about 0.7 GB)?", "voice.confirm.screen_pack", &[])
             }
+        }
+        "notes_record" => {
+            only(args, &["op"])?;
+            let (start, label) = match args.get("op").and_then(Value::as_str) {
+                Some("start") => (Some(true), "Start a note"),
+                Some("stop") => (Some(false), "Stop the note"),
+                Some("toggle") | None => (None, "Start or stop a note"),
+                _ => return Err(reject("unknown operation")),
+            };
+            ready(ToolCall::NotesRecord { start }, false, label)
         }
         "system_theme" => {
             use crate::wintheme::Wanted;

@@ -100,6 +100,8 @@ export interface IslandEvent {
   muted?: boolean;
   /** Peak level of the PC output 0..1 (20 times a second, only while a song plays and the island is open). */
   musicLevel?: number;
+  /** T30.1: a meeting note is being recorded; the island shows it in every state. */
+  recording?: { active: boolean; elapsedSec: number } | null;
 }
 
 /** The IPC `island_rect` (window -> agent): the visible panel, in CSS pixels from the top-left corner of the window. */

@@ -544,6 +544,42 @@ pub fn open_config_dir(app: AppHandle) -> Result<(), String> {
     std::process::Command::new("explorer.exe").arg(agent.config_dir()).spawn().map(drop).map_err(|e| e.to_string())
 }
 
+// ---- M30: meeting notes (T30.1) ----
+
+#[tauri::command]
+pub fn notes_list(app: AppHandle) -> Result<Vec<decka_core::notes::Entry>, String> {
+    Ok(agent(&app)?.notes().list())
+}
+
+#[tauri::command]
+pub fn notes_delete(app: AppHandle, id: String) -> Result<(), String> {
+    agent(&app)?.notes().delete(&id)
+}
+
+#[tauri::command]
+pub fn notes_open_folder(app: AppHandle) -> Result<(), String> {
+    let dir = agent(&app)?.notes().dir().to_path_buf();
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    std::process::Command::new("explorer.exe").arg(dir).spawn().map(drop).map_err(|e| e.to_string())
+}
+
+/// The stop button of the island; `false`: nothing was being recorded.
+#[tauri::command]
+pub fn notes_stop(app: AppHandle) -> Result<bool, String> {
+    Ok(agent(&app)?.notes().stop())
+}
+
+/// `config.notes.keepAudio`: "Keep the sound", off by default.
+#[tauri::command]
+pub fn notes_keep_audio_get(app: AppHandle) -> Result<bool, String> {
+    Ok(agent(&app)?.notes_keep_audio())
+}
+
+#[tauri::command]
+pub fn notes_keep_audio_set(app: AppHandle, keep: bool) -> Result<bool, String> {
+    agent(&app)?.set_notes_keep_audio(keep)
+}
+
 // ---- M21: voice control (shared/src/ipc.ts `voice_*`; the event `voice-status` carries every change) ----
 
 fn voice(app: &AppHandle) -> Result<decka_core::ai::service::VoiceService, String> {
@@ -624,7 +660,6 @@ pub fn voice_context_set(app: AppHandle, enabled: bool) -> Result<bool, String> 
     let saved = agent(&app)?.set_voice_context_enabled(enabled)?;
     // The model server loads the projector of Screen help only while this is on: restarted behind the window (T29.P2).
     if let Ok(service) = voice(&app) {
-        let service = service.inner().clone();
         tauri::async_runtime::spawn(async move { service.apply_screen_help().await });
     }
     Ok(saved)

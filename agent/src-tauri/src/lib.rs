@@ -153,6 +153,12 @@ pub fn run() {
             commands::voice_duck_get,
             commands::voice_duck_set,
             commands::voice_chip,
+            commands::notes_list,
+            commands::notes_delete,
+            commands::notes_open_folder,
+            commands::notes_stop,
+            commands::notes_keep_audio_get,
+            commands::notes_keep_audio_set,
         ])
         .setup(|app| {
             let minimized = std::env::args().any(|a| a == "--minimized");

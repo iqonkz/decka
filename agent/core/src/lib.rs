@@ -26,6 +26,7 @@ pub mod lyrics_overlay;
 pub mod media_control;
 pub mod model;
 pub mod netpolicy;
+pub mod notes;
 pub mod obs;
 pub mod overlay;
 pub mod paths;
