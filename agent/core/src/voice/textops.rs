@@ -287,7 +287,7 @@ mod tests {
         leave_on_clipboard(&f, Op::Translate, &g, Some("привет")).unwrap();
         assert_eq!(f.get().as_deref(), Some("привет"));
         assert!(f.pasted.lock().unwrap().is_empty());
-        let g = Grabbed { text: "hello".into(), previous: Some("mine".into()) };
+        let g = Grabbed { text: "hello".into(), previous: Fake::new(Some("mine"), None).snapshot() };
         assert_eq!(leave_on_clipboard(&f, Op::Translate, &g, None).unwrap_err(), NO_ANSWER);
         assert_eq!(f.get().as_deref(), Some("mine"));
     }
@@ -350,7 +350,7 @@ mod tests {
         for none in [None, Some("   ".to_string())] {
             let f = Fake::new(Some("mine"), Some("from the clipboard"));
             let g = take_selection_uia_first(&|| none.clone(), &f, &f, &no_sleep).unwrap();
-            assert_eq!((g.text.as_str(), g.previous.as_deref()), ("from the clipboard", Some("mine")));
+            assert_eq!((g.text.as_str(), g.previous), ("from the clipboard", Fake::new(Some("mine"), None).snapshot()));
         }
         // A too long selection is refused without a copy.
         let f = Fake::new(Some("mine"), None);
