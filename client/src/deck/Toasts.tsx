@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { NotifLevel } from "@decka/shared";
 import { openNotification } from "../app/controller";
 import { dismissToast, expireToasts, useAppState } from "../store/store";
@@ -12,9 +12,16 @@ const LEVEL_ICON: Record<NotifLevel, PhIconName> = {
   error: "x-circle",
 };
 
-/** Top pill toasts (DESIGN.md 4.16): state icon on the left, 95% theme surface + blur 16, max 2 lines. */
+const SWIPE_DISMISS_PX = 48;
+
+/**
+ * Bottom pill toasts (M31 T31.8b): at most 2 visible, 12 px radius, typed icon on left,
+ * pointer swipe-to-dismiss.
+ */
 export default function Toasts() {
-  const toasts = useAppState((s) => s.toasts);
+  const toasts = useAppState((s) => s.toasts).slice(-2);
+  const dragStart = useRef<{ id: number; x: number; y: number } | null>(null);
+  const [dragOffset, setDragOffset] = useState<{ id: number; dx: number; dy: number } | null>(null);
 
   useEffect(() => {
     const timer = window.setInterval(() => expireToasts(Date.now()), 500);
@@ -24,23 +31,55 @@ export default function Toasts() {
   if (toasts.length === 0) return null;
   return (
     <div className="toasts">
-      {toasts.map((item) => (
-        <div
-          key={item.id}
-          className="toast"
-          onPointerUp={() => {
-            // A toast of a Windows notification is a tap on that notification: the PC opens its program.
-            if (item.notifId !== undefined) openNotification(item.notifId);
-            dismissToast(item.id);
-          }}
-        >
-          <PhIcon name={LEVEL_ICON[item.level]} size={20} color={LEVEL_COLOR[item.level]} className="toast-icon" />
-          <div className="toast-copy">
-            <span className="toast-title">{item.title}</span>
-            {item.body && <span className="toast-body">{item.body}</span>}
+      {toasts.map((item) => {
+        const activeDrag = dragOffset?.id === item.id ? dragOffset : null;
+        const opacity = activeDrag ? Math.max(0.25, 1 - (Math.abs(activeDrag.dx) + Math.max(0, activeDrag.dy)) / 140) : 1;
+        return (
+          <div
+            key={item.id}
+            className="toast"
+            style={
+              activeDrag
+                ? { transform: `translate3d(${activeDrag.dx}px, ${Math.max(0, activeDrag.dy)}px, 0)`, opacity, transition: "none" }
+                : undefined
+            }
+            onPointerDown={(e) => {
+              dragStart.current = { id: item.id, x: e.clientX, y: e.clientY };
+            }}
+            onPointerMove={(e) => {
+              const s = dragStart.current;
+              if (!s || s.id !== item.id) return;
+              const dx = e.clientX - s.x;
+              const dy = e.clientY - s.y;
+              if (Math.hypot(dx, dy) > 8) setDragOffset({ id: item.id, dx, dy });
+            }}
+            onPointerUp={(e) => {
+              const s = dragStart.current;
+              dragStart.current = null;
+              setDragOffset(null);
+              if (!s || s.id !== item.id) return;
+              const dx = e.clientX - s.x;
+              const dy = e.clientY - s.y;
+              if (Math.abs(dx) >= SWIPE_DISMISS_PX || dy >= SWIPE_DISMISS_PX) {
+                dismissToast(item.id);
+                return;
+              }
+              if (item.notifId !== undefined) openNotification(item.notifId);
+              dismissToast(item.id);
+            }}
+            onPointerCancel={() => {
+              dragStart.current = null;
+              setDragOffset(null);
+            }}
+          >
+            <PhIcon name={LEVEL_ICON[item.level]} size={20} color={LEVEL_COLOR[item.level]} className="toast-icon" />
+            <div className="toast-copy">
+              <span className="toast-title">{item.title}</span>
+              {item.body && <span className="toast-body">{item.body}</span>}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

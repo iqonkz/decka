@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import { t, type NoteEntry } from "@decka/shared";
 import { call } from "../ipc";
 import Banner from "../ui/Banner";
@@ -14,24 +14,96 @@ export interface NotesTabProps {
   initialNotes?: NoteEntry[];
 }
 
-function renderMarkdownBlocks(md: string) {
-  const lines = md.split(/\r?\n/);
-  return lines.map((line, i) => {
-    if (line.startsWith("### ")) return <h4 key={i} style={{ margin: "10px 0 4px" }}>{line.slice(4)}</h4>;
-    if (line.startsWith("## ")) return <h3 key={i} style={{ margin: "12px 0 6px" }}>{line.slice(3)}</h3>;
-    if (line.startsWith("# ")) return <h2 key={i} style={{ margin: "0 0 8px", fontSize: 18 }}>{line.slice(2)}</h2>;
-    if (line.startsWith("- ")) return <div key={i} style={{ paddingInlineStart: 12, margin: "2px 0" }}>• {line.slice(2)}</div>;
-    if (line.trim() === "") return <div key={i} style={{ height: 6 }} />;
-    return <p key={i} style={{ margin: "4px 0", lineHeight: 1.5 }}>{line}</p>;
-  });
+const TRANSCRIPT_HEADING = /^#{1,3}\s+(расшифровка|транскрипт|полный\s+текст|подробности|transcript|full\s+text|details)(?:$|\s|[:.,!?])/i;
+const SUMMARY_HEADING = /^#{1,3}\s+(кратко|итоги|решения|задачи|summary|key\s+points|decisions|action\s+items|tasks)(?:$|\s|[:.,!?])/i;
+const DURATION_LINE = /^(?:[-*]\s*)?(?:длительность|продолжительность|duration)\s*:\s*(?:(\d+)\s*(?:мин(?:ут[ыа]?)?|min(?:utes?)?)|(\d{1,2}):(\d{2}))/i;
+
+export function extractNoteDurationMin(markdown: string): number | null {
+  for (const raw of markdown.split(/\r?\n/)) {
+    const m = raw.trim().match(DURATION_LINE);
+    if (!m) continue;
+    if (m[1]) return Math.max(1, Number(m[1]));
+    if (m[2]) return Math.max(1, Number(m[2]));
+  }
+  return null;
 }
 
-/** T30.1b: Sidebar page for local Markdown meeting notes. */
+export function splitNoteSections(markdown: string): { summaryMd: string; transcriptMd: string } {
+  const lines = markdown.split(/\r?\n/);
+  const summaryLines: string[] = [];
+  const transcriptLines: string[] = [];
+  let mode: "intro" | "summary" | "transcript" = "intro";
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (DURATION_LINE.test(trimmed)) continue;
+    if (TRANSCRIPT_HEADING.test(trimmed)) {
+      mode = "transcript";
+      transcriptLines.push(line);
+    } else if (SUMMARY_HEADING.test(trimmed)) {
+      mode = "summary";
+      summaryLines.push(line);
+    } else if (mode === "transcript") {
+      transcriptLines.push(line);
+    } else if (mode === "summary") {
+      // A trailing unrecognized top/sub heading after summary sections moves into collapsible transcript/body.
+      if (/^#{1,2}\s+/.test(trimmed) && summaryLines.length > 0 && !SUMMARY_HEADING.test(trimmed)) {
+        mode = "transcript";
+        transcriptLines.push(line);
+      } else {
+        summaryLines.push(line);
+      }
+    } else {
+      summaryLines.push(line);
+    }
+  }
+
+  return {
+    summaryMd: summaryLines.join("\n").trim(),
+    transcriptMd: transcriptLines.join("\n").trim(),
+  };
+}
+
+function renderMarkdownBlocks(md: string): ReactNode {
+  const lines = md.split(/\r?\n/);
+  const blocks: ReactNode[] = [];
+  let listItems: string[] = [];
+
+  const flushList = (key: string) => {
+    if (listItems.length === 0) return;
+    blocks.push(
+      <ul key={key}>
+        {listItems.map((item, j) => (
+          <li key={j}>{item}</li>
+        ))}
+      </ul>,
+    );
+    listItems = [];
+  };
+
+  lines.forEach((line, i) => {
+    if (line.startsWith("- ") || line.startsWith("* ")) {
+      listItems.push(line.slice(2));
+      return;
+    }
+    flushList(`ul-${i}`);
+    if (line.startsWith("### ")) blocks.push(<h4 key={i}>{line.slice(4)}</h4>);
+    else if (line.startsWith("## ")) blocks.push(<h3 key={i}>{line.slice(3)}</h3>);
+    else if (line.startsWith("# ")) blocks.push(<h2 key={i}>{line.slice(2)}</h2>);
+    else if (line.trim() === "") blocks.push(<div key={i} style={{ height: 6 }} />);
+    else blocks.push(<p key={i}>{line}</p>);
+  });
+  flushList("ul-end");
+  return <Fragment>{blocks}</Fragment>;
+}
+
+/** T30.1b + T31.5b: Sidebar page for local Markdown meeting notes with summary card & collapsible transcript. */
 export default function NotesTab({ initialNotes }: NotesTabProps = {}) {
   const [notes, setNotes] = useState<NoteEntry[]>(initialNotes ?? []);
   const [selectedId, setSelectedId] = useState<string | null>(initialNotes?.[0]?.id ?? null);
   const [query, setQuery] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [showFull, setShowFull] = useState(false);
   const [keepAudio, setKeepAudio] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,6 +131,15 @@ export default function NotesTab({ initialNotes }: NotesTabProps = {}) {
   const selected = useMemo(
     () => filtered.find((n) => n.id === selectedId) ?? filtered[0] ?? null,
     [filtered, selectedId],
+  );
+
+  const sections = useMemo(
+    () => (selected ? splitNoteSections(selected.markdown) : null),
+    [selected],
+  );
+  const durationMin = useMemo(
+    () => (selected ? extractNoteDurationMin(selected.markdown) : null),
+    [selected],
   );
 
   function handleDelete(id: string) {
@@ -129,6 +210,7 @@ export default function NotesTab({ initialNotes }: NotesTabProps = {}) {
                   onClick={() => {
                     setSelectedId(n.id);
                     setConfirmDeleteId(null);
+                    setShowFull(false);
                   }}
                   style={{
                     width: "100%",
@@ -151,13 +233,21 @@ export default function NotesTab({ initialNotes }: NotesTabProps = {}) {
             })}
           </Group>
 
-          {selected ? (
-            <Group>
-              <div style={{ padding: "14px 16px" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 12, borderBottom: "1px solid var(--border)", paddingBottom: 10 }}>
+          {selected && sections ? (
+            <Group className="notes-doc">
+              <div style={{ padding: "16px 20px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 14, borderBottom: "1px solid var(--border)", paddingBottom: 12 }}>
                   <div>
-                    <div style={{ fontWeight: 600, fontSize: 15 }}>{selected.title}</div>
-                    <div style={{ fontSize: 12, color: "var(--muted)" }}>{selected.date}</div>
+                    <div style={{ fontWeight: 600, fontSize: 17 }}>{selected.title}</div>
+                    <div className="notes-header-meta">
+                      <span>{selected.date}</span>
+                      {durationMin !== null && (
+                        <>
+                          <span aria-hidden="true">·</span>
+                          <span>{t("m31.notes_duration", { min: durationMin })}</span>
+                        </>
+                      )}
+                    </div>
                   </div>
                   {confirmDeleteId === selected.id ? (
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -175,9 +265,33 @@ export default function NotesTab({ initialNotes }: NotesTabProps = {}) {
                     </Button>
                   )}
                 </div>
-                <div className="notes-markdown" style={{ fontSize: 13 }}>
-                  {renderMarkdownBlocks(selected.markdown)}
-                </div>
+
+                {sections.summaryMd && (
+                  <div className="notes-summary-card">
+                    <div className="notes-summary-badge">
+                      <PhIcon name="sparkle" size={14} />
+                      <span>{t("m31.notes_summary")}</span>
+                    </div>
+                    <div className="notes-markdown">{renderMarkdownBlocks(sections.summaryMd)}</div>
+                  </div>
+                )}
+
+                {sections.transcriptMd && (
+                  <div style={{ marginTop: 14 }}>
+                    <Button
+                      aria-expanded={showFull}
+                      onClick={() => setShowFull((v) => !v)}
+                    >
+                      <PhIcon name={showFull ? "caret-up" : "caret-down"} size={14} />
+                      {showFull ? t("m31.notes_hide_full") : t("m31.notes_show_full")}
+                    </Button>
+                    {showFull && (
+                      <div className="notes-markdown notes-transcript" style={{ marginTop: 12 }}>
+                        {renderMarkdownBlocks(sections.transcriptMd)}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </Group>
           ) : (

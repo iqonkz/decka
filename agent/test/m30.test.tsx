@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { CATALOG, setLanguage, type HaStatus, type NoteEntry } from "@decka/shared";
-import NotesTab from "../src/tabs/NotesTab";
+import NotesTab, { extractNoteDurationMin, splitNoteSections } from "../src/tabs/NotesTab";
 import HaSection from "../src/tabs/HaSection";
 import { loadNotes, removeNote, saveHa } from "../src/tabs/m30Ipc";
 import type { call } from "../src/ipc";
@@ -75,5 +75,31 @@ describe("T30.1b Notes page, Home Assistant integration, and catalog", () => {
   it("includes Home Assistant and the note in the catalog as real actions", () => {
     const action = (id: string) => CATALOG.items.find((i) => i.id === id)?.action?.type;
     expect([action("ha.toggle"), action("ha.scene"), action("sound.note")]).toEqual(["ha", "ha", "notes_record"]);
+  });
+
+  it("T31.5b: puts summary card on top, collapses full transcript, and parses header duration", () => {
+    setLanguage("ru");
+    const longMd = [
+      "Длительность: 14 мин",
+      "# Кратко",
+      "Договорились о сроках релиза.",
+      "## Решения",
+      "- Обновить дизайн",
+      "## Расшифровка",
+      "Полная стенограмма разговора.",
+    ].join("\n");
+    expect(extractNoteDurationMin(longMd)).toBe(14);
+    const split = splitNoteSections(longMd);
+    expect(split.summaryMd).toContain("# Кратко");
+    expect(split.summaryMd).toContain("Обновить дизайн");
+    expect(split.transcriptMd).toContain("Полная стенограмма разговора.");
+
+    const html = renderToStaticMarkup(
+      <NotesTab initialNotes={[{ id: "long", title: "Большой созвон", date: "2026-11-27 11:00", markdown: longMd }]} />,
+    );
+    expect(html).toContain("notes-summary-card");
+    expect(html).toContain("14 мин");
+    expect(html).toContain("Показать полный текст");
+    expect(html).not.toContain("Полная стенограмма разговора.");
   });
 });

@@ -14,7 +14,12 @@
   --island-muted: rgba(255, 255, 255, 0.6);
   --island-surface: rgba(255, 255, 255, 0.1);
   --island-surface-hover: rgba(255, 255, 255, 0.18);
+  --island-card: rgba(255, 255, 255, 0.08);
   --island-accent: #7c5cff;
+  --dur-fast: 120ms;
+  --dur: 200ms;
+  --dur-slow: 320ms;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .island-host[data-island-theme="light"] {
@@ -27,6 +32,7 @@
   --island-muted: rgba(17, 17, 22, 0.72);
   --island-surface: rgba(0, 0, 0, 0.06);
   --island-surface-hover: rgba(0, 0, 0, 0.12);
+  --island-card: rgba(17, 17, 22, 0.05);
 }
 
 /* T26.F.3: acrylic variant - the system draws the glass, the page only tints it; the window cut hides the shadow anyway. */
@@ -106,11 +112,11 @@
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   transition:
-    width 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    height 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    border-radius 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    opacity 150ms ease,
-    transform 300ms ease;
+    width var(--dur-slow) var(--ease),
+    height var(--dur-slow) var(--ease),
+    border-radius var(--dur-slow) var(--ease),
+    opacity var(--dur) var(--ease),
+    transform var(--dur-slow) var(--ease);
 }
 
 .island-compact {
@@ -645,12 +651,40 @@
 .island-reply {
   width: 100%;
   text-align: left;
-  font-size: 15px;
-  line-height: 1.45;
-  max-height: calc(1.45em * 8);
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 1.4;
+  max-height: calc(1.4em * 8);
   overflow-y: auto;
   word-break: break-word;
   color: var(--island-text);
+}
+
+.island-card {
+  width: 100%;
+  background: var(--island-card);
+  border-radius: 14px;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.island-error-card {
+  width: 100%;
+  background: var(--island-card);
+  border-radius: 14px;
+  padding: 12px;
+  border-inline-start: 3px solid #ef4444;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.island-error-text {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--island-text);
+  line-height: 1.4;
 }
 
 .island-chips {
@@ -768,6 +802,7 @@
 }
 
 .island-action-btn {
+  position: relative;
   width: 34px;
   height: 34px;
   padding: 0;
@@ -781,7 +816,35 @@
   justify-content: center;
   flex: none;
   cursor: pointer;
-  transition: background-color 120ms ease, color 120ms ease;
+  transition: background-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+}
+
+.island-action-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.island-action-btn[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: var(--island-bg);
+  border: 1px solid var(--island-border);
+  color: var(--island-text);
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease) 400ms;
+  z-index: 50;
+}
+
+.island-action-btn[data-tooltip]:hover::after {
+  opacity: 1;
 }
 
 .island-action-btn:hover,
@@ -933,8 +996,12 @@
   flex-direction: column;
   align-self: stretch;
   width: 100%;
-  gap: 5px;
+  gap: 6px;
   margin-top: 6px;
+  background: var(--island-card);
+  border-radius: 14px;
+  padding: 12px;
+  box-sizing: border-box;
 }
 
 .island-mem-title {

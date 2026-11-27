@@ -14,7 +14,7 @@ export function PageHeader({ icon, title, subtitle, className, style }: PageHead
     <header className={`settings-page-header${className ? ` ${className}` : ""}`} style={style}>
       {icon && (
         <div className="settings-page-header-badge">
-          <PhIcon name={icon} size={22} color="var(--accent)" />
+          <PhIcon name={icon} size={24} color="var(--accent)" />
         </div>
       )}
       <div className="settings-page-header-text">
@@ -59,6 +59,7 @@ export function Group({ children, className, style, id }: GroupProps) {
 
 export interface RowProps {
   id?: string;
+  icon?: string;
   title: ReactNode;
   description?: ReactNode;
   children?: ReactNode;
@@ -67,16 +68,24 @@ export interface RowProps {
   htmlFor?: string;
 }
 
-export function Row({ id, title, description, children, className, style, htmlFor }: RowProps) {
+export function Row({ id, icon, title, description, children, className, style, htmlFor }: RowProps) {
+  const titleNode = htmlFor ? (
+    <label htmlFor={htmlFor} className="settings-row-title">
+      {title}
+    </label>
+  ) : (
+    <span className="settings-row-title">{title}</span>
+  );
   return (
     <div id={id} className={`settings-row${className ? ` ${className}` : ""}`} style={style}>
       <div className="settings-row-info">
-        {htmlFor ? (
-          <label htmlFor={htmlFor} className="settings-row-title">
-            {title}
-          </label>
+        {icon ? (
+          <span className="settings-row-title-line">
+            <PhIcon name={icon} size={18} color="var(--muted)" />
+            {titleNode}
+          </span>
         ) : (
-          <span className="settings-row-title">{title}</span>
+          titleNode
         )}
         {description && <div className="settings-row-desc">{description}</div>}
       </div>
@@ -85,8 +94,24 @@ export function Row({ id, title, description, children, className, style, htmlFo
   );
 }
 
-export function SettingsEmpty({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={`settings-empty${className ? ` ${className}` : ""}`}>{children}</div>;
+export function SettingsEmpty({
+  icon = "tray",
+  action,
+  children,
+  className,
+}: {
+  icon?: string;
+  action?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={`settings-empty${className ? ` ${className}` : ""}`}>
+      <PhIcon name={icon} size={40} color="var(--muted)" />
+      <p className="settings-empty-text">{children}</p>
+      {action}
+    </div>
+  );
 }
 
 export default {

@@ -1,8 +1,9 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, test } from "vitest";
-import type { LayoutItem } from "@decka/shared";
+import { setLanguage, type LayoutItem } from "@decka/shared";
 import { DeckEnvContext, EMPTY_DATA, type DeckData, type DeckEnv } from "../src/deckEnv";
 import { DeckMetricsContext } from "../src/metricsContext";
+import PageDots from "../src/PageDots";
 import Skeleton from "../src/Skeleton";
 import Tile from "../src/Tile";
 import { averageRgbFromPixels, COVER_MAX_LIGHTNESS, coverGradient, darkenCoverColor } from "../src/widgets/coverColor";
@@ -125,5 +126,31 @@ describe("unified empty states and skeleton", () => {
     const html = renderToStaticMarkup(<Skeleton radius={18} />);
     expect(html).toContain('class="skeleton"');
     expect(html).toContain("18px");
+  });
+
+  test("T31.7b: catalog button labels localize by actionId and inside badges stay inset 8 px", () => {
+    setLanguage("ru");
+    const html = renderTile({
+      id: "b-lock",
+      kind: "button",
+      x: 0,
+      y: 0,
+      w: 1,
+      h: 1,
+      actionId: "lock-pc",
+      label: "Lock",
+      navigate: "second",
+      icon: "lucide:lock",
+    });
+    expect(html).toContain("Блок");
+    expect(html).toContain("top:8px;right:8px;font-size:14px");
+    setLanguage("en");
+  });
+
+  test("T31.7b: PageDots renders interactive 32 px touch buttons when onSelect is provided", () => {
+    const html = renderToStaticMarkup(<PageDots count={3} active={1} onSelect={() => {}} />);
+    expect(html).toContain("page-dot-btn");
+    expect(html).toContain('class="dot active"');
+    expect(html).toContain('aria-current="page"');
   });
 });

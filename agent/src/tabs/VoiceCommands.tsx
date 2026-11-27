@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { locale, t, type TranslationKey } from "@decka/shared";
-import { ChevronDown, ChevronRight, Search } from "lucide-react";
+import PhIcon from "../ui/PhIcon";
 import { Group, SectionHeader } from "../ui/SettingsGroup";
 import { VOICE_COMMAND_GROUPS, type CommandBadge } from "./voiceCommandsData";
 
@@ -45,7 +45,7 @@ export default function VoiceCommands({ initialQuery = "" }: VoiceCommandsProps 
     <div id="voice-commands">
       <SectionHeader title={t("m29.cmd_title")} />
       <div className="integrations-search">
-        <Search size={16} aria-hidden="true" style={{ color: "var(--muted)", flex: "none" }} />
+        <PhIcon name="magnifying-glass" size={16} color="var(--muted)" />
         <input
           type="search"
           className="integrations-search-input"
@@ -94,10 +94,10 @@ export default function VoiceCommands({ initialQuery = "" }: VoiceCommandsProps 
                   }}
                 >
                   <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    {isOpen ? <ChevronDown size={16} aria-hidden="true" /> : <ChevronRight size={16} aria-hidden="true" />}
+                    <PhIcon name={isOpen ? "caret-down" : "caret-right"} size={16} color="var(--muted)" />
                     <span>{g.title}</span>
                   </span>
-                  <span style={{ fontSize: "var(--font-xs)", fontWeight: 500, color: "var(--text-muted)" }}>
+                  <span style={{ fontSize: "var(--fs-xs)", fontWeight: 500, color: "var(--muted)", fontVariantNumeric: "tabular-nums" }}>
                     {g.examples.length}
                   </span>
                 </button>

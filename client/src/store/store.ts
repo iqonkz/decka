@@ -34,8 +34,8 @@ export interface AppState {
   backStack: string[];
   /** Time of the last touch (ms); a recent touch postpones automatic page switches. */
   lastTouch: number;
-  /** Name of the page just opened automatically, shown for a moment. */
-  hint: { id: number; text: string } | null;
+  /** Name of the page just opened automatically or by swipe, shown for a moment. */
+  hint: { id: number; text: string; ms?: number } | null;
   /** The open popup group: its page and the box of the key that opened it (DESIGN.md 4.1). */
   popup: { pageId: string; anchor: { x: number; y: number; width: number; height: number } } | null;
   toasts: Toast[];
@@ -51,7 +51,7 @@ export interface AppState {
 export type AppUpdatePhase = { phase: "idle" } | { phase: "downloading"; pct: number } | { phase: "verifying" } | { phase: "error"; kind: "bad" | "failed" };
 
 const SECTIONS: readonly string[] = ["layout", "sys", "statuses", "notifications", "vars", "focus", "media", "lyrics", "icons", "weather", "obs", "ai", "twitch", "youtube", "strip", "battery", "mail", "update", "reminders", "lists"];
-const MAX_TOASTS = 3;
+const MAX_TOASTS = 2;
 const DEFAULT_TOAST_MS = 8000;
 
 const initial = (): AppState => ({
@@ -232,12 +232,15 @@ export function runContext(now: number = Date.now()): void {
 }
 
 /** The user chose a page (swipe, `navigate` button): it becomes home and the automatic page is forgotten. */
-export function navigateManually(pageIndex: number): void {
+export function navigateManually(pageIndex: number, showNameHint = false): void {
   const s = current;
-  const from = s.state?.layout.pages[s.pageIndex]?.id;
+  const pages = s.state?.layout.pages ?? [];
+  const from = pages[s.pageIndex]?.id;
   // The page left by hand goes on the back stack; an automatic (context) change never does, and staying put writes nothing.
   const backStack = from !== undefined && pageIndex !== s.pageIndex ? pushBack(s.backStack, from) : s.backStack;
-  setState({ pageIndex, homePageIndex: pageIndex, autoPageId: null, hint: null, popup: null, backStack });
+  const targetName = showNameHint && pageIndex !== s.pageIndex ? pages[pageIndex]?.name : undefined;
+  const hint = targetName ? { id: ++hintCounter, text: targetName, ms: 1000 } : null;
+  setState({ pageIndex, homePageIndex: pageIndex, autoPageId: null, hint, popup: null, backStack });
 }
 
 /** The `$back` key: the page the user came from; with an empty stack (or only pages that are gone) the first page. */

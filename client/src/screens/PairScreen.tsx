@@ -5,14 +5,17 @@ import { isNative } from "../platform/native";
 import { scanQr } from "../platform/scan";
 import { useAppState } from "../store/store";
 import type { ConnFailure } from "../net/connection";
-import ServiceCard from "../ui/ServiceCard";
+import PhIcon from "../ui/PhIcon";
 import QrFrame from "./QrFrame";
 
+/**
+ * Full-screen QR scanner pairing screen (M31 T31.8b): viewfinder frame in the upper stage,
+ * manual pairing code entry sheet docked at the bottom, and human-readable word errors.
+ */
 export default function PairScreen({ showQrFrame = false }: { showQrFrame?: boolean }) {
   const native = isNative();
   const initialError = useAppState((s) => s.lastError);
   const conn = useAppState((s) => s.conn);
-  // In the browser the page is served by the PC itself, so the address is known and hidden.
   const [address, setAddress] = useState(native ? "" : location.host);
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(initialError);
@@ -38,7 +41,7 @@ export default function PairScreen({ showQrFrame = false }: { showQrFrame?: bool
   async function scan() {
     setError(null);
     const text = await scanQr();
-    if (text === null) return; // cancelled: stay on the screen
+    if (text === null) return;
     const parsed = parsePairUrl(text);
     if (!parsed) return setError(t("pair.error.not_qr"));
     setBusy(true);
@@ -52,51 +55,69 @@ export default function PairScreen({ showQrFrame = false }: { showQrFrame?: bool
 
   return (
     <>
-      <ServiceCard icon="qr-code" title={t("pair.title")} text={t("pair.hint")} asForm onSubmit={submit}>
-        {native && (
-          <input
-            className="field"
-            aria-label={t("pair.address_label")}
-            placeholder="192.168.1.10"
-            inputMode="url"
-            autoCapitalize="off"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-          />
-        )}
-        <input
-          className="field code"
-          aria-label={t("pair.code_label")}
-          placeholder="XXXX-XXXX"
-          autoCapitalize="characters"
-          autoComplete="off"
-          maxLength={9}
-          value={code}
-          onChange={(e) => setCode(e.target.value.toUpperCase())}
-        />
-        {error && <p className="error">{error}</p>}
-        <div className="service-actions">
-          {native ? (
-            <>
-              <button className="pill-btn primary" type="button" disabled={busy} onClick={() => void scan()}>
-                {t("pair.scan")}
-              </button>
-              <button className="pill-btn secondary" type="submit" disabled={busy}>
-                {busy ? t("pair.busy") : t("pair.submit")}
-              </button>
-            </>
-          ) : (
-            <button className="pill-btn primary" type="submit" disabled={busy}>
-              {busy ? t("pair.busy") : t("pair.submit")}
+      <div className="pair-fullscreen" role="region" aria-label={t("pair.title")}>
+        <div className="pair-scanner-stage">
+          <div className="pair-scanner-head">
+            <h1 className="service-title">{t("pair.title")}</h1>
+            <p className="service-text">{t("pair.qr_hint")}</p>
+          </div>
+          <div className="qr-box pair-viewfinder" onClick={() => native && void scan()}>
+            <span className="qr-corner tl" aria-hidden="true" />
+            <span className="qr-corner tr" aria-hidden="true" />
+            <span className="qr-corner bl" aria-hidden="true" />
+            <span className="qr-corner br" aria-hidden="true" />
+            <span className="pair-viewfinder-icon" aria-hidden="true">
+              <PhIcon name="qr-code" size={44} />
+            </span>
+          </div>
+          {native && (
+            <button className="pill-btn primary pair-scan-btn" type="button" disabled={busy} onClick={() => void scan()}>
+              {t("pair.scan")}
             </button>
           )}
+        </div>
+
+        <form className="pair-bottom-sheet" onSubmit={submit}>
+          <p className="pair-bottom-hint">{t("pair.hint")}</p>
+          {error && (
+            <div className="pair-error-banner" role="alert">
+              <PhIcon name="warning-circle" size={16} />
+              <span>{error}</span>
+            </div>
+          )}
+          {native && (
+            <input
+              className="field"
+              aria-label={t("pair.address_label")}
+              placeholder="192.168.1.10"
+              inputMode="url"
+              autoCapitalize="off"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+            />
+          )}
+          <div className="pair-code-row">
+            <input
+              className="field code"
+              aria-label={t("pair.code_label")}
+              placeholder="XXXX-XXXX"
+              autoCapitalize="characters"
+              autoComplete="off"
+              maxLength={9}
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+            />
+            <button className="pill-btn primary pair-submit-btn" type="submit" disabled={busy}>
+              {busy ? t("pair.busy") : t("pair.submit")}
+            </button>
+          </div>
           {conn === "repair" && (
             <button className="pill-btn secondary" type="button" disabled={busy} onClick={cancelConnectAgain}>
               {t("link.cancel")}
             </button>
           )}
-        </div>
-      </ServiceCard>
+        </form>
+      </div>
       {qrOpen && <QrFrame onClose={() => setQrOpen(false)} />}
     </>
   );

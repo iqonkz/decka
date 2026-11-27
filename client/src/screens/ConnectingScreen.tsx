@@ -29,11 +29,13 @@ export default function ConnectingScreen() {
       <div
         className="grid-inner"
         style={{
-          left: m.offsetX,
-          top: m.offsetY,
+          left: "max(8px, env(safe-area-inset-left, 0px))",
+          right: "max(8px, env(safe-area-inset-right, 0px))",
+          top: "max(8px, env(safe-area-inset-top, 0px))",
+          bottom: "max(22px, calc(8px + env(safe-area-inset-bottom, 0px)))",
           ["--side" as string]: `${m.side}px`,
-          gridTemplateColumns: `repeat(${cols}, ${m.side}px)`,
-          gridTemplateRows: `repeat(${rows}, ${m.side}px)`,
+          gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+          gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
           gap: m.gap,
         }}
       >
@@ -42,6 +44,7 @@ export default function ConnectingScreen() {
         ))}
       </div>
       <div className="connecting-status">
+        <span className="service-pulse-dot" aria-hidden="true" />
         <span>{conn === "offline" ? t("phone.no_pc") : t("phone.connecting")}</span>
         {error && <span className="connecting-error">{error}</span>}
       </div>

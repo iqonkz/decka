@@ -12,9 +12,9 @@
   flex-direction: column;
   container: tile / size;
   border: 1px solid transparent;
-  border-radius: calc(var(--k-radius, 0.16) * var(--side, 96px));
-  padding: calc(0.08 * var(--side, 96px));
-  animation: widget-appear 200ms ease-out;
+  border-radius: 16px;
+  padding: 12px;
+  animation: widget-appear 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 @keyframes widget-appear { from { opacity: 0; } to { opacity: 1; } }
 
@@ -52,18 +52,17 @@
 }
 .tile-body { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-size: 14px; }
 
-/* Main widget figure and secondary text (DESIGN.md 4.16). */
+/* Main widget figure and secondary text (DESIGN.md 4.16, M31 T31.3b). */
 .widget-figure {
   font-size: 28px;
-  font-size: clamp(20px, 22cqmin, 56px);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   line-height: 1.05;
 }
 
-/* Container-query density classes: S (default) hides .w-m and .w-l; M shows .w-m; L shows both .w-m and .w-l. */
+/* Container-query density classes: S (1x1) hides .w-m and .w-l; M (2x1/2x2) shows .w-m; L (2x2+) shows both. */
 .w-m, .w-l { display: none; }
-@container tile (((min-width: 140px) and (min-height: 140px)) or (min-width: 220px) or (min-height: 220px)) {
+@container tile (((min-width: 140px) and (min-height: 140px)) or (min-width: 180px) or (min-height: 200px)) {
   .w-m { display: flex; }
   .media-artist.w-m, .obs-scene.w-m, .twitch-title.w-m { display: block; }
 }
@@ -112,14 +111,40 @@
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 0.6vmin;
+  bottom: max(0px, env(safe-area-inset-bottom, 0px));
   display: flex;
   justify-content: center;
-  gap: 1.2vmin;
+  align-items: center;
+  gap: 2px;
+  min-height: 32px;
+  z-index: 4;
   pointer-events: none;
 }
-.page-dots .dot { display: block; width: 1.2vmin; height: 1.2vmin; border-radius: 50%; background: #3a3a40; }
-.page-dots .dot.active { background: #e5e5e5; }
+.page-dot-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.page-dots .dot {
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.28);
+  transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.page-dots .dot.active {
+  width: 16px;
+  height: 6px;
+  background: var(--accent, #e5e5e5);
+}
 
 /* A key: the structure and the states; the face (colours, gradient, shadow, radius factor) comes from the theme. */
 .key {
@@ -130,12 +155,23 @@
   flex: none;
   box-sizing: border-box;
   border: 1px solid transparent; /* colour: theme */
-  border-radius: calc(var(--k-radius, 0.16) * var(--side, 96px));
+  border-radius: 16px;
   color: var(--ink, #f2f2f2);
   overflow: hidden;
-  transition: transform 80ms;
+  transition: transform 120ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 120ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-.key.pressed, .key.confirming { transform: scale(0.94); }
+.key::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgba(255, 255, 255, 0.10);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.key.pressed, .key.confirming { transform: scale(0.96); }
+.key.pressed::after, .key.confirming::after { opacity: 1; }
 /* The 2 px state frames replace the outline while the state lasts. */
 .key.pending, .key.ok, .key.error { border-color: transparent !important; }
 .key.pending { animation: key-pulse 0.9s ease-in-out infinite; }
@@ -143,8 +179,8 @@
 .key.error { box-shadow: inset 0 0 0 2px #ef4444, var(--key-shadow, none); }
 .key.disabled { opacity: 0.35; }
 @keyframes key-pulse {
-  0%, 100% { box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.35), var(--key-shadow, none); }
-  50% { box-shadow: inset 0 0 0 2px #3b82f6, var(--key-shadow, none); }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.65; }
 }
 .key-icon { display: flex; align-items: center; justify-content: center; }
 .key-text {
@@ -170,7 +206,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.key-chevron { position: absolute; line-height: 1; color: rgba(255, 255, 255, 0.5); pointer-events: none; }
+.key-chevron { position: absolute; line-height: 1; font-weight: 600; color: var(--c-on, var(--ink, #ffffff)); opacity: 0.85; pointer-events: none; }
 /* Status panel: dot, label, text in the middle. */
 .status-cell { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; min-width: 0; }
 .key-caption { max-width: 100%; color: #e5e5e5; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -273,24 +309,24 @@
 }
 .status-key-dot { display: block; border-radius: 50%; }
 
-/* Confirm-by-holding: a progress line runs round the key's outline. */
-.ring { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+/* Confirm-by-holding (600 ms): progress ring runs round the key's 16 px border. */
+.ring { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
 .ring rect {
-  rx: calc(var(--k-radius, 0.16) * var(--side, 96px));
+  rx: 15;
   fill: none;
-  stroke: #e5e5e5;
-  stroke-width: 2;
+  stroke: var(--accent, #e5e5e5);
+  stroke-width: 3;
   stroke-linecap: round;
   stroke-dasharray: 100;
   stroke-dashoffset: 100;
-  animation: ring-fill 800ms linear forwards;
+  animation: ring-fill 600ms linear forwards;
 }
 @keyframes ring-fill { to { stroke-dashoffset: 0; } }
 
 /* Clock (DESIGN.md 4.16) */
 .clock { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; width: 100%; height: 100%; }
 .clock-time { text-align: center; }
-.clock-date { font-size: 13px; opacity: 0.6; text-align: center; }
+.clock-date { font-size: 12px; opacity: 0.65; text-align: center; }
 
 /* System (DESIGN.md 4.16) */
 .sys { display: flex; flex-direction: column; justify-content: center; gap: 6px; width: 100%; height: 100%; padding: 0 4px; box-sizing: border-box; }
@@ -387,10 +423,17 @@
 .timer.running .timer-time { color: var(--accent, #e5e5e5); }
 .timer.done .timer-time { color: #ef4444; }
 .timer-presets { justify-content: center; gap: 6px; padding-top: 4px; flex: none; }
+@container tile ((min-width: 160px) and (max-height: 139px)) {
+  .timer { flex-direction: row; align-items: center; justify-content: space-between; gap: 8px; padding: 0 4px; }
+  .timer-main { width: auto; justify-content: flex-start; }
+  .timer-ring-wrap { width: auto; height: auto; }
+  .timer-ring { display: none; }
+  .timer-presets { padding-top: 0; }
+}
 .timer-presets button { height: 28px; min-width: 36px; padding: 0 12px; border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 999px; background: rgba(255, 255, 255, 0.06); color: inherit; font: inherit; font-size: 12px; font-weight: 500; cursor: pointer; }
 .timer-presets button.on { background: var(--accent, #7c5cff); border-color: transparent; color: #fff; }
 .timer.flash { animation: timer-flash 1s ease-in-out 3; }
-@keyframes timer-flash { 0%, 100% { box-shadow: inset 0 0 0 0 #f59e0b; } 50% { box-shadow: inset 0 0 0 4px #f59e0b; } }
+@keyframes timer-flash { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
 
 /* ===== Weather (DATA_MODEL.md 6.3, DESIGN.md 4.16) ===== */
 .weather { display: flex; flex-direction: column; justify-content: center; gap: 8px; width: 100%; height: 100%; padding: 0 4px; box-sizing: border-box; min-width: 0; }

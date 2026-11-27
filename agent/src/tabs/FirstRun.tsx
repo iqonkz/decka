@@ -1,20 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
-import { SETS, getLanguage, pickText, insertSet, rotateLayout, t, tn, type ActionsFile, type InstalledApp, type LanguageSetting, type LayoutFile } from "@decka/shared";
+import { useEffect, useState } from "react";
+import { t, type LanguageSetting, type LayoutFile, type VoiceStatus } from "@decka/shared";
 import logoUrl from "../../../docs/assets/decka-logo.svg";
-import { call } from "../ipc";
+import { call, onVoiceStatus } from "../ipc";
 import { saveLanguage } from "../language";
 import { languageSelectOptions } from "./LanguageOptions";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
-import Checkbox from "../ui/Checkbox";
 import Select from "../ui/Select";
-import EntryIcon from "../ui/EntryIcon";
 import PhIcon from "../ui/PhIcon";
-import { Group, PageHeader, SectionHeader } from "../ui/SettingsGroup";
-import { insertContext, itemsOfSet } from "../editor/catalogUi";
-import { DEFAULT_SETS, planWizard, type WizardPick } from "../editor/wizardPlan";
+import { Group, PageHeader, Row } from "../ui/SettingsGroup";
 import PairingTab from "./PairingTab";
-import ThemeCards from "./ThemeCards";
+import { formatHardware } from "./VoiceSection";
 
 export const WIZARD_KEY = "decka.wizard.done.v1";
 
@@ -43,61 +39,101 @@ function safeStorage(): Storage | undefined {
   }
 }
 
-const MAX_PICKS = 20;
+const DEFAULT_VOICE: VoiceStatus = {
+  state: "off",
+  hardware: { ramGb: 16 },
+  model: "standard",
+  downloadGb: 3.2,
+  hotkey: ["ctrl", "alt", "space"],
+  keepLoaded: false,
+  unloadAfterMin: 10,
+  speak: false,
+  phoneButton: true,
+  mics: [],
+};
 
-/** The first-run guide (DESIGN.md 4.4, 4.7, 4.14-4.15): pair the phone, pick a look, add programs. */
-export default function FirstRun({ onClose, startStep = 0 }: { onClose: () => void; startStep?: number }) {
+const MODEL_GB = {
+  standard: "3.2",
+  light: "1.8",
+  "9b": "6.4",
+} as const;
+
+/** T31.4b first-run wizard: 3 steps (Phone -> Voice -> Done), Skip on every step. */
+export default function FirstRun({
+  onClose,
+  startStep = 0,
+  initialVoiceStatus,
+}: {
+  onClose: () => void;
+  startStep?: number;
+  initialVoiceStatus?: VoiceStatus;
+}) {
   const [step, setStep] = useState(startStep);
-  const [sets, setSets] = useState<Set<string>>(new Set(DEFAULT_SETS));
-  // OBS is running, or installed (a Start menu shortcut): the Streaming set is offered only then (DESIGN.md 4.8).
-  const [obsFound, setObsFound] = useState(false);
   const [layout, setLayout] = useState<LayoutFile | null>(null);
-  const [apps, setApps] = useState<InstalledApp[] | null>(null);
-  const [picked, setPicked] = useState<Set<string>>(new Set());
-  const [query, setQuery] = useState("");
+  const [voice, setVoice] = useState<VoiceStatus>(initialVoiceStatus ?? DEFAULT_VOICE);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    call("get_layout").then(setLayout, (e) => setError(String(e)));
-  }, []);
-  useEffect(() => {
-    if (step !== 2 || apps !== null) return;
-    call("list_installed_apps").then(setApps, (e) => setError(String(e)));
-  }, [step, apps]);
-  useEffect(() => {
-    if (step !== 2) return;
-    void call("list_window_apps").then((running) => setObsFound((was) => was || running.includes("obs64.exe")), () => {});
-  }, [step]);
-  useEffect(() => {
-    if (apps?.some((a) => /\bobs studio\b/i.test(a.name))) setObsFound(true);
-  }, [apps]);
-
-  const shown = useMemo(() => (apps ?? []).filter((a) => query.trim() === "" || a.name.toLowerCase().includes(query.trim().toLowerCase())), [apps, query]);
-  const key = (a: InstalledApp) => `${a.program}|${a.args.join(" ")}`;
+    let active = true;
+    call("get_layout").then(
+      (l) => active && setLayout(l),
+      (e) => active && setError(String(e)),
+    );
+    if (!initialVoiceStatus) {
+      call("voice_status").then(
+        (s) => active && setVoice(s),
+        (e) => active && setError(String(e)),
+      );
+      let off: (() => void) | null = null;
+      onVoiceStatus((s) => {
+        if (active) setVoice(s);
+      }).then(
+        (unlisten) => {
+          if (active) off = unlisten;
+          else unlisten();
+        },
+        (e) => active && setError(String(e)),
+      );
+      return () => {
+        active = false;
+        off?.();
+      };
+    }
+    return () => {
+      active = false;
+    };
+  }, [initialVoiceStatus]);
 
   function finish() {
     markWizardDone();
     onClose();
   }
 
-  async function saveLook() {
-    if (!layout) return setStep(2);
-    setBusy(true);
+  function chooseLanguage(next: LanguageSetting) {
+    setLayout((l) => (l ? { ...l, display: { ...l.display, language: next } } : l));
+    void saveLanguage(next);
+  }
+
+  async function selectModel(model: "standard" | "light") {
+    const before = voice;
+    setError(null);
+    setVoice({ ...voice, model, downloadGb: Number(MODEL_GB[model]) });
     try {
-      const fresh = await call("get_layout");
-      let next: LayoutFile = { ...fresh, display: { ...fresh.display, ...layout.display } };
-      // A different orientation turns the whole deck (grid and pages), not only the setting (DATA_MODEL.md 3.7).
-      const wanted = layout.display.orientation ?? "landscape";
-      if (wanted !== (fresh.display.orientation ?? "landscape")) {
-        const turned = rotateLayout(fresh, wanted);
-        if (!turned.ok) return setError(turned.error);
-        next = { ...turned.layout, display: { ...turned.layout.display, ...layout.display, orientation: wanted } };
-      }
-      const result = await call("save_layout", { layout: next });
-      if (!result.ok) setError(result.issues[0]?.message ?? t("wizard.cannot_save_look"));
-      else setStep(2);
+      const next = await call("voice_set", { model });
+      setVoice(next);
+    } catch (e) {
+      setVoice(before);
+      setError(String(e));
+    }
+  }
+
+  async function runVoice(cmd: "voice_enable" | "voice_cancel") {
+    setBusy(true);
+    setError(null);
+    try {
+      const next = await call(cmd);
+      setVoice(next);
     } catch (e) {
       setError(String(e));
     } finally {
@@ -105,49 +141,11 @@ export default function FirstRun({ onClose, startStep = 0 }: { onClose: () => vo
     }
   }
 
-  async function addApps() {
-    const chosen = (apps ?? []).filter((a) => picked.has(key(a)));
-    const chosenSets = SETS.filter((s) => sets.has(s.id) && (s.requires !== "obs" || obsFound));
-    if (chosen.length === 0 && chosenSets.length === 0) return finish();
-    setBusy(true);
-    setError(null);
-    try {
-      const [currentLayout, currentActions] = await Promise.all([call("get_layout"), call("get_actions")]);
-      const picks: WizardPick[] = await Promise.all(
-        chosen.map(async (app) => {
-          const r = await call("icon_from_program", { path: app.program }).catch(() => null);
-          return r && "icon" in r ? { app, icon: r.icon } : { app };
-        }),
-      );
-      // The programs first, then the ticked sets onto the first page (DESIGN.md 4.8); a set that does not fit goes to a page of its own.
-      const plan = planWizard(currentLayout, currentActions, picks);
-      let planned: { layout: LayoutFile; actions: ActionsFile; placed: number; skipped: number } = plan;
-      for (const set of chosenSets) {
-        const first = planned.layout.pages[0];
-        if (!first) break;
-        const ctx = await insertContext(itemsOfSet(set), planned.layout, null);
-        const r = insertSet(planned.layout, planned.actions, first.id, set, ctx);
-        if (r.ok) planned = { layout: r.layout, actions: r.actions, placed: planned.placed + r.added.length, skipped: planned.skipped + r.skipped.length };
-      }
-      const savedActions = await call("save_actions", { actions: planned.actions });
-      if (!savedActions.ok) throw new Error(savedActions.issues[0]?.message ?? t("wizard.cannot_save_actions"));
-      const savedLayout = await call("save_layout", { layout: planned.layout });
-      if (!savedLayout.ok) throw new Error(savedLayout.issues[0]?.message ?? t("wizard.cannot_save_layout"));
-      setMessage(planned.skipped > 0 ? t("wizard.added_skipped", { placed: planned.placed, skipped: planned.skipped }) : t("wizard.added", { placed: planned.placed }));
-      window.setTimeout(finish, planned.skipped > 0 ? 2500 : 900);
-    } catch (e) {
-      setError(String(e instanceof Error ? e.message : e));
-    } finally {
-      setBusy(false);
-    }
-  }
+  const titles = [t("wizard.title_pair"), t("m31.wizard_voice_title"), t("m31.wizard_done_title")];
+  const recommendedTier: "standard" | "light" = voice.suggestLight ? "light" : "standard";
+  const downloadSize = voice.downloadGb ? String(voice.downloadGb) : MODEL_GB[voice.model];
+  const phrases = [t("m31.wizard_phrase_1"), t("m31.wizard_phrase_2"), t("m31.wizard_phrase_3")];
 
-  const titles = [t("wizard.title_pair"), t("wizard.title_look"), t("wizard.title_apps")];
-  // The language switch applies at once; the guide's copy of the display settings follows so that `Next` does not undo it.
-  function chooseLanguage(next: LanguageSetting) {
-    setLayout((l) => (l ? { ...l, display: { ...l.display, language: next } } : l));
-    void saveLanguage(next);
-  }
   return (
     <div className="wizard" role="dialog" aria-label={t("wizard.welcome")}>
       <div className="wizard-card">
@@ -181,7 +179,6 @@ export default function FirstRun({ onClose, startStep = 0 }: { onClose: () => vo
         )}
 
         {error && <Banner kind="error">{error}</Banner>}
-        {message && <Banner kind="success">{message}</Banner>}
 
         {step === 0 && (
           <div className="wizard-body">
@@ -191,115 +188,93 @@ export default function FirstRun({ onClose, startStep = 0 }: { onClose: () => vo
 
         {step === 1 && (
           <div className="wizard-body">
-            <PageHeader icon="palette" title={t("wizard.title_look")} subtitle={t("wizard.look_hint")} />
-            {layout && (
-              <>
-                <ThemeCards value={layout.display.theme ?? "amoled"} display={layout.display} onPick={(theme) => setLayout({ ...layout, display: { ...layout.display, theme } })} />
-                <SectionHeader title={t("orientation.title")} />
-                <div className="orientation-cards small" role="radiogroup" aria-label={t("orientation.title")}>
-                  {(["landscape", "portrait"] as const).map((o) => {
-                    const selected = (layout.display.orientation ?? "landscape") === o;
-                    return (
-                      <button
-                        key={o}
-                        type="button"
-                        role="radio"
-                        aria-checked={selected}
-                        className={selected ? "style-card selected" : "style-card"}
-                        onClick={() => setLayout({ ...layout, display: { ...layout.display, orientation: o } })}
-                      >
-                        {selected && (
-                          <span className="selection-badge">
-                            <PhIcon name="check-circle" size={20} weight="fill" color="var(--accent)" />
-                          </span>
-                        )}
-                        <svg className="phone-silhouette" width={o === "portrait" ? 18 : 30} height={o === "portrait" ? 30 : 18} viewBox={o === "portrait" ? "0 0 28 48" : "0 0 48 28"} aria-hidden="true">
-                          <rect x="1.5" y="1.5" width={o === "portrait" ? 25 : 45} height={o === "portrait" ? 45 : 25} rx="4" fill="none" stroke="currentColor" strokeWidth="3" />
-                        </svg>
-                        <strong>{t(`orientation.${o}`)}</strong>
-                      </button>
-                    );
-                  })}
+            <PageHeader icon="microphone" title={t("m31.wizard_voice_title")} subtitle={t("m31.wizard_voice_hint")} />
+            <Group>
+              <Row title={t("voice.title")} description={formatHardware(voice.hardware, voice.model)} icon="cpu" />
+              {(["standard", "light"] as const).map((tier) => {
+                const selected = voice.model === tier;
+                const rec = tier === recommendedTier;
+                return (
+                  <Row
+                    key={tier}
+                    title={t(tier === "light" ? "voice.model_light" : "voice.model_standard")}
+                    description={
+                      rec
+                        ? `${t("m31.wizard_voice_recommended")} · ~${MODEL_GB[tier]} GB`
+                        : `~${MODEL_GB[tier]} GB`
+                    }
+                    icon="waveform"
+                  >
+                    <Button
+                      variant={selected ? "primary" : undefined}
+                      disabled={busy || voice.state === "downloading"}
+                      onClick={() => void selectModel(tier)}
+                    >
+                      {tier === "light" ? t("voice.model_light_short") : t("voice.model_standard_short")}
+                    </Button>
+                  </Row>
+                );
+              })}
+            </Group>
+
+            <Group>
+              {voice.state === "downloading" ? (
+                <div style={{ padding: "14px 0" }}>
+                  <p>
+                    {t("voice.downloading", {
+                      done: voice.progress ? (voice.progress.done / 1e9).toFixed(1) : "0.0",
+                      total: voice.progress ? (voice.progress.total / 1e9).toFixed(1) : downloadSize,
+                    })}
+                  </p>
+                  <div className="progress-bar">
+                    <div
+                      className="progress-fill"
+                      style={{
+                        width: `${
+                          voice.progress && voice.progress.total > 0
+                            ? Math.min(100, Math.round((voice.progress.done / voice.progress.total) * 100))
+                            : 0
+                        }%`,
+                      }}
+                    />
+                  </div>
+                  <div style={{ marginTop: 12 }}>
+                    <Button disabled={busy} onClick={() => void runVoice("voice_cancel")}>
+                      {t("common.cancel")}
+                    </Button>
+                  </div>
                 </div>
-              </>
-            )}
+              ) : voice.state === "loading" ? (
+                <div style={{ padding: "14px 0" }}>
+                  <p className="muted">{t("voice.loading")}</p>
+                </div>
+              ) : voice.state === "ready" ? (
+                <div style={{ padding: "14px 0" }}>
+                  <Banner kind="success">{t("m31.wizard_voice_ready")}</Banner>
+                </div>
+              ) : (
+                <div style={{ padding: "14px 0" }}>
+                  {voice.state === "error" && voice.error && <Banner kind="error">{voice.error}</Banner>}
+                  <Button variant="primary" disabled={busy} onClick={() => void runVoice("voice_enable")}>
+                    {t("voice.turn_on", { size: downloadSize })}
+                  </Button>
+                  <p className="muted" style={{ fontSize: 12, marginTop: 8, marginBottom: 0 }}>
+                    {t("voice.privacy")}
+                  </p>
+                </div>
+              )}
+            </Group>
           </div>
         )}
 
         {step === 2 && (
           <div className="wizard-body">
-            <PageHeader icon="squares-four" title={t("wizard.title_apps")} subtitle={t("wizard.apps_hint")} />
-            <SectionHeader title={t("wizard.sets")} subtitle={t("wizard.sets_hint")} />
-            <div className="wizard-sets">
-              {SETS.filter((s) => s.requires !== "obs" || obsFound).map((s) => {
-                const isSelected = sets.has(s.id);
-                return (
-                  <label key={s.id} className={isSelected ? "set-card selected" : "set-card"}>
-                    {isSelected && (
-                      <span className="selection-badge">
-                        <PhIcon name="check-circle" size={18} weight="fill" color="var(--accent)" />
-                      </span>
-                    )}
-                    <span className="set-head">
-                      <Checkbox
-                        checked={isSelected}
-                        aria-label={pickText(s.name, getLanguage())}
-                        onChange={(on) =>
-                          setSets((prev) => {
-                            const next = new Set(prev);
-                            if (on) next.add(s.id);
-                            else next.delete(s.id);
-                            return next;
-                          })
-                        }
-                      />
-                      <EntryIcon icon={s.icon} />
-                      <strong>{pickText(s.name, getLanguage())}</strong>
-                    </span>
-                    <small className="muted">{pickText(s.description, getLanguage())}</small>
-                  </label>
-                );
-              })}
-            </div>
-            <SectionHeader title={t("picker.programs")} />
-            <div className="integrations-search wizard-search">
-              <PhIcon name="magnifying-glass" size={16} />
-              <input
-                type="search"
-                aria-label={t("wizard.search")}
-                placeholder={t("wizard.search")}
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
-            </div>
-            {apps === null && !error && <p className="muted">{t("picker.loading_apps")}</p>}
-            <Group className="wizard-apps-group">
-              <div className="app-list">
-                {shown.map((a) => (
-                  <label key={key(a)} className="app-row">
-                    <Checkbox
-                      checked={picked.has(key(a))}
-                      aria-label={a.name}
-                      disabled={!picked.has(key(a)) && picked.size >= MAX_PICKS}
-                      onChange={(on) =>
-                        setPicked((prev) => {
-                          const next = new Set(prev);
-                          if (on) next.add(key(a));
-                          else next.delete(key(a));
-                          return next;
-                        })
-                      }
-                    />
-                    {a.icon ? <img src={a.icon} width={32} height={32} alt="" /> : <span className="app-noicon" />}
-                    <span className="app-text">
-                      <strong>{a.name}</strong>
-                      <small className="muted">{a.program}</small>
-                    </span>
-                  </label>
-                ))}
-              </div>
+            <PageHeader icon="check-circle" title={t("m31.wizard_done_title")} subtitle={t("m31.wizard_done_hint")} />
+            <Group>
+              {phrases.map((phrase, idx) => (
+                <Row key={idx} icon="chats-circle" title={`«${phrase}»`} />
+              ))}
             </Group>
-            <p className="muted">{t("wizard.selected", { programs: tn("wizard.programs", picked.size), actions: tn("wizard.actions", sets.size), max: MAX_PICKS })}</p>
           </div>
         )}
 
@@ -311,19 +286,13 @@ export default function FirstRun({ onClose, startStep = 0 }: { onClose: () => vo
           <Button onClick={() => (step < 2 ? setStep(step + 1) : finish())} disabled={busy}>
             {t("wizard.skip")}
           </Button>
-          {step === 0 && (
-            <Button variant="primary" onClick={() => setStep(1)}>
+          {step < 2 ? (
+            <Button variant="primary" disabled={busy} onClick={() => setStep(step + 1)}>
               {t("tips.next")}
             </Button>
-          )}
-          {step === 1 && (
-            <Button variant="primary" disabled={busy} onClick={() => void saveLook()}>
-              {t("tips.next")}
-            </Button>
-          )}
-          {step === 2 && (
-            <Button variant="primary" disabled={busy} onClick={() => void addApps()}>
-              {picked.size + sets.size > 0 ? t("wizard.add_finish") : t("wizard.finish")}
+          ) : (
+            <Button variant="primary" disabled={busy} onClick={finish}>
+              {t("wizard.finish")}
             </Button>
           )}
         </div>

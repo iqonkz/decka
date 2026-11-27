@@ -36,6 +36,10 @@ export default function LinkCard({ reason }: { reason: "silent" | "rejected" }) 
       title={t("link.title", { pc })}
       text={reason === "silent" ? t("link.silent") : t("link.rejected")}
     >
+      <div className="service-status-row">
+        <span className={reason === "silent" ? "service-pulse-dot warn" : "service-pulse-dot err"} aria-hidden="true" />
+        <span>{reason === "silent" ? t("phone.connecting") : t("link.rejected")}</span>
+      </div>
       <div className="service-actions">
         {buttons.tryAgain && (
           <button className="pill-btn primary" type="button" onClick={retryConnection}>

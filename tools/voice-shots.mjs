@@ -257,6 +257,44 @@ function audit2Shots() {
   return out;
 }
 
+function m31Shots() {
+  const pc = { w: 1100, h: 860, scale: 1 };
+  const isl = { w: 560, h: 260, scale: 2 };
+  const port = { w: 390, h: 844, scale: 1 };
+  const out = {};
+  for (const scheme of ["light", "dark"]) {
+    out[`m31-settings-look-ru-${scheme}`] = [pc, `scene=settings&theme=studio&lang=ru&scheme=${scheme}&go=look`];
+    out[`m31-settings-voice-ru-${scheme}`] = [{ w: 1100, h: 1200, scale: 1 }, `scene=settings&theme=studio&lang=ru&scheme=${scheme}&go=voice`];
+    out[`m31-settings-integrations-ru-${scheme}`] = [pc, `scene=settings&theme=studio&lang=ru&scheme=${scheme}&go=integrations`];
+    out[`m31-settings-notes-ru-${scheme}`] = [pc, `scene=settings&theme=studio&lang=ru&scheme=${scheme}&go=notes`];
+    out[`m31-island-reply-${scheme}`] = [isl, `scene=island&mode=expanded&state=done&reply=1&lang=ru&theme=${scheme}`];
+    out[`m31-island-error-${scheme}`] = [isl, `scene=island&mode=expanded&state=error&lang=ru&theme=${scheme}`];
+    out[`m31-island-confirm-${scheme}`] = [isl, `scene=island&mode=expanded&state=confirm&lang=ru&theme=${scheme}`];
+  }
+  out["m31-settings-voice-en-dark"] = [{ w: 1100, h: 1200, scale: 1 }, "scene=settings&theme=studio&lang=en&scheme=dark&go=voice"];
+  out["m31-settings-reminders-ru-light"] = [pc, "scene=settings&theme=studio&lang=ru&scheme=light&go=reminders"];
+  out["m31-settings-about-ru-dark"] = [pc, "scene=settings&theme=studio&lang=ru&scheme=dark&go=about"];
+  for (const step of [0, 1, 2]) {
+    out[`m31-wizard-${step}-ru-dark`] = [pc, `scene=settings&theme=studio&lang=ru&scheme=dark&wizard=${step}`];
+  }
+  out["m31-wizard-1-en-light"] = [pc, "scene=settings&theme=studio&lang=en&scheme=light&wizard=1"];
+  out["m31-island-memory-dark"] = [{ w: 560, h: 290, scale: 2 }, "scene=island&mode=expanded&state=done&mem=1&heard=%D0%A7%D1%82%D0%BE+%D0%B5%D1%81%D1%82+%D0%BF%D0%B0%D0%BC%D1%8F%D1%82%D1%8C%3F&lang=ru&theme=dark"];
+  out["m31-island-rec-dark"] = [isl, "scene=island&mode=expanded&state=done&reply=1&rec=1&lang=ru&theme=dark"];
+  out["m31-phone-16x9-ru"] = [{ w: 800, h: 450, scale: 1 }, "scene=deck&theme=studio&lang=ru"];
+  out["m31-phone-185x9-ru"] = [{ w: 848, h: 412, scale: 1 }, "scene=deck&theme=studio&lang=ru"];
+  out["m31-phone-20x9-en"] = [{ w: 915, h: 412, scale: 1 }, "scene=deck&theme=studio&lang=en"];
+  out["m31-phone-4x3-ru"] = [{ w: 1024, h: 768, scale: 1 }, "scene=deck&theme=studio&lang=ru"];
+  out["m31-phone-portrait-ru"] = [port, "scene=deck&theme=studio&lang=ru"];
+  out["m31-phone-amoled-ru"] = [{ w: 844, h: 390, scale: 1 }, "scene=deck&theme=amoled&lang=ru"];
+  out["m31-phone-menu-ru"] = [port, "scene=service&screen=menu&lang=ru"];
+  out["m31-phone-pair-ru"] = [port, "scene=service&screen=pair&err=1&lang=ru"];
+  out["m31-phone-pair-en"] = [port, "scene=service&screen=pair&err=1&lang=en"];
+  out["m31-phone-link-ru"] = [port, "scene=service&screen=link&lang=ru"];
+  out["m31-phone-screensaver-ru"] = [port, "scene=service&screen=saver&lang=ru"];
+  out["m31-phone-holdring"] = [{ w: 220, h: 220, scale: 2 }, "scene=service&screen=holdring&lang=ru"];
+  return out;
+}
+
 const SHOTS = {
   "theme-amoled": [DECK, "scene=deck&theme=amoled"],
   "theme-studio": [DECK, "scene=deck&theme=studio"],
@@ -303,6 +341,7 @@ const SHOTS = {
   "t30-phone-battery-light": [{ w: 380, h: 220, scale: 2 }, "scene=m30-battery&lang=ru&theme=light"],
   "t30-phone-battery-dark": [{ w: 380, h: 220, scale: 2 }, "scene=m30-battery&lang=ru&theme=dark"],
   ...audit2Shots(),
+  ...m31Shots(),
   "phone-idle": [PHONE, "scene=phone&state=idle"],
   "phone-listening": [PHONE, "scene=phone&state=listening"],
   "phone-done": [PHONE, "scene=phone&state=done&heard=turn+the+volume+up&reply=Done"],

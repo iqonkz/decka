@@ -88,7 +88,7 @@
 [data-theme="glass"] .key.disabled { box-shadow: none; }
 [data-theme="glass"] .key .key-icon { filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35)); }
 [data-theme="glass"] .page-dots .dot { background: rgba(255, 255, 255, 0.25); }
-[data-theme="glass"] .page-dots .dot.active { background: #ffffff; }
+[data-theme="glass"] .page-dots .dot.active { background: var(--accent, #ffffff); }
 
 /* Wallpapers (DESIGN.md 1.5). The layer drifts slowly in a circle of 3% (period 180 s) against burn-in. */
 .wallpaper { display: none; }

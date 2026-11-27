@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ClientLayout, Page } from "@decka/shared";
 import { DeckEnvContext, type DeckCallbacks, type DeckData } from "./deckEnv";
-import { gridMetrics } from "./gridMetrics";
+import { gridMetrics, transposeItemsForGrid } from "./gridMetrics";
 import { DeckMetricsContext } from "./metricsContext";
 import Tile from "./Tile";
 
@@ -44,7 +44,14 @@ export default function Grid({ page, grid, data, animate, onPress, onPressError,
     return () => observer.disconnect();
   }, []);
 
-  const m = useMemo(() => gridMetrics(viewport, grid.cols, grid.rows), [viewport, grid.cols, grid.rows]);
+  const portrait = viewport.h > viewport.w && grid.cols > grid.rows;
+  const effCols = portrait ? grid.rows : grid.cols;
+  const effRows = portrait ? grid.cols : grid.rows;
+  const effItems = useMemo(
+    () => (portrait ? transposeItemsForGrid(page.items, grid.cols, grid.rows, effCols, effRows) : page.items),
+    [portrait, page.items, grid.cols, grid.rows, effCols, effRows],
+  );
+  const m = useMemo(() => gridMetrics(viewport, effCols, effRows), [viewport, effCols, effRows]);
 
   // FLIP: remember where every tile was, and after the next layout slide the ones that moved from the old place to the new one.
   const inner = useRef<HTMLDivElement>(null);
@@ -66,7 +73,7 @@ export default function Grid({ page, grid, data, animate, onPress, onPressError,
     }
     seen.current = next;
   });
-  const value = useMemo(() => ({ side: m.side, gap: m.gap }), [m.side, m.gap]);
+  const value = useMemo(() => ({ side: m.side, gap: m.gap, cellW: m.cellW, cellH: m.cellH }), [m.side, m.gap, m.cellW, m.cellH]);
   return (
     <div ref={root} className="grid" dir="ltr">
       <DeckEnvContext.Provider value={env}>
@@ -75,15 +82,17 @@ export default function Grid({ page, grid, data, animate, onPress, onPressError,
           ref={inner}
           className="grid-inner"
           style={{
-            left: m.offsetX,
-            top: m.offsetY,
+            left: "max(8px, env(safe-area-inset-left, 0px))",
+            right: "max(8px, env(safe-area-inset-right, 0px))",
+            top: "max(8px, env(safe-area-inset-top, 0px))",
+            bottom: "max(22px, calc(8px + env(safe-area-inset-bottom, 0px)))",
             ["--side" as string]: `${m.side}px`,
-            gridTemplateColumns: `repeat(${grid.cols}, ${m.side}px)`,
-            gridTemplateRows: `repeat(${grid.rows}, ${m.side}px)`,
+            gridTemplateColumns: `repeat(${effCols}, minmax(0, 1fr))`,
+            gridTemplateRows: `repeat(${effRows}, minmax(0, 1fr))`,
             gap: m.gap,
           }}
         >
-          {page.items.map((item) => (
+          {effItems.map((item) => (
             <Tile key={item.id} item={item} />
           ))}
         </div>

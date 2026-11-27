@@ -28,4 +28,4 @@
 [data-theme="amoled"] .key.colored.pressed,
 [data-theme="amoled"] .key.colored.confirming { background: var(--c-a30); }
 [data-theme="amoled"] .key.disabled { box-shadow: none; }
-[data-theme="amoled"] .tile.panel { background: none; border-color: transparent; box-shadow: none; }
+[data-theme="amoled"] .tile.panel { background: #0c0c0f; border-color: rgba(255, 255, 255, 0.06); box-shadow: none; }
