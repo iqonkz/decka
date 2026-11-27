@@ -32,7 +32,7 @@ impl WorkerArgs {
         if args.first().map(String::as_str) != Some(FLAG) {
             return None;
         }
-        let value = |name: &str| args.chunks_exact(1).enumerate().find(|(_, a)| a[0] == name).and_then(|(i, _)| args.get(i + 1).cloned());
+        let value = |name: &str| args.iter().position(|a| a == name).and_then(|i| args.get(i + 1).cloned());
         Some(WorkerArgs {
             library: value("--library")?.into(),
             model: value("--model")?.into(),
@@ -286,7 +286,7 @@ mod engine {
             args.mic.clone(),
             false,
             move |fed| {
-                let pcm = fed.pcm.chunks_exact(2).map(|b| i16::from_le_bytes([b[0], b[1]])).collect();
+                let pcm = fed.pcm.as_chunks::<2>().0.iter().map(|b| i16::from_le_bytes(*b)).collect();
                 let _ = chunks.send(Heard::Chunk(pcm, fed.decision.rms));
             },
             move |e| {

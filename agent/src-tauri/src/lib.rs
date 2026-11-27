@@ -257,6 +257,18 @@ pub fn run() {
 
             tray::setup(app.handle())?;
 
+            // For checks of a test copy only (as `DECKA_ISLAND_THEME`): opens the mini panel without a click on the tray.
+            if std::env::var_os("DECKA_CONFIG_DIR").is_some() && std::env::var_os("DECKA_OPEN_TRAY").is_some() {
+                let handle = app.handle().clone();
+                std::thread::spawn(move || {
+                    std::thread::sleep(std::time::Duration::from_secs(4));
+                    if let Ok(Some(monitor)) = handle.primary_monitor() {
+                        let size = monitor.size();
+                        mini::toggle(&handle, tauri::PhysicalPosition::new(f64::from(size.width) - 20.0, f64::from(size.height) - 10.0));
+                    }
+                });
+            }
+
             // `--minimized` keeps the window hidden, except on the very first run.
             if !minimized || first_run {
                 tray::show_settings(app.handle());

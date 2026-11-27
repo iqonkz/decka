@@ -268,7 +268,7 @@ async fn fetch_all(weak: &Weak<Inner>, cancel: &AtomicBool) -> Result<(), String
             let mut progress = |done: u64| {
                 let percent = (((before + done) * 100) / total).min(99) as u8;
                 if let Some(inner) = weak.upgrade() {
-                    let changed = std::mem::replace(&mut inner.live.lock().unwrap().percent, Some(percent)) != Some(percent);
+                    let changed = inner.live.lock().unwrap().percent.replace(percent) != Some(percent);
                     if changed {
                         inner.publish();
                     }

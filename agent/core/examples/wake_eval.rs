@@ -28,7 +28,7 @@ fn main() -> Result<(), String> {
             if &data[at..at + 4] == b"fmt " && body.len() >= 16 {
                 format = Some((u16::from_le_bytes([body[0], body[1]]), u16::from_le_bytes([body[2], body[3]]), u32::from_le_bytes([body[4], body[5], body[6], body[7]]), u16::from_le_bytes([body[14], body[15]])));
             } else if &data[at..at + 4] == b"data" {
-                samples = Some(body.chunks_exact(2).map(|b| i16::from_le_bytes([b[0], b[1]])).collect::<Vec<_>>());
+                samples = Some(body.as_chunks::<2>().0.iter().map(|b| i16::from_le_bytes(*b)).collect::<Vec<_>>());
             }
             at += 8 + size + (size & 1);
         }
