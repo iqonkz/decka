@@ -622,7 +622,7 @@ export interface IpcCommands {
   ha_get(): HaStatus;                                          // M30, DATA_MODEL.md §16; токен в окно не передаётся
   ha_set_config(args: { url: string; token: string; entities: string[] }): void;  // пустой token — оставить старый (только при том же url); пустой url — убрать
   ha_test(args: { url: string; token: string }): number;       // M30: сколько устройств ответил сервер
-  notes_list(): NoteEntry[];                                   // M30, DATA_MODEL.md §15
+  notes_list(): NoteEntry[];                                   // M30, DATA_MODEL.md §15; M31: NoteEntry.durationSec?: number (целые секунды, нет у заметок до 0.61.0)
   notes_delete(args: { id: string }): void;
   notes_open_folder(): void;
   notes_stop(): boolean;

@@ -150,6 +150,7 @@ export interface ButtonLook { label?: string; icon?: string; color?: string; }
 export interface ButtonItem extends ItemBase, ButtonLook {
   kind: "button";
   actionId?: Id;          // M13: допустимые сочетания — actionId | navigate | popup | actionId+popup
+  catalogId?: string;     // M31: id пункта каталога, из которого создана кнопка; подпись переводится по языку, пока label совпадает с каталожной
   navigate?: Id | "$back"; // id обычной (не popup) страницы; M15: "$back" — на предыдущую страницу (§3.8)
   popup?: Id;             // M13: id popup-страницы
   confirm?: boolean;      // true → нажатие удержанием 800 мс
