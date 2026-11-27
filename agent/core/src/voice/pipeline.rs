@@ -315,7 +315,8 @@ impl State {
             activity: self.activity.filter(|_| matches!(state, "listening" | "recognizing" | "thinking" | "loading")),
             actions: if self.actions && state == "done" { super::followup::ACTIONS.to_vec() } else { Vec::new() },
             understood: self.understood.clone().filter(|_| !idle),
-            executing: self.phase == Phase::Executing,
+            // While the call waits for the model the island says that, not "doing it".
+            executing: self.phase == Phase::Executing && !self.model_wait,
         }
     }
 }
@@ -1051,7 +1052,7 @@ mod tests {
         let (t, c) = (table(), ctx());
         let env = Env { table: &t, ctx: &c, confirm_ms: CONFIRM_TIMEOUT_MS, dictate: false };
         let (s, fx) = step(&s, Event::ModelLoading, 1, &env);
-        assert_eq!((s.phase.clone(), s.info().state, fx.len()), (Phase::Executing, "loading", 0));
+        assert_eq!((s.phase.clone(), s.info().state, s.info().executing, fx.len()), (Phase::Executing, "loading", false, 0));
         // The long watchdog of a request does not end a call that is running.
         assert_eq!(step(&s, Event::Watchdog, 2, &env).0.phase, Phase::Executing);
         let (s, _) = step(&s, Event::ModelReady, 3, &env);
