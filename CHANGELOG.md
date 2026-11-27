@@ -4,6 +4,8 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+## 0.60.0 — 2026-11-27
+
 ### Added
 - A **work mode with focus minutes** starts a focus timer; at its end the island says so and the phone shows a toast.
 - **Phone battery** on the PC: the battery widget shows the phone, the voice answers about it, and the island says "Phone: 15%" when it runs low off the charger.
