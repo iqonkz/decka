@@ -8,7 +8,7 @@ import { colorVars, parseHex } from "./theme/colors";
 import { materialKeyVars } from "./theme/material";
 
 const TAP_SLOP_PX = 20;
-const CONFIRM_HOLD_MS = 800;
+const CONFIRM_HOLD_MS = 600;
 const OK_MS = 300;
 const ERROR_MS = 1500;
 
@@ -222,7 +222,7 @@ export default function Key({ actionId, onTap, onPressed, confirm, icon, label, 
       {liveDot && <span className="rec-dot key-live" style={{ top: 8, left: 8, width: 8, height: 8 }} aria-hidden="true" />}
       {phase === "confirming" && (
         <svg className="ring" width={side} height={side} viewBox={`0 0 ${side} ${side}`} aria-hidden="true">
-          <rect x="1" y="1" width={side - 2} height={side - 2} pathLength="100" />
+          <rect x="1.5" y="1.5" width={Math.max(1, side - 3)} height={Math.max(1, side - 3)} rx={Math.min(15, Math.max(4, Math.round(side * 0.16)))} pathLength="100" />
         </svg>
       )}
     </div>

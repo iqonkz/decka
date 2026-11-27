@@ -100,9 +100,9 @@ describe("applyPatch", () => {
 });
 
 describe("toasts", () => {
-  test("keep at most three and expire by time", () => {
+  test("keep at most two and expire by time", () => {
     for (let i = 0; i < 4; i++) pushToast({ level: "info", title: `t${i}`, ms: 1000 * (i + 1) }, 0);
-    expect(getState().toasts.map((t) => t.title)).toEqual(["t1", "t2", "t3"]);
+    expect(getState().toasts.map((t) => t.title)).toEqual(["t2", "t3"]);
     expireToasts(3500);
     expect(getState().toasts.map((t) => t.title)).toEqual(["t3"]);
   });

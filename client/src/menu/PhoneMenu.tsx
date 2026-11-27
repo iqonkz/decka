@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { sameMinor, t } from "@decka/shared";
+import { Icon } from "@decka/ui";
 import pkg from "../../package.json";
 import { connectAgain, startAppUpdate } from "../app/controller";
 import { isNewerVersion } from "../update/apkAssembler";
@@ -9,7 +10,6 @@ import { isNative } from "../platform/native";
 import { loadTurn, type Turn } from "../platform/turn";
 import { loadVoiceButtonEnabled, saveVoiceButtonEnabled } from "../voice/voiceFabMath";
 import { useAppState } from "../store/store";
-import PhIcon, { type PhIconName } from "../ui/PhIcon";
 import PhoneSwitch from "../ui/PhoneSwitch";
 import { statusLine, versionLine } from "./menuModel";
 
@@ -22,7 +22,7 @@ interface Props {
   onClose: () => void;
 }
 
-/** The phone menu (DESIGN.md 4.3, 4.16): bottom sheet styled after the PC settings window (4.14). */
+/** The phone menu (DESIGN.md 4.3, M31 T31.8b): 56 px rows, PC-matching sections, 20 px Lucide icons. */
 export default function PhoneMenu({ reduced, onToggleReduced, haptics, onToggleHaptics, onUnpair, onClose }: Props) {
   const conn = useAppState((s) => s.conn);
   const via = useAppState((s) => s.via);
@@ -31,27 +31,32 @@ export default function PhoneMenu({ reduced, onToggleReduced, haptics, onToggleH
   const offered = useAppState((s) => s.state?.update?.app);
   const appUpdate = useAppState((s) => s.appUpdate);
   const appVer = import.meta.env.VITE_APP_VERSION || pkg.version;
-  // A new app is offered only on the phone (the system installer), and only when it is newer than this one.
   const newApp = isNative() && offered && isNewerVersion(offered.version, appVer) ? offered : null;
   const [turn, setTurn] = useState<Turn>(() => loadTurn());
   const [voiceButton, setVoiceButton] = useState(() => loadVoiceButtonEnabled());
   const hidden = hiddenStripApps(useStripModes());
 
-  const statusIcon: PhIconName = conn !== "online" ? "wifi-slash" : via === "usb" ? "usb" : "wifi-high";
+  const statusIcon = conn !== "online" ? "lucide:wifi-off" : via === "usb" ? "lucide:usb" : "lucide:wifi";
 
   return (
     <div className="menu-backdrop" onPointerDown={onClose}>
       <div className="menu-sheet" role="dialog" aria-label={t("menu.label")} onPointerDown={(e) => e.stopPropagation()}>
         <div className="sheet-handle" aria-hidden="true" />
         <div className="sheet-scroll">
+          <div className="phone-group-title">{t("sidebar.group.connections")}</div>
           <div className="phone-group">
             <div className="phone-row menu-status-row">
-              <PhIcon name={statusIcon} size={20} className="phone-row-icon" />
+              <span className="phone-row-icon"><Icon icon={statusIcon} size={20} /></span>
               <span className="phone-row-label">{statusLine(conn, via, agentName)}</span>
             </div>
             {newApp && (
-              <button type="button" className="phone-row menu-button menu-update" disabled={appUpdate.phase === "downloading" || appUpdate.phase === "verifying"} onClick={() => void startAppUpdate()}>
-                <PhIcon name="download-simple" size={20} className="phone-row-icon accent" />
+              <button
+                type="button"
+                className="phone-row menu-button menu-update"
+                disabled={appUpdate.phase === "downloading" || appUpdate.phase === "verifying"}
+                onClick={() => void startAppUpdate()}
+              >
+                <span className="phone-row-icon accent"><Icon icon="lucide:download" size={20} /></span>
                 <span className="phone-row-label">
                   {appUpdate.phase === "downloading"
                     ? t("update.downloading", { pct: appUpdate.pct })
@@ -67,19 +72,20 @@ export default function PhoneMenu({ reduced, onToggleReduced, haptics, onToggleH
             )}
           </div>
 
+          <div className="phone-group-title">{t("sidebar.item.settings")}</div>
           <div className="phone-group">
             <div className="phone-row">
-              <PhIcon name="sparkle" size={20} className="phone-row-icon" />
+              <span className="phone-row-icon"><Icon icon="lucide:sparkles" size={20} /></span>
               <span className="phone-row-label">{t("menu.reduce_effects")}</span>
               <PhoneSwitch checked={reduced} onChange={onToggleReduced} label={t("menu.reduce_effects")} />
             </div>
             <div className="phone-row">
-              <PhIcon name="vibrate" size={20} className="phone-row-icon" />
+              <span className="phone-row-icon"><Icon icon="lucide:vibrate" size={20} /></span>
               <span className="phone-row-label">{t("menu.haptics")}</span>
               <PhoneSwitch checked={haptics} onChange={onToggleHaptics} label={t("menu.haptics")} />
             </div>
             <div className="phone-row">
-              <PhIcon name="microphone" size={20} className="phone-row-icon" />
+              <span className="phone-row-icon"><Icon icon="lucide:mic" size={20} /></span>
               <span className="phone-row-label">{t("menu.voice_button")}</span>
               <PhoneSwitch
                 checked={voiceButton}
@@ -93,7 +99,7 @@ export default function PhoneMenu({ reduced, onToggleReduced, haptics, onToggleH
             </div>
             {isNative() && (
               <div className="phone-row phone-row-wrap">
-                <PhIcon name="device-mobile" size={20} className="phone-row-icon" />
+                <span className="phone-row-icon"><Icon icon="lucide:smartphone" size={20} /></span>
                 <span className="phone-row-label">{t("menu.turn")}</span>
                 <span className="phone-seg">
                   {(["auto", "normal", "flipped"] as const).map((value) => (
@@ -120,7 +126,7 @@ export default function PhoneMenu({ reduced, onToggleReduced, haptics, onToggleH
               <div className="phone-group">
                 {hidden.map((app) => (
                   <div key={app} className="phone-row">
-                    <PhIcon name="squares-four" size={20} className="phone-row-icon" />
+                    <span className="phone-row-icon"><Icon icon="lucide:layout-grid" size={20} /></span>
                     <span className="phone-row-label">{app}</span>
                     <button type="button" className="menu-link" onClick={() => setStripMode(app, "auto")}>
                       {t("strip.show_again")}
@@ -131,17 +137,18 @@ export default function PhoneMenu({ reduced, onToggleReduced, haptics, onToggleH
             </>
           )}
 
+          <div className="phone-group-title">{t("sidebar.group.app")}</div>
           <div className="phone-group">
             <button type="button" className="phone-row menu-button" onClick={() => location.reload()}>
-              <PhIcon name="arrows-clockwise" size={20} className="phone-row-icon" />
+              <span className="phone-row-icon"><Icon icon="lucide:refresh-cw" size={20} /></span>
               <span className="phone-row-label">{t("menu.reload")}</span>
             </button>
             <button type="button" className="phone-row menu-button" onClick={connectAgain}>
-              <PhIcon name="qr-code" size={20} className="phone-row-icon" />
+              <span className="phone-row-icon"><Icon icon="lucide:qr-code" size={20} /></span>
               <span className="phone-row-label">{t("link.connect_again")}</span>
             </button>
             <button type="button" className="phone-row menu-button danger" onClick={onUnpair}>
-              <PhIcon name="link-break" size={20} className="phone-row-icon" />
+              <span className="phone-row-icon"><Icon icon="lucide:unlink" size={20} /></span>
               <span className="phone-row-label">{t("menu.unpair")}</span>
             </button>
           </div>
