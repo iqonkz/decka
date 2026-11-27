@@ -2,6 +2,7 @@
 //! The page (`index.html?highlight=1`) draws a frame and a bubble from the event `highlight`; the decision when it ends is
 //! `decka_core::voice::highlight` (tested there); this file feeds it the focused window and the clicks.
 
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -10,14 +11,55 @@ use decka_core::voice::highlight::{Highlight, HighlightSink, Highlighter, Watch}
 use serde_json::{json, Value};
 use tauri::{AppHandle, Emitter, Listener, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindowBuilder};
 
-use crate::island::on_hwnd;
+use crate::island::{on_hwnd, set_resting};
 
 const LABEL: &str = "highlight";
+/// T29.P: the window is closed this long after the last highlight ended, and made again when it is needed.
+const CLOSE_AFTER: Duration = Duration::from_secs(30);
 
 pub struct WindowSink {
     app: AppHandle,
     /// What is highlighted now: a window that has just been made asks for it when its page listens.
     current: Arc<Mutex<Option<Value>>>,
+    /// Counts shows and clears: a pending close counts only while nothing else happened.
+    turn: Arc<AtomicU64>,
+    /// The window was told to close and may still be there for a moment.
+    closing: Arc<AtomicBool>,
+}
+
+impl WindowSink {
+    /// Cancels a pending close and waits for one that has begun.
+    fn wake(&self) {
+        {
+            let _held = self.current.lock().unwrap();
+            self.turn.fetch_add(1, Ordering::SeqCst);
+        }
+        if self.closing.swap(false, Ordering::SeqCst) {
+            for _ in 0..100 {
+                if self.app.get_webview_window(LABEL).is_none() {
+                    break;
+                }
+                std::thread::sleep(Duration::from_millis(10));
+            }
+        }
+    }
+
+    fn close_later(&self, turn: u64) {
+        let (app, current, turns, closing) = (self.app.clone(), self.current.clone(), self.turn.clone(), self.closing.clone());
+        tauri::async_runtime::spawn(async move {
+            tokio::time::sleep(CLOSE_AFTER).await;
+            // Held while the close is asked for, so that a new highlight sees it.
+            let held = current.lock().unwrap();
+            if turns.load(Ordering::SeqCst) == turn && held.is_none() {
+                if let Some(w) = app.get_webview_window(LABEL) {
+                    closing.store(true, Ordering::SeqCst);
+                    if let Err(e) = w.destroy() {
+                        tracing::warn!("cannot close the highlight window: {e}");
+                    }
+                }
+            }
+        });
+    }
 }
 
 fn window(app: &AppHandle) -> Option<tauri::WebviewWindow> {
@@ -48,6 +90,7 @@ fn window(app: &AppHandle) -> Option<tauri::WebviewWindow> {
 
 impl HighlightSink for WindowSink {
     fn show(&self, h: Highlight) {
+        self.wake();
         let Some(w) = window(&self.app) else { return };
         // The monitor that holds the centre of the element.
         let (cx, cy) = (h.rect.x + h.rect.width / 2, h.rect.y + h.rect.height / 2);
@@ -61,15 +104,22 @@ impl HighlightSink for WindowSink {
         let rect = json!({ "x": rel(h.rect.x, origin.x), "y": rel(h.rect.y, origin.y), "width": f64::from(h.rect.width) / scale, "height": f64::from(h.rect.height) / scale });
         let event = json!({ "rect": rect, "text": h.text, "step": h.step, "total": h.total });
         *self.current.lock().unwrap() = Some(event.clone());
+        set_resting(&w, false);
         on_hwnd(&w, overlay::show);
         let _ = w.emit("highlight", event);
     }
 
     fn clear(&self) {
-        *self.current.lock().unwrap() = None;
+        let turn = {
+            let mut current = self.current.lock().unwrap();
+            *current = None;
+            self.turn.fetch_add(1, Ordering::SeqCst) + 1
+        };
         if let Some(w) = self.app.get_webview_window(LABEL) {
             let _ = w.emit("highlight_clear", ());
             on_hwnd(&w, overlay::hide);
+            set_resting(&w, true);
+            self.close_later(turn);
         }
     }
 }
@@ -97,7 +147,7 @@ pub fn setup(app: &AppHandle) -> Highlighter {
             let _ = emitter.emit("highlight", event);
         }
     });
-    let highlighter = Highlighter::new(Arc::new(WindowSink { app: app.clone(), current }));
+    let highlighter = Highlighter::new(Arc::new(WindowSink { app: app.clone(), current, turn: Arc::default(), closing: Arc::default() }));
     app.manage(highlighter.clone());
     let watcher = highlighter.clone();
     let started = std::time::Instant::now();

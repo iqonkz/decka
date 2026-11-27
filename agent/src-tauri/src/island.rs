@@ -279,6 +279,37 @@ pub fn on_hwnd(window: &tauri::WebviewWindow, f: impl FnOnce(isize) + Send + 'st
     });
 }
 
+/// T29.P: a hidden overlay gives memory back: its page is not drawn and WebView2 aims at a low working set until the
+/// window is used again.
+pub fn set_resting(window: &tauri::WebviewWindow, resting: bool) {
+    #[cfg(windows)]
+    {
+        use webview2_com::Microsoft::Web::WebView2::Win32::{ICoreWebView2_19, COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_LOW, COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_NORMAL};
+        use windows_core::Interface;
+        let done = window.with_webview(move |webview| {
+            // SAFETY: calls on the COM objects of this window, on the thread that owns them.
+            unsafe {
+                let controller = webview.controller();
+                if let Err(e) = controller.SetIsVisible(!resting) {
+                    tracing::warn!("webview visibility: {e}");
+                }
+                // An older WebView2 runtime has no memory level: the window then only stops drawing.
+                if let Ok(core) = controller.CoreWebView2().and_then(|c| c.cast::<ICoreWebView2_19>()) {
+                    let level = if resting { COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_LOW } else { COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_NORMAL };
+                    if let Err(e) = core.SetMemoryUsageTargetLevel(level) {
+                        tracing::warn!("webview memory level: {e}");
+                    }
+                }
+            }
+        });
+        if let Err(e) = done {
+            tracing::warn!("webview: {e}");
+        }
+    }
+    #[cfg(not(windows))]
+    let _ = (window, resting);
+}
+
 /// T29.4: the window of the orb, logical pixels: the orb and room for a bubble to its right. The page pads it by `ORB_PAD`.
 const ORB_SIZE: (f64, f64) = (360.0, 48.0);
 const ORB_PAD: f64 = 4.0;
@@ -434,6 +465,7 @@ pub fn setup(app: &AppHandle, agent: &Agent) -> Arc<Shared> {
                 if shown {
                     if let Some(w) = &window {
                         on_hwnd(w, overlay::hide);
+                        set_resting(w, true);
                     }
                     shown = false;
                     last_event = None;
@@ -463,6 +495,7 @@ pub fn setup(app: &AppHandle, agent: &Agent) -> Arc<Shared> {
                 placed = Some(spot);
             }
             if !shown {
+                set_resting(&window, false);
                 on_hwnd(&window, |hwnd| {
                     overlay::set_click_through(hwnd, true);
                     overlay::show(hwnd);
