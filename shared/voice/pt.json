@@ -734,6 +734,33 @@
       "patterns": [
         "ativar tema escuro do windows"
       ]
+    },
+    {
+      "tool": "notes_record",
+      "args": {
+        "op": "start"
+      },
+      "patterns": [
+        "iniciar nota de reunião",
+        "parar nota"
+      ]
+    },
+    {
+      "tool": "memory_top",
+      "patterns": [
+        "o que está consumindo memória",
+        "uso de memória ram"
+      ]
+    },
+    {
+      "tool": "ha",
+      "args": {
+        "service": "toggle"
+      },
+      "patterns": [
+        "ligar luz de {name}",
+        "desligar luz de {name}"
+      ]
     }
   ],
   "guide_controls": {

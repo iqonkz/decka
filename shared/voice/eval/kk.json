@@ -611,5 +611,31 @@
     "args": {
       "mode": "dark"
     }
+  },
+  {
+    "say": "жазбаны баста",
+    "tool": "notes_record",
+    "args": {
+      "op": "start"
+    }
+  },
+  {
+    "say": "жадты не жеп жатыр",
+    "tool": "memory_top",
+    "args": {}
+  },
+  {
+    "say": "жатын бөлме жарығын қос",
+    "tool": "ha",
+    "args": {
+      "service": "toggle"
+    }
+  },
+  {
+    "say": "телефон заряды қанша",
+    "tool": "status",
+    "args": {
+      "topic": "battery"
+    }
   }
 ]

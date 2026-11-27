@@ -289,6 +289,14 @@
     "web.webhook": {
       "label": "Webhook",
       "name": "Webhook（HTTP リクエスト）"
+    },
+    "ha.toggle": {
+      "label": "HA 切替",
+      "name": "Home Assistant: 切り替え"
+    },
+    "ha.scene": {
+      "label": "HA シーン",
+      "name": "Home Assistant: シーン"
     }
   },
   "sets": {

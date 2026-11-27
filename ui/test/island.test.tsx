@@ -398,4 +398,33 @@ describe("T26.5b ParticlesOrb & Island", () => {
     expect(orbHtml).toContain("island-dictation-bubble");
     expect(orbHtml).toContain("Нет активного поля ввода");
   });
+
+  it("T30.1b: renders recording indicator in tab/compact/expanded and memory-top list with Close buttons", () => {
+    setLanguage("ru");
+    const recTabHtml = renderToString(
+      <Island event={{ mode: "tab" }} recording={{ active: true, elapsedSec: 125 }} />,
+    );
+    expect(recTabHtml).toContain("island-tab-rec");
+    expect(recTabHtml).toContain("island-rec-dot");
+    expect(recTabHtml).toContain("2:05");
+
+    const memHtml = renderToString(
+      <Island
+        event={{ mode: "expanded", voice: { active: true, phase: "done", level: 0, heard: "Что ест память?" } }}
+        recording={{ active: true, elapsedSec: 65 }}
+        memoryProcesses={[
+          { pid: 101, name: "chrome.exe", mb: 2450 },
+          { pid: 202, name: "Code.exe", mb: 1320 },
+        ]}
+        onCloseProcess={() => {}}
+      />,
+    );
+    expect(memHtml).toContain("island-rec-pill");
+    expect(memHtml).toContain("1:05");
+    expect(memHtml).toContain("island-mem-list");
+    expect(memHtml).toContain("chrome.exe");
+    expect(memHtml).toContain("2450");
+    expect(memHtml).toContain("MB");
+    expect(memHtml).toContain("Закрыть");
+  });
 });

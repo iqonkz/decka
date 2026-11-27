@@ -283,6 +283,20 @@ if (scene === "deck" || scene === "settings") {
       voice_dictation_get: { trigger: { kind: "doubleCtrl" }, mode: "clean", dictionary: ["Decka", "Qwen", "Almaty"] },
       voice_context_get: q.get("context") !== "0",
       voice_context_set: true,
+      notes_list: [
+        {
+          id: "n1",
+          title: "Синк по релизу 0.60.0",
+          date: "2026-11-27 10:30",
+          markdown: "# Кратко\nОбсудили заметки встреч, память ПК и Home Assistant.\n## Решения\n- Проверить тесты во всех воркспейсах\n- Выпустить черновик 0.60.0\n## Задачи\n- Снять скриншоты в обеих темах",
+        },
+        {
+          id: "n2",
+          title: "Идеи по голосу",
+          date: "2026-11-26 17:15",
+          markdown: "# Кратко\nБыстрый путь без модели для частых команд.",
+        },
+      ],
       // The shape of the real answer (`voice::check`); `check=error` is a PC whose model does not fit.
       voice_self_check: [
         { id: "mic", state: "ok", durationMs: 3010, detail: "42 %" },
@@ -521,6 +535,13 @@ if (scene === "deck" || scene === "settings") {
             theme={themeMode}
             barHeight={q.get("barHeight") ? Number(q.get("barHeight")) : 10}
             barPosition={(q.get("barPos") as "left" | "center" | "right" | null) ?? "center"}
+            recording={q.get("rec") === "1" ? { active: true, elapsedSec: 125 } : null}
+            memoryProcesses={q.get("mem") === "1" ? [
+              { pid: 101, name: "chrome.exe", mb: 2450 },
+              { pid: 202, name: "Code.exe", mb: 1320 },
+              { pid: 303, name: "obs64.exe", mb: 640 },
+            ] : undefined}
+            onCloseProcess={() => {}}
             hovered={q.get("hover") === "1"}
             transitionPreview={transitionPreview}
             hoveredAction={q.get("hoverBtn") ?? undefined}
@@ -628,6 +649,30 @@ if (scene === "deck" || scene === "settings") {
       </div>,
     );
   }
+} else if (scene === "m30-battery") {
+  await import("../../client/src/styles.css");
+  const { DeckEnvContext, EMPTY_DATA } = await import("../../ui/src/deckEnv");
+  const { default: Battery } = await import("../../ui/src/widgets/Battery");
+  const themeMode = (q.get("theme") ?? "dark") as "light" | "dark";
+  document.body.style.cssText = `margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:${themeMode === "light" ? "#f4f6fb" : "#121318"};color:${themeMode === "light" ? "#14161c" : "#f4f6fa"};font-family:system-ui,-apple-system,sans-serif;`;
+  root.render(
+    <DeckEnvContext.Provider
+      value={{
+        ...EMPTY_DATA,
+        battery: {
+          devices: [
+            { kind: "pc", name: "PC", pct: 92, charging: true },
+            { kind: "phone" as never, name: "Pixel 8", pct: 64, charging: false },
+            { kind: "bt", name: "WH-1000XM5", pct: 18, charging: false },
+          ],
+        },
+      }}
+    >
+      <div style={{ width: 280, padding: 14, borderRadius: 14, background: themeMode === "light" ? "#ffffff" : "#1c1d24", border: `1px solid ${themeMode === "light" ? "#e2e4ec" : "#2e303a"}` }}>
+        <Battery item={{ id: "bat1", kind: "widget", widget: "battery", x: 0, y: 0, w: 2, h: 2 } as never} />
+      </div>
+    </DeckEnvContext.Provider>,
+  );
 } else if (scene === "service") {
   await import("../../client/src/styles.css");
   const { applyTheme } = await import("../../ui/src");

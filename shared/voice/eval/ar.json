@@ -611,5 +611,31 @@
     "args": {
       "mode": "dark"
     }
+  },
+  {
+    "say": "ابدأ ملاحظة الاجتماع",
+    "tool": "notes_record",
+    "args": {
+      "op": "start"
+    }
+  },
+  {
+    "say": "ما الذي يستهلك الذاكرة",
+    "tool": "memory_top",
+    "args": {}
+  },
+  {
+    "say": "شغّل إضاءة غرفة النوم",
+    "tool": "ha",
+    "args": {
+      "service": "toggle"
+    }
+  },
+  {
+    "say": "كم بطارية الهاتف",
+    "tool": "status",
+    "args": {
+      "topic": "battery"
+    }
   }
 ]

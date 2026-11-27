@@ -66,6 +66,9 @@ export const VALID_TOOLS = new Set([
   "screenshot",
   "add_button",
   "system_theme",
+  "notes_record",
+  "memory_top",
+  "ha",
   "guide_control",
 ]);
 

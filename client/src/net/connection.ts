@@ -193,6 +193,13 @@ export class Connection {
     if (this.ws && this.welcomed) this.sendMsg({ t: "lyrics_offset", trackKey, deltaMs });
   }
 
+  /** T30.2b: sends phone battery level (0..100) and charging flag to PC. */
+  sendPhoneStatus(battery: number, charging: boolean): boolean {
+    if (!this.ws || !this.welcomed) return false;
+    this.sendMsg({ t: "phone_status", battery, charging });
+    return true;
+  }
+
   /** After the handshake every message goes out as an encrypted binary frame; never as plain text. */
   private sendMsg(msg: Record<string, unknown>): void {
     const ws = this.ws;

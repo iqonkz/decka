@@ -611,5 +611,31 @@
     "args": {
       "mode": "dark"
     }
+  },
+  {
+    "say": "démarrer la note de réunion",
+    "tool": "notes_record",
+    "args": {
+      "op": "start"
+    }
+  },
+  {
+    "say": "qu'est-ce qui consomme la mémoire",
+    "tool": "memory_top",
+    "args": {}
+  },
+  {
+    "say": "allume la lumière de chambre",
+    "tool": "ha",
+    "args": {
+      "service": "toggle"
+    }
+  },
+  {
+    "say": "batterie du téléphone",
+    "tool": "status",
+    "args": {
+      "topic": "battery"
+    }
   }
 ]

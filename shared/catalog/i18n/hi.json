@@ -289,6 +289,14 @@
     "web.webhook": {
       "label": "Webhook",
       "name": "Webhook (HTTP अनुरोध)"
+    },
+    "ha.toggle": {
+      "label": "HA टॉगल",
+      "name": "Home Assistant: टॉगल"
+    },
+    "ha.scene": {
+      "label": "HA सीन",
+      "name": "Home Assistant: सीन"
     }
   },
   "sets": {

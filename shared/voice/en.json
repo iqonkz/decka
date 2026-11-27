@@ -656,7 +656,9 @@
         "phone battery",
         "whats the phone battery",
         "battery on phone",
-        "phone charge"
+        "phone charge",
+        "what is my phone battery",
+        "phone battery level"
       ]
     },
     {
@@ -913,6 +915,37 @@
       "patterns": [
         "save layout as {name}",
         "remember layout as {name}"
+      ]
+    },
+    {
+      "tool": "notes_record",
+      "args": {
+        "op": "start"
+      },
+      "patterns": [
+        "start meeting note",
+        "record a note",
+        "stop meeting note",
+        "stop note"
+      ]
+    },
+    {
+      "tool": "memory_top",
+      "patterns": [
+        "what is eating memory",
+        "what uses the most ram",
+        "show memory hogs"
+      ]
+    },
+    {
+      "tool": "ha",
+      "args": {
+        "service": "toggle"
+      },
+      "patterns": [
+        "turn on {name} light",
+        "turn off {name} light",
+        "toggle {name} in home assistant"
       ]
     }
   ],

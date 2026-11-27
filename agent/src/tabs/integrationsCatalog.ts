@@ -183,6 +183,16 @@ export function buildIntegrationsList(
       keywords: ["webhook", "http", "request", "post"],
     },
     {
+      id: "ha",
+      name: t("m30.ha_name"),
+      titleKey: "m30.ha_name",
+      descKey: "m30.ha_desc",
+      category: "data",
+      icon: "house",
+      connected: Boolean((config as { ha?: { url?: string } }).ha?.url),
+      keywords: ["home assistant", "ha", "smart home", "light", "switch", "scene"],
+    },
+    {
       id: "api_token",
       name: t("integ.api_token"),
       titleKey: "integ.api_token",

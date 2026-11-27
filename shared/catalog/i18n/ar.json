@@ -289,6 +289,14 @@
     "web.webhook": {
       "label": "Webhook",
       "name": "Webhook (طلب HTTP)"
+    },
+    "ha.toggle": {
+      "label": "HA تبديل",
+      "name": "Home Assistant: تبديل"
+    },
+    "ha.scene": {
+      "label": "HA مشهد",
+      "name": "Home Assistant: مشهد"
     }
   },
   "sets": {

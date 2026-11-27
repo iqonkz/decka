@@ -26,6 +26,17 @@ import ParticlesOrb from "./ParticlesOrb";
 import Icon from "../Icon";
 import "./island.css";
 
+export interface IslandRecordingState {
+  active: boolean;
+  elapsedSec: number;
+}
+
+export interface IslandMemoryProcess {
+  pid: number;
+  name: string;
+  mb: number;
+}
+
 export interface IslandProps {
   event: IslandEvent;
   theme?: "light" | "dark";
@@ -49,6 +60,21 @@ export interface IslandProps {
   /** T29.5 / T29.10b: top-bar height (6..16 px, default 10) and position. */
   barHeight?: number;
   barPosition?: "left" | "center" | "right";
+  /** T30.1b: meeting note recording indicator (visible in all modes including tab bar). */
+  recording?: IslandRecordingState | null;
+  /** T30.1b: top memory-consuming processes with Close buttons. */
+  memoryProcesses?: IslandMemoryProcess[];
+  onCloseProcess?: (pid: number, name: string) => void;
+}
+
+function formatRecTimer(sec: number): string {
+  const s = Math.max(0, Math.floor(sec));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const rem = s % 60;
+  const mm = h > 0 ? String(m).padStart(2, "0") : String(m);
+  const ss = String(rem).padStart(2, "0");
+  return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
 }
 
 const FLIP_MS = 320;
@@ -146,6 +172,9 @@ export default function Island({
   onTabHover,
   barHeight = 10,
   barPosition = "center",
+  recording,
+  memoryProcesses,
+  onCloseProcess,
 }: IslandProps) {
   const { mode, lyrics, voice } = event;
   const [langMenuOpen, setLangMenuOpen] = useState(false);
@@ -179,7 +208,7 @@ export default function Island({
   const gtZero = previewRatio > 0;
   const ltOne = previewRatio < 1;
   const isPreviewMid = mode === "expanded" && gtZero && ltOne;
-  const isContent = mode === "expanded" && (rawHasContent || stickyContent || isPreviewMid);
+  const isContent = mode === "expanded" && (rawHasContent || Boolean(memoryProcesses && memoryProcesses.length > 0) || stickyContent || isPreviewMid);
 
   const panelRef = useRef<HTMLDivElement>(null);
   const orbSlotRef = useRef<HTMLDivElement>(null);
@@ -340,7 +369,7 @@ export default function Island({
           role="region"
           aria-label={t("orb.aria")}
         >
-          <div className="island-tab-bar" style={{ height: clampedHeight }}>
+          <div className={`island-tab-bar${recording?.active ? " is-recording" : ""}`} style={{ height: recording?.active ? Math.max(clampedHeight, 18) : clampedHeight }}>
             {hasMeter && (
               <div
                 className="island-tab-meter"
@@ -349,6 +378,12 @@ export default function Island({
                   background: `linear-gradient(90deg, ${colorFrom ?? "#22d3ee"}, ${colorTo ?? "#d946ef"})`,
                 }}
               />
+            )}
+            {recording?.active && (
+              <span className="island-tab-rec" aria-label={t("m30.rec_label")}>
+                <span className="island-rec-dot" aria-hidden="true" />
+                <span>{formatRecTimer(recording.elapsedSec)}</span>
+              </span>
             )}
           </div>
         </div>
@@ -432,6 +467,12 @@ export default function Island({
             )}
           </div>
           <div className="island-compact-text">
+            {recording?.active && (
+              <span className="island-rec-pill" aria-label={t("m30.rec_label")}>
+                <span className="island-rec-dot" aria-hidden="true" />
+                <span>{formatRecTimer(recording.elapsedSec)}</span>
+              </span>
+            )}
             {voiceActive && slow ? (
               <div className="island-slow">
                 <div className="island-slow-row">
@@ -644,6 +685,13 @@ export default function Island({
               </div>
             )}
 
+            {recording?.active && (
+              <div className="island-rec-pill" style={{ marginBottom: 6 }} aria-label={t("m30.rec_label")}>
+                <span className="island-rec-dot" aria-hidden="true" />
+                <span>{t("m30.rec_label")} {formatRecTimer(recording.elapsedSec)}</span>
+              </div>
+            )}
+
             {/* T29.2: inside the panel - a click outside it passes through the window. */}
             {(voice?.phase === "confirm" || Boolean(voice?.confirm)) && (
               <div className="island-confirm-row">
@@ -669,6 +717,25 @@ export default function Island({
                     {renderChipIcon(chipIconKind(chip))}
                     <span>{chip.label}</span>
                   </button>
+                ))}
+              </div>
+            )}
+
+            {memoryProcesses && memoryProcesses.length > 0 && (
+              <div className="island-mem-list">
+                <div className="island-mem-title">{t("m30.mem_title")}</div>
+                {memoryProcesses.map((proc) => (
+                  <div key={proc.pid} className="island-mem-row">
+                    <span className="island-mem-name">{proc.name}</span>
+                    <span className="island-mem-mb">{proc.mb} MB</span>
+                    <button
+                      type="button"
+                      className="island-mem-close"
+                      onClick={() => onCloseProcess?.(proc.pid, proc.name)}
+                    >
+                      {t("m30.mem_close")}
+                    </button>
+                  </div>
                 ))}
               </div>
             )}

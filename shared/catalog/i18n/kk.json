@@ -289,6 +289,14 @@
     "web.webhook": {
       "label": "Webhook",
       "name": "Webhook (HTTP сұрауы)"
+    },
+    "ha.toggle": {
+      "label": "HA Ауыстыру",
+      "name": "Home Assistant: ауыстыру"
+    },
+    "ha.scene": {
+      "label": "HA Сахна",
+      "name": "Home Assistant: сахна"
     }
   },
   "sets": {
