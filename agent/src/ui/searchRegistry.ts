@@ -80,6 +80,7 @@ export const SEARCH_REGISTRY: SearchEntry[] = [
   { id: "settings-net", page: "settings", anchor: "settings-port", titleKey: "settings.port" },
   { id: "settings-autostart", page: "settings", anchor: "settings-autostart", titleKey: "settings.autostart" },
   { id: "settings-usb", page: "settings", anchor: "settings-usb", titleKey: "settings.usb" },
+  { id: "settings-backup", page: "settings", anchor: "settings-backup", titleKey: "backup.title", keywords: ["backup", "export", "import", "decka"] },
   { id: "about-updates", page: "about", anchor: "about-updates", titleKey: "about.updates" },
   { id: "about-report", page: "about", anchor: "about-report", titleKey: "about.report", keywords: ["report", "log", "diagnostics"] },
 ];

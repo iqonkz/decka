@@ -119,6 +119,11 @@ impl Guides {
         std::fs::write(self.dir.join(format!("{}.json", r.id)), bytes).map_err(|e| e.to_string())
     }
 
+    /// A recipe of a restored backup, kept under its id.
+    pub(crate) fn put(&self, r: &Recipe) -> Result<(), String> {
+        self.write(r)
+    }
+
     pub fn used(&self, id: &str) {
         if let Some(mut r) = self.list().into_iter().find(|r| r.id == id) {
             r.uses += 1;

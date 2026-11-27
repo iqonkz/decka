@@ -126,6 +126,11 @@ export default function App() {
     );
   }, []);
   useEffect(refreshAccent, [tab, refreshAccent]);
+  // A restored backup (T31.4) may bring another accent, language and window theme.
+  useEffect(() => {
+    window.addEventListener("decka:restored", refreshAccent);
+    return () => window.removeEventListener("decka:restored", refreshAccent);
+  }, [refreshAccent]);
 
   // The first-run guide: nothing paired, the layout untouched, and not dismissed before.
   useEffect(() => {

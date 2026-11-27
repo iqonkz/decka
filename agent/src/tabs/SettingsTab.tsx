@@ -11,6 +11,7 @@ import Switch from "../ui/Switch";
 import Segmented from "../ui/Segmented";
 import Select from "../ui/Select";
 import { useAutosave } from "../ui/useAutosave";
+import BackupSection from "./BackupSection";
 
 export default function SettingsTab() {
   const [config, setConfig] = useState<ConfigFile | null>(null);
@@ -142,6 +143,8 @@ export default function SettingsTab() {
           </Group>
         </div>
       </Disclosure>
+
+      <BackupSection onRestored={load} />
 
       {issues.length > 0 && (
         <div style={{ marginTop: 16 }}>

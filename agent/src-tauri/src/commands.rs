@@ -678,6 +678,61 @@ pub async fn save_problem_report(app: AppHandle) -> Result<String, String> {
         .map_err(|e| e.to_string())?
 }
 
+/// `Save a backup` (T31.4): one `.decka` file without secrets, at the place the user chose.
+#[tauri::command]
+pub async fn backup_export(app: AppHandle, path: String) -> Result<String, String> {
+    let agent = agent(&app)?;
+    tauri::async_runtime::spawn_blocking(move || decka_core::backup::export_to(&agent, std::path::Path::new(&path)).map(|p| p.display().to_string()))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+/// What restoring a backup would change; nothing is written.
+#[tauri::command]
+pub async fn backup_preview(app: AppHandle, path: String) -> Result<decka_core::backup::Preview, String> {
+    let agent = agent(&app)?;
+    tauri::async_runtime::spawn_blocking(move || decka_core::backup::preview(&agent, std::path::Path::new(&path)))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BackupRestored {
+    safety_copy: String,
+    secrets: Vec<decka_core::backup::MissingSecret>,
+    /// The voice settings were written to their files, but the running voice control did not take them.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    voice_error: Option<String>,
+}
+
+/// `Apply` of the previewed backup.
+#[tauri::command]
+pub async fn backup_apply(app: AppHandle, path: String, digest: String) -> Result<BackupRestored, String> {
+    let agent = agent(&app)?;
+    let applied = tauri::async_runtime::spawn_blocking(move || decka_core::backup::apply(&agent, std::path::Path::new(&path), &digest))
+        .await
+        .map_err(|e| e.to_string())??;
+    let mut voice_error = None;
+    if let Some(v) = applied.voice {
+        let args = decka_core::ai::service::VoiceSetArgs {
+            hotkey: Some(v.hotkey),
+            keep_loaded: Some(v.keep_loaded),
+            unload_after_min: Some(v.unload_after_min),
+            speak: Some(v.speak),
+            phone_button: Some(v.phone_button),
+            ..Default::default()
+        };
+        voice_error = voice(&app).and_then(|service| service.set(args)).err();
+    }
+    if let Some(settings) = applied.dictation {
+        if let Some(host) = app.try_state::<decka_core::voice::host::Host>() {
+            voice_error = host.set_dictation_settings(settings).err().or(voice_error);
+        }
+    }
+    Ok(BackupRestored { safety_copy: applied.safety_copy.display().to_string(), secrets: applied.secrets, voice_error })
+}
+
 #[tauri::command]
 pub fn voice_cancel(app: AppHandle) -> Result<decka_core::ai::service::VoiceStatus, String> {
     Ok(voice(&app)?.cancel())

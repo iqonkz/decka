@@ -35,6 +35,7 @@ pub mod proto;
 pub mod qr;
 pub mod ratelimit;
 pub mod report;
+pub mod backup;
 pub mod zipfile;
 pub mod safety;
 pub mod secure;

@@ -2508,13 +2508,27 @@ impl Agent {
             let kept = before.twitch.as_ref().filter(|b| b.client_id == tw.client_id);
             (tw.tokens, tw.login, tw.user_id, tw.tokens_set) = (kept.and_then(|b| b.tokens.clone()), kept.and_then(|b| b.login.clone()), kept.and_then(|b| b.user_id.clone()), None);
         }
+        self.commit_config(&before, config)
+    }
+
+    /// The settings of a restored backup (T31.4). Unlike `save_config` it may bring passwords and tokens: `backup` puts in
+    /// only the ones this PC already has.
+    pub(crate) fn import_config(&self, config: ConfigFile) -> SaveResult {
+        let result = self.commit_config(&self.config(), config);
+        if result == SaveResult::Saved {
+            self.refresh_ha();
+        }
+        result
+    }
+
+    fn commit_config(&self, before: &ConfigFile, config: ConfigFile) -> SaveResult {
         let issues = crate::validate::validate_config(&config);
         if !issues.is_empty() {
             return SaveResult::Rejected(issues);
         }
         // What the hooks in the files depend on: the port, the wait time and whether Codex asks the phone.
         let hooks_of = |c: &ConfigFile| c.ai.as_ref().map(|a| (a.claude.timeout_sec, a.codex.enabled, a.codex.approvals != Some(false)));
-        let reinstall = (before.port != config.port || hooks_of(&before) != hooks_of(&config)) && config.ai.as_ref().is_some_and(|a| a.hook_token.is_some());
+        let reinstall = (before.port != config.port || hooks_of(before) != hooks_of(&config)) && config.ai.as_ref().is_some_and(|a| a.hook_token.is_some());
         let result = self.write_config(config);
         if result == SaveResult::Saved {
             // A new port or wait time must reach the hook that Claude Code calls (DATA_MODEL.md 6.8, step 6).
