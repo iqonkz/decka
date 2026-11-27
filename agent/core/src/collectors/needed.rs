@@ -92,6 +92,7 @@ mod tests {
             popup: None,
             confirm: None,
             bind: Some(Bind { var: var.into(), states: BTreeMap::new() }),
+            catalog_id: None,
             face: None,
             show_label: None,
         })
