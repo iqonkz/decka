@@ -1,11 +1,12 @@
-import { useState } from "react";
-import { t, type ConfigFile, type MailAccount } from "@decka/shared";
+import { useEffect, useState } from "react";
+import { t, type ConfigFile, type MailAccount, type MailAccountStatus, type MailTestResult } from "@decka/shared";
 import { call } from "../ipc";
 import { makeActionId } from "../editor/addButton";
 import Banner from "../ui/Banner";
 import Button from "../ui/Button";
 import Select from "../ui/Select";
 import { showToast } from "../ui/Toast";
+import { MailProblem, MailTestReport } from "./MailReport";
 
 const MAX_ACCOUNTS = 3;
 
@@ -29,8 +30,34 @@ export default function MailSection({ config, onSaved }: { config: ConfigFile; o
   const [passwordFor, setPasswordFor] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [generalError, setGeneralError] = useState<string | null>(null);
+  const [statuses, setStatuses] = useState<MailAccountStatus[]>([]);
+  const [tests, setTests] = useState<Record<string, MailTestResult>>({});
+  const [testing, setTesting] = useState<string | null>(null);
+
+  // The last round of the mail loop: it runs every two minutes while a widget or a variable needs the mail.
+  useEffect(() => {
+    let active = true;
+    const read = () =>
+      void call("mail_status").then(
+        (s) => active && setStatuses(s),
+        (e) => active && setGeneralError(String(e)),
+      );
+    read();
+    const timer = window.setInterval(read, 5000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, []);
+
+  /** A changed mailbox makes the old result of its check meaningless. */
+  const forgetTest = (id: string) => {
+    setTests(({ [id]: _old, ...rest }) => rest);
+    setStatuses((prev) => prev.filter((s) => s.accountId !== id));
+  };
 
   const updateAccountField = (id: string, patch: Partial<MailAccount>) => {
+    forgetTest(id);
     setAccounts((prev) => prev.map((a) => (a.id === id ? { ...a, ...patch } : a)));
     // Clear field error on change
     if (errors[id]) {
@@ -70,9 +97,23 @@ export default function MailSection({ config, onSaved }: { config: ConfigFile; o
     }
   }
 
-  async function saveAccount(id: string) {
+  async function testAccount(id: string) {
+    if (!(await saveAccount(id))) return;
+    setTesting(id);
+    forgetTest(id);
+    try {
+      const result = await call("mail_test", { accountId: id });
+      setTests((prev) => ({ ...prev, [id]: result }));
+    } catch (e) {
+      setGeneralError(String(e));
+    } finally {
+      setTesting(null);
+    }
+  }
+
+  async function saveAccount(id: string): Promise<boolean> {
     const account = accounts.find((a) => a.id === id);
-    if (!account) return;
+    if (!account) return false;
 
     // Validate fields before submitting
     const accountErr: AccountErrors = {};
@@ -88,11 +129,11 @@ export default function MailSection({ config, onSaved }: { config: ConfigFile; o
 
     if (Object.keys(accountErr).length > 0) {
       setErrors((prev) => ({ ...prev, [id]: accountErr }));
-      return;
+      return false;
     }
 
     setErrors((prev) => ({ ...prev, [id]: {} }));
-    await persistAccounts(accounts);
+    return persistAccounts(accounts);
   }
 
   async function removeAccount(id: string) {
@@ -122,7 +163,10 @@ export default function MailSection({ config, onSaved }: { config: ConfigFile; o
           },
         });
         if (saved.ok) account.openActionId = actionId;
-      } catch {}
+      } catch (e) {
+        // The mailbox is still added; only the "open in the browser" key could not be made.
+        setGeneralError(String(e));
+      }
     }
 
     // Add locally without saving incomplete account to backend yet
@@ -134,6 +178,7 @@ export default function MailSection({ config, onSaved }: { config: ConfigFile; o
     setGeneralError(null);
     try {
       await call("set_mail_password", { accountId, password });
+      forgetTest(accountId);
       setPassword("");
       setPasswordFor(null);
       await onSaved();
@@ -148,6 +193,8 @@ export default function MailSection({ config, onSaved }: { config: ConfigFile; o
       <h3>{t("mailset.title")}</h3>
       {accounts.map((a) => {
         const err = errors[a.id] ?? {};
+        const test = tests[a.id];
+        const status = statuses.find((s) => s.accountId === a.id);
         return (
           <div className="mail-account" key={a.id} style={{ display: "flex", flexDirection: "column", gap: 10, padding: "12px 0", borderBottom: "1px solid var(--border)" }}>
             <div className="row">
@@ -219,10 +266,20 @@ export default function MailSection({ config, onSaved }: { config: ConfigFile; o
                 </div>
               )}
 
-              <Button variant="primary" onClick={() => void saveAccount(a.id)}>
-                {t("common.save")}
-              </Button>
+              <div className="row">
+                <Button disabled={testing !== null} onClick={() => void testAccount(a.id)}>
+                  {testing === a.id ? t("mailset.testing") : t("mailset.test")}
+                </Button>
+                <Button variant="primary" onClick={() => void saveAccount(a.id)}>
+                  {t("common.save")}
+                </Button>
+              </div>
             </div>
+            {test ? (
+              <MailTestReport result={test} />
+            ) : (
+              status?.reason && <MailProblem reason={status.reason} noPassword={status.noPassword} detail={status.detail} />
+            )}
           </div>
         );
       })}
@@ -236,7 +293,9 @@ export default function MailSection({ config, onSaved }: { config: ConfigFile; o
             options={MAIL_PRESETS.map((p) => ({ value: p.id, label: p.name }))}
             onChange={(val) => val && void addPreset(val)}
           />
-          {accounts.length > 0 && <Button onClick={() => void call("mail_check_now")}>{t("mailset.check_now")}</Button>}
+          {accounts.length > 0 && (
+            <Button onClick={() => void call("mail_check_now").catch((e) => setGeneralError(String(e)))}>{t("mailset.check_now")}</Button>
+          )}
         </div>
       )}
       {generalError && <Banner kind="error">{generalError}</Banner>}

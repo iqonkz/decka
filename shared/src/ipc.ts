@@ -71,6 +71,14 @@ export interface TwitchStatus {
 
 /** YouTube as the settings window sees it. */
 /** `access`: `allowed`, `denied` (blocked in Windows Settings → Privacy → Notifications) or `unknown`. */
+/** T31.2: why a mailbox could not be read. The phone still gets only `auth` or `network`. */
+export type MailReason = "auth" | "tls" | "host" | "timeout" | "app_password_required" | "oauth_unsupported";
+export type MailStepId = "dns" | "tcp" | "tls" | "login" | "folder";
+/** `detail` is the server's or Windows' own words without the user name and the password. */
+export interface MailTestStep { id: MailStepId; state: "ok" | "error" | "skipped"; durationMs: number; reason?: MailReason; detail?: string; }
+export interface MailTestResult { steps: MailTestStep[]; unread: number | null; noPassword: boolean; }
+export interface MailAccountStatus { accountId: Id; reason?: MailReason; step?: MailStepId; detail?: string; noPassword: boolean; }
+
 /** M18 (DATA_MODEL.md 11.2): the kind of network the phones use now and the switch `Allow phones on public networks`. */
 export interface NetworkStatus { kind: "usb" | "private" | "public"; allowPublic: boolean; }
 export interface WindowsNotificationsStatus { enabled: boolean; access: "allowed" | "denied" | "unknown"; apps: string[]; }
@@ -293,6 +301,8 @@ export interface IpcCommands {
   voice_dictation_get(): DictationSettings;
   voice_dictation_set(args: DictationSettings): DictationSettings; // an invalid shortcut is an error string; the answer is what was saved
   mail_check_now(): void;                                       // M17: looks at the mailboxes at once
+  mail_test(args: { accountId: Id }): MailTestResult;           // T31.2: checks one saved mailbox step by step; a success retries a refused sign-in
+  mail_status(): MailAccountStatus[];                           // T31.2: how the last round went; empty while no widget or variable needs mail
   network_status(): NetworkStatus;                             // M18: usb / private / public and the allowPublic switch
   windows_notifications_status(): WindowsNotificationsStatus;   // M17: the switch, what Windows says about the access, the apps seen so far
   obs_status(): ObsStatus;                                      // M15: for the window (pick a scene / audio input when making keys)

@@ -287,6 +287,7 @@ if (scene === "deck" || scene === "settings") {
       voice_duck_get: true,
       island_config_get: { restingMode: "bar", barHeight: 10, barPosition: "center" },
       notes_keep_audio_get: false,
+      mail_status: [],
       ha_get: { url: "http://homeassistant.local:8123", hasToken: true, connected: true, entities: [{ id: "light.bedroom", name: "Свет в спальне", enabled: true }, { id: "switch.desk", name: "Розетка стола", enabled: true }, { id: "scene.movie", name: "Сцена «Кино»", enabled: false }] },
       notes_list: [
         {

@@ -249,6 +249,18 @@ pub fn mail_check_now(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+/// `Check connection` (T31.2): one saved mailbox, step by step with the time of each step.
+#[tauri::command]
+pub async fn mail_test(app: AppHandle, account_id: String) -> Result<decka_core::mail::MailTestResult, String> {
+    agent(&app)?.mail_test(&account_id).await
+}
+
+/// How the last round of the mail loop went for every mailbox.
+#[tauri::command]
+pub fn mail_status(app: AppHandle) -> Result<Vec<decka_core::mail::MailAccountStatus>, String> {
+    Ok(agent(&app)?.mail_status())
+}
+
 /// `More → Integrations → AI coding`: what Claude Code and Codex look like from here.
 #[tauri::command]
 pub fn cc_status(app: AppHandle) -> Result<decka_core::agent::CcStatus, String> {

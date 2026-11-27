@@ -373,6 +373,8 @@ struct Inner {
     mail_task: Mutex<Option<JoinHandle<()>>>,
     /// `Check now` in the window wakes the mail loop.
     mail_check: Arc<tokio::sync::Notify>,
+    /// How the last round went for every mailbox (`mail_status`, T31.2).
+    mail_status: Mutex<Vec<crate::mail::MailAccountStatus>>,
     winnotif_collector: Mutex<Option<crate::winnotif::WinNotifCollector>>,
     /// Phone notification id -> (id Windows gave the toast, AUMID of the program); at most `WIN_TARGETS` entries.
     win_targets: Mutex<std::collections::VecDeque<(String, u32, String)>>,
@@ -526,6 +528,7 @@ impl Agent {
                 battery_collector: Mutex::new(None),
                 mail_task: Mutex::new(None),
                 mail_check: Arc::new(tokio::sync::Notify::new()),
+                mail_status: Mutex::new(Vec::new()),
                 winnotif_collector: Mutex::new(None),
                 win_targets: Mutex::new(std::collections::VecDeque::new()),
                 win_apps: Mutex::new(std::collections::BTreeSet::new()),
@@ -1195,6 +1198,7 @@ impl Agent {
         }
         let has_accounts = self.config().mail.is_some_and(|m| !m.accounts.is_empty());
         if !on || !has_accounts {
+            self.inner.mail_status.lock().unwrap().clear();
             self.inner.store.set("mail", serde_json::Value::Null);
             self.inner.store.update_vars(crate::mail::clear_vars);
             return;
@@ -1202,32 +1206,38 @@ impl Agent {
         let me = self.clone();
         let wake = self.inner.mail_check.clone();
         let task = self.inner.runtime.spawn(async move {
-            // Account id -> the password blob that was refused.
-            let mut refused: std::collections::HashMap<String, Option<String>> = std::collections::HashMap::new();
+            // Account id -> the password blob that was refused, and what the server said.
+            let mut refused: std::collections::HashMap<String, (Option<String>, crate::mail::MailFailure)> = std::collections::HashMap::new();
             loop {
                 let accounts = me.config().mail.map(|m| m.accounts).unwrap_or_default();
                 let mut results = Vec::new();
-                for account in accounts {
-                    let result = if refused.get(&account.id).is_some_and(|blob| *blob == account.password) {
-                        Err(crate::mail::MailError::Auth)
-                    } else {
-                        let outcome = match account.password.as_deref().map(crate::dpapi::unprotect) {
-                            Some(Ok(password)) => match u16::try_from(account.port) {
-                                Ok(port) => crate::mail::unseen_count(&account.host, port, &account.user, &password).await,
-                                Err(_) => Err(crate::mail::MailError::Network),
-                            },
-                            // No password yet, or one that this Windows user cannot read: the box needs its password set again.
-                            _ => Err(crate::mail::MailError::Auth),
-                        };
-                        if outcome == Err(crate::mail::MailError::Auth) {
-                            refused.insert(account.id.clone(), account.password.clone());
-                        } else {
-                            refused.remove(&account.id);
+                for (index, account) in accounts.into_iter().enumerate() {
+                    let result = match refused.get(&account.id) {
+                        Some((blob, failure)) if *blob == account.password => Err(failure.clone()),
+                        _ => {
+                            let outcome = probe_mailbox(&account).await.outcome;
+                            if let Err(f) = &outcome {
+                                // Said once while it stays the same. The number of the box, not its name: the log holds no
+                                // user text, address or password.
+                                let repeated = me.inner.mail_status.lock().unwrap().iter().any(|s| s.account_id == account.id && s.reason == Some(f.reason) && s.step == Some(f.step));
+                                if !repeated {
+                                    tracing::warn!("mailbox #{}: {} at the {:?} step", index + 1, f.reason.as_str(), f.step);
+                                }
+                            }
+                            match &outcome {
+                                Err(failure) if failure.reason.is_refusal() => {
+                                    refused.insert(account.id.clone(), (account.password.clone(), failure.clone()));
+                                }
+                                _ => {
+                                    refused.remove(&account.id);
+                                }
+                            }
+                            outcome
                         }
-                        outcome
                     };
                     results.push((account, result));
                 }
+                *me.inner.mail_status.lock().unwrap() = results.iter().map(|(a, r)| crate::mail::MailAccountStatus::new(&a.id, r)).collect();
                 let info = crate::mail::build_info(&results, crate::auth::now_ms());
                 me.inner.store.update_vars(|v| crate::mail::apply_vars(v, Some(&info)));
                 me.inner.store.set("mail", serde_json::to_value(&info).expect("mail info serializes"));
@@ -1243,6 +1253,21 @@ impl Agent {
     /// `Check now` in the window: looks at the mailboxes at once.
     pub fn mail_check_now(&self) {
         self.inner.mail_check.notify_one();
+    }
+
+    /// `mail_status`: how the last round went; empty while nothing needs the mail.
+    pub fn mail_status(&self) -> Vec<crate::mail::MailAccountStatus> {
+        self.inner.mail_status.lock().unwrap().clone()
+    }
+
+    /// `mail_test` (T31.2): one check of a saved mailbox, step by step. A success also forgets an earlier refusal.
+    pub async fn mail_test(&self, account_id: &str) -> Result<crate::mail::MailTestResult, String> {
+        let account = self.config().mail.and_then(|m| m.accounts.into_iter().find(|a| a.id == account_id)).ok_or("no such mailbox")?;
+        let probe = self.inner.runtime.spawn(async move { probe_mailbox(&account).await }).await.map_err(|e| e.to_string())?;
+        if probe.outcome.is_ok() {
+            self.start_mail(self.needed_now().mail);
+        }
+        Ok(probe.into())
     }
 
     /// `set_mail_password`: encrypts with DPAPI and saves it for the mailbox `account_id`; an empty password removes it. The
@@ -3101,6 +3126,14 @@ pub enum ApkGetError {
 }
 
 /// `%LOCALAPPDATA%\Decka\lyrics`; a test copy keeps it inside its own folder.
+/// One check of a saved mailbox. Without a password (none yet, or one this Windows user cannot read) it ends at the sign-in.
+async fn probe_mailbox(account: &crate::model::MailAccount) -> crate::mail::Probe {
+    let password = account.password.as_deref().and_then(|blob| crate::dpapi::unprotect(blob).ok());
+    // The configuration is validated to 1..65535; anything else cannot be connected to.
+    let port = u16::try_from(account.port).unwrap_or(0);
+    crate::mail::probe(&account.host, port, &account.user, password.as_deref(), crate::mail::TIMEOUT).await
+}
+
 fn lyrics_dir(config_dir: &std::path::Path, explicit: bool) -> PathBuf {
     if explicit || std::env::var_os("DECKA_CONFIG_DIR").is_some_and(|d| !d.is_empty()) {
         return config_dir.join("lyrics");

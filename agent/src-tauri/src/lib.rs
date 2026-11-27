@@ -82,6 +82,8 @@ pub fn run() {
             commands::set_obs_password,
             commands::set_mail_password,
             commands::mail_check_now,
+            commands::mail_test,
+            commands::mail_status,
             commands::lists_get,
             commands::reminders_get,
             commands::reminder_upsert,

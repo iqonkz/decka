@@ -73,6 +73,9 @@ async fn pairing_login_permissions_obs_and_mail_leave_no_secret_in_the_log() {
     let account_id = agent.config().mail.unwrap().accounts[0].id.clone();
     agent.set_mail_password(&account_id, MAIL_PASSWORD).unwrap();
     agent.mail_check_now();
+    // The connection check of the window (nothing listens on port 1): its answer holds no password either.
+    let checked = serde_json::to_string(&agent.mail_test(&account_id).await.unwrap()).unwrap();
+    assert!(checked.contains("\"tcp\"") && !checked.contains(MAIL_PASSWORD), "{checked}");
     tokio::time::sleep(Duration::from_millis(1500)).await;
 
     // Pairing by the typed code, then a login of the paired device, then a permission answer.
