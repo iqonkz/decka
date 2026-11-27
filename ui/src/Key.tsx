@@ -7,6 +7,8 @@ import { useDeckMetrics } from "./metricsContext";
 import { colorVars, parseHex } from "./theme/colors";
 import { materialKeyVars } from "./theme/material";
 
+const KEY_ICON_SHARE = 0.4;
+const CAPTION_FULL_FROM_PX = 64;
 const TAP_SLOP_PX = 20;
 const CONFIRM_HOLD_MS = 600;
 const OK_MS = 300;
@@ -176,6 +178,10 @@ export default function Key({ actionId, onTap, onPressed, confirm, icon, label, 
   } as CSSProperties;
   const classes = ["key", phase, coloured ? "colored" : "", disabled ? "disabled" : "", noData ? "no-data" : "", full ? "full" : "", full?.mode === "cover" ? "tile-face" : ""].filter(Boolean).join(" ");
   const labelPad = 0.07 * side;
+  // DESIGN.md 8.4: the icon is 40 % of the height of the key, the caption 13/500 (smaller only on the tiny keys of a preview).
+  const keyHeight = stretch ? (metrics.cellH as number) : side;
+  const iconPx = Math.round(Math.min(KEY_ICON_SHARE * keyHeight, 0.6 * (stretch ? (metrics.cellW as number) : side)));
+  const captionPx = keyHeight >= CAPTION_FULL_FROM_PX ? 13 : 11;
   // The hold ring follows the edge of the tile, which is not square when the grid fills the screen.
   const ringW = stretch ? (metrics.cellW as number) : side;
   const ringH = stretch ? (metrics.cellH as number) : side;
@@ -193,17 +199,17 @@ export default function Key({ actionId, onTap, onPressed, confirm, icon, label, 
         </div>
       )}
       {full && full.overlayLabel && label && (
-        <div className="key-full-label" style={{ padding: `0 ${0.08 * side}px ${0.08 * side}px`, fontSize: Math.max(11, 0.13 * side) }}>
+        <div className="key-full-label" style={{ padding: `0 ${0.08 * side}px ${0.08 * side}px`, fontSize: captionPx }}>
           <span>{label}</span>
         </div>
       )}
       {!full && icon && (
         <div className="key-icon" style={label ? { transform: `translateY(${-0.07 * side}px)` } : undefined}>
-          <Icon icon={icon} size={Math.round(0.46 * side)} bitmapSize={Math.round((label ? 0.52 : 0.62) * side)} />
+          <Icon icon={icon} size={iconPx} bitmapSize={iconPx} />
         </div>
       )}
       {!full && label && icon && (
-        <div className="key-label" style={{ left: labelPad, right: labelPad, bottom: labelPad, fontSize: Math.max(11, 0.14 * side) }}>
+        <div className="key-label" style={{ left: labelPad, right: labelPad, bottom: labelPad, fontSize: captionPx }}>
           {label}
         </div>
       )}
