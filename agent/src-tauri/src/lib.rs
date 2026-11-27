@@ -14,6 +14,10 @@ use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 
 /// Makes the OS autostart entry match `config.autostart` (only touches it when they differ).
 pub fn sync_autostart(app: &AppHandle, wanted: bool) {
+    // A test copy never changes the autostart of the installed agent (the same entry of Windows).
+    if std::env::var_os("DECKA_CONFIG_DIR").is_some() {
+        return;
+    }
     let manager = app.autolaunch();
     let enabled = manager.is_enabled().unwrap_or(false);
     let result = if wanted && !enabled {

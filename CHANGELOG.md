@@ -4,9 +4,6 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
-### Fixed
-- Big or slow windows were read as empty by the screen help ("did not find it") when reading took longer than 0.3 s; what was read is now kept.
-
 ### Added
 - A **work mode with focus minutes** starts a focus timer; at its end the island says so and the phone shows a toast.
 - **Phone battery** on the PC: the battery widget shows the phone, the voice answers about it, and the island says "Phone: 15%" when it runs low off the charger.
@@ -20,6 +17,9 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 - The **step-by-step guide** waits for Windows to say the window changed instead of reading it over and over: about eight times less processor while it waits.
 - Without a video card for speech, the **lightweight recognition** is on by default (a choice made by hand stays; an installed large model is not replaced by itself).
 - The part of the model that looks at the screen (about 1 GB of memory) is loaded only while **Screen help** is switched on; asking about the screen with it off offers to switch it on.
+
+### Fixed
+- Big or slow windows were read as empty by the screen help ("did not find it") when reading took longer than 0.3 s; what was read is now kept.
 
 ## 0.51.1 — 2026-11-27
 
