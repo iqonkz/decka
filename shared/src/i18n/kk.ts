@@ -1335,4 +1335,13 @@ export const kk: Dictionary = {
   "voice.chip.note": "Жазбаны бастау",
   "voice.chip.note_stop": "Жазбаны тоқтату",
   "notes.action_type": "Кездесу жазбасы",
+  "voice.confirm.close_heavy": "{name} жабылсын ба?",
+  "voice.confirm.close_force": "{name} жабылмады. Мәжбүрлеп жабылсын ба? Сақталмаған жұмыс жоғалады",
+  "voice.reply.memory_top": "Жадты ең көп алатындар: {list}",
+  "voice.reply.memory_none": "Көрсететін бағдарлама жоқ",
+  "voice.reply.closed": "{name} жабылды",
+  "voice.reply.ram_notice": "Жад 2 минуттан бері {pct}% толы",
+  "voice.reply.close_not_allowed": "Decka бұл бағдарламаны жаппайды",
+  "voice.reply.close_not_running": "Бұл бағдарлама енді жұмыс істемейді",
+  "voice.reply.close_failed": "Windows оны жабуға рұқсат бермеді",
 };

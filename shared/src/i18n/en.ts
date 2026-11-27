@@ -1339,4 +1339,13 @@ export const en = {
   "voice.chip.note": "Start a note",
   "voice.chip.note_stop": "Stop the note",
   "notes.action_type": "Meeting note",
+  "voice.confirm.close_heavy": "Close {name}?",
+  "voice.confirm.close_force": "{name} did not close. Close it by force? Unsaved work will be lost",
+  "voice.reply.memory_top": "Using the most memory: {list}",
+  "voice.reply.memory_none": "No program to show",
+  "voice.reply.closed": "Closed {name}",
+  "voice.reply.ram_notice": "Memory has been {pct}% full for 2 minutes",
+  "voice.reply.close_not_allowed": "Decka does not close this program",
+  "voice.reply.close_not_running": "That program is not running any more",
+  "voice.reply.close_failed": "Windows did not let Decka close it",
 } as const;

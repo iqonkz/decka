@@ -544,6 +544,13 @@ pub fn open_config_dir(app: AppHandle) -> Result<(), String> {
     std::process::Command::new("explorer.exe").arg(agent.config_dir()).spawn().map(drop).map_err(|e| e.to_string())
 }
 
+/// T30.2: the "Close" button of a program in the memory list of the island; the agent asks "close it?" first.
+#[tauri::command]
+pub fn memory_close(app: AppHandle, pid: u32) -> Result<(), String> {
+    let host = app.try_state::<decka_core::voice::host::Host>().ok_or_else(|| "voice control did not start".to_string())?;
+    host.memory_close(pid)
+}
+
 // ---- M30: meeting notes (T30.1) ----
 
 #[tauri::command]

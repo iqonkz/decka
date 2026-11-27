@@ -1328,4 +1328,13 @@ export const ja: Dictionary = {
   "voice.chip.note": "メモを開始",
   "voice.chip.note_stop": "メモを停止",
   "notes.action_type": "会議メモ",
+  "voice.confirm.close_heavy": "{name} を閉じますか？",
+  "voice.confirm.close_force": "{name} が閉じませんでした。強制終了しますか？未保存の内容は失われます",
+  "voice.reply.memory_top": "メモリ使用量の多い順：{list}",
+  "voice.reply.memory_none": "表示するプログラムはありません",
+  "voice.reply.closed": "{name} を閉じました",
+  "voice.reply.ram_notice": "メモリ使用率 {pct}% が2分続いています",
+  "voice.reply.close_not_allowed": "このプログラムは Decka では閉じません",
+  "voice.reply.close_not_running": "そのプログラムはもう動いていません",
+  "voice.reply.close_failed": "Windows により閉じられませんでした",
 };

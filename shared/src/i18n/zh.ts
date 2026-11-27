@@ -1328,4 +1328,13 @@ export const zh: Dictionary = {
   "voice.chip.note": "开始笔记",
   "voice.chip.note_stop": "停止笔记",
   "notes.action_type": "会议笔记",
+  "voice.confirm.close_heavy": "要关闭 {name} 吗？",
+  "voice.confirm.close_force": "{name} 没有关闭。强制关闭吗？未保存的内容会丢失",
+  "voice.reply.memory_top": "占用内存最多：{list}",
+  "voice.reply.memory_none": "没有可显示的程序",
+  "voice.reply.closed": "已关闭 {name}",
+  "voice.reply.ram_notice": "内存占用 {pct}% 已持续 2 分钟",
+  "voice.reply.close_not_allowed": "Decka 不会关闭该程序",
+  "voice.reply.close_not_running": "该程序已不在运行",
+  "voice.reply.close_failed": "Windows 不允许关闭它",
 };

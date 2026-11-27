@@ -64,6 +64,7 @@ export const WHITELISTED_VOICE_TOOLS = [
   "add_button",
   "system_theme",
   "notes_record",
+  "memory_top",
 ] as const;
 
 export const VOICE_COMMAND_GROUPS: CommandGroup[] = [
@@ -164,6 +165,7 @@ export const VOICE_COMMAND_GROUPS: CommandGroup[] = [
       { tool: "system_theme", ru: "Включи светлую тему Windows", en: "Turn on Windows light theme", badges: ["no_ai"] },
       { tool: "screenshot", ru: "Сделай скриншот", en: "Take a screenshot", badges: ["no_ai"] },
       { tool: "notes_record", ru: "Начни заметку", en: "Start a meeting note", badges: ["no_ai"] },
+      { tool: "memory_top", ru: "Что ест память?", en: "What is eating the memory?", badges: ["no_ai"] },
       { tool: "system", ru: "Заблокируй компьютер", en: "Lock the computer", badges: ["no_ai", "confirm"] },
     ],
   },

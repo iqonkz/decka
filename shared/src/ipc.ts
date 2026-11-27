@@ -175,6 +175,7 @@ export interface VoiceSetArgs {
 }
 
 export interface IpcCommands {
+  memory_close(args: { pid: number }): void;                   // T30.2: "Close" in the memory list of the island (asks first)
   notes_list(): NoteEntry[];                                   // T30.1: meeting notes, the newest first
   notes_delete(args: { id: string }): void;
   notes_open_folder(): void;

@@ -440,6 +440,9 @@ pub fn setup(app: &AppHandle, agent: &Agent) -> Arc<Shared> {
                 let chips = host.as_ref().map(|h| h.context_chips()).unwrap_or_default();
                 voice_view(payload.as_ref(), slow, host.as_ref().and_then(|h| h.download_progress()), host.as_ref().and_then(|h| h.loading_eta_sec()), &chips)
             };
+            // T30.2: the list of "what uses the memory" holds the panel like an answer with buttons.
+            let memory = host.as_ref().and_then(|h| h.memory_shown()).filter(|_| orb.is_none());
+            let voice = if memory.is_some() && voice != VoiceInput::Active { VoiceInput::Answer { actions: true } } else { voice };
             // T30.1: a meeting note is always shown.
             let note = agent.notes().status();
             let island = machine.step(&Inputs {
@@ -538,6 +541,7 @@ pub fn setup(app: &AppHandle, agent: &Agent) -> Arc<Shared> {
                 "track": sampled.track_info,
                 "musicLevel": level_of_music,
                 "recording": note.active.then(|| json!({ "active": true, "elapsedSec": note.elapsed_sec })),
+                "memory": memory,
                 "barHeight": sampled.settings.bar_height,
                 "barPosition": sampled.settings.bar_position,
                 "orb": orb.as_ref().map(|o| json!({ "phase": o.phase.name(), "level": level, "text": o.bubble.as_ref().map(|b| &b.text), "key": o.bubble.as_ref().and_then(|b| b.key) })),

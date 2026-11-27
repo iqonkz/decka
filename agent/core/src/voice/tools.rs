@@ -20,8 +20,8 @@ pub const TOOLS: &[&str] = &[
     "find_on_screen", "ui_act", "guide", "guide_record", "guide_control", "read_aloud", "mode_run", "mode_save",
     // M29: a ready-made button of the catalog, a picture of the screen.
     "add_button", "screenshot", "system_theme",
-    // M30: meeting notes.
-    "notes_record",
+    // M30: meeting notes, what uses the memory.
+    "notes_record", "memory_top",
 ];
 
 pub const MAX_TEXT: usize = 2000;
@@ -72,6 +72,8 @@ pub struct Context {
     pub pages: Vec<PageRef>,
     /// Action ids that need a confirmation (layout buttons with `confirm`).
     pub confirm_actions: Vec<String>,
+    /// M30 (T30.2): the list of "what uses the memory" while it is fresh: "close <name>" means one of these, after a "yes".
+    pub heavy: Vec<super::heavy::Heavy>,
     /// The Screen help package (the projector of the model) is on the disk; without it `screen_ask` first asks to download it.
     pub vision_ready: bool,
     /// The package is there but Screen help is switched off, so the model runs without it: a "yes" turns it on.
@@ -137,6 +139,10 @@ pub enum ToolCall {
     ModeSave { name: String },
     /// M30 (T30.1): `Some(true)` starts a meeting note, `Some(false)` stops it, `None` does the other of what is going on.
     NotesRecord { start: Option<bool> },
+    /// M30 (T30.2): the programs that use the most memory.
+    MemoryTop,
+    /// Closes one of them: politely, or by force after the second "yes". The program comes from the list, never from words.
+    CloseHeavy { exe: String, name: String, force: bool },
     Volume(VolumeOp),
     Media(MediaOp),
     GoPage { page_id: String, name: String },
@@ -271,6 +277,24 @@ fn best<T>(lang: &str, spoken: &str, items: &[T], name: impl Fn(&T) -> &str, key
     scored.into_iter().filter(|s| top - s.0 < TIE_MARGIN).filter(|s| seen.insert(key(&items[s.1]))).map(|s| s.1).collect()
 }
 
+/// The confirmation to close a program of the memory list, when the spoken name fits one of them (by its window title or
+/// by the name of its file).
+fn close_heavy(spoken: &str, ctx: &Context) -> Option<Resolved> {
+    let names: Vec<(String, usize)> = ctx.heavy.iter().enumerate().flat_map(|(i, h)| [(h.stem.clone(), i), (h.name.clone(), i)]).collect();
+    let found = best(&ctx.lang, spoken, &names, |n| n.0.as_str(), |n| ctx.heavy[n.1].exe.to_ascii_lowercase());
+    match found.as_slice() {
+        [] => None,
+        [i] => Some(close_question(&ctx.heavy[names[*i].1])),
+        many => Some(ask(many.iter().map(|i| ctx.heavy[names[*i].1].name.clone()).collect())),
+    }
+}
+
+/// "Close <name>?" for one program of the memory list.
+pub(crate) fn close_question(h: &super::heavy::Heavy) -> Resolved {
+    let call = ToolCall::CloseHeavy { exe: h.exe.clone(), name: h.name.clone(), force: false };
+    ready_key(call, true, format!("Close {}?", h.name), "voice.confirm.close_heavy", &[("name", &h.name)])
+}
+
 fn ask(options: Vec<String>) -> Resolved {
     let shown = options.iter().take(3).cloned().collect::<Vec<_>>().join(" or ");
     Resolved::Ask { question: format!("Which one: {shown}?"), options }
@@ -370,6 +394,12 @@ fn run(tool: &str, args: &serde_json::Map<String, Value>, ctx: &Context) -> Resu
         "open_app" | "switch_app" | "close_app" => {
             only(args, &["name"])?;
             let name = text(args, "name", 100)?;
+            // M30 (T30.2): right after "what uses the memory", "close <name>" is about that list: asked first.
+            if tool == "close_app" {
+                if let Some(found) = close_heavy(name, ctx) {
+                    return Ok(found);
+                }
+            }
             let found = best(&ctx.lang, name, &ctx.apps, |a| a.name.as_str(), |a| a.program.to_ascii_lowercase());
             match found.as_slice() {
                 [] => reject("that program is not installed"),
@@ -687,6 +717,10 @@ fn run(tool: &str, args: &serde_json::Map<String, Value>, ctx: &Context) -> Resu
                 ready_key(ToolCall::ScreenAsk { question }, true, "Download the Screen help package (about 0.7 GB)?", "voice.confirm.screen_pack", &[])
             }
         }
+        "memory_top" => {
+            only(args, &[])?;
+            ready(ToolCall::MemoryTop, false, "What uses the memory")
+        }
         "notes_record" => {
             only(args, &["op"])?;
             let (start, label) = match args.get("op").and_then(Value::as_str) {
@@ -864,6 +898,7 @@ mod tests {
             lang: "en".into(),
             vision_ready: false,
             vision_off: false,
+            heavy: vec![],
             memory: vec![],
         weather_place: None,
         guide_running: false,
@@ -968,6 +1003,15 @@ mod tests {
         assert!(is_reject(call("open_app", json!({ "name": "C:\\Windows\\System32\\cmd.exe" }))));
         assert!(is_reject(call("open_app", json!({ "name": "powershell" }))));
         assert!(is_reject(call("close_app", json!({ "name": "unknown program" }))));
+        // T30.2: after "what uses the memory" the name means a program of the list, and nothing closes without a "yes".
+        let mut listed = ctx();
+        listed.heavy = vec![crate::voice::heavy::Heavy { pid: 7, name: "Level 3 - Super Game".into(), stem: "supergame".into(), exe: "C:\\g\\supergame.exe".into(), mb: 900 }];
+        for said in ["supergame", "super game"] {
+            let v = ready_of(validate(&RawCall { tool: "close_app".into(), args: json!({ "name": said }) }, &listed));
+            assert!(v.confirm && v.key == Some("voice.confirm.close_heavy"), "{said}");
+            assert_eq!(v.call, ToolCall::CloseHeavy { exe: "C:\\g\\supergame.exe".into(), name: "Level 3 - Super Game".into(), force: false });
+        }
+        assert!(is_reject(validate(&RawCall { tool: "close_app".into(), args: json!({ "name": "other thing" }) }, &listed)));
         // The same program under two shortcuts is one candidate.
         assert!(matches!(ready_of(call("switch_app", json!({ "name": "notepad" }))).call, ToolCall::SwitchApp { .. }));
     }

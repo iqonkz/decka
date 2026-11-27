@@ -153,6 +153,7 @@ pub fn run() {
             commands::voice_duck_get,
             commands::voice_duck_set,
             commands::voice_chip,
+            commands::memory_close,
             commands::notes_list,
             commands::notes_delete,
             commands::notes_open_folder,

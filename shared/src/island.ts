@@ -26,7 +26,7 @@ export type OrbState = "idle" | "connecting" | "listening" | "thinking" | "speak
 export type IslandVoicePhase = "idle" | "loading" | "listening" | "recognizing" | "thinking" | "speaking" | "confirm" | "done" | "error";
 
 /** What a button under the shown answer asks the PC to do (`voice_action`); the PC decides what it means. */
-export type IslandActionKind = "copy" | "insert" | "speak" | "again" | `lang:${string}`;
+export type IslandActionKind = "copy" | "insert" | "speak" | "again" | "memory" | `lang:${string}`;
 
 /** The slow path (vision / 9B model): the estimate and the time so far, in whole seconds. Longer than 2 x etaSec: "A little longer...". */
 export interface IslandSlowProgress {
@@ -102,6 +102,8 @@ export interface IslandEvent {
   musicLevel?: number;
   /** T30.1: a meeting note is being recorded; the island shows it in every state. */
   recording?: { active: boolean; elapsedSec: number } | null;
+  /** T30.2: the programs that use the most memory, with a "Close" button each. */
+  memory?: { pid: number; name: string; mb: number }[] | null;
 }
 
 /** The IPC `island_rect` (window -> agent): the visible panel, in CSS pixels from the top-left corner of the window. */

@@ -1361,4 +1361,13 @@ export const ru: Record<Base | ExtraPlural, string> = {
   "voice.chip.note": "Начать заметку",
   "voice.chip.note_stop": "Стоп заметка",
   "notes.action_type": "Заметка встречи",
+  "voice.confirm.close_heavy": "Закрыть {name}?",
+  "voice.confirm.close_force": "{name} не закрылась. Закрыть принудительно? Несохранённое пропадёт",
+  "voice.reply.memory_top": "Больше всего памяти: {list}",
+  "voice.reply.memory_none": "Нечего показать",
+  "voice.reply.closed": "Закрыто: {name}",
+  "voice.reply.ram_notice": "Память занята на {pct} % уже 2 минуты",
+  "voice.reply.close_not_allowed": "Эту программу Decka не закрывает",
+  "voice.reply.close_not_running": "Эта программа уже не работает",
+  "voice.reply.close_failed": "Windows не позволила закрыть программу",
 };

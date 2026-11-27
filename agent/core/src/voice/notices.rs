@@ -1,4 +1,4 @@
-﻿//! "Notices itself" (T27.8): a short note on the island when something on the PC needs a look - memory, processor, a low battery,
+//! "Notices itself" (T27.8): a short note on the island when something on the PC needs a look - memory, processor, a low battery,
 //! a full disk, the end of a focus timer, an AI limit nearly used up. The rules read what the widgets already know (no new
 //! sensors), show quietly (no sound), at most once in 30 minutes per rule, and never over a program in full screen.
 
@@ -7,7 +7,7 @@ use serde_json::Value;
 /// A rule shows again after this long at the earliest.
 pub const COOLDOWN_MS: u64 = 30 * 60_000;
 pub const RAM_PCT: f64 = 90.0;
-pub const RAM_FOR_MS: u64 = 60_000;
+pub const RAM_FOR_MS: u64 = 2 * 60_000;
 pub const CPU_PCT: f64 = 90.0;
 pub const CPU_FOR_MS: u64 = 2 * 60_000;
 pub const BATTERY_PCT: f64 = 15.0;
@@ -140,15 +140,15 @@ mod tests {
         let mut n = Notices::default();
         let hot = |t| Sample { ram_pct: Some(95.0), top_process: Some("chrome.exe".into()), ..at(t) };
         assert!(n.step(true, &hot(0)).is_empty());
-        assert!(n.step(true, &hot(59_000)).is_empty());
-        let out = n.step(true, &hot(61_000));
+        assert!(n.step(true, &hot(119_000)).is_empty());
+        let out = n.step(true, &hot(121_000));
         assert_eq!(out.len(), 1);
         assert!(out[0].text.contains("95%") && out[0].text.contains("chrome.exe"), "{}", out[0].text);
         // A dip below the limit starts the minute again.
         let mut n = Notices::default();
         n.step(true, &hot(0));
         n.step(true, &Sample { ram_pct: Some(50.0), ..at(30_000) });
-        assert!(n.step(true, &hot(70_000)).is_empty());
+        assert!(n.step(true, &hot(130_000)).is_empty());
     }
 
     #[test]

@@ -1368,4 +1368,13 @@ export const ar: Dictionary = {
   "voice.chip.note": "بدء ملاحظة",
   "voice.chip.note_stop": "إيقاف الملاحظة",
   "notes.action_type": "ملاحظة اجتماع",
+  "voice.confirm.close_heavy": "هل تريد إغلاق {name}؟",
+  "voice.confirm.close_force": "لم يُغلق {name}. هل تريد إغلاقه بالقوة؟ سيضيع العمل غير المحفوظ",
+  "voice.reply.memory_top": "الأكثر استهلاكًا للذاكرة: {list}",
+  "voice.reply.memory_none": "لا يوجد برنامج لعرضه",
+  "voice.reply.closed": "أُغلق {name}",
+  "voice.reply.ram_notice": "الذاكرة ممتلئة بنسبة {pct}% منذ دقيقتين",
+  "voice.reply.close_not_allowed": "لا يغلق Decka هذا البرنامج",
+  "voice.reply.close_not_running": "لم يعد هذا البرنامج قيد التشغيل",
+  "voice.reply.close_failed": "لم يسمح Windows بإغلاقه",
 };

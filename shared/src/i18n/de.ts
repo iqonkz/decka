@@ -1328,4 +1328,13 @@ export const de: Dictionary = {
   "voice.chip.note": "Notiz starten",
   "voice.chip.note_stop": "Notiz beenden",
   "notes.action_type": "Besprechungsnotiz",
+  "voice.confirm.close_heavy": "{name} schließen?",
+  "voice.confirm.close_force": "{name} wurde nicht geschlossen. Beenden erzwingen? Ungespeichertes geht verloren",
+  "voice.reply.memory_top": "Am meisten Speicher: {list}",
+  "voice.reply.memory_none": "Kein Programm anzuzeigen",
+  "voice.reply.closed": "Geschlossen: {name}",
+  "voice.reply.ram_notice": "Der Speicher ist seit 2 Minuten zu {pct} % belegt",
+  "voice.reply.close_not_allowed": "Dieses Programm schließt Decka nicht",
+  "voice.reply.close_not_running": "Das Programm läuft nicht mehr",
+  "voice.reply.close_failed": "Windows hat das Schließen nicht zugelassen",
 };

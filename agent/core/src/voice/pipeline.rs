@@ -142,6 +142,9 @@ pub(crate) fn executor_key(text: &str) -> Option<&'static str> {
         "Too many timers are running" => Some("voice.reply.timers_full"),
         "That button cannot be added by voice" => Some("voice.reply.cannot_add_button"),
         crate::notes::ALREADY => Some("voice.reply.note_already"),
+        crate::voice::heavy::NOT_ALLOWED => Some("voice.reply.close_not_allowed"),
+        crate::voice::heavy::NOT_RUNNING => Some("voice.reply.close_not_running"),
+        crate::voice::heavy::NOT_CLOSED => Some("voice.reply.close_failed"),
         crate::notes::NO_DISK => Some("voice.reply.note_no_disk"),
         msg::SELECT_FIRST => Some(key::SELECT_FIRST),
         msg::TOO_LONG => Some(key::TOO_LONG),
@@ -395,6 +398,8 @@ pub enum Event {
     Tick { now_ms: u64 },
     Executed(Result<String, String>),
     Reset,
+    /// M30: the PC itself asks (a button of the island): the call waits for the "yes" like a spoken one.
+    Propose { id: String, call: Validated },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -519,6 +524,11 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
         (Phase::Idle | Phase::Done(_) | Phase::Failed(_), Event::Start { id, source }) => {
             let effects = if source == Source::Pc { vec![Effect::StartCapture] } else { Vec::new() };
             (State { phase: Phase::Listening, id: Some(id), source: Some(source), activity: env.dictate.then_some("dictate"), ..State::idle() }, effects)
+        }
+        // M30: a button of the island asks for something that needs a "yes" (closing a program).
+        (Phase::Idle | Phase::Done(_) | Phase::Failed(_), Event::Propose { id, call }) => {
+            let s = State { id: Some(id), source: Some(Source::Pc), ..State::idle() };
+            confirming(s, call, now_ms, env)
         }
         (Phase::Idle, Event::Cancel) => (s, Vec::new()),
         (Phase::Listening, Event::CaptureFailed(e)) if e == msg::NO_SOUND => {
@@ -677,6 +687,20 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
                 }
                 _ => finish_key(s, Phase::Failed(msg::DIDNT_GET.into()), ReplyKey::plain(key::DIDNT_GET)),
             }
+        }
+        // M30 (T30.2): the program did not close by itself: force needs another "yes".
+        (Phase::Executing, Event::Executed(Ok(reply))) if super::heavy::force_question(&reply).is_some() => {
+            let (exe, name) = super::heavy::force_question(&reply).unwrap_or_default();
+            let call = Validated {
+                summary: format!("Close {name} by force?"),
+                key: Some("voice.confirm.close_force"),
+                args: [("name".to_string(), name.clone())].into(),
+                call: ToolCall::CloseHeavy { exe, name, force: true },
+                confirm: true,
+            };
+            let mut s = s;
+            s.say = None;
+            confirming(s, call, now_ms, env)
         }
         // A `status` answer: a template key with its numbers, the text is the English fallback.
         (Phase::Executing, Event::Executed(Ok(reply))) if super::status::decode(&reply).is_some() => {
@@ -1255,6 +1279,32 @@ mod tests {
         let (s, _) = step(&s, Event::Tick { now_ms: deadline_ms }, deadline_ms, &env);
         assert!(matches!(s.phase, Phase::Confirming { ear: Ear::Busy, .. }));
         assert_eq!(step(&s, said("yes"), deadline_ms + 900, &env).0.phase, Phase::Executing);
+    }
+
+    /// T30.2: the "Close" button of the island only asks; the program is closed after the "yes", and one that stays is
+    /// ended by force only after another "yes".
+    #[test]
+    fn a_program_is_closed_only_after_a_yes_and_forced_only_after_another() {
+        let close = |force| ToolCall::CloseHeavy { exe: "C:\\g\\game.exe".into(), name: "Game".into(), force };
+        let propose = Event::Propose { id: "00112233aabbccdd".into(), call: Validated { call: close(false), confirm: true, summary: "Close Game?".into(), key: Some("voice.confirm.close_heavy"), args: Default::default() } };
+        let (s, fx) = run(vec![propose.clone()]);
+        assert!(matches!(s.phase, Phase::Confirming { .. }) && s.source == Some(Source::Pc));
+        assert!(!fx.iter().any(|e| matches!(e, Effect::Execute(_))), "the button alone closes nothing");
+        let yes = Event::Confirm { id: "00112233aabbccdd".into(), yes: true };
+        let (s, fx) = run(vec![propose.clone(), Event::Confirm { id: "00112233aabbccdd".into(), yes: false }]);
+        assert_eq!(s.phase, Phase::Done(msg::CANCELLED.into()));
+        assert!(!fx.iter().any(|e| matches!(e, Effect::Execute(_))));
+        let (_, fx) = run(vec![propose.clone(), yes.clone()]);
+        assert!(fx.contains(&Effect::Execute(close(false))), "{fx:?}");
+        let stays = Event::Executed(Ok(super::super::heavy::force_reply("C:\\g\\game.exe", "Game")));
+        let (s, fx) = run(vec![propose.clone(), yes.clone(), stays.clone()]);
+        let Phase::Confirming { call, .. } = &s.phase else { panic!("{:?}", s.phase) };
+        assert_eq!((call.call.clone(), call.key), (close(true), Some("voice.confirm.close_force")));
+        assert!(!fx.contains(&Effect::Execute(close(true))), "never by force without the second yes");
+        assert!(run(vec![propose, yes.clone(), stays, yes]).1.contains(&Effect::Execute(close(true))));
+        // While something else is being asked or done, the button changes nothing.
+        let busy = vec![start(Source::Pc), Event::Propose { id: "ffffffffffffffff".into(), call: Validated { call: close(false), confirm: true, summary: String::new(), key: None, args: Default::default() } }];
+        assert_eq!(run(busy).0.phase, Phase::Listening);
     }
 
     /// T29.6: a new button is written only after a "yes".

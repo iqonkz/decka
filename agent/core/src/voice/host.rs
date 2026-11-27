@@ -235,6 +235,22 @@ fn deliver(focus: &FocusMemory, text: &str, paste: bool) -> Result<String, Strin
     }
 }
 
+/// T30.2: the list the island shows, and when it was made.
+struct HeavyList {
+    at: Instant,
+    list: Vec<super::heavy::Heavy>,
+    /// The island still shows it (a button of it was not pressed).
+    shown: bool,
+}
+
+/// The island shows the list this long; "close <name>" means one of its programs for longer.
+const HEAVY_SHOWN: Duration = Duration::from_secs(20);
+const HEAVY_FRESH: Duration = Duration::from_secs(120);
+
+fn fresh_heavy(list: &Mutex<Option<HeavyList>>) -> Vec<super::heavy::Heavy> {
+    list.lock().unwrap().as_ref().filter(|l| l.at.elapsed() < HEAVY_FRESH).map(|l| l.list.clone()).unwrap_or_default()
+}
+
 /// M30 (T30.1): what the meeting notes run on.
 struct NoteModels {
     agent: Agent,
@@ -518,6 +534,7 @@ pub fn build_context(lang: &str, actions: &ActionsFile, layout: &LayoutFile, ins
     Context {
         vision_ready: false,
         vision_off: false,
+        heavy: vec![],
         memory: Vec::new(),
         weather_place: None,
         guide_running: false,
@@ -619,6 +636,8 @@ struct Inner {
     interrupted: AtomicBool,
     /// T29.6: the page the voice went to last, for when no phone has said which page it shows.
     current_page: Arc<Mutex<Option<String>>>,
+    /// T30.2: the last answer to "what uses the memory".
+    heavy: Arc<Mutex<Option<HeavyList>>>,
     /// T29.6: shows the settings window on a catalog key; the application gives it.
     settings: OnceLock<SettingsHook>,
 }
@@ -678,6 +697,7 @@ impl Host {
             spoken: Mutex::new(None),
             interrupted: AtomicBool::new(false),
             current_page: Arc::default(),
+            heavy: Arc::default(),
             settings: OnceLock::new(),
         });
         let driver = Driver::new(handle.clone(), inner.clone());
@@ -849,6 +869,31 @@ impl Host {
         Ok(guard)
     }
 
+    /// T30.2: the programs the island lists now, as `{ pid, name, mb }`.
+    pub fn memory_shown(&self) -> Option<Vec<Value>> {
+        let list = self.inner.heavy.lock().unwrap();
+        let l = list.as_ref().filter(|l| l.shown && l.at.elapsed() < HEAVY_SHOWN && !l.list.is_empty())?;
+        Some(l.list.iter().map(|h| serde_json::json!({ "pid": h.pid, "name": h.name, "mb": h.mb })).collect())
+    }
+
+    /// `memory_close` of the island (IPC): the "Close" button of one program of the list. It asks "close it?" first.
+    pub fn memory_close(&self, pid: u32) -> Result<(), String> {
+        let program = {
+            let mut list = self.inner.heavy.lock().unwrap();
+            let l = list.as_mut().filter(|l| l.at.elapsed() < HEAVY_FRESH).ok_or("The list is out of date")?;
+            let program = l.list.iter().find(|h| h.pid == pid).cloned().ok_or("Unknown program")?;
+            l.shown = false;
+            program
+        };
+        let super::tools::Resolved::Ready(call) = super::tools::close_question(&program) else { return Err("Unknown program".into()) };
+        // A recording that is running is not needed any more.
+        if self.inner.driver().state().phase == Phase::Listening {
+            self.inner.driver().handle_event(Event::Cancel);
+        }
+        self.inner.driver().handle_event(Event::Propose { id: format!("{:016x}", rand::random::<u64>()), call });
+        Ok(())
+    }
+
     /// `voice_confirm` of the pill (IPC).
     pub fn confirm(&self, id: &str, yes: bool) {
         self.inner.driver().handle_event(Event::Confirm { id: id.to_string(), yes });
@@ -896,6 +941,17 @@ impl Host {
     /// `voice_action` of the PC window (IPC): `copy`, `insert`, `speak`, `again`, `lang:<code>` on the answer that was just shown.
     /// The result of `again` and `lang` is shown as a new answer. The window only names an action; what it does is decided here.
     pub fn action(&self, kind: &str) -> Result<(), String> {
+        // T30.2: the button of the memory note.
+        if kind == "memory" {
+            let inner = self.inner.clone();
+            self.inner.handle.spawn(async move {
+                match inner.execute(ToolCall::MemoryTop).await {
+                    Ok(text) => inner.plate(&text, false, 20),
+                    Err(e) => inner.plate(&e, false, 5),
+                }
+            });
+            return Ok(());
+        }
         let kind = super::followup::Kind::parse(kind).ok_or_else(|| "unknown action".to_string())?;
         let inner = self.inner.clone();
         self.inner.handle.spawn(async move {
@@ -955,7 +1011,14 @@ impl Host {
                 let fullscreen = tokio::task::spawn_blocking(crate::lyrics_overlay::foreground_is_fullscreen).await.unwrap_or(false);
                 let s = super::notices::sample(started.elapsed().as_millis() as u64, &store.get("sys"), &store.get("battery"), &store.get("ai"), false, fullscreen);
                 for n in notices.step(inner.agent.voice_notices_enabled(), &s) {
-                    inner.plate(&n.text, false, 6);
+                    if n.rule == super::notices::Rule::Ram {
+                        // T30.2: with the button "Show what uses it".
+                        let pct = s.ram_pct.map_or_else(String::new, |v| format!("{}", v.round() as i64));
+                        let said = super::status::Answer { key: "voice.reply.ram_notice", args: [("pct".to_string(), pct)].into(), text: n.text.clone() };
+                        inner.plate_with(&super::status::encode(&said), vec!["memory"], 20);
+                    } else {
+                        inner.plate(&n.text, false, 6);
+                    }
                 }
             }
         });
@@ -1188,6 +1251,11 @@ impl Inner {
 
     /// A line on the pill for `secs` seconds; with `actions` the PC window offers what can be done with the answer (T26.3).
     fn plate(self: &Arc<Self>, text: &str, actions: bool, secs: u64) {
+        self.plate_with(text, if actions { super::followup::ACTIONS.to_vec() } else { Vec::new() }, secs);
+    }
+
+    /// `plate` with the buttons of its own.
+    fn plate_with(self: &Arc<Self>, text: &str, buttons: Vec<&'static str>, secs: u64) {
         if is_active(&self.driver().state().phase) {
             return;
         }
@@ -1207,7 +1275,7 @@ impl Inner {
             reply,
             confirm: None,
             activity: None,
-            actions: if actions && state == "done" { super::followup::ACTIONS.to_vec() } else { Vec::new() },
+            actions: if state == "done" { buttons.clone() } else { Vec::new() },
             understood: None,
             executing: false,
         };
@@ -1351,6 +1419,7 @@ impl Ports for Inner {
         let (installed, on) = (self.service.vision_installed(), self.agent.voice_context_enabled());
         ctx.vision_ready = installed && on;
         ctx.vision_off = installed && !on;
+        ctx.heavy = fresh_heavy(&self.heavy);
         ctx.weather_place = self.agent.store().get("weather").get("place").and_then(|p| p.as_str()).map(str::to_string);
         ctx.guide_running = self.screen.get().is_some_and(|s| s.is_running());
         // T29.P: the page a phone shows; without a phone, the page the voice went to last.
@@ -1422,6 +1491,7 @@ impl Ports for Inner {
         let focus = self.focus.clone();
         let download = self.download.clone();
         let (current_page, settings) = (self.current_page.clone(), self.settings.get().cloned());
+        let heavy = self.heavy.clone();
         let driver = self.driver().clone();
         Box::pin(async move {
             // T29.P: while the model loads, the PC is busy and a window is read only in part ("did not find it"): the
@@ -1451,6 +1521,29 @@ impl Ports for Inner {
                     .await
                     .map_err(|e| format!("The action did not finish: {e}"))??;
                     return Ok(super::status::encode(&said));
+                }
+                ToolCall::MemoryTop => {
+                    let list = tokio::task::spawn_blocking(super::heavy::look).await.map_err(|e| format!("The action did not finish: {e}"))?;
+                    let said = if list.is_empty() {
+                        answer("voice.reply.memory_none", None, "No program to show")
+                    } else {
+                        let text = super::heavy::list_text(&list);
+                        super::status::Answer { key: "voice.reply.memory_top", args: [("list".to_string(), text.clone())].into(), text }
+                    };
+                    *heavy.lock().unwrap() = Some(HeavyList { at: Instant::now(), list, shown: true });
+                    return Ok(super::status::encode(&said));
+                }
+                ToolCall::CloseHeavy { exe, name, force } => {
+                    let (exe, name, force) = (exe.clone(), name.clone(), *force);
+                    return tokio::task::spawn_blocking(move || {
+                        use super::heavy::Closed;
+                        Ok::<_, String>(match super::heavy::close(&super::heavy::WinOps, &exe, force)? {
+                            Closed::Yes => super::status::encode(&answer("voice.reply.closed", Some(&name), &format!("Closed {name}"))),
+                            Closed::Still => super::heavy::force_reply(&exe, &name),
+                        })
+                    })
+                    .await
+                    .map_err(|e| format!("The action did not finish: {e}"))?;
                 }
                 ToolCall::Volume(VolumeOp::Set(v)) => {
                     let v = *v;

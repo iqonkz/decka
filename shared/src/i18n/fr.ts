@@ -1328,4 +1328,13 @@ export const fr: Dictionary = {
   "voice.chip.note": "Démarrer une note",
   "voice.chip.note_stop": "Arrêter la note",
   "notes.action_type": "Note de réunion",
+  "voice.confirm.close_heavy": "Fermer {name} ?",
+  "voice.confirm.close_force": "{name} ne s'est pas fermé. Forcer la fermeture ? Le travail non enregistré sera perdu",
+  "voice.reply.memory_top": "Plus de mémoire : {list}",
+  "voice.reply.memory_none": "Aucun programme à afficher",
+  "voice.reply.closed": "Fermé : {name}",
+  "voice.reply.ram_notice": "La mémoire est remplie à {pct} % depuis 2 minutes",
+  "voice.reply.close_not_allowed": "Decka ne ferme pas ce programme",
+  "voice.reply.close_not_running": "Ce programme n'est plus lancé",
+  "voice.reply.close_failed": "Windows n'a pas permis de le fermer",
 };

@@ -18,6 +18,7 @@ pub mod duck;
 pub mod endpoint;
 pub mod host;
 pub mod guides;
+pub mod heavy;
 pub mod highlight;
 pub mod hotkey;
 pub mod llm;

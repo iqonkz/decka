@@ -1328,4 +1328,13 @@ export const hi: Dictionary = {
   "voice.chip.note": "नोट शुरू करें",
   "voice.chip.note_stop": "नोट रोकें",
   "notes.action_type": "बैठक नोट",
+  "voice.confirm.close_heavy": "{name} बंद करें?",
+  "voice.confirm.close_force": "{name} बंद नहीं हुआ। ज़बरदस्ती बंद करें? बिना सहेजा काम खो जाएगा",
+  "voice.reply.memory_top": "सबसे अधिक मेमोरी: {list}",
+  "voice.reply.memory_none": "दिखाने के लिए कोई प्रोग्राम नहीं",
+  "voice.reply.closed": "{name} बंद किया गया",
+  "voice.reply.ram_notice": "मेमोरी 2 मिनट से {pct}% भरी है",
+  "voice.reply.close_not_allowed": "Decka इस प्रोग्राम को बंद नहीं करता",
+  "voice.reply.close_not_running": "वह प्रोग्राम अब नहीं चल रहा",
+  "voice.reply.close_failed": "Windows ने इसे बंद नहीं करने दिया",
 };
