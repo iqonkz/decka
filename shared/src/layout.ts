@@ -48,6 +48,7 @@ export interface ButtonItem extends ItemBase, ButtonLook {
   popup?: Id;             // M13: id of a popup page (`popup: true`)
   confirm?: boolean;      // true = press by holding 800 ms
   bind?: { var: VarName; states: Record<string, ButtonLook> }; // key = String(variable value)
+  catalogId?: string;     // T31.R: the catalog item it was made from; the caption follows the phone's language until renamed
   face?: KeyFace;         // M14: overrides display.keyFace for this key
   showLabel?: boolean;    // M14: overrides display.keyLabels; the label shows when it is not empty and (showLabel ?? display.keyLabels ?? true)
 }

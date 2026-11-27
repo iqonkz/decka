@@ -1,77 +1,43 @@
-import { CATALOG, getLanguage, makeActionId, pickText, t, type ButtonItem, type ButtonLook, type VarValue } from "@decka/shared";
+import { CATALOG, getLanguage, pickText, t, type ButtonItem, type ButtonLook, type CatalogItem, type LocalizedText, type VarValue } from "@decka/shared";
 
-const CATALOG_ID_ALIASES: Record<string, string> = {
-  "lock-pc": "win.lock",
-  "sleep": "win.sleep",
-  "shutdown": "win.shutdown",
-  "restart": "win.restart",
-  "signout": "win.signout",
-  "hibernate": "win.hibernate",
-  "displayoff": "win.displayoff",
-  "recycle": "win.recycle",
-  "screenshot": "win.screenshot",
-  "screenshot-window": "win.screenshot.window",
-  "screenshot-region": "win.screenshot.region",
-  "taskmgr": "win.taskmgr",
-  "desktop": "win.desktop",
-  "explorer": "win.explorer",
-  "emoji": "win.emoji",
-  "clipboard": "win.clipboard",
-  "settings": "win.settings",
-  "media-play": "media.play",
-  "play-pause": "media.play",
-  "media-next": "media.next",
-  "next-track": "media.next",
-  "media-prev": "media.prev",
-  "prev-track": "media.prev",
-  "media-shuffle": "media.shuffle",
-  "media-repeat": "media.repeat",
-  "mic": "sound.mic",
-  "mic-mute": "sound.mic",
-  "vol-mute": "sound.mute",
-  "mute": "sound.mute",
-  "vol-up": "sound.volup",
-  "volume-up": "sound.volup",
-  "vol-down": "sound.voldown",
-  "volume-down": "sound.voldown",
-  "obs-rec": "stream.record",
-  "obs-live": "stream.live",
-  "obs-replay": "stream.replay",
-  "twitch-clip": "twitch.clip",
-  "note": "sound.note",
-  "notes-record": "sound.note",
-};
+/** Captions the first layout and the templates wrote that differ from the catalog's. */
+const TEMPLATE_CAPTIONS: Record<string, string> = { "tasks": "win.taskmgr", "play / pause": "media.play" };
 
-/**
- * The catalog item a button came from, by the id of its action: the catalog names a new action after the English name of
- * the item (`mute-microphone`, then `mute-microphone-2`); the built-in templates and the first layout use shorter ids.
- */
-function catalogItemOf(actionId: string) {
-  const base = actionId.replace(/-\d+$/, "");
-  const alias = CATALOG_ID_ALIASES[actionId] ?? CATALOG_ID_ALIASES[base];
-  if (alias) return CATALOG.items.find((c) => c.id === alias);
-  return CATALOG.items.find((c) => {
-    const id = makeActionId(c.name.en, {});
-    return id === actionId || id === base;
-  });
+const fold = (s: string) => s.trim().toLowerCase();
+const texts = (caption: LocalizedText) => Object.values(caption).filter((text): text is string => typeof text === "string");
+/** The captions of an item in the order they are trusted: of the key, of its states ("Mic off"), the full name. */
+const captionTiers = (item: CatalogItem): LocalizedText[][] => [[item.label], Object.values(item.bind?.states ?? {}).flatMap((s) => (s.label ? [s.label] : [])), [item.name]];
+
+/** A key made by voice keeps the first 12 characters of a long caption (T29.6). */
+const wrote = (caption: LocalizedText, label: string) => texts(caption).some((text) => fold(text) === label || fold(Array.from(text).slice(0, 12).join("")) === label);
+
+/** A layout older than `catalogId`: the label is exactly a caption of the catalog, and every item that has it translates it alike. */
+function legacyCaption(label: string): string | undefined {
+  const template = CATALOG.items.find((c) => c.id === TEMPLATE_CAPTIONS[label]);
+  if (template) return pickText(template.label, getLanguage());
+  for (let tier = 0; tier < 3; tier++) {
+    const found = new Set<string>();
+    for (const item of CATALOG.items) {
+      for (const caption of captionTiers(item)[tier]!) if (texts(caption).some((text) => fold(text) === label)) found.add(pickText(caption, getLanguage()));
+    }
+    if (found.size > 0) return found.size === 1 ? [...found][0] : undefined;
+  }
+  return undefined;
 }
 
-const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
-
 /**
- * A caption the catalog wrote, in the language of the phone: the caption of the item or of one of its states ("Mic off"),
- * in whatever language it was written. Any other caption is the user's own and stays as it is.
+ * A caption the catalog wrote, in the language of the phone. A key made from the catalog (`catalogId`) follows it until the
+ * user renames it; a layout without `catalogId` is matched by the text alone. Any other caption stays as it is.
  */
-export function localizedButtonLabel(item: Pick<ButtonItem, "actionId">, label: string | undefined): string | undefined {
+export function localizedButtonLabel(item: Pick<ButtonItem, "actionId" | "catalogId">, label: string | undefined): string | undefined {
   // A key without a caption stays without one: that is the user's choice too.
-  if (!item.actionId || !label) return label;
-  const cat = catalogItemOf(item.actionId);
-  if (!cat) return label;
-  // Captions the templates wrote that differ from the catalog's.
-  if ((cat.id === "win.taskmgr" && same(label, "Tasks")) || (cat.id === "media.play" && same(label, "Play / Pause"))) return pickText(cat.label, getLanguage());
-  const captions = [cat.label, ...Object.values(cat.bind?.states ?? {}).map((state) => state.label)];
-  const written = captions.find((caption) => caption !== undefined && Object.values(caption).some((text) => typeof text === "string" && same(text, label)));
-  return written ? pickText(written, getLanguage()) : label;
+  if (!label) return label;
+  if (item.catalogId !== undefined) {
+    const made = CATALOG.items.find((c) => c.id === item.catalogId);
+    const caption = made && captionTiers(made).flat().find((c) => wrote(c, fold(label)));
+    return caption ? pickText(caption, getLanguage()) : label;
+  }
+  return item.actionId ? (legacyCaption(fold(label)) ?? label) : label;
 }
 
 /** Base look of the button with `bind.states[String(var)]` laid over it (DATA_MODEL.md 3.4). */

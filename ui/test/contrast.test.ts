@@ -120,8 +120,8 @@ describe("readableFace", () => {
 
 describe("M31 settings & island UI tokens contrast (WCAG AA >= 4.5:1)", () => {
   test("light and dark settings theme tokens satisfy >= 4.5:1 on surfaces", () => {
-    const light = { bg: "#fafafa", panel: "#ffffff", hover: "#ececf0", text: "#1a1a1f", muted: "#5f6672", ok: "#166534", warn: "#9a4306", danger: "#b91c1c", accent: "#1d4ed8" };
-    const dark = { bg: "#141417", panel: "#1b1b1f", hover: "#26262c", text: "#e8e8ee", muted: "#9ca3af", ok: "#4ade80", warn: "#fbbf24", danger: "#f87171", accent: "#60a5fa" };
+    const light = { bg: "#fafafa", panel: "#ffffff", hover: "#ececf0", text: "#1a1a1f", muted: "#5f6672", ok: "#166534", warn: "#9a4306", danger: "#b91c1c", accent: "#694ee0" };
+    const dark = { bg: "#141417", panel: "#1b1b1f", hover: "#26262c", text: "#e8e8ee", muted: "#9ca3af", ok: "#4ade80", warn: "#fbbf24", danger: "#f87171", accent: "#9479ff" };
     for (const [name, tok] of [["light", light], ["dark", dark]] as const) {
       for (const fg of ["text", "muted", "ok", "warn", "danger", "accent"] as const) {
         expect(contrast(tok[fg], tok.panel), `${name} ${fg} on panel`).toBeGreaterThanOrEqual(MIN);

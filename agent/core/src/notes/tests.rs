@@ -92,6 +92,7 @@ async fn a_recording_becomes_one_file_with_the_summary_and_the_stitched_text_and
         let list = notes.list();
         assert_eq!(list.len(), 1, "the draft is replaced by the note: {list:?}");
         assert_eq!(list[0].title, "Обсудили план релиза и решили выпустить");
+        assert_eq!(list[0].duration_sec, Some(45));
         assert!(list[0].markdown.contains("Обсудили план релиза и решили выпустить в пятницу.") && list[0].markdown.contains("- Выпуск в пятницу") && list[0].markdown.contains("1 мин"), "{}", list[0].markdown);
         assert_eq!(backend.heard.lock().unwrap().iter().sum::<usize>(), 45 * RATE, "every sample was recognised once");
         assert!(!dir.path().join(".tmp").exists());

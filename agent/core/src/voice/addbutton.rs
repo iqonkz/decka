@@ -201,6 +201,7 @@ pub fn build(lang: &str, catalog_id: &str, page_id: &str, actions: &ActionsFile,
         "label": entry.label.chars().take(12).collect::<String>(),
         "icon": entry.icon(),
         "actionId": action_id,
+        "catalogId": entry.id,
     });
     let o = button.as_object_mut().expect("an object");
     if let Some(c) = entry.raw.get("color").and_then(Value::as_str) {
@@ -283,6 +284,7 @@ mod tests {
         let (a, l) = build("en", "win.lock", &page, &actions, &layout).unwrap();
         let LayoutItem::Button(b) = &l.pages[0].items[0] else { panic!() };
         assert_eq!((b.x, b.y, b.label.as_deref(), b.confirm), (0, 0, Some("Lock"), Some(true)));
+        assert_eq!(b.catalog_id.as_deref(), Some("win.lock"));
         // The same action is reused by the next button, which takes the next cell.
         let (a2, l2) = build("en", "win.lock", &page, &a, &l).unwrap();
         assert_eq!(a2.actions.len(), a.actions.len());

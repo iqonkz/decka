@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { t, tVoice, type IslandEvent, type LanguageSetting } from "@decka/shared";
 import { DictationOrb, GuidePanel, Island, useApplyLanguage, type GuideStepEvent } from "@decka/ui";
+import { applyAccent } from "./accent";
 import { call, listen } from "./ipc";
 
 const HIDDEN: IslandEvent = { mode: "hidden" };
@@ -57,7 +58,7 @@ export default function IslandApp() {
     document.body.style.margin = "0";
     call("get_layout").then(
       (l) => {
-        document.documentElement.style.setProperty("--accent", l.display.accent ?? "#7c5cff");
+        applyAccent(l.display.accent);
         setLanguage(l.display.language);
       },
       () => {},

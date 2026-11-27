@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { CATALOG, setLanguage, type HaStatus, type NoteEntry } from "@decka/shared";
-import NotesTab, { extractNoteDurationMin, splitNoteSections } from "../src/tabs/NotesTab";
+import NotesTab, { splitNoteSections } from "../src/tabs/NotesTab";
 import HaSection from "../src/tabs/HaSection";
 import { loadNotes, removeNote, saveHa } from "../src/tabs/m30Ipc";
 import type { call } from "../src/ipc";
@@ -77,10 +77,9 @@ describe("T30.1b Notes page, Home Assistant integration, and catalog", () => {
     expect([action("ha.toggle"), action("ha.scene"), action("sound.note")]).toEqual(["ha", "ha", "notes_record"]);
   });
 
-  it("T31.5b: puts summary card on top, collapses full transcript, and parses header duration", () => {
+  it("T31.5b: puts summary card on top, collapses full transcript, and shows the length the agent kept", () => {
     setLanguage("ru");
     const longMd = [
-      "Длительность: 14 мин",
       "# Кратко",
       "Договорились о сроках релиза.",
       "## Решения",
@@ -88,14 +87,13 @@ describe("T30.1b Notes page, Home Assistant integration, and catalog", () => {
       "## Расшифровка",
       "Полная стенограмма разговора.",
     ].join("\n");
-    expect(extractNoteDurationMin(longMd)).toBe(14);
     const split = splitNoteSections(longMd);
     expect(split.summaryMd).toContain("# Кратко");
     expect(split.summaryMd).toContain("Обновить дизайн");
     expect(split.transcriptMd).toContain("Полная стенограмма разговора.");
 
     const html = renderToStaticMarkup(
-      <NotesTab initialNotes={[{ id: "long", title: "Большой созвон", date: "2026-11-27 11:00", markdown: longMd }]} />,
+      <NotesTab initialNotes={[{ id: "long", title: "Большой созвон", date: "2026-11-27 11:00", markdown: longMd, durationSec: 13 * 60 + 1 }]} />,
     );
     expect(html).toContain("notes-summary-card");
     expect(html).toContain("14 мин");
@@ -107,10 +105,16 @@ describe("T30.1b Notes page, Home Assistant integration, and catalog", () => {
     for (const [summary, questions, full, unit] of [["Кратко", "Вопросы", "Полный текст", "мин"], ["Zusammenfassung", "Fragen", "Volltext", "Min."], ["要約", "質問", "全文", "分"]]) {
       const file = `# План\n\n2026-11-27 14:05 · 12 ${unit}\n\n## ${summary}\n\nA\n\n## ${questions}\n\n- Q\n\n## ${full}\n\nT`;
       const split = splitNoteSections(file);
-      expect(extractNoteDurationMin(file), full).toBe(12);
+      expect(splitNoteSections(file, false).summaryMd, full).toContain("14:05");
       expect(split.summaryMd, full).toContain("- Q");
       expect(split.summaryMd, full).not.toContain("14:05");
       expect(split.transcriptMd, full).toBe(`## ${full}\n\nT`);
     }
+  });
+
+  it("T31.R: the length is the number of the agent, never read out of the text", () => {
+    const html = renderToStaticMarkup(<NotesTab initialNotes={[{ id: "a", title: "A", date: "2026-11-27 11:00", markdown: "# A\n\n2026-11-27 11:00 · 12 мин" }]} />);
+    expect(html).not.toContain("notes-header-meta\"><span>2026-11-27 11:00</span><span");
+    expect(html).toContain("12 мин");
   });
 });

@@ -67,6 +67,7 @@ export default function Timer({ item }: { item: TimerItem }) {
 
   const totalMs = Math.max(1, state.minutes * 60_000);
   const ratio = Math.min(1, Math.max(0, state.remainingMs / totalMs));
+  const shown = formatRemaining(state.remainingMs);
 
   return (
     <div className={["timer", state.running ? "running" : "", state.done ? "done" : "", flashing ? "flash" : "", item.h >= 2 ? "tall" : ""].filter(Boolean).join(" ")}>
@@ -86,7 +87,7 @@ export default function Timer({ item }: { item: TimerItem }) {
               transform={`rotate(-90 ${RING_SIZE / 2} ${RING_SIZE / 2})`}
             />
           </svg>
-          <div className="timer-time widget-figure">{formatRemaining(state.remainingMs)}</div>
+          <div className={`timer-time widget-figure${shown.length > 5 ? " long" : ""}`}>{shown}</div>
         </div>
       </div>
       <div className="timer-presets w-m">

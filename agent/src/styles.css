@@ -9,7 +9,7 @@
   --border: #e6e6ea;
   --border-strong: #c7c7cf;
   --hover: #ececf0;
-  --accent: #1d4ed8;
+  --accent: var(--accent-chosen, #694ee0);
   --ok: #166534;
   --warn: #9a4306;
   --danger: #b91c1c;
@@ -52,7 +52,7 @@
   --border: #2b2b31;
   --border-strong: #3a3a42;
   --hover: #26262c;
-  --accent: #60a5fa;
+  --accent: var(--accent-chosen, #9479ff);
   --ok: #4ade80;
   --warn: #fbbf24;
   --danger: #f87171;
@@ -72,7 +72,7 @@
     --border: #2b2b31;
     --border-strong: #3a3a42;
     --hover: #26262c;
-    --accent: #60a5fa;
+    --accent: var(--accent-chosen, #9479ff);
     --ok: #4ade80;
     --warn: #fbbf24;
     --danger: #f87171;
@@ -987,7 +987,10 @@ select.settings-select,
   border: 2px solid var(--accent);
   padding: 9px;
 }
-.theme-card .phone-frame { border-radius: 8px; box-shadow: 0 0 0 1px var(--border); }
+.theme-card { min-width: 0; }
+/* The preview takes the whole width of its card; a portrait phone stays within its height, in the middle. */
+.theme-card-preview { display: flex; justify-content: center; align-self: stretch; min-width: 0; overflow: hidden; padding: 1px; }
+.theme-card .phone-frame { flex: none; border-radius: 8px; box-shadow: 0 0 0 1px var(--border); }
 .swatch { width: 28px; height: 28px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; }
 .swatch.selected { border-color: var(--text); box-shadow: 0 0 0 2px var(--bg) inset; }
 .wizard { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--bg-window) 88%, transparent); backdrop-filter: blur(12px); }

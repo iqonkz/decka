@@ -354,7 +354,7 @@ export default function LayoutTab() {
       const oldAction = old.actionId ? actions!.actions[old.actionId] : undefined;
       const automatic = !old.label || old.label === oldAction?.name.slice(0, 24);
       applyActions(made.actions);
-      setPage(updateItem(page!, old.id, { actionId: fresh.actionId, ...(automatic ? { label: fresh.label, icon: fresh.icon } : {}), ...(fresh.confirm ? { confirm: true } : {}) } as Partial<LayoutItem>));
+      setPage(updateItem(page!, old.id, { actionId: fresh.actionId, catalogId: undefined, ...(automatic ? { label: fresh.label, icon: fresh.icon } : {}), ...(fresh.confirm ? { confirm: true } : {}) } as Partial<LayoutItem>));
       setSelectedId(old.id);
       return setCreating(null);
     }

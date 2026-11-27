@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { t, type LanguageSetting, type WindowTheme } from "@decka/shared";
 import { useApplyLanguage } from "@decka/ui";
+import { applyAccent } from "./accent";
 import { call, onNavigate } from "./ipc";
 import { requestCatalogItem } from "./editor/pendingCatalog";
 import { LANGUAGE_EVENT } from "./language";
@@ -122,7 +123,7 @@ export default function App() {
   const refreshAccent = useCallback(() => {
     call("get_layout").then(
       (l) => {
-        document.documentElement.style.setProperty("--accent", l.display.accent ?? "#7c5cff");
+        applyAccent(l.display.accent);
         setLanguageSetting(l.display.language);
         setWindowTheme(l.display.windowTheme);
       },

@@ -441,6 +441,9 @@ pub struct ButtonItem {
     pub confirm: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub bind: Option<Bind>,
+    /// T31.R: the catalog item the button was made from; its caption follows the language of the phone until renamed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub catalog_id: Option<String>,
     /// M14: `standard` | `full`; overrides `display.keyFace`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub face: Option<String>,

@@ -178,7 +178,7 @@ function materialize(
   const look: Partial<ButtonItem> = { label: pickText(item.label, lang), icon: icon(item.icon) };
   const color = colour(item.color);
   if (color !== undefined) look.color = color;
-  const button: Record<string, unknown> = { kind: "button", w: 1, h: 1, ...look };
+  const button: Record<string, unknown> = { kind: "button", w: 1, h: 1, ...look, catalogId: item.id };
   if (actionId !== undefined) button.actionId = actionId;
   if (item.confirm) button.confirm = true;
   if (item.navigate !== undefined) button.navigate = item.navigate;

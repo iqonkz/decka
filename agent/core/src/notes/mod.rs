@@ -89,11 +89,15 @@ pub struct Status {
 
 /// A note as the settings window shows it.
 #[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Entry {
     pub id: String,
     pub title: String,
     pub date: String,
     pub markdown: String,
+    /// The length of the recording; absent for a file the agent did not record.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub duration_sec: Option<u64>,
 }
 
 pub const ALREADY: &str = "A note is being recorded already";
@@ -329,13 +333,18 @@ impl Notes {
         }
         let summary = summarize(session.backend.as_ref(), &transcript, &lang).await;
         let title = text::title_of(&transcript, &lang);
-        let minutes = (total / RATE as u64).div_ceil(60);
+        let seconds = (total / RATE as u64).max(1);
+        let minutes = seconds.div_ceil(60);
         let w = &session.when;
         let shown = format!("{:04}-{:02}-{:02} {:02}:{:02}", w.year, w.month, w.day, w.hour, w.minute);
         let body = text::markdown(&title, &shown, minutes, summary.as_ref(), &transcript, &lang);
         let path = free_name(&self.inner.dir, &format!("{} {}", stamp(w, '-'), text::file_safe(&title)), "md");
         std::fs::write(&path, body).map_err(|e| format!("Cannot save the note: {e}"))?;
         let _ = std::fs::remove_file(&draft);
+        let length = length_file(&path);
+        if let Err(e) = std::fs::create_dir_all(self.inner.dir.join(LENGTHS)).and_then(|()| std::fs::write(length, seconds.to_string())) {
+            tracing::warn!("note: the length was not written: {e}");
+        }
         if let Some(sound) = whole {
             std::fs::rename(sound, path.with_extension("wav")).map_err(|e| format!("Cannot keep the sound: {e}"))?;
         }
@@ -360,7 +369,8 @@ impl Notes {
                 let markdown = std::fs::read_to_string(&path).ok()?;
                 let title = markdown.lines().find_map(|l| l.strip_prefix("# ")).unwrap_or(&id).to_string();
                 let date = id.get(..16).map_or_else(String::new, |d| format!("{} {}", &d[..10], d.get(11..).unwrap_or("").replace('-', ":")));
-                Some(Entry { id, title, date, markdown })
+                let duration_sec = std::fs::read_to_string(length_file(&path)).ok().and_then(|s| s.trim().parse().ok());
+                Some(Entry { id, title, date, markdown, duration_sec })
             })
             .collect();
         out.sort_by(|a, b| b.id.cmp(&a.id));
@@ -375,8 +385,18 @@ impl Notes {
         let path = self.inner.dir.join(format!("{id}.md"));
         std::fs::remove_file(&path).map_err(|e| format!("Cannot delete the note: {e}"))?;
         let _ = std::fs::remove_file(path.with_extension("wav"));
+        let _ = std::fs::remove_file(length_file(&path));
         Ok(())
     }
+}
+
+/// The folder next to the notes that holds the length of each recording, one small file per note.
+const LENGTHS: &str = ".lengths";
+
+fn length_file(note: &Path) -> PathBuf {
+    let mut name = note.file_stem().unwrap_or_default().to_os_string();
+    name.push(".sec");
+    note.with_file_name(LENGTHS).join(name)
 }
 
 fn stamp(w: &Local, sep: char) -> String {

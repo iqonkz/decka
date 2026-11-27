@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { t, type DisplaySettings, type Page, type ThemeId } from "@decka/shared";
 import { EMPTY_DATA, GlassLayer, Grid, resolveTheme } from "@decka/ui";
 import PhoneFrame from "./PhoneFrame";
@@ -32,13 +32,29 @@ function Preview({ theme, display }: { theme: ThemeId; display: DisplaySettings 
   const portrait = display.orientation === "portrait";
   const page = sample();
   if (portrait) page.items = page.items.map((i) => ({ ...i, x: i.y, y: i.x }));
+  const box = useRef<HTMLSpanElement>(null);
+  const [width, setWidth] = useState(210);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    // Less the 1 px on each side, where the outline of the frame is drawn.
+    const measure = () => {
+      if (el.clientWidth > 2) setWidth(el.clientWidth - 2);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
   return (
-    <PhoneFrame availableWidth={210} maxHeight={190} display={shown}>
-      {theme === "glass" && <GlassLayer wallpaper={resolved.wallpaper} art={undefined} />}
-      <div style={{ position: "absolute", inset: 0 }}>
-        <Grid page={page} grid={portrait ? { cols: 2, rows: 3 } : { cols: 3, rows: 2 }} data={DATA} {...NOOP} />
-      </div>
-    </PhoneFrame>
+    <span ref={box} className="theme-card-preview">
+      <PhoneFrame availableWidth={width} {...(portrait ? { maxHeight: 190 } : {})} display={shown}>
+        {theme === "glass" && <GlassLayer wallpaper={resolved.wallpaper} art={undefined} />}
+        <div style={{ position: "absolute", inset: 0 }}>
+          <Grid page={page} grid={portrait ? { cols: 2, rows: 3 } : { cols: 3, rows: 2 }} data={DATA} {...NOOP} />
+        </div>
+      </PhoneFrame>
+    </span>
   );
 }
 

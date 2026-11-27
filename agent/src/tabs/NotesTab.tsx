@@ -18,30 +18,16 @@ export interface NotesTabProps {
 const TRANSCRIPT_HEADING =
   /^#{1,3}\s+(полный\s+текст|full\s+text|texto\s+completo|volltext|texte\s+intégral|全文|पूरा\s+पाठ|النص\s+الكامل|толық\s+мәтін|расшифровка|транскрипт|transcript)\s*:?\s*$/i;
 // The line under the title that the agent writes: `2026-11-27 14:05 · 12 мин`.
-const WHEN_LINE = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2} · (\d+) \S+$/;
-const DURATION_LINE = /^(?:[-*]\s*)?(?:длительность|продолжительность|duration)\s*:\s*(?:(\d+)\s*(?:мин(?:ут[ыа]?)?|min(?:utes?)?)|(\d{1,2}):(\d{2}))/i;
-
-export function extractNoteDurationMin(markdown: string): number | null {
-  for (const raw of markdown.split(/\r?\n/)) {
-    const line = raw.trim();
-    if (TRANSCRIPT_HEADING.test(line)) break;
-    const m = line.match(WHEN_LINE) ?? line.match(DURATION_LINE);
-    if (!m) continue;
-    const minutes = m[1] ?? m[2];
-    if (minutes) return Math.max(1, Number(minutes));
-  }
-  return null;
-}
-
+const WHEN_LINE = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2} · \d+ \S+$/;
 /**
  * Everything before the heading of the full text is the summary (with the decisions, tasks and questions); the full text is
- * folded. The line with the date and the length is left out: the header of the note shows both.
+ * folded. The line with the date and the length is left out when the header of the note shows both.
  */
-export function splitNoteSections(markdown: string): { summaryMd: string; transcriptMd: string } {
+export function splitNoteSections(markdown: string, lengthShown = true): { summaryMd: string; transcriptMd: string } {
   const lines = markdown.split(/\r?\n/);
   const found = lines.findIndex((line) => TRANSCRIPT_HEADING.test(line.trim()));
   const cut = found < 0 ? lines.length : found;
-  const head = lines.slice(0, cut).filter((line) => !WHEN_LINE.test(line.trim()) && !DURATION_LINE.test(line.trim()));
+  const head = lines.slice(0, cut).filter((line) => !(lengthShown && WHEN_LINE.test(line.trim())));
   return {
     summaryMd: head.join("\n").trim(),
     transcriptMd: lines.slice(cut).join("\n").trim(),
@@ -118,13 +104,10 @@ export default function NotesTab({ initialNotes }: NotesTabProps = {}) {
   );
 
   const sections = useMemo(
-    () => (selected ? splitNoteSections(selected.markdown) : null),
+    () => (selected ? splitNoteSections(selected.markdown, selected.durationSec !== undefined) : null),
     [selected],
   );
-  const durationMin = useMemo(
-    () => (selected ? extractNoteDurationMin(selected.markdown) : null),
-    [selected],
-  );
+  const durationMin = selected?.durationSec === undefined ? null : Math.max(1, Math.ceil(selected.durationSec / 60));
 
   function handleDelete(id: string) {
     setError(null);

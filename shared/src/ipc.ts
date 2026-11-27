@@ -189,6 +189,7 @@ export interface NoteEntry {
   title: string;
   date: string;         // "2026-11-27 14:05"
   markdown: string;
+  durationSec?: number; // the length of the recording; absent for a file the agent did not record
 }
 
 export interface VoiceSetArgs {

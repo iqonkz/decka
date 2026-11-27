@@ -157,13 +157,25 @@ describe("unified empty states and skeleton", () => {
     }
     expect(localizedButtonLabel({ actionId: "lock-pc" }, "Lock")).toBe("Блок");
     expect(localizedButtonLabel({ actionId: undefined }, "Lock")).toBe("Lock");
-    // A key made from the catalog: the id is the English name of the item, the captions of its states too.
-    expect(localizedButtonLabel({ actionId: "mute-microphone" }, "Mic off")).toBe("Микр. выкл");
-    expect(localizedButtonLabel({ actionId: "mute-microphone-2" }, "Mic")).toBe("Микр.");
-    expect(localizedButtonLabel({ actionId: "obs-go-live" }, "Go live")).toBe("Эфир");
-    expect(localizedButtonLabel({ actionId: "mute-microphone" }, "Мой микрофон")).toBe("Мой микрофон");
+    // A layout older than catalogId: the caption of the catalog in any language, whatever the action is called.
+    expect(localizedButtonLabel({ actionId: "x" }, "Mic off")).toBe("Микр. выкл");
+    expect(localizedButtonLabel({ actionId: "x" }, "Go live")).toBe("Эфир");
     setLanguage("en");
-    expect(localizedButtonLabel({ actionId: "shuffle" }, "Случайно")).toBe("Shuffle");
+    expect(localizedButtonLabel({ actionId: "x" }, "Случайно")).toBe("Shuffle");
+  });
+
+  test("T31.R: a key made from the catalog follows the phone's language until it is renamed", () => {
+    setLanguage("ru");
+    const made = { actionId: "anything", catalogId: "sound.mic" };
+    for (const written of ["Mic", "Mute microphone", "Mute microph"]) expect(localizedButtonLabel(made, written), written).toMatch(/икр/);
+    expect(localizedButtonLabel(made, "Mic off")).toBe("Микр. выкл");
+    // Renamed, also to the caption of another item of the catalog.
+    expect(localizedButtonLabel(made, "Мой микрофон")).toBe("Мой микрофон");
+    expect(localizedButtonLabel(made, "Lock")).toBe("Lock");
+    // A navigation key of the catalog has no action; an unknown id keeps the text.
+    expect(localizedButtonLabel({ actionId: undefined, catalogId: "win.lock" }, "Lock")).toBe("Блок");
+    expect(localizedButtonLabel({ actionId: "x", catalogId: "gone.item" }, "Lock")).toBe("Lock");
+    setLanguage("en");
   });
 
   test("T31.7b: PageDots renders interactive 32 px touch buttons when onSelect is provided", () => {
