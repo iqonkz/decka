@@ -102,4 +102,15 @@ describe("T30.1b Notes page, Home Assistant integration, and catalog", () => {
     expect(html).toContain("Показать полный текст");
     expect(html).not.toContain("Полная стенограмма разговора.");
   });
+
+  it("T31.R: a file the agent writes keeps the questions in the summary and folds the full text, in any language", () => {
+    for (const [summary, questions, full, unit] of [["Кратко", "Вопросы", "Полный текст", "мин"], ["Zusammenfassung", "Fragen", "Volltext", "Min."], ["要約", "質問", "全文", "分"]]) {
+      const file = `# План\n\n2026-11-27 14:05 · 12 ${unit}\n\n## ${summary}\n\nA\n\n## ${questions}\n\n- Q\n\n## ${full}\n\nT`;
+      const split = splitNoteSections(file);
+      expect(extractNoteDurationMin(file), full).toBe(12);
+      expect(split.summaryMd, full).toContain("- Q");
+      expect(split.summaryMd, full).not.toContain("14:05");
+      expect(split.transcriptMd, full).toBe(`## ${full}\n\nT`);
+    }
+  });
 });

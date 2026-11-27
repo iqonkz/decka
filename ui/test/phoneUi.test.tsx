@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, test } from "vitest";
 import { setLanguage, type LayoutItem } from "@decka/shared";
 import { DeckEnvContext, EMPTY_DATA, type DeckData, type DeckEnv } from "../src/deckEnv";
+import { localizedButtonLabel } from "../src/look";
 import { DeckMetricsContext } from "../src/metricsContext";
 import PageDots from "../src/PageDots";
 import Skeleton from "../src/Skeleton";
@@ -144,6 +145,18 @@ describe("unified empty states and skeleton", () => {
     });
     expect(html).toContain("Блок");
     expect(html).toContain("top:8px;right:8px;font-size:14px");
+    setLanguage("en");
+  });
+
+  test("T31.R: the user's own captions never change, and a key without a caption stays without one", () => {
+    setLanguage("ru");
+    for (const actionId of ["lock-pc", "mute", "media-next", "obs-rec", "my-program"]) {
+      for (const own of ["Мой замок", "Anna's key", "Lock the door", "Стрим!"]) expect(localizedButtonLabel({ actionId }, own), `${actionId} ${own}`).toBe(own);
+      expect(localizedButtonLabel({ actionId }, undefined), actionId).toBeUndefined();
+      expect(localizedButtonLabel({ actionId }, ""), actionId).toBe("");
+    }
+    expect(localizedButtonLabel({ actionId: "lock-pc" }, "Lock")).toBe("Блок");
+    expect(localizedButtonLabel({ actionId: undefined }, "Lock")).toBe("Lock");
     setLanguage("en");
   });
 

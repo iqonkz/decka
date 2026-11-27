@@ -29,11 +29,11 @@ describe("T31.8b phone surrounding screens", () => {
     expect(html).toContain("<svg");
   });
 
-  test("PairScreen renders fullscreen QR frame at top and code form + word error below", () => {
+  test("PairScreen in a browser renders the code form and the word error, and no scanner frame", () => {
     setState({ lastError: "Код неверный или устарел. Создайте новый на ПК." });
     const html = renderToStaticMarkup(<PairScreen />);
     expect(html).toContain("pair-fullscreen");
-    expect(html).toContain("pair-viewfinder");
+    expect(html).not.toContain("pair-viewfinder");
     expect(html).toContain("pair-bottom-sheet");
     expect(html).toContain("pair-error-banner");
     expect(html).toContain("Код неверный или устарел");

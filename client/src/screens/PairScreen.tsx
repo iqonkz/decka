@@ -59,17 +59,20 @@ export default function PairScreen({ showQrFrame = false }: { showQrFrame?: bool
         <div className="pair-scanner-stage">
           <div className="pair-scanner-head">
             <h1 className="service-title">{t("pair.title")}</h1>
-            <p className="service-text">{t("pair.qr_hint")}</p>
+            {native && <p className="service-text">{t("pair.qr_hint")}</p>}
           </div>
-          <div className="qr-box pair-viewfinder" onClick={() => native && void scan()}>
-            <span className="qr-corner tl" aria-hidden="true" />
-            <span className="qr-corner tr" aria-hidden="true" />
-            <span className="qr-corner bl" aria-hidden="true" />
-            <span className="qr-corner br" aria-hidden="true" />
-            <span className="pair-viewfinder-icon" aria-hidden="true">
-              <PhIcon name="qr-code" size={44} />
-            </span>
-          </div>
+          {/* The frame opens the scanner of the app; a browser has no scanner, so it shows no frame. */}
+          {native && (
+            <div className="qr-box pair-viewfinder" onClick={() => void scan()}>
+              <span className="qr-corner tl" aria-hidden="true" />
+              <span className="qr-corner tr" aria-hidden="true" />
+              <span className="qr-corner bl" aria-hidden="true" />
+              <span className="qr-corner br" aria-hidden="true" />
+              <span className="pair-viewfinder-icon" aria-hidden="true">
+                <PhIcon name="qr-code" size={44} />
+              </span>
+            </div>
+          )}
           {native && (
             <button className="pill-btn primary pair-scan-btn" type="button" disabled={busy} onClick={() => void scan()}>
               {t("pair.scan")}

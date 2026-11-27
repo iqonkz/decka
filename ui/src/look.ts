@@ -47,14 +47,14 @@ const CATALOG_ID_ALIASES: Record<string, string> = {
  * keeping user-customized button captions intact.
  */
 export function localizedButtonLabel(item: Pick<ButtonItem, "actionId">, label: string | undefined): string | undefined {
-  if (!item.actionId) return label;
+  // A key without a caption stays without one: that is the user's choice too.
+  if (!item.actionId || !label) return label;
   const rawId = item.actionId;
   const direct = CATALOG_ID_ALIASES[rawId] ?? rawId;
   const cat =
     CATALOG.items.find((c) => c.id === direct) ??
     CATALOG.items.find((c) => rawId.startsWith(`${c.id}.`) || rawId.startsWith(`${c.id}-`));
   if (!cat) return label;
-  if (!label) return pickText(cat.label, getLanguage());
   const normalized = label.trim().toLowerCase();
   const knownDefaults = new Set(
     Object.values(cat.label)

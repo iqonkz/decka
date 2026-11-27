@@ -14,53 +14,37 @@ export interface NotesTabProps {
   initialNotes?: NoteEntry[];
 }
 
-const TRANSCRIPT_HEADING = /^#{1,3}\s+(расшифровка|транскрипт|полный\s+текст|подробности|transcript|full\s+text|details)(?:$|\s|[:.,!?])/i;
-const SUMMARY_HEADING = /^#{1,3}\s+(кратко|итоги|решения|задачи|summary|key\s+points|decisions|action\s+items|tasks)(?:$|\s|[:.,!?])/i;
+// The heading of the full text in a note file: the words of `notes::text::words` in the 11 languages, and a hand-written one.
+const TRANSCRIPT_HEADING =
+  /^#{1,3}\s+(полный\s+текст|full\s+text|texto\s+completo|volltext|texte\s+intégral|全文|पूरा\s+पाठ|النص\s+الكامل|толық\s+мәтін|расшифровка|транскрипт|transcript)\s*:?\s*$/i;
+// The line under the title that the agent writes: `2026-11-27 14:05 · 12 мин`.
+const WHEN_LINE = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2} · (\d+) \S+$/;
 const DURATION_LINE = /^(?:[-*]\s*)?(?:длительность|продолжительность|duration)\s*:\s*(?:(\d+)\s*(?:мин(?:ут[ыа]?)?|min(?:utes?)?)|(\d{1,2}):(\d{2}))/i;
 
 export function extractNoteDurationMin(markdown: string): number | null {
   for (const raw of markdown.split(/\r?\n/)) {
-    const m = raw.trim().match(DURATION_LINE);
+    const line = raw.trim();
+    if (TRANSCRIPT_HEADING.test(line)) break;
+    const m = line.match(WHEN_LINE) ?? line.match(DURATION_LINE);
     if (!m) continue;
-    if (m[1]) return Math.max(1, Number(m[1]));
-    if (m[2]) return Math.max(1, Number(m[2]));
+    const minutes = m[1] ?? m[2];
+    if (minutes) return Math.max(1, Number(minutes));
   }
   return null;
 }
 
+/**
+ * Everything before the heading of the full text is the summary (with the decisions, tasks and questions); the full text is
+ * folded. The line with the date and the length is left out: the header of the note shows both.
+ */
 export function splitNoteSections(markdown: string): { summaryMd: string; transcriptMd: string } {
   const lines = markdown.split(/\r?\n/);
-  const summaryLines: string[] = [];
-  const transcriptLines: string[] = [];
-  let mode: "intro" | "summary" | "transcript" = "intro";
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (DURATION_LINE.test(trimmed)) continue;
-    if (TRANSCRIPT_HEADING.test(trimmed)) {
-      mode = "transcript";
-      transcriptLines.push(line);
-    } else if (SUMMARY_HEADING.test(trimmed)) {
-      mode = "summary";
-      summaryLines.push(line);
-    } else if (mode === "transcript") {
-      transcriptLines.push(line);
-    } else if (mode === "summary") {
-      // A trailing unrecognized top/sub heading after summary sections moves into collapsible transcript/body.
-      if (/^#{1,2}\s+/.test(trimmed) && summaryLines.length > 0 && !SUMMARY_HEADING.test(trimmed)) {
-        mode = "transcript";
-        transcriptLines.push(line);
-      } else {
-        summaryLines.push(line);
-      }
-    } else {
-      summaryLines.push(line);
-    }
-  }
-
+  const found = lines.findIndex((line) => TRANSCRIPT_HEADING.test(line.trim()));
+  const cut = found < 0 ? lines.length : found;
+  const head = lines.slice(0, cut).filter((line) => !WHEN_LINE.test(line.trim()) && !DURATION_LINE.test(line.trim()));
   return {
-    summaryMd: summaryLines.join("\n").trim(),
-    transcriptMd: transcriptLines.join("\n").trim(),
+    summaryMd: head.join("\n").trim(),
+    transcriptMd: lines.slice(cut).join("\n").trim(),
   };
 }
 

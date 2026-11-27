@@ -39,24 +39,8 @@ function safeStorage(): Storage | undefined {
   }
 }
 
-const DEFAULT_VOICE: VoiceStatus = {
-  state: "off",
-  hardware: { ramGb: 16 },
-  model: "standard",
-  downloadGb: 3.2,
-  hotkey: ["ctrl", "alt", "space"],
-  keepLoaded: false,
-  unloadAfterMin: 10,
-  speak: false,
-  phoneButton: true,
-  mics: [],
-};
-
-const MODEL_GB = {
-  standard: "3.2",
-  light: "1.8",
-  "9b": "6.4",
-} as const;
+/** The model this PC should take (DATA_MODEL.md 12.2, `ai::hardware::recommend_model`). */
+export const recommendedModel = (hw: VoiceStatus["hardware"]): "standard" | "light" => ((hw.vramGb ?? 0) >= 6 || hw.ramGb >= 16 ? "standard" : "light");
 
 /** T31.4b first-run wizard: 3 steps (Phone -> Voice -> Done), Skip on every step. */
 export default function FirstRun({
@@ -70,7 +54,8 @@ export default function FirstRun({
 }) {
   const [step, setStep] = useState(startStep);
   const [layout, setLayout] = useState<LayoutFile | null>(null);
-  const [voice, setVoice] = useState<VoiceStatus>(initialVoiceStatus ?? DEFAULT_VOICE);
+  // `null` until the PC answers: nothing about its hardware or the download is made up.
+  const [voice, setVoice] = useState<VoiceStatus | null>(initialVoiceStatus ?? null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -116,15 +101,14 @@ export default function FirstRun({
   }
 
   async function selectModel(model: "standard" | "light") {
-    const before = voice;
+    setBusy(true);
     setError(null);
-    setVoice({ ...voice, model, downloadGb: Number(MODEL_GB[model]) });
     try {
-      const next = await call("voice_set", { model });
-      setVoice(next);
+      setVoice(await call("voice_set", { model }));
     } catch (e) {
-      setVoice(before);
       setError(String(e));
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -142,8 +126,7 @@ export default function FirstRun({
   }
 
   const titles = [t("wizard.title_pair"), t("m31.wizard_voice_title"), t("m31.wizard_done_title")];
-  const recommendedTier: "standard" | "light" = voice.suggestLight ? "light" : "standard";
-  const downloadSize = voice.downloadGb ? String(voice.downloadGb) : MODEL_GB[voice.model];
+  const downloadSize = voice ? voice.downloadGb.toFixed(1) : "";
   const phrases = [t("m31.wizard_phrase_1"), t("m31.wizard_phrase_2"), t("m31.wizard_phrase_3")];
 
   return (
@@ -189,20 +172,25 @@ export default function FirstRun({
         {step === 1 && (
           <div className="wizard-body">
             <PageHeader icon="microphone" title={t("m31.wizard_voice_title")} subtitle={t("m31.wizard_voice_hint")} />
+            {!voice && !error && <p className="muted">{t("common.loading")}</p>}
+            {voice && (
+            <>
             <Group>
               <Row title={t("voice.title")} description={formatHardware(voice.hardware, voice.model)} icon="cpu" />
               {(["standard", "light"] as const).map((tier) => {
                 const selected = voice.model === tier;
-                const rec = tier === recommendedTier;
+                // The size is the PC's own count for the chosen model; it depends on the video card too.
+                const description = [
+                  tier === recommendedModel(voice.hardware) ? t("m31.wizard_voice_recommended") : "",
+                  selected ? `~${downloadSize} GB` : "",
+                ]
+                  .filter(Boolean)
+                  .join(" · ");
                 return (
                   <Row
                     key={tier}
                     title={t(tier === "light" ? "voice.model_light" : "voice.model_standard")}
-                    description={
-                      rec
-                        ? `${t("m31.wizard_voice_recommended")} · ~${MODEL_GB[tier]} GB`
-                        : `~${MODEL_GB[tier]} GB`
-                    }
+                    description={description || undefined}
                     icon="waveform"
                   >
                     <Button
@@ -264,6 +252,8 @@ export default function FirstRun({
                 </div>
               )}
             </Group>
+            </>
+            )}
           </div>
         )}
 

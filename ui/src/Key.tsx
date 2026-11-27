@@ -176,6 +176,9 @@ export default function Key({ actionId, onTap, onPressed, confirm, icon, label, 
   } as CSSProperties;
   const classes = ["key", phase, coloured ? "colored" : "", disabled ? "disabled" : "", noData ? "no-data" : "", full ? "full" : "", full?.mode === "cover" ? "tile-face" : ""].filter(Boolean).join(" ");
   const labelPad = 0.07 * side;
+  // The hold ring follows the edge of the tile, which is not square when the grid fills the screen.
+  const ringW = stretch ? (metrics.cellW as number) : side;
+  const ringH = stretch ? (metrics.cellH as number) : side;
   return (
     <div ref={element} className={classes} data-tile="" style={keyStyle} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={cancel}>
       {full && full.mode === "cover" && iconUrl && <img className="key-cover" src={iconUrl} alt="" draggable={false} />}
@@ -221,8 +224,8 @@ export default function Key({ actionId, onTap, onPressed, confirm, icon, label, 
       )}
       {liveDot && <span className="rec-dot key-live" style={{ top: 8, left: 8, width: 8, height: 8 }} aria-hidden="true" />}
       {phase === "confirming" && (
-        <svg className="ring" width={side} height={side} viewBox={`0 0 ${side} ${side}`} aria-hidden="true">
-          <rect x="1.5" y="1.5" width={Math.max(1, side - 3)} height={Math.max(1, side - 3)} rx={Math.min(15, Math.max(4, Math.round(side * 0.16)))} pathLength="100" />
+        <svg className="ring" width={ringW} height={ringH} viewBox={`0 0 ${ringW} ${ringH}`} preserveAspectRatio="none" aria-hidden="true">
+          <rect x="1.5" y="1.5" width={Math.max(1, ringW - 3)} height={Math.max(1, ringH - 3)} rx={Math.min(15, Math.max(4, Math.round(side * 0.16)))} pathLength="100" />
         </svg>
       )}
     </div>

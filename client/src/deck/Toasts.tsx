@@ -64,6 +64,8 @@ export default function Toasts() {
                 dismissToast(item.id);
                 return;
               }
+              // A swipe that was taken back is not a tap: the toast stays and nothing opens on the PC.
+              if (Math.hypot(dx, dy) > 8) return;
               if (item.notifId !== undefined) openNotification(item.notifId);
               dismissToast(item.id);
             }}

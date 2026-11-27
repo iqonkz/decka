@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { sameMinor, t } from "@decka/shared";
 import { Icon } from "@decka/ui";
+// Three icons the keys of the panel do not offer, so `Icon` would draw its empty square for them.
+import { LayoutGrid, Usb, Wifi, WifiOff } from "lucide-react";
 import pkg from "../../package.json";
 import { connectAgain, startAppUpdate } from "../app/controller";
 import { isNewerVersion } from "../update/apkAssembler";
@@ -36,7 +38,7 @@ export default function PhoneMenu({ reduced, onToggleReduced, haptics, onToggleH
   const [voiceButton, setVoiceButton] = useState(() => loadVoiceButtonEnabled());
   const hidden = hiddenStripApps(useStripModes());
 
-  const statusIcon = conn !== "online" ? "lucide:wifi-off" : via === "usb" ? "lucide:usb" : "lucide:wifi";
+  const StatusIcon = conn !== "online" ? WifiOff : via === "usb" ? Usb : Wifi;
 
   return (
     <div className="menu-backdrop" onPointerDown={onClose}>
@@ -46,7 +48,7 @@ export default function PhoneMenu({ reduced, onToggleReduced, haptics, onToggleH
           <div className="phone-group-title">{t("sidebar.group.connections")}</div>
           <div className="phone-group">
             <div className="phone-row menu-status-row">
-              <span className="phone-row-icon"><Icon icon={statusIcon} size={20} /></span>
+              <span className="phone-row-icon"><StatusIcon size={20} strokeWidth={1.75} /></span>
               <span className="phone-row-label">{statusLine(conn, via, agentName)}</span>
             </div>
             {newApp && (
@@ -126,7 +128,7 @@ export default function PhoneMenu({ reduced, onToggleReduced, haptics, onToggleH
               <div className="phone-group">
                 {hidden.map((app) => (
                   <div key={app} className="phone-row">
-                    <span className="phone-row-icon"><Icon icon="lucide:layout-grid" size={20} /></span>
+                    <span className="phone-row-icon"><LayoutGrid size={20} strokeWidth={1.75} /></span>
                     <span className="phone-row-label">{app}</span>
                     <button type="button" className="menu-link" onClick={() => setStripMode(app, "auto")}>
                       {t("strip.show_again")}

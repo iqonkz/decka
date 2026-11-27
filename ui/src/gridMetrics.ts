@@ -86,9 +86,26 @@ export function transposeItemsForGrid(
         }
       }
     }
+    // No room for its size: it shrinks to the largest rectangle that is still free, never onto another tile.
     if (!placed) {
-      out.push({ ...item, x: Math.min(item.x, Math.max(0, dstCols - w)), y: Math.min(item.y, Math.max(0, dstRows - h)), w, h });
+      const sizes: [number, number][] = [];
+      for (let sw = w; sw >= 1; sw--) for (let sh = h; sh >= 1; sh--) sizes.push([sw, sh]);
+      sizes.sort((a, b) => b[0] * b[1] - a[0] * a[1]);
+      for (const [sw, sh] of sizes) {
+        for (let y = 0; y < dstRows && !placed; y++) {
+          for (let x = 0; x < dstCols && !placed; x++) {
+            if (fitsAt(x, y, sw, sh)) {
+              occupy(x, y, sw, sh);
+              out.push({ ...item, x, y, w: sw, h: sh });
+              placed = true;
+            }
+          }
+        }
+        if (placed) break;
+      }
     }
+    // A cell is always free while the tiles fit the source grid; a layout with more tiles than cells loses none silently.
+    if (!placed) out.push({ ...item, x: 0, y: dstRows - 1, w: 1, h: 1 });
   }
   return out;
 }

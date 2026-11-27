@@ -50,4 +50,23 @@ describe("gridMetrics (T31.7b full-screen stretch + transpose)", () => {
       ["e", 1, 1, 2, 2],
     ]);
   });
+
+  test("a full grid with large widgets turns without two tiles on one cell", () => {
+    const keys = (xs: number[], y: number): LayoutItem[] => xs.map((x) => ({ id: `k${x}-${y}`, kind: "button", x, y, w: 1, h: 1, label: "K" }));
+    // 7x4, every cell taken: three wide widgets and single keys around them.
+    const items: LayoutItem[] = [
+      ...keys([0], 0),
+      { id: "w1", kind: "weather", x: 1, y: 0, w: 3, h: 2 },
+      { id: "w2", kind: "media", x: 4, y: 0, w: 3, h: 2 },
+      ...keys([0], 1),
+      { id: "w3", kind: "clock", x: 0, y: 2, w: 4, h: 2 },
+      ...keys([4, 5, 6], 2),
+      ...keys([4, 5, 6], 3),
+    ];
+    const turned = transposeItemsForGrid(items, 7, 4, 4, 7);
+    expect(turned.map((i) => i.id).sort()).toEqual(items.map((i) => i.id).sort());
+    const cells = turned.flatMap((i) => Array.from({ length: i.w * i.h }, (_, n) => `${i.x + (n % i.w)},${i.y + Math.floor(n / i.w)}`));
+    expect(new Set(cells).size).toBe(cells.length);
+    for (const i of turned) expect(i.x + i.w <= 4 && i.y + i.h <= 7, i.id).toBe(true);
+  });
 });

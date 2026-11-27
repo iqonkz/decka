@@ -56,7 +56,8 @@ export default function Screensaver() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seed]);
 
-  const trackLine = media?.title
+  // The track line is for music that plays; a paused player shows nothing.
+  const trackLine = media?.playing && media.title
     ? media.artist
       ? `${media.artist} — ${media.title}`
       : media.title

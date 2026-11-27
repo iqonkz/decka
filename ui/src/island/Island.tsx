@@ -797,7 +797,6 @@ export default function Island({
                   <button
                     type="button"
                     className={`island-action-btn${isCopied ? " is-copied" : ""}${hoveredAction === "copy" ? " is-hovered" : ""}`}
-                    title={isCopied ? t("island.copied") : t("island.copy")}
                     data-tooltip={isCopied ? t("island.copied") : t("island.copy")}
                     aria-label={isCopied ? t("island.copied") : t("island.copy")}
                     onClick={handleCopy}
@@ -809,7 +808,6 @@ export default function Island({
                   <button
                     type="button"
                     className={`island-action-btn${hoveredAction === "insert" ? " is-hovered" : ""}`}
-                    title={t("island.insert")}
                     data-tooltip={t("island.insert")}
                     aria-label={t("island.insert")}
                     onClick={() => onAction?.("insert")}
@@ -821,7 +819,6 @@ export default function Island({
                   <button
                     type="button"
                     className={`island-action-btn${hoveredAction === "speak" ? " is-hovered" : ""}`}
-                    title={isSpeaking ? t("island.stop_speaking") : t("island.speak")}
                     data-tooltip={isSpeaking ? t("island.stop_speaking") : t("island.speak")}
                     aria-label={isSpeaking ? t("island.stop_speaking") : t("island.speak")}
                     onClick={() => onAction?.("speak")}
@@ -836,7 +833,6 @@ export default function Island({
                   <button
                     type="button"
                     className={`island-action-btn${hoveredAction === "again" ? " is-hovered" : ""}`}
-                    title={t("island.again")}
                     data-tooltip={t("island.again")}
                     aria-label={t("island.again")}
                     onClick={() => onAction?.("again")}
