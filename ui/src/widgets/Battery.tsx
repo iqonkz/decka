@@ -36,7 +36,9 @@ export default function Battery({ item }: { item: BatteryItem }) {
       {devices.slice(0, rows).map((d) => (
         <div className="battery-row" key={`${d.kind}:${d.name}`} style={{ color: COLOR[chargeLevel(d.pct)] }}>
           <Icon icon={batteryIcon(d.kind, d.name)} size={16} />
-          <span className="battery-name">{d.kind === "pc" ? t("battery.pc") : d.name}</span>
+          <span className="battery-name">
+            {d.kind === "pc" ? t("battery.pc") : (d.kind as string) === "phone" ? (d.name || t("m30.phone_battery")) : d.name}
+          </span>
           <span className="battery-bar">
             <span className="battery-fill" style={{ width: `${d.pct}%` }} />
           </span>

@@ -5,6 +5,10 @@ describe("batteryIcon (DATA_MODEL.md 10.6)", () => {
   test("the PC is a laptop whatever its name", () => {
     expect(batteryIcon("pc", "Headset")).toBe("lucide:laptop");
   });
+  test("T30.2b: a phone gets a smartphone icon", () => {
+    expect(batteryIcon("phone", "Pixel 8")).toBe("lucide:smartphone");
+    expect(batteryIcon("bt", "Phone")).toBe("lucide:smartphone");
+  });
   test("a device gets its icon from words in its name", () => {
     expect(batteryIcon("bt", "WH-1000XM5 Headphones")).toBe("lucide:headphones");
     expect(batteryIcon("bt", "AirPods Pro")).toBe("lucide:headphones");

@@ -10,6 +10,7 @@ import { ApkAssembler, ApkError } from "../update/apkAssembler";
 import { clearConn, loadConn, saveConn } from "../store/storage";
 import { installVoiceGoto } from "../voice/goto";
 import { installPageShown } from "./pageShown";
+import { startPhoneBatteryMonitor } from "./phoneBattery";
 
 /** Where the next pairing attempt goes; null when not pairing. */
 let pairTarget: { hosts: string[]; port: number } | null = null;
@@ -184,6 +185,7 @@ export function setPage(pageIndex: number): void {
 export function init(): void {
   installVoiceGoto();
   installPageShown((pageId) => conn().pageShown(pageId));
+  startPhoneBatteryMonitor((battery, charging) => conn().sendPhoneStatus(battery, charging));
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") conn().wake();
   });

@@ -286,6 +286,8 @@ const SHOTS = {
   "t30-notes-dark": [{ w: 1100, h: 800, scale: 1 }, "scene=settings&theme=studio&lang=ru&scheme=dark&go=notes"],
   "t30-ha-light": [{ w: 1100, h: 1250, scale: 1 }, "scene=settings&theme=studio&lang=ru&scheme=light&go=integrations", "#section-integrations-ha button::0"],
   "t30-ha-dark": [{ w: 1100, h: 1250, scale: 1 }, "scene=settings&theme=studio&lang=ru&scheme=dark&go=integrations", "#section-integrations-ha button::0"],
+  "t30-phone-battery-light": [{ w: 380, h: 220, scale: 2 }, "scene=m30-battery&lang=ru&theme=light"],
+  "t30-phone-battery-dark": [{ w: 380, h: 220, scale: 2 }, "scene=m30-battery&lang=ru&theme=dark"],
   ...audit2Shots(),
   "phone-idle": [PHONE, "scene=phone&state=idle"],
   "phone-listening": [PHONE, "scene=phone&state=listening"],
