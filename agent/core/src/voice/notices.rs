@@ -22,9 +22,11 @@ pub enum Rule {
     Disk,
     Focus,
     Ai,
+    /// M30 (T30.3): the phone runs low and is not on a charger.
+    Phone,
 }
 
-const ALL: [Rule; 6] = [Rule::Ram, Rule::Cpu, Rule::Battery, Rule::Disk, Rule::Focus, Rule::Ai];
+const ALL: [Rule; 7] = [Rule::Ram, Rule::Cpu, Rule::Battery, Rule::Disk, Rule::Focus, Rule::Ai, Rule::Phone];
 
 /// What the rules look at, one look.
 #[derive(Debug, Clone, Default)]
@@ -35,8 +37,10 @@ pub struct Sample {
     /// The program that uses the most memory, for the memory note.
     pub top_process: Option<String>,
     pub disk_free_gb: Option<f64>,
-    /// The lowest charge among the batteries known (name, percent).
+    /// The lowest charge among the batteries of the PC and its devices that are not on a charger (name, percent).
     pub battery_low: Option<(String, f64)>,
+    /// The lowest charge among the phones that are not on a charger.
+    pub phone_low: Option<f64>,
     pub ai_pct: Option<f64>,
     pub focus_ended: bool,
     pub fullscreen: bool,
@@ -66,6 +70,7 @@ impl Notices {
                 Rule::Disk => (s.disk_free_gb.is_some_and(|v| v < DISK_FREE_GB), 0),
                 Rule::Focus => (s.focus_ended, 0),
                 Rule::Ai => (s.ai_pct.is_some_and(|v| v >= AI_PCT), 0),
+                Rule::Phone => (s.phone_low.is_some_and(|v| v <= BATTERY_PCT), 0),
             };
             if !on {
                 self.over_since.remove(&rule);
@@ -98,6 +103,7 @@ fn text(rule: Rule, s: &Sample) -> String {
         Rule::Disk => format!("Less than {} GB left on the disk", n(s.disk_free_gb)),
         Rule::Focus => "The focus timer is over".into(),
         Rule::Ai => format!("An AI limit is {}% used", n(s.ai_pct)),
+        Rule::Phone => format!("Phone: {}%", n(s.phone_low)),
     }
 }
 
@@ -112,10 +118,17 @@ pub fn sample(now_ms: u64, sys: &Value, battery: &Value, ai: &Value, focus_ended
         .get("disks")
         .and_then(Value::as_array)
         .and_then(|d| d.iter().filter_map(|x| Some((x.get("totalGb")?.as_f64()? - x.get("usedGb")?.as_f64()?).max(0.0))).reduce(f64::min));
-    let battery_low = battery
-        .get("devices")
-        .and_then(Value::as_array)
-        .and_then(|d| d.iter().filter_map(|x| Some((x.get("name")?.as_str()?.to_string(), x.get("pct")?.as_f64()?))).min_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal)));
+    // A device on a charger is not "low": it is being filled.
+    let lowest = |phones: bool| {
+        battery
+            .get("devices")?
+            .as_array()?
+            .iter()
+            .filter(|x| (x.get("kind").and_then(Value::as_str) == Some("phone")) == phones && x.get("charging").and_then(Value::as_bool) != Some(true))
+            .filter_map(|x| Some((x.get("name")?.as_str()?.to_string(), x.get("pct")?.as_f64()?)))
+            .min_by(|a, b| a.1.total_cmp(&b.1))
+    };
+    let (battery_low, phone_low) = (lowest(false), lowest(true).map(|p| p.1));
     let ai_pct = ["claude", "codex"]
         .iter()
         .filter_map(|k| ai.get(k)?.get("windows")?.as_array())
@@ -123,7 +136,7 @@ pub fn sample(now_ms: u64, sys: &Value, battery: &Value, ai: &Value, focus_ended
         .filter_map(|w| w.get("pct")?.as_f64())
         .reduce(f64::max);
     let top_process = sys.pointer("/top/0/name").and_then(Value::as_str).map(str::to_string);
-    Sample { now_ms, cpu_pct: f(sys, "/cpu"), ram_pct, top_process, disk_free_gb, battery_low, ai_pct, focus_ended, fullscreen }
+    Sample { now_ms, cpu_pct: f(sys, "/cpu"), ram_pct, top_process, disk_free_gb, battery_low, phone_low, ai_pct, focus_ended, fullscreen }
 }
 
 #[cfg(test)]
@@ -196,6 +209,13 @@ mod tests {
         let ai = json!({ "claude": { "windows": [{ "label": "5h", "pct": 40 }, { "label": "7d", "pct": 92 }] } });
         let s = sample(5, &sys, &battery, &ai, false, false);
         assert_eq!((s.ram_pct.map(|v| v.round()), s.disk_free_gb, s.ai_pct, s.top_process.as_deref()), (Some(94.0), Some(2.0), Some(92.0), Some("chrome.exe")));
-        assert_eq!(s.battery_low, Some(("Mouse".into(), 12.0)));
+        assert_eq!((s.battery_low, s.phone_low), (Some(("Mouse".into(), 12.0)), None));
+        // T30.3: the phone has a rule of its own, and a device on a charger is not low.
+        let battery = json!({ "devices": [{ "name": "Pixel 7", "pct": 15, "kind": "phone" }, { "name": "Laptop", "pct": 5, "kind": "pc", "charging": true }] });
+        let s = sample(5, &json!({}), &battery, &json!({}), false, false);
+        assert_eq!((s.battery_low.as_ref(), s.phone_low), (None, Some(15.0)));
+        assert_eq!(Notices::default().step(true, &s).iter().map(|n| (n.rule, n.text.as_str())).collect::<Vec<_>>(), [(Rule::Phone, "Phone: 15%")]);
+        let charging = json!({ "devices": [{ "name": "Pixel 7", "pct": 10, "kind": "phone", "charging": true }] });
+        assert_eq!(sample(5, &json!({}), &charging, &json!({}), false, false).phone_low, None);
     }
 }

@@ -1344,4 +1344,5 @@ export const kk: Dictionary = {
   "voice.reply.close_not_allowed": "Decka бұл бағдарламаны жаппайды",
   "voice.reply.close_not_running": "Бұл бағдарлама енді жұмыс істемейді",
   "voice.reply.close_failed": "Windows оны жабуға рұқсат бермеді",
+  "voice.reply.phone_battery_low": "Телефон: {pct}%",
 };

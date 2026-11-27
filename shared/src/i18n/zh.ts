@@ -1337,4 +1337,5 @@ export const zh: Dictionary = {
   "voice.reply.close_not_allowed": "Decka 不会关闭该程序",
   "voice.reply.close_not_running": "该程序已不在运行",
   "voice.reply.close_failed": "Windows 不允许关闭它",
+  "voice.reply.phone_battery_low": "手机电量：{pct}%",
 };

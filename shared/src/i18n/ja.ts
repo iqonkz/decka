@@ -1337,4 +1337,5 @@ export const ja: Dictionary = {
   "voice.reply.close_not_allowed": "このプログラムは Decka では閉じません",
   "voice.reply.close_not_running": "そのプログラムはもう動いていません",
   "voice.reply.close_failed": "Windows により閉じられませんでした",
+  "voice.reply.phone_battery_low": "スマホ：{pct}%",
 };

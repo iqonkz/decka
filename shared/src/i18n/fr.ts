@@ -1337,4 +1337,5 @@ export const fr: Dictionary = {
   "voice.reply.close_not_allowed": "Decka ne ferme pas ce programme",
   "voice.reply.close_not_running": "Ce programme n'est plus lancé",
   "voice.reply.close_failed": "Windows n'a pas permis de le fermer",
+  "voice.reply.phone_battery_low": "Téléphone : {pct} %",
 };

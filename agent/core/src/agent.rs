@@ -295,7 +295,15 @@ pub struct ConnGuard {
 
 impl Drop for ConnGuard {
     fn drop(&mut self) {
-        self.agent.inner.conns.lock().unwrap().remove(&self.id);
+        let gone = {
+            let mut conns = self.agent.inner.conns.lock().unwrap();
+            let gone = conns.remove(&self.id).map(|c| c.device_id);
+            gone.filter(|d| !conns.values().any(|c| c.device_id == *d))
+        };
+        // T30.3: the charge of a phone that left is not shown any more.
+        if let Some(device) = gone {
+            self.agent.inner.battery.forget(&device);
+        }
         self.agent.publish_status();
     }
 }
@@ -422,6 +430,8 @@ struct Inner {
     app_update: Mutex<Option<crate::apk_update::AppUpdate>>,
     updates_dir: PathBuf,
     apk_gate: Mutex<crate::apk_update::DownloadGate>,
+    /// M30: the section `battery`, with the charge of the phones (T30.3).
+    battery: crate::battery::Hub,
     /// M30: meeting notes (T30.1).
     notes: crate::notes::Notes,
     /// Runtime of `Agent::start`; lets synchronous callers (UI commands) start background tasks.
@@ -456,6 +466,7 @@ impl Agent {
                 layout: Mutex::new(layout),
                 statuses: crate::statuses::Statuses::new(store.clone()),
                 ai: crate::ai::AiHub::new(store.clone()),
+                battery: crate::battery::Hub::new(store.clone()),
                 voice: crate::voice::VoiceHub::new(),
                 assistant: crate::assistant::Assistant::load(&config_dir),
                 memory: crate::voice::memory::Memory::load(&config_dir),
@@ -560,6 +571,7 @@ impl Agent {
                 loop {
                     interval.tick().await;
                     for_task.inner.statuses.expire(std::time::Instant::now());
+                    for_task.inner.battery.expire(std::time::Instant::now());
                 }
             });
             agent.inner.background.lock().unwrap().push(ticker);
@@ -661,6 +673,12 @@ impl Agent {
     }
 
     /// `media.lyrics.pcOverlay` (DESIGN.md 4.17): the window of the words on the PC; absent or unknown = `auto`.
+    /// M30 (T30.3): `phone_status` of a paired phone. Data only: shown in the battery section, answered by voice.
+    pub fn phone_status(&self, device_id: &str, name: &str, pct: u32, charging: bool) {
+        let phone = crate::battery::Phone { name: name.to_string(), pct, charging };
+        self.inner.battery.phone(device_id, phone, std::time::Instant::now());
+    }
+
     /// M30 (T30.1): the meeting notes.
     pub fn notes(&self) -> &crate::notes::Notes {
         &self.inner.notes
@@ -880,10 +898,9 @@ impl Agent {
         let old_battery = self.inner.battery_collector.lock().unwrap().take();
         drop(old_battery);
         if needed.battery {
-            *self.inner.battery_collector.lock().unwrap() = Some(crate::battery::BatteryCollector::start(self.inner.store.clone()));
+            *self.inner.battery_collector.lock().unwrap() = Some(crate::battery::BatteryCollector::start(self.inner.battery.clone()));
         } else {
-            self.inner.store.set("battery", serde_json::Value::Null);
-            self.inner.store.update_vars(crate::battery::clear_vars);
+            self.inner.battery.pc_off();
         }
         // Unread mail (M17): IMAP once in two minutes while the widget or a variable needs it.
         self.start_mail(needed.mail);

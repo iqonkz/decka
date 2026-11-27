@@ -67,6 +67,11 @@ export interface ListToggleMsg { t: "list_toggle"; listId: string; itemId: strin
 // id не из раскладки — молча игнорируется; лимит как у press (ключ "page_shown"). Если телефонов несколько, берётся
 // страница того, кто говорил или листал последним. ПК старше 0.51.1 отвечает BAD_MESSAGE — телефон это игнорирует.
 export interface PageShownMsg { t: "page_shown"; pageId: string; }                    // pageId ^[a-z0-9_-]{1,64}$
+// M30 (T30.3): заряд телефона. Данные, не команда: ПК показывает его в секции `battery` (kind "phone", имя устройства),
+// отвечает голосом и напоминает о разряде без зарядки. Шлётся после подключения, при изменении и раз в 60 с; нет
+// `navigator.getBattery` — не шлётся. Вне 0..100 — молча игнорируется; лимит как у press (ключ "phone_status").
+// Молчание 3 минуты или отключение — телефон убирается из секции. ПК старше 0.60.0 отвечает BAD_MESSAGE — телефон это игнорирует.
+export interface PhoneStatusMsg { t: "phone_status"; battery: number; charging: boolean; } // battery — целое 0..100
 // M21 (DATA_MODEL.md §12): голос с телефона. Только внутри канала v2. Звук — данные; что делать, решает ПК (S24).
 export interface VoiceStartMsg  { t: "voice_start"; id: string; }                        // id — 16 hex от клиента, одна активная запись на устройство
 export interface VoiceChunkMsg  { t: "voice_chunk"; id: string; seq: number; data: string; } // base64 PCM16 16 кГц моно, ≤ 3200 байт (100 мс)
@@ -127,7 +132,7 @@ export interface FullState {
 export interface RemindersSection { items: { id: string; text: string; at: string; repeat?: "daily" | "weekdays" | "weekly" }[] } // ближайшие 5 несделанных, at — локальное ISO
 export interface ListsSection { lists: { id: string; name: string; items: { id: string; text: string; done: boolean }[] }[] } // ≤ 50 пунктов в списке
 export interface StripInfo { app: string; template: string; name: string; icon?: string /* T17.6: "img:<hash16>" */; keys: { actionId: Id; label: string; icon?: string }[]; } // keys <= 16
-export interface BatteryInfo { devices: { name: string; pct: number; kind: "pc" | "bt"; charging?: boolean }[]; updatedAt: number; } // <= 8
+export interface BatteryInfo { devices: { name: string; pct: number; kind: "pc" | "bt" | "phone"; charging?: boolean }[]; updatedAt: number; } // <= 8; "phone" — M30
 export interface MailInfo { accounts: { id: Id; name: string; unread: number | null; error?: "auth" | "network"; openActionId?: Id }[]; updatedAt: number; } // <= 3; openActionId — id действия для тапа (принято 2026-11-19)
 
 // M16: лимиты Claude Code / Codex и запросы разрешений (DATA_MODEL.md §6.8).

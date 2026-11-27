@@ -1377,4 +1377,5 @@ export const ar: Dictionary = {
   "voice.reply.close_not_allowed": "لا يغلق Decka هذا البرنامج",
   "voice.reply.close_not_running": "لم يعد هذا البرنامج قيد التشغيل",
   "voice.reply.close_failed": "لم يسمح Windows بإغلاقه",
+  "voice.reply.phone_battery_low": "الهاتف: {pct}%",
 };

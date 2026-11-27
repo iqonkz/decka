@@ -1348,4 +1348,5 @@ export const en = {
   "voice.reply.close_not_allowed": "Decka does not close this program",
   "voice.reply.close_not_running": "That program is not running any more",
   "voice.reply.close_failed": "Windows did not let Decka close it",
+  "voice.reply.phone_battery_low": "Phone: {pct}%",
 } as const;

@@ -5,6 +5,7 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 ## Unreleased
 
 ### Added
+- **Phone battery** on the PC: the battery widget shows the phone, the voice answers about it, and the island says "Phone: 15%" when it runs low off the charger.
 - **What eats the memory**: ask "what is eating the memory?" and the island lists the five heaviest programs with a Close button each. Closing asks first, is polite (the program can save), and force needs a second yes; Windows' own parts, other users' processes and Decka are never offered.
 - **Meeting notes**: say "start a note" (or use the island or a `notes_record` key) and Decka records the microphone and the PC sound, writes it down with the local whisper and sums it up (summary, decisions, tasks, questions) into a Markdown file on this PC. A red dot with a timer stays on the island while it records; nothing leaves the PC; the sound is deleted unless "Keep the sound" is on.
 

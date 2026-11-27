@@ -37,6 +37,8 @@ export interface NotifOpenMsg { t: "notif_open"; notifId: string; }
 export interface ListToggleMsg { t: "list_toggle"; listId: string; itemId: string; }   // ids ^[0-9a-f]{16}$
 /** T29.P: the page the phone shows now (an id of the layout). Data, not a command. */
 export interface PageShownMsg { t: "page_shown"; pageId: string; }
+// M30 (T30.3): the charge of the phone, on change and once a minute. Data, not a command.
+export interface PhoneStatusMsg { t: "phone_status"; battery: number; charging: boolean; }   // battery 0..100, integer
 // M24 (DATA_MODEL.md 14): data, not a command. trackKey is one the PC issued (an unknown one is ignored); the step is +-500 ms only.
 export interface LyricsOffsetMsg { t: "lyrics_offset"; trackKey: string; deltaMs: -500 | 500; }   // trackKey ^[0-9a-f]{16}$
 /** M20 (T20.4): the next piece of the new APK; `offset` is a multiple of 3000. Only inside the encrypted channel. */
@@ -56,7 +58,7 @@ export interface VoiceInfo {
   /** M22 (DATA_MODEL.md 13.7): what the running request is, for the label of the pill. */
   activity?: "dictate" | "screen";
 }
-export type ClientMsg = Hello2Msg | AuthMsg | PairMsg | HelloMsg | PressMsg | NotifDismissMsg | PingMsg | PermAnswerMsg | NotifOpenMsg | ListToggleMsg | PageShownMsg | LyricsOffsetMsg | ApkGetMsg
+export type ClientMsg = Hello2Msg | AuthMsg | PairMsg | HelloMsg | PressMsg | NotifDismissMsg | PingMsg | PermAnswerMsg | NotifOpenMsg | ListToggleMsg | PageShownMsg | PhoneStatusMsg | LyricsOffsetMsg | ApkGetMsg
   | VoiceStartMsg | VoiceChunkMsg | VoiceEndMsg | VoiceCancelMsg | VoiceConfirmMsg;
 
 // ===== Server -> Client (WS) =====
@@ -114,7 +116,7 @@ export interface UpdateInfo2 { app?: { version: string; size: number; sha256: st
 
 /** The keys of the built-in template of the app in front (DATA_MODEL.md 10.5), at most 16. */
 export interface StripInfo { app: string; template: string; name: string; keys: { actionId: Id; label: string; icon?: string }[]; icon?: string; } // icon: "img:<hash16>" of the installed program, absent = lucide:app-window
-export interface BatteryInfo { devices: { name: string; pct: number; kind: "pc" | "bt"; charging?: boolean }[]; updatedAt: number; } // at most 8
+export interface BatteryInfo { devices: { name: string; pct: number; kind: "pc" | "bt" | "phone"; charging?: boolean }[]; updatedAt: number; } // at most 8; phone: M30
 /** `openActionId` (an id of an existing action, never a command) is the key a tap on the mailbox presses; absent = a tap does nothing. */
 export interface MailInfo { accounts: { id: Id; name: string; unread: number | null; error?: "auth" | "network"; openActionId?: Id }[]; updatedAt: number; } // at most 3
 

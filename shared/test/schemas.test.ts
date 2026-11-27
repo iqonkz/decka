@@ -144,6 +144,16 @@ describe("invalid inputs are rejected", () => {
     expect(valid(proto("LyricsInfo"), { ...info, lines: [{ text: "x".repeat(201) }] })).toBe(false);
   });
 
+  test("phone_status carries the charge and nothing else", () => {
+    const ok = { t: "phone_status", battery: 15, charging: false };
+    expect(valid(proto("PhoneStatusMsg"), ok)).toBe(true);
+    expect(valid(proto("ClientMsg"), ok)).toBe(true);
+    expect(valid(proto("PhoneStatusMsg"), { ...ok, battery: 101 })).toBe(false);
+    expect(valid(proto("PhoneStatusMsg"), { ...ok, battery: 1.5 })).toBe(false);
+    expect(valid(proto("PhoneStatusMsg"), { ...ok, actionId: "lock" })).toBe(false);
+    expect(valid(proto("PhoneStatusMsg"), { t: "phone_status", battery: 15 })).toBe(false);
+  });
+
   test("page_shown carries the id of a page and nothing else", () => {
     const ok = { t: "page_shown", pageId: "home" };
     expect(valid(proto("PageShownMsg"), ok)).toBe(true);

@@ -505,6 +505,16 @@ async fn handle_text(
             }
             true
         }
+        Ok(ClientMsg::PhoneStatus { battery, charging }) => {
+            if !press_limiter.check("phone_status") {
+                return link.send(&error_msg(ErrorCode::RateLimited, "too many requests")).await;
+            }
+            // Data, not a command: a charge outside 0..100 changes nothing.
+            if (0..=100).contains(&battery) {
+                agent.phone_status(&who.device_id, &who.name, battery as u32, charging);
+            }
+            true
+        }
         Ok(ClientMsg::LyricsOffset { track_key, delta_ms }) => {
             // Data, not a command: only the key of the current track and a step of half a second move the shift; anything else
             // (an unknown key, another step) changes nothing. Same limit per second as a press.

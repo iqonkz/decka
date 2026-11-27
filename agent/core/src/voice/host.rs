@@ -1016,6 +1016,10 @@ impl Host {
                         let pct = s.ram_pct.map_or_else(String::new, |v| format!("{}", v.round() as i64));
                         let said = super::status::Answer { key: "voice.reply.ram_notice", args: [("pct".to_string(), pct)].into(), text: n.text.clone() };
                         inner.plate_with(&super::status::encode(&said), vec!["memory"], 20);
+                    } else if n.rule == super::notices::Rule::Phone {
+                        let pct = s.phone_low.map_or_else(String::new, |v| format!("{}", v.round() as i64));
+                        let said = super::status::Answer { key: "voice.reply.phone_battery_low", args: [("pct".to_string(), pct)].into(), text: n.text.clone() };
+                        inner.plate(&super::status::encode(&said), false, 8);
                     } else {
                         inner.plate(&n.text, false, 6);
                     }
