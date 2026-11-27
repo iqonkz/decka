@@ -167,9 +167,10 @@ export default function Key({ actionId, onTap, onPressed, confirm, icon, label, 
 
   // The key is the touch target and the face at once: `side` x `side` px.
   // Colours, face and radius come from the theme through CSS variables; only the size and the key colour are set here.
+  const stretch = fixedSide === undefined && metrics.cellW !== undefined && metrics.cellH !== undefined;
   const keyStyle = {
-    width: side,
-    height: side,
+    width: stretch ? "100%" : side,
+    height: stretch ? "100%" : side,
     ...(fixedSide !== undefined ? { "--side": `${fixedSide}px` } : {}),
     ...(coloured ? { ...colorVars(color), ...materialKeyVars(color as string) } : {}),
   } as CSSProperties;
@@ -209,16 +210,16 @@ export default function Key({ actionId, onTap, onPressed, confirm, icon, label, 
         </div>
       )}
       {chevron && (
-        <div className={full ? "key-chevron on-disc" : "key-chevron"} style={full ? discStyle(side, 0.14) : { top: 0.04 * side, right: 0.07 * side, fontSize: 0.14 * side }} aria-hidden="true">
+        <div className={full ? "key-chevron on-disc" : "key-chevron"} style={full ? discStyle(side, 0.14) : { top: 8, right: 8, fontSize: 14 }} aria-hidden="true">
           ›
         </div>
       )}
       {dots && (
-        <div className={full ? "key-chevron on-disc" : "key-chevron"} style={full ? { ...discStyle(side, 0.12), letterSpacing: "0.05em" } : { top: 0.04 * side, right: 0.07 * side, fontSize: 0.12 * side, letterSpacing: "0.05em" }} aria-hidden="true">
+        <div className={full ? "key-chevron on-disc" : "key-chevron"} style={full ? { ...discStyle(side, 0.12), letterSpacing: "0.05em" } : { top: 8, right: 8, fontSize: 14, letterSpacing: "0.05em" }} aria-hidden="true">
           •••
         </div>
       )}
-      {liveDot && <span className="rec-dot key-live" style={{ top: 0.06 * side, left: 0.06 * side, width: 0.12 * side, height: 0.12 * side }} aria-hidden="true" />}
+      {liveDot && <span className="rec-dot key-live" style={{ top: 8, left: 8, width: 8, height: 8 }} aria-hidden="true" />}
       {phase === "confirming" && (
         <svg className="ring" width={side} height={side} viewBox={`0 0 ${side} ${side}`} aria-hidden="true">
           <rect x="1" y="1" width={side - 2} height={side - 2} pathLength="100" />

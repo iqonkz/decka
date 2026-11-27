@@ -91,7 +91,8 @@ export default function DeckScreen() {
   if (!layout) return null;
 
   // Dots and swipe count only normal pages; popup groups are not among them.
-  const count = navigableIndices(layout.pages).length;
+  const nav = navigableIndices(layout.pages);
+  const count = nav.length;
   const active = navigablePosition(layout.pages, pageIndex);
   const popupPage = popup ? layout.pages.find((p) => p.id === popup.pageId && p.popup === true) : undefined;
   const emptyDeck = count === 0 || layout.pages.every((p) => p.items.length === 0);
@@ -120,8 +121,8 @@ export default function DeckScreen() {
             </div>
           ) : (
             <>
-              <PageStrip pages={layout.pages} pageIndex={pageIndex} grid={layout.grid} onCommit={setPage} />
-              <PageDots count={count} active={active} />
+              <PageStrip pages={layout.pages} pageIndex={pageIndex} grid={layout.grid} onCommit={(idx) => setPage(idx, true)} />
+              <PageDots count={count} active={active} onSelect={(dotIdx) => { const idx = nav[dotIdx]; if (idx !== undefined) setPage(idx, true); }} />
             </>
           )}
           <PageHint />

@@ -2,7 +2,7 @@ import { BACK_PAGE, isReservedVar, t, type ButtonItem } from "@decka/shared";
 import { useDeckEnv } from "./deckEnv";
 import Key from "./Key";
 import { labelShown, resolveFace } from "./faceLayout";
-import { resolveLook } from "./look";
+import { resolveLook, localizedButtonLabel } from "./look";
 
 /** Variables whose `true` means something is on the air: the key gets the blinking red dot (DESIGN.md 2.4). */
 const LIVE_VARS = new Set(["obs.recording", "obs.streaming"]);
@@ -21,7 +21,7 @@ export default function Button({ item }: { item: ButtonItem }) {
   const look = resolveLook(item, vars);
   // The back key looks like one without being told: an arrow and `Back` (DATA_MODEL.md 3.8).
   const icon = look.icon ?? (back ? "lucide:arrow-left" : undefined);
-  const label = look.label ?? (back ? t("nav.back") : undefined);
+  const label = localizedButtonLabel(item, look.label) ?? (back ? t("nav.back") : undefined);
   const noData = keyHasNoData(item, vars, preview === true);
   const live = item.bind !== undefined && LIVE_VARS.has(item.bind.var) && vars[item.bind.var] === true;
   const open = (box: DOMRect) => item.popup !== undefined && onOpenPopup?.(item.popup, { x: box.x, y: box.y, width: box.width, height: box.height });

@@ -177,9 +177,9 @@ export async function startAppUpdate(): Promise<void> {
 }
 
 /** Manual navigation (swipe, `navigate` button). */
-export function setPage(pageIndex: number): void {
+export function setPage(pageIndex: number, showNameHint = false): void {
   hapticEvent({ type: "page_change", manual: true });
-  navigateManually(pageIndex);
+  navigateManually(pageIndex, showNameHint);
 }
 
 export function init(): void {

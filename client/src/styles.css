@@ -458,13 +458,20 @@ input { user-select: text; touch-action: manipulation; }
 [data-theme="glass"] .popup-backdrop { -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
 .page-hint {
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 2.6vmin;
-  text-align: center;
-  font-size: 2.4vmin;
-  color: #6b7280;
+  left: 50%;
+  bottom: max(36px, calc(20px + env(safe-area-inset-bottom, 0px)));
+  transform: translateX(-50%);
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--sheet-bg-95);
+  border: 1px solid var(--sheet-border);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink, #f2f2f2);
   pointer-events: none;
+  white-space: nowrap;
+  z-index: 6;
+  animation: toast-in 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .badge {

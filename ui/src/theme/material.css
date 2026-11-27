@@ -42,11 +42,11 @@
 [data-theme="material"] .key.confirming::after { opacity: 0.12; }
 [data-theme="material"] .key.ok { box-shadow: inset 0 0 0 2px #22c55e; }
 [data-theme="material"] .key.error { box-shadow: inset 0 0 0 2px #ef4444; }
-/* `pending` pulses a ring in the primary colour. */
-[data-theme="material"] .key.pending { animation: key-pulse-material 0.9s ease-in-out infinite; }
-@keyframes key-pulse-material {
-  0%, 100% { box-shadow: inset 0 0 0 2px transparent; }
-  50% { box-shadow: inset 0 0 0 3px var(--m-primary); }
+/* `pending` pulses opacity cleanly without box-shadow animation. */
+[data-theme="material"] .key.pending { animation: key-pulse-opacity 0.9s ease-in-out infinite; }
+@keyframes key-pulse-opacity {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.65; }
 }
 [data-theme="material"] .key.disabled { box-shadow: none; }
 [data-theme="material"] .tile.panel {
@@ -55,4 +55,4 @@
   box-shadow: none;
 }
 [data-theme="material"] .page-dots .dot { background: var(--m-outline-variant); }
-[data-theme="material"] .page-dots .dot.active { background: var(--m-on-surface); }
+[data-theme="material"] .page-dots .dot.active { background: var(--accent, var(--m-primary)); }

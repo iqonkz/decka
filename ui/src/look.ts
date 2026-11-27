@@ -1,4 +1,71 @@
-import { t, type ButtonItem, type ButtonLook, type VarValue } from "@decka/shared";
+import { CATALOG, getLanguage, pickText, t, type ButtonItem, type ButtonLook, type VarValue } from "@decka/shared";
+
+const CATALOG_ID_ALIASES: Record<string, string> = {
+  "lock-pc": "win.lock",
+  "sleep": "win.sleep",
+  "shutdown": "win.shutdown",
+  "restart": "win.restart",
+  "signout": "win.signout",
+  "hibernate": "win.hibernate",
+  "displayoff": "win.displayoff",
+  "recycle": "win.recycle",
+  "screenshot": "win.screenshot",
+  "screenshot-window": "win.screenshot.window",
+  "screenshot-region": "win.screenshot.region",
+  "taskmgr": "win.taskmgr",
+  "desktop": "win.desktop",
+  "explorer": "win.explorer",
+  "emoji": "win.emoji",
+  "clipboard": "win.clipboard",
+  "settings": "win.settings",
+  "media-play": "media.play",
+  "play-pause": "media.play",
+  "media-next": "media.next",
+  "next-track": "media.next",
+  "media-prev": "media.prev",
+  "prev-track": "media.prev",
+  "media-shuffle": "media.shuffle",
+  "media-repeat": "media.repeat",
+  "mic": "sound.mic",
+  "mic-mute": "sound.mic",
+  "vol-mute": "sound.mute",
+  "mute": "sound.mute",
+  "vol-up": "sound.volup",
+  "volume-up": "sound.volup",
+  "vol-down": "sound.voldown",
+  "volume-down": "sound.voldown",
+  "obs-rec": "stream.record",
+  "obs-live": "stream.live",
+  "obs-replay": "stream.replay",
+  "twitch-clip": "twitch.clip",
+  "note": "sound.note",
+  "notes-record": "sound.note",
+};
+
+/**
+ * Resolve localized catalog label on the phone by `actionId` or catalog prefix,
+ * keeping user-customized button captions intact.
+ */
+export function localizedButtonLabel(item: Pick<ButtonItem, "actionId">, label: string | undefined): string | undefined {
+  if (!item.actionId) return label;
+  const rawId = item.actionId;
+  const direct = CATALOG_ID_ALIASES[rawId] ?? rawId;
+  const cat =
+    CATALOG.items.find((c) => c.id === direct) ??
+    CATALOG.items.find((c) => rawId.startsWith(`${c.id}.`) || rawId.startsWith(`${c.id}-`));
+  if (!cat) return label;
+  if (!label) return pickText(cat.label, getLanguage());
+  const normalized = label.trim().toLowerCase();
+  const knownDefaults = new Set(
+    Object.values(cat.label)
+      .filter((s): s is string => typeof s === "string")
+      .map((s) => s.trim().toLowerCase()),
+  );
+  // Also recognize common baked preset labels ("Tasks" -> win.taskmgr, "Play / Pause", etc.).
+  if (cat.id === "win.taskmgr") knownDefaults.add("tasks");
+  if (cat.id === "media.play") knownDefaults.add("play / pause");
+  return knownDefaults.has(normalized) ? pickText(cat.label, getLanguage()) : label;
+}
 
 /** Base look of the button with `bind.states[String(var)]` laid over it (DATA_MODEL.md 3.4). */
 export function resolveLook(item: ButtonItem, vars: Record<string, VarValue> | undefined): ButtonLook {
