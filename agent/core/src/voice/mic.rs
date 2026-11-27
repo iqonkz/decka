@@ -25,10 +25,10 @@ pub struct Fed {
 /// its last half when it grows past 256 KB. Failures to write are ignored.
 pub fn log_line(line: &str) {
     use std::io::Write;
-    let Some(base) = std::env::var_os("LOCALAPPDATA").map(std::path::PathBuf::from).or_else(dirs::data_local_dir) else { return };
-    let dir = base.join("Decka").join("logs");
-    let _ = std::fs::create_dir_all(&dir);
-    let path = dir.join("voice.log");
+    let Some(path) = log_path() else { return };
+    if let Some(dir) = path.parent() {
+        let _ = std::fs::create_dir_all(dir);
+    }
     if std::fs::metadata(&path).is_ok_and(|m| m.len() > 256 * 1024) {
         if let Ok(text) = std::fs::read_to_string(&path) {
             let keep = text.len() / 2;
@@ -40,6 +40,12 @@ pub fn log_line(line: &str) {
         let secs = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
         let _ = writeln!(f, "{secs} {line}");
     }
+}
+
+/// `%LOCALAPPDATA%\Decka\logs\voice.log`.
+pub fn log_path() -> Option<std::path::PathBuf> {
+    let base = std::env::var_os("LOCALAPPDATA").map(std::path::PathBuf::from).or_else(dirs::data_local_dir)?;
+    Some(base.join("Decka").join("logs").join("voice.log"))
 }
 
 /// Versions before 0.51.0 wrote the texts of results into `voice.log`: those lines are cut to their first words.
@@ -70,8 +76,7 @@ pub fn scrub_log(text: &str) -> Option<String> {
 
 /// Rewrites an old `voice.log` once, at the start of the voice host.
 pub fn scrub_old_log() {
-    let Some(base) = std::env::var_os("LOCALAPPDATA").map(std::path::PathBuf::from).or_else(dirs::data_local_dir) else { return };
-    let path = base.join("Decka").join("logs").join("voice.log");
+    let Some(path) = log_path() else { return };
     let Ok(bytes) = std::fs::read(&path) else { return };
     if let Some(clean) = scrub_log(&String::from_utf8_lossy(&bytes)) {
         let _ = std::fs::write(&path, clean);

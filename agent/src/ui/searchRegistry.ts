@@ -80,7 +80,9 @@ export const SEARCH_REGISTRY: SearchEntry[] = [
   { id: "settings-net", page: "settings", anchor: "settings-port", titleKey: "settings.port" },
   { id: "settings-autostart", page: "settings", anchor: "settings-autostart", titleKey: "settings.autostart" },
   { id: "settings-usb", page: "settings", anchor: "settings-usb", titleKey: "settings.usb" },
-  { id: "about-updates", page: "about", anchor: "about-updates", titleKey: "about.updates" },];
+  { id: "about-updates", page: "about", anchor: "about-updates", titleKey: "about.updates" },
+  { id: "about-report", page: "about", anchor: "about-report", titleKey: "about.report", keywords: ["report", "log", "diagnostics"] },
+];
 
 /** Search registry entries matching a query against localized title, keywords and id. */
 export function searchRegistry(

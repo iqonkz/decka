@@ -11,6 +11,7 @@ import VoiceSection from "./VoiceSection";
 import ScreenHelpTab from "./ScreenHelpTab";
 import NotesTab from "./NotesTab";
 import RemindersTab from "./RemindersTab";
+import Banner from "../ui/Banner";
 import Button from "../ui/Button";
 import { Group, PageHeader, Row, SectionHeader } from "../ui/SettingsGroup";
 import Switch from "../ui/Switch";
@@ -26,6 +27,41 @@ function sectionLabel(id: MoreSection): string {
 }
 
 export const isMoreSection = (s: string): s is MoreSection => (SECTION_IDS as string[]).includes(s);
+
+/** T31.3: a ZIP on the desktop for troubleshooting; the owner decides whether to send it to anybody. */
+function ProblemReport() {
+  const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function save() {
+    setBusy(true);
+    setSaved(null);
+    setError(null);
+    try {
+      setSaved(await call("save_problem_report"));
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <SectionHeader id="section-about-report" title={t("about.report")} />
+      <Group>
+        <Row title={t("about.report_row")} description={t("about.report_hint")}>
+          <Button disabled={busy} onClick={() => void save()}>
+            {busy ? t("about.report_busy") : t("about.report_save")}
+          </Button>
+        </Row>
+      </Group>
+      {saved && <p className="ok-text" role="status">{t("about.report_saved", { path: saved })}</p>}
+      {error && <Banner kind="error">{error}</Banner>}
+    </>
+  );
+}
 
 /** The version, what is new, and the daily check for a newer release (ARCHITECTURE.md 8a). */
 function About({ updates }: { updates: Updates }) {
@@ -98,6 +134,8 @@ function About({ updates }: { updates: Updates }) {
       {status?.failed && <p className="warn-text">{t("about.check_failed")}</p>}
       {status && !status.failed && status.checkedAt != null && !status.available && <p className="ok-text">{t("about.up_to_date")}</p>}
       <UpdateBanner status={status} />
+
+      <ProblemReport />
     </div>
   );
 }

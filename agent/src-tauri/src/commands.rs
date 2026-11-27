@@ -650,6 +650,34 @@ pub async fn voice_self_check(app: AppHandle) -> Result<Vec<decka_core::voice::c
     .await
 }
 
+/// `Save a problem report` (T31.3): runs "Check voice" and writes a ZIP without secrets to the desktop. Nothing is sent.
+#[tauri::command]
+pub async fn save_problem_report(app: AppHandle) -> Result<String, String> {
+    let agent = agent(&app)?;
+    let out_dir = app.path().desktop_dir().map_err(|e| format!("the desktop folder was not found: {e}"))?;
+    let voice_status = voice(&app).ok().and_then(|v| serde_json::to_value(v.status()).ok()).unwrap_or_default();
+    let host = app.try_state::<decka_core::voice::host::Host>().map(|h| h.inner().clone());
+    let checked = match host {
+        Some(host) => host.self_check(std::sync::Arc::new(|_: &[decka_core::voice::check::CheckStep]| {})).await,
+        None => Err("voice control did not start".to_string()),
+    };
+    let voice_check = match checked {
+        Ok(steps) => serde_json::to_value(steps).map_err(|e| e.to_string())?,
+        // A report without the check is still a report; it says why there is none.
+        Err(error) => serde_json::json!({ "error": error }),
+    };
+    let request = decka_core::report::Request {
+        out_dir,
+        voice_log: decka_core::voice::mic::log_path(),
+        voice_status,
+        voice_check,
+        webview: tauri::webview_version().ok(),
+    };
+    tauri::async_runtime::spawn_blocking(move || decka_core::report::save(&agent, &request).map(|p| p.display().to_string()))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
 #[tauri::command]
 pub fn voice_cancel(app: AppHandle) -> Result<decka_core::ai::service::VoiceStatus, String> {
     Ok(voice(&app)?.cancel())

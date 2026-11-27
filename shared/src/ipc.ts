@@ -303,6 +303,7 @@ export interface IpcCommands {
   mail_check_now(): void;                                       // M17: looks at the mailboxes at once
   mail_test(args: { accountId: Id }): MailTestResult;           // T31.2: checks one saved mailbox step by step; a success retries a refused sign-in
   mail_status(): MailAccountStatus[];                           // T31.2: how the last round went; empty while no widget or variable needs mail
+  save_problem_report(): string;                                // T31.3: runs the voice check, writes a ZIP without secrets to the desktop, answers its path; sends nothing
   network_status(): NetworkStatus;                             // M18: usb / private / public and the allowPublic switch
   windows_notifications_status(): WindowsNotificationsStatus;   // M17: the switch, what Windows says about the access, the apps seen so far
   obs_status(): ObsStatus;                                      // M15: for the window (pick a scene / audio input when making keys)
