@@ -578,6 +578,12 @@ pub fn validate_config(c: &ConfigFile) -> Vec<ValidationIssue> {
     if c.collectors.checks.len() > 20 {
         out.push(issue("/collectors/checks", "at most 20 checks"));
     }
+    if let Some(server) = &c.server {
+        let name = |h: &String| (1..=253).contains(&h.len()) && h.bytes().all(|b| b.is_ascii_alphanumeric() || b".-_".contains(&b));
+        if server.allowed_hosts.len() > 20 || !server.allowed_hosts.iter().all(name) {
+            out.push(issue("/server/allowedHosts", "at most 20 host names, without a port or a scheme"));
+        }
+    }
     if let Some(w) = &c.weather {
         if !(1..=80).contains(&chars(&w.place)) {
             out.push(issue("/weather/place", "place must be 1..80 characters"));

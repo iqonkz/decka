@@ -2235,6 +2235,10 @@ impl Agent {
         }
         // The hook token is created by `cc_install` only; the window never sees it and cannot change it.
         let before = self.config();
+        // `server` is written in the file by hand: a saved form that does not carry it keeps it.
+        if config.server.is_none() {
+            config.server = before.server.clone();
+        }
         // `ai.gpuLayers` is the agent's own note (T28.1): a saved form neither changes nor drops it.
         match (config.ai.as_mut(), before.ai.as_ref().and_then(|a| a.gpu_layers.clone())) {
             (Some(ai), kept) => ai.gpu_layers = kept,
@@ -2287,6 +2291,11 @@ impl Agent {
             self.publish_status();
         }
         result
+    }
+
+    /// T29.P: `server.allowedHosts` - names, besides those of this PC, that requests may carry in `Host`.
+    pub(crate) fn allowed_hosts(&self) -> Vec<String> {
+        self.inner.config.lock().unwrap().server.as_ref().map(|s| s.allowed_hosts.clone()).unwrap_or_default()
     }
 
     /// T28.1: writes or removes `ai.gpuLayers`; nothing else of the settings changes.

@@ -703,6 +703,18 @@ pub struct ConfigFile {
     /// T29.5: how the island of the PC rests while a song plays; absent = the bar, 10 px, in the middle.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub island: Option<IslandConfig>,
+    /// T29.P: how the server of the phone is reached.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub server: Option<ServerConfig>,
+}
+
+/// `config.server` (T29.P).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ServerConfig {
+    /// Names of the owner's own (a domain, a VPN name) that requests may carry in `Host`; empty by default.
+    #[serde(default)]
+    pub allowed_hosts: Vec<String>,
 }
 
 /// `config.island` (T29.5). Words that are not known fall back to the default.

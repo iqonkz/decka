@@ -93,3 +93,13 @@ Invoke-RestMethod -Method Put -Uri http://<PC>:9247/api/vars/build.failed -Heade
 ```
 
 The value is a boolean, a number or a string of up to 200 characters; the button picks the state whose key equals `String(value)`. Remove a variable with `DELETE /api/vars/build.failed`. The names starting with `audio.`, `mic.`, `media.` and `obs.` are set by Decka itself (volume, microphone, player, OBS): you can bind a button to them, but writing them gives `400 reserved variable`.
+
+## g) Reaching Decka under your own name (VPN, domain)
+
+Since 0.51.1 the agent answers only requests whose address is an IP address, `localhost`, the name of this PC or `<name>.local`; anything else gets `403` (protection from DNS rebinding). To use another name, for example a Tailscale MagicDNS name, add it to `config.json` and restart Decka:
+
+```json
+"server": { "allowedHosts": ["my-pc.tail1234.ts.net"] }
+```
+
+Names only, without `http://` and without a port; up to 20.

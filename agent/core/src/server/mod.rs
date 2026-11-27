@@ -1,4 +1,5 @@
 pub mod api_auth;
+pub mod host;
 pub mod http;
 pub mod static_files;
 pub mod ws;
@@ -39,8 +40,18 @@ async fn network_policy(State(agent): State<Agent>, req: Request, next: Next) ->
     }
 }
 
+/// T29.P: the `Host` of every request, the socket included, must name this PC (see `host`).
+async fn host_policy(State(agent): State<Agent>, req: Request, next: Next) -> Response {
+    let named = req.headers().get(header::HOST).and_then(|h| h.to_str().ok());
+    if named.is_some_and(|name| host::allowed(name, host::pc_names(), &agent.allowed_hosts())) {
+        return next.run(req).await;
+    }
+    (StatusCode::FORBIDDEN, "this address is not allowed: add the name to server.allowedHosts in config.json").into_response()
+}
+
 pub fn router(agent: Agent, client_dist: Option<PathBuf>) -> Router {
     let policy_state = agent.clone();
+    let host_state = agent.clone();
     let router = Router::new()
         .route("/ws", get(ws::handler))
         .route("/api/health", get(http::health))
@@ -57,5 +68,6 @@ pub fn router(agent: Agent, client_dist: Option<PathBuf>) -> Router {
         .layer(SetResponseHeaderLayer::overriding(header::X_CONTENT_TYPE_OPTIONS, HeaderValue::from_static("nosniff")))
         .layer(DefaultBodyLimit::max(MAX_BODY_BYTES))
         .layer(middleware::from_fn_with_state(policy_state, network_policy))
+        .layer(middleware::from_fn_with_state(host_state, host_policy))
         .with_state(agent)
 }

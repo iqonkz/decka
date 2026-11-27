@@ -58,6 +58,24 @@ async fn json_of(res: reqwest::Response) -> (u16, Value) {
     (status, serde_json::from_str(&text).unwrap_or(Value::Null))
 }
 
+/// T29.P: DNS rebinding - a request that names a stranger's domain is refused on every path, the socket included.
+#[tokio::test]
+async fn a_request_that_names_a_strange_host_is_403() {
+    let e = env().await;
+    for path in ["/api/health", "/api/notify", "/ws", "/", "/anything"] {
+        let res = e.client.get(format!("{}{path}", e.base)).header("Host", "evil.example:8787").send().await.unwrap();
+        assert_eq!(res.status(), 403, "{path}");
+    }
+    // The token does not help, and an address or `localhost` is served as before.
+    let res = e.authed("/api/notify").header("Host", "evil.example").body("x").send().await.unwrap();
+    assert_eq!(res.status(), 403);
+    for host in ["localhost", "192.168.1.20:8787"] {
+        let res = e.client.get(format!("{}/api/health", e.base)).header("Host", host).send().await.unwrap();
+        assert_eq!(res.status(), 200, "{host}");
+    }
+    e.agent.shutdown().await;
+}
+
 #[tokio::test]
 async fn notify_without_or_with_a_wrong_token_is_401() {
     let e = env().await;
