@@ -283,6 +283,20 @@ if (scene === "deck" || scene === "settings") {
       voice_dictation_get: { trigger: { kind: "doubleCtrl" }, mode: "clean", dictionary: ["Decka", "Qwen", "Almaty"] },
       voice_context_get: q.get("context") !== "0",
       voice_context_set: true,
+      notes_list: [
+        {
+          id: "n1",
+          title: "Синк по релизу 0.60.0",
+          date: "2026-11-27 10:30",
+          markdown: "# Кратко\nОбсудили заметки встреч, память ПК и Home Assistant.\n## Решения\n- Проверить тесты во всех воркспейсах\n- Выпустить черновик 0.60.0\n## Задачи\n- Снять скриншоты в обеих темах",
+        },
+        {
+          id: "n2",
+          title: "Идеи по голосу",
+          date: "2026-11-26 17:15",
+          markdown: "# Кратко\nБыстрый путь без модели для частых команд.",
+        },
+      ],
       // The shape of the real answer (`voice::check`); `check=error` is a PC whose model does not fit.
       voice_self_check: [
         { id: "mic", state: "ok", durationMs: 3010, detail: "42 %" },
@@ -521,6 +535,13 @@ if (scene === "deck" || scene === "settings") {
             theme={themeMode}
             barHeight={q.get("barHeight") ? Number(q.get("barHeight")) : 10}
             barPosition={(q.get("barPos") as "left" | "center" | "right" | null) ?? "center"}
+            recording={q.get("rec") === "1" ? { active: true, elapsedSec: 125 } : null}
+            memoryProcesses={q.get("mem") === "1" ? [
+              { pid: 101, name: "chrome.exe", mb: 2450 },
+              { pid: 202, name: "Code.exe", mb: 1320 },
+              { pid: 303, name: "obs64.exe", mb: 640 },
+            ] : undefined}
+            onCloseProcess={() => {}}
             hovered={q.get("hover") === "1"}
             transitionPreview={transitionPreview}
             hoveredAction={q.get("hoverBtn") ?? undefined}

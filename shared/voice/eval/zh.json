@@ -611,5 +611,31 @@
     "args": {
       "mode": "dark"
     }
+  },
+  {
+    "say": "开始会议笔记",
+    "tool": "notes_record",
+    "args": {
+      "op": "start"
+    }
+  },
+  {
+    "say": "什么占用了内存",
+    "tool": "memory_top",
+    "args": {}
+  },
+  {
+    "say": "打开卧室的灯",
+    "tool": "ha",
+    "args": {
+      "service": "toggle"
+    }
+  },
+  {
+    "say": "手机电量多少",
+    "tool": "status",
+    "args": {
+      "topic": "battery"
+    }
   }
 ]

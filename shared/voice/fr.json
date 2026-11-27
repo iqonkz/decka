@@ -729,6 +729,33 @@
       "patterns": [
         "active le thème sombre windows"
       ]
+    },
+    {
+      "tool": "notes_record",
+      "args": {
+        "op": "start"
+      },
+      "patterns": [
+        "démarrer la note de réunion",
+        "arrêter la note"
+      ]
+    },
+    {
+      "tool": "memory_top",
+      "patterns": [
+        "qu'est-ce qui consomme la mémoire",
+        "utilisation de la ram"
+      ]
+    },
+    {
+      "tool": "ha",
+      "args": {
+        "service": "toggle"
+      },
+      "patterns": [
+        "allume la lumière de {name}",
+        "éteins la lumière de {name}"
+      ]
     }
   ],
   "guide_controls": {

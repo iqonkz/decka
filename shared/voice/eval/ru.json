@@ -625,5 +625,31 @@
     "args": {
       "mode": "dark"
     }
+  },
+  {
+    "say": "начни заметку",
+    "tool": "notes_record",
+    "args": {
+      "op": "start"
+    }
+  },
+  {
+    "say": "что ест память",
+    "tool": "memory_top",
+    "args": {}
+  },
+  {
+    "say": "включи свет в спальне",
+    "tool": "ha",
+    "args": {
+      "service": "toggle"
+    }
+  },
+  {
+    "say": "сколько заряда на телефоне",
+    "tool": "status",
+    "args": {
+      "topic": "battery"
+    }
   }
 ]

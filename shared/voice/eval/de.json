@@ -611,5 +611,31 @@
     "args": {
       "mode": "dark"
     }
+  },
+  {
+    "say": "besprechungsnotiz starten",
+    "tool": "notes_record",
+    "args": {
+      "op": "start"
+    }
+  },
+  {
+    "say": "was verbraucht speicher",
+    "tool": "memory_top",
+    "args": {}
+  },
+  {
+    "say": "licht in schlafzimmer einschalten",
+    "tool": "ha",
+    "args": {
+      "service": "toggle"
+    }
+  },
+  {
+    "say": "akkustand vom handy",
+    "tool": "status",
+    "args": {
+      "topic": "battery"
+    }
   }
 ]

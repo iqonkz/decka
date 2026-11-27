@@ -472,7 +472,8 @@
       "patterns": [
         "手机电量",
         "手机还有多少电",
-        "手机电池"
+        "手机电池",
+        "手机电量多少"
       ]
     },
     {
@@ -724,6 +725,33 @@
       },
       "patterns": [
         "开启windows深色主题"
+      ]
+    },
+    {
+      "tool": "notes_record",
+      "args": {
+        "op": "start"
+      },
+      "patterns": [
+        "开始会议笔记",
+        "停止笔记"
+      ]
+    },
+    {
+      "tool": "memory_top",
+      "patterns": [
+        "什么占用了内存",
+        "查看内存占用"
+      ]
+    },
+    {
+      "tool": "ha",
+      "args": {
+        "service": "toggle"
+      },
+      "patterns": [
+        "打开{name}的灯",
+        "关闭{name}的灯"
       ]
     }
   ],

@@ -289,6 +289,14 @@
     "web.webhook": {
       "label": "Webhook",
       "name": "Webhook (requisição HTTP)"
+    },
+    "ha.toggle": {
+      "label": "HA Alternar",
+      "name": "Home Assistant: alternar"
+    },
+    "ha.scene": {
+      "label": "HA Cena",
+      "name": "Home Assistant: cena"
     }
   },
   "sets": {

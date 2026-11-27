@@ -469,7 +469,8 @@
       "patterns": [
         "handy akku",
         "wie voll ist das handy",
-        "akkustand telefon"
+        "akkustand telefon",
+        "akkustand vom handy"
       ]
     },
     {
@@ -719,6 +720,33 @@
       },
       "patterns": [
         "dunkles windows design aktivieren"
+      ]
+    },
+    {
+      "tool": "notes_record",
+      "args": {
+        "op": "start"
+      },
+      "patterns": [
+        "besprechungsnotiz starten",
+        "notiz stoppen"
+      ]
+    },
+    {
+      "tool": "memory_top",
+      "patterns": [
+        "was verbraucht speicher",
+        "ram auslastung zeigen"
+      ]
+    },
+    {
+      "tool": "ha",
+      "args": {
+        "service": "toggle"
+      },
+      "patterns": [
+        "licht in {name} einschalten",
+        "licht in {name} ausschalten"
       ]
     }
   ],

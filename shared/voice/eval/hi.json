@@ -611,5 +611,31 @@
     "args": {
       "mode": "dark"
     }
+  },
+  {
+    "say": "मीटिंग नोट शुरू करें",
+    "tool": "notes_record",
+    "args": {
+      "op": "start"
+    }
+  },
+  {
+    "say": "मेमोरी कौन खा रहा है",
+    "tool": "memory_top",
+    "args": {}
+  },
+  {
+    "say": "बेडरूम की लाइट चालू करें",
+    "tool": "ha",
+    "args": {
+      "service": "toggle"
+    }
+  },
+  {
+    "say": "फ़ोन की बैटरी कितनी है",
+    "tool": "status",
+    "args": {
+      "topic": "battery"
+    }
   }
 ]

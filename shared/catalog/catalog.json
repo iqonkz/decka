@@ -132,7 +132,9 @@
       "icon": "lucide:globe",
       "items": [
         "web.site",
-        "web.webhook"
+        "web.webhook",
+        "ha.toggle",
+        "ha.scene"
       ]
     },
     {
@@ -1402,6 +1404,32 @@
         "url": "https://example.com/hook"
       },
       "ask": "url"
+    },
+    {
+      "id": "ha.toggle",
+      "label": {
+        "en": "HA Toggle",
+        "ru": "Свет HA"
+      },
+      "name": {
+        "en": "Home Assistant: toggle entity",
+        "ru": "Home Assistant: переключить"
+      },
+      "icon": "lucide:power",
+      "ask": "text"
+    },
+    {
+      "id": "ha.scene",
+      "label": {
+        "en": "HA Scene",
+        "ru": "Сцена HA"
+      },
+      "name": {
+        "en": "Home Assistant: activate scene",
+        "ru": "Home Assistant: сцена"
+      },
+      "icon": "lucide:sun",
+      "ask": "text"
     }
   ]
 }

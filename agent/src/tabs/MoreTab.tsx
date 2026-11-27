@@ -9,6 +9,7 @@ import IntegrationsTab from "./IntegrationsTab";
 import SettingsTab from "./SettingsTab";
 import VoiceSection from "./VoiceSection";
 import ScreenHelpTab from "./ScreenHelpTab";
+import NotesTab from "./NotesTab";
 import RemindersTab from "./RemindersTab";
 import Button from "../ui/Button";
 import { Group, PageHeader, Row, SectionHeader } from "../ui/SettingsGroup";
@@ -16,9 +17,9 @@ import Switch from "../ui/Switch";
 
 type Updates = ReturnType<typeof useUpdates>;
 
-export type MoreSection = "actions" | "integrations" | "settings" | "voice" | "screen_help" | "reminders" | "about";
+export type MoreSection = "actions" | "integrations" | "settings" | "voice" | "screen_help" | "notes" | "reminders" | "about";
 
-const SECTION_IDS: MoreSection[] = ["actions", "integrations", "settings", "voice", "screen_help", "reminders", "about"];
+const SECTION_IDS: MoreSection[] = ["actions", "integrations", "settings", "voice", "screen_help", "notes", "reminders", "about"];
 
 function sectionLabel(id: MoreSection): string {
   return t(`more.${id}`);
@@ -110,6 +111,7 @@ export default function MoreTab({ section, updates }: { section: MoreSection; on
       {section === "settings" && <SettingsTab />}
       {section === "voice" && <VoiceSection />}
       {section === "screen_help" && <ScreenHelpTab />}
+      {section === "notes" && <NotesTab />}
       {section === "reminders" && <RemindersTab />}
       {section === "about" && <About updates={updates} />}
     </div>

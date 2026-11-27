@@ -885,6 +885,111 @@
   color: var(--island-accent);
 }
 
+/* T30.1b: recording indicator (tab bar + compact + expanded) & memory-top list */
+.island-tab-bar.is-recording {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.island-tab-rec,
+.island-rec-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--island-text);
+  z-index: 2;
+}
+
+.island-rec-pill {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(239, 68, 68, 0.16);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  align-self: flex-start;
+  flex: none;
+}
+
+.island-rec-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ef4444;
+  flex: none;
+  animation: island-rec-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes island-rec-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+.island-mem-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 6px;
+}
+
+.island-mem-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--island-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.island-mem-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: var(--island-surface);
+  font-size: 12px;
+}
+
+.island-mem-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--island-text);
+}
+
+.island-mem-mb {
+  font-variant-numeric: tabular-nums;
+  color: var(--island-muted);
+  font-size: 11px;
+  flex: none;
+}
+
+.island-mem-close {
+  border: 0;
+  border-radius: 6px;
+  padding: 3px 8px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  cursor: pointer;
+  flex: none;
+}
+
+.island-host[data-island-theme="light"] .island-mem-close {
+  color: #b91c1c;
+}
+
+.island-mem-close:hover {
+  background: rgba(239, 68, 68, 0.32);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .island-tab-bar,
   .island-panel,

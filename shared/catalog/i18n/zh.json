@@ -289,6 +289,14 @@
     "web.webhook": {
       "label": "Webhook",
       "name": "Webhook（HTTP 请求）"
+    },
+    "ha.toggle": {
+      "label": "HA 开关",
+      "name": "Home Assistant：切换设备"
+    },
+    "ha.scene": {
+      "label": "HA 场景",
+      "name": "Home Assistant：激活场景"
     }
   },
   "sets": {

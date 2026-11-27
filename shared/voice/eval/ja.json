@@ -611,5 +611,31 @@
     "args": {
       "mode": "dark"
     }
+  },
+  {
+    "say": "会議ノートを開始",
+    "tool": "notes_record",
+    "args": {
+      "op": "start"
+    }
+  },
+  {
+    "say": "何がメモリを使っている",
+    "tool": "memory_top",
+    "args": {}
+  },
+  {
+    "say": "寝室の電気をつけて",
+    "tool": "ha",
+    "args": {
+      "service": "toggle"
+    }
+  },
+  {
+    "say": "スマホのバッテリー残量は",
+    "tool": "status",
+    "args": {
+      "topic": "battery"
+    }
   }
 ]
