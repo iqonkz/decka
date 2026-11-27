@@ -53,6 +53,7 @@ import {
   Settings,
   SkipBack,
   SkipForward,
+  Smartphone,
   Square,
   Star,
   Sun,
@@ -139,6 +140,7 @@ export const ICONS: Record<string, LucideIcon> = {
   "monitor-off": MonitorOff,
   // M17: the device icons of the battery widget (DATA_MODEL.md 10.6).
   laptop: Laptop,
+  smartphone: Smartphone,
   mouse: MouseIcon,
   keyboard: Keyboard,
   "gamepad-2": Gamepad2,
