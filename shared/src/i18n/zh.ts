@@ -1531,4 +1531,8 @@ export const zh: Dictionary = {
   "m32.pc_current": "当前",
   "m32.pc_add": "添加电脑",
   "m32.cmd_wake_hint": "直接说“Decka，…”即可免按键唤醒语音控制。",
+  "m33.reply_voice_title": "回复语音",
+  "m33.engine_windows_hint": "使用 Windows 内置语音，无需下载模型",
+  "m33.speed_label": "语速",
+  "m33.speed_reset": "重置 (1.05)",
 };

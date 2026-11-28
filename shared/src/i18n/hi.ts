@@ -1531,4 +1531,8 @@ export const hi: Dictionary = {
   "m32.pc_current": "वर्तमान",
   "m32.pc_add": "पीसी जोड़ें",
   "m32.cmd_wake_hint": "बिना बटन दबाए बोलने के लिए \"Decka, ...\" कहें।",
+  "m33.reply_voice_title": "उत्तर की आवाज़",
+  "m33.engine_windows_hint": "मॉडल डाउनलोड किए बिना Windows की अंतर्निहित आवाज़ उपयोग होती है",
+  "m33.speed_label": "बोलने की गति",
+  "m33.speed_reset": "रीसेट (1.05)",
 };

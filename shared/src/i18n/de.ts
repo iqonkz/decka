@@ -1531,4 +1531,8 @@ export const de: Dictionary = {
   "m32.pc_current": "Aktuell",
   "m32.pc_add": "PC hinzufügen",
   "m32.cmd_wake_hint": "Sag „Decka, …“, um die Spracheingabe freihändig zu starten.",
+  "m33.reply_voice_title": "Antwortstimme",
+  "m33.engine_windows_hint": "Integrierte Windows-Sprachausgabe ohne Modell-Download",
+  "m33.speed_label": "Sprechtempo",
+  "m33.speed_reset": "Zurücksetzen (1,05)",
 };

@@ -912,6 +912,36 @@
       "patterns": [
         "apaga la luz de {name}"
       ]
+    },
+    {
+      "tool": "read_aloud",
+      "args": {
+        "op": "faster"
+      },
+      "patterns": [
+        "habla más rápido",
+        "lee más rápido"
+      ]
+    },
+    {
+      "tool": "read_aloud",
+      "args": {
+        "op": "slower"
+      },
+      "patterns": [
+        "habla más despacio",
+        "lee más lento"
+      ]
+    },
+    {
+      "tool": "read_aloud",
+      "args": {
+        "op": "change_voice"
+      },
+      "patterns": [
+        "cambia la voz",
+        "otra voz"
+      ]
     }
   ],
   "guide_controls": {

@@ -1531,4 +1531,8 @@ export const fr: Dictionary = {
   "m32.pc_current": "Actuel",
   "m32.pc_add": "Ajouter un PC",
   "m32.cmd_wake_hint": "Dites « Decka, … » pour lancer la voix sans appuyer sur une touche.",
+  "m33.reply_voice_title": "Voix de réponse",
+  "m33.engine_windows_hint": "Synthèse vocale Windows intégrée sans téléchargement",
+  "m33.speed_label": "Vitesse de parole",
+  "m33.speed_reset": "Réinitialiser (1,05)",
 };

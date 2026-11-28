@@ -15,6 +15,7 @@ import GuidesBlock from "./GuidesBlock";
 import ModesBlock from "./ModesBlock";
 import VoiceCheckPanel from "./VoiceCheckPanel";
 import WakeWordBlock from "./WakeWordBlock";
+import ReplyVoiceBlock from "./ReplyVoiceBlock";
 import { voiceErrorCopy, type VoiceCheckStep } from "./voiceM28Types";
 import { Group, PageHeader, Row, SectionHeader } from "../ui/SettingsGroup";
 import Disclosure from "../ui/Disclosure";
@@ -169,6 +170,7 @@ export default function VoiceSection({
     keepLoaded?: boolean;
     unloadAfterMin?: number;
     speak?: boolean;
+    speechPercent?: number;
     phoneButton?: boolean;
     mic?: string;
     lightStt?: boolean;
@@ -522,6 +524,7 @@ export default function VoiceSection({
       )}
 
       {status.state !== "off" && status.state !== "downloading" && <VoiceCheckPanel initialSteps={initialCheckSteps} />}
+      <ReplyVoiceBlock percent={status.speechPercent} onChange={(speechPercent) => void setConfig({ speechPercent })} />
       <WakeWordBlock initialStatus={initialWakeWord} />
       <DictationBlock />
       <MemoryBlock />

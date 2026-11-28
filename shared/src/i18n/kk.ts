@@ -1538,4 +1538,8 @@ export const kk: Dictionary = {
   "m32.pc_current": "Ағымдағы",
   "m32.pc_add": "ДК қосу",
   "m32.cmd_wake_hint": "Перне баспай іске қосу үшін «Декка, …» деп айтыңыз.",
+  "m33.reply_voice_title": "Жауап дауысы",
+  "m33.engine_windows_hint": "Модельдерді жүктемей-ақ Windows кіріктірме дауысы қолданылады",
+  "m33.speed_label": "Сөйлеу жылдамдығы",
+  "m33.speed_reset": "Қалпына келтіру (1,05)",
 };

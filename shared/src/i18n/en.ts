@@ -1542,4 +1542,8 @@ export const en = {
   "m32.pc_current": "Current",
   "m32.pc_add": "Add PC",
   "m32.cmd_wake_hint": "Say \"Decka, ...\" to wake voice control hands-free.",
+  "m33.reply_voice_title": "Reply voice",
+  "m33.engine_windows_hint": "Built-in Windows speech without downloading voice models",
+  "m33.speed_label": "Speech speed",
+  "m33.speed_reset": "Reset (1.05)",
 } as const;

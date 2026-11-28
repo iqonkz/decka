@@ -1575,4 +1575,8 @@ export const ar: Dictionary = {
   "m32.pc_current": "الحالي",
   "m32.pc_add": "إضافة حاسوب",
   "m32.cmd_wake_hint": "قل «ديكا، …» لتشغيل التحكم الصوتي دون لمس الأزرار.",
+  "m33.reply_voice_title": "صوت الرد",
+  "m33.engine_windows_hint": "يستخدم صوت Windows المدمج دون تنزيل نماذج",
+  "m33.speed_label": "سرعة الكلام",
+  "m33.speed_reset": "إعادة ضبط (1.05)",
 };

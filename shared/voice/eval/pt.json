@@ -651,5 +651,26 @@
     "args": {
       "when": "next"
     }
+  },
+  {
+    "say": "fale mais rápido",
+    "tool": "read_aloud",
+    "args": {
+      "op": "faster"
+    }
+  },
+  {
+    "say": "fale mais devagar",
+    "tool": "read_aloud",
+    "args": {
+      "op": "slower"
+    }
+  },
+  {
+    "say": "mude a voz",
+    "tool": "read_aloud",
+    "args": {
+      "op": "change_voice"
+    }
   }
 ]

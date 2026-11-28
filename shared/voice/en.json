@@ -998,6 +998,39 @@
       "patterns": [
         "toggle {name} in home assistant"
       ]
+    },
+    {
+      "tool": "read_aloud",
+      "args": {
+        "op": "faster"
+      },
+      "patterns": [
+        "speak faster",
+        "talk faster",
+        "read faster"
+      ]
+    },
+    {
+      "tool": "read_aloud",
+      "args": {
+        "op": "slower"
+      },
+      "patterns": [
+        "speak slower",
+        "talk slower",
+        "read slower"
+      ]
+    },
+    {
+      "tool": "read_aloud",
+      "args": {
+        "op": "change_voice"
+      },
+      "patterns": [
+        "change voice",
+        "switch voice",
+        "another voice"
+      ]
     }
   ],
   "guide_controls": {

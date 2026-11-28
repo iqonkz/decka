@@ -787,6 +787,36 @@
       "patterns": [
         "أطفئ إضاءة {name}"
       ]
+    },
+    {
+      "tool": "read_aloud",
+      "args": {
+        "op": "faster"
+      },
+      "patterns": [
+        "تحدث أسرع",
+        "اقرأ أسرع"
+      ]
+    },
+    {
+      "tool": "read_aloud",
+      "args": {
+        "op": "slower"
+      },
+      "patterns": [
+        "تحدث أبطأ",
+        "اقرأ أبطأ"
+      ]
+    },
+    {
+      "tool": "read_aloud",
+      "args": {
+        "op": "change_voice"
+      },
+      "patterns": [
+        "غيّر الصوت",
+        "صوت آخر"
+      ]
     }
   ],
   "guide_controls": {

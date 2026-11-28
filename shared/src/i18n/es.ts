@@ -1531,4 +1531,8 @@ export const es: Dictionary = {
   "m32.pc_current": "Actual",
   "m32.pc_add": "Añadir PC",
   "m32.cmd_wake_hint": "Di «Decka, …» para activar la voz sin pulsar teclas.",
+  "m33.reply_voice_title": "Voz de respuesta",
+  "m33.engine_windows_hint": "Voz integrada de Windows sin descargar modelos",
+  "m33.speed_label": "Velocidad de voz",
+  "m33.speed_reset": "Restablecer (1,05)",
 };

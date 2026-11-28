@@ -1531,4 +1531,8 @@ export const ja: Dictionary = {
   "m32.pc_current": "現在",
   "m32.pc_add": "PCを追加",
   "m32.cmd_wake_hint": "キーを押さずに起動するには「Decka、…」と話しかけます。",
+  "m33.reply_voice_title": "応答音声",
+  "m33.engine_windows_hint": "モデルをダウンロードせずに Windows 標準音声を使用します",
+  "m33.speed_label": "読み上げ速度",
+  "m33.speed_reset": "リセット (1.05)",
 };

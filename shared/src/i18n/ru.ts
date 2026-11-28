@@ -1566,4 +1566,8 @@ export const ru: Record<Base | ExtraPlural, string> = {
   "m32.pc_current": "Текущий",
   "m32.pc_add": "Добавить ПК",
   "m32.cmd_wake_hint": "Скажите «Декка, …» для запуска голоса без нажатия клавиш.",
+  "m33.reply_voice_title": "Голос ответа",
+  "m33.engine_windows_hint": "Встроенный синтез Windows без загрузки моделей",
+  "m33.speed_label": "Скорость речи",
+  "m33.speed_reset": "Сбросить (1,05)",
 };

@@ -882,6 +882,36 @@
       "patterns": [
         "{name} жарығын өшір"
       ]
+    },
+    {
+      "tool": "read_aloud",
+      "args": {
+        "op": "faster"
+      },
+      "patterns": [
+        "жылдамырақ сөйле",
+        "жылдамырақ оқы"
+      ]
+    },
+    {
+      "tool": "read_aloud",
+      "args": {
+        "op": "slower"
+      },
+      "patterns": [
+        "баяуырақ сөйле",
+        "баяуырақ оқы"
+      ]
+    },
+    {
+      "tool": "read_aloud",
+      "args": {
+        "op": "change_voice"
+      },
+      "patterns": [
+        "дауысты ауыстыр",
+        "басқа дауыс"
+      ]
     }
   ],
   "guide_controls": {

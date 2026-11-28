@@ -796,6 +796,36 @@
       "patterns": [
         "关闭{name}的灯"
       ]
+    },
+    {
+      "tool": "read_aloud",
+      "args": {
+        "op": "faster"
+      },
+      "patterns": [
+        "说快点",
+        "读快一点"
+      ]
+    },
+    {
+      "tool": "read_aloud",
+      "args": {
+        "op": "slower"
+      },
+      "patterns": [
+        "说慢点",
+        "读慢一点"
+      ]
+    },
+    {
+      "tool": "read_aloud",
+      "args": {
+        "op": "change_voice"
+      },
+      "patterns": [
+        "换个声音",
+        "切换语音"
+      ]
     }
   ],
   "guide_controls": {

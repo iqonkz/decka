@@ -804,6 +804,36 @@
       "patterns": [
         "desligar luz de {name}"
       ]
+    },
+    {
+      "tool": "read_aloud",
+      "args": {
+        "op": "faster"
+      },
+      "patterns": [
+        "fale mais rápido",
+        "leia mais rápido"
+      ]
+    },
+    {
+      "tool": "read_aloud",
+      "args": {
+        "op": "slower"
+      },
+      "patterns": [
+        "fale mais devagar",
+        "leia mais devagar"
+      ]
+    },
+    {
+      "tool": "read_aloud",
+      "args": {
+        "op": "change_voice"
+      },
+      "patterns": [
+        "mude a voz",
+        "outra voz"
+      ]
     }
   ],
   "guide_controls": {
