@@ -217,6 +217,7 @@ export interface WakeStatus {
   heard: number;            // detections since the agent started (the indicator of "Say Decka")
   testing: boolean;
   size: number;             // bytes downloaded the first time
+  silent: boolean;          // listening, but the microphone sent only silence in the last 5 s
 }
 
 /** M32 (T32.2): `calendar_get`. The saved link never comes back: `masked` shows the server and nothing of the secret. */

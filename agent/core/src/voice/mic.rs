@@ -125,6 +125,15 @@ pub const DIGITAL_SILENCE: f32 = 0.000001;
 /// This many chunks of digital silence in a row (1 s) mean the stream is dead.
 pub const DEAD_CHUNKS: u32 = 10;
 
+/// The wake word listens for hours: a headset with a noise gate sends pure zeros in a quiet room, and that is not a dead
+/// microphone (T34.1). So on a real device, or on one that has already given sound, silence is waited out. Only a virtual
+/// device that never gave any sound is left for another one.
+pub fn waits_in_silence(device: Option<&str>, ever_alive: bool) -> bool {
+    ever_alive || !device.is_some_and(is_virtual)
+}
+/// While waiting, the stream is opened again this often: it follows a new default microphone and survives a stalled stream.
+pub const REOPEN_IN_SILENCE: std::time::Duration = std::time::Duration::from_secs(30);
+
 static RING: std::sync::Mutex<std::collections::VecDeque<String>> = std::sync::Mutex::new(std::collections::VecDeque::new());
 
 /// Keeps the last 50 endpoint decisions in memory, whatever the limit of logged requests is.
@@ -263,7 +272,7 @@ mod device {
     use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
     use cpal::SampleFormat;
 
-    use super::{attempt_order, choose_device, DeadStream, DIGITAL_SILENCE, f32_to_i16, i32_to_i16, u16_to_i16, unique_names, Capture, Choice, Fed};
+    use super::{attempt_order, choose_device, waits_in_silence, DeadStream, DIGITAL_SILENCE, REOPEN_IN_SILENCE, f32_to_i16, i32_to_i16, u16_to_i16, unique_names, Capture, Choice, Fed};
 
     fn input_names(host: &cpal::Host) -> Vec<String> {
         host.input_devices().map(|list| unique_names(list.filter_map(|d| d.description().ok().map(|x| x.name().to_string())))).unwrap_or_default()
@@ -306,6 +315,10 @@ mod device {
         dead: Arc<AtomicBool>,
         /// A chunk with real sound came in.
         alive: Arc<AtomicBool>,
+        /// The same, never taken back (also not by a new stream).
+        ever: Arc<AtomicBool>,
+        /// The next stream is opened without a line in the log (the regular reopening in silence).
+        quiet: Arc<AtomicBool>,
     }
 
     /// The name of the device that is used when nothing is chosen.
@@ -332,7 +345,9 @@ mod device {
         let supported = device.default_input_config().map_err(|e| format!("Microphone is not available: {e}"))?;
         let (rate, channels, format) = (supported.sample_rate(), supported.channels(), supported.sample_format());
         // The name of the microphone is not private data of the user's speech: the log says which device gave the silence.
-        super::log_line(&format!("device name={} rate={rate} channels={channels} format={format:?}", device_name.as_deref().unwrap_or("?")));
+        if !flags.quiet.load(Ordering::SeqCst) {
+            super::log_line(&format!("device name={} rate={rate} channels={channels} format={format:?}", device_name.as_deref().unwrap_or("?")));
+        }
         let _ = log;
         let config = supported.config();
         let mut capture = Capture::new(rate, channels);
@@ -354,6 +369,7 @@ mod device {
                 }
                 if fed.decision.rms >= DIGITAL_SILENCE {
                     flags.alive.store(true, Ordering::SeqCst);
+                    flags.ever.store(true, Ordering::SeqCst);
                 }
                 if let Ok(mut f) = sink.lock() {
                     f(fed);
@@ -383,6 +399,23 @@ mod device {
         on_error: impl Fn(String) + Send + Sync + 'static,
         on_device: impl Fn(String) + Send + 'static,
     ) -> Result<Mic, String> {
+        open(wanted, false, log, on_chunk, on_error, on_device)
+    }
+
+    /// The microphone for a listener that runs for hours (the wake word): digital silence is waited out, see
+    /// `waits_in_silence`. An error still comes when the device is gone.
+    pub fn start_waiting(wanted: Option<String>, on_chunk: impl FnMut(Fed) + Send + 'static, on_error: impl Fn(String) + Send + Sync + 'static) -> Result<Mic, String> {
+        open(wanted, true, false, on_chunk, on_error, |_| {})
+    }
+
+    fn open(
+        wanted: Option<String>,
+        patient: bool,
+        log: bool,
+        on_chunk: impl FnMut(Fed) + Send + 'static,
+        on_error: impl Fn(String) + Send + Sync + 'static,
+        on_device: impl Fn(String) + Send + 'static,
+    ) -> Result<Mic, String> {
         let (ready_tx, ready_rx) = mpsc::channel::<Result<(), String>>();
         let (stop_tx, stop_rx) = mpsc::channel::<()>();
         let sink: Sink = Arc::new(Mutex::new(Box::new(on_chunk)));
@@ -398,6 +431,9 @@ mod device {
                         let mut reopened = false;
                         let mut queue: Option<std::collections::VecDeque<String>> = None;
                         let mut switched = false;
+                        let mut opened = std::time::Instant::now();
+                        // Another microphone than the wanted one is in use.
+                        let mut fell_back = false;
                         loop {
                             if !matches!(stop_rx.recv_timeout(Duration::from_millis(100)), Err(mpsc::RecvTimeoutError::Timeout)) {
                                 break; // stop, or the handle was dropped
@@ -410,6 +446,28 @@ mod device {
                                 }
                             }
                             if !flags.dead.swap(false, Ordering::SeqCst) {
+                                continue;
+                            }
+                            if patient && waits_in_silence(current.as_deref(), flags.ever.load(Ordering::SeqCst)) {
+                                if opened.elapsed() >= REOPEN_IN_SILENCE {
+                                    drop(stream);
+                                    flags.quiet.store(true, Ordering::SeqCst);
+                                    // The wanted device, so that "the default microphone" stays the default one.
+                                    let again = if fell_back { current.clone() } else { wanted.clone() };
+                                    match build(&again, log, &sink, &on_error, &flags) {
+                                        Ok((s, n)) => {
+                                            stream = s;
+                                            current = n;
+                                            opened = std::time::Instant::now();
+                                        }
+                                        Err(e) => {
+                                            let on_error = on_error.clone();
+                                            std::thread::spawn(move || on_error(e));
+                                            return;
+                                        }
+                                    }
+                                    flags.quiet.store(false, Ordering::SeqCst);
+                                }
                                 continue;
                             }
                             flags.alive.store(false, Ordering::SeqCst);
@@ -447,6 +505,7 @@ mod device {
                                     stream = s;
                                     current = Some(n);
                                     switched = true;
+                                    fell_back = true;
                                 }
                                 None => {
                                     // Not on this thread: the error stops the capture, which waits for this thread.
@@ -474,7 +533,7 @@ mod device {
     }
 }
 #[cfg(windows)]
-pub use device::{list_mics, start, Mic};
+pub use device::{list_mics, start, start_waiting, Mic};
 
 #[cfg(not(windows))]
 pub fn list_mics() -> Vec<String> {
@@ -495,6 +554,16 @@ mod tests {
         assert!((0..9).all(|_| !d.push(0.0)));
         assert!(d.push(0.0));
         assert!(!{ d.push(0.01); d.push(0.0) }, "a real chunk starts the count again");
+    }
+
+    #[test]
+    fn the_silence_of_a_noise_gated_headset_is_waited_out() {
+        // T34.1: the default headset sends zeros in a quiet room, from the first moment on.
+        assert!(waits_in_silence(Some("Mic (MCHOSE V9 PRO)"), false));
+        assert!(waits_in_silence(None, false));
+        // A virtual device that never gave sound is left; one that did is only quiet.
+        assert!(!waits_in_silence(Some("Virtual Mic (AudioRelay)"), false));
+        assert!(waits_in_silence(Some("Virtual Mic (AudioRelay)"), true));
     }
 
     #[test]

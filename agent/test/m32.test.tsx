@@ -27,7 +27,7 @@ const sampleConfig: ConfigFile = {
   ai: { claude: { enabled: false, approvals: true, timeoutSec: 60 }, codex: { enabled: false } },
 };
 
-const wake: WakeStatus = { enabled: true, sensitivity: "medium", installed: true, state: "listening", reason: null, percent: null, heard: 3, testing: false, size: 36_880_000 };
+const wake: WakeStatus = { enabled: true, sensitivity: "medium", installed: true, state: "listening", reason: null, percent: null, heard: 3, testing: false, size: 36_880_000, silent: false };
 
 const calendar: CalendarStatus = {
   connected: true,
@@ -47,6 +47,9 @@ describe("M32 settings (wake word, calendar, tray favorites, voice help)", () =>
     const waiting = renderToStaticMarkup(<WakeWordBlock initialStatus={{ ...wake, state: "paused" }} />);
     expect(waiting).not.toContain("Сработало");
     expect(waiting).toContain("Пауза");
+    expect(html).toContain("Слушает: скажите «Декка»");
+    expect(renderToStaticMarkup(<WakeWordBlock initialStatus={{ ...wake, silent: true }} />)).toContain("микрофон передаёт тишину");
+    expect(renderToStaticMarkup(<WakeWordBlock initialStatus={{ ...wake, state: "error", reason: "No microphone found" }} />)).toContain("Не запущено: No microphone found");
   });
 
   it("shows the saved link only masked and the upcoming events", () => {

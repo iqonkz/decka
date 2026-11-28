@@ -15,6 +15,9 @@ use super::wake_engine::WorkerArgs;
 use crate::ai::download::{extract_archive, Downloader, ManifestEntry};
 use crate::ai::supervisor::{on_crash, CrashDecision, Job};
 
+/// How often a worker whose microphone keeps failing is started again.
+const RETRY_MICROPHONE: std::time::Duration = std::time::Duration::from_secs(60);
+
 /// What the settings window and the tray are told (event `wake-status`).
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -31,6 +34,8 @@ pub struct WakeStatus {
     pub testing: bool,
     /// Bytes the download takes.
     pub size: u64,
+    /// It listens, but the microphone gave no sound at all in the last report (a noise gate, a muted headset).
+    pub silent: bool,
 }
 
 /// What the host knows now.
@@ -88,6 +93,10 @@ struct Live {
     cooldown: Cooldown,
     cancel: Option<Arc<AtomicBool>>,
     sent: Option<WakeStatus>,
+    /// No sound in the last report of the worker.
+    silent: bool,
+    /// When `voice.log` last heard of a word that is on.
+    noted: Option<Instant>,
 }
 
 struct Inner {
@@ -243,6 +252,9 @@ impl Wake {
             }
         }
         inner.publish();
+        if settings.enabled {
+            inner.note_not_listening();
+        }
     }
 
     /// The agent is leaving.
@@ -328,7 +340,25 @@ impl Inner {
             heard: live.heard,
             testing: live.test_until.is_some_and(|t| Instant::now() < t),
             size,
+            silent: state == WakeState::Listening && live.silent,
         }
+    }
+
+    /// A word that is on but does not listen says so in `voice.log` (a listening worker reports by itself).
+    fn note_not_listening(&self) {
+        let status = self.status();
+        if status.state == WakeState::Listening {
+            return;
+        }
+        {
+            let mut live = self.live.lock().unwrap();
+            if live.noted.is_some_and(|t| t.elapsed() < wake::REPORT_EVERY) {
+                return;
+            }
+            live.noted = Some(Instant::now());
+        }
+        let reason = status.reason.map(|r| format!(" reason={r}")).unwrap_or_default();
+        super::mic::log_line(&format!("wake not listening: state={:?}{reason}", status.state));
     }
 
     /// Tells the listener, only when something changed.
@@ -390,7 +420,13 @@ impl Inner {
             match line {
                 Line::Ready => {
                     live.ready = true;
+                    live.silent = false;
                     live.reason = None;
+                    false
+                }
+                Line::Level(m) => {
+                    live.silent = m.no_signal();
+                    super::mic::log_line(&format!("wake alive: chunks={} peak={:.4} silent={} model={} hits={}", m.chunks, m.peak, m.silent, m.model, m.hits));
                     false
                 }
                 Line::Failed(e) => {
@@ -430,8 +466,13 @@ impl Inner {
             match on_crash(&mut live.crashes, now_ms) {
                 CrashDecision::Restart { after_ms } => live.restart_at = Some(Instant::now() + std::time::Duration::from_millis(after_ms)),
                 CrashDecision::GiveUp => {
-                    live.gave_up = true;
-                    live.reason.get_or_insert_with(|| "The wake word stopped unexpectedly".into());
+                    // T34.1: a microphone that is gone for a while must not end the wake word until the next restart.
+                    if live.reason.as_deref().is_some_and(wake::microphone_trouble) {
+                        live.restart_at = Some(Instant::now() + RETRY_MICROPHONE);
+                    } else {
+                        live.gave_up = true;
+                        live.reason.get_or_insert_with(|| "The wake word stopped unexpectedly".into());
+                    }
                 }
             }
         }
@@ -503,6 +544,50 @@ mod tests {
         // A line of an older worker is ignored.
         wake.inner.line(6, Line::Wake);
         assert_eq!(wake.status().heard, 2);
+        wake.stop();
+    }
+
+    /// Lets the stand-in worker fail with `reason` four times in a row.
+    fn fail_four_times(wake: &Wake, reason: &str) {
+        for id in 1..=4 {
+            let child = Command::new("cmd.exe").args(["/c", "pause"]).stdin(Stdio::piped()).stdout(Stdio::null()).spawn().unwrap();
+            let args = WorkerArgs { library: "x".into(), model: "y".into(), sensitivity: Sensitivity::Medium, mic: None };
+            wake.inner.live.lock().unwrap().worker = Some(Worker { child, _job: None, args, id });
+            wake.inner.line(id, Line::Failed(reason.into()));
+            wake.inner.ended(id);
+        }
+    }
+
+    #[tokio::test]
+    async fn a_failing_microphone_is_tried_again_and_a_failing_model_is_not() {
+        let dir = tempfile::tempdir().unwrap();
+        let wake = wake_in(dir.path(), true);
+        wake.set(true, Sensitivity::Medium).unwrap();
+        fail_four_times(&wake, "Microphone stopped: the device is gone");
+        {
+            let live = wake.inner.live.lock().unwrap();
+            assert!(!live.gave_up && live.restart_at.is_some_and(|t| t > Instant::now() + RETRY_MICROPHONE / 2));
+        }
+        let s = wake.status();
+        assert_eq!((s.state, s.reason.as_deref()), (WakeState::Error, Some("Microphone stopped: the device is gone")));
+        wake.set(true, Sensitivity::Medium).unwrap();
+        fail_four_times(&wake, "the wake word model did not load");
+        assert!(wake.inner.live.lock().unwrap().gave_up);
+    }
+
+    #[tokio::test]
+    async fn a_listening_worker_that_gets_no_sound_says_so() {
+        let dir = tempfile::tempdir().unwrap();
+        let wake = wake_in(dir.path(), true);
+        wake.set(true, Sensitivity::Medium).unwrap();
+        let child = Command::new("cmd.exe").args(["/c", "pause"]).stdin(Stdio::piped()).stdout(Stdio::null()).spawn().unwrap();
+        let args = WorkerArgs { library: "x".into(), model: "y".into(), sensitivity: Sensitivity::Medium, mic: None };
+        wake.inner.live.lock().unwrap().worker = Some(Worker { child, _job: None, args, id: 1 });
+        wake.inner.line(1, Line::Ready);
+        wake.inner.line(1, Line::Level(wake::Meter { chunks: 50, silent: 50, ..Default::default() }));
+        assert!(wake.status().silent);
+        wake.inner.line(1, Line::Level(wake::Meter { chunks: 50, silent: 2, peak: 0.1, ..Default::default() }));
+        assert!(!wake.status().silent && wake.status().state == WakeState::Listening);
         wake.stop();
     }
 

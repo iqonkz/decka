@@ -25,9 +25,11 @@ export function wakeStateText(status: WakeStatus): string | null {
     case "off":
       return t("m32.wake_needs_voice");
     case "error":
-      return status.reason;
-    default:
-      return null;
+      return t("m34.wake_not_running", { reason: status.reason ?? "" });
+    case "starting":
+      return t("m34.wake_starting");
+    case "listening":
+      return status.silent ? t("m34.wake_silent") : t("m34.wake_listening");
   }
 }
 

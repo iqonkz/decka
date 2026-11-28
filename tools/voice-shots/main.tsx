@@ -303,8 +303,8 @@ if (scene === "deck" || scene === "settings") {
       cancel_pairing: null,
       lyrics_get: false,
       wake_get: q.get("wakeDemo") === "1"
-        ? { enabled: true, sensitivity: "medium", installed: true, state: "listening", reason: null, percent: null, heard: 0, testing: false, size: 36_880_000 }
-        : { enabled: false, sensitivity: "medium", installed: false, state: "off", reason: null, percent: null, heard: 0, testing: false, size: 36_880_000 },
+        ? { enabled: true, sensitivity: "medium", installed: true, state: "listening", reason: null, percent: null, heard: 0, testing: false, size: 36_880_000, silent: false }
+        : { enabled: false, sensitivity: "medium", installed: false, state: "off", reason: null, percent: null, heard: 0, testing: false, size: 36_880_000, silent: false },
       calendar_get: q.get("calDemo") === "1"
         ? { connected: true, host: "calendar.google.com", masked: "https://calendar.google.com/••••••••", info: { updatedAt: Date.now(), events: DEMO_EVENTS } }
         : { connected: false, host: null, masked: null, info: null },

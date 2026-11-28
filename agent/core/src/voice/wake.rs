@@ -175,11 +175,64 @@ impl Cooldown {
     }
 }
 
+/// How often the worker tells what it hears, and the agent writes it to `voice.log` (T34.1).
+pub const REPORT_EVERY: Duration = Duration::from_secs(5);
+
+/// What the worker heard since the last report: numbers only, never sound or text. The library gives no score of the
+/// keyword, so `hits` is all that is known of the model's answer.
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+pub struct Meter {
+    /// Chunks of 100 ms that came from the microphone.
+    pub chunks: u32,
+    /// The loudest of them.
+    pub peak: f32,
+    /// How many were digital silence.
+    pub silent: u32,
+    /// How many went through the gate to the model.
+    pub model: u32,
+    pub hits: u32,
+}
+
+impl Meter {
+    pub fn chunk(&mut self, rms: f32) {
+        self.chunks += 1;
+        self.peak = self.peak.max(rms);
+        self.silent += u32::from(rms < super::mic::DIGITAL_SILENCE);
+    }
+
+    /// No sound at all: nothing came, or only zeros.
+    pub fn no_signal(&self) -> bool {
+        self.silent >= self.chunks
+    }
+
+    pub fn line(&self) -> String {
+        format!("level {} {:.4} {} {} {}", self.chunks, self.peak, self.silent, self.model, self.hits)
+    }
+
+    fn parse(text: &str) -> Option<Meter> {
+        let mut parts = text.split(' ');
+        let meter = Meter {
+            chunks: parts.next()?.parse().ok()?,
+            peak: parts.next()?.parse().ok()?,
+            silent: parts.next()?.parse().ok()?,
+            model: parts.next()?.parse().ok()?,
+            hits: parts.next()?.parse().ok()?,
+        };
+        parts.next().is_none().then_some(meter)
+    }
+}
+
+/// A failure of the microphone passes (a headset that was switched off comes back), so the worker is tried again.
+pub fn microphone_trouble(reason: &str) -> bool {
+    reason.starts_with("Microphone") || reason.starts_with("No microphone")
+}
+
 /// One line of the worker's standard output.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Line {
     Ready,
     Wake,
+    Level(Meter),
     Failed(String),
 }
 
@@ -187,7 +240,10 @@ pub fn parse_line(line: &str) -> Option<Line> {
     match line.trim() {
         "ready" => Some(Line::Ready),
         "wake" => Some(Line::Wake),
-        other => other.strip_prefix("error ").map(|e| Line::Failed(e.to_string())),
+        other => match other.strip_prefix("level ") {
+            Some(numbers) => Meter::parse(numbers).map(Line::Level),
+            None => other.strip_prefix("error ").map(|e| Line::Failed(e.to_string())),
+        },
     }
 }
 
@@ -295,6 +351,16 @@ mod tests {
     }
 
     #[test]
+    fn a_setting_saved_by_an_earlier_version_keeps_its_level() {
+        let dir = tempfile::tempdir().unwrap();
+        // wake.json as 0.70.0 wrote it, and without the level (the default is the middle one).
+        std::fs::write(dir.path().join("wake.json"), "{\n  \"enabled\": true,\n  \"sensitivity\": \"low\"\n}").unwrap();
+        assert_eq!(WakeSettings::load(dir.path()), WakeSettings { enabled: true, sensitivity: Sensitivity::Low });
+        std::fs::write(dir.path().join("wake.json"), "{\"enabled\":true}").unwrap();
+        assert_eq!(WakeSettings::load(dir.path()), WakeSettings { enabled: true, sensitivity: Sensitivity::Medium });
+    }
+
+    #[test]
     fn a_higher_sensitivity_lowers_the_threshold_of_every_spelling() {
         let (low, high) = (Sensitivity::Low, Sensitivity::High);
         // The ordinary word is the careful spelling at every level, and the low level asks more of it than the high one.
@@ -342,6 +408,17 @@ mod tests {
         assert_eq!(parse_line("wake"), Some(Line::Wake));
         assert_eq!(parse_line("error no library"), Some(Line::Failed("no library".into())));
         assert_eq!(parse_line("noise"), None);
+        let mut meter = Meter::default();
+        assert!(meter.no_signal(), "nothing came");
+        meter.chunk(0.0);
+        assert!(meter.no_signal(), "only zeros");
+        meter.chunk(0.0213);
+        (meter.model, meter.hits) = (3, 1);
+        assert!(!meter.no_signal());
+        assert_eq!(meter.line(), "level 2 0.0213 1 3 1");
+        assert_eq!(parse_line(&meter.line()), Some(Line::Level(meter)));
+        assert_eq!(parse_line("level 2 x 1 3 1"), None);
+        assert!(microphone_trouble("Microphone stopped: x") && microphone_trouble("No microphone found") && !microphone_trouble("the wake word model did not load"));
         let (mut c, t) = (Cooldown::default(), Instant::now());
         assert!(c.accept(t));
         assert!(!c.accept(t + Duration::from_secs(1)));

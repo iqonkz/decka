@@ -52,12 +52,13 @@ mod engine {
     use std::path::Path;
     use std::ptr::null;
     use std::sync::mpsc;
+    use std::time::{Duration, Instant};
 
     use windows::core::{HSTRING, PCSTR};
     use windows::Win32::System::LibraryLoader::{GetProcAddress, LoadLibraryExW, LOAD_WITH_ALTERED_SEARCH_PATH};
 
     use super::WorkerArgs;
-    use crate::voice::wake::{self, Gate, Gated};
+    use crate::voice::wake::{self, Gate, Gated, Meter, REPORT_EVERY};
 
     // The structs of `c-api.h`, sherpa-onnx v2.0.3, field by field.
     #[repr(C)]
@@ -282,9 +283,8 @@ mod engine {
         };
         let (tx, rx) = mpsc::channel::<Heard>();
         let (chunks, errors) = (tx.clone(), tx);
-        let mic = crate::voice::mic::start(
+        let mic = crate::voice::mic::start_waiting(
             args.mic.clone(),
-            false,
             move |fed| {
                 let pcm = fed.pcm.as_chunks::<2>().0.iter().map(|b| i16::from_le_bytes(*b)).collect();
                 let _ = chunks.send(Heard::Chunk(pcm, fed.decision.rms));
@@ -292,7 +292,6 @@ mod engine {
             move |e| {
                 let _ = errors.send(Heard::Failed(e));
             },
-            |_| {},
         );
         let _mic = match mic {
             Ok(m) => m,
@@ -303,26 +302,40 @@ mod engine {
         };
         say("ready");
         let mut gate = Gate::default();
-        for heard in rx {
-            match heard {
-                Heard::Chunk(pcm, rms) => match gate.feed(pcm, rms) {
-                    Gated::Skip => {}
-                    Gated::Close => spotter.reset(),
-                    Gated::Feed(chunks) => {
-                        // Every chunk goes in, even after a hit.
-                        let hits = chunks.iter().filter(|c| spotter.feed(c)).count();
-                        if hits > 0 && !say("wake") {
-                            return 0;
+        let (mut meter, mut reported) = (Meter::default(), Instant::now());
+        loop {
+            match rx.recv_timeout(Duration::from_millis(500)) {
+                Ok(Heard::Chunk(pcm, rms)) => {
+                    meter.chunk(rms);
+                    match gate.feed(pcm, rms) {
+                        Gated::Skip => {}
+                        Gated::Close => spotter.reset(),
+                        Gated::Feed(chunks) => {
+                            meter.model += chunks.len() as u32;
+                            // Every chunk goes in, even after a hit.
+                            let hits = chunks.iter().filter(|c| spotter.feed(c)).count();
+                            meter.hits += hits as u32;
+                            if hits > 0 && !say("wake") {
+                                return 0;
+                            }
                         }
                     }
-                },
-                Heard::Failed(e) => {
+                }
+                Ok(Heard::Failed(e)) => {
                     say(&format!("error {e}"));
                     return 4;
                 }
+                Err(mpsc::RecvTimeoutError::Timeout) => {}
+                Err(mpsc::RecvTimeoutError::Disconnected) => return 0,
+            }
+            // Also without a single chunk: that the sound stopped coming is worth knowing.
+            if reported.elapsed() >= REPORT_EVERY {
+                reported = Instant::now();
+                if !say(&std::mem::take(&mut meter).line()) {
+                    return 0;
+                }
             }
         }
-        0
     }
 
     #[cfg(test)]
