@@ -4,6 +4,8 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+## 0.71.1 — 2026-11-28
+
 ### Added
 - **"Stop" by voice**: while Decka reads aloud, "stop" («стоп», «хватит») or "Decka" ends the reading in about half a second to a second; the island says how to stop. It needs the downloaded files of the wake word; without them Esc stops the reading. Esc now also stops a spoken answer.
 - Voice settings show what the wake word is doing: listening, silence from the microphone, or why it is not running.
