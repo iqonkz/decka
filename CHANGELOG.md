@@ -4,6 +4,8 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+## 0.70.1 — 2026-11-28
+
 ### Fixed
 - **Voice from the phone's microphone works** (it never carried a command to the PC): a request no longer hangs the PC, and the sound goes in portions the PC accepts. **Update the phone app to 0.70.1.** When nothing comes of a request, the phone says why: no connection, voice control off on the PC, the PC busy, no sound.
 - **"Translate the selected text"** says "Done" only when the text on the screen really changed. For text of a web page the result goes to the clipboard; when the paste cannot be seen, Decka says so and leaves the result on the clipboard.
