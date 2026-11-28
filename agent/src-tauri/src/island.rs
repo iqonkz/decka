@@ -9,7 +9,7 @@
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use decka_core::island::{voice_view, Align, Inputs, Machine, Mode, Settings, VoiceInput, POLL_MS};
+use decka_core::island::{voice_view, Align, Inputs, Machine, Mode, Settings, VoiceInput};
 use decka_core::lyrics_overlay::{foreground_is_fullscreen, ms_until_first_line, previous_line, synced_lines, two_lines, visible, Inputs as LyricsInputs};
 use decka_core::model::MediaInfo;
 use decka_core::overlay;
@@ -27,8 +27,11 @@ struct Lines {
     prev: Option<String>,
     current: Option<String>,
     next: Option<String>,
-    /// Milliseconds until the first line of the song; `None` once it has started.
+    /// Milliseconds until the first line of the song, in whole seconds; `None` once it has started.
     first_in_ms: Option<u64>,
+    /// Milliseconds until the next line begins: the song is looked at again then (T32.F). Not for the page.
+    #[serde(skip)]
+    next_change_ms: Option<u64>,
 }
 
 fn now_ms() -> u64 {
@@ -43,7 +46,10 @@ fn lines_now(media: &MediaInfo, lyrics: &Value, now: u64) -> Option<Lines> {
     let moved = if media.playing { now.saturating_sub(media.position_at) as i64 } else { 0 };
     let position = base + moved + offset;
     let (current, next) = two_lines(&lines, position);
-    Some(Lines { prev: previous_line(&lines, position), current, next, first_in_ms: ms_until_first_line(&lines, position) })
+    let next_change_ms = lines.iter().find(|(t, _)| (*t as i64) > position).filter(|_| media.playing).map(|(t, _)| (*t as i64 - position) as u64);
+    // The countdown changes once a second, not at every look.
+    let first_in_ms = ms_until_first_line(&lines, position).map(|ms| ms.div_ceil(1000) * 1000);
+    Some(Lines { prev: previous_line(&lines, position), current, next, first_in_ms, next_change_ms })
 }
 
 
@@ -157,11 +163,13 @@ struct Sample {
     muted: bool,
     /// The track of the media section, for the lines before the first lyric line.
     track_info: Option<Value>,
+    /// When the next line of the song begins.
+    next_line: Option<Instant>,
 }
 
 impl Default for Sample {
     fn default() -> Sample {
-        Sample { visible: false, mode: decka_core::lyrics_overlay::PcOverlay::Auto, fullscreen: false, lyrics: None, music: false, settings: Settings::default(), playing: false, muted: false, track_info: None }
+        Sample { visible: false, mode: decka_core::lyrics_overlay::PcOverlay::Auto, fullscreen: false, lyrics: None, music: false, settings: Settings::default(), playing: false, muted: false, track_info: None, next_line: None }
     }
 }
 
@@ -201,7 +209,8 @@ fn sample(agent: &Agent, paused_since: &mut Option<Instant>) -> Sample {
     };
     let muted = store.get("vars").get("audio.muted").and_then(Value::as_bool).unwrap_or(false);
     let song = media.as_ref().filter(|m| !m.title.is_empty()).map(|m| json!({ "title": m.title, "artist": m.artist }));
-    Sample { visible: shown, mode, fullscreen, lyrics: current, music, settings: agent.island_settings(), playing, muted, track_info: song }
+    let next_line = lines.and_then(|l| l.next_change_ms).map(|ms| Instant::now() + Duration::from_millis(ms));
+    Sample { visible: shown, mode, fullscreen, lyrics: current, music, settings: agent.island_settings(), playing, muted, track_info: song, next_line }
 }
 
 /// The glass of the panel (T26.F.3): `css` (the page draws a translucent surface) or `acrylic` (DWM backdrop cut to the rounded panel).
@@ -397,6 +406,52 @@ fn cursor_on_panel(app: &AppHandle, window: &tauri::WebviewWindow, rect: Option<
     };
     cursor.x >= left && cursor.x < left + width && cursor.y >= top && cursor.y < top + height
 }
+/// For measurements of a test copy only (`DECKA_CONFIG_DIR` and `DECKA_FAKE_MUSIC=tab|compact|expanded`): a song that
+/// "plays" with a line every three seconds, so that the load of every state of the island can be measured without sound.
+struct Fake(Mode);
+
+impl Fake {
+    fn from_env() -> Option<Fake> {
+        std::env::var_os("DECKA_CONFIG_DIR")?;
+        match std::env::var("DECKA_FAKE_MUSIC").ok()?.as_str() {
+            "tab" => Some(Fake(Mode::Tab)),
+            "compact" => Some(Fake(Mode::Compact)),
+            "expanded" => Some(Fake(Mode::Expanded)),
+            _ => None,
+        }
+    }
+
+    fn sample(&self, at: Duration) -> Sample {
+        let line = at.as_secs() / 3;
+        Sample {
+            visible: true,
+            playing: true,
+            music: true,
+            lyrics: Some(json!({ "playing": true, "status": "ready", "prev": format!("Line {line} of the test song"), "current": format!("Line {} of the test song", line + 1), "next": format!("Line {} of the test song", line + 2), "firstLineInMs": Value::Null })),
+            track_info: Some(json!({ "title": "Test song", "artist": "Decka" })),
+            next_line: Some(Instant::now() + Duration::from_millis(3000 - (at.as_millis() % 3000) as u64)),
+            ..Sample::default()
+        }
+    }
+
+    /// A level that moves like music.
+    fn level(at: Duration) -> f32 {
+        let t = at.as_secs_f32();
+        (0.45 + 0.35 * (t * 7.3).sin() * (t * 1.7).cos() + 0.15 * (t * 17.0).sin()).clamp(0.0, 1.0)
+    }
+}
+
+/// A step of the loop: the levels go out at every step (20 times a second), the state at every second one (T32.F).
+const LEVEL_MS: u64 = 50;
+/// The song is looked at this often (in steps), and at once when its next line begins.
+const SAMPLE_EVERY: u64 = 10;
+
+/// A level in steps, so that an unchanged picture sends nothing: tenths for the thin meter of the bar.
+fn stepped(level: f64, mode: Mode) -> f64 {
+    let steps = if mode == Mode::Tab { 10.0 } else { 20.0 };
+    (level.clamp(0.0, 1.0) * steps).round() / steps
+}
+
 /// The loop of the island. Called once the page of the island exists (T26.R).
 #[allow(dead_code)]
 pub fn setup(app: &AppHandle, agent: &Agent) -> Arc<Shared> {
@@ -415,11 +470,42 @@ pub fn setup(app: &AppHandle, agent: &Agent) -> Arc<Shared> {
         // Where the window was put last.
         let mut placed: Option<Spot> = None;
         let started = Instant::now();
+        let fake = Fake::from_env();
+        // T32.F: what the levels go to now (the mode of the last look, and whether the music is read), and what was sent.
+        let (mut live_mode, mut live_music, mut sent_levels) = (Mode::Hidden, false, None::<(f64, f64)>);
+        // A window that could not be made is tried again later, not at every step.
+        let mut create_after = Instant::now();
         loop {
-            tokio::time::sleep(Duration::from_millis(POLL_MS)).await;
+            tokio::time::sleep(Duration::from_millis(LEVEL_MS)).await;
             tick += 1;
-            if tick % 4 == 1 {
-                sampled = sample(&agent, &mut paused_since);
+            if tick % SAMPLE_EVERY == 1 || sampled.next_line.is_some_and(|t| Instant::now() >= t) {
+                sampled = match &fake {
+                    Some(f) => f.sample(started.elapsed()),
+                    None => sample(&agent, &mut paused_since),
+                };
+            }
+            if matches!(fake, Some(Fake(Mode::Expanded))) {
+                let level = Fake::level(started.elapsed());
+                loop_shared.set_voice(Some(json!({ "state": "listening", "level": (level * 100.0).round() / 100.0, "id": "test", "source": "pc" })));
+            }
+            if shown {
+                if let Some(window) = app.get_webview_window(LABEL) {
+                    let music = match (&fake, live_music) {
+                        (_, false) => 0.0,
+                        (Some(_), true) => f64::from(Fake::level(started.elapsed())),
+                        (None, true) => f64::from(decka_core::audio::music_level(meter.level())),
+                    };
+                    let voice = loop_shared.voice.lock().unwrap().as_ref().and_then(|p| p.get("level").and_then(Value::as_f64)).unwrap_or(0.0);
+                    let now = (stepped(music, live_mode), stepped(voice, Mode::Compact));
+                    if sent_levels != Some(now) {
+                        let _ = window.emit("island_level", json!({ "music": now.0, "voice": now.1 }));
+                        sent_levels = Some(now);
+                    }
+                }
+            }
+            // The orb of a dictation follows the caret at every step; everything else ten times a second.
+            if tick % 2 != 0 && live_mode != Mode::Orb {
+                continue;
             }
             let rect = *loop_shared.rect.lock().unwrap();
             let window = app.get_webview_window(LABEL);
@@ -461,7 +547,7 @@ pub fn setup(app: &AppHandle, agent: &Agent) -> Arc<Shared> {
                 // Until the caret is found nothing is shown.
                 Some(_) if anchor.is_none() => Mode::Hidden,
                 Some(_) => Mode::Orb,
-                None => island,
+                None => fake.as_ref().map_or(island, |f| f.0),
             };
             // The orb and the bar never take a click: they only look.
             let clickable = !matches!(mode, Mode::Orb | Mode::Tab);
@@ -470,6 +556,7 @@ pub fn setup(app: &AppHandle, agent: &Agent) -> Arc<Shared> {
             if mode == Mode::Hidden && !loop_shared.guide_on() {
                 // T27.F.2: a hidden island reads no WASAPI peak (the meter used to stay on after compact -> hidden).
                 meter.set_active(false);
+                (live_mode, live_music, sent_levels) = (mode, false, None);
                 if shown {
                     if let Some(w) = &window {
                         on_hwnd(w, overlay::hide);
@@ -482,9 +569,13 @@ pub fn setup(app: &AppHandle, agent: &Agent) -> Arc<Shared> {
             }
             let window = match window {
                 Some(w) => w,
+                None if Instant::now() < create_after => continue,
                 None => match create(&app) {
                     Some(w) => w,
-                    None => continue,
+                    None => {
+                        create_after = Instant::now() + Duration::from_secs(5);
+                        continue;
+                    }
                 },
             };
             let spot = match mode {
@@ -511,6 +602,7 @@ pub fn setup(app: &AppHandle, agent: &Agent) -> Arc<Shared> {
                 });
                 shown = true;
                 ignoring = true;
+                sent_levels = None;
                 fresh_until = Some(Instant::now() + FRESH);
             }
             // Clicks reach the panel only while the cursor is on it.
@@ -529,9 +621,14 @@ pub fn setup(app: &AppHandle, agent: &Agent) -> Arc<Shared> {
             // The level of the music is read only while a song plays and something shows it (T26.F.10, T29.5).
             let music = sampled.playing && matches!(mode, Mode::Tab | Mode::Compact | Mode::Expanded);
             meter.set_active(music);
-            let peak = if music { decka_core::audio::music_level(meter.level()) } else { 0.0 };
-            // The thin meter of the bar moves in tenths: fewer events for a window that is there for the whole song.
-            let level_of_music = if mode == Mode::Tab { (peak * 10.0).round() / 10.0 } else { peak };
+            (live_mode, live_music) = (mode, music);
+            // The level of the microphone travels with the levels: with it the whole state would be new 20 times a second.
+            let voice_json = voice_json.map(|mut v| {
+                if let Some(o) = v.as_object_mut() {
+                    o.remove("level");
+                }
+                v
+            });
             let event = json!({
                 "mode": mode,
                 "lyrics": if voice == VoiceInput::Idle || sampled.visible { sampled.lyrics.clone() } else { None },
@@ -539,7 +636,6 @@ pub fn setup(app: &AppHandle, agent: &Agent) -> Arc<Shared> {
                 "playing": sampled.playing,
                 "muted": sampled.muted,
                 "track": sampled.track_info,
-                "musicLevel": level_of_music,
                 "recording": note.active.then(|| json!({ "active": true, "elapsedSec": note.elapsed_sec })),
                 "memory": memory,
                 "barHeight": sampled.settings.bar_height,
@@ -547,6 +643,10 @@ pub fn setup(app: &AppHandle, agent: &Agent) -> Arc<Shared> {
                 "orb": orb.as_ref().map(|o| json!({ "phase": o.phase.name(), "level": level, "text": o.bubble.as_ref().map(|b| &b.text), "key": o.bubble.as_ref().and_then(|b| b.key) })),
             });
             let repeat = fresh_until.is_some_and(|t| Instant::now() < t) && tick % 5 == 0;
+            if repeat {
+                // The new page may have missed the first levels too.
+                sent_levels = None;
+            }
             if last_event.as_ref() != Some(&event) || repeat {
                 let _ = window.emit("island_state", event.clone());
                 last_event = Some(event);

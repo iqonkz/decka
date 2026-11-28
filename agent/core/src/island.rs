@@ -17,8 +17,6 @@ pub const ANSWER_HOLD_MS: u64 = 8_000;
 pub const ANSWER_HOLD_ACTIONS_MS: u64 = 20_000;
 /// Pointing at an answer keeps it at least this long after the cursor leaves.
 pub const HOVER_GRACE_MS: u64 = 2_000;
-/// The application asks the cursor this often.
-pub const POLL_MS: u64 = 60;
 
 /// The media button of the island window (`media_control { kind }`) as the same media operation the deck buttons use; anything
 /// outside the four names is refused (T26.F.10).

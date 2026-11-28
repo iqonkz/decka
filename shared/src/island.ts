@@ -98,7 +98,7 @@ export interface IslandEvent {
   playing?: boolean;
   /** The output of the PC is muted. */
   muted?: boolean;
-  /** Peak level of the PC output 0..1 (20 times a second, only while a song plays and the island is open). */
+  /** For previews only: the agent sends the live level in the event `island_level` ({ music, voice }, T32.F). */
   musicLevel?: number;
   /** T30.1: a meeting note is being recorded; the island shows it in every state. */
   recording?: { active: boolean; elapsedSec: number } | null;

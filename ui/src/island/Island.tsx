@@ -23,6 +23,7 @@ import { formatTime } from "../widgets/mediaPos";
 import { compactVoiceText, orbStateFromIsland, songView, type IslandContextChip, type IslandEvent, type IslandMediaKind, type IslandVoicePhase } from "./islandTypes";
 import { compactWidth, currentWraps } from "./compactWidth";
 import ParticlesOrb from "./ParticlesOrb";
+import { meterScale, type LevelSource } from "./levels";
 import Icon from "../Icon";
 import "./island.css";
 
@@ -67,6 +68,22 @@ export interface IslandProps {
   onCloseProcess?: (pid: number, name: string) => void;
   /** T30.1: the stop button next to the recording indicator. */
   onStopRecording?: () => void;
+  /** T32.F: the live levels; without them the island shows the `level` and `musicLevel` of the event. */
+  levels?: LevelSource;
+}
+
+/** The meter of the bar: no canvas, only a `transform` that follows the level. */
+function TabMeter({ levels, level, background }: { levels?: LevelSource; level?: number; background: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!levels) return;
+    const draw = () => {
+      if (ref.current) ref.current.style.transform = `scaleX(${meterScale(levels.get().music)})`;
+    };
+    draw();
+    return levels.subscribe(draw);
+  }, [levels]);
+  return <div ref={ref} className="island-tab-meter" style={{ transform: `scaleX(${meterScale(levels ? levels.get().music : level)})`, background }} />;
 }
 
 function formatRecTimer(sec: number): string {
@@ -79,6 +96,8 @@ function formatRecTimer(sec: number): string {
   return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
 }
 
+/** T32.F: the orb of the island draws this often - every frame of a transparent window costs the whole window. */
+const ORB_FPS = 15;
 const FLIP_MS = 320;
 const COPY_FEEDBACK_MS = 1200;
 const ORB_SOLO_SIZE = 140;
@@ -178,6 +197,7 @@ export default function Island({
   memoryProcesses,
   onCloseProcess,
   onStopRecording,
+  levels,
 }: IslandProps) {
   const { mode, lyrics, voice } = event;
   const [langMenuOpen, setLangMenuOpen] = useState(false);
@@ -360,8 +380,6 @@ export default function Island({
 
   if (mode === "tab") {
     const clampedHeight = Math.max(6, Math.min(16, barHeight));
-    const levelPct =
-      event.musicLevel !== undefined ? Math.max(12, Math.min(100, Math.round(event.musicLevel * 100))) : 0;
     const hasMeter = Boolean(event.playing || event.musicLevel !== undefined);
     return (
       <div className="island-host" data-island-theme={theme}>
@@ -374,13 +392,7 @@ export default function Island({
         >
           <div className={`island-tab-bar${recording?.active ? " is-recording" : ""}`} style={{ height: recording?.active ? Math.max(clampedHeight, 18) : clampedHeight }}>
             {hasMeter && (
-              <div
-                className="island-tab-meter"
-                style={{
-                  width: `${levelPct}%`,
-                  background: `linear-gradient(90deg, ${colorFrom ?? "#22d3ee"}, ${colorTo ?? "#d946ef"})`,
-                }}
-              />
+              <TabMeter levels={levels} level={event.musicLevel} background={`linear-gradient(90deg, ${colorFrom ?? "#22d3ee"}, ${colorTo ?? "#d946ef"})`} />
             )}
             {recording?.active && (
               <span className="island-tab-rec" aria-label={t("m30.rec_label")}>
@@ -436,8 +448,9 @@ export default function Island({
                 colorFrom={colorFrom}
                 colorTo={colorTo}
                 level={hasSong ? lyrics?.musicLevel : voice?.level}
+                levelSource={levels && (() => (hasSong ? levels.get().music : levels.get().voice))}
                 particleCount={hasSong ? 160 : undefined}
-                maxFps={hasSong ? 20 : undefined}
+                maxFps={ORB_FPS}
                 amplitude={hasSong ? 0.6 : 1}
                 staticFrame={!voiceActive && !lyrics?.playing}
               />
@@ -632,6 +645,8 @@ export default function Island({
               colorFrom={colorFrom}
               colorTo={colorTo}
               level={voice?.level}
+              levelSource={levels && (() => levels.get().voice)}
+              maxFps={ORB_FPS}
             />
           </div>
         </div>

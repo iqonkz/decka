@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { t, tVoice, type IslandEvent, type LanguageSetting } from "@decka/shared";
-import { DictationOrb, GuidePanel, Island, useApplyLanguage, type GuideStepEvent } from "@decka/ui";
+import { createLevels, DictationOrb, GuidePanel, Island, useApplyLanguage, type GuideStepEvent, type Levels } from "@decka/ui";
 import { applyAccent } from "./accent";
 import { call, listen } from "./ipc";
 
@@ -48,6 +48,8 @@ export default function IslandApp() {
   // T27.5: the guide in progress (goal, step, text); its buttons name the control, the PC decides what it means.
   const [guide, setGuide] = useState<GuideStepEvent | null>(null);
   useApplyLanguage(language, navigator.language);
+  // T32.F: the levels come 20 times a second and move the meter and the orb without a new state.
+  const [levels] = useState(createLevels);
 
   useEffect(() => {
     document.body.style.background = "transparent";
@@ -72,6 +74,11 @@ export default function IslandApp() {
       if (live) off = fn;
       else fn();
     });
+    let offLevel: (() => void) | undefined;
+    void listen<Levels>("island_level", (e) => levels.set(e.payload)).then((fn) => {
+      if (live) offLevel = fn;
+      else fn();
+    });
     let offGuide: (() => void) | undefined;
     void listen<GuideStepEvent>("guide_step", (e) => setGuide(e.payload.active ? e.payload : null)).then((fn) => {
       if (live) offGuide = fn;
@@ -81,6 +88,7 @@ export default function IslandApp() {
       live = false;
       off?.();
       offGuide?.();
+      offLevel?.();
       media.removeEventListener("change", onTheme);
     };
   }, []);
@@ -145,6 +153,7 @@ export default function IslandApp() {
       )}
       <Island
         event={shown}
+        levels={levels}
         theme={theme}
         barHeight={event.barHeight}
         barPosition={event.barPosition}

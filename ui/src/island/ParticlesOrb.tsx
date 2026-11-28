@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { t } from "@decka/shared";
 import { parseHex } from "../theme/colors";
 import type { OrbState } from "./islandTypes";
@@ -10,6 +10,8 @@ export interface ParticlesOrbProps {
   colorFrom?: string;
   colorTo?: string;
   level?: number;
+  /** T32.F: the live level, read at every frame (the component is not drawn again for it); wins over `level`. */
+  levelSource?: () => number;
   /** Optional override for particle count (defaults to `particleCountForSize(size)`). */
   particleCount?: number;
   /** Optional target frame-rate cap in fps (defaults to 30 active / 15 idle). */
@@ -41,7 +43,7 @@ interface StateWeights {
 
 /**
  * 3D Fibonacci-sphere particle orb rendered on Canvas 2D with lighter compositing (TASKS.md §T26.5b).
- * Suspends rAF automatically off-screen, when the tab/window is hidden, when paused, or under reduced motion.
+ * Suspends drawing automatically off-screen, when the tab/window is hidden, when paused, or under reduced motion.
  */
 export default function ParticlesOrb({
   state,
@@ -50,6 +52,7 @@ export default function ParticlesOrb({
   colorFrom = "#22d3ee",
   colorTo = "#d946ef",
   level,
+  levelSource,
   particleCount,
   maxFps,
   amplitude = 1,
@@ -74,6 +77,8 @@ export default function ParticlesOrb({
   speedRef.current = speed;
   const levelRef = useRef(level);
   levelRef.current = level;
+  const levelSourceRef = useRef(levelSource);
+  levelSourceRef.current = levelSource;
   const maxFpsRef = useRef(maxFps);
   maxFpsRef.current = maxFps;
   const ampRef = useRef(amplitude);
@@ -204,7 +209,7 @@ export default function ParticlesOrb({
     let yaw = 0.4;
     let time = 0;
     let lastTs = performance.now();
-    let rafId = 0;
+    let timer = 0;
 
     const drawFrame = (dtSec: number) => {
       const targetState = stateRef.current;
@@ -225,7 +230,8 @@ export default function ParticlesOrb({
       // Audio energy: explicit 0..1 level, or simulated wave when omitted.
       const activeSum = Math.min(1, w.listening + w.speaking);
       const simLevel = 0.35 + 0.3 * Math.sin(time * 4.3) + 0.2 * Math.sin(time * 7.1 + 1.2);
-      const effLevel = levelRef.current !== undefined ? Math.max(0, Math.min(1, levelRef.current)) : simLevel * activeSum;
+      const live = levelSourceRef.current?.() ?? levelRef.current;
+      const effLevel = live !== undefined ? Math.max(0, Math.min(1, live)) : simLevel * activeSum;
 
       // Rotation speed around Y varies smoothly by state weight.
       const yawRate = (0.35 + w.connecting * 1.65 + w.listening * 1.15 + w.thinking * 0.75 + w.speaking * 1.35) * spd;
@@ -314,24 +320,18 @@ export default function ParticlesOrb({
     drawFrame(0);
     if (!shouldAnimate) return;
 
-    // 30 fps while a request is active, 15 fps at rest (or maxFps override e.g. 20 fps for compact music); paused if hidden.
-    const tick = (now: number) => {
-      const elapsedMs = now - lastTs;
-      const minFrameMs = maxFpsRef.current
-        ? Math.round(1000 / maxFpsRef.current)
-        : stateRef.current === "idle"
-          ? 66
-          : 33;
-      if (elapsedMs >= minFrameMs - 2 && !document.hidden) {
-        const dt = Math.min(0.12, elapsedMs / 1000);
-        lastTs = now;
-        drawFrame(dt);
-      }
-      rafId = requestAnimationFrame(tick);
+    // 30 fps while a request is active, 15 fps at rest or by `maxFps`; nothing while hidden. A timer, not
+    // requestAnimationFrame: that one wakes the page at every refresh of the screen (T32.F).
+    const frameMs = () => (maxFpsRef.current ? Math.round(1000 / maxFpsRef.current) : stateRef.current === "idle" ? 66 : 33);
+    const tick = () => {
+      const now = performance.now();
+      if (!document.hidden) drawFrame(Math.min(0.12, (now - lastTs) / 1000));
+      lastTs = now;
+      timer = window.setTimeout(tick, frameMs());
     };
-    rafId = requestAnimationFrame(tick);
+    timer = window.setTimeout(tick, frameMs());
 
-    return () => cancelAnimationFrame(rafId);
+    return () => window.clearTimeout(timer);
   }, [size, count, paused, staticFrame, reducedMotion, inView, docVisible, particles]);
 
   return (
