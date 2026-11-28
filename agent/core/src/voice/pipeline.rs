@@ -41,7 +41,7 @@ pub mod msg {
     /// T29.1: there was no field to type into; the text waits on the clipboard.
     pub const COPIED_PASTE: &str = "Copied: paste with Ctrl+V";
     pub use crate::voice::calc::{DIV_ZERO, NOT_NUMBER};
-    pub use crate::voice::textops::{NO_ANSWER, NO_CONTEXT, PASTE_FAILED, PASTE_UNCHECKED, SELECT_FIRST, TOO_LONG};
+    pub use crate::voice::textops::{NO_ANSWER, NO_CONTEXT, SELECT_FIRST, TOO_LONG};
 }
 
 /// i18n keys of the fixed phrases (`shared/src/i18n`, `voice.reply.*`); the English text of `msg` is their fallback.
@@ -66,8 +66,6 @@ pub mod key {
     /// A confirmation, not a reply: the question "search the web?" after an `ask` the model could not answer.
     pub const ASK_WEB: &str = "voice.confirm.ask_web";
     pub const COPIED_PASTE: &str = "voice.reply.copied_paste";
-    pub const PASTE_FAILED: &str = "voice.reply.paste_failed";
-    pub const PASTE_UNCHECKED: &str = "voice.reply.paste_unchecked";
     pub const NO_ROOM: &str = "voice.reply.no_room";
     pub const FAIL_VRAM: &str = "m28.err_vram_short";
     pub const FAIL_RAM: &str = "m28.err_ram_short";
@@ -131,8 +129,6 @@ pub fn understood(v: &Validated) -> ConfirmInfo {
 pub(crate) fn executor_key(text: &str) -> Option<&'static str> {
     match text {
         msg::COPIED_PASTE => Some(key::COPIED_PASTE),
-        msg::PASTE_FAILED => Some(key::PASTE_FAILED),
-        msg::PASTE_UNCHECKED => Some(key::PASTE_UNCHECKED),
         crate::voice::addbutton::NO_ROOM => Some(key::NO_ROOM),
         // T29.A: the fixed answers of the screen help, the memory and the window tools in the language of the user.
         "Did not find it on the screen" | "Not found on the screen" => Some("voice.reply.not_found_screen"),
@@ -245,11 +241,13 @@ pub struct State {
     pub understood: Option<ConfirmInfo>,
     /// T29.P: a running call waits for the model to load first (a search on the screen): shown as "loading".
     pub model_wait: bool,
+    /// T34.3: the result in `Done` was not pasted: the hint of its card (`textops::HINT_*`).
+    pub paste: Option<&'static str>,
 }
 
 impl State {
     pub fn idle() -> State {
-        State { phase: Phase::Idle, id: None, source: None, heard: None, say: None, reply_key: None, activity: None, actions: false, understood: None, model_wait: false }
+        State { phase: Phase::Idle, id: None, source: None, heard: None, say: None, reply_key: None, activity: None, actions: false, understood: None, model_wait: false, paste: None }
     }
 
     /// Whether sound is being recorded now: the phrase, or the answer to a question.
@@ -287,6 +285,9 @@ pub struct VoiceInfo {
     pub understood: Option<ConfirmInfo>,
     #[serde(skip)]
     pub executing: bool,
+    /// T34.3: `(hint, whole text)` of a result that was not pasted; for the window of the PC only.
+    #[serde(skip)]
+    pub card: Option<(&'static str, String)>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -333,6 +334,10 @@ impl State {
             understood: self.understood.clone().filter(|_| !idle),
             // While the call waits for the model the island says that, not "doing it".
             executing: self.phase == Phase::Executing && !self.model_wait,
+            card: match (&self.phase, self.paste) {
+                (Phase::Done(text), Some(hint)) => Some((hint, text.clone())),
+                _ => None,
+            },
         }
     }
 }
@@ -777,11 +782,15 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
             let name = reply.trim_start_matches("Here: ").to_string();
             finish_key(s, Phase::Done(reply), ReplyKey::with("voice.reply.found_here", "name", &name))
         }
-        // T29.1, T32.H.1: whatever the model said with the call ("Done"), the user must learn that the text is on the
-        // clipboard or that the paste could not be seen.
-        (Phase::Executing, Event::Executed(Ok(reply))) if [msg::COPIED_PASTE, msg::PASTE_FAILED, msg::PASTE_UNCHECKED].contains(&reply.as_str()) => {
-            let key = executor_key(&reply).unwrap_or(key::COPIED_PASTE);
-            finish_key(s, Phase::Done(reply), ReplyKey::plain(key))
+        // T29.1: whatever the model said with the call ("Done"), the user must learn that the text is on the clipboard.
+        (Phase::Executing, Event::Executed(Ok(reply))) if reply == msg::COPIED_PASTE => finish_key(s, Phase::Done(reply), ReplyKey::plain(key::COPIED_PASTE)),
+        // T32.H.1, T34.3: the result was not seen in its place: it is shown, with what to do.
+        (Phase::Executing, Event::Executed(Ok(reply))) if super::textops::decode_card(&reply).is_some() => {
+            let mut s = s;
+            let (hint, text) = super::textops::decode_card(&reply).unwrap_or((super::textops::HINT_COPIED, ""));
+            s.paste = Some(hint);
+            s.actions = false;
+            finish(s, Phase::Done(text.to_string()))
         }
         (Phase::Executing, Event::Executed(Ok(reply))) => {
             match (s.say.clone(), reply.is_empty()) {
@@ -1306,6 +1315,25 @@ mod tests {
         s.phase = Phase::Executing;
         let (s, _) = step(&s, Event::Executed(Err("something else".into())), 5, &env);
         assert_eq!(s.info().reply_key, None, "free text has no key");
+    }
+
+    /// T34.3: a result that was not pasted is shown whole on the PC, cut for the protocol, without a phrase over it.
+    #[test]
+    fn a_result_that_was_not_pasted_is_a_card_with_its_text() {
+        let (t, c) = (table(), ctx());
+        let env = Env { table: &t, ctx: &c, confirm_ms: CONFIRM_TIMEOUT_MS, dictate: false };
+        let mut s = State::idle();
+        s.phase = Phase::Executing;
+        s.say = Some("Done".into());
+        let long = "word ".repeat(100);
+        let reply = crate::voice::textops::card(crate::voice::textops::HINT_COPIED, &long);
+        let (s, _) = step(&s, Event::Executed(Ok(reply)), 5, &env);
+        let info = s.info();
+        assert_eq!((info.state, info.reply_key, info.reply.as_deref().map(|r| r.chars().count())), ("done", None, Some(MAX_TEXT)));
+        assert_eq!(info.card.as_ref().map(|(h, text)| (*h, text.as_str())), Some(("copied", long.as_str())));
+        let pill = crate::voice::host::pill_payload(&info, &[], 0.0);
+        assert_eq!((pill["pasteHint"].as_str(), pill["reply"].as_str()), (Some("copied"), Some(long.as_str())));
+        assert!(serde_json::to_value(&info).unwrap().get("card").is_none(), "the phones get the protocol only");
     }
 
     #[test]

@@ -157,12 +157,13 @@ pub fn voice_view(payload: Option<&Value>, slow: Option<Progress>, download: Opt
     let actions: Vec<Value> = p.get("actions").and_then(Value::as_array).cloned().unwrap_or_default();
     let (input, phase) = match state {
         "listening" | "loading" | "recognizing" | "thinking" | "confirm" => (VoiceInput::Active, state),
-        "done" | "error" => (VoiceInput::Answer { actions: !actions.is_empty() }, state),
+        // T34.3: a card to read and paste by hand is held as long as an answer with buttons.
+        "done" | "error" => (VoiceInput::Answer { actions: !actions.is_empty() || p.get("pasteHint").is_some() }, state),
         _ => return (VoiceInput::Idle, None),
     };
     let mut v = json!({ "active": input == VoiceInput::Active, "phase": phase });
     let o = v.as_object_mut().expect("an object");
-    for (from, to) in [("level", "level"), ("heard", "heard"), ("understood", "understood"), ("executing", "executing"), ("reply", "reply"), ("replyKey", "replyKey"), ("replyArgs", "replyArgs"), ("confirm", "confirm"), ("id", "confirmId")] {
+    for (from, to) in [("level", "level"), ("heard", "heard"), ("understood", "understood"), ("executing", "executing"), ("reply", "reply"), ("replyKey", "replyKey"), ("replyArgs", "replyArgs"), ("confirm", "confirm"), ("id", "confirmId"), ("pasteHint", "pasteHint")] {
         match p.get(from) {
             // The id is only a handle of the confirmation.
             Some(_) if to == "confirmId" && phase != "confirm" => {}
@@ -426,6 +427,9 @@ mod tests {
         assert_eq!(input, VoiceInput::Answer { actions: true });
         assert_eq!((v["active"].clone(), v["actions"].clone(), v["replyArgs"]["pct"].clone()), (json!(false), json!(["copy", "insert"]), json!("23")));
         assert!(v.get("chips").is_none());
+        let card = json!({ "state": "done", "reply": "the translation", "pasteHint": "copied" });
+        let (input, v) = voice_view(Some(&card), None, None, None, &[]);
+        assert_eq!((input, v.unwrap()["pasteHint"].clone()), (VoiceInput::Answer { actions: true }, json!("copied")));
         let plain = json!({ "state": "error", "reply": "Nothing to continue" });
         assert_eq!(voice_view(Some(&plain), None, None, None, &[]).0, VoiceInput::Answer { actions: false });
         let confirm = json!({ "state": "confirm", "id": "c9", "confirm": { "text": "Lock the computer", "key": "voice.confirm.lock" } });

@@ -663,6 +663,18 @@
   color: var(--island-text);
 }
 
+/* T34.3: a result to paste by hand: six lines, the rest by scrolling. */
+.island-reply.is-paste {
+  max-height: calc(1.4em * 6);
+  white-space: pre-wrap;
+}
+
+.island-paste-hint {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--island-text);
+}
+
 .island-card {
   width: 100%;
   background: var(--island-card);

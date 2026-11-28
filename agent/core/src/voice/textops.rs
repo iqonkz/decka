@@ -19,10 +19,23 @@ pub const TRANSFORM_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// Texts the user sees (i18n keys `voice.reply.*` carry the translations).
 pub const SELECT_FIRST: &str = "Select text first";
-/// T32.H.1: the result could not be put over the selection; it waits on the clipboard.
-pub const PASTE_FAILED: &str = "Could not paste: the result is on the clipboard, press Ctrl+V";
-/// The paste was sent, but the program does not show whether it arrived.
-pub const PASTE_UNCHECKED: &str = "Pasted, but could not check it: if the text did not change, press Ctrl+V";
+/// T34.3: the result was not seen over the selection: the island shows it, and it waits on the clipboard. The value of the
+/// hint of the card: the paste surely did not happen...
+pub const HINT_COPIED: &str = "copied";
+/// ...or the program does not show whether it arrived.
+pub const HINT_CHECK: &str = "check";
+const CARD: char = '\u{1f}';
+
+/// The answer of the executor that makes such a card.
+pub fn card(hint: &str, text: &str) -> String {
+    format!("{CARD}{hint}{CARD}{text}")
+}
+
+/// `(hint, text)` of an answer made by `card`.
+pub fn decode_card(reply: &str) -> Option<(&'static str, &str)> {
+    let (hint, text) = reply.strip_prefix(CARD)?.split_once(CARD)?;
+    [HINT_COPIED, HINT_CHECK].into_iter().find(|h| *h == hint).map(|h| (h, text))
+}
 /// How long a program may take to show a pasted text.
 pub const VERIFY_FOR: Duration = Duration::from_millis(2_500);
 const VERIFY_EVERY: Duration = Duration::from_millis(100);
@@ -291,12 +304,12 @@ pub fn finish(cb: &dyn Clipboard, keys: &dyn Keys, op: Op, grabbed: &Grabbed, an
 }
 
 /// T29.1: the focus has left the selection that was to be replaced: the result stays on the clipboard for `Ctrl+V` instead.
-pub fn leave_on_clipboard(cb: &dyn Clipboard, op: Op, grabbed: &Grabbed, answer: Option<&str>) -> Result<(), String> {
+pub fn leave_on_clipboard(cb: &dyn Clipboard, op: Op, grabbed: &Grabbed, answer: Option<&str>) -> Result<String, String> {
     let Some(text) = answer.and_then(|a| accept_transform(op, &grabbed.text, a)) else {
         clipboard::give_back(cb, grabbed);
         return Err(NO_ANSWER.to_string());
     };
-    cb.set(&text)
+    cb.set(&text).map(|()| text)
 }
 
 /// Words that only point at the selection ("translate **this text** into German"): they are not the text itself (T29.1).
@@ -372,7 +385,10 @@ mod tests {
     fn a_result_that_cannot_replace_its_selection_stays_on_the_clipboard() {
         let f = Fake::new(Some("mine"), Some("hello there"));
         let g = take_selection(&f, &f, &no_sleep).unwrap();
-        leave_on_clipboard(&f, Op::Translate, &g, Some("привет")).unwrap();
+        assert_eq!(leave_on_clipboard(&f, Op::Translate, &g, Some("привет")).unwrap(), "привет");
+        let reply = card(HINT_COPIED, "line one\nline two");
+        assert_eq!(decode_card(&reply), Some((HINT_COPIED, "line one\nline two")));
+        assert_eq!((decode_card("Done"), decode_card("\u{1f}other\u{1f}x")), (None, None));
         assert_eq!(f.get().as_deref(), Some("привет"));
         assert!(f.pasted.lock().unwrap().is_empty());
         let g = Grabbed { text: "hello".into(), previous: Fake::new(Some("mine"), None).snapshot() };

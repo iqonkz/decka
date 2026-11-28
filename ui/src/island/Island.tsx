@@ -715,7 +715,8 @@ export default function Island({
               </div>
             ) : (
               <>
-                {voice?.reply && <div className="island-reply">{voice.reply}</div>}
+                {voice?.reply && <div className={voice.pasteHint ? "island-reply is-paste" : "island-reply"}>{voice.reply}</div>}
+                {voice?.pasteHint && <div className="island-paste-hint">{t(voice.pasteHint === "copied" ? "m34.paste_copied" : "m34.paste_check")}</div>}
                 {!voice?.reply && voice?.confirm?.text && (
                   <div className="island-card">
                     <div className="island-reply">{voice.confirm.text}</div>

@@ -83,6 +83,13 @@ describe("T26.5b ParticlesOrb & Island", () => {
     expect(reading("voice")).toContain("Остановить: «стоп» или Esc");
     expect(reading("esc")).toContain("Остановить: Esc");
 
+    // T34.3: a result that was not pasted: the text, and what to do with it.
+    const card = (pasteHint: "copied" | "check") => renderToString(<Island event={{ mode: "expanded", voice: { active: false, phase: "done", reply: "The translation", pasteHint } }} />);
+    expect(card("copied")).toContain("Скопировано — вставь Ctrl+V");
+    expect(card("copied")).toContain("island-reply is-paste");
+    expect(card("check")).toContain("Если текст не изменился — вставь Ctrl+V");
+    expect(card("copied") + card("check")).not.toContain("е удалось вставить");
+
     const soloHtml = renderToString(
       <Island event={{ mode: "expanded", voice: { active: true, phase: "listening", level: 0.5 } }} />,
     );

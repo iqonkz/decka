@@ -30,6 +30,8 @@ use crate::model::{Action, ActionsFile, LayoutFile, LayoutItem, MediaOp, VarValu
 
 /// A finished request stays on the screen this long, then the pipeline returns to idle and the pill goes away.
 pub const RESULT_SHOWN_MS: u64 = 4_000;
+/// T34.3: a result that is to be read and pasted by hand stays longer.
+pub const CARD_SHOWN_MS: u64 = 20_000;
 /// A request that does not change its state for this long is cancelled (DATA_MODEL.md 12.6a).
 pub const WATCHDOG_MS: u64 = 30_000;
 
@@ -116,6 +118,11 @@ pub fn pill_payload(info: &VoiceInfo, hotkey: &[String], level: f32) -> Value {
         }
         if info.executing {
             o.insert("executing".into(), json!(true));
+        }
+        // T34.3: the card of a result that was not pasted: the whole text, not the short one of the protocol.
+        if let Some((hint, text)) = &info.card {
+            o.insert("reply".into(), json!(text));
+            o.insert("pasteHint".into(), json!(hint));
         }
     }
     v
@@ -405,9 +412,17 @@ async fn transform_text(sup: &crate::ai::supervisor::Supervisor, focus: &FocusMe
         }
         let now = memory.current();
         let route = target::route_replace(before.as_ref(), now.as_ref());
-        mic::log_line(&format!("transform {}: route={route:?} field={:?}", op.name(), now.as_ref().map(|n| n.edit)));
+        // The kind of the places only, never what is in them: enough to see why a program was not typed into (T34.3).
+        mic::log_line(&format!(
+            "transform {}: route={route:?} field={:?} was={:?} same={} class={}",
+            op.name(),
+            now.as_ref().map(|n| n.edit),
+            before.as_ref().map(|b| b.edit),
+            before.as_ref().zip(now.as_ref()).is_some_and(|(b, n)| b.same(n)),
+            now.as_ref().map(|n| target::window_class(n.window)).unwrap_or_default(),
+        ));
         if route == Route::Clipboard {
-            return textops::leave_on_clipboard(&SystemClipboard, op, &grabbed, answer.as_deref()).map(|_| textops::PASTE_FAILED.to_string());
+            return textops::leave_on_clipboard(&SystemClipboard, op, &grabbed, answer.as_deref()).map(|text| textops::card(textops::HINT_COPIED, &text));
         }
         let Some(new) = answer.as_deref().and_then(|a| textops::accept_transform(op, &grabbed.text, a)) else {
             mic::log_line(&format!("transform {}: the answer of the model cannot be used", op.name()));
@@ -418,8 +433,8 @@ async fn transform_text(sup: &crate::ai::supervisor::Supervisor, focus: &FocusMe
         mic::log_line(&format!("transform {}: paste {done:?}", op.name()));
         Ok(match done? {
             textops::Replaced::Yes => String::new(),
-            textops::Replaced::No => textops::PASTE_FAILED.to_string(),
-            textops::Replaced::Unknown => textops::PASTE_UNCHECKED.to_string(),
+            textops::Replaced::No => textops::card(textops::HINT_COPIED, &new),
+            textops::Replaced::Unknown => textops::card(textops::HINT_CHECK, &new),
         })
     })
     .await
@@ -440,7 +455,7 @@ type Answers = Arc<Mutex<super::followup::Memory>>;
 /// A shown answer becomes the context of the next phrase; an answer that replaced the selection ends it.
 fn remember(answers: &Answers, op: super::textops::Op, target: Option<&str>, ui_lang: &str, done: &Transformed) {
     let mut memory = answers.lock().unwrap();
-    if done.reply.is_empty() || [super::pipeline::msg::COPIED_PASTE, super::textops::PASTE_FAILED, super::textops::PASTE_UNCHECKED].contains(&done.reply.as_str()) {
+    if done.reply.is_empty() || done.reply == super::pipeline::msg::COPIED_PASTE || super::textops::decode_card(&done.reply).is_some() {
         memory.clear();
     } else {
         let answer = super::followup::Answer {
@@ -1419,6 +1434,7 @@ impl Inner {
             actions: if state == "done" { buttons.clone() } else { Vec::new() },
             understood: None,
             executing: false,
+            card: None,
         };
         self.show(&info("done", Some(text.chars().take(200).collect())), 0.0);
         let weak = Arc::downgrade(self);
@@ -2149,8 +2165,9 @@ impl Ports for Inner {
         // A result stays visible for a moment, then the pipeline is idle again.
         if matches!(info.state, "done" | "error") {
             let (driver, id) = (self.driver().clone(), info.id.clone());
+            let shown_for = if info.card.is_some() { CARD_SHOWN_MS } else { RESULT_SHOWN_MS };
             std::thread::spawn(move || {
-                std::thread::sleep(Duration::from_millis(RESULT_SHOWN_MS));
+                std::thread::sleep(Duration::from_millis(shown_for));
                 let s = driver.state();
                 if s.id == id && matches!(s.phase, Phase::Done(_) | Phase::Failed(_)) {
                     driver.handle_event(Event::Reset);
@@ -2170,7 +2187,7 @@ mod tests {
     }
 
     fn info(state: &'static str, source: Option<Source>) -> VoiceInfo {
-        VoiceInfo { state, id: Some("x".into()), source, heard: None, reply: None, reply_key: None, reply_args: Default::default(), confirm: None, activity: None, actions: Vec::new(), understood: None, executing: false }
+        VoiceInfo { state, id: Some("x".into()), source, heard: None, reply: None, reply_key: None, reply_args: Default::default(), confirm: None, activity: None, actions: Vec::new(), understood: None, executing: false, card: None }
     }
 
     /// T23.B: a wave of request N queued after the `Destroy` of request N must not bring the pill back.

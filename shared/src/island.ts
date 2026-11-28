@@ -65,6 +65,8 @@ export interface IslandVoiceState {
   understood?: { text: string; key?: string; args?: Record<string, string> };
   /** T28.3: the understood command is being run now. */
   executing?: boolean;
+  /** T34.3: `reply` was not pasted over the selection: it is on the clipboard ("check": the program does not show it). */
+  pasteHint?: "copied" | "check";
   /** T34.2: something is read aloud; how it can be ended: the word "stop" or Esc, or Esc only. */
   stopHint?: "voice" | "esc";
 }
