@@ -54,6 +54,52 @@ fn read_selection() -> Option<String> {
     None
 }
 
+/// The whole text of the focused element (its value, else the document of its text pattern), to see whether a paste
+/// arrived (T32.H.1). `None`: the program does not tell. Never logged.
+pub fn focused_text() -> Option<String> {
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        if tx.send(read_focused()).is_err() {
+            tracing::debug!("the text of the element came too late");
+        }
+    });
+    rx.recv_timeout(UIA_TIMEOUT).ok().flatten()
+}
+
+/// More than this of a document is not looked through.
+#[cfg(windows)]
+const MAX_DOCUMENT: i32 = 200_000;
+
+#[cfg(windows)]
+fn read_focused() -> Option<String> {
+    use windows::Win32::System::Com::{CoCreateInstance, CoInitializeEx, CoUninitialize, CLSCTX_INPROC_SERVER, COINIT_MULTITHREADED};
+    use windows::Win32::UI::Accessibility::{CUIAutomation, IUIAutomation, IUIAutomationTextPattern, IUIAutomationValuePattern, UIA_TextPatternId, UIA_ValuePatternId};
+
+    // SAFETY: COM calls on a thread of their own; every COM object is dropped inside `read` before `CoUninitialize`.
+    unsafe {
+        let initialised = CoInitializeEx(None, COINIT_MULTITHREADED).is_ok();
+        let read = || -> Option<String> {
+            let automation: IUIAutomation = CoCreateInstance(&CUIAutomation, None, CLSCTX_INPROC_SERVER).ok()?;
+            let element = automation.GetFocusedElement().ok()?;
+            if let Ok(pattern) = element.GetCurrentPatternAs::<IUIAutomationTextPattern>(UIA_TextPatternId) {
+                return pattern.DocumentRange().ok()?.GetText(MAX_DOCUMENT).ok().map(|t| t.to_string());
+            }
+            let value = element.GetCurrentPatternAs::<IUIAutomationValuePattern>(UIA_ValuePatternId).ok()?;
+            value.CurrentValue().ok().map(|t| t.to_string())
+        };
+        let out = read();
+        if initialised {
+            CoUninitialize();
+        }
+        out
+    }
+}
+
+#[cfg(not(windows))]
+fn read_focused() -> Option<String> {
+    None
+}
+
 /// The text of the element under the mouse cursor (its text pattern, else its name), for "read aloud" without a selection.
 pub fn text_at_cursor() -> Option<String> {
     let (tx, rx) = std::sync::mpsc::channel();

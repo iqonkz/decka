@@ -1053,6 +1053,8 @@ export const kk: Dictionary = {
   "voice.reply.text_too_long": "Мәтін тым ұзын",
   "voice.reply.no_context": "Жалғастыратын ештеңе жоқ",
   "voice.reply.copied_paste": "Көшірілді: Ctrl+V арқылы қой",
+  "voice.reply.paste_failed": "Қою мүмкін болмады — нәтиже буферде, Ctrl+V басыңыз",
+  "voice.reply.paste_unchecked": "Қойылды, бірақ тексере алмадым: мәтін өзгермесе, Ctrl+V басыңыз",
   "voice.reply.not_found_screen": "Экраннан таппадым",
   "voice.reply.no_candidates": "Басқа нұсқа жоқ",
   "voice.reply.cannot_read_window": "Бұл терезені оқу мүмкін емес",

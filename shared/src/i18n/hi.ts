@@ -1046,6 +1046,8 @@ export const hi: Dictionary = {
   "voice.reply.text_too_long": "टेक्स्ट बहुत लंबा है",
   "voice.reply.no_context": "जारी रखने के लिए कुछ नहीं",
   "voice.reply.copied_paste": "कॉपी हो गया: Ctrl+V से चिपकाएँ",
+  "voice.reply.paste_failed": "पेस्ट नहीं हो सका: परिणाम क्लिपबोर्ड में है, Ctrl+V दबाएँ",
+  "voice.reply.paste_unchecked": "पेस्ट किया, पर जाँच नहीं सका: पाठ न बदले तो Ctrl+V दबाएँ",
   "voice.reply.not_found_screen": "स्क्रीन पर नहीं मिला",
   "voice.reply.no_candidates": "और कोई विकल्प नहीं",
   "voice.reply.cannot_read_window": "यह विंडो पढ़ी नहीं जा सकी",

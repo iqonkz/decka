@@ -1090,6 +1090,8 @@ export const ar: Dictionary = {
   "voice.reply.text_too_long": "النص طويل جدًا",
   "voice.reply.no_context": "لا شيء للمتابعة",
   "voice.reply.copied_paste": "تم النسخ: الصق بـ Ctrl+V",
+  "voice.reply.paste_failed": "تعذّر اللصق: النتيجة في الحافظة، اضغط Ctrl+V",
+  "voice.reply.paste_unchecked": "تم اللصق لكن تعذّر التحقق: إن لم يتغيّر النص فاضغط Ctrl+V",
   "voice.reply.not_found_screen": "لم أجده على الشاشة",
   "voice.reply.no_candidates": "لا توجد خيارات أخرى",
   "voice.reply.cannot_read_window": "تعذّرت قراءة هذه النافذة",

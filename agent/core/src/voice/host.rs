@@ -379,21 +379,48 @@ async fn transform_text(sup: &crate::ai::supervisor::Supervisor, focus: &FocusMe
     // T29.1: from where the user was when the request began. UI Automation first: the clipboard stays untouched when the
     // program gives its selection that way.
     let memory = focus.clone();
-    let (grabbed, before) = tokio::task::spawn_blocking(move || {
+    let taken = tokio::task::spawn_blocking(move || {
         let before = memory.remembered();
         target::take_selection(&memory, before.as_ref(), &SystemClipboard, &SystemKeys, &std::thread::sleep).map(|g| (g, before))
     })
     .await
-    .map_err(|e| format!("The action did not finish: {e}"))??;
+    .map_err(|e| format!("The action did not finish: {e}"))?;
+    // T32.H.1: every step says what it did, never the text.
+    let (grabbed, before) = match taken {
+        Ok(taken) => taken,
+        Err(e) => {
+            mic::log_line(&format!("transform {}: selection failed: {e}", op.name()));
+            return Err(e);
+        }
+    };
+    mic::log_line(&format!("transform {}: selection chars={} by={}", op.name(), grabbed.text.chars().count(), if grabbed.previous.is_some() { "copy" } else { "uia" }));
     let body = textops::request_body_at(op, target_lang, lang, &grabbed.text, temperature);
     let answer = super::assist::chat_text(sup, &body, textops::TRANSFORM_TIMEOUT).await;
+    mic::log_line(&format!("transform {}: model answer chars={:?}", op.name(), answer.as_ref().map(|a| a.chars().count())));
     let source = grabbed.text.clone();
     let memory = focus.clone();
     let reply = tokio::task::spawn_blocking(move || {
-        if op.replaces() && target::route_replace(before.as_ref(), memory.current().as_ref()) == Route::Clipboard {
-            return textops::leave_on_clipboard(&SystemClipboard, op, &grabbed, answer.as_deref()).map(|_| super::pipeline::msg::COPIED_PASTE.to_string());
+        if !op.replaces() {
+            return textops::finish(&SystemClipboard, &SystemKeys, op, &grabbed, answer.as_deref(), &std::thread::sleep);
         }
-        textops::finish(&SystemClipboard, &SystemKeys, op, &grabbed, answer.as_deref(), &std::thread::sleep)
+        let now = memory.current();
+        let route = target::route_replace(before.as_ref(), now.as_ref());
+        mic::log_line(&format!("transform {}: route={route:?} field={:?}", op.name(), now.as_ref().map(|n| n.edit)));
+        if route == Route::Clipboard {
+            return textops::leave_on_clipboard(&SystemClipboard, op, &grabbed, answer.as_deref()).map(|_| textops::PASTE_FAILED.to_string());
+        }
+        let Some(new) = answer.as_deref().and_then(|a| textops::accept_transform(op, &grabbed.text, a)) else {
+            mic::log_line(&format!("transform {}: the answer of the model cannot be used", op.name()));
+            super::clipboard::give_back(&SystemClipboard, &grabbed);
+            return Err(textops::NO_ANSWER.to_string());
+        };
+        let done = textops::replace_selection(&SystemClipboard, &SystemKeys, &new, grabbed.previous.clone(), &super::uia::focused_text, &std::thread::sleep);
+        mic::log_line(&format!("transform {}: paste {done:?}", op.name()));
+        Ok(match done? {
+            textops::Replaced::Yes => String::new(),
+            textops::Replaced::No => textops::PASTE_FAILED.to_string(),
+            textops::Replaced::Unknown => textops::PASTE_UNCHECKED.to_string(),
+        })
     })
     .await
     .map_err(|e| format!("The action did not finish: {e}"))??;
@@ -413,7 +440,7 @@ type Answers = Arc<Mutex<super::followup::Memory>>;
 /// A shown answer becomes the context of the next phrase; an answer that replaced the selection ends it.
 fn remember(answers: &Answers, op: super::textops::Op, target: Option<&str>, ui_lang: &str, done: &Transformed) {
     let mut memory = answers.lock().unwrap();
-    if done.reply.is_empty() || done.reply == super::pipeline::msg::COPIED_PASTE {
+    if done.reply.is_empty() || [super::pipeline::msg::COPIED_PASTE, super::textops::PASTE_FAILED, super::textops::PASTE_UNCHECKED].contains(&done.reply.as_str()) {
         memory.clear();
     } else {
         let answer = super::followup::Answer {

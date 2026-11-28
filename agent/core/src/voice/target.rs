@@ -67,6 +67,8 @@ pub fn route(before: Option<&Spot>, now: Option<&Spot>) -> Route {
 pub fn route_replace(before: Option<&Spot>, now: Option<&Spot>) -> Route {
     match (before, now) {
         (_, None) => Route::Clipboard,
+        // T32.H.1: text that cannot be typed into (a page of a browser) cannot be replaced.
+        (_, Some(now)) if now.edit == Edit::No => Route::Clipboard,
         (None, Some(_)) => Route::Field,
         (Some(before), Some(now)) => {
             if before.same(now) {
@@ -401,6 +403,8 @@ mod tests {
         let before = spot(1, &[7], Edit::Yes);
         assert_eq!(route_replace(Some(&before), Some(&before)), Route::Field);
         assert_eq!(route_replace(Some(&before), Some(&spot(2, &[1], Edit::Yes))), Route::Clipboard);
+        let page = spot(1, &[7], Edit::No);
+        assert_eq!(route_replace(Some(&page), Some(&page)), Route::Clipboard, "a page of a browser is not a field");
         assert_eq!(route_replace(Some(&before), None), Route::Clipboard);
         assert_eq!(route_replace(None, Some(&before)), Route::Field);
     }

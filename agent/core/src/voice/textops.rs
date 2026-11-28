@@ -19,6 +19,69 @@ pub const TRANSFORM_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// Texts the user sees (i18n keys `voice.reply.*` carry the translations).
 pub const SELECT_FIRST: &str = "Select text first";
+/// T32.H.1: the result could not be put over the selection; it waits on the clipboard.
+pub const PASTE_FAILED: &str = "Could not paste: the result is on the clipboard, press Ctrl+V";
+/// The paste was sent, but the program does not show whether it arrived.
+pub const PASTE_UNCHECKED: &str = "Pasted, but could not check it: if the text did not change, press Ctrl+V";
+/// How long a program may take to show a pasted text.
+pub const VERIFY_FOR: Duration = Duration::from_millis(2_500);
+const VERIFY_EVERY: Duration = Duration::from_millis(100);
+
+/// Whether the paste arrived.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Replaced {
+    Yes,
+    No,
+    Unknown,
+}
+
+/// Compared without regard to line ends and spacing: programs keep them differently.
+fn squeezed(text: &str) -> String {
+    text.chars().filter(|c| !c.is_whitespace() && !matches!(c, '\u{200b}' | '\u{feff}')).collect()
+}
+
+/// `before` and `after`: the text of the element around the paste of `new`.
+pub fn judge(before: Option<&str>, after: Option<&str>, new: &str) -> Replaced {
+    let Some(after) = after else { return Replaced::Unknown };
+    let (after, new) = (squeezed(after), squeezed(new));
+    let before = before.map(squeezed);
+    if before.as_deref() == Some(after.as_str()) {
+        // Nothing changed. A text that was there already and equals the result proves nothing.
+        return Replaced::No;
+    }
+    let part: String = new.chars().take(60).collect();
+    if !part.is_empty() && after.contains(&part) {
+        Replaced::Yes
+    } else {
+        Replaced::Unknown
+    }
+}
+
+/// Pastes `text` over the selection and looks whether it arrived. Arrived: the old clipboard comes back. Otherwise the text
+/// stays on the clipboard for `Ctrl+V`.
+pub fn replace_selection(cb: &dyn Clipboard, keys: &dyn Keys, text: &str, previous: Option<clipboard::Snapshot>, read: &dyn Fn() -> Option<String>, sleep: &dyn Fn(Duration)) -> Result<Replaced, String> {
+    let before = read();
+    let previous = previous.or_else(|| cb.snapshot());
+    cb.set_temporary(text)?;
+    if let Err(e) = keys.paste() {
+        cb.set(text)?;
+        return Err(e);
+    }
+    let (mut waited, mut verdict) = (Duration::ZERO, Replaced::Unknown);
+    while waited < VERIFY_FOR && verdict != Replaced::Yes {
+        sleep(VERIFY_EVERY);
+        waited += VERIFY_EVERY;
+        verdict = judge(before.as_deref(), read().as_deref(), text);
+    }
+    if verdict == Replaced::Yes {
+        // The program has read the clipboard; give it its second before the old content returns.
+        sleep(CLIPBOARD_RESTORE.saturating_sub(waited));
+        clipboard::give_back(cb, &Grabbed { text: String::new(), previous });
+    } else {
+        cb.set(text)?;
+    }
+    Ok(verdict)
+}
 pub const TOO_LONG: &str = "The text is too long";
 pub const NO_ANSWER: &str = "Didn't get that — try again";
 /// A continuation ("insert it") with no answer to continue: none was given, or the 30 s are over (T26.3).
@@ -278,6 +341,31 @@ mod tests {
         for said in ["спасибо за помощь", "this is a good day", "text me tomorrow", "это моя кошка", ""] {
             assert!(!is_selection_reference(said), "{said}");
         }
+    }
+
+    #[test]
+    fn done_only_when_the_text_of_the_place_shows_the_result() {
+        assert_eq!(judge(Some("Say привет now"), Some("Say hello\r\nthere now"), "hello there"), Replaced::Yes);
+        assert_eq!(judge(Some("привет"), Some("привет"), "hello"), Replaced::No);
+        assert_eq!(judge(Some("a"), None, "hello"), Replaced::Unknown);
+        assert_eq!(judge(Some("a"), Some("b"), "hello"), Replaced::Unknown);
+    }
+
+    #[test]
+    fn a_paste_that_arrived_gives_the_old_clipboard_back_and_one_that_did_not_keeps_the_result() {
+        let f = Fake::new(Some("mine"), Some("привет"));
+        let g = take_selection(&f, &f, &no_sleep).unwrap();
+        // The program shows what was pasted.
+        let shown = || Some(f.pasted.lock().unwrap().last().cloned().unwrap_or_else(|| "привет".into()));
+        assert_eq!(replace_selection(&f, &f, "hello", g.previous.clone(), &shown, &no_sleep).unwrap(), Replaced::Yes);
+        assert_eq!(f.get().as_deref(), Some("mine"));
+        // A page that ignores Ctrl+V: nothing changes there.
+        let same = || Some("привет".to_string());
+        assert_eq!(replace_selection(&f, &f, "hello", g.previous.clone(), &same, &no_sleep).unwrap(), Replaced::No);
+        assert_eq!(f.get().as_deref(), Some("hello"), "waits for Ctrl+V");
+        let silent = || None;
+        assert_eq!(replace_selection(&f, &f, "hello", g.previous, &silent, &no_sleep).unwrap(), Replaced::Unknown);
+        assert_eq!(f.get().as_deref(), Some("hello"));
     }
 
     #[test]

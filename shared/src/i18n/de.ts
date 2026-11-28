@@ -1046,6 +1046,8 @@ export const de: Dictionary = {
   "voice.reply.text_too_long": "Der Text ist zu lang",
   "voice.reply.no_context": "Nichts fortzusetzen",
   "voice.reply.copied_paste": "Kopiert: mit Strg+V einfügen",
+  "voice.reply.paste_failed": "Einfügen nicht möglich: Das Ergebnis ist in der Zwischenablage, Strg+V drücken",
+  "voice.reply.paste_unchecked": "Eingefügt, aber nicht prüfbar: Wenn sich der Text nicht geändert hat, Strg+V drücken",
   "voice.reply.not_found_screen": "Auf dem Bildschirm nicht gefunden",
   "voice.reply.no_candidates": "Keine weiteren Treffer",
   "voice.reply.cannot_read_window": "Dieses Fenster kann nicht gelesen werden",

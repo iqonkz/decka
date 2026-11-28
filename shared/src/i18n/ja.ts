@@ -1046,6 +1046,8 @@ export const ja: Dictionary = {
   "voice.reply.text_too_long": "テキストが長すぎます",
   "voice.reply.no_context": "続けられる内容がありません",
   "voice.reply.copied_paste": "コピーしました: Ctrl+V で貼り付け",
+  "voice.reply.paste_failed": "貼り付けできませんでした。結果はクリップボードにあります。Ctrl+V を押してください",
+  "voice.reply.paste_unchecked": "貼り付けましたが確認できません。変わらない場合は Ctrl+V を押してください",
   "voice.reply.not_found_screen": "画面に見つかりません",
   "voice.reply.no_candidates": "ほかの候補はありません",
   "voice.reply.cannot_read_window": "このウィンドウを読み取れません",

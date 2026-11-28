@@ -1079,6 +1079,8 @@ export const ru: Record<Base | ExtraPlural, string> = {
   "voice.reply.text_too_long": "Текст слишком длинный",
   "voice.reply.no_context": "Нечего продолжать",
   "voice.reply.copied_paste": "Скопировано: вставь Ctrl+V",
+  "voice.reply.paste_failed": "Не удалось вставить — результат в буфере, вставьте Ctrl+V",
+  "voice.reply.paste_unchecked": "Вставил, но проверить не смог: если текст не изменился, нажмите Ctrl+V",
   "voice.reply.not_found_screen": "Не нашёл это на экране",
   "voice.reply.no_candidates": "Других вариантов нет",
   "voice.reply.cannot_read_window": "Не получается прочитать это окно",

@@ -1046,6 +1046,8 @@ export const fr: Dictionary = {
   "voice.reply.text_too_long": "Le texte est trop long",
   "voice.reply.no_context": "Rien à poursuivre",
   "voice.reply.copied_paste": "Copié : collez avec Ctrl+V",
+  "voice.reply.paste_failed": "Collage impossible : le résultat est dans le presse-papiers, appuyez sur Ctrl+V",
+  "voice.reply.paste_unchecked": "Collé, mais impossible à vérifier : si le texte n’a pas changé, appuyez sur Ctrl+V",
   "voice.reply.not_found_screen": "Je ne l’ai pas trouvé à l’écran",
   "voice.reply.no_candidates": "Pas d’autre possibilité",
   "voice.reply.cannot_read_window": "Impossible de lire cette fenêtre",

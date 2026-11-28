@@ -1046,6 +1046,8 @@ export const zh: Dictionary = {
   "voice.reply.text_too_long": "文本太长",
   "voice.reply.no_context": "没有可继续的内容",
   "voice.reply.copied_paste": "已复制：按 Ctrl+V 粘贴",
+  "voice.reply.paste_failed": "无法粘贴：结果在剪贴板中，请按 Ctrl+V",
+  "voice.reply.paste_unchecked": "已粘贴，但无法确认：如果文字没有变化，请按 Ctrl+V",
   "voice.reply.not_found_screen": "屏幕上没有找到",
   "voice.reply.no_candidates": "没有其他匹配项",
   "voice.reply.cannot_read_window": "无法读取此窗口",

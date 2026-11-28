@@ -39,7 +39,7 @@ pub mod msg {
     /// T29.1: there was no field to type into; the text waits on the clipboard.
     pub const COPIED_PASTE: &str = "Copied: paste with Ctrl+V";
     pub use crate::voice::calc::{DIV_ZERO, NOT_NUMBER};
-    pub use crate::voice::textops::{NO_ANSWER, NO_CONTEXT, SELECT_FIRST, TOO_LONG};
+    pub use crate::voice::textops::{NO_ANSWER, NO_CONTEXT, PASTE_FAILED, PASTE_UNCHECKED, SELECT_FIRST, TOO_LONG};
 }
 
 /// i18n keys of the fixed phrases (`shared/src/i18n`, `voice.reply.*`); the English text of `msg` is their fallback.
@@ -63,6 +63,8 @@ pub mod key {
     /// A confirmation, not a reply: the question "search the web?" after an `ask` the model could not answer.
     pub const ASK_WEB: &str = "voice.confirm.ask_web";
     pub const COPIED_PASTE: &str = "voice.reply.copied_paste";
+    pub const PASTE_FAILED: &str = "voice.reply.paste_failed";
+    pub const PASTE_UNCHECKED: &str = "voice.reply.paste_unchecked";
     pub const NO_ROOM: &str = "voice.reply.no_room";
     pub const FAIL_VRAM: &str = "m28.err_vram_short";
     pub const FAIL_RAM: &str = "m28.err_ram_short";
@@ -125,6 +127,8 @@ pub fn understood(v: &Validated) -> ConfirmInfo {
 pub(crate) fn executor_key(text: &str) -> Option<&'static str> {
     match text {
         msg::COPIED_PASTE => Some(key::COPIED_PASTE),
+        msg::PASTE_FAILED => Some(key::PASTE_FAILED),
+        msg::PASTE_UNCHECKED => Some(key::PASTE_UNCHECKED),
         crate::voice::addbutton::NO_ROOM => Some(key::NO_ROOM),
         // T29.A: the fixed answers of the screen help, the memory and the window tools in the language of the user.
         "Did not find it on the screen" | "Not found on the screen" => Some("voice.reply.not_found_screen"),
@@ -720,8 +724,12 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
             let name = reply.trim_start_matches("Here: ").to_string();
             finish_key(s, Phase::Done(reply), ReplyKey::with("voice.reply.found_here", "name", &name))
         }
-        // T29.1: whatever the model said with the call, the user must learn that the text is on the clipboard.
-        (Phase::Executing, Event::Executed(Ok(reply))) if reply == msg::COPIED_PASTE => finish_key(s, Phase::Done(reply), ReplyKey::plain(key::COPIED_PASTE)),
+        // T29.1, T32.H.1: whatever the model said with the call ("Done"), the user must learn that the text is on the
+        // clipboard or that the paste could not be seen.
+        (Phase::Executing, Event::Executed(Ok(reply))) if [msg::COPIED_PASTE, msg::PASTE_FAILED, msg::PASTE_UNCHECKED].contains(&reply.as_str()) => {
+            let key = executor_key(&reply).unwrap_or(key::COPIED_PASTE);
+            finish_key(s, Phase::Done(reply), ReplyKey::plain(key))
+        }
         (Phase::Executing, Event::Executed(Ok(reply))) => {
             match (s.say.clone(), reply.is_empty()) {
                 (Some(say), _) => finish(s, Phase::Done(say)),

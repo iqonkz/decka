@@ -1055,6 +1055,8 @@ export const en = {
   "voice.reply.text_too_long": "The text is too long",
   "voice.reply.no_context": "Nothing to continue",
   "voice.reply.copied_paste": "Copied: paste with Ctrl+V",
+  "voice.reply.paste_failed": "Could not paste: the result is on the clipboard, press Ctrl+V",
+  "voice.reply.paste_unchecked": "Pasted, but could not check it: if the text did not change, press Ctrl+V",
   "voice.reply.not_found_screen": "Did not find it on the screen",
   "voice.reply.no_candidates": "No other candidates",
   "voice.reply.cannot_read_window": "Cannot read this window",
