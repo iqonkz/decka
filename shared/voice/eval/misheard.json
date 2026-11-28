@@ -1,0 +1,26 @@
+{
+  "ru": [
+    {"say":"за кровь хром","tool":"close_app","args":{"name":"Google Chrome"}},
+    {"say":"закроют хром","tool":"close_app","args":{"name":"Google Chrome"}},
+    {"say":"за крой телеграм","tool":"close_app","args":{"name":"Telegram"}},
+    {"say":"аткрой калькулятор","tool":"open_app","args":{"name":"Calculator"}},
+    {"say":"отк рой блокнот","tool":"open_app","args":{"name":"Notepad"}},
+    {"say":"открою калькулятор","tool":"open_app","args":{"name":"Calculator"}},
+    {"say":"запости спотифай","tool":"open_app","args":{"name":"Spotify"}},
+    {"say":"переключить на дискорд","tool":"switch_app","args":{"name":"Discord"}},
+    {"say":"зделай громче","tool":"volume","args":{"op":"up"}},
+    {"say":"следущий трек","tool":"media","args":{"op":"next"}}
+  ],
+  "en": [
+    {"say":"cloze chrome","tool":"close_app","args":{"name":"Google Chrome"}},
+    {"say":"klose telegram","tool":"close_app","args":{"name":"Telegram"}},
+    {"say":"clos notepad","tool":"close_app","args":{"name":"Notepad"}},
+    {"say":"opin calculator","tool":"open_app","args":{"name":"Calculator"}},
+    {"say":"o pen notepad","tool":"open_app","args":{"name":"Notepad"}},
+    {"say":"lunch spotify","tool":"open_app","args":{"name":"Spotify"}},
+    {"say":"switch two discord","tool":"switch_app","args":{"name":"Discord"}},
+    {"say":"volume app","tool":"volume","args":{"op":"up"}},
+    {"say":"loudar","tool":"volume","args":{"op":"up"}},
+    {"say":"next trak","tool":"media","args":{"op":"next"}}
+  ]
+}

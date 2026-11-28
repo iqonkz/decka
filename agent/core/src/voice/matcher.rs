@@ -341,6 +341,66 @@ fn match_pieces(pieces: &[Piece], toks: &[String]) -> Option<Vec<(String, Vec<St
 /// Last words of a spoken web address.
 const TLDS: &[&str] = &["com", "org", "net", "ru", "kz", "io", "dev", "app", "tv", "me", "info", "edu", "gov", "co", "uk", "de", "fr", "es", "ua", "by", "ai"];
 
+// ---- Words the recognition gets wrong (T32.H.2) -----------------------------------------------------------------
+
+/// Tools whose command is a verb followed by the name of a program.
+const APP_TOOLS: &[&str] = &["open_app", "close_app", "switch_app"];
+/// Tools whose whole phrase may be matched by sound: what they do is undone by saying the opposite.
+const SOFT_TOOLS: &[&str] = &["volume", "media", "lyrics_window"];
+/// Tools whose commands the recognition is told about, in this order.
+const PROMPT_TOOLS: &[&str] = &["open_app", "close_app", "switch_app", "volume", "media", "text_transform", "timer", "remind", "web_search", "screenshot", "read_aloud"];
+/// The longest prompt of the recognition, characters.
+pub const PROMPT_CHARS: usize = 200;
+/// The longest command that is matched by sound, words.
+const MAX_NEAR_WORDS: usize = 7;
+
+/// How words sound, roughly: no spaces and no signs of softness, vowels that are not told apart without stress made one,
+/// voiced consonants made voiceless, a doubled letter once.
+fn sound(words: &[String]) -> Vec<char> {
+    let mut out: Vec<char> = Vec::new();
+    for c in words.iter().flat_map(|w| w.chars()) {
+        let c = match c {
+            'ь' | 'ъ' => continue,
+            'о' => 'а',
+            'е' | 'ё' | 'э' | 'ы' | 'й' => 'и',
+            'б' => 'п',
+            'в' => 'ф',
+            'г' => 'к',
+            'д' => 'т',
+            'ж' => 'ш',
+            'з' => 'с',
+            'c' | 'q' => 'k',
+            'z' => 's',
+            'y' => 'i',
+            other => other,
+        };
+        if out.last() != Some(&c) {
+            out.push(c);
+        }
+    }
+    out
+}
+
+/// Levenshtein distance.
+fn distance(a: &[char], b: &[char]) -> usize {
+    let mut row: Vec<usize> = (0..=b.len()).collect();
+    for (i, x) in a.iter().enumerate() {
+        let mut diagonal = row[0];
+        row[0] = i + 1;
+        for (j, y) in b.iter().enumerate() {
+            let next = (diagonal + usize::from(x != y)).min(row[j] + 1).min(row[j + 1] + 1);
+            diagonal = row[j + 1];
+            row[j + 1] = next;
+        }
+    }
+    row[b.len()]
+}
+
+/// How far a verb of `len` sounds may be heard from: at most 2, one for each 3 sounds (a short word is not guessed).
+fn allowed(len: usize) -> usize {
+    (len / 3).min(2)
+}
+
 /// Template slot -> argument name of the tool (DATA_MODEL.md 12.5).
 fn arg_name(tool: &str, slot: &str) -> &'static str {
     match (slot, tool) {
@@ -554,6 +614,81 @@ impl Table {
             return Match::None;
         };
         unique(scored.iter().filter(|s| best - s.0 < TIE_MARGIN).map(|s| &s.1).collect())
+    }
+
+    /// T32.H.2: readings of a phrase whose command was heard wrong ("за кровь хром" for "закрой хром"), each with its
+    /// distance in sounds, nearest first. Only commands of programs (the verb is compared, the rest is the name) and
+    /// short commands of sound and music (the whole phrase). The caller acts only when exactly one of the nearest
+    /// readings can be done on this PC.
+    pub fn near_commands(&self, phrase: &str) -> Vec<(usize, Intent)> {
+        let toks = tokens(phrase);
+        if toks.is_empty() || toks.len() > MAX_NEAR_WORDS {
+            return Vec::new();
+        }
+        let mut out: Vec<(usize, Intent)> = Vec::new();
+        for c in &self.patterns {
+            let tool = self.intents[c.intent].0.as_str();
+            match c.pieces.as_slice() {
+                [Piece::Lit(verb), Piece::Slot(slot)] if APP_TOOLS.contains(&tool) => {
+                    let verb = sound(verb);
+                    // The verb may have come apart into up to three words; the name of the program stays behind it.
+                    for k in 1..toks.len().min(4) {
+                        let d = distance(&sound(&toks[..k]), &verb);
+                        if d <= allowed(verb.len()) {
+                            if let Some(intent) = self.intent(c.intent, &[(slot.clone(), toks[k..].to_vec())]) {
+                                out.push((d, intent));
+                            }
+                        }
+                    }
+                }
+                [Piece::Lit(words)] if SOFT_TOOLS.contains(&tool) && toks.len().abs_diff(words.len()) <= 1 => {
+                    let said = sound(words);
+                    let d = distance(&sound(&toks), &said);
+                    if d <= allowed(said.len()) {
+                        if let Some(intent) = self.intent(c.intent, &[]) {
+                            out.push((d, intent));
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+        out.sort_by_key(|x| x.0);
+        out
+    }
+
+    /// T32.H.2: the words of frequent commands, for the recognition to expect them (its initial prompt): the name of the
+    /// assistant, then the command words of the templates, a template of each intent in turn, up to [`PROMPT_CHARS`].
+    pub fn stt_prompt(&self) -> String {
+        let mut words: Vec<String> = vec![if matches!(self.lang.as_str(), "ru" | "kk") { "Декка" } else { "Decka" }.to_string()];
+        let mut length = words[0].chars().count();
+        let leads: Vec<Vec<String>> = PROMPT_TOOLS
+            .iter()
+            .flat_map(|tool| {
+                // Of the work on a text only the translation is frequent enough to be named.
+                let frequent = move |(t, args): &(String, Map<String, Value>)| t == tool && (t != "text_transform" || args.get("op").and_then(Value::as_str) == Some("translate"));
+                (0..self.intents.len()).filter(move |i| frequent(&self.intents[*i])).map(|i| {
+                    self.patterns
+                        .iter()
+                        .filter(|c| c.intent == i)
+                        .filter_map(|c| match c.pieces.first() {
+                            Some(Piece::Lit(lit)) => Some(join(lit)),
+                            _ => None,
+                        })
+                        .collect()
+                })
+            })
+            .collect();
+        for round in 0..leads.iter().map(Vec::len).max().unwrap_or(0) {
+            for word in leads.iter().filter_map(|l| l.get(round)) {
+                let more = word.chars().count() + 2;
+                if length + more <= PROMPT_CHARS && !words.contains(word) {
+                    length += more;
+                    words.push(word.clone());
+                }
+            }
+        }
+        words.join(", ")
     }
 
     /// What is said during a guide: the whole phrase is "next", "back", "stop" or "done" (T27.5).
@@ -823,6 +958,30 @@ mod tests {
         assert_eq!(get(&en(), "remind me to call mom in 5 minutes"), rem("call mom", None, Some(5)));
         // Without a time the table leaves a reminder to the model, as before.
         assert_eq!(ru.matches_at("напомни мне купить хлеб", &now), Match::None);
+    }
+
+    #[test]
+    fn the_prompt_of_the_recognition_holds_the_command_words_of_every_language() {
+        for lang in ["en", "zh", "hi", "es", "ar", "fr", "pt", "ru", "de", "ja", "kk"] {
+            let prompt = Table::parse(crate::voice::host::table_text(lang)).unwrap().stt_prompt();
+            assert!(prompt.chars().count() <= PROMPT_CHARS && prompt.split(", ").count() >= 8, "{lang}: {prompt}");
+        }
+        let ru = Table::parse(crate::voice::host::table_text("ru")).unwrap().stt_prompt();
+        for word in ["Декка", "открой", "закрой", "громче", "тише", "переведи"] {
+            assert!(ru.contains(word), "{word}: {ru}");
+        }
+    }
+
+    #[test]
+    fn a_verb_heard_wrong_is_near_its_command_and_far_from_the_opposite_one() {
+        let ru = Table::parse(crate::voice::host::table_text("ru")).unwrap();
+        let near = ru.near_commands("за кровь хром");
+        assert_eq!((near[0].0, near[0].1.tool.as_str()), (1, "close_app"), "{near:?}");
+        assert!(near.iter().all(|(_, i)| i.tool == "close_app"), "{near:?}");
+        // A short word, a long sentence and plain talk are not guessed.
+        for say in ["тыща", "мы вчера за кровь отдали все что у нас было дома"] {
+            assert_eq!(ru.near_commands(say), [], "{say}");
+        }
     }
 
     #[test]

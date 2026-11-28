@@ -448,6 +448,37 @@ fn no_answer(s: State, env: &Env, otherwise: &str) -> (State, Vec<Effect>) {
     }
 }
 
+/// T32.H.2: the command behind a verb the recognition got wrong. Of the readings that can be done on this PC the nearest
+/// ones are taken, and they must mean one thing; otherwise nothing is guessed and the model gets the phrase.
+fn repaired(text: &str, env: &Env) -> Option<(RawCall, Resolved)> {
+    let mut found: Vec<(RawCall, Resolved)> = Vec::new();
+    let mut nearest = None;
+    for (distance, intent) in env.table.near_commands(text) {
+        if nearest.is_some_and(|n| distance > n) {
+            break;
+        }
+        let raw = RawCall { tool: intent.tool, args: serde_json::Value::Object(intent.args) };
+        let resolved = validate(&raw, env.ctx);
+        if matches!(resolved, Resolved::Reject(_)) {
+            continue;
+        }
+        nearest = Some(distance);
+        if !found.iter().any(|(_, other)| *other == resolved) {
+            found.push((raw, resolved));
+        }
+    }
+    let (raw, mut resolved) = if found.len() == 1 { found.pop()? } else { return None };
+    // A program is never closed on a guess without a "yes".
+    if let Resolved::Ready(v) = &mut resolved {
+        if let ToolCall::CloseApp { name, .. } = &v.call {
+            v.args = [("name".to_string(), name.clone())].into_iter().collect();
+            v.key = Some("voice.confirm.close_heavy");
+            v.confirm = true;
+        }
+    }
+    Some((raw, resolved))
+}
+
 /// Starts a call; the pill says what is going on while it runs.
 fn executing(mut s: State, v: &Validated) -> (State, Vec<Effect>) {
     let call = v.call.clone();
@@ -485,7 +516,11 @@ fn finish_key(mut s: State, phase: Phase, key: ReplyKey) -> (State, Vec<Effect>)
 
 /// Runs a tool call through `validate` and moves to confirm, execute, a question or a failure.
 fn resolve(s: State, raw: &RawCall, now_ms: u64, env: &Env, from_model: bool) -> (State, Vec<Effect>) {
-    match validate(raw, env.ctx) {
+    proceed(s, validate(raw, env.ctx), now_ms, env, from_model)
+}
+
+fn proceed(s: State, resolved: Resolved, now_ms: u64, env: &Env, from_model: bool) -> (State, Vec<Effect>) {
+    match resolved {
         Resolved::Ready(v) if v.confirm => confirming(s, v, now_ms, env),
         Resolved::Ready(v) => executing(s, &v),
         Resolved::Ask { question, options } => finish_key(s, Phase::Done(question), ReplyKey::with(key::WHICH, "options", &options.iter().take(3).cloned().collect::<Vec<_>>().join(" / "))),
@@ -640,6 +675,12 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
                     finish_key(s, Phase::Done(format!("Which one: {}?", names.join(" or "))), ReplyKey::with(key::WHICH, "options", &shown))
                 }
                 Match::None => {
+                    if let Some((raw, resolved)) = repaired(&text, env) {
+                        if !cfg!(test) {
+                            super::mic::log_line(&format!("command heard by sound: {}", raw.tool));
+                        }
+                        return proceed(s, resolved, now_ms, env, false);
+                    }
                     s.phase = Phase::Thinking;
                     (s, vec![Effect::AskLlm(text)])
                 }
@@ -915,6 +956,43 @@ impl Driver {
 
 #[cfg(test)]
 mod tests {
+    /// T32.H.2: `shared/voice/eval/misheard.json` - commands as the recognition gets them wrong reach their tool, a program
+    /// is closed only after a "yes", and talk that merely sounds alike does nothing.
+    #[test]
+    fn misheard_commands_reach_their_tool_in_ru_and_en() {
+        use super::super::tools::{AppRef, Context};
+        let sets: serde_json::Value = serde_json::from_str(include_str!("../../../../shared/voice/eval/misheard.json")).unwrap();
+        let apps = ["Google Chrome", "Telegram", "Calculator", "Notepad", "Spotify", "Discord"];
+        let apps = apps.iter().map(|n| AppRef { name: n.to_string(), program: format!("C:\\p\\{n}.exe") }).collect::<Vec<_>>();
+        for lang in ["ru", "en"] {
+            let table = super::Table::parse(crate::voice::host::table_text(lang)).unwrap();
+            let ctx = Context { lang: lang.into(), apps: apps.clone(), ..Context::default() };
+            let env = super::Env { table: &table, ctx: &ctx, confirm_ms: 8000, dictate: false };
+            let rows = sets[lang].as_array().unwrap();
+            assert!(rows.len() >= 10);
+            for row in rows {
+                let (say, tool) = (row["say"].as_str().unwrap(), row["tool"].as_str().unwrap());
+                let (raw, resolved) = match table.matches(say) {
+                    super::Match::Hit(i) => {
+                        let raw = super::RawCall { tool: i.tool, args: serde_json::Value::Object(i.args) };
+                        let resolved = super::validate(&raw, &ctx);
+                        (raw, resolved)
+                    }
+                    _ => super::repaired(say, &env).unwrap_or_else(|| panic!("{say}: not understood, near {:?}", table.near_commands(say))),
+                };
+                assert_eq!(raw.tool, tool, "{say}");
+                let super::Resolved::Ready(v) = resolved else { panic!("{say}: {resolved:?}") };
+                let said = format!("{:?}", v.call).to_lowercase();
+                let want = row["args"]["name"].as_str().or_else(|| row["args"]["op"].as_str()).unwrap().to_lowercase();
+                assert!(said.contains(&want), "{say}: {said}");
+                assert_eq!(v.confirm, tool == "close_app", "{say}");
+            }
+            for say in ["какой сегодня хороший день", "открыл вчера книгу", "the clothes are dry", "we closed the deal"] {
+                assert!(super::repaired(say, &env).is_none(), "{say}");
+            }
+        }
+    }
+
     use super::*;
 
     #[test]

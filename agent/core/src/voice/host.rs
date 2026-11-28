@@ -1497,7 +1497,9 @@ impl CheckPorts for HostCheck {
 
     fn transcribe(&self, pcm: Vec<u8>) -> BoxFut<Result<String, StepError>> {
         let (sup, lang) = (self.inner.service.supervisor().clone(), self.inner.language());
-        Box::pin(async move { sup.transcribe(&pcm, lang).await.map_err(|e| sup.failure_of(Server::Stt).map_or_else(|| StepError::text(e, None), |f| StepError::reason(f.reason))) })
+        // The check hears a phrase the way a command is heard.
+        let words = self.inner.table(lang).stt_prompt();
+        Box::pin(async move { sup.transcribe_prompted(&pcm, lang, Some(&words)).await.map_err(|e| sup.failure_of(Server::Stt).map_or_else(|| StepError::text(e, None), |f| StepError::reason(f.reason))) })
     }
 
     fn ask_model(&self, phrase: String, ctx: Context) -> BoxFut<Result<RawCall, StepError>> {
@@ -1543,6 +1545,8 @@ impl Ports for Inner {
         // A dictation spells the words of the dictionary and, in `clean` mode, goes through the model (13.1).
         let dictating = self.dictating();
         let settings = self.dictation.lock().unwrap().clone();
+        // T32.H.2: a command is recognised with the words of frequent commands to expect.
+        let words = self.table(self.language()).stt_prompt();
         Box::pin(async move {
             // Less than a tenth of a second is a key click, not speech.
             if pcm.len() < super::MAX_CHUNK_BYTES / 2 {
@@ -1556,7 +1560,8 @@ impl Ports for Inner {
             let reason = |e: String| sup.failure_of(Server::Stt).map_or(e, |f| super::pipeline::failure_msg(f.reason).to_string());
             // T29.2: a phrase that the recognition repeats is kept once.
             if !dictating {
-                return sup.transcribe(&pcm, lang).await.map(|t| super::transcript::collapse_repeats(&t)).map_err(reason);
+                let heard = sup.transcribe_prompted(&pcm, lang, Some(&words)).await.map(|t| super::transcript::collapse_repeats(&t)).map_err(reason)?;
+                return Ok(if super::transcript::echoes_prompt(&heard, &words) { String::new() } else { heard });
             }
             let prompt = dictation::whisper_prompt(&settings.dictionary);
             let raw = sup.transcribe_prompted(&pcm, lang, prompt.as_deref()).await.map(|t| super::transcript::collapse_repeats(&t)).map_err(reason)?;

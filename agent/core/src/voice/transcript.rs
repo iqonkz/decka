@@ -104,6 +104,20 @@ pub fn collapse_repeats(text: &str) -> String {
     }
 }
 
+/// T32.H.2: a recognition that was given words to expect may answer noise with those very words. That is so when the text
+/// is a run of three or more entries of the prompt, from the start of one to the end of another.
+pub fn echoes_prompt(text: &str, prompt: &str) -> bool {
+    let heard = super::matcher::tokens(text);
+    let entries: Vec<Vec<String>> = prompt.split(", ").map(super::matcher::tokens).collect();
+    (0..entries.len()).any(|from| {
+        let mut run: Vec<&String> = Vec::new();
+        entries[from..].iter().enumerate().any(|(n, entry)| {
+            run.extend(entry);
+            n >= 2 && run.len() == heard.len() && run.iter().zip(&heard).all(|(a, b)| *a == b)
+        })
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -131,6 +145,17 @@ mod tests {
             "",
         ] {
             assert_eq!(collapse_repeats(text), text);
+        }
+    }
+
+    #[test]
+    fn the_prompt_said_back_is_noise_and_a_command_is_not() {
+        use super::echoes_prompt;
+        let prompt = "Декка, открой, закрой, переключись на, выключи звук";
+        assert!(echoes_prompt("Открой, закрой, переключись на.", prompt));
+        assert!(echoes_prompt("Декка открой закрой", prompt));
+        for said in ["выключи звук", "переключись на хром", "открой закрой", "закрой", ""] {
+            assert!(!echoes_prompt(said, prompt), "{said}");
         }
     }
 }

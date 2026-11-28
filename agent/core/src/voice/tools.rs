@@ -310,7 +310,13 @@ fn said_in_russian(spoken: &str) -> Option<&'static str> {
 /// by the name of its file).
 fn close_heavy(spoken: &str, ctx: &Context) -> Option<Resolved> {
     let names: Vec<(String, usize)> = ctx.heavy.iter().enumerate().flat_map(|(i, h)| [(h.stem.clone(), i), (h.name.clone(), i)]).collect();
-    let found = best(&ctx.lang, spoken, &names, |n| n.0.as_str(), |n| ctx.heavy[n.1].exe.to_ascii_lowercase());
+    let find = |spoken: &str| best(&ctx.lang, spoken, &names, |n| n.0.as_str(), |n| ctx.heavy[n.1].exe.to_ascii_lowercase());
+    let mut found = find(spoken);
+    if found.is_empty() {
+        if let Some(english) = said_in_russian(spoken) {
+            found = find(english);
+        }
+    }
     match found.as_slice() {
         [] => None,
         [i] => Some(close_question(&ctx.heavy[names[*i].1])),
