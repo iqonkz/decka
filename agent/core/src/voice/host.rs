@@ -497,7 +497,7 @@ fn change_reply_voice(service: &VoiceService, lang: &str, change: super::tools::
     };
     if change == VoiceChange::Another {
         if super::speak::voices_of(lang) < 2 {
-            return Ok(reply("voice.reply.one_voice", &[], "Windows has no other voice for this language".into()));
+            return Ok(reply("voice.reply.one_voice", &[], "Windows has one voice for this language. Add one: Settings → Time & language → Speech".into()));
         }
         service.next_speech_voice();
         return Ok(reply("voice.reply.voice_changed", &[], "I will speak with another voice".into()));

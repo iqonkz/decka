@@ -1131,7 +1131,7 @@ export const ru: Record<Base | ExtraPlural, string> = {
   "voice.reply.speed_max": "Быстрее не говорю",
   "voice.reply.speed_min": "Медленнее не говорю",
   "voice.reply.voice_changed": "Буду говорить другим голосом",
-  "voice.reply.one_voice": "В Windows нет другого голоса для этого языка",
+  "voice.reply.one_voice": "Для этого языка в Windows один голос. Добавить: Параметры → Время и язык → Речь",
   "voice.reply.no_audio": "ПК не получил звук",
   "voice.reply.off_on_pc": "На ПК выключено голосовое управление",
   "voice.reply.busy": "ПК занят другим голосовым запросом",

@@ -1105,7 +1105,7 @@ export const kk: Dictionary = {
   "voice.reply.speed_max": "Бұдан жылдам сөйлемеймін",
   "voice.reply.speed_min": "Бұдан баяу сөйлемеймін",
   "voice.reply.voice_changed": "Басқа дауыспен сөйлеймін",
-  "voice.reply.one_voice": "Windows-та бұл тілге басқа дауыс жоқ",
+  "voice.reply.one_voice": "Бұл тіл үшін Windows-та бір ғана дауыс бар. Қосу: Параметрлер → Уақыт және тіл → Сөйлеу",
   "voice.reply.no_audio": "ДК дыбыс алмады",
   "voice.reply.off_on_pc": "ДК-де дауыспен басқару өшірулі",
   "voice.reply.busy": "ДК басқа дауыс сұрауымен бос емес",

@@ -93,7 +93,7 @@ impl WakeSettings {
 const STOP_SPELLINGS: [(&str, f32, f32); 6] = [("▁сто п", 2.0, 0.15), ("▁с то п", 2.0, 0.15), ("▁с т о п", 2.0, 0.15), ("▁с та п", 2.0, 0.15), ("▁х ва ти т", 2.0, 0.15), ("▁х ва т и т", 2.0, 0.15)];
 
 /// The keywords in the form of the spotter: the pieces of the model (its SentencePiece vocabulary), then the score, the
-/// threshold and the name. "Hey Decka" and "Decka" contain the same word, so they need no line of their own.
+/// threshold and the name. The word is "Decka" alone: nothing in the interface asks for a greeting before it (T34.5).
 pub fn keywords(s: Sensitivity) -> String {
     let lines = |words: &[(&str, f32, f32)], name: &str| -> String { words.iter().enumerate().map(|(i, (pieces, score, threshold))| format!("{pieces} :{score:.2} #{threshold:.2} @{name}{i}\n")).collect() };
     lines(s.spellings(), "decka") + &lines(&STOP_SPELLINGS, "stop")

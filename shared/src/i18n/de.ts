@@ -1098,7 +1098,7 @@ export const de: Dictionary = {
   "voice.reply.speed_max": "Schneller spreche ich nicht",
   "voice.reply.speed_min": "Langsamer spreche ich nicht",
   "voice.reply.voice_changed": "Ich spreche jetzt mit einer anderen Stimme",
-  "voice.reply.one_voice": "Windows hat keine andere Stimme für diese Sprache",
+  "voice.reply.one_voice": "Windows hat nur eine Stimme für diese Sprache. Hinzufügen: Einstellungen → Zeit und Sprache → Spracherkennung",
   "voice.reply.no_audio": "Der PC hat keinen Ton erhalten",
   "voice.reply.off_on_pc": "Die Sprachsteuerung ist am PC ausgeschaltet",
   "voice.reply.busy": "Der PC bearbeitet gerade eine andere Sprachanfrage",

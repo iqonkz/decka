@@ -1098,7 +1098,7 @@ export const hi: Dictionary = {
   "voice.reply.speed_max": "इससे तेज़ नहीं बोलता",
   "voice.reply.speed_min": "इससे धीमे नहीं बोलता",
   "voice.reply.voice_changed": "अब दूसरी आवाज़ में बोलूँगा",
-  "voice.reply.one_voice": "Windows में इस भाषा की दूसरी आवाज़ नहीं है",
+  "voice.reply.one_voice": "इस भाषा के लिए Windows में एक ही आवाज़ है। जोड़ें: सेटिंग्स → समय और भाषा → वाक्",
   "voice.reply.no_audio": "पीसी को आवाज़ नहीं मिली",
   "voice.reply.off_on_pc": "पीसी पर आवाज़ से नियंत्रण बंद है",
   "voice.reply.busy": "पीसी दूसरे आवाज़ अनुरोध में व्यस्त है",

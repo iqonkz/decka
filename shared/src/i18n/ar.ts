@@ -1142,7 +1142,7 @@ export const ar: Dictionary = {
   "voice.reply.speed_max": "لا أتكلم أسرع من هذا",
   "voice.reply.speed_min": "لا أتكلم أبطأ من هذا",
   "voice.reply.voice_changed": "سأتكلم بصوت آخر",
-  "voice.reply.one_voice": "لا يوجد في Windows صوت آخر لهذه اللغة",
+  "voice.reply.one_voice": "في Windows صوت واحد لهذه اللغة. للإضافة: الإعدادات ← الوقت واللغة ← الكلام",
   "voice.reply.no_audio": "لم يستلم الكمبيوتر أي صوت",
   "voice.reply.off_on_pc": "التحكم الصوتي متوقف على الكمبيوتر",
   "voice.reply.busy": "الكمبيوتر مشغول بطلب صوتي آخر",

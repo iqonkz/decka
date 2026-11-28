@@ -1098,7 +1098,7 @@ export const fr: Dictionary = {
   "voice.reply.speed_max": "Je ne parle pas plus vite",
   "voice.reply.speed_min": "Je ne parle pas plus lentement",
   "voice.reply.voice_changed": "Je vais parler avec une autre voix",
-  "voice.reply.one_voice": "Windows n’a pas d’autre voix pour cette langue",
+  "voice.reply.one_voice": "Windows n’a qu’une voix pour cette langue. Ajouter : Paramètres → Heure et langue → Voix",
   "voice.reply.no_audio": "Le PC n’a reçu aucun son",
   "voice.reply.off_on_pc": "La commande vocale est désactivée sur le PC",
   "voice.reply.busy": "Le PC traite une autre demande vocale",

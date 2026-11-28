@@ -1098,7 +1098,7 @@ export const pt: Dictionary = {
   "voice.reply.speed_max": "Não falo mais rápido que isso",
   "voice.reply.speed_min": "Não falo mais devagar que isso",
   "voice.reply.voice_changed": "Vou falar com outra voz",
-  "voice.reply.one_voice": "O Windows não tem outra voz para este idioma",
+  "voice.reply.one_voice": "O Windows tem só uma voz para este idioma. Adicionar: Configurações → Hora e idioma → Fala",
   "voice.reply.no_audio": "O PC não recebeu som",
   "voice.reply.off_on_pc": "O controle por voz está desligado no PC",
   "voice.reply.busy": "O PC está ocupado com outro pedido de voz",

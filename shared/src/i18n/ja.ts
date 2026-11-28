@@ -1098,7 +1098,7 @@ export const ja: Dictionary = {
   "voice.reply.speed_max": "これより速くは話せません",
   "voice.reply.speed_min": "これより遅くは話せません",
   "voice.reply.voice_changed": "別の声で話します",
-  "voice.reply.one_voice": "Windows にこの言語の別の声がありません",
+  "voice.reply.one_voice": "この言語の Windows の音声は 1 つだけです。追加：設定 → 時刻と言語 → 音声認識",
   "voice.reply.no_audio": "PC に音声が届きませんでした",
   "voice.reply.off_on_pc": "PC の音声操作がオフです",
   "voice.reply.busy": "PC は別の音声リクエストを処理中です",

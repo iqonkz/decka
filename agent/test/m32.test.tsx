@@ -52,6 +52,16 @@ describe("M32 settings (wake word, calendar, tray favorites, voice help)", () =>
     expect(renderToStaticMarkup(<WakeWordBlock initialStatus={{ ...wake, state: "error", reason: "No microphone found" }} />)).toContain("Не запущено: No microphone found");
   });
 
+  it("names the wake word alone, in every language, and starts at the middle level (T34.5)", () => {
+    const dictionaries = import.meta.glob("../../shared/src/i18n/*.ts", { query: "?raw", import: "default", eager: true }) as Record<string, string>;
+    expect(Object.keys(dictionaries).length).toBeGreaterThanOrEqual(11);
+    for (const [file, text] of Object.entries(dictionaries)) {
+      expect(text, file).not.toMatch(/(?<![a-zа-я])(hey|hi|эй|хей|әй|嘿)[,，、]?\s*[«"„“]?(decka|декка)/iu);
+    }
+    setLanguage("ru");
+    expect(renderToStaticMarkup(<WakeWordBlock />)).toMatch(/aria-checked="true"[^>]*>Средняя</);
+  });
+
   it("shows the saved link only masked and the upcoming events", () => {
     setLanguage("ru");
     expect(buildIntegrationsList({ ...sampleConfig, calendar: { url: "" } }, 0, false).find((i) => i.id === "calendar")?.connected).toBe(true);

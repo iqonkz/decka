@@ -1098,7 +1098,7 @@ export const zh: Dictionary = {
   "voice.reply.speed_max": "已经是最快语速",
   "voice.reply.speed_min": "已经是最慢语速",
   "voice.reply.voice_changed": "我将换一个声音说话",
-  "voice.reply.one_voice": "Windows 中没有该语言的其他语音",
+  "voice.reply.one_voice": "此语言在 Windows 中只有一个语音。添加：设置 → 时间和语言 → 语音",
   "voice.reply.no_audio": "电脑没有收到声音",
   "voice.reply.off_on_pc": "电脑上的语音控制已关闭",
   "voice.reply.busy": "电脑正在处理另一个语音请求",

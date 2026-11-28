@@ -1107,7 +1107,7 @@ export const en = {
   "voice.reply.speed_max": "This is as fast as I speak",
   "voice.reply.speed_min": "This is as slow as I speak",
   "voice.reply.voice_changed": "I will speak with another voice",
-  "voice.reply.one_voice": "Windows has no other voice for this language",
+  "voice.reply.one_voice": "Windows has one voice for this language. Add one: Settings → Time & language → Speech",
   "voice.reply.no_audio": "The PC got no sound from the phone",
   "voice.reply.off_on_pc": "Voice control is off on the PC",
   "voice.reply.busy": "The PC is busy with another voice request",
