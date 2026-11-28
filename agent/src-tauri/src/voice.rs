@@ -40,6 +40,8 @@ pub fn setup(app: &AppHandle, agent: &Agent) {
     let host_cell: Arc<OnceLock<Host>> = Arc::new(OnceLock::new());
     let cell = host_cell.clone();
     let screen_help = agent.clone();
+    // T32.H.4: helpers an earlier run left behind (a killed or hung agent) are ended before new ones start.
+    decka_core::children::sweep(&default_root());
     let deps = VoiceDeps {
         screen_help: Arc::new(move || screen_help.voice_context_enabled()),
         root: default_root(),

@@ -1106,6 +1106,12 @@ impl Host {
         self.inner.orb.lock().unwrap().view(Instant::now())
     }
 
+    /// "Quit": the helpers are asked to end (T32.H.4); what does not is taken by the job objects when the process is gone.
+    pub async fn stop_helpers(&self) {
+        self.inner.wake.stop();
+        self.inner.service.supervisor().stop().await;
+    }
+
     /// The program is ending: the volumes that were turned down come back first.
     pub fn quit(&self) {
         self.inner.wake.stop();

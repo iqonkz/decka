@@ -1,9 +1,10 @@
 //! System tray icon and its menu.
 
 use std::sync::Mutex;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use decka_core::tray_text::{agent_language, tray_text, update_available_text, TrayKey};
+use decka_core::voice::host::Host;
 use decka_core::Agent;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
@@ -75,11 +76,32 @@ fn open_settings(app: &AppHandle, target: Option<&str>) {
     let _ = window.set_focus();
 }
 
-/// The only way to leave the app: stop the agent cleanly, then exit.
+/// How long the helpers and then the agent may take to end politely.
+const POLITE: Duration = Duration::from_secs(3);
+/// Whatever still hangs after this long, the process leaves: the job objects take the helpers with it (T32.H.4).
+const LEAVE_AFTER: Duration = Duration::from_secs(8);
+
+/// The only way to leave the app: stop the helpers and the agent cleanly, then exit - in a bounded time.
 pub fn quit(app: &AppHandle) {
-    if let Some(agent) = app.try_state::<Agent>() {
-        tauri::async_runtime::block_on(agent.shutdown());
-    }
+    std::thread::spawn(|| {
+        std::thread::sleep(LEAVE_AFTER);
+        tracing::warn!("quit did not finish in time, leaving now");
+        std::process::exit(0);
+    });
+    let host = app.try_state::<Host>().map(|h| h.inner().clone());
+    let agent = app.try_state::<Agent>().map(|a| a.inner().clone());
+    tauri::async_runtime::block_on(async {
+        if let Some(host) = host {
+            if tokio::time::timeout(POLITE, host.stop_helpers()).await.is_err() {
+                tracing::warn!("the helpers did not stop in time");
+            }
+        }
+        if let Some(agent) = agent {
+            if tokio::time::timeout(POLITE, agent.shutdown()).await.is_err() {
+                tracing::warn!("the agent did not stop in time");
+            }
+        }
+    });
     app.exit(0);
 }
 

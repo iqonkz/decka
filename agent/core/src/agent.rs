@@ -3281,13 +3281,27 @@ impl Agent {
             task.abort();
         }
         if let Some(handle) = self.inner.server.lock().await.take() {
-            let _ = handle.shutdown.send(());
-            let _ = handle.join.await;
+            if handle.shutdown.send(()).is_err() {
+                tracing::warn!("the server had stopped already");
+            }
+            // T32.H.4: a connection that does not end must not keep the agent (and its helpers) alive.
+            let mut join = handle.join;
+            match tokio::time::timeout(SERVER_STOP_WAIT, &mut join).await {
+                Ok(Ok(())) => {}
+                Ok(Err(e)) => tracing::warn!("the server ended with an error: {e}"),
+                Err(_) => {
+                    tracing::warn!("the server did not stop in {} s, ending it", SERVER_STOP_WAIT.as_secs());
+                    join.abort();
+                }
+            }
         }
         *self.inner.listening.lock().unwrap() = None;
         self.publish_status();
     }
 }
+
+/// How long the server may take to close its connections.
+const SERVER_STOP_WAIT: std::time::Duration = std::time::Duration::from_secs(2);
 
 /// Placeholder for the status channel's initial value; replaced right after construction.
 /// Why an `apk_get` was not served (the connection stays open).
