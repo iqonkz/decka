@@ -114,6 +114,7 @@ export interface VoiceStatus {
   keepLoaded: boolean;
   unloadAfterMin: number;          // T29.A: minutes without voice before the model leaves the memory; 0 = never
   speak: boolean;
+  speechPercent: number;           // T33.2: speed of speech, percent of the normal one (80..130, default 105)
   phoneButton: boolean;
   mic?: string;
   mics: string[];
@@ -198,6 +199,7 @@ export interface VoiceSetArgs {
   keepLoaded?: boolean;
   unloadAfterMin?: number;
   speak?: boolean;
+  speechPercent?: number;
   phoneButton?: boolean;
   mic?: string;
   lightStt?: boolean;

@@ -40,7 +40,7 @@ describe("M28 Settings UI (T28.2b)", () => {
 
           unloadAfterMin: 10,
           speak: false,
-          phoneButton: true,
+          speechPercent: 105, phoneButton: true,
           mics: [],
         }}
       />,
@@ -71,7 +71,7 @@ describe("M28 Settings UI (T28.2b)", () => {
 
           unloadAfterMin: 10,
           speak: false,
-          phoneButton: true,
+          speechPercent: 105, phoneButton: true,
           mics: ["USB Mic"],
         }}
       />,

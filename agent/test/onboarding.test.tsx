@@ -13,7 +13,7 @@ const mockVoice: VoiceStatus = {
   keepLoaded: false,
   unloadAfterMin: 10,
   speak: false,
-  phoneButton: true,
+  speechPercent: 105, phoneButton: true,
   mics: [],
 };
 

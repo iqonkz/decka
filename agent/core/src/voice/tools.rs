@@ -105,6 +105,14 @@ pub enum GuideCtl {
     Done,
 }
 
+/// What is changed in the voice that reads the answers.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum VoiceChange {
+    Faster,
+    Slower,
+    Another,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VolumeOp {
     Up,
@@ -140,6 +148,8 @@ pub enum ToolCall {
     GuideControl { kind: GuideCtl },
     /// T27.9: read the selection (or the element under the cursor) aloud.
     ReadAloud,
+    /// T33.1b: "speak faster / slower", "change the voice".
+    ReplyVoice(VoiceChange),
     /// T27.10: open and arrange the programs of a saved mode / save the present layout as a mode.
     ModeRun { name: String },
     ModeSave { name: String },
@@ -534,8 +544,14 @@ fn run(tool: &str, args: &serde_json::Map<String, Value>, ctx: &Context) -> Resu
             ready(ToolCall::GuideControl { kind }, false, "Guide control")
         }
         "read_aloud" => {
-            only(args, &[])?;
-            ready(ToolCall::ReadAloud, false, "Read aloud")
+            only(args, &["op"])?;
+            match args.get("op").map(Value::as_str) {
+                None => ready(ToolCall::ReadAloud, false, "Read aloud"),
+                Some(Some("faster")) => ready(ToolCall::ReplyVoice(VoiceChange::Faster), false, "Speak faster"),
+                Some(Some("slower")) => ready(ToolCall::ReplyVoice(VoiceChange::Slower), false, "Speak slower"),
+                Some(Some("change_voice")) => ready(ToolCall::ReplyVoice(VoiceChange::Another), false, "Change the voice"),
+                Some(_) => reject("unknown change of the voice"),
+            }
         }
         "mode_run" | "mode_save" => {
             only(args, &["name"])?;
@@ -941,6 +957,10 @@ mod tests {
         assert!(is_reject(call("guide_control", json!({ "kind": "rm" }))));
         assert_eq!(ready_of(call("read_aloud", json!({}))).call, ToolCall::ReadAloud);
         assert!(is_reject(call("read_aloud", json!({ "text": "x" }))));
+        for (op, change) in [("faster", VoiceChange::Faster), ("slower", VoiceChange::Slower), ("change_voice", VoiceChange::Another)] {
+            assert_eq!(ready_of(call("read_aloud", json!({ "op": op }))).call, ToolCall::ReplyVoice(change));
+        }
+        assert!(is_reject(call("read_aloud", json!({ "op": "louder" }))) && is_reject(call("read_aloud", json!({ "op": 1 }))));
         assert_eq!(ready_of(call("mode_run", json!({ "name": "work" }))).call, ToolCall::ModeRun { name: "work".into() });
     }
 

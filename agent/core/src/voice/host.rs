@@ -473,8 +473,32 @@ async fn run_transform(
     Ok(done.reply)
 }
 
+/// T33.1b: "speak faster / slower" and "change the voice": the setting, and what to say about it.
+fn change_reply_voice(service: &VoiceService, lang: &str, change: super::tools::VoiceChange) -> Result<String, String> {
+    use super::speak::{MAX_SPEED, MIN_SPEED, SPEED_STEP};
+    use super::tools::VoiceChange;
+    let reply = |key: &'static str, args: &[(&str, String)], text: String| {
+        super::status::encode(&super::status::Answer { key, args: args.iter().map(|(k, v)| (k.to_string(), v.clone())).collect(), text })
+    };
+    if change == VoiceChange::Another {
+        if super::speak::voices_of(lang) < 2 {
+            return Ok(reply("voice.reply.one_voice", &[], "Windows has no other voice for this language".into()));
+        }
+        service.next_speech_voice();
+        return Ok(reply("voice.reply.voice_changed", &[], "I will speak with another voice".into()));
+    }
+    let now = service.speech_style().speed;
+    let wanted = if change == VoiceChange::Faster { (now + SPEED_STEP).min(MAX_SPEED) } else { now.saturating_sub(SPEED_STEP).max(MIN_SPEED) };
+    if wanted == now {
+        let (key, text) = if change == VoiceChange::Faster { ("voice.reply.speed_max", "This is as fast as I speak") } else { ("voice.reply.speed_min", "This is as slow as I speak") };
+        return Ok(reply(key, &[], text.into()));
+    }
+    service.set(crate::ai::service::VoiceSetArgs { speech_percent: Some(wanted), ..Default::default() })?;
+    Ok(reply("voice.reply.speed", &[("percent", wanted.to_string())], format!("Speech speed {wanted}%")))
+}
+
 /// What to do with the answer that was just shown (T26.3), for a phrase ("insert it") and for the buttons of the PC window.
-async fn reply_action(sup: &crate::ai::supervisor::Supervisor, focus: &FocusMemory, answers: &Answers, kind: &super::followup::Kind) -> Result<String, String> {
+async fn reply_action(sup: &crate::ai::supervisor::Supervisor, focus: &FocusMemory, answers: &Answers, kind: &super::followup::Kind, style: super::speak::Style) -> Result<String, String> {
     use super::followup::Kind;
     use super::textops;
     let Some(answer) = answers.lock().unwrap().fresh(Instant::now()).cloned() else {
@@ -492,8 +516,8 @@ async fn reply_action(sup: &crate::ai::supervisor::Supervisor, focus: &FocusMemo
             tokio::task::spawn_blocking(move || deliver(&focus, &text, true)).await.map_err(blocking)?
         }
         Kind::Speak => {
-            let text = answer.result;
-            tokio::task::spawn_blocking(move || super::speak::speak(&text)).await.map_err(blocking)??;
+            let (text, hint) = (answer.result, answer.ui_lang);
+            tokio::task::spawn_blocking(move || super::speak::speak(&text, &hint, style)).await.map_err(blocking)??;
             Ok(String::new())
         }
         Kind::Again => {
@@ -997,7 +1021,7 @@ impl Host {
         let inner = self.inner.clone();
         self.inner.handle.spawn(async move {
             let sup = inner.service.supervisor().clone();
-            match reply_action(&sup, &inner.focus, &inner.answers, &kind).await {
+            match reply_action(&sup, &inner.focus, &inner.answers, &kind, inner.service.speech_style()).await {
                 Ok(text) if !text.is_empty() => inner.plate(&text, true, 20),
                 Ok(_) => {}
                 Err(e) => inner.plate(&e, false, 5),
@@ -1114,9 +1138,10 @@ impl Host {
         if text.is_empty() {
             return;
         }
+        let style = inner.service.speech_style();
         std::thread::spawn(move || {
             inner.ducker.hold(super::duck::Who::Speech, inner.agent.voice_duck_enabled());
-            if let Err(e) = super::speak::answer(&text, lang) {
+            if let Err(e) = super::speak::answer(&text, lang, style) {
                 tracing::warn!("speaking the answer: {e}");
             }
             inner.ducker.hold(super::duck::Who::Speech, false);
@@ -1740,7 +1765,12 @@ impl Ports for Inner {
                 ToolCall::Calendar { when } => {
                     return Ok(super::status::encode(&crate::calendar::answer(&agent.store().get("calendar"), *when, &crate::assistant::Local::now(), crate::auth::now_ms() as i64)));
                 }
+                ToolCall::ReplyVoice(change) => {
+                    let (voice, change) = (service.clone(), *change);
+                    return tokio::task::spawn_blocking(move || change_reply_voice(&voice, lang, change)).await.map_err(|e| format!("The action did not finish: {e}"))?;
+                }
                 ToolCall::ReadAloud => {
+                    let style = service.speech_style();
                     return tokio::task::spawn_blocking(move || {
                         // T29.1: the selection of the place the user was in, then whatever is selected or under the mouse now.
                         #[cfg(windows)]
@@ -1748,7 +1778,7 @@ impl Ports for Inner {
                         #[cfg(not(windows))]
                         let remembered: Option<String> = None;
                         let text = remembered.or_else(super::uia::selected_text).or_else(super::uia::text_at_cursor).ok_or_else(|| "Nothing to read: select some text first".to_string())?;
-                        super::speak::read_aloud(&text).map(|_| String::new())
+                        super::speak::read_aloud(&text, lang, style).map(|_| String::new())
                     })
                     .await
                     .map_err(|e| format!("The action did not finish: {e}"))?;
@@ -1836,7 +1866,7 @@ impl Ports for Inner {
                     return run_transform(&sup, &focus, &answers, lang, *op, target.as_deref(), text.as_deref()).await;
                 }
                 ToolCall::ReplyAction { kind } => {
-                    return reply_action(&sup, &focus, &answers, kind).await;
+                    return reply_action(&sup, &focus, &answers, kind, service.speech_style()).await;
                 }
                 ToolCall::PasteText { text } => {
                     *dictate.lock().unwrap() = None;
@@ -2187,6 +2217,40 @@ mod tests {
         assert_eq!(aux_for(&state(Phase::Listening, Source::Pc)), (true, false));
         assert_eq!(aux_for(&state(Phase::Listening, Source::Phone)), (false, false), "Esc is not taken for a phone request");
         assert_eq!(aux_for(&state(Phase::Done("x".into()), Source::Pc)), (false, false));
+    }
+
+    /// T33.1b: "faster" and "slower" move the speed in steps up to its limits, and the answers reach the phone as keys.
+    #[test]
+    fn the_voice_phrases_change_the_speed_within_its_limits() {
+        use crate::voice::tools::VoiceChange;
+        let dir = tempfile::tempdir().unwrap();
+        let runtime = tokio::runtime::Runtime::new().unwrap();
+        let service = VoiceService::new(
+            runtime.handle().clone(),
+            crate::ai::service::VoiceDeps {
+                root: dir.path().join("ai"),
+                settings_path: dir.path().join("voice.json"),
+                manifest: Vec::new(),
+                hardware: Arc::new(crate::ai::service::DetectProbe),
+                mics: Arc::new(Vec::new),
+                downloader: crate::ai::download::Downloader::default(),
+                layers: Arc::new(crate::ai::service::NoLayerMemory),
+                emit: Arc::new(|_| {}),
+                screen_help: Arc::new(|| false),
+            },
+        )
+        .unwrap();
+        let said = |change| crate::voice::status::decode(&change_reply_voice(&service, "ru", change).unwrap()).map(|(key, args, _)| (key, args.get("percent").cloned())).unwrap();
+        assert_eq!(said(VoiceChange::Faster), ("voice.reply.speed", Some("115".into())));
+        assert_eq!(said(VoiceChange::Faster), ("voice.reply.speed", Some("125".into())));
+        assert_eq!(said(VoiceChange::Faster), ("voice.reply.speed", Some("130".into())));
+        assert_eq!(said(VoiceChange::Faster), ("voice.reply.speed_max", None));
+        for _ in 0..5 {
+            said(VoiceChange::Slower);
+        }
+        assert_eq!((said(VoiceChange::Slower), service.speech_style().speed), (("voice.reply.speed_min", None), 80));
+        // The choice is kept.
+        assert!(std::fs::read_to_string(dir.path().join("voice.json")).unwrap().contains("\"speechPercent\": 80"));
     }
 
     #[test]

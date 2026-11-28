@@ -63,7 +63,7 @@ describe("M27 Settings UI (T27.2b)", () => {
 
           unloadAfterMin: 10,
           speak: false,
-          phoneButton: true,
+          speechPercent: 105, phoneButton: true,
           mics: [],
         }}
       />,
@@ -85,7 +85,7 @@ describe("M27 Settings UI (T27.2b)", () => {
 
           unloadAfterMin: 10,
           speak: false,
-          phoneButton: true,
+          speechPercent: 105, phoneButton: true,
           mics: [],
         }}
       />,

@@ -23,7 +23,7 @@ describe("M29.10b Voice & Island settings + Catalog", () => {
           keepLoaded: false,
           unloadAfterMin: 10,
           speak: true,
-          phoneButton: true,
+          speechPercent: 105, phoneButton: true,
           mics: [],
         }}
         initialDuckMusic={true}
@@ -57,7 +57,7 @@ describe("M29.10b Voice & Island settings + Catalog", () => {
 });
 
 describe("T29.P lightweight recognition", () => {
-  const status = { state: "off" as const, hardware: { ramGb: 7.8 }, model: "light" as const, downloadGb: 1.8, hotkey: ["ctrl", "alt", "space"], keepLoaded: false, unloadAfterMin: 10, speak: false, phoneButton: true, mics: [] };
+  const status = { state: "off" as const, hardware: { ramGb: 7.8 }, model: "light" as const, downloadGb: 1.8, hotkey: ["ctrl", "alt", "space"], keepLoaded: false, unloadAfterMin: 10, speak: false, speechPercent: 105, phoneButton: true, mics: [] };
 
   it("is a switch of the voice page, recommended on a PC with little memory", () => {
     setLanguage("ru");

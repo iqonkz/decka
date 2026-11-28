@@ -40,6 +40,7 @@ pub mod screenhelp;
 pub mod screenrun;
 pub mod slowpath;
 pub mod speak;
+pub mod spoken;
 pub mod status;
 pub mod target;
 pub mod timephrase;

@@ -118,6 +118,7 @@ pub fn understood(v: &Validated) -> ConfirmInfo {
         ToolCall::Volume(_) => plain("voice.did.volume"),
         ToolCall::Media(_) | ToolCall::MediaPlay => plain("voice.did.media"),
         ToolCall::FindOnScreen { .. } | ToolCall::UiAct { .. } | ToolCall::ReadAloud => plain("voice.did.screen"),
+        ToolCall::ReplyVoice(_) => plain("voice.did.speech"),
         ToolCall::Guide { .. } | ToolCall::GuideRecord { .. } | ToolCall::GuideControl { .. } => plain("voice.did.guide"),
         ToolCall::Ask { .. } | ToolCall::Calc { .. } | ToolCall::Status { .. } | ToolCall::Calendar { .. } => plain("voice.did.question"),
         ToolCall::TextTransform { .. } | ToolCall::ReplyAction { .. } => plain("voice.did.text"),

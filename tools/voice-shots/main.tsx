@@ -353,8 +353,8 @@ if (scene === "deck" || scene === "settings") {
         { id: "action", state: "ok", durationMs: 8, detail: "Open Calculator", understood: { text: "Open Calculator", key: "voice.did.open", args: { name: "Калькулятор" } }, confirm: false },
       ],
       voice_status: q.get("voiceError")
-        ? { state: "error", reason: q.get("voiceError"), hardware: { gpu: "GTX 1050", vramGb: 2, ramGb: 8 }, model: "standard", downloadGb: 3.2, hotkey: ["ctrl", "alt", "space"], keepLoaded: false, unloadAfterMin: 10, speak: false, phoneButton: true, mics: ["Microphone (USB)"] }
-        : { state: "ready", hardware: { ramGb: 32 }, model: "standard", downloadGb: 3.2, hotkey: ["ctrl", "alt", "space"], keepLoaded: false, unloadAfterMin: 10, speak: false, phoneButton: true, mics: ["Microphone (USB)"] },
+        ? { state: "error", reason: q.get("voiceError"), hardware: { gpu: "GTX 1050", vramGb: 2, ramGb: 8 }, model: "standard", downloadGb: 3.2, hotkey: ["ctrl", "alt", "space"], keepLoaded: false, unloadAfterMin: 10, speak: false, speechPercent: 105, phoneButton: true, mics: ["Microphone (USB)"] }
+        : { state: "ready", hardware: { ramGb: 32 }, model: "standard", downloadGb: 3.2, hotkey: ["ctrl", "alt", "space"], keepLoaded: false, unloadAfterMin: 10, speak: false, speechPercent: 105, phoneButton: true, mics: ["Microphone (USB)"] },
     };
     (window as never as { __TAURI_EVENT_PLUGIN_INTERNALS__: unknown }).__TAURI_EVENT_PLUGIN_INTERNALS__ = {
       unregisterListener: () => {},
@@ -636,7 +636,7 @@ if (scene === "deck" || scene === "settings") {
             hotkey: ["ctrl", "alt", "space"],
             keepLoaded: false,
             speak: false,
-            phoneButton: true,
+            speechPercent: 105, phoneButton: true,
             mics: ["Default Mic"],
           }}
           previewGuides={[

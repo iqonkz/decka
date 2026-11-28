@@ -62,6 +62,8 @@ pub struct VoiceStatus {
     /// Minutes without voice after which the model and the recognition leave the memory; 0 = never.
     pub unload_after_min: u32,
     pub speak: bool,
+    /// T33.2: the speed of speech, percent of the normal one.
+    pub speech_percent: u32,
     pub phone_button: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mic: Option<String>,
@@ -93,6 +95,7 @@ pub struct VoiceSetArgs {
     pub keep_loaded: Option<bool>,
     pub unload_after_min: Option<u32>,
     pub speak: Option<bool>,
+    pub speech_percent: Option<u32>,
     pub phone_button: Option<bool>,
     pub mic: Option<String>,
     pub light_stt: Option<bool>,
@@ -107,6 +110,10 @@ pub struct VoiceSettings {
     pub keep_loaded: bool,
     pub unload_after_min: u32,
     pub speak: bool,
+    /// T33.2: percent of the normal speed of speech (`speak::MIN_SPEED`..`MAX_SPEED`).
+    pub speech_percent: u32,
+    /// "Change the voice": which of the installed voices of a language reads, counted round.
+    pub speech_voice: u32,
     pub phone_button: bool,
     pub mic: Option<String>,
     pub light_stt: bool,
@@ -136,6 +143,8 @@ impl Default for VoiceSettings {
             keep_loaded: false,
             unload_after_min: DEFAULT_UNLOAD_MIN,
             speak: false,
+            speech_percent: crate::voice::speak::DEFAULT_SPEED,
+            speech_voice: 0,
             phone_button: true,
             mic: None,
             light_stt: false,
@@ -614,6 +623,21 @@ impl VoiceService {
         Ok(())
     }
 
+    /// How answers are read now.
+    pub fn speech_style(&self) -> crate::voice::speak::Style {
+        let st = self.inner.state.lock().unwrap();
+        crate::voice::speak::Style { speed: st.settings.speech_percent, voice: st.settings.speech_voice }
+    }
+
+    /// "Change the voice": the next of the installed voices reads from now on.
+    pub fn next_speech_voice(&self) {
+        {
+            let mut st = self.inner.state.lock().unwrap();
+            st.settings.speech_voice = st.settings.speech_voice.wrapping_add(1);
+        }
+        self.save_settings();
+    }
+
     pub fn status(&self) -> VoiceStatus {
         let hw = self.hardware();
         let model = self.model();
@@ -656,6 +680,7 @@ impl VoiceService {
             keep_loaded: st.settings.keep_loaded,
             unload_after_min: st.settings.unload_after_min,
             speak: st.settings.speak,
+            speech_percent: st.settings.speech_percent,
             phone_button: st.settings.phone_button,
             mic: st.settings.mic.clone(),
             mics: (self.inner.mics)(),
@@ -842,6 +867,9 @@ impl VoiceService {
             }
             if let Some(v) = args.unload_after_min {
                 st.settings.unload_after_min = v.min(MAX_UNLOAD_MIN);
+            }
+            if let Some(v) = args.speech_percent {
+                st.settings.speech_percent = v.clamp(crate::voice::speak::MIN_SPEED, crate::voice::speak::MAX_SPEED);
             }
             if let Some(v) = args.speak {
                 st.settings.speak = v;
