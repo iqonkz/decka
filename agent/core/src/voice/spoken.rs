@@ -1,7 +1,8 @@
 //! T33.2: a text as it is to be read aloud, for any voice: without markup, code, emoji and addresses, with a pause at the
 //! end of every line, and - for Russian, English and Kazakh - numbers, times, dates and units in words. Other languages
-//! keep their numbers for the voice to read. The words are the nominative ones: the cases a sentence asks for are not
-//! worked out (only the date of a month and the number of a year, which would sound wrong otherwise).
+//! keep their numbers for the voice to read. The words are the nominative ones; of the cases a sentence asks for only
+//! those that would sound plainly wrong are worked out: the date of a month, the number of a year, and the Russian
+//! genitive after "из", "от", "до", "без", "около", "более", "менее".
 
 mod numbers;
 
@@ -327,8 +328,9 @@ fn number(r: &mut Reader, out: &mut String, lang: Lang) {
             return;
         }
     }
+    let genitive = fraction.is_empty() && lang.asks_genitive(&last_word(out));
     if let Some((unit, taken)) = lang.unit(&r.chars[r.at + gap..]) {
-        out.push_str(&lang.measure(value, &fraction, unit));
+        out.push_str(&if genitive { lang.measure_genitive(value, unit) } else { lang.measure(value, &fraction, unit) });
         r.at += gap + taken;
         // A short form with a dot at the end of a sentence keeps the pause of that dot.
         if r.chars[r.at - 1] == '.' && r.chars[r.at..].iter().find(|c| !c.is_whitespace()).is_none_or(|c| c.is_uppercase()) {
@@ -346,7 +348,14 @@ fn number(r: &mut Reader, out: &mut String, lang: Lang) {
         return;
     }
     let next: String = r.chars[r.at + gap..].iter().take_while(|c| c.is_alphabetic()).collect();
-    out.push_str(&if fraction.is_empty() { lang.cardinal(value, lang.gender_before(&next)) } else { lang.decimal(value, &fraction) });
+    let gender = lang.gender_before(&next);
+    out.push_str(&if genitive {
+        lang.genitive(value, gender)
+    } else if fraction.is_empty() {
+        lang.cardinal(value, gender)
+    } else {
+        lang.decimal(value, &fraction)
+    });
 }
 
 #[cfg(test)]

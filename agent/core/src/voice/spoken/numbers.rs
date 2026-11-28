@@ -141,6 +141,48 @@ fn ru_cardinal(n: u64, gender: Gender) -> String {
     out.join(" ")
 }
 
+const RU_ONES_GEN: [&str; 20] = ["нуля", "одного", "двух", "трёх", "четырёх", "пяти", "шести", "семи", "восьми", "девяти", "десяти", "одиннадцати", "двенадцати", "тринадцати", "четырнадцати", "пятнадцати", "шестнадцати", "семнадцати", "восемнадцати", "девятнадцати"];
+const RU_TENS_GEN: [&str; 10] = ["", "", "двадцати", "тридцати", "сорока", "пятидесяти", "шестидесяти", "семидесяти", "восьмидесяти", "девяноста"];
+const RU_HUNDREDS_GEN: [&str; 10] = ["", "ста", "двухсот", "трёхсот", "четырёхсот", "пятисот", "шестисот", "семисот", "восьмисот", "девятисот"];
+
+fn ru_below_thousand_genitive(n: u64, gender: Gender, out: &mut Vec<&'static str>) {
+    if n >= 100 {
+        out.push(RU_HUNDREDS_GEN[(n / 100) as usize]);
+    }
+    let mut rest = n % 100;
+    if rest >= 20 {
+        out.push(RU_TENS_GEN[(rest / 10) as usize]);
+        rest %= 10;
+    }
+    if rest > 0 {
+        out.push(if rest == 1 && gender == Gender::Feminine { "одной" } else { RU_ONES_GEN[rest as usize] });
+    }
+}
+
+fn ru_genitive(n: u64, gender: Gender) -> String {
+    if n == 0 {
+        return RU_ONES_GEN[0].into();
+    }
+    let mut out = Vec::new();
+    // The noun after 1, 21, 31... and after every other number.
+    let scales: [(u64, [&str; 2], Gender); 3] = [
+        (1_000_000_000, ["миллиарда", "миллиардов"], Gender::Masculine),
+        (1_000_000, ["миллиона", "миллионов"], Gender::Masculine),
+        (1_000, ["тысячи", "тысяч"], Gender::Feminine),
+    ];
+    let mut rest = n;
+    for (size, forms, of) in scales {
+        let many = rest / size;
+        if many > 0 {
+            ru_below_thousand_genitive(many % 1000, of, &mut out);
+            out.push(forms[usize::from(ru_form(many) != 0)]);
+            rest %= size;
+        }
+    }
+    ru_below_thousand_genitive(rest, gender, &mut out);
+    out.join(" ")
+}
+
 /// An ordinal up to 9999: the last part is declined, what is in front of it stays a number.
 fn ru_ordinal(n: u64, form: Form) -> String {
     let (front, last): (u64, &str) = if (1..20).contains(&(n % 100)) {
@@ -358,6 +400,27 @@ impl Lang {
             Lang::Ru => ru_cardinal(n, gender),
             Lang::En => en_cardinal(n),
             Lang::Kk => kk_cardinal(n),
+        }
+    }
+
+    /// Whether the word in front of a number asks for its genitive (Russian only; "с" asks for two cases and is left).
+    pub fn asks_genitive(self, before: &str) -> bool {
+        self == Lang::Ru && matches!(before, "из" | "от" | "до" | "без" | "около" | "более" | "менее")
+    }
+
+    /// A number in the genitive.
+    pub fn genitive(self, n: u64, gender: Gender) -> String {
+        match self {
+            Lang::Ru => ru_genitive(n, gender),
+            _ => self.cardinal(n, gender),
+        }
+    }
+
+    /// A number with its unit in the genitive: "двадцати одного градуса", "пяти градусов".
+    pub fn measure_genitive(self, n: u64, unit: &Unit) -> String {
+        match self {
+            Lang::Ru => format!("{} {}{}", ru_genitive(n, unit.gender), unit.ru[if ru_form(n) == 0 { 1 } else { 2 }], unit.ru_after),
+            _ => self.measure(n, "", unit),
         }
     }
 
