@@ -371,7 +371,7 @@ if (scene === "deck" || scene === "settings") {
     const { default: App } = await import("../../agent/src/App");
     root.render(<App />);
     if (q.get("go")) setTimeout(() => window.dispatchEvent(new CustomEvent("decka:go", { detail: { tab: q.get("go") } })), 500);
-    if (q.get("scroll") === "reply") setTimeout(() => document.getElementById("voice-reply-voice")?.scrollIntoView({ block: "center" }), 650);
+    if (q.get("scroll") === "reply") setInterval(() => document.getElementById("voice-reply-voice")?.scrollIntoView({ block: "center" }), 200);
     if (q.get("scroll") === "wake") setInterval(() => document.getElementById("voice-wake-word")?.scrollIntoView({ block: "center" }), 200);
     if (q.get("wizard") !== null) setTimeout(() => window.dispatchEvent(new CustomEvent("decka:run-setup", { detail: { step: Number(q.get("wizard")) } })), 450);
   }

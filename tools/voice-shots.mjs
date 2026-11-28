@@ -394,7 +394,7 @@ const only = process.env.ONLY?.split(",");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // The screens kept as baselines: the settings pages and the island in both schemes, the phone, its themes and the M31 screens.
-const BASELINE = /^(a2-|m31-|m32-|editor-|theme-|phone-)/;
+const BASELINE = /^(a2-|m31-|m32-|m33-|editor-|theme-|phone-)/;
 
 // Two runs must give the same picture: a fixed clock and random numbers, and animation frames that stop
 // after a second and a half of virtual time.
