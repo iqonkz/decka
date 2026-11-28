@@ -4,6 +4,17 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+### Fixed
+- **Voice from the phone's microphone works** (it never carried a command to the PC): a request no longer hangs the PC, and the sound goes in portions the PC accepts. **Update the phone app to 0.70.1.** When nothing comes of a request, the phone says why: no connection, voice control off on the PC, the PC busy, no sound.
+- **"Translate the selected text"** says "Done" only when the text on the screen really changed. For text of a web page the result goes to the clipboard; when the paste cannot be seen, Decka says so and leaves the result on the clipboard.
+- **A command heard slightly wrong** («за кровь хром» for «закрой хром») is understood when only one meaning is possible; closing a program this way asks first. The recognition is told the words of frequent commands.
+- **Quitting** always ends in a few seconds and takes the helper programs with it, also after a crash; leftovers of an earlier run are ended at the start.
+- **Layout editor in portrait**: tiles stay inside the grid, empty cells and the drop highlight match the tiles, a warning when a layout does not fit; captions of catalog keys, folder dots, narrow widgets, preview data as on the phone.
+
+### Changed
+- The island with music uses 2–6 times less processor (the target is not reached in the compact view).
+- Wake word: fewer misses at the middle sensitivity without new false alarms (measured with synthetic voices only).
+
 ## 0.70.0 — 2026-11-27
 
 ### Added
