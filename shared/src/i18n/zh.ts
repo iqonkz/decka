@@ -1498,6 +1498,8 @@ export const zh: Dictionary = {
   "m34.wake_listening": "正在聆听：请说“Decka”",
   "m34.wake_silent": "正在聆听。麦克风目前只传来静音",
   "m34.wake_not_running": "未运行：{reason}",
+  "m34.stop_voice": "停止：说“stop”或按 Esc",
+  "m34.stop_esc": "停止：按 Esc",
   "m32.cal_all_day": "全天",
   "m32.cal_saved_link": "已保存的链接",
   "m32.tray_again": "再按一次",

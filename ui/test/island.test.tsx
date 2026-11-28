@@ -78,6 +78,11 @@ describe("T26.5b ParticlesOrb & Island", () => {
     // The seconds belong to the load only.
     expect(expandedStatusText("listening", { etaSec: 12 })).toBe("Слушаю…");
 
+    // T34.2: while something is read aloud the island says how to end it.
+    const reading = (stopHint: "voice" | "esc") => renderToString(<Island event={{ mode: "expanded", voice: { active: true, phase: "thinking", stopHint } }} />);
+    expect(reading("voice")).toContain("Остановить: «стоп» или Esc");
+    expect(reading("esc")).toContain("Остановить: Esc");
+
     const soloHtml = renderToString(
       <Island event={{ mode: "expanded", voice: { active: true, phase: "listening", level: 0.5 } }} />,
     );

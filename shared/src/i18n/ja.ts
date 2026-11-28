@@ -1498,6 +1498,8 @@ export const ja: Dictionary = {
   "m34.wake_listening": "聞き取り中：「Decka」と言ってください",
   "m34.wake_silent": "聞き取り中。現在マイクから無音が届いています",
   "m34.wake_not_running": "停止中：{reason}",
+  "m34.stop_voice": "停止：「stop」と言うか Esc",
+  "m34.stop_esc": "停止：Esc",
   "m32.cal_all_day": "終日",
   "m32.cal_saved_link": "保存済みのリンク",
   "m32.tray_again": "もう一度",

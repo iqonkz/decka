@@ -46,6 +46,8 @@ pub struct Surroundings {
     pub fullscreen: bool,
     pub checking: bool,
     pub mic: Option<String>,
+    /// Decka reads something aloud now (T34.2).
+    pub speaking: bool,
 }
 
 pub struct WakeDeps {
@@ -169,6 +171,11 @@ impl Wake {
         Ok(self.status())
     }
 
+    /// Whether a reading can be ended by voice (T34.2): the files are there and the worker has not been given up.
+    pub fn hears_stop(&self) -> bool {
+        self.inner.files().is_some_and(|f| f.installed()) && !self.inner.live.lock().unwrap().gave_up
+    }
+
     /// "Say Decka": for a short while a detection is only counted, it starts nothing.
     pub fn test(&self, on: bool) -> WakeStatus {
         self.inner.live.lock().unwrap().test_until = on.then(|| Instant::now() + wake::TEST_FOR);
@@ -217,6 +224,7 @@ impl Wake {
             recording_note: around.recording_note,
             fullscreen: around.fullscreen,
             checking: around.checking,
+            speaking: around.speaking,
         };
         let wanted = wake::wanted(conditions);
         {
@@ -412,12 +420,27 @@ impl Inner {
     }
 
     fn line(&self, id: u64, line: Line) {
+        if self.line_at(id, line, super::speak::is_speaking()) {
+            super::mic::log_line("wake word ends the reading");
+            super::speak::stop();
+        }
+    }
+
+    /// Takes a line of the worker; `speaking` = Decka reads aloud now. True when the reading is to end: both "stop" and
+    /// "Decka" end it. "Decka" also starts a request, if the wake word itself is on; "stop" never does.
+    fn line_at(&self, id: u64, line: Line, speaking: bool) -> bool {
+        let enabled = self.settings.lock().unwrap().enabled;
+        let mut ends_reading = false;
         let wake_now = {
             let mut live = self.live.lock().unwrap();
             if live.worker.as_ref().is_none_or(|w| w.id != id) {
-                return;
+                return false;
             }
             match line {
+                Line::Stop => {
+                    ends_reading = speaking;
+                    false
+                }
                 Line::Ready => {
                     live.ready = true;
                     live.silent = false;
@@ -440,7 +463,8 @@ impl Inner {
                     if new {
                         live.heard += 1;
                     }
-                    new && !live.test_until.is_some_and(|t| now < t)
+                    ends_reading = speaking;
+                    new && enabled && !live.test_until.is_some_and(|t| now < t)
                 }
             }
         };
@@ -451,6 +475,7 @@ impl Inner {
                 f();
             }
         }
+        ends_reading
     }
 
     /// The worker ended without being asked to.
@@ -529,6 +554,7 @@ mod tests {
         wake.on_wake(Arc::new(move || {
             count.fetch_add(1, Ordering::SeqCst);
         }));
+        wake.set(true, Sensitivity::Medium).unwrap();
         // A stand-in worker that waits on its input.
         let child = Command::new("cmd.exe").args(["/c", "pause"]).stdin(Stdio::piped()).stdout(Stdio::null()).spawn().unwrap();
         let args = WorkerArgs { library: "x".into(), model: "y".into(), sensitivity: Sensitivity::Medium, mic: None };
@@ -588,6 +614,27 @@ mod tests {
         assert!(wake.status().silent);
         wake.inner.line(1, Line::Level(wake::Meter { chunks: 50, silent: 2, peak: 0.1, ..Default::default() }));
         assert!(!wake.status().silent && wake.status().state == WakeState::Listening);
+        wake.stop();
+    }
+
+    #[tokio::test]
+    async fn stop_ends_a_reading_and_never_starts_a_request() {
+        let dir = tempfile::tempdir().unwrap();
+        let wake = wake_in(dir.path(), true);
+        let started = Arc::new(AtomicUsize::new(0));
+        let count = started.clone();
+        wake.on_wake(Arc::new(move || {
+            count.fetch_add(1, Ordering::SeqCst);
+        }));
+        let child = Command::new("cmd.exe").args(["/c", "pause"]).stdin(Stdio::piped()).stdout(Stdio::null()).spawn().unwrap();
+        let args = WorkerArgs { library: "x".into(), model: "y".into(), sensitivity: Sensitivity::Medium, mic: None };
+        wake.inner.live.lock().unwrap().worker = Some(Worker { child, _job: None, args, id: 1 });
+        // The word is off: a worker that runs for a reading only ends it.
+        assert!(wake.hears_stop());
+        assert!(wake.inner.line_at(1, Line::Stop, true));
+        assert!(wake.inner.line_at(1, Line::Wake, true));
+        assert!(!wake.inner.line_at(1, Line::Stop, false), "nothing is read: nothing to end");
+        assert_eq!(started.load(Ordering::SeqCst), 0);
         wake.stop();
     }
 

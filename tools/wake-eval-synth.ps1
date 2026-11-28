@@ -1,5 +1,6 @@
 ﻿# T32.1: the synthetic part of the wake word eval set. Writes 16 kHz WAV files made by the voices of Windows:
 #   <Out>\positives  - one wake word per file, several voices, speeds and volumes
+#   <Out>\stop       - one stop word per file (T34.2)
 #   <Out>\negatives  - at least -Minutes of speech without the word (the text of the repository's documents), plus generated tones
 # Real music and real voices: put your own WAV files into the same folders.
 param(
@@ -37,12 +38,31 @@ foreach ($voice in $voices) {
   }
 }
 
+# T34.2: the words that stop a reading, one per file.
+$stop = Join-Path $Out 'stop'
+New-Item -ItemType Directory -Force $stop | Out-Null
+$s = 0
+foreach ($voice in $voices) {
+  $speaker.SelectVoice($voice.Name)
+  $words = if ($voice.Culture.Name -like 'ru*') { @('Стоп', 'Хватит') } else { @('Stop') }
+  foreach ($word in $words) {
+    foreach ($rate in -3, -1, 0, 2, 4) {
+      foreach ($volume in 100, 45) {
+        $speaker.Rate = $rate
+        $speaker.Volume = $volume
+        $s++
+        Save-Speech (Join-Path $stop ('{0:d3}.wav' -f $s)) $word
+      }
+    }
+  }
+}
+
 $speaker.Rate = 0
 $speaker.Volume = 90
 $root = Split-Path $PSScriptRoot -Parent
 $russian = @($voices | Where-Object { $_.Culture.Name -like 'ru*' })
 $lines = Get-ChildItem (Join-Path $root 'docs') -Recurse -Filter *.md | ForEach-Object { Get-Content $_.FullName -Encoding UTF8 } |
-  Where-Object { $_.Length -gt 40 -and $_ -match '[а-яА-Я]{4}' -and $_ -notmatch '(?i)декк|decka' }
+  Where-Object { $_.Length -gt 40 -and $_ -match '[а-яА-Я]{4}' -and $_ -notmatch '(?i)декк|decka|стоп|хватит|stop' }
 $part = 0
 $bytes = 0
 $block = New-Object System.Text.StringBuilder
@@ -77,4 +97,4 @@ for ($track = 1; $track -le 10; $track++) {
   }
   $writer.Dispose()
 }
-"positives: $n files; speech: $([Math]::Round($bytes / 32000 / 60, 1)) min; tones: 10 min -> $Out"
+"positives: $n files; stop words: $s files; speech: $([Math]::Round($bytes / 32000 / 60, 1)) min; tones: 10 min -> $Out"

@@ -1533,6 +1533,8 @@ export const ru: Record<Base | ExtraPlural, string> = {
   "m34.wake_listening": "Слушает: скажите «Декка»",
   "m34.wake_silent": "Слушает. Сейчас микрофон передаёт тишину",
   "m34.wake_not_running": "Не запущено: {reason}",
+  "m34.stop_voice": "Остановить: «стоп» или Esc",
+  "m34.stop_esc": "Остановить: Esc",
   "m32.cal_all_day": "Весь день",
   "m32.cal_saved_link": "Сохранённая ссылка",
   "m32.tray_again": "Ещё раз",

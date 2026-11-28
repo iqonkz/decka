@@ -1509,6 +1509,8 @@ export const en = {
   "m34.wake_listening": "Listening: say \"Decka\"",
   "m34.wake_silent": "Listening. The microphone is sending silence now",
   "m34.wake_not_running": "Not running: {reason}",
+  "m34.stop_voice": "To stop: say \"stop\" or press Esc",
+  "m34.stop_esc": "To stop: press Esc",
   "m32.cal_all_day": "All day",
   "m32.cal_saved_link": "Saved link",
   "m32.tray_again": "Tap again",

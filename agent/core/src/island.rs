@@ -190,6 +190,14 @@ pub fn voice_view(payload: Option<&Value>, slow: Option<Progress>, download: Opt
     (input, Some(v))
 }
 
+/// T34.2: while Decka reads aloud the island says how to end it: by voice and Esc, or by Esc only without the files of
+/// the wake word.
+pub fn add_stop_hint(voice: Option<&mut Value>, by_voice: bool) {
+    if let Some(o) = voice.and_then(Value::as_object_mut) {
+        o.insert("stopHint".into(), json!(if by_voice { "voice" } else { "esc" }));
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct Machine {
     /// The bar was opened into the words by the cursor.
@@ -429,5 +437,11 @@ mod tests {
         let loading = voice_view(Some(&json!({ "state": "loading" })), None, None, Some(7), &[]).1.unwrap();
         assert_eq!(loading["loading"], json!({ "etaSec": 7 }));
         assert!(voice_view(Some(&json!({ "state": "thinking" })), None, None, Some(7), &[]).1.unwrap().get("loading").is_none());
+        let mut reading = voice_view(Some(&json!({ "state": "thinking" })), None, None, None, &[]).1;
+        add_stop_hint(reading.as_mut(), true);
+        assert_eq!(reading.as_ref().unwrap()["stopHint"], "voice");
+        add_stop_hint(reading.as_mut(), false);
+        assert_eq!(reading.unwrap()["stopHint"], "esc");
+        add_stop_hint(None, true);
     }
 }

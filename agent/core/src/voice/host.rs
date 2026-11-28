@@ -1141,9 +1141,15 @@ impl Host {
         let style = inner.service.speech_style();
         std::thread::spawn(move || {
             inner.ducker.hold(super::duck::Who::Speech, inner.agent.voice_duck_enabled());
+            // T34.2: Esc ends the reading of an answer too (the request itself is over, so Esc is not caught otherwise).
+            #[cfg(windows)]
+            if let Some(h) = inner.hotkeys.lock().unwrap().as_ref() {
+                h.set_aux(true, false);
+            }
             if let Err(e) = super::speak::answer(&text, lang, style) {
                 tracing::warn!("speaking the answer: {e}");
             }
+            inner.set_aux(&inner.driver().state());
             inner.ducker.hold(super::duck::Who::Speech, false);
         });
     }
@@ -1190,10 +1196,13 @@ impl Host {
         let weak = Arc::downgrade(&self.inner);
         self.inner.handle.spawn(async move {
             loop {
-                tokio::time::sleep(Duration::from_millis(500)).await;
+                // Often enough to listen for "stop" soon after a reading begins (T34.2).
+                tokio::time::sleep(Duration::from_millis(250)).await;
                 let Some(inner) = weak.upgrade() else { break };
-                let around = if inner.wake.settings().enabled {
+                let speaking = super::speak::is_speaking();
+                let around = if speaking || inner.wake.settings().enabled {
                     Surroundings {
+                        speaking,
                         voice_on: inner.sink_on.load(Ordering::SeqCst),
                         recording_note: inner.agent.notes().status().active,
                         fullscreen: tokio::task::spawn_blocking(crate::lyrics_overlay::foreground_is_fullscreen).await.unwrap_or(false),
@@ -1341,6 +1350,9 @@ impl Inner {
         }
         if p == Pressed::Dictate {
             return self.start_dictation();
+        }
+        if p == Pressed::Esc {
+            super::speak::stop();
         }
         let state = self.driver().state();
         mic::log_line(&format!("hotkey {p:?} phase={:?}", std::mem::discriminant(&state.phase)));

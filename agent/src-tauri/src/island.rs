@@ -9,7 +9,7 @@
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use decka_core::island::{voice_view, Align, Inputs, Machine, Mode, Settings, VoiceInput};
+use decka_core::island::{add_stop_hint, voice_view, Align, Inputs, Machine, Mode, Settings, VoiceInput};
 use decka_core::lyrics_overlay::{foreground_is_fullscreen, ms_until_first_line, previous_line, synced_lines, two_lines, visible, Inputs as LyricsInputs};
 use decka_core::model::MediaInfo;
 use decka_core::overlay;
@@ -521,11 +521,14 @@ pub fn setup(app: &AppHandle, agent: &Agent) -> Arc<Shared> {
             // T29.4: a dictation is the orb at the caret, not the panel.
             let orb = host.as_ref().and_then(|h| h.orb());
             let level = loop_shared.voice.lock().unwrap().as_ref().and_then(|p| p.get("level").and_then(Value::as_f64)).unwrap_or(0.0);
-            let (voice, voice_json) = {
+            let (voice, mut voice_json) = {
                 let payload = loop_shared.voice.lock().unwrap().clone().filter(|_| orb.is_none());
                 let chips = host.as_ref().map(|h| h.context_chips()).unwrap_or_default();
                 voice_view(payload.as_ref(), slow, host.as_ref().and_then(|h| h.download_progress()), host.as_ref().and_then(|h| h.loading_eta_sec()), &chips)
             };
+            if decka_core::voice::speak::is_speaking() {
+                add_stop_hint(voice_json.as_mut(), host.as_ref().is_some_and(|h| h.wake().hears_stop()));
+            }
             // T30.2: the list of "what uses the memory" holds the panel like an answer with buttons.
             let memory = host.as_ref().and_then(|h| h.memory_shown()).filter(|_| orb.is_none());
             let voice = if memory.is_some() && voice != VoiceInput::Active { VoiceInput::Answer { actions: true } } else { voice };

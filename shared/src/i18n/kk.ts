@@ -1505,6 +1505,8 @@ export const kk: Dictionary = {
   "m34.wake_listening": "Тыңдап тұр: «Декка» деңіз",
   "m34.wake_silent": "Тыңдап тұр. Микрофоннан қазір үнсіздік келіп тұр",
   "m34.wake_not_running": "Іске қосылмаған: {reason}",
+  "m34.stop_voice": "Тоқтату: «стоп» деңіз немесе Esc",
+  "m34.stop_esc": "Тоқтату: Esc",
   "m32.cal_all_day": "Күні бойы",
   "m32.cal_saved_link": "Сақталған сілтеме",
   "m32.tray_again": "Тағы бір рет",

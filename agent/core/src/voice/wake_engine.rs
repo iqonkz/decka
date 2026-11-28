@@ -58,7 +58,7 @@ mod engine {
     use windows::Win32::System::LibraryLoader::{GetProcAddress, LoadLibraryExW, LOAD_WITH_ALTERED_SEARCH_PATH};
 
     use super::WorkerArgs;
-    use crate::voice::wake::{self, Gate, Gated, Meter, REPORT_EVERY};
+    use crate::voice::wake::{self, Gate, Gated, Keyword, Meter, REPORT_EVERY};
 
     // The structs of `c-api.h`, sherpa-onnx v2.0.3, field by field.
     #[repr(C)]
@@ -215,10 +215,10 @@ mod engine {
             Ok(Spotter { api, spotter, stream })
         }
 
-        /// Takes 16 kHz mono samples; true when the word was heard.
-        pub fn feed(&mut self, pcm: &[i16]) -> bool {
+        /// Takes 16 kHz mono samples; the word that was heard in them, if any.
+        pub fn feed(&mut self, pcm: &[i16]) -> Option<Keyword> {
             let samples: Vec<f32> = pcm.iter().map(|s| f32::from(*s) / 32768.0).collect();
-            let mut heard = false;
+            let mut heard = None;
             // SAFETY: `spotter` and `stream` are alive as long as `self`; the sample pointer is valid for its length.
             unsafe {
                 (self.api.accept)(self.stream, 16_000, samples.as_ptr(), samples.len() as i32);
@@ -230,7 +230,7 @@ mod engine {
                     }
                     let keyword = (*found).keyword;
                     if !keyword.is_null() && *keyword != 0 {
-                        heard = true;
+                        heard = Some(Keyword::of(&std::ffi::CStr::from_ptr(keyword).to_string_lossy()));
                         (self.api.reset)(self.spotter, self.stream);
                     }
                     (self.api.destroy_result)(found);
@@ -313,10 +313,12 @@ mod engine {
                         Gated::Feed(chunks) => {
                             meter.model += chunks.len() as u32;
                             // Every chunk goes in, even after a hit.
-                            let hits = chunks.iter().filter(|c| spotter.feed(c)).count();
-                            meter.hits += hits as u32;
-                            if hits > 0 && !say("wake") {
-                                return 0;
+                            let hits: Vec<Keyword> = chunks.iter().filter_map(|c| spotter.feed(c)).collect();
+                            meter.hits += hits.len() as u32;
+                            for (word, line) in [(Keyword::Stop, "stop"), (Keyword::Decka, "wake")] {
+                                if hits.contains(&word) && !say(line) {
+                                    return 0;
+                                }
                             }
                         }
                     }

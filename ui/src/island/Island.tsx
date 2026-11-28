@@ -580,7 +580,7 @@ export default function Island({
       <Square size={9} strokeWidth={2.5} fill="currentColor" aria-hidden="true" />
     </button>
   );
-  const statusLabel = expandedStatusText(voice?.phase, voice?.loading);
+  const statusLabel = voice?.stopHint ? t(voice.stopHint === "voice" ? "m34.stop_voice" : "m34.stop_esc") : expandedStatusText(voice?.phase, voice?.loading);
   const currentLang = locale();
   const isCopied = copied || copiedPreview;
   const isSpeaking = voice?.phase === "speaking";

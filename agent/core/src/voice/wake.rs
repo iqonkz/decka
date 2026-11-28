@@ -88,10 +88,35 @@ impl WakeSettings {
     }
 }
 
+/// T34.2: the words that end a reading, "stop" and "enough" (the first four are "stop" as a Russian and as an English voice
+/// says it). They act only while Decka speaks, the same at every level.
+const STOP_SPELLINGS: [(&str, f32, f32); 6] = [("▁сто п", 2.0, 0.15), ("▁с то п", 2.0, 0.15), ("▁с т о п", 2.0, 0.15), ("▁с та п", 2.0, 0.15), ("▁х ва ти т", 2.0, 0.15), ("▁х ва т и т", 2.0, 0.15)];
+
 /// The keywords in the form of the spotter: the pieces of the model (its SentencePiece vocabulary), then the score, the
 /// threshold and the name. "Hey Decka" and "Decka" contain the same word, so they need no line of their own.
 pub fn keywords(s: Sensitivity) -> String {
-    s.spellings().iter().enumerate().map(|(i, (pieces, score, threshold))| format!("{pieces} :{score:.2} #{threshold:.2} @decka{i}\n")).collect()
+    let lines = |words: &[(&str, f32, f32)], name: &str| -> String { words.iter().enumerate().map(|(i, (pieces, score, threshold))| format!("{pieces} :{score:.2} #{threshold:.2} @{name}{i}\n")).collect() };
+    lines(s.spellings(), "decka") + &lines(&STOP_SPELLINGS, "stop")
+}
+
+/// Which word the model heard.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Keyword {
+    /// "Decka".
+    Decka,
+    /// "Stop" or "enough".
+    Stop,
+}
+
+impl Keyword {
+    /// By the name of the keyword line (`@decka0`, `@stop4`).
+    pub fn of(name: &str) -> Keyword {
+        if name.starts_with("stop") {
+            Keyword::Stop
+        } else {
+            Keyword::Decka
+        }
+    }
 }
 
 /// Where the files of the wake word are inside the folder of the AI package.
@@ -137,6 +162,8 @@ pub struct Conditions {
     pub recording_note: bool,
     pub fullscreen: bool,
     pub checking: bool,
+    /// Decka reads something aloud: "stop" ends it (T34.2), also when the wake word is off.
+    pub speaking: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -152,7 +179,9 @@ pub enum WakeState {
 
 /// The state without the worker: `Starting` means "the worker should run".
 pub fn wanted(c: Conditions) -> WakeState {
-    if !c.enabled || !c.voice_on || !c.installed {
+    if c.speaking && c.installed && !c.checking {
+        WakeState::Starting
+    } else if !c.enabled || !c.voice_on || !c.installed {
         WakeState::Off
     } else if c.recording_note || c.fullscreen || c.checking {
         WakeState::Paused
@@ -232,6 +261,7 @@ pub fn microphone_trouble(reason: &str) -> bool {
 pub enum Line {
     Ready,
     Wake,
+    Stop,
     Level(Meter),
     Failed(String),
 }
@@ -240,6 +270,7 @@ pub fn parse_line(line: &str) -> Option<Line> {
     match line.trim() {
         "ready" => Some(Line::Ready),
         "wake" => Some(Line::Wake),
+        "stop" => Some(Line::Stop),
         other => match other.strip_prefix("level ") {
             Some(numbers) => Meter::parse(numbers).map(Line::Level),
             None => other.strip_prefix("error ").map(|e| Line::Failed(e.to_string())),
@@ -370,8 +401,10 @@ mod tests {
         }
         assert!(low.spellings()[3].2 > high.spellings()[3].2 && low.active_paths() < high.active_paths());
         let lines: Vec<String> = keywords(Sensitivity::Medium).lines().map(str::to_string).collect();
-        assert_eq!(lines.len(), 4);
+        assert_eq!(lines.len(), 10);
         assert_eq!(lines[0], "▁де к ка :3.00 #0.08 @decka0");
+        assert_eq!(lines[4], "▁сто п :2.00 #0.15 @stop0");
+        assert_eq!((Keyword::of("decka3"), Keyword::of("stop5")), (Keyword::Decka, Keyword::Stop));
         assert_eq!(Sensitivity::parse("high"), Some(high));
         assert_eq!(Sensitivity::parse("max"), None);
     }
@@ -386,6 +419,13 @@ mod tests {
         for c in [Conditions { recording_note: true, ..ok }, Conditions { fullscreen: true, ..ok }, Conditions { checking: true, ..ok }] {
             assert_eq!(wanted(c), WakeState::Paused);
         }
+        // T34.2: while Decka speaks, "stop" is listened for with the word off and over a full screen; not during the check
+        // of the voice, and not without the files.
+        let speaking = Conditions { speaking: true, installed: true, ..Default::default() };
+        assert_eq!(wanted(speaking), WakeState::Starting);
+        assert_eq!(wanted(Conditions { fullscreen: true, ..speaking }), WakeState::Starting);
+        assert_eq!(wanted(Conditions { installed: false, ..speaking }), WakeState::Off);
+        assert_eq!(wanted(Conditions { checking: true, ..speaking }), WakeState::Off);
     }
 
     #[test]
@@ -406,6 +446,7 @@ mod tests {
     fn the_worker_lines_and_the_cooldown() {
         assert_eq!(parse_line("ready\r"), Some(Line::Ready));
         assert_eq!(parse_line("wake"), Some(Line::Wake));
+        assert_eq!(parse_line("stop"), Some(Line::Stop));
         assert_eq!(parse_line("error no library"), Some(Line::Failed("no library".into())));
         assert_eq!(parse_line("noise"), None);
         let mut meter = Meter::default();

@@ -1542,6 +1542,8 @@ export const ar: Dictionary = {
   "m34.wake_listening": "يستمع: قل «Decka»",
   "m34.wake_silent": "يستمع. الميكروفون يرسل صمتًا الآن",
   "m34.wake_not_running": "لا يعمل: {reason}",
+  "m34.stop_voice": "للإيقاف: قل «stop» أو اضغط Esc",
+  "m34.stop_esc": "للإيقاف: Esc",
   "m32.cal_all_day": "طوال اليوم",
   "m32.cal_saved_link": "الرابط المحفوظ",
   "m32.tray_again": "اضغط مرة أخرى",

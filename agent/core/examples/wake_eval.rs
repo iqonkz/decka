@@ -3,7 +3,7 @@
 //! `cargo run --release -p decka-core --example wake_eval -- <sherpa-onnx-c-api.dll> <model folder> <low|medium|high> <positives> <negatives>`
 //!
 //! `positives`: one wake word per WAV file (16-bit PCM) - a file without a detection is a miss. `negatives`: any speech and
-//! music without the word - every detection is a false alarm. The model folder is the one the agent downloads
+//! music without the word - every detection is a false alarm. `stop words` (T34.2): one "stop" or "enough" per file. The model folder is the one the agent downloads
 //! (`%LOCALAPPDATA%\Decka\ai\wake\model-...`).
 
 #[cfg(windows)]
@@ -11,7 +11,7 @@ fn main() -> Result<(), String> {
     use std::path::Path;
 
     use decka_core::voice::audio::{calculate_rms, resample_to_16k};
-    use decka_core::voice::wake::{keywords, Cooldown, Gate, Gated, Sensitivity};
+    use decka_core::voice::wake::{keywords, Cooldown, Gate, Gated, Keyword, Sensitivity, GATE_MIN};
     use decka_core::voice::wake_engine::Spotter;
 
     /// Mono 16 kHz samples of a 16-bit PCM WAV file.
@@ -41,8 +41,8 @@ fn main() -> Result<(), String> {
     }
 
     let args: Vec<String> = std::env::args().skip(1).collect();
-    let [library, model, level, positives, negatives] = args.as_slice() else {
-        return Err("usage: wake_eval <dll> <model folder> <low|medium|high> <positives> <negatives>".into());
+    let [library, model, level, positives, negatives, rest @ ..] = args.as_slice() else {
+        return Err("usage: wake_eval <dll> <model folder> <low|medium|high> <positives> <negatives> [stop words]".into());
     };
     let sensitivity = Sensitivity::parse(level).ok_or("sensitivity: low, medium or high")?;
     // `DECKA_WAKE_KEYWORDS`: a file with other keyword lines, to compare spellings and thresholds.
@@ -51,10 +51,14 @@ fn main() -> Result<(), String> {
         Err(_) => keywords(sensitivity),
     };
     let mut spotter = Spotter::open(&std::path::absolute(library).map_err(|e| e.to_string())?, Path::new(model), &words, sensitivity.active_paths())?;
-    for (folder, positive) in [(positives, true), (negatives, false)] {
+    let mut sets = vec![(positives, Some(Keyword::Decka)), (negatives, None)];
+    sets.extend(rest.first().map(|folder| (folder, Some(Keyword::Stop))));
+    for (folder, expected) in sets {
         let mut files: Vec<_> = std::fs::read_dir(folder).map_err(|e| format!("{folder}: {e}"))?.flatten().map(|e| e.path()).filter(|p| p.extension().is_some_and(|x| x.eq_ignore_ascii_case("wav"))).collect();
         files.sort();
-        let (mut hits, mut missed, mut seconds, mut busy) = (0u32, 0u32, 0f64, std::time::Duration::ZERO);
+        let (mut hits, mut stops, mut missed, mut seconds, mut busy) = (0u32, 0u32, 0u32, 0f64, std::time::Duration::ZERO);
+        // From the last loud chunk of a file to the chunk that gave the expected word, in milliseconds.
+        let mut late: Vec<i64> = Vec::new();
         for file in &files {
             let mut pcm = read(file)?;
             seconds += pcm.len() as f64 / 16_000.0;
@@ -62,7 +66,10 @@ fn main() -> Result<(), String> {
             let mut padded = vec![0i16; 16_000];
             padded.append(&mut pcm);
             padded.resize(padded.len() + 32_000, 0);
-            let (mut gate, mut cooldown, mut here) = (Gate::default(), Cooldown::default(), 0u32);
+            let (mut gate, mut cooldown, mut here, mut stopped) = (Gate::default(), Cooldown::default(), 0u32, 0u32);
+            // The end of the sound: the last chunk above the quietest threshold of the gate.
+            let end = padded.chunks(1600).enumerate().filter(|(_, c)| calculate_rms(c) / 32768.0 >= GATE_MIN).map(|(i, _)| i as i64).last().unwrap_or(0);
+            let mut first = None;
             let start = std::time::Instant::now();
             for (i, chunk) in padded.chunks(1600).enumerate() {
                 let rms = calculate_rms(chunk) / 32768.0;
@@ -70,8 +77,14 @@ fn main() -> Result<(), String> {
                     Gated::Skip => {}
                     Gated::Close => spotter.reset(),
                     Gated::Feed(chunks) => {
-                        let found = chunks.iter().filter(|c| spotter.feed(c)).count() > 0;
-                        if found && cooldown.accept(start + std::time::Duration::from_millis(i as u64 * 100)) {
+                        let found: Vec<Keyword> = chunks.iter().filter_map(|c| spotter.feed(c)).collect();
+                        if expected.is_some_and(|k| found.contains(&k)) {
+                            first.get_or_insert(i as i64);
+                        }
+                        if found.contains(&Keyword::Stop) {
+                            stopped += 1;
+                        }
+                        if found.contains(&Keyword::Decka) && cooldown.accept(start + std::time::Duration::from_millis(i as u64 * 100)) {
                             here += 1;
                         }
                     }
@@ -80,18 +93,21 @@ fn main() -> Result<(), String> {
             busy += start.elapsed();
             spotter.reset();
             hits += here;
-            if positive && here == 0 {
+            stops += stopped;
+            late.extend(first.map(|i| (i - end) * 100));
+            if expected.is_some() && first.is_none() {
                 missed += 1;
                 println!("missed: {}", file.display());
-            } else if !positive && here > 0 {
-                println!("false alarm x{here}: {}", file.display());
+            } else if expected.is_none() && here + stopped > 0 {
+                println!("false alarm decka x{here} stop x{stopped}: {}", file.display());
             }
         }
         let load = busy.as_secs_f64() / seconds.max(0.001) * 100.0;
-        if positive {
-            println!("positives: {} files, missed {missed} ({:.1} %), processor {load:.1} % of one core", files.len(), f64::from(missed) * 100.0 / files.len().max(1) as f64);
-        } else {
-            println!("negatives: {:.1} min, false alarms {hits} ({:.2} per hour), processor {load:.1} % of one core", seconds / 60.0, f64::from(hits) * 3600.0 / seconds.max(0.001));
+        late.sort_unstable();
+        let at = |q: usize| late.get(late.len().saturating_sub(1) * q / 100).copied().unwrap_or(0);
+        match expected {
+            Some(word) => println!("{word:?}: {} files, missed {missed} ({:.1} %), heard after the end of the sound: median {} ms, 90 % {} ms; processor {load:.1} % of one core", files.len(), f64::from(missed) * 100.0 / files.len().max(1) as f64, at(50), at(90)),
+            None => println!("negatives: {:.1} min, false alarms: decka {hits} ({:.2} per hour), stop {stops} ({:.2} per hour); processor {load:.1} % of one core", seconds / 60.0, f64::from(hits) * 3600.0 / seconds.max(0.001), f64::from(stops) * 3600.0 / seconds.max(0.001)),
         }
     }
     Ok(())

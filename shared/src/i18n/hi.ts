@@ -1498,6 +1498,8 @@ export const hi: Dictionary = {
   "m34.wake_listening": "सुन रहा है: “Decka” कहें",
   "m34.wake_silent": "सुन रहा है। माइक्रोफ़ोन अभी सन्नाटा भेज रहा है",
   "m34.wake_not_running": "चालू नहीं है: {reason}",
+  "m34.stop_voice": "रोकें: “stop” कहें या Esc दबाएँ",
+  "m34.stop_esc": "रोकें: Esc",
   "m32.cal_all_day": "पूरा दिन",
   "m32.cal_saved_link": "सहेजा गया लिंक",
   "m32.tray_again": "फिर दबाएँ",

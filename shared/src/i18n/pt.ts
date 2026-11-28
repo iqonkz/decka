@@ -1498,6 +1498,8 @@ export const pt: Dictionary = {
   "m34.wake_listening": "Ouvindo: diga “Decka”",
   "m34.wake_silent": "Ouvindo. O microfone está enviando silêncio agora",
   "m34.wake_not_running": "Não está em execução: {reason}",
+  "m34.stop_voice": "Parar: diga “stop” ou Esc",
+  "m34.stop_esc": "Parar: Esc",
   "m32.cal_all_day": "O dia todo",
   "m32.cal_saved_link": "Link salvo",
   "m32.tray_again": "Toque de novo",
