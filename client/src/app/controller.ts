@@ -45,6 +45,9 @@ function conn(): Connection {
       if (connection === mine) applyPatch(patch);
     },
     onPressResult: () => {},
+    onVoiceError: (code, message) => {
+      if (connection === mine) voiceError(code, message);
+    },
     onStatus: (c, via) => {
       if (pairTarget || connection !== mine) return; // the pairing screen stays up until pairing finishes
       setState({ conn: c, via });
@@ -122,8 +125,20 @@ export function cancelConnectAgain(): void {
 /** Nothing of the PC that was shown stays on the screen. */
 const NOTHING = { via: null, agentName: null, agentVersion: null, state: null, rev: 0, pageIndex: 0, homePageIndex: 0, autoPageId: null, hint: null, popup: null, lastError: null };
 
+let voiceError: (code: string, message: string) => void = () => {};
+let pcLeave: () => void = () => {};
+
+/** The voice of the phone hears what the PC refused of it, and when the phone is about to leave the PC. */
+export function onVoiceError(fn: (code: string, message: string) => void): void {
+  voiceError = fn;
+}
+export function onPcLeave(fn: () => void): void {
+  pcLeave = fn;
+}
+
 /** Drops the connection; the next `conn()` is a new one, for the PC that is current then. */
 function leave(): void {
+  pcLeave();
   connection?.stop();
   connection = null;
 }

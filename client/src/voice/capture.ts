@@ -127,6 +127,8 @@ export async function startAudioCapture(options: CaptureOptions): Promise<AudioC
 
   const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
   const audioCtx = new AudioContextClass();
+  // A context made after the wait for the permission may start asleep: then no sound would ever arrive.
+  if (audioCtx.state === "suspended") void audioCtx.resume().catch(() => {});
   const source = audioCtx.createMediaStreamSource(stream);
   const chunker = new AudioChunker(options.onChunk, CHUNK_SAMPLES);
 

@@ -28,6 +28,14 @@ function rig(opts: { online?: boolean; micFails?: boolean; extra?: Partial<Voice
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
+const loud = () => new Int16Array(1600).fill(8000);
+const quiet = () => new Int16Array(1600);
+const open = async (r: ReturnType<typeof rig>, mode?: "tap" | "hold") => {
+  const p = r.s.start(mode);
+  r.open();
+  await p;
+};
+
 describe("voice session", () => {
   it("start, chunks with seq from 0, then end", async () => {
     const r = rig();
@@ -41,6 +49,20 @@ describe("voice session", () => {
     const seqs = r.sent.filter((m) => m.t === "voice_chunk").map((m) => (m as { seq: number }).seq);
     expect(seqs).toEqual([0, 1, 2]); // the third is the flushed rest
     expect(r.s.active).toBe(false);
+  });
+
+  it("every message of sound fits one frame of 4096 bytes, nothing is lost and no more than 15 go in a second (T32.H.3)", async () => {
+    const r = rig();
+    await open(r, "hold");
+    for (let i = 0; i < 20; i++) r.feed(Int16Array.from({ length: 1600 }, (_, n) => i * 100 + (n % 100)));
+    r.s.stop();
+    const chunks = r.sent.filter((m) => m.t === "voice_chunk") as { seq: number; data: string }[];
+    expect(Math.max(...chunks.map((m) => JSON.stringify(m).length))).toBeLessThanOrEqual(4096);
+    // 2 s of sound and the 2 samples the microphone gave up at its end.
+    expect(chunks.reduce((sum, m) => sum + atob(m.data).length, 0)).toBe(2 * 32000 + 4);
+    expect(chunks.map((m) => m.seq)).toEqual(chunks.map((_, i) => i));
+    expect(chunks.length / 2).toBeLessThan(15);
+    expect(r.sent.at(-1)?.t).toBe("voice_end");
   });
 
   it("a socket that throws on send (closing under the recording) cancels the recording, nothing escapes (T25.2)", async () => {
@@ -201,14 +223,6 @@ describe("voice.goto", () => {
 });
 
 describe("voice session: end by silence (12.6a)", () => {
-  const loud = () => new Int16Array(1600).fill(8000);
-  const quiet = () => new Int16Array(1600);
-  const open = async (r: ReturnType<typeof rig>, mode?: "tap" | "hold") => {
-    const p = r.s.start(mode);
-    r.open();
-    await p;
-  };
-
   it("a tap recording ends by itself 2 s after the speech and sends voice_end", async () => {
     const r = rig();
     await open(r, "tap");
@@ -249,5 +263,46 @@ describe("voice session: end by silence (12.6a)", () => {
     r.s.stop();
     expect(levels[0]).toBeGreaterThan(0.5);
     expect(levels.at(-1)).toBe(0);
+  });
+  it("says why nothing will come of a request: no connection, a broken microphone, a refusal of the PC (T32.H.3)", async () => {
+    const said: string[] = [];
+    const extra: Partial<VoiceDeps> = { onFailed: (r) => said.push(r) };
+    await expect(rig({ online: false, extra }).s.start()).rejects.toThrow("offline");
+    await expect(rig({ micFails: true, extra }).s.start()).rejects.toThrow();
+    expect(said).toEqual(["voice.reply.offline_pc", "voice.reply.mic_unavailable"]);
+
+    said.length = 0;
+    const r = rig({ extra });
+    await open(r, "hold");
+    r.s.refused("RATE_LIMITED", "another voice request is running");
+    // The chunks already on the way are refused too: only the first reason is told.
+    r.s.refused("BAD_MESSAGE", "bad voice chunk: no such recording");
+    expect(said).toEqual(["voice.reply.busy"]);
+    expect(r.s.active).toBe(false);
+    expect(r.stopped()).toBe(1);
+
+    for (const [code, message, key] of [["NOT_FOUND", "voice control is off", "voice.reply.off_on_pc"], ["BAD_MESSAGE", "voice needs the encrypted channel", "voice.reply.pc_refused"]] as const) {
+      said.length = 0;
+      const again = rig({ extra });
+      await open(again, "tap");
+      // A short recording may be over before the refusal arrives.
+      again.s.stop();
+      again.s.refused(code, message);
+      expect(said).toEqual([key]);
+    }
+    // Without a request there is nothing to explain.
+    said.length = 0;
+    rig({ extra }).s.refused("NOT_FOUND", "voice control is off");
+    expect(said).toEqual([]);
+  });
+
+  it("a channel lost in the middle says so", async () => {
+    const said: string[] = [];
+    const r = rig({ extra: { onFailed: (k) => said.push(k) } });
+    await open(r, "hold");
+    r.offline();
+    r.feed(loud());
+    expect(said).toEqual(["voice.reply.offline_pc"]);
+    expect(r.s.active).toBe(false);
   });
 });

@@ -659,6 +659,8 @@ impl Table {
 
     /// T32.H.2: the words of frequent commands, for the recognition to expect them (its initial prompt): the name of the
     /// assistant, then the command words of the templates, a template of each intent in turn, up to [`PROMPT_CHARS`].
+    /// Each is a sentence of its own: given a list with commas, the recognition wrote commands with commas and said parts
+    /// of the list back on silence.
     pub fn stt_prompt(&self) -> String {
         let mut words: Vec<String> = vec![if matches!(self.lang.as_str(), "ru" | "kk") { "Декка" } else { "Decka" }.to_string()];
         let mut length = words[0].chars().count();
@@ -681,14 +683,16 @@ impl Table {
             .collect();
         for round in 0..leads.iter().map(Vec::len).max().unwrap_or(0) {
             for word in leads.iter().filter_map(|l| l.get(round)) {
-                let more = word.chars().count() + 2;
-                if length + more <= PROMPT_CHARS && !words.contains(word) {
+                let mut chars = word.chars();
+                let sentence: String = chars.next().into_iter().flat_map(char::to_uppercase).chain(chars).collect();
+                let more = sentence.chars().count() + 2;
+                if length + more < PROMPT_CHARS && !words.contains(&sentence) {
                     length += more;
-                    words.push(word.clone());
+                    words.push(sentence);
                 }
             }
         }
-        words.join(", ")
+        format!("{}.", words.join(". "))
     }
 
     /// What is said during a guide: the whole phrase is "next", "back", "stop" or "done" (T27.5).
@@ -964,10 +968,10 @@ mod tests {
     fn the_prompt_of_the_recognition_holds_the_command_words_of_every_language() {
         for lang in ["en", "zh", "hi", "es", "ar", "fr", "pt", "ru", "de", "ja", "kk"] {
             let prompt = Table::parse(crate::voice::host::table_text(lang)).unwrap().stt_prompt();
-            assert!(prompt.chars().count() <= PROMPT_CHARS && prompt.split(", ").count() >= 8, "{lang}: {prompt}");
+            assert!(prompt.chars().count() <= PROMPT_CHARS && prompt.split(". ").count() >= 8, "{lang}: {prompt}");
         }
         let ru = Table::parse(crate::voice::host::table_text("ru")).unwrap().stt_prompt();
-        for word in ["Декка", "открой", "закрой", "громче", "тише", "переведи"] {
+        for word in ["Декка.", "Открой.", "Закрой.", "Громче.", "Тише.", "Переведи"] {
             assert!(ru.contains(word), "{word}: {ru}");
         }
     }

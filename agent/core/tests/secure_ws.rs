@@ -383,6 +383,8 @@ async fn voice_messages_are_checked_and_answered_with_protocol_errors() {
     phone.send(json!({ "t": "voice_start", "id": "ffffffffffffffff" })).await;
     assert_eq!(phone.recv().await["code"], "RATE_LIMITED", "a second recording of the same phone");
     phone.send(json!({ "t": "voice_chunk", "id": "00112233aabbccdd", "seq": 0, "data": "AAAAAA==" })).await;
+    // T32.H.3: the portion the phone sends (2880 bytes of sound, 3840 characters of base64) fits one frame.
+    phone.send(json!({ "t": "voice_chunk", "id": "00112233aabbccdd", "seq": 1, "data": "A".repeat(3840) })).await;
     phone.send(json!({ "t": "ping", "ts": 9 })).await;
     assert_eq!(phone.recv().await, json!({ "t": "pong", "ts": 9 }), "good messages produce no answer and the link lives on");
     e.agent.shutdown().await;

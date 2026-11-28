@@ -42,8 +42,11 @@ pub fn log_line(line: &str) {
     }
 }
 
-/// `%LOCALAPPDATA%\Decka\logs\voice.log`.
+/// `%LOCALAPPDATA%\Decka\logs\voice.log`; a test copy (`DECKA_CONFIG_DIR`) writes inside its own folder.
 pub fn log_path() -> Option<std::path::PathBuf> {
+    if let Some(own) = std::env::var_os("DECKA_CONFIG_DIR").filter(|d| !d.is_empty()) {
+        return Some(std::path::PathBuf::from(own).join("logs").join("voice.log"));
+    }
     let base = std::env::var_os("LOCALAPPDATA").map(std::path::PathBuf::from).or_else(dirs::data_local_dir)?;
     Some(base.join("Decka").join("logs").join("voice.log"))
 }

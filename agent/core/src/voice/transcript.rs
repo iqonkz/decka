@@ -108,7 +108,7 @@ pub fn collapse_repeats(text: &str) -> String {
 /// is a run of three or more entries of the prompt, from the start of one to the end of another.
 pub fn echoes_prompt(text: &str, prompt: &str) -> bool {
     let heard = super::matcher::tokens(text);
-    let entries: Vec<Vec<String>> = prompt.split(", ").map(super::matcher::tokens).collect();
+    let entries: Vec<Vec<String>> = prompt.split(". ").map(super::matcher::tokens).collect();
     (0..entries.len()).any(|from| {
         let mut run: Vec<&String> = Vec::new();
         entries[from..].iter().enumerate().any(|(n, entry)| {
@@ -151,8 +151,8 @@ mod tests {
     #[test]
     fn the_prompt_said_back_is_noise_and_a_command_is_not() {
         use super::echoes_prompt;
-        let prompt = "Декка, открой, закрой, переключись на, выключи звук";
-        assert!(echoes_prompt("Открой, закрой, переключись на.", prompt));
+        let prompt = "Декка. Открой. Закрой. Переключись на. Выключи звук.";
+        assert!(echoes_prompt("открой, закрой, переключись на", prompt));
         assert!(echoes_prompt("Декка открой закрой", prompt));
         for said in ["выключи звук", "переключись на хром", "открой закрой", "закрой", ""] {
             assert!(!echoes_prompt(said, prompt), "{said}");

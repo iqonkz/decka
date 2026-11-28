@@ -10,6 +10,10 @@ const FULL_CHUNK_SAMPLES = (16_000 * CHUNK_MS) / 1000;
 
 export type VoiceMsg = VoiceStartMsg | VoiceChunkMsg | VoiceEndMsg | VoiceCancelMsg | VoiceConfirmMsg;
 
+/** Samples of one `voice_chunk`: 2880 bytes. With its base64 the message stays under the 4096 bytes the PC takes in one
+ * frame (PROTOCOL.md 1; a full 100 ms of 3200 bytes does not fit), and 11 of them a second stay under its 15. */
+export const PACKET_SAMPLES = 1440;
+
 /** The agent cuts a recording at 30 s; the phone ends it a little earlier by itself (a walkie-talkie hold is the only long one). */
 export const MAX_RECORDING_MS = 29_500;
 
@@ -31,7 +35,11 @@ export interface VoiceDeps {
   onNoSpeech?(): void;
   /** The microphone was refused by Android or the WebView: the button says how to allow it. */
   onMicDenied?(): void;
+  /** T32.H.3: nothing will come of the request; `reason` is the key of the string that says why. */
+  onFailed?(reason: VoiceFailure): void;
 }
+
+export type VoiceFailure = "voice.reply.off_on_pc" | "voice.reply.busy" | "voice.reply.pc_refused" | "voice.reply.offline_pc" | "voice.reply.mic_unavailable";
 
 /** The error of getUserMedia when the permission is missing or refused. */
 export function isMicDenied(e: unknown): boolean {
@@ -42,6 +50,8 @@ export function isMicDenied(e: unknown): boolean {
 interface Current {
   id: string;
   seq: number;
+  /** Sound that does not fill a message yet. */
+  held: Int16Array;
   capture: { stop: () => void } | null;
   timer: unknown;
   mode: VoiceMode;
@@ -74,6 +84,9 @@ export function newVoiceId(
 
 export class VoiceSession {
   private cur: Current | null = null;
+  /** The id of the latest request, and whether a refusal of the PC was already told about it. */
+  private last: string | null = null;
+  private told = false;
 
   constructor(private readonly d: VoiceDeps) {}
 
@@ -85,9 +98,14 @@ export class VoiceSession {
   async start(mode: VoiceMode = "tap"): Promise<void> {
     if (this.cur) return;
     const id = this.d.newId();
-    const cur: Current = { id, seq: 0, capture: null, timer: null, mode, endpointer: new Endpointer(), smoother: new LevelSmoother(), decided: false, stopRequested: false };
-    if (!this.safeSend({ t: "voice_start", id })) throw new Error("voice: offline");
+    const cur: Current = { id, seq: 0, held: new Int16Array(0), capture: null, timer: null, mode, endpointer: new Endpointer(), smoother: new LevelSmoother(), decided: false, stopRequested: false };
+    if (!this.safeSend({ t: "voice_start", id })) {
+      this.d.onFailed?.("voice.reply.offline_pc");
+      throw new Error("voice: offline");
+    }
     this.cur = cur;
+    this.last = id;
+    this.told = false;
     this.d.onActive?.(true);
     let capture: { stop: () => void };
     try {
@@ -99,6 +117,7 @@ export class VoiceSession {
         this.safeSend({ t: "voice_cancel", id });
       }
       if (isMicDenied(e)) this.d.onMicDenied?.();
+      else this.d.onFailed?.("voice.reply.mic_unavailable");
       throw e;
     }
     if (this.cur !== cur) {
@@ -132,6 +151,7 @@ export class VoiceSession {
     }
     this.d.clearTimeout(cur.timer);
     cur.capture.stop(); // flushes the last partial chunk through `push`
+    if (this.cur !== cur || (cur.held.length > 0 && !this.packet(cur, cur.held))) return;
     this.cur = null;
     this.d.onActive?.(false);
     this.d.onLevel?.(0);
@@ -149,19 +169,42 @@ export class VoiceSession {
     this.safeSend({ t: "voice_cancel", id: cur.id });
   }
 
+  /** An error of the PC about a `voice_*` message (PROTOCOL.md 3). The first one of a request says why; the recording
+   * stops, as nothing of it is taken any more. */
+  refused(code: string, message: string): void {
+    if (this.last === null || this.told) return;
+    this.told = true;
+    this.cancel();
+    this.d.onFailed?.(code === "NOT_FOUND" ? "voice.reply.off_on_pc" : message.startsWith("another voice request") ? "voice.reply.busy" : "voice.reply.pc_refused");
+  }
+
   /** The answer to the question of the PC about a risky call. */
   confirm(id: string, yes: boolean): void {
     this.safeSend({ t: "voice_confirm", id, yes });
   }
 
+  /** One message of sound; a channel that is gone ends the request. */
+  private packet(cur: Current, samples: Int16Array): boolean {
+    if (!this.safeSend({ t: "voice_chunk", id: cur.id, seq: cur.seq, data: chunkToBase64(samples) })) {
+      this.cancel();
+      this.d.onFailed?.("voice.reply.offline_pc");
+      return false;
+    }
+    cur.seq += 1;
+    return true;
+  }
+
   private push(cur: Current, chunk: Int16Array): void {
     // After `cancel` the late chunks of the closing microphone are dropped; the flush inside `stop` still sees `this.cur === cur`.
     if (this.cur !== cur || chunk.length === 0) return;
-    if (!this.safeSend({ t: "voice_chunk", id: cur.id, seq: cur.seq, data: chunkToBase64(chunk) })) {
-      this.cancel();
-      return;
+    const sound = new Int16Array(cur.held.length + chunk.length);
+    sound.set(cur.held);
+    sound.set(chunk, cur.held.length);
+    let at = 0;
+    for (; sound.length - at >= PACKET_SAMPLES; at += PACKET_SAMPLES) {
+      if (!this.packet(cur, sound.subarray(at, at + PACKET_SAMPLES))) return;
     }
-    cur.seq += 1;
+    cur.held = sound.slice(at);
     // Level and the end by silence follow whole chunks of 100 ms only (the flushed rest is shorter).
     if (chunk.length < FULL_CHUNK_SAMPLES) return;
     const rms = chunkRms(chunk);

@@ -3,7 +3,7 @@
  * The sound goes to the PC as `voice_*` messages (session.ts); the state comes back in the `voice` section.
  */
 import { useSyncExternalStore } from "react";
-import { sendVoice } from "../app/controller";
+import { onPcLeave, onVoiceError, sendVoice } from "../app/controller";
 import { getState, useAppState } from "../store/store";
 import { startAudioCapture } from "./capture";
 import { newVoiceId, VoiceSession, type VoiceMode } from "./session";
@@ -36,6 +36,8 @@ function setLocal(l: number, r: boolean): void {
 
 export const VOICE_NO_SPEECH_EVENT = "decka:voice:nospeech";
 export const VOICE_MIC_DENIED_EVENT = "decka:voice:micdenied";
+/** T32.H.3: `detail` is the key of the string that says why nothing will come of the request. */
+export const VOICE_FAILED_EVENT = "decka:voice:failed";
 
 const session = new VoiceSession({
   send: sendVoice,
@@ -47,7 +49,11 @@ const session = new VoiceSession({
   onActive: (a) => setLocal(a ? level : 0, a),
   onNoSpeech: () => window.dispatchEvent(new Event(VOICE_NO_SPEECH_EVENT)),
   onMicDenied: () => window.dispatchEvent(new Event(VOICE_MIC_DENIED_EVENT)),
+  onFailed: (reason) => window.dispatchEvent(new CustomEvent(VOICE_FAILED_EVENT, { detail: reason })),
 });
+onVoiceError((code, message) => session.refused(code, message));
+// A recording belongs to the PC it was started on: it ends before the phone leaves that PC.
+onPcLeave(() => session.cancel());
 
 /** The level of the microphone for the ring of the button (0 when not recording). */
 export function useVoiceLevel(): number {

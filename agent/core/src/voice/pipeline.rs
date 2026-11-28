@@ -33,6 +33,8 @@ pub mod msg {
     pub const NO_MIC: &str = "No microphone found";
     pub const MIC_UNAVAILABLE: &str = "Microphone is unavailable";
     pub const NO_SPEECH: &str = "Didn't hear anything";
+    /// T32.H.3: a phone ended its recording and no sound of it arrived.
+    pub const NO_AUDIO: &str = "The PC got no sound from the phone";
     pub const NO_SOUND: &str = crate::voice::mic::NO_SOUND;
     pub const WRONG: &str = "Something went wrong, try again";
     pub const ASK_WEB: &str = "I can't know that offline, search the web?";
@@ -53,6 +55,7 @@ pub mod key {
     pub const NO_MIC: &str = "voice.reply.no_mic";
     pub const MIC_UNAVAILABLE: &str = "voice.reply.mic_unavailable";
     pub const NO_SPEECH: &str = "voice.reply.no_speech";
+    pub const NO_AUDIO: &str = "voice.reply.no_audio";
     pub const NO_SOUND: &str = "voice.reply.no_sound";
     pub const WRONG: &str = "voice.reply.wrong";
     pub const SELECT_FIRST: &str = "voice.reply.select_text";
@@ -347,6 +350,7 @@ fn event_name(e: &Event) -> &'static str {
         Event::Start { source: Source::Pc, .. } => "Start(pc)",
         Event::Start { .. } => "Start(phone)",
         Event::AudioEnd => "AudioEnd",
+        Event::NoAudio => "NoAudio",
         Event::Cancel => "Cancel",
         Event::ModelLoading => "ModelLoading",
         Event::ModelReady => "ModelReady",
@@ -395,6 +399,8 @@ pub enum Event {
     CaptureFailed(String),
     /// Nothing was said for 5 s (DATA_MODEL.md 12.6a): the request ends, no sound goes to recognition.
     NoSpeech,
+    /// T32.H.3: a phone recording ended without any sound.
+    NoAudio,
     /// The state has not changed for 30 s (the watchdog).
     Watchdog,
     /// The model's answer: a tool call (with its short text) or nothing usable.
@@ -589,6 +595,11 @@ pub fn step(state: &State, event: Event, now_ms: u64, env: &Env) -> (State, Vec<
                 super::mic::ring_dump("capture failed");
             }
             let (mut next, _) = finish_key(s, Phase::Failed(msg::MIC_UNAVAILABLE.into()), ReplyKey::plain(key::MIC_UNAVAILABLE));
+            next.heard = None;
+            (next, vec![Effect::StopCapture])
+        }
+        (Phase::Listening, Event::NoAudio) => {
+            let (mut next, _) = finish_key(s, Phase::Failed(msg::NO_AUDIO.into()), ReplyKey::plain(key::NO_AUDIO));
             next.heard = None;
             (next, vec![Effect::StopCapture])
         }
@@ -821,11 +832,29 @@ struct Shared {
     speech_ms: Option<u32>,
 }
 
+/// T32.H.3: the end of a phone recording of which nothing but zeros (or less than one chunk of 100 ms) arrived: the
+/// recognizer is not asked, the phone is told that no sound came.
+fn audio_end_or_no_audio(event: Event, source: Option<Source>, audio: &[u8]) -> Event {
+    let empty = audio.len() < super::MAX_CHUNK_BYTES || audio.iter().all(|b| *b == 0);
+    match event {
+        Event::AudioEnd if source == Some(Source::Phone) && empty => Event::NoAudio,
+        e => e,
+    }
+}
+
 /// A recording of the PC without a single chunk of speech never goes to the recognizer: whisper invents text from silence.
 pub fn audio_end_or_no_speech(event: Event, speech_ms: Option<u32>) -> Event {
     match (event, speech_ms) {
         (Event::AudioEnd, Some(0)) => Event::NoSpeech,
         (e, _) => e,
+    }
+}
+
+/// How a request of a phone is marked in the log: the start of its id.
+fn tag(state: &State) -> String {
+    match (&state.source, &state.id) {
+        (Some(Source::Phone), Some(id)) => format!(" phone {}", id.get(..8).unwrap_or(id)),
+        _ => String::new(),
     }
 }
 
@@ -892,13 +921,15 @@ impl Driver {
             let event = match event {
                 // A "yes" is shorter than a phrase has to be: whatever speech there was in an answer is recognised.
                 Event::NoSpeech if matches!(sh.state.phase, Phase::Confirming { ear: Ear::Open, .. }) && sh.speech_ms.is_some_and(|ms| ms > 0) => Event::AudioEnd,
+                event if sh.state.phase == Phase::Listening => audio_end_or_no_audio(audio_end_or_no_speech(event, sh.speech_ms), sh.state.source, &sh.audio),
                 event if sh.state.is_hearing() => audio_end_or_no_speech(event, sh.speech_ms),
                 event => event,
             };
             let (next, effects) = step(&sh.state, event, now_ms, &env);
             if name != "Tick" && !cfg!(test) {
                 // Names only: never sound or text.
-                super::mic::log_line(&format!("event {name} t={now_ms}ms {before} -> {}", phase_name(&next.phase)));
+                let reply = next.reply_key.as_ref().map(|k| format!(" reply={}", k.key)).unwrap_or_default();
+                super::mic::log_line(&format!("event {name}{} t={now_ms}ms {before} -> {}{reply}", tag(&next), phase_name(&next.phase)));
             }
             let changed = next != sh.state;
             // A new recording starts empty (a phone request has no capture of its own).
@@ -920,12 +951,26 @@ impl Driver {
 
     fn run(&self, effect: Effect, ctx: &Context, pcm: Vec<u8>) {
         let me = self.clone();
+        // T32.H.3: the steps of a request, by their names and sizes only.
+        let who = tag(&self.state());
+        if !cfg!(test) {
+            match &effect {
+                Effect::Transcribe => super::mic::log_line(&format!("recognise{who}: {} ms of sound", pcm.len() * 1000 / super::BYTES_PER_SECOND)),
+                Effect::AskLlm(_) => super::mic::log_line(&format!("ask the model{who}")),
+                Effect::Execute(call) => super::mic::log_line(&format!("run{who}: {}", format!("{call:?}").split([' ', '(', '{']).next().unwrap_or_default())),
+                _ => {}
+            }
+        }
         match effect {
             Effect::StartCapture => self.ports.capture(true),
             Effect::StopCapture => self.ports.capture(false),
             Effect::Transcribe => {
                 self.handle.spawn(async move {
+                    let began = std::time::Instant::now();
                     let r = me.ports.transcribe(pcm).await;
+                    if let (Ok(text), false) = (&r, cfg!(test)) {
+                        super::mic::log_line(&format!("recognised{who}: {} characters in {} ms", text.chars().count(), began.elapsed().as_millis()));
+                    }
                     me.handle_event(Event::Transcript(r));
                 });
             }
@@ -1128,6 +1173,22 @@ mod tests {
         let events = vec![start(Source::Phone), Event::AudioEnd, said("hm"), Event::LlmAnswer(Some((zero, None))), Event::Executed(Err(msg::DIV_ZERO.into()))];
         let (s, _) = run(events);
         assert_eq!((s.phase.clone(), s.info().reply_key), (Phase::Failed(msg::DIV_ZERO.into()), Some("voice.reply.div_zero")));
+    }
+
+    #[test]
+    fn a_phone_recording_without_sound_says_so_and_is_not_recognised() {
+        let (phone, pc) = (Some(Source::Phone), Some(Source::Pc));
+        for silent in [Vec::new(), vec![1u8; 100], vec![0u8; 64_000]] {
+            assert_eq!(audio_end_or_no_audio(Event::AudioEnd, phone, &silent), Event::NoAudio, "{} bytes", silent.len());
+            assert_eq!(audio_end_or_no_audio(Event::AudioEnd, pc, &silent), Event::AudioEnd, "the PC has its own rule");
+        }
+        assert_eq!(audio_end_or_no_audio(Event::AudioEnd, phone, &[1u8; 3200]), Event::AudioEnd);
+        assert_eq!(audio_end_or_no_audio(Event::Cancel, phone, &[]), Event::Cancel);
+        let (t, c) = (table(), ctx());
+        let env = Env { table: &t, ctx: &c, confirm_ms: CONFIRM_TIMEOUT_MS, dictate: false };
+        let (listening, _) = step(&State::idle(), start(Source::Phone), 1, &env);
+        let (said, effects) = step(&listening, Event::NoAudio, 2, &env);
+        assert_eq!((said.info().reply_key, effects), (Some("voice.reply.no_audio"), vec![Effect::StopCapture]));
     }
 
     #[test]
@@ -1628,8 +1689,8 @@ mod tests {
         *fake.transcript.lock().unwrap() = "volume up".into();
         let d = Driver::new(tokio::runtime::Handle::current(), fake.clone());
         d.handle_event(start(Source::Phone));
-        d.push_audio(&[0u8; 3200]);
-        d.push_audio(&[0u8; 3200]);
+        d.push_audio(&[1u8; 3200]);
+        d.push_audio(&[1u8; 3200]);
         d.handle_event(Event::AudioEnd);
         settle(&fake, "done").await;
         assert_eq!(fake.heard.lock().unwrap().as_slice(), [6400], "the recording reached recognition");
@@ -1645,7 +1706,7 @@ mod tests {
         *fake.broken_model.lock().unwrap() = Some(msg::FAIL_VRAM);
         let d = Driver::new(tokio::runtime::Handle::current(), fake.clone());
         d.handle_event(start(Source::Phone));
-        d.push_audio(&[0u8; 3200]);
+        d.push_audio(&[1u8; 3200]);
         d.handle_event(Event::AudioEnd);
         settle(&fake, "error").await;
         assert_eq!(fake.published.lock().unwrap().last().unwrap().reply_key, Some("m28.err_vram_short"));
@@ -1716,6 +1777,7 @@ mod tests {
         *fake.transcript.lock().unwrap() = "lock computer".into();
         let d = Driver::with_confirm_timeout(tokio::runtime::Handle::current(), fake.clone(), 60);
         d.handle_event(start(Source::Phone));
+        d.push_audio(&[1u8; 3200]);
         d.handle_event(Event::AudioEnd);
         settle(&fake, "confirm").await;
         settle(&fake, "done").await;
@@ -1729,6 +1791,7 @@ mod tests {
         *fake.transcript.lock().unwrap() = "lock computer".into();
         let d = Driver::new(tokio::runtime::Handle::current(), fake.clone());
         d.handle_event(start(Source::Phone));
+        d.push_audio(&[1u8; 3200]);
         d.handle_event(Event::AudioEnd);
         settle(&fake, "confirm").await;
         d.handle_event(Event::Confirm { id: "00112233aabbccdd".into(), yes: true });

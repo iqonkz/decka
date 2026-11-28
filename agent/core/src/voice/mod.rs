@@ -141,7 +141,22 @@ struct Session {
     id: String,
     next_seq: u64,
     bytes: usize,
+    /// The loudest sample so far: 0 tells a silent microphone from a quiet speaker.
+    peak: u16,
     recent: VecDeque<Instant>,
+}
+
+impl Session {
+    fn sound(&self) -> String {
+        format!("{} chunks, {} ms of sound, peak {}", self.next_seq, self.bytes * 1000 / BYTES_PER_SECOND, self.peak)
+    }
+}
+
+/// T32.H.3: one step of a phone request in `voice.log`, under the start of its id. Numbers and reasons only.
+fn note(id: &str, step: &str) {
+    if !cfg!(test) {
+        mic::log_line(&format!("phone voice {}: {step}", id.get(..8).unwrap_or("?")));
+    }
 }
 
 #[derive(Default)]
@@ -151,9 +166,16 @@ struct Hub {
     sessions: HashMap<String, Session>,
     /// The device and id of the latest request: only it may answer its confirmation.
     owner: Option<(String, String)>,
-    /// The page each phone shows (`page_shown`), and the phone that said it or spoke last. Kept while the agent runs:
-    /// a phone says its page again after every connection.
-    pages: HashMap<String, String>,
+    /// The latest refusal that was logged: a refused recording keeps sending chunks, one line says it.
+    refused: Option<(String, String)>,
+}
+
+/// The page each phone shows (`page_shown`), and the phone that said it or spoke last. Kept while the agent runs: a phone
+/// says its page again after every connection. It has a lock of its own: the pipeline asks for the page while the hub,
+/// under its lock, is handing it a message of a phone (T32.H.3: with one lock the first `voice_start` never returned).
+#[derive(Default)]
+struct Pages {
+    shown: HashMap<String, String>,
     latest: Option<String>,
 }
 
@@ -161,6 +183,8 @@ struct Hub {
 #[derive(Clone, Default)]
 pub struct VoiceHub {
     inner: Arc<Mutex<Hub>>,
+    /// Taken after `inner` when both are needed, never before it.
+    pages: Arc<Mutex<Pages>>,
 }
 
 fn valid_id(id: &str) -> bool {
@@ -183,6 +207,24 @@ impl VoiceHub {
     }
 
     pub fn start(&self, device: &str, id: &str) -> Result<(), VoiceError> {
+        let result = self.begin(device, id);
+        match &result {
+            Ok(()) => note(id, "start"),
+            Err(e) => self.note_refusal(id, e),
+        }
+        result
+    }
+
+    fn note_refusal(&self, id: &str, e: &VoiceError) {
+        let now = (id.to_string(), e.message());
+        let mut hub = self.inner.lock().unwrap();
+        if hub.refused.as_ref() != Some(&now) {
+            note(id, &format!("refused: {}", now.1));
+            hub.refused = Some(now);
+        }
+    }
+
+    fn begin(&self, device: &str, id: &str) -> Result<(), VoiceError> {
         if !valid_id(id) {
             return Err(VoiceError::BadId);
         }
@@ -192,16 +234,27 @@ impl VoiceHub {
             return Err(VoiceError::Busy);
         }
         sink.start(id)?;
-        if hub.pages.contains_key(device) {
-            hub.latest = Some(device.to_string());
+        {
+            let mut pages = self.pages.lock().unwrap();
+            if pages.shown.contains_key(device) {
+                pages.latest = Some(device.to_string());
+            }
         }
-        hub.sessions.insert(device.to_string(), Session { id: id.to_string(), next_seq: 0, bytes: 0, recent: VecDeque::new() });
+        hub.sessions.insert(device.to_string(), Session { id: id.to_string(), next_seq: 0, bytes: 0, peak: 0, recent: VecDeque::new() });
         hub.owner = Some((device.to_string(), id.to_string()));
         Ok(())
     }
 
     /// One chunk (`seq` counts from 0 and grows by exactly 1). A gap cancels the recording; more than 30 s is cut and ended.
     pub fn chunk(&self, device: &str, id: &str, seq: u64, data: &str, now: Instant) -> Result<(), VoiceError> {
+        let result = self.take_chunk(device, id, seq, data, now);
+        if let Err(e) = &result {
+            self.note_refusal(id, e);
+        }
+        result
+    }
+
+    fn take_chunk(&self, device: &str, id: &str, seq: u64, data: &str, now: Instant) -> Result<(), VoiceError> {
         let mut hub = self.inner.lock().unwrap();
         let sink = hub.sink.clone().ok_or(VoiceError::Off)?;
         let session = hub.sessions.get_mut(device).filter(|s| s.id == id).ok_or(VoiceError::BadChunk("no such recording"))?;
@@ -233,9 +286,12 @@ impl VoiceHub {
         let last = pcm.len() >= room;
         pcm.truncate(room);
         session.bytes += pcm.len();
+        session.peak = pcm.chunks_exact(2).map(|s| i16::from_le_bytes([s[0], s[1]]).unsigned_abs()).fold(session.peak, u16::max);
         sink.audio(&pcm);
         if last {
-            hub.sessions.remove(device);
+            if let Some(s) = hub.sessions.remove(device) {
+                note(id, &format!("cut at the limit: {}", s.sound()));
+            }
             sink.end(id);
         }
         Ok(())
@@ -245,7 +301,9 @@ impl VoiceHub {
     pub fn end(&self, device: &str, id: &str) {
         let mut hub = self.inner.lock().unwrap();
         if hub.sessions.get(device).is_some_and(|s| s.id == id) {
-            hub.sessions.remove(device);
+            if let Some(s) = hub.sessions.remove(device) {
+                note(id, &format!("end: {}", s.sound()));
+            }
             if let Some(sink) = hub.sink.clone() {
                 sink.end(id);
             }
@@ -256,6 +314,7 @@ impl VoiceHub {
         let mut hub = self.inner.lock().unwrap();
         let ours = hub.sessions.get(device).is_some_and(|s| s.id == id) || hub.owner.as_ref().is_some_and(|o| o.0 == device && o.1 == id);
         if ours {
+            note(id, "cancelled by the phone");
             hub.sessions.remove(device);
             if let Some(sink) = hub.sink.clone() {
                 sink.cancel(id);
@@ -275,23 +334,25 @@ impl VoiceHub {
 
     /// The page a phone shows now. Another phone that turns pages while one is recording does not take the lead.
     pub fn page_shown(&self, device: &str, page_id: &str) {
-        let mut hub = self.inner.lock().unwrap();
-        hub.pages.insert(device.to_string(), page_id.to_string());
+        let hub = self.inner.lock().unwrap();
+        let mut pages = self.pages.lock().unwrap();
+        pages.shown.insert(device.to_string(), page_id.to_string());
         if hub.sessions.is_empty() || hub.sessions.contains_key(device) {
-            hub.latest = Some(device.to_string());
+            pages.latest = Some(device.to_string());
         }
     }
 
     /// The page of the phone that spoke or turned a page last (`None`: no phone has said one).
     pub fn shown_page(&self) -> Option<String> {
-        let hub = self.inner.lock().unwrap();
-        hub.latest.as_ref().and_then(|d| hub.pages.get(d)).cloned()
+        let pages = self.pages.lock().unwrap();
+        pages.latest.as_ref().and_then(|d| pages.shown.get(d)).cloned()
     }
 
     /// The phone went away: its recording is cancelled.
     pub fn device_gone(&self, device: &str) {
         let mut hub = self.inner.lock().unwrap();
         if let Some(s) = hub.sessions.remove(device) {
+            note(&s.id, &format!("the phone went away: {}", s.sound()));
             if let Some(sink) = hub.sink.clone() {
                 sink.cancel(&s.id);
             }
@@ -370,6 +431,46 @@ mod tests {
         assert_eq!(h.shown_page().as_deref(), Some("games"));
         h.set_sink(None);
         assert_eq!(h.shown_page().as_deref(), Some("games"), "turning voice off keeps the pages");
+    }
+
+    /// T32.H.3: the pipeline asks for the page of the phone from inside every call the hub makes into it.
+    #[test]
+    fn a_pipeline_that_asks_for_the_page_does_not_block_the_hub() {
+        struct Asks(VoiceHub);
+        impl PhoneSink for Asks {
+            fn start(&self, _: &str) -> Result<(), VoiceError> {
+                self.0.shown_page();
+                Ok(())
+            }
+            fn audio(&self, _: &[u8]) {
+                self.0.shown_page();
+            }
+            fn end(&self, _: &str) {
+                self.0.shown_page();
+            }
+            fn cancel(&self, _: &str) {
+                self.0.shown_page();
+            }
+            fn confirm(&self, _: &str, _: bool) {
+                self.0.shown_page();
+            }
+        }
+        let (done, wait) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let h = VoiceHub::new();
+            h.set_sink(Some(Arc::new(Asks(h.clone()))));
+            h.page_shown("d1", "home");
+            h.start("d1", ID).unwrap();
+            h.chunk("d1", ID, 0, &chunk_data(3200), Instant::now()).unwrap();
+            h.end("d1", ID);
+            h.confirm("d1", ID, true);
+            h.cancel("d1", ID);
+            h.start("d1", ID).unwrap();
+            h.device_gone("d1");
+            h.set_sink(None);
+            done.send(()).unwrap();
+        });
+        assert_eq!(wait.recv_timeout(Duration::from_secs(5)), Ok(()), "a call into the pipeline never returned");
     }
 
     #[test]

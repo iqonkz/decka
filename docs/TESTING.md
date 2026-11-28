@@ -47,8 +47,12 @@ $api = (Get-Content .tmp\cfg\config.json -Raw | ConvertFrom-Json).apiToken
 | `press <host:port> <token> <actionId>` | the `press_result` object |
 | `watch <host:port> <token> <seconds>` | every `patch` received in that time, one per line |
 | `raw <host:port> <file.json> [token]` | with a token: `hello` first; then sends the file as one frame and prints the first non-`patch` answer |
+| `voice <host:port> <token> <file.wav>` | sends the sound as the phone does (16 kHz mono WAV) and prints each state of the request; exit 0 on `done`, 1 on an error, 2 on a question (answered no) |
 
 Pass JSON through files: Windows PowerShell 5.1 mangles quotes in arguments of native programs.
+
+**The whole chain of a phone voice request** (needs the voice package on this PC; nothing is launched):
+`cargo build -p decka-core --example phone_voice`, then `node tools/phone-voice-check.mjs <voice package folder> <say.wav>` with a WAV that asks to open a program. It starts a copy with a settings folder of its own, sends the sound as the phone and expects `DRY voice launch`. Use a copy (or hard links) of `%LOCALAPPDATA%\Decka\ai`, not the folder a running Decka uses.
 
 ## 3. Release checklist (manual)
 

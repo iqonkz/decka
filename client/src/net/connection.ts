@@ -41,6 +41,8 @@ export interface ConnectionDeps {
   onPressResult: (msg: PressResultMsg) => void;
   onStatus: (conn: ConnStatus, via: "usb" | "lan" | null) => void;
   onFatal: (code: FatalCode) => void;
+  /** T32.H.3: the PC refused a `voice_*` message. */
+  onVoiceError?: (code: ErrorCode, message: string) => void;
 }
 
 /** Handshake state of the open socket (one per attempt). */
@@ -406,8 +408,10 @@ export class Connection {
         break;
       }
       case "error":
+        // T32.H.3: a refusal of a `voice_*` message names the voice; it is for the recording.
+        if (!msg.fatal && msg.message?.includes("voice")) this.d.onVoiceError?.(msg.code, msg.message);
         // A refusal of the piece (not found, busy, bad offset) is for the download, not for the connection.
-        if (!msg.fatal && this.apkWait) this.failApk({ code: msg.code });
+        else if (!msg.fatal && this.apkWait) this.failApk({ code: msg.code });
         else this.onError(msg.code);
         break;
       default:

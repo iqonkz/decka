@@ -6,6 +6,7 @@
 //   node tools/ws-smoke.mjs press <host:port> <token> <actionId>
 //   node tools/ws-smoke.mjs watch <host:port> <token> <seconds>
 //   node tools/ws-smoke.mjs raw   <host:port> <file.json> [token]
+//   node tools/ws-smoke.mjs voice <host:port> <token> <file.wav>    (16 kHz mono PCM16, sent as a phone would)
 // Each command prints one JSON line (watch: one per patch) and exits 0; errors go to stderr with exit code 1.
 // `pair` prints { deviceId, token } where `token` is "<deviceId>.<token>": a v2 login needs the device id, and the
 // other commands take this combined value, so `(pair ...).token` keeps working in the H-* macros.
@@ -132,6 +133,62 @@ function connect(hostPort) {
   });
 }
 
+/** The samples of a 16 kHz mono 16-bit WAV file. */
+export function pcmOfWav(file) {
+  if (file.toString("latin1", 0, 4) !== "RIFF" || file.toString("latin1", 8, 12) !== "WAVE") throw new Error("not a WAV file");
+  let format = null;
+  for (let at = 12; at + 8 <= file.length; ) {
+    const name = file.toString("latin1", at, at + 4);
+    const size = file.readUInt32LE(at + 4);
+    if (name === "fmt ") format = [file.readUInt16LE(at + 8), file.readUInt16LE(at + 10), file.readUInt32LE(at + 12), file.readUInt16LE(at + 22)];
+    if (name === "data") {
+      if (String(format) !== "1,1,16000,16") throw new Error("the WAV file must be PCM, mono, 16000 Hz, 16 bit");
+      return file.subarray(at + 8, at + 8 + size);
+    }
+    at += 8 + size + (size % 2);
+  }
+  throw new Error("the WAV file has no data");
+}
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** One voice request as the phone makes it (PROTOCOL.md 3): the sound in chunks, then the state of the PC. Prints
+ * one line per state; exit 0 when the PC says "done", 1 on an error, 2 when it asks to confirm (answered "no"). */
+async function voice(conn, welcome, file) {
+  if (welcome.state?.vars?.["voice.ready"] !== true) throw new Error("voice control is off on the PC");
+  const pcm = pcmOfWav(readFileSync(file));
+  const id = Buffer.from(crypto.getRandomValues(new Uint8Array(8))).toString("hex");
+  conn.send({ t: "voice_start", id });
+  // The portions of the phone: 2880 bytes, so that a message fits one frame of 4096 bytes.
+  for (let seq = 0, at = 0; at < pcm.length; seq++, at += 2880) {
+    conn.send({ t: "voice_chunk", id, seq, data: Buffer.from(pcm.subarray(at, at + 2880)).toString("base64") });
+    // At most 15 chunks per second are taken.
+    await sleep(75);
+  }
+  conn.send({ t: "voice_end", id });
+  const ended = Date.now();
+  const ping = setInterval(() => conn.send({ t: "ping", ts: Date.now() }), 5000);
+  let last = "";
+  try {
+    while (Date.now() - ended < 180000) {
+      const msg = await conn.next(180000);
+      if (msg.t === "error") throw new Error(`server error ${msg.code}: ${msg.message}`);
+      if (msg.t !== "patch" || msg.section !== "voice" || msg.value?.id !== id) continue;
+      const { state, heard, replyKey, reply } = msg.value;
+      const line = JSON.stringify({ state, heard, replyKey, reply });
+      if (line !== last) process.stdout.write(`${JSON.stringify({ ms: Date.now() - ended, state, heard, replyKey, reply })}\n`);
+      last = line;
+      if (state === "confirm") conn.send({ t: "voice_confirm", id, yes: false });
+      if (state === "done" || state === "error" || state === "confirm") {
+        return process.stdout.write("", () => process.exit(state === "done" ? 0 : state === "error" ? 1 : 2));
+      }
+    }
+    throw new Error("the PC did not finish the request");
+  } finally {
+    clearInterval(ping);
+  }
+}
+
 /** Next message that is not a patch; a server `error` becomes an exception. */
 async function nextReply(conn, { allowError = false } = {}) {
   for (;;) {
@@ -177,7 +234,7 @@ function need(args, n, usage) {
 
 async function main() {
   const [cmd, hostPort, ...args] = process.argv.slice(2);
-  if (!cmd || !hostPort) throw new Error("usage: ws-smoke.mjs pair|state|press|watch|raw <host:port> ...");
+  if (!cmd || !hostPort) throw new Error("usage: ws-smoke.mjs pair|state|press|watch|raw|voice <host:port> ...");
 
   if (cmd === "pair") {
     need(args, 1, "pair <host:port> <code>");
@@ -225,6 +282,12 @@ async function main() {
     }
     process.stdout.write(lines.map((l) => `${l}\n`).join(""), () => process.exit(0));
     return;
+  }
+
+  if (cmd === "voice") {
+    need(args, 2, "voice <host:port> <token> <file.wav>");
+    const conn = await connect(hostPort);
+    return voice(conn, await hello(conn, args[0]), args[1]);
   }
 
   if (cmd === "raw") {

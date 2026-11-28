@@ -7,6 +7,7 @@ import {
   useVoiceRecording,
   useVoiceState,
   voiceReady,
+  VOICE_FAILED_EVENT,
   VOICE_MIC_DENIED_EVENT,
   VOICE_NO_SPEECH_EVENT,
   type VoiceInfo,
@@ -110,9 +111,17 @@ export default function VoiceFab() {
       window.clearTimeout(timer);
       timer = window.setTimeout(() => setNotice(null), 6000);
     };
+    // T32.H.3: whatever else stops a request says why.
+    const onFailed = (e: Event) => {
+      setNotice({ state: "error", replyKey: (e as CustomEvent<string>).detail });
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => setNotice(null), 6000);
+    };
     window.addEventListener(VOICE_NO_SPEECH_EVENT, onNoSpeech);
     window.addEventListener(VOICE_MIC_DENIED_EVENT, onDenied);
+    window.addEventListener(VOICE_FAILED_EVENT, onFailed);
     return () => {
+      window.removeEventListener(VOICE_FAILED_EVENT, onFailed);
       window.removeEventListener(VOICE_NO_SPEECH_EVENT, onNoSpeech);
       window.removeEventListener(VOICE_MIC_DENIED_EVENT, onDenied);
       window.clearTimeout(timer);
@@ -203,8 +212,10 @@ export default function VoiceFab() {
     e.stopPropagation();
   };
 
+  // Without the button (switched off, or the PC not ready) a key of the grid can still start a request: what becomes of
+  // it must be seen.
   if (!isReady || !enabled) {
-    return null;
+    return <VoiceBubble state={notice ?? (recording || voiceState?.source === "phone" ? voiceState : null)} fabPos={pos} />;
   }
 
   const isGlass = theme === "glass";
