@@ -286,7 +286,7 @@ impl VoiceHub {
         let last = pcm.len() >= room;
         pcm.truncate(room);
         session.bytes += pcm.len();
-        session.peak = pcm.chunks_exact(2).map(|s| i16::from_le_bytes([s[0], s[1]]).unsigned_abs()).fold(session.peak, u16::max);
+        session.peak = pcm.as_chunks::<2>().0.iter().map(|s| i16::from_le_bytes(*s).unsigned_abs()).fold(session.peak, u16::max);
         sink.audio(&pcm);
         if last {
             if let Some(s) = hub.sessions.remove(device) {
