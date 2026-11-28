@@ -1,6 +1,7 @@
 import { memo } from "react";
 import type { Page } from "@decka/shared";
 import { Grid } from "@decka/ui";
+import { useAppState } from "../store/store";
 import { useDeckProps } from "./useDeckProps";
 
 /**
@@ -9,7 +10,8 @@ import { useDeckProps } from "./useDeckProps";
  */
 function DeckBridge({ page, grid }: { page: Page; grid: { cols: number; rows: number } }) {
   const props = useDeckProps();
-  return <Grid page={page} grid={grid} {...props} />;
+  const orientation = useAppState((s) => s.state?.layout.display.orientation);
+  return <Grid page={page} grid={grid} orientation={orientation} {...props} />;
 }
 
 export default memo(DeckBridge);

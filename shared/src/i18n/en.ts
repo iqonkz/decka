@@ -525,6 +525,8 @@ export const en = {
   "grid.button": "Grid {cols} × {rows}",
   "grid.size": "Grid size",
   "grid.cell": "{c} by {r}",
+  "layout.portrait_misfit.one": "Does not fit upright: {count} item",
+  "layout.portrait_misfit.other": "Does not fit upright: {count} items",
   "grid.keys.one": "{count} key",
   "grid.keys.other": "{count} keys",
   "chord.recording": "Press the keys…",

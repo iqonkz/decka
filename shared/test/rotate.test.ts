@@ -16,6 +16,17 @@ const countItems = (l: LayoutFile) => l.pages.reduce((n, p) => n + p.items.lengt
 const button = (id: string, x: number, y: number): LayoutItem => ({ id, kind: "button", x, y, w: 1, h: 1, actionId: "lock" });
 
 describe("rotateLayout (DATA_MODEL.md 3.7)", () => {
+  test.each(["layout.default.json", "layout.popup.json", "layout.context.json"])("%s turned upright and back keeps every item on its page", async (file) => {
+    const { default: raw } = (await import(`../fixtures/${file}`)) as { default: unknown };
+    const start = raw as LayoutFile;
+    const back = ok(rotateLayout(ok(rotateLayout(start, "portrait")).layout, "landscape")).layout;
+    expect(back.grid).toEqual(start.grid);
+    expect(back.pages.map((p) => [p.id, p.items.map((i) => i.id).sort()])).toEqual(start.pages.map((p) => [p.id, p.items.map((i) => i.id).sort()]));
+    // Folders and "back" keys point where they pointed.
+    const links = (l: LayoutFile) => l.pages.flatMap((p) => p.items.flatMap((i) => (i.kind === "button" && (i.navigate ?? i.popup) ? [`${i.id}>${i.navigate ?? ""}${i.popup ?? ""}`] : []))).sort();
+    expect(links(back)).toEqual(links(start));
+  });
+
   /** Two 3x5 widgets on an 8x5 page: in 5x8 the second has no room (3 + 3 > 5 columns, 5 + 5 > 8 rows). */
   const twoTall = (id: string, name: string, extra: Partial<Page> = {}): Page => ({
     id,

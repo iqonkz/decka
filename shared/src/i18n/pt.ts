@@ -523,6 +523,8 @@ export const pt: Dictionary = {
   "grid.button": "Grade {cols} × {rows}",
   "grid.size": "Tamanho da grade",
   "grid.cell": "{c} por {r}",
+  "layout.portrait_misfit.one": "Não cabe na vertical: {count} item",
+  "layout.portrait_misfit.other": "Não cabem na vertical: {count} itens",
   "grid.keys.one": "{count} tecla",
   "grid.keys.other": "{count} teclas",
   "chord.recording": "Pressione as teclas…",

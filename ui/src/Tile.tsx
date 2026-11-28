@@ -139,7 +139,7 @@ export default function Tile({ item }: { item: LayoutItem }) {
   return (
     <div className={panel ? "tile panel" : "tile"} data-tile="" data-tile-id={item.id} style={{ gridColumn: `${item.x + 1} / span ${item.w}`, gridRow: `${item.y + 1} / span ${item.h}` }}>
       {showHeader && (
-        <div className="tile-head">
+        <div className={item.w === 1 ? "tile-head narrow" : "tile-head"}>
           <Icon icon={headerIcon} size={14} />
           <span className="tile-head-title">{headerTitle}</span>
         </div>

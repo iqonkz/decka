@@ -523,6 +523,8 @@ export const fr: Dictionary = {
   "grid.button": "Grille {cols} × {rows}",
   "grid.size": "Taille de la grille",
   "grid.cell": "{c} sur {r}",
+  "layout.portrait_misfit.one": "Ne tient pas en mode portrait : {count} élément",
+  "layout.portrait_misfit.other": "Ne tiennent pas en mode portrait : {count} éléments",
   "grid.keys.one": "{count} touche",
   "grid.keys.other": "{count} touches",
   "chord.recording": "Appuyez sur les touches…",

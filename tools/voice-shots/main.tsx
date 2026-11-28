@@ -225,6 +225,31 @@ if (scene === "deck" || scene === "settings") {
       { id: "rr-c", kind: "clock", x: 4, y: 0, w: 2, h: 2 },
       { id: "rr-v", kind: "volume", x: 0, y: 2, w: 6, h: 1, upAction: "vol-up", downAction: "vol-down", muteAction: "vol-mute" },
     ];
+  } else if (pack === "g-landscape" || pack === "g-portrait") {
+    // T32.G: the editor with what broke in it - template keys, a folder, "back", the dot of a recording, narrow widgets.
+    const upright = pack === "g-portrait";
+    const grid = upright ? { cols: 4, rows: 7 } : { cols: 7, rows: 4 };
+    (fx.layout as Record<string, unknown>).grid = grid;
+    if (upright) fx.layout.display = { ...fx.layout.display, orientation: "portrait" };
+    const { default: canva } = await import("../../shared/templates/canva.json");
+    const items: Record<string, unknown>[] = [
+      { id: "g-weather", kind: "weather", x: 0, y: 0, w: 2, h: 1 },
+      { id: "g-folder", kind: "button", x: 2, y: 0, w: 1, h: 1, label: "Dev", icon: "lucide:globe", popup: "more" },
+      { id: "g-back", kind: "button", x: 3, y: 0, w: 1, h: 1, navigate: "$back" },
+      { id: "g-volume", kind: "volume", x: grid.cols - 1, y: 1, w: 1, h: 3, upAction: "vol-up", downAction: "vol-down", muteAction: "vol-mute" },
+      { id: "g-rec", kind: "button", x: 0, y: 1, w: 1, h: 1, label: "REC", icon: "lucide:video", actionId: "obs-record", bind: { var: "obs.recording", states: { true: { color: "#dc2626" } } } },
+    ];
+    const free: [number, number][] = [];
+    for (let y = 0; y < grid.rows; y++) {
+      for (let x = 0; x < grid.cols; x++) {
+        if (!items.some((i) => x >= (i.x as number) && x < (i.x as number) + ((i.w as number) ?? 1) && y >= (i.y as number) && y < (i.y as number) + ((i.h as number) ?? 1))) free.push([x, y]);
+      }
+    }
+    canva.items.slice(0, free.length - 3).forEach((item, n) => items.push({ ...item, id: `g-c${n}`, x: free[n]![0], y: free[n]![1] }));
+    fx.layout.pages = [
+      { id: "main", name: "Main", items },
+      { id: "more", name: "More", popup: true, items: [] },
+    ] as never;
   } else if (pack === "m24-empty-deck") {
     fx.layout.pages = [{ id: "main", name: "Main", items: [] }];
   } else {

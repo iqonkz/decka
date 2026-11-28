@@ -295,6 +295,18 @@ function m31Shots() {
   return out;
 }
 
+/** T32.G: the editor of the keys in both orientations and the four looks, and the phone with the same page. */
+function editorShots() {
+  const out = {};
+  for (const theme of ["amoled", "studio", "material", "glass"]) {
+    out[`editor-landscape-${theme}`] = [{ w: 1360, h: 900, scale: 1 }, `scene=settings&theme=${theme}&lang=ru&scheme=dark&pack=g-landscape&go=layout`];
+    out[`editor-portrait-${theme}`] = [{ w: 1360, h: 900, scale: 1 }, `scene=settings&theme=${theme}&lang=ru&scheme=dark&pack=g-portrait&go=layout`];
+  }
+  out["editor-phone-portrait"] = [{ w: 412, h: 915, scale: 2 }, "scene=deck&theme=studio&lang=ru&pack=g-portrait"];
+  out["editor-phone-landscape"] = [{ w: 915, h: 412, scale: 2 }, "scene=deck&theme=studio&lang=ru&pack=g-landscape"];
+  return out;
+}
+
 function m32Shots() {
   const pc = { w: 1100, h: 1000, scale: 1 };
   const port = { w: 390, h: 844, scale: 2 };
@@ -363,6 +375,7 @@ const SHOTS = {
   ...audit2Shots(),
   ...m31Shots(),
   ...m32Shots(),
+  ...editorShots(),
   "phone-idle": [PHONE, "scene=phone&state=idle"],
   "phone-listening": [PHONE, "scene=phone&state=listening"],
   "phone-done": [PHONE, "scene=phone&state=done&heard=turn+the+volume+up&reply=Done"],
@@ -372,7 +385,7 @@ const only = process.env.ONLY?.split(",");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // The screens kept as baselines: the settings pages and the island in both schemes, the phone, its themes and the M31 screens.
-const BASELINE = /^(a2-|m31-|m32-|theme-|phone-)/;
+const BASELINE = /^(a2-|m31-|m32-|editor-|theme-|phone-)/;
 
 // Two runs must give the same picture: a fixed clock and random numbers, and animation frames that stop
 // after a second and a half of virtual time.

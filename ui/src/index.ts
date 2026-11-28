@@ -20,7 +20,7 @@ export { useLanguage, useApplyLanguage } from "./useLanguage";
 export { frostPosition } from "./wallpaper";
 export { default as PopupGrid, popupBounds, popupSize, type PopupGridProps } from "./PopupGrid";
 export { DeckEnvContext, useDeckEnv, EMPTY_DATA, type DeckData, type DeckCallbacks, type DeckEnv } from "./deckEnv";
-export { gridMetrics, spanSize, type GridMetrics } from "./gridMetrics";
+export { cellRect, deckGeometry, gridMetrics, spanSize, turnedMisfits, type GridMetrics } from "./gridMetrics";
 export { DeckMetricsContext, useDeckMetrics } from "./metricsContext";
 export { pressErrorTitle, resolveLook } from "./look";
 export { applyTheme, resolveTheme, THEMES, WALLPAPERS, DEFAULT_ACCENT, type ResolvedTheme } from "./theme/theme";

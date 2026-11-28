@@ -27,17 +27,19 @@ function legacyCaption(label: string): string | undefined {
 
 /**
  * A caption the catalog wrote, in the language of the phone. A key made from the catalog (`catalogId`) follows it until the
- * user renames it; a layout without `catalogId` is matched by the text alone. Any other caption stays as it is.
+ * user renames it, and takes it when it has none; a layout without `catalogId` is matched by the text alone. Any other
+ * caption stays as it is - also those of the page templates, whose words only look like the catalog's ("Group").
  */
 export function localizedButtonLabel(item: Pick<ButtonItem, "actionId" | "catalogId">, label: string | undefined): string | undefined {
-  // A key without a caption stays without one: that is the user's choice too.
+  const made = item.catalogId === undefined ? undefined : CATALOG.items.find((c) => c.id === item.catalogId);
+  // T32.G: a key of the catalog without a caption of its own is named by the catalog; an emptied caption stays empty.
+  if (label === undefined) return made ? pickText(made.label, getLanguage()) : undefined;
   if (!label) return label;
   if (item.catalogId !== undefined) {
-    const made = CATALOG.items.find((c) => c.id === item.catalogId);
     const caption = made && captionTiers(made).flat().find((c) => wrote(c, fold(label)));
     return caption ? pickText(caption, getLanguage()) : label;
   }
-  return item.actionId ? (legacyCaption(fold(label)) ?? label) : label;
+  return item.actionId && !item.actionId.startsWith("tpl-") ? (legacyCaption(fold(label)) ?? label) : label;
 }
 
 /** Base look of the button with `bind.states[String(var)]` laid over it (DATA_MODEL.md 3.4). */

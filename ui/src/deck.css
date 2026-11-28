@@ -31,6 +31,12 @@
   min-width: 0;
 }
 .tile-head svg { flex: none; }
+/* T32.G: a widget one cell wide shows its sign only: two letters and dots say nothing. */
+.tile-head.narrow .tile-head-title { display: none; }
+@container tile (max-width: 119px) {
+  .tile-head .tile-head-title { display: none; }
+}
+.key-dots-sign { display: block; }
 .tile-head-title {
   font-size: 12px;
   font-weight: 600;

@@ -523,6 +523,8 @@ export const zh: Dictionary = {
   "grid.button": "网格 {cols} × {rows}",
   "grid.size": "网格大小",
   "grid.cell": "{c} × {r}",
+  "layout.portrait_misfit.one": "竖屏放不下：{count} 个元素",
+  "layout.portrait_misfit.other": "竖屏放不下：{count} 个元素",
   "grid.keys.one": "{count} 个按键",
   "grid.keys.other": "{count} 个按键",
   "chord.recording": "请按下按键…",

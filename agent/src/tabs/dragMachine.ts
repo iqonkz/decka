@@ -58,18 +58,18 @@ export function dragReducer(state: DragState, event: DragEvent): { state: DragSt
 
 /**
  * The grid cell under a point of the overlay, or `null` outside the grid. `px`/`py` are measured from the overlay's
- * top-left corner in screen pixels; `scale` is the preview scale, `offsetX/Y`, `side` and `gap` are `gridMetrics` of the phone.
+ * top-left corner in screen pixels; `scale` is the preview scale, the rest is `gridMetrics` of the phone (without `cellW`
+ * and `cellH` the cells are squares of `side`).
  */
 export function cellFromPoint(
   px: number,
   py: number,
-  m: { offsetX: number; offsetY: number; side: number; gap: number },
+  m: { offsetX: number; offsetY: number; side: number; gap: number; cellW?: number; cellH?: number },
   scale: number,
   grid: { cols: number; rows: number },
 ): { x: number; y: number } | null {
-  const step = m.side + m.gap;
-  const fx = (px / scale - m.offsetX) / step;
-  const fy = (py / scale - m.offsetY) / step;
+  const fx = (px / scale - m.offsetX) / ((m.cellW ?? m.side) + m.gap);
+  const fy = (py / scale - m.offsetY) / ((m.cellH ?? m.side) + m.gap);
   const x = Math.floor(fx);
   const y = Math.floor(fy);
   if (x < 0 || y < 0 || x >= grid.cols || y >= grid.rows) return null;

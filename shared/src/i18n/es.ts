@@ -523,6 +523,8 @@ export const es: Dictionary = {
   "grid.button": "Cuadrícula {cols} × {rows}",
   "grid.size": "Tamaño de la cuadrícula",
   "grid.cell": "{c} por {r}",
+  "layout.portrait_misfit.one": "No cabe en vertical: {count} elemento",
+  "layout.portrait_misfit.other": "No caben en vertical: {count} elementos",
   "grid.keys.one": "{count} tecla",
   "grid.keys.other": "{count} teclas",
   "chord.recording": "Pulsa las teclas…",

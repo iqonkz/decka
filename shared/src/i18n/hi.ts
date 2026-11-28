@@ -523,6 +523,8 @@ export const hi: Dictionary = {
   "grid.button": "ग्रिड {cols} × {rows}",
   "grid.size": "ग्रिड का आकार",
   "grid.cell": "{c} × {r}",
+  "layout.portrait_misfit.one": "पोर्ट्रेट में नहीं समाता: {count} आइटम",
+  "layout.portrait_misfit.other": "पोर्ट्रेट में नहीं समाते: {count} आइटम",
   "grid.keys.one": "{count} कुंजी",
   "grid.keys.other": "{count} कुंजियाँ",
   "chord.recording": "कुंजियाँ दबाएँ…",

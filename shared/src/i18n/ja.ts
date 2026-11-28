@@ -523,6 +523,8 @@ export const ja: Dictionary = {
   "grid.button": "グリッド {cols} × {rows}",
   "grid.size": "グリッドのサイズ",
   "grid.cell": "{c} × {r}",
+  "layout.portrait_misfit.one": "縦向きに収まりません：{count}個",
+  "layout.portrait_misfit.other": "縦向きに収まりません：{count}個",
   "grid.keys.one": "{count} 個のキー",
   "grid.keys.other": "{count} 個のキー",
   "chord.recording": "キーを押してください…",

@@ -224,8 +224,13 @@ export default function Key({ actionId, onTap, onPressed, confirm, icon, label, 
         </div>
       )}
       {dots && (
-        <div className={full ? "key-chevron on-disc" : "key-chevron"} style={full ? { ...discStyle(side, 0.12), letterSpacing: "0.05em" } : { top: 8, right: 8, fontSize: 14, letterSpacing: "0.05em" }} aria-hidden="true">
-          •••
+        <div className={full ? "key-chevron on-disc" : "key-chevron"} style={full ? discStyle(side, 0.14) : { top: 8, right: 8 }} aria-hidden="true">
+          {/* Drawn, not typed: three bullets of a font are wider than the disc and hung over the corner (T32.G). */}
+          <svg className="key-dots-sign" width={Math.round(full ? 0.13 * side : 14)} height={Math.round(full ? 0.13 * side : 14) / 3} viewBox="0 0 12 4" fill="currentColor">
+            <circle cx="2" cy="2" r="1.4" />
+            <circle cx="6" cy="2" r="1.4" />
+            <circle cx="10" cy="2" r="1.4" />
+          </svg>
         </div>
       )}
       {liveDot && <span className="rec-dot key-live" style={{ top: 8, left: 8, width: 8, height: 8 }} aria-hidden="true" />}

@@ -23,7 +23,7 @@ export function pageForApp<P extends { apps?: string[] }>(pages: readonly P[] | 
  */
 export default function Context({ item }: { item: ContextItem }) {
   const { pages, focusApp } = useDeckEnv();
-  const { side, gap } = useDeckMetrics();
+  const { side, gap, cellW, cellH } = useDeckMetrics();
   const page = pageForApp(pages, focusApp);
   const keys = useMemo(() => (page ? contextKeys(page.items).slice(0, item.w * item.h) : []), [page, item.w, item.h]);
 
@@ -35,11 +35,11 @@ export default function Context({ item }: { item: ContextItem }) {
       </div>
     );
   }
-  // The keys keep the size of the main grid keys, so the widget is a small grid of them.
+  // The keys have the cells of the main grid, so the widget is a small grid of them.
   return (
     <div
       className="context"
-      style={{ display: "grid", gridTemplateColumns: `repeat(${item.w}, ${side}px)`, gridTemplateRows: `repeat(${item.h}, ${side}px)`, gap }}
+      style={{ display: "grid", gridTemplateColumns: `repeat(${item.w}, ${cellW ?? side}px)`, gridTemplateRows: `repeat(${item.h}, ${cellH ?? side}px)`, gap }}
       aria-label={page.name}
     >
       {keys.map((k, i) => (

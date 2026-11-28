@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { t, type InstalledApp, type LayoutFile, type LayoutItem, type Page, type SetPreview, type SysStats } from "@decka/shared";
-import { EMPTY_DATA, GlassLayer, Grid, gridMetrics, resolveTheme, type DeckData } from "@decka/ui";
+import { t, tn, type InstalledApp, type LayoutFile, type LayoutItem, type Page, type SetPreview, type SysStats, type WeatherInfo } from "@decka/shared";
+import { cellRect, deckGeometry, EMPTY_DATA, GlassLayer, Grid, resolveTheme, turnedMisfits, type DeckData } from "@decka/ui";
 import { call } from "../ipc";
 import { cellFromPoint, type DragPayload } from "./dragMachine";
 import { dragSize, itemAt, resizeItem } from "./editorOps";
@@ -14,6 +14,15 @@ import { useIconPreviews } from "./useIconPreviews";
 
 /** Plausible numbers so that widgets in the preview look alive. */
 const SAMPLE_SYS: SysStats = { uptimeSec: 86_400, cpu: 23, mem: { usedMb: 9800, totalMb: 16000 }, disks: [{ mount: "C:", usedGb: 310, totalGb: 476 }], net: { rxKbps: 820, txKbps: 140 } };
+/** T32.G: with a volume and a forecast the widgets of the preview have the shape they have on the phone. */
+const SAMPLE_VARS = { "audio.volume": 42, "audio.muted": false };
+const SAMPLE_WEATHER: WeatherInfo = {
+  place: "Almaty",
+  units: "metric",
+  updatedAt: 0,
+  current: { temp: 7, code: 2, isDay: true, wind: 8 },
+  daily: [{ date: "2026-11-28", min: 2, max: 9, code: 2 }, { date: "2026-11-29", min: 1, max: 6, code: 3 }, { date: "2026-11-30", min: 0, max: 5, code: 61 }],
+};
 
 interface Props {
   layout: LayoutFile;
@@ -53,7 +62,9 @@ export default function EditorCanvas({ layout, page, selectedId, availableWidth,
   // A portrait deck is a tall screen: the preview is kept within an editor-sized height (DESIGN.md 2.2).
   const view = phoneView(layout.display.orientation);
   const scale = fitScale(view, availableWidth, PORTRAIT_MAX_HEIGHT);
-  const m = useMemo(() => gridMetrics({ w: view.w, h: view.h }, grid.cols, grid.rows), [view.w, view.h, grid.cols, grid.rows]);
+  // T32.G: the same geometry as the phone, so that the dotted cells, the drop highlight and the tiles meet to the pixel.
+  const m = useMemo(() => deckGeometry(view, grid, layout.display.orientation).metrics, [view, grid, layout.display.orientation]);
+  const misfits = layout.display.orientation === "portrait" ? 0 : turnedMisfits(page.items, grid);
   const overlayRef = useRef<HTMLDivElement>(null);
   const resize = useRef<{ id: string; x0: number; y0: number } | null>(null);
   const theme = resolveTheme(layout.display);
@@ -65,18 +76,15 @@ export default function EditorCanvas({ layout, page, selectedId, availableWidth,
   const appPages = useMemo(() => layout.pages.filter((p) => p.apps !== undefined && p.apps.length > 0), [layout.pages]);
   const previewApp = appPages[0]?.apps?.[0] ?? null;
   const data: DeckData = useMemo(
-    () => ({ ...EMPTY_DATA, online: true, preview: true, sys: SAMPLE_SYS, icons, pages: appPages, focusApp: previewApp, ...(keyFace !== undefined ? { keyFace } : {}), ...(keyLabels !== undefined ? { keyLabels } : {}) }),
+    () => ({ ...EMPTY_DATA, online: true, preview: true, sys: SAMPLE_SYS, vars: SAMPLE_VARS, weather: SAMPLE_WEATHER, icons, pages: appPages, focusApp: previewApp, ...(keyFace !== undefined ? { keyFace } : {}), ...(keyLabels !== undefined ? { keyLabels } : {}) }),
     [icons, appPages, previewApp, keyFace, keyLabels],
   );
   const noop = useMemo(() => ({ onPress: () => Promise.resolve(), onPressError: () => {}, onNavigate: () => {}, onDismiss: () => {} }), []);
 
-  const px = (cell: number, offset: number) => (offset + cell * (m.side + m.gap)) * scale;
-  const rect = (x: number, y: number, w: number, h: number) => ({
-    left: px(x, m.offsetX),
-    top: px(y, m.offsetY),
-    width: (w * m.side + (w - 1) * m.gap) * scale,
-    height: (h * m.side + (h - 1) * m.gap) * scale,
-  });
+  const rect = (x: number, y: number, w: number, h: number) => {
+    const r = cellRect(m, x, y, w, h);
+    return { left: r.left * scale, top: r.top * scale, width: r.width * scale, height: r.height * scale };
+  };
 
   cellAtRef.current = (clientX, clientY) => {
     const box = overlayRef.current?.getBoundingClientRect();
@@ -118,18 +126,24 @@ export default function EditorCanvas({ layout, page, selectedId, availableWidth,
     const r = resize.current;
     resize.current = null;
     if (!r || r.id !== item.id) return;
-    const cell = (m.side + m.gap) * scale;
-    const size = dragSize(item, grid, Math.round((e.clientX - r.x0) / cell), Math.round((e.clientY - r.y0) / cell));
+    const size = dragSize(item, grid, Math.round((e.clientX - r.x0) / ((m.cellW + m.gap) * scale)), Math.round((e.clientY - r.y0) / ((m.cellH + m.gap) * scale)));
     const next = resizeItem(page, grid, item.id, size.w, size.h);
     if (next) onChangePage(next);
   };
 
   return (
+    <div className="editor-canvas-column">
+    {misfits > 0 && (
+      <div className="editor-misfit" role="status">
+        <PhIcon name="warning" size={16} />
+        <span>{tn("layout.portrait_misfit", misfits)}</span>
+      </div>
+    )}
     <div className="editor-canvas">
       <PhoneFrame availableWidth={availableWidth} display={layout.display} maxHeight={PORTRAIT_MAX_HEIGHT}>
         {theme.theme === "glass" && <GlassLayer wallpaper={theme.wallpaper} art={undefined} />}
         <div style={{ position: "absolute", inset: 0 }}>
-          <Grid page={preview ?? page} grid={grid} data={data} animate {...noop} />
+          <Grid page={preview ?? page} grid={grid} orientation={layout.display.orientation} data={data} animate {...noop} />
         </div>
       </PhoneFrame>
       <div ref={overlayRef} className="editor-overlay" style={{ width: view.w * scale, height: view.h * scale }}>
@@ -175,6 +189,7 @@ export default function EditorCanvas({ layout, page, selectedId, availableWidth,
           );
         })}
       </div>
+    </div>
     </div>
   );
 }

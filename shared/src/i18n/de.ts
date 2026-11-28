@@ -523,6 +523,8 @@ export const de: Dictionary = {
   "grid.button": "Raster {cols} × {rows}",
   "grid.size": "Rastergröße",
   "grid.cell": "{c} mal {r}",
+  "layout.portrait_misfit.one": "Passt hochkant nicht: {count} Element",
+  "layout.portrait_misfit.other": "Passt hochkant nicht: {count} Elemente",
   "grid.keys.one": "{count} Taste",
   "grid.keys.other": "{count} Tasten",
   "chord.recording": "Tasten drücken…",

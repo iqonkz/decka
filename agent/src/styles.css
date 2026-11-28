@@ -1607,6 +1607,9 @@ textarea:focus {
 .seg { flex-wrap: wrap; }
 .tab span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wizard-lang { align-self: flex-end; }
+/* T32.G: the warning over the editor when a page cannot keep its shape on an upright phone. */
+.editor-canvas-column { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; }
+.editor-misfit { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 12px; font-size: var(--font-sm); color: var(--warn); background: color-mix(in srgb, var(--warn) 12%, transparent); }
 .orientation-cards { display: flex; gap: 12px; flex-wrap: wrap; }
 .orientation-cards .style-card { min-width: 150px; align-items: center; }
 .phone-silhouette { color: var(--accent); }

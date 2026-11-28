@@ -523,6 +523,8 @@ export const kk: Dictionary = {
   "grid.button": "Тор {cols} × {rows}",
   "grid.size": "Тор өлшемі",
   "grid.cell": "{c} × {r}",
+  "layout.portrait_misfit.one": "Кітап бағдарына сыймайды: {count} элемент",
+  "layout.portrait_misfit.other": "Кітап бағдарына сыймайды: {count} элемент",
   "grid.keys.one": "{count} батырма",
   "grid.keys.other": "{count} батырма",
   "chord.recording": "Пернелерді басыңыз…",
