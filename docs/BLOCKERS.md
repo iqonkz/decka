@@ -364,3 +364,30 @@ Not a stop, a gap for the architect. DESIGN 4.17 (`Auto`) hides the lyrics windo
 PROTOCOL.md одновременно требует кадр клиента ≤ 4096 байт и разрешает `voice_chunk` до 3200 байт звука; такое сообщение занимает около 4,35 КБ, и ПК рвал соединение на первой порции. Лимиты ПК не менялись: телефон теперь шлёт порции по 2880 байт (11 в секунду). Приложение на телефоне нужно обновить до 0.70.1 — старое по-прежнему теряет связь.
 
 Дописать архитектору: PROTOCOL — `voice_chunk` ≤ 2880 байт с телефона; DATA_MODEL §12 — ответы `voice.reply.no_audio`, `off_on_pc`, `busy`, `pc_refused`, `offline_pc`; словарная подсказка распознаванию и сравнение глагола по звучанию (T32.H.2).
+
+## 2026-11-28 · T33.1: голоса Piper на sherpa-onnx 2.0.3 не работают без фонемизатора под GPL — пункт не сделан
+
+**Факт.** В `sherpa-onnx` 2.0.x убрали встроенный espeak-ng. Проверено на пакете `sherpa-onnx-v2.0.3-win-x64-shared-MT-Release` (SHA-256 `1d2414ac…`, совпал) и голосе `vits-piper-ru_RU-denis-medium` (SHA-256 `efa4c18e…`, совпал): `--vits-data-dir is deprecated and ignored in sherpa-onnx >= v2.0.0 … Please use GenerationConfig.phoneme_codepoints with an external phonemizer (e.g. piper_phonemize)`, затем `no lexicon, and no frontend available`. То же поле помечено в `c-api.h`. `piper_phonemize` работает через espeak-ng (GPL-3.0). Это противоречит условиям T33.1 (sherpa-onnx 2.0.3, Apache-2.0, программу под GPL не брать). Замену движка или набора моделей исполнитель не выбирает.
+
+**Голоса, прошедшие проверку лицензии** (модель и данные: CC0 или CC-BY 4.0; дообучены от баз CC0 `rdh` или CC-BY 4.0 `hifi_tts_92`, казахские обучены с нуля). Размер — архив из релиза `tts-models`, источник — карточки `rhasspy/piper-voices`. Всем, кроме китайского (`phoneme_type: pinyin`, не проверялся), нужен espeak-ng.
+
+| Голос | Язык | Лицензия | Архив, МБ |
+|---|---|---|---|
+| ru_RU-denis-medium, ru_RU-dmitri-medium | ru | CC0 | 67 каждый |
+| kk_KZ-raya-x_low, kk_KZ-iseke-x_low | kk | CC-BY 4.0 (ISSAI) | 27 каждый |
+| en_US-joe-medium | en | CC0 | 67 |
+| en_GB-alba-medium | en | CC-BY 4.0 | 67 |
+| de_DE-thorsten-medium | de | CC0 | 67 |
+| fr_FR-siwis-medium | fr | CC-BY 4.0 | 67 |
+| es_ES-davefx-medium | es | CC0 | 67 |
+| pt_BR-faber-medium, pt_BR-jeff-medium | pt | CC0 | 67 каждый |
+| zh_CN-chaowen-medium | zh | CC0 | 60 |
+| — | ar | `clartts` (CC-BY 4.0) нет в сборке для sherpa; `kareem` — «See URL» | — |
+| — | hi | только CC BY-NC-SA и собственная лицензия IIT Madras | — |
+| — | ja | голосов нет | — |
+
+**Решения за архитектором:** (1) разрешить espeak-ng (GPL-3.0) отдельной программой-фонемизатором: скачивается по требованию, не связывается с кодом Decka, указывается в NOTICE; (2) только модели со словарём без espeak (китайский, английский) — без русского и казахского; (3) остаться на голосах Windows.
+
+**Что сделано в 0.71.0 без Piper:** T33.2 целиком (для голоса Windows), скорость 0,8–1,3 и фразы «быстрее / медленнее / смени голос». Из `ag-m33` убраны элементы Piper: «скачивание» и «Послушать» были имитацией, настройки лежали в `localStorage` (ключ удаляется при старте). Тесты T33.1 (лицензии манифеста, выбор движка) не писались: движка и голосов в манифесте нет.
+
+Дописать архитектору: PROTOCOL / DATA_MODEL — `speechPercent` в `voice_set` и статусе, `speech_voice`, `read_aloud {op}`, ответы `voice.reply.speed*`, `voice_changed`, `one_voice`; правила текста для речи (`voice/spoken`).

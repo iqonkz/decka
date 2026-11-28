@@ -4,6 +4,14 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+### Added
+- **Answers read aloud sound like speech** (the voices of Windows): markup, code, emoji and addresses are left out, every line ends with a pause; in Russian, English and Kazakh numbers, percent, degrees, times, dates and units are said in words.
+- **Speed of speech** in Voice settings (0.80–1.30, 1.05 by default), and by voice: "speak faster", "speak slower", "change the voice" (another installed Windows voice of the language).
+- A text in Russian is read by a Russian voice when one is installed, also from "read aloud" and the button of an answer.
+
+### Not in this version
+- The neural voice (Piper): the speech engine Decka uses no longer carries the part that turns text into sounds, and the free replacement is under another licence. The decision is open.
+
 ## 0.70.1 — 2026-11-28
 
 ### Fixed
