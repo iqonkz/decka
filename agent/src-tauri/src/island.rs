@@ -443,6 +443,15 @@ impl Fake {
 
 /// A step of the loop: the levels go out at every step (20 times a second), the state at every second one (T32.F).
 const LEVEL_MS: u64 = 50;
+/// T34.4: the bar shows its level every second step only (10 times a second), because each change draws the whole window;
+/// the compact island takes it every fourth step, as often as its orb is drawn (5 times a second).
+fn level_due(mode: Mode, tick: u64) -> bool {
+    match mode {
+        Mode::Tab => tick % 2 == 0,
+        Mode::Compact => tick % 4 == 0,
+        _ => true,
+    }
+}
 /// The song is looked at this often (in steps), and at once when its next line begins.
 const SAMPLE_EVERY: u64 = 10;
 
@@ -488,7 +497,7 @@ pub fn setup(app: &AppHandle, agent: &Agent) -> Arc<Shared> {
                 let level = Fake::level(started.elapsed());
                 loop_shared.set_voice(Some(json!({ "state": "listening", "level": (level * 100.0).round() / 100.0, "id": "test", "source": "pc" })));
             }
-            if shown {
+            if shown && level_due(live_mode, tick) {
                 if let Some(window) = app.get_webview_window(LABEL) {
                     let music = match (&fake, live_music) {
                         (_, false) => 0.0,
@@ -675,5 +684,12 @@ mod tests {
     fn window_is_the_panel_plus_the_shadow_margin() {
         assert_eq!(window_size(520.0, 230.0), (568.0, 278.0));
         assert_eq!(window_size(160.0, 24.0), (208.0, 72.0));
+    }
+
+    /// T34.4: in a second (20 steps) ten levels go to the bar, five to the compact island, twenty to the open one.
+    #[test]
+    fn the_small_states_get_fewer_levels() {
+        let sent = |mode| (1..=20u64).filter(|t| level_due(mode, *t)).count();
+        assert_eq!((sent(Mode::Tab), sent(Mode::Compact), sent(Mode::Expanded), sent(Mode::Orb)), (10, 5, 20, 20));
     }
 }

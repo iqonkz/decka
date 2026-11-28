@@ -98,6 +98,8 @@ function formatRecTimer(sec: number): string {
 
 /** T32.F: the orb of the island draws this often - every frame of a transparent window costs the whole window. */
 const ORB_FPS = 15;
+/** T34.4: the small orb of the compact island, which is on show for as long as a song plays. */
+export const COMPACT_ORB_FPS = 5;
 const FLIP_MS = 320;
 const COPY_FEEDBACK_MS = 1200;
 const ORB_SOLO_SIZE = 140;
@@ -450,7 +452,7 @@ export default function Island({
                 level={hasSong ? lyrics?.musicLevel : voice?.level}
                 levelSource={levels && (() => (hasSong ? levels.get().music : levels.get().voice))}
                 particleCount={hasSong ? 160 : undefined}
-                maxFps={ORB_FPS}
+                maxFps={COMPACT_ORB_FPS}
                 amplitude={hasSong ? 0.6 : 1}
                 staticFrame={!voiceActive && !lyrics?.playing}
               />
