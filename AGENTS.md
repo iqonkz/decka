@@ -17,6 +17,7 @@ This repository is planned by an architect; you implement tasks from `docs/TASKS
 - Do not copy code from other projects.
 - Visible UI strings only through `t()` with all 11 dictionaries in `shared/src/i18n`; code comments in English.
 - Shell is Windows PowerShell 5.1: `;` not `&&`, `curl.exe` not `curl`.
+- UI tasks without a backend yet: call the IPC commands named in the task through typed wrappers; if the command is missing, show the error state. Never persist settings or lists in `localStorage`/`sessionStorage`, never hardcode data that the PC owns (voice/model lists, sizes, licenses — they come from the manifest via IPC), never swallow errors with an empty `.catch(() => {})`. Demo data belongs only in `tools/voice-shots`.
 
 ## How to work
 - Work in your own branch / worktree (for voice: `git worktree add ..\Decka-ag -b ag-voice`), never on `main`.
