@@ -68,7 +68,7 @@ fn main() -> Result<(), String> {
             padded.resize(padded.len() + 32_000, 0);
             let (mut gate, mut cooldown, mut here, mut stopped) = (Gate::default(), Cooldown::default(), 0u32, 0u32);
             // The end of the sound: the last chunk above the quietest threshold of the gate.
-            let end = padded.chunks(1600).enumerate().filter(|(_, c)| calculate_rms(c) / 32768.0 >= GATE_MIN).map(|(i, _)| i as i64).last().unwrap_or(0);
+            let end = padded.chunks(1600).rposition(|c| calculate_rms(c) / 32768.0 >= GATE_MIN).map_or(0, |i| i as i64);
             let mut first = None;
             let start = std::time::Instant::now();
             for (i, chunk) in padded.chunks(1600).enumerate() {

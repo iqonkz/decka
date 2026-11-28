@@ -4,6 +4,18 @@ All notable changes to Decka. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+### Added
+- **"Stop" by voice**: while Decka reads aloud, "stop" («стоп», «хватит») or "Decka" ends the reading in about half a second to a second; the island says how to stop. It needs the downloaded files of the wake word; without them Esc stops the reading. Esc now also stops a spoken answer.
+- Voice settings show what the wake word is doing: listening, silence from the microphone, or why it is not running.
+
+### Fixed
+- **The wake word "Decka" works again in a quiet room.** A headset that sends pure silence was taken for a broken microphone, and after a few such failures the word stayed off until its setting was changed. A microphone that really fails is now tried again every minute.
+- **A translation that cannot be put over the selection is shown on the island** (six lines, scrolled, for 20 seconds) with "Copied — paste with Ctrl+V".
+
+### Changed
+- The island with music uses less processor: about 5 % of one core as a bar, 9 % in the compact view (the target of 7 % is not reached), 11 % expanded.
+- "Change the voice" with a single Windows voice of the language says where to add another one.
+
 ## 0.71.0 — 2026-11-28
 
 ### Added

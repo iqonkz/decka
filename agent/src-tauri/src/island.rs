@@ -447,8 +447,8 @@ const LEVEL_MS: u64 = 50;
 /// the compact island takes it every fourth step, as often as its orb is drawn (5 times a second).
 fn level_due(mode: Mode, tick: u64) -> bool {
     match mode {
-        Mode::Tab => tick % 2 == 0,
-        Mode::Compact => tick % 4 == 0,
+        Mode::Tab => tick.is_multiple_of(2),
+        Mode::Compact => tick.is_multiple_of(4),
         _ => true,
     }
 }
