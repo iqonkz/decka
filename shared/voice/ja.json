@@ -784,6 +784,36 @@
       "patterns": [
         "{name}の電気を消して"
       ]
+    },
+    {
+      "tool": "read_aloud",
+      "args": {
+        "op": "faster"
+      },
+      "patterns": [
+        "もっと速く話して",
+        "速く読んで"
+      ]
+    },
+    {
+      "tool": "read_aloud",
+      "args": {
+        "op": "slower"
+      },
+      "patterns": [
+        "もっとゆっくり話して",
+        "遅く読んで"
+      ]
+    },
+    {
+      "tool": "read_aloud",
+      "args": {
+        "op": "change_voice"
+      },
+      "patterns": [
+        "声を変えて",
+        "別の声にして"
+      ]
     }
   ],
   "guide_controls": {

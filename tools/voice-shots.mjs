@@ -315,6 +315,18 @@ function m32Shots() {
   };
 }
 
+function m33Shots() {
+  const pc = { w: 1100, h: 900, scale: 1 };
+  return {
+    "m33-reply-windows-light": [pc, "scene=settings&theme=studio&lang=ru&scheme=light&go=voice&replyMode=windows&scroll=reply"],
+    "m33-reply-windows-dark": [pc, "scene=settings&theme=studio&lang=ru&scheme=dark&go=voice&replyMode=windows&scroll=reply"],
+    "m33-reply-piper-empty-light": [pc, "scene=settings&theme=studio&lang=ru&scheme=light&go=voice&replyMode=piper-empty&scroll=reply"],
+    "m33-reply-piper-empty-dark": [pc, "scene=settings&theme=studio&lang=ru&scheme=dark&go=voice&replyMode=piper-empty&scroll=reply"],
+    "m33-reply-piper-ready-light": [pc, "scene=settings&theme=studio&lang=ru&scheme=light&go=voice&replyMode=piper-ready&scroll=reply"],
+    "m33-reply-piper-ready-dark": [pc, "scene=settings&theme=studio&lang=ru&scheme=dark&go=voice&replyMode=piper-ready&scroll=reply"],
+  };
+}
+
 const SHOTS = {
   "theme-amoled": [DECK, "scene=deck&theme=amoled"],
   "theme-studio": [DECK, "scene=deck&theme=studio"],
@@ -334,6 +346,7 @@ const SHOTS = {
   ...t24Shots(),
   ...m26Shots(),
   ...m27Shots(),
+  ...m33Shots(),
   "t29-tab-notch-light": [{ w: 320, h: 64, scale: 2 }, "scene=island&mode=tab&voiceOff=1&songScene=lyrics&musicLevel=0.72&theme=light"],
   "t29-tab-notch-dark": [{ w: 320, h: 64, scale: 2 }, "scene=island&mode=tab&voiceOff=1&songScene=lyrics&musicLevel=0.72&theme=dark"],
   "t29-dictation-orb-light": [{ w: 320, h: 120, scale: 2 }, "scene=island&dictation=1&state=error&error=1&lang=ru&theme=light"],

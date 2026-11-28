@@ -256,6 +256,16 @@ if (scene === "deck" || scene === "settings") {
     if (q.get("wizard") !== null) localStorage.removeItem("decka.wizard.done.v1");
     else localStorage.setItem("decka.wizard.done.v1", "1");
     localStorage.setItem("decka.editor.tips.v1", "1");
+    const replyMode = q.get("replyMode");
+    if (replyMode === "windows") {
+      localStorage.setItem("decka.replyvoice.v1", JSON.stringify({ engine: "windows", voiceId: "ru_RU-irina-medium", speed: 1.05, downloadedIds: [] }));
+    } else if (replyMode === "piper-empty") {
+      localStorage.setItem("decka.replyvoice.v1", JSON.stringify({ engine: "piper", voiceId: "ru_RU-irina-medium", speed: 1.05, downloadedIds: [] }));
+    } else if (replyMode === "piper-ready") {
+      localStorage.setItem("decka.replyvoice.v1", JSON.stringify({ engine: "piper", voiceId: "ru_RU-irina-medium", speed: 1.15, downloadedIds: ["ru_RU-irina-medium"] }));
+    } else {
+      localStorage.removeItem("decka.replyvoice.v1");
+    }
     const schemeParam = q.get("scheme");
     if (schemeParam === "light" || schemeParam === "dark") {
       fx.layout.display = { ...fx.layout.display, windowTheme: schemeParam };
@@ -346,6 +356,7 @@ if (scene === "deck" || scene === "settings") {
     const { default: App } = await import("../../agent/src/App");
     root.render(<App />);
     if (q.get("go")) setTimeout(() => window.dispatchEvent(new CustomEvent("decka:go", { detail: { tab: q.get("go") } })), 500);
+    if (q.get("scroll") === "reply") setTimeout(() => document.getElementById("voice-reply-voice")?.scrollIntoView({ block: "center" }), 650);
     if (q.get("scroll") === "wake") setInterval(() => document.getElementById("voice-wake-word")?.scrollIntoView({ block: "center" }), 200);
     if (q.get("wizard") !== null) setTimeout(() => window.dispatchEvent(new CustomEvent("decka:run-setup", { detail: { step: Number(q.get("wizard")) } })), 450);
   }

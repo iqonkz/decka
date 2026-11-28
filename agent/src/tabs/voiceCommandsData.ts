@@ -208,6 +208,8 @@ export const VOICE_COMMAND_GROUPS: CommandGroup[] = [
       { tool: "read_aloud", ru: "Озвучь этот абзац", en: "Read this paragraph aloud", badges: ["no_ai"] },
       { tool: "read_aloud", ru: "Останови чтение вслух", en: "Stop reading aloud", badges: ["no_ai"] },
       { tool: "read_aloud", ru: "Прочитай ответ голосом", en: "Speak the reply aloud", badges: ["no_ai"] },
+      { tool: "read_aloud", ru: "Говори быстрее / говори медленнее", en: "Speak faster / speak slower", badges: ["no_ai"] },
+      { tool: "read_aloud", ru: "Смени голос", en: "Change the voice", badges: ["no_ai"] },
     ],
   },
 ];

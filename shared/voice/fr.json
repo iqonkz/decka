@@ -799,6 +799,36 @@
       "patterns": [
         "éteins la lumière de {name}"
       ]
+    },
+    {
+      "tool": "read_aloud",
+      "args": {
+        "op": "faster"
+      },
+      "patterns": [
+        "parle plus vite",
+        "lis plus vite"
+      ]
+    },
+    {
+      "tool": "read_aloud",
+      "args": {
+        "op": "slower"
+      },
+      "patterns": [
+        "parle moins vite",
+        "lis moins vite"
+      ]
+    },
+    {
+      "tool": "read_aloud",
+      "args": {
+        "op": "change_voice"
+      },
+      "patterns": [
+        "change de voix",
+        "autre voix"
+      ]
     }
   ],
   "guide_controls": {

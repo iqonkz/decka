@@ -873,6 +873,36 @@
       "patterns": [
         "{name} की लाइट बंद करें"
       ]
+    },
+    {
+      "tool": "read_aloud",
+      "args": {
+        "op": "faster"
+      },
+      "patterns": [
+        "तेज़ बोलो",
+        "जल्दी पढ़ो"
+      ]
+    },
+    {
+      "tool": "read_aloud",
+      "args": {
+        "op": "slower"
+      },
+      "patterns": [
+        "धीरे बोलो",
+        "आराम से पढ़ो"
+      ]
+    },
+    {
+      "tool": "read_aloud",
+      "args": {
+        "op": "change_voice"
+      },
+      "patterns": [
+        "आवाज़ बदलो",
+        "दूसरी आवाज़"
+      ]
     }
   ],
   "guide_controls": {

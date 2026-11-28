@@ -957,6 +957,37 @@
       "patterns": [
         "выключи свет в {name}"
       ]
+    },
+    {
+      "tool": "read_aloud",
+      "args": {
+        "op": "faster"
+      },
+      "patterns": [
+        "говори быстрее",
+        "читай быстрее"
+      ]
+    },
+    {
+      "tool": "read_aloud",
+      "args": {
+        "op": "slower"
+      },
+      "patterns": [
+        "говори медленнее",
+        "читай медленнее"
+      ]
+    },
+    {
+      "tool": "read_aloud",
+      "args": {
+        "op": "change_voice"
+      },
+      "patterns": [
+        "смени голос",
+        "поменяй голос",
+        "другой голос"
+      ]
     }
   ],
   "guide_controls": {

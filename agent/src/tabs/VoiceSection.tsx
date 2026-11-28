@@ -15,6 +15,8 @@ import GuidesBlock from "./GuidesBlock";
 import ModesBlock from "./ModesBlock";
 import VoiceCheckPanel from "./VoiceCheckPanel";
 import WakeWordBlock from "./WakeWordBlock";
+import ReplyVoiceBlock from "./ReplyVoiceBlock";
+import type { ReplyVoiceConfig } from "./voiceM33Types";
 import { voiceErrorCopy, type VoiceCheckStep } from "./voiceM28Types";
 import { Group, PageHeader, Row, SectionHeader } from "../ui/SettingsGroup";
 import Disclosure from "../ui/Disclosure";
@@ -83,6 +85,8 @@ export interface VoiceSectionProps {
   previewModes?: WorkMode[];
   openAdvanced?: boolean;
   initialWakeWord?: WakeStatus;
+  initialReplyVoice?: Partial<ReplyVoiceConfig>;
+  initialReplyDownloadPct?: number | null;
 }
 
 /** Settings window: More → Voice (DATA_MODEL.md 12.7 + M27/M28 UI). */
@@ -99,6 +103,8 @@ export default function VoiceSection({
   previewModes,
   openAdvanced,
   initialWakeWord,
+  initialReplyVoice,
+  initialReplyDownloadPct,
 }: VoiceSectionProps = {}) {
   const [status, setStatus] = useState<VoiceStatus>(initialStatus ?? DEFAULT_STATUS);
   const [modelTier, setModelTier] = useState<VoiceModelTier>(initialModelTier ?? (initialStatus?.model ?? "standard"));
@@ -522,6 +528,7 @@ export default function VoiceSection({
       )}
 
       {status.state !== "off" && status.state !== "downloading" && <VoiceCheckPanel initialSteps={initialCheckSteps} />}
+      <ReplyVoiceBlock initialConfig={initialReplyVoice} initialDownloadPct={initialReplyDownloadPct} />
       <WakeWordBlock initialStatus={initialWakeWord} />
       <DictationBlock />
       <MemoryBlock />

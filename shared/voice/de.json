@@ -791,6 +791,36 @@
       "patterns": [
         "licht in {name} ausschalten"
       ]
+    },
+    {
+      "tool": "read_aloud",
+      "args": {
+        "op": "faster"
+      },
+      "patterns": [
+        "sprich schneller",
+        "lies schneller"
+      ]
+    },
+    {
+      "tool": "read_aloud",
+      "args": {
+        "op": "slower"
+      },
+      "patterns": [
+        "sprich langsamer",
+        "lies langsamer"
+      ]
+    },
+    {
+      "tool": "read_aloud",
+      "args": {
+        "op": "change_voice"
+      },
+      "patterns": [
+        "stimme wechseln",
+        "andere stimme"
+      ]
     }
   ],
   "guide_controls": {
