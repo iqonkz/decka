@@ -162,7 +162,7 @@ mod engine {
     }
 
     impl Spotter {
-        pub fn open(library: &Path, model: &Path, keywords: &str) -> Result<Spotter, String> {
+        pub fn open(library: &Path, model: &Path, keywords: &str, active_paths: i32) -> Result<Spotter, String> {
             let api = load(library)?;
             let path = |name: &str| {
                 let p = model.join(name);
@@ -193,8 +193,8 @@ mod engine {
                     nemo_ctc: null(),
                     t_one_ctc: null(),
                 },
-                max_active_paths: 4,
-                num_trailing_blanks: 2,
+                max_active_paths: active_paths,
+                num_trailing_blanks: 1,
                 keywords_score: 1.0,
                 keywords_threshold: 0.25,
                 keywords_file: null(),
@@ -273,7 +273,7 @@ mod engine {
             while std::io::stdin().read(&mut buf).is_ok_and(|n| n > 0) {}
             std::process::exit(0);
         });
-        let mut spotter = match Spotter::open(&args.library, &args.model, &wake::keywords(args.sensitivity)) {
+        let mut spotter = match Spotter::open(&args.library, &args.model, &wake::keywords(args.sensitivity), args.sensitivity.active_paths()) {
             Ok(s) => s,
             Err(e) => {
                 say(&format!("error {e}"));
@@ -343,7 +343,7 @@ mod engine {
         #[test]
         fn a_missing_library_is_an_error_not_a_crash() {
             let dir = tempfile::tempdir().unwrap();
-            let e = Spotter::open(&dir.path().join("sherpa-onnx-c-api.dll"), dir.path(), "x\n").err().unwrap();
+            let e = Spotter::open(&dir.path().join("sherpa-onnx-c-api.dll"), dir.path(), "x\n", 4).err().unwrap();
             assert!(e.contains("missing"), "{e}");
         }
     }

@@ -45,7 +45,12 @@ fn main() -> Result<(), String> {
         return Err("usage: wake_eval <dll> <model folder> <low|medium|high> <positives> <negatives>".into());
     };
     let sensitivity = Sensitivity::parse(level).ok_or("sensitivity: low, medium or high")?;
-    let mut spotter = Spotter::open(&std::path::absolute(library).map_err(|e| e.to_string())?, Path::new(model), &keywords(sensitivity))?;
+    // `DECKA_WAKE_KEYWORDS`: a file with other keyword lines, to compare spellings and thresholds.
+    let words = match std::env::var("DECKA_WAKE_KEYWORDS") {
+        Ok(file) => std::fs::read_to_string(&file).map_err(|e| format!("{file}: {e}"))?,
+        Err(_) => keywords(sensitivity),
+    };
+    let mut spotter = Spotter::open(&std::path::absolute(library).map_err(|e| e.to_string())?, Path::new(model), &words, sensitivity.active_paths())?;
     for (folder, positive) in [(positives, true), (negatives, false)] {
         let mut files: Vec<_> = std::fs::read_dir(folder).map_err(|e| format!("{folder}: {e}"))?.flatten().map(|e| e.path()).filter(|p| p.extension().is_some_and(|x| x.eq_ignore_ascii_case("wav"))).collect();
         files.sort();

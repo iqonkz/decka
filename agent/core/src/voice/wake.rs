@@ -31,21 +31,22 @@ pub enum Sensitivity {
 }
 
 impl Sensitivity {
-    /// The probability the keyword must reach: larger is more careful.
-    pub fn threshold(self) -> f32 {
+    /// The spellings of the word in the pieces of the model, each with the bonus of the search and the threshold it must
+    /// reach (larger is more careful). Measured on synthetic speech (T32.F, BLOCKERS 2026-11-28). The last one, "deka",
+    /// is also an ordinary Russian word and has to be clearer.
+    pub fn spellings(self) -> &'static [(&'static str, f32, f32)] {
         match self {
-            Sensitivity::Low => 0.35,
-            Sensitivity::Medium => 0.22,
-            Sensitivity::High => 0.12,
+            Sensitivity::Low => &[("▁де к ка", 2.0, 0.20), ("▁д э ка", 2.0, 0.25), ("▁д э к ка", 2.0, 0.20), ("▁де ка", 1.5, 0.50)],
+            Sensitivity::Medium => &[("▁де к ка", 3.0, 0.08), ("▁д э ка", 2.0, 0.12), ("▁д э к ка", 3.0, 0.08), ("▁де ка", 2.0, 0.35)],
+            Sensitivity::High => &[("▁де к ка", 2.0, 0.12), ("▁д э ка", 2.0, 0.12), ("▁д э к ка", 2.0, 0.12), ("▁де ка", 2.0, 0.27)],
         }
     }
 
-    /// The bonus of the keyword during the search.
-    pub fn score(self) -> f32 {
+    /// How many guesses the search keeps: more of them hear the word more often, also when nobody said it.
+    pub fn active_paths(self) -> i32 {
         match self {
-            Sensitivity::Low => 1.0,
-            Sensitivity::Medium => 1.5,
-            Sensitivity::High => 2.0,
+            Sensitivity::High => 8,
+            Sensitivity::Low | Sensitivity::Medium => 4,
         }
     }
 
@@ -90,15 +91,7 @@ impl WakeSettings {
 /// The keywords in the form of the spotter: the pieces of the model (its SentencePiece vocabulary), then the score, the
 /// threshold and the name. "Hey Decka" and "Decka" contain the same word, so they need no line of their own.
 pub fn keywords(s: Sensitivity) -> String {
-    ["▁де к ка", "▁д э ка", "▁д э к ка", "▁де ка"]
-        .iter()
-        .enumerate()
-        .map(|(i, pieces)| {
-            // The last spelling is also a Russian word ("deka"): it has to be clearer.
-            let threshold = if i == 3 { (s.threshold() + 0.15).min(0.9) } else { s.threshold() };
-            format!("{pieces} :{:.2} #{threshold:.2} @decka{i}\n", s.score())
-        })
-        .collect()
+    s.spellings().iter().enumerate().map(|(i, (pieces, score, threshold))| format!("{pieces} :{score:.2} #{threshold:.2} @decka{i}\n")).collect()
 }
 
 /// Where the files of the wake word are inside the folder of the AI package.
@@ -304,11 +297,15 @@ mod tests {
     #[test]
     fn a_higher_sensitivity_lowers_the_threshold_of_every_spelling() {
         let (low, high) = (Sensitivity::Low, Sensitivity::High);
-        assert!(low.threshold() > high.threshold() && low.score() < high.score());
+        // The ordinary word is the careful spelling at every level, and the low level asks more of it than the high one.
+        for s in [low, Sensitivity::Medium, high] {
+            let spellings = s.spellings();
+            assert!(spellings[..3].iter().all(|x| x.2 < spellings[3].2), "{}", s.name());
+        }
+        assert!(low.spellings()[3].2 > high.spellings()[3].2 && low.active_paths() < high.active_paths());
         let lines: Vec<String> = keywords(Sensitivity::Medium).lines().map(str::to_string).collect();
         assert_eq!(lines.len(), 4);
-        assert_eq!(lines[0], "▁де к ка :1.50 #0.22 @decka0");
-        assert!(lines[3].contains("#0.37"), "the ordinary word is stricter: {}", lines[3]);
+        assert_eq!(lines[0], "▁де к ка :3.00 #0.08 @decka0");
         assert_eq!(Sensitivity::parse("high"), Some(high));
         assert_eq!(Sensitivity::parse("max"), None);
     }
